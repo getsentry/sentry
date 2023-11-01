@@ -20,16 +20,16 @@ class SampleScheduleDataTest(APITestCase):
         mock_now.return_value = datetime(2023, 10, 26, 12, 32)
 
         expected_ticks = [
-            datetime(2023, 10, 26, 13, 00),
-            datetime(2023, 10, 26, 14, 00),
-            datetime(2023, 10, 26, 15, 00),
-            datetime(2023, 10, 26, 16, 00),
-            datetime(2023, 10, 26, 17, 00),
+            int(datetime(2023, 10, 26, 13, 00).timestamp()),
+            int(datetime(2023, 10, 26, 14, 00).timestamp()),
+            int(datetime(2023, 10, 26, 15, 00).timestamp()),
+            int(datetime(2023, 10, 26, 16, 00).timestamp()),
+            int(datetime(2023, 10, 26, 17, 00).timestamp()),
         ]
 
         response = self.get_success_response(
             self.organization.slug,
-            qs_params={"numTicks": 5, "scheduleType": "crontab", "cronSchedule": "0 * * * *"},
+            qs_params={"num_ticks": 5, "schedule_type": "crontab", "schedule": "0 * * * *"},
         )
         assert response.data == expected_ticks
 
@@ -38,20 +38,19 @@ class SampleScheduleDataTest(APITestCase):
         mock_now.return_value = datetime(2023, 10, 26, 12, 32)
 
         expected_ticks = [
-            datetime(2023, 10, 26, 12, 00),
-            datetime(2023, 10, 26, 13, 00),
-            datetime(2023, 10, 26, 14, 00),
-            datetime(2023, 10, 26, 15, 00),
-            datetime(2023, 10, 26, 16, 00),
+            int(datetime(2023, 10, 26, 12, 00).timestamp()),
+            int(datetime(2023, 10, 26, 13, 00).timestamp()),
+            int(datetime(2023, 10, 26, 14, 00).timestamp()),
+            int(datetime(2023, 10, 26, 15, 00).timestamp()),
+            int(datetime(2023, 10, 26, 16, 00).timestamp()),
         ]
 
         response = self.get_success_response(
             self.organization.slug,
             qs_params={
-                "numTicks": 5,
-                "scheduleType": "interval",
-                "intervalUnit": "hour",
-                "intervalFrequency": 1,
+                "num_ticks": 5,
+                "schedule_type": "interval",
+                "schedule": [1, "hour"],
             },
         )
         assert response.data == expected_ticks
@@ -67,19 +66,19 @@ class SampleScheduleDataTest(APITestCase):
         # Missing num ticks
         self.get_error_response(
             self.organization.slug,
-            qs_params={"scheduleType": "crontab", "cronSchedule": "0 * * * *"},
+            qs_params={"schedule_type": "crontab", "schedule": "0 * * * *"},
             status_code=400,
         )
 
-        # Missing schedule info
+        # Invalid schedule info
         self.get_error_response(
             self.organization.slug,
-            qs_params={"scheduleType": "interval", "cronSchedule": "0 * * * *"},
+            qs_params={"schedule_type": "interval", "schedule": "* * * * *"},
             status_code=400,
         )
         self.get_error_response(
             self.organization.slug,
-            qs_params={"scheduleType": "crontab"},
+            qs_params={"schedule_type": "crontab"},
             status_code=400,
         )
 
@@ -87,7 +86,7 @@ class SampleScheduleDataTest(APITestCase):
         # Invalid crontab schedule
         self.get_error_response(
             self.organization.slug,
-            qs_params={"numTicks": 5, "scheduleType": "crontab", "cronSchedule": "0 * * *"},
+            qs_params={"num_ticks": 5, "schedule_type": "crontab", "schedule": "0 * * *"},
             status_code=400,
         )
 
