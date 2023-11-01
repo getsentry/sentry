@@ -145,6 +145,27 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             with self.feature("organizations:profile-file-io-main-thread-ingest"):
                 _process_message(message)
 
+    @django_db_all
+    def test_occurrence_consumer_without_payload_type(self) -> None:
+        message = get_test_message(self.project.id)
+        message.pop("payload_type")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+
+        fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
+        assert fetched_occurrence is not None
+        self.assert_occurrences_identical(occurrence, fetched_occurrence)
+        assert fetched_occurrence.event_id is not None
+        fetched_event = self.eventstore.get_event_by_id(
+            self.project.id, fetched_occurrence.event_id
+        )
+        assert fetched_event is not None
+        assert fetched_event.get_event_type() == "generic"
+
+        assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
+
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
     def test_lookup_event_doesnt_exist(self) -> None:
