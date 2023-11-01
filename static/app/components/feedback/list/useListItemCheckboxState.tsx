@@ -1,4 +1,6 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+
+import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 
 interface Props {
   hits: number;
@@ -50,7 +52,14 @@ interface Return {
 }
 
 export default function useListItemCheckboxState({hits, knownIds}: Props): Return {
+  const {getListQueryKey} = useFeedbackQueryKeys();
   const [state, setState] = useState<State>({ids: new Set()});
+
+  const listQueryKey = getListQueryKey();
+  useEffect(() => {
+    // Reset the state when the list changes
+    setState({ids: new Set()});
+  }, [listQueryKey]);
 
   const selectAll = useCallback(() => {
     // Record that the virtual "all" list is enabled.
