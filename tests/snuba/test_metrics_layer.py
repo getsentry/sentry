@@ -35,7 +35,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             TransactionMRI.DURATION.value: "distribution",
             TransactionMRI.USER.value: "set",
             TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
-            "g:custom/test_gauge@none": "gauge",
+            # "g:custom/test_gauge@none": "gauge", # TODO: Add this once the entities are in Snuba
         }
         self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
         self.hour_ago = self.now - timedelta(hours=1)
@@ -405,6 +405,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         assert request.dataset == "metrics"
         assert len(result["data"]) == 0
 
+    @pytest.mark.xfail(reason="gauges entity isn't live yet")
     def test_gauges(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
