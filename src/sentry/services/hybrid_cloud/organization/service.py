@@ -241,6 +241,16 @@ class OrganizationService(RpcService):
     ) -> None:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_or_create_default_team(
+        self,
+        *,
+        organization_id: int,
+        new_team_slug: str,
+    ) -> RpcTeam:
+        pass
+
     @regional_rpc_method(resolve=UnimplementedRegionResolution("organization", "get_team_members"))
     @abstractmethod
     def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
