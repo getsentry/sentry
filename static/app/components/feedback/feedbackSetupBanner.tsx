@@ -5,6 +5,7 @@ import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-chang
 import {LinkButton} from 'sentry/components/button';
 import PageBanner from 'sentry/components/replays/pageBanner';
 import {IconBroadcast} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 interface Props {
@@ -30,7 +31,9 @@ export default function FeedbackSetupBanner({style}: Props) {
     <PageBanner
       style={style}
       button={docsButton}
-      description={t('Set up our feedback widget on your site to receive reports from your users.')}
+      description={t(
+        'Set up our feedback widget on your site to receive reports from your users.'
+      )}
       heading={t('Introducing the New User Feedback')}
       icon={<IconBroadcast size="sm" />}
       image={replaysDeadRageBackground}
