@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -22,6 +23,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PageOverviewFeaturedTagsList} from 'sentry/views/performance/browser/webVitals/components/pageOverviewFeaturedTagsList';
 import {PageOverviewSidebar} from 'sentry/views/performance/browser/webVitals/components/pageOverviewSidebar';
@@ -32,6 +34,8 @@ import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVit
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+
+import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 
 import {PageOverviewWebVitalsTagDetailPanel} from './pageOverWebVitalsTagDetailPanel';
 
@@ -63,6 +67,7 @@ export default function PageOverview() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
+  const router = useRouter();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -92,6 +97,17 @@ export default function PageOverview() {
     );
     return null;
   }
+
+  const transactionSummaryTarget =
+    project &&
+    !Array.isArray(location.query.project) && // Only render button to transaction summary when one project is selected.
+    transaction &&
+    transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction,
+      query: {...location.query},
+      projectID: project.id,
+    });
 
   const projectScore = isLoading
     ? undefined
@@ -142,7 +158,13 @@ export default function PageOverview() {
               <FeatureBadge type="alpha" />
             </Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions />
+          <Layout.HeaderActions>
+            {transactionSummaryTarget && (
+              <LinkButton to={transactionSummaryTarget} size="sm">
+                {t('View Transaction Summary')}
+              </LinkButton>
+            )}
+          </Layout.HeaderActions>
           <TabList hideBorder>
             {LANDING_DISPLAYS.map(({label, field}) => (
               <TabList.Item key={field}>{label}</TabList.Item>
@@ -181,7 +203,13 @@ export default function PageOverview() {
               </Flex>
               <WebVitalsRingMeters
                 projectScore={projectScore}
-                onClick={webVital => setState({...state, webVital})}
+                onClick={webVital => {
+                  router.replace({
+                    pathname: location.pathname,
+                    query: {...location.query, webVital},
+                  });
+                  setState({...state, webVital});
+                }}
                 transaction={transaction}
               />
               <Flex>
@@ -216,6 +244,10 @@ export default function PageOverview() {
         <PageOverviewWebVitalsDetailPanel
           webVital={state.webVital}
           onClose={() => {
+            router.replace({
+              pathname: router.location.pathname,
+              query: omit(router.location.query, 'webVital'),
+            });
             setState({...state, webVital: null});
           }}
         />

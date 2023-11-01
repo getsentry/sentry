@@ -118,7 +118,10 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
     <Fragment>
       <SectionHeading>
         {t('Performance Score')}
-        <QuestionTooltip size="sm" title={undefined} />
+        <QuestionTooltip
+          size="sm"
+          title={t('Overall performance rating of your application')}
+        />
       </SectionHeading>
       <SidebarPerformanceScoreValue>
         {projectScore?.totalScore ?? '-'}
@@ -127,7 +130,10 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <SectionHeading>
         {t('Throughput')}
         {/* TODO: Add a proper tooltip */}
-        <QuestionTooltip size="sm" title={undefined} />
+        <QuestionTooltip
+          size="sm"
+          title={t('The number of transactions per unit time')}
+        />
       </SectionHeading>
       <ChartValue>{currentEps}</ChartValue>
       <ChartSubText color={diffToColor(epsDiff)}>
@@ -155,7 +161,12 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <SectionHeading>
         {t('Duration (P75)')}
         {/* TODO: Add a proper tooltip */}
-        <QuestionTooltip size="sm" title={undefined} />
+        <QuestionTooltip
+          size="sm"
+          title={t(
+            'Metric indicating a duration that 25% of all transaction durations exceed'
+          )}
+        />
       </SectionHeading>
       <ChartValue>{currentDuration}</ChartValue>
       <ChartSubText color={diffToColor(durationDiff, true)}>
@@ -183,7 +194,10 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <SectionHeading>
         {t('5XX Responses')}
         {/* TODO: Add a proper tooltip */}
-        <QuestionTooltip size="sm" title={undefined} />
+        <QuestionTooltip
+          size="sm"
+          title={t('The count of responses with server errors')}
+        />
       </SectionHeading>
       <ChartValue>{pageData?.data[0]['failure_count()']}</ChartValue>
       <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
@@ -206,7 +220,10 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <SectionHeading>
         {t('Aggregate Spans')}
         {/* TODO: Add a proper tooltip */}
-        <QuestionTooltip size="sm" title={undefined} />
+        <QuestionTooltip
+          size="sm"
+          title={t('Waterfall view displaying common span paths that the page may take')}
+        />
       </SectionHeading>
       <MiniAggregateWaterfallContainer>
         <MiniAggregateWaterfall transaction={transaction} />

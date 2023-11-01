@@ -338,10 +338,10 @@ class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, Group
 
 
 @dataclass(frozen=True)
-class PerformanceP95DurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceP95EndpointRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1018
-    slug = "performance_p95_duration_regression"
-    description = "Transaction Duration Regression"
+    slug = "performance_p95_endpoint_regression"
+    description = "Endpoint Regression"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
@@ -424,6 +424,16 @@ class ProfileFunctionRegressionExperimentalType(GroupType):
     slug = "profile_function_regression_exp"
     description = "Function Duration Regression (Experimental)"
     category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
+
+
+@dataclass(frozen=True)
+class ProfileFunctionRegressionType(GroupType):
+    type_id = 2011
+    slug = "profile_function_regression"
+    description = "Function Regression"
+    category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
 
 
 @dataclass(frozen=True)
@@ -433,6 +443,7 @@ class MonitorCheckInFailure(GroupType):
     description = "Monitor Check In Failed"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -442,6 +453,7 @@ class MonitorCheckInTimeout(GroupType):
     description = "Monitor Check In Timeout"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -451,6 +463,7 @@ class MonitorCheckInMissed(GroupType):
     description = "Monitor Check In Missed"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)

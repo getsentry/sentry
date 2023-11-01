@@ -94,6 +94,7 @@ def timeseries_query(
         ),
     )
     results = builder.run_query(referrer)
+    results = builder.strip_alias_prefix(results)
 
     return SnubaTSResult(
         {
@@ -214,6 +215,8 @@ def format_top_events_timeseries_results(
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
+        result = query_builder.strip_alias_prefix(result)
+
         span.set_data("result_count", len(result.get("data", [])))
         processed_result = query_builder.process_results(result)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence, Tuple
 
 from django.db import models
 
@@ -154,7 +154,7 @@ class ProjectOption(Model):
     key = models.CharField(max_length=64)
     value = PickledObjectField()
 
-    objects: ProjectOptionManager = ProjectOptionManager()
+    objects: ClassVar[ProjectOptionManager] = ProjectOptionManager()
 
     class Meta:
         app_label = "sentry"

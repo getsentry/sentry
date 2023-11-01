@@ -88,7 +88,7 @@ function BreadcrumbItem({
         </TitleContainer>
 
         {typeof description === 'string' || isValidElement(description) ? (
-          <Description title={description} showOnlyOnOverflow>
+          <Description title={description} showOnlyOnOverflow isHoverable>
             {description}
           </Description>
         ) : (

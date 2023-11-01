@@ -1,4 +1,5 @@
 from hashlib import sha1
+from typing import ClassVar
 
 from django.db import models
 from django.db.models.aggregates import Count
@@ -23,7 +24,7 @@ def get_processing_issue_checksum(scope, object):
     return h.hexdigest()
 
 
-class ProcessingIssueManager(BaseManager):
+class ProcessingIssueManager(BaseManager["ProcessingIssue"]):
     def with_num_events(self):
         return self.annotate(num_events=Count("eventprocessingissue"))
 
@@ -134,7 +135,7 @@ class ProcessingIssue(Model):
     data = GzippedDictField()
     datetime = models.DateTimeField(default=timezone.now)
 
-    objects = ProcessingIssueManager()
+    objects: ClassVar[ProcessingIssueManager] = ProcessingIssueManager()
 
     class Meta:
         app_label = "sentry"
