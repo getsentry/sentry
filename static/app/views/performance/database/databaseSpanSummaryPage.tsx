@@ -1,9 +1,8 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -18,6 +17,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {DurationAggregateSelector} from 'sentry/views/performance/database/durationAggregateSelector';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {
   AVAILABLE_DURATION_AGGREGATE_OPTIONS,
@@ -75,16 +75,6 @@ function SpanSummaryPage({params}: Props) {
   ) {
     durationAggregate = DEFAULT_DURATION_AGGREGATE;
   }
-
-  const handleDurationFunctionChange = option => {
-    browserHistory.push({
-      ...location,
-      query: {
-        ...location.query,
-        aggregate: option.value,
-      },
-    });
-  };
 
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
@@ -230,13 +220,7 @@ function SpanSummaryPage({params}: Props) {
               <ChartPanel
                 title={
                   arePercentilesEnabled ? (
-                    <StyledCompactSelect
-                      size="md"
-                      options={AVAILABLE_DURATION_AGGREGATE_OPTIONS}
-                      value={durationAggregate}
-                      onChange={handleDurationFunctionChange}
-                      triggerProps={{borderless: true, size: 'zero'}}
-                    />
+                    <DurationAggregateSelector aggregate={durationAggregate} />
                   ) : (
                     t('Average Duration')
                   )
@@ -297,20 +281,6 @@ const DescriptionContainer = styled('div')`
   margin-bottom: ${space(2)};
   font-size: 1rem;
   line-height: 1.2;
-`;
-
-// TODO: Talk to UI folks about making this a built-in dropdown size if we end
-// up using this element
-const StyledCompactSelect = styled(CompactSelect)`
-  text-align: left;
-  font-weight: normal;
-  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
-  min-width: 0;
-
-  button {
-    padding: ${space(0.5)} ${space(1)};
-    font-size: ${p => p.theme.fontSizeLarge};
-  }
 `;
 
 export default SpanSummaryPage;
