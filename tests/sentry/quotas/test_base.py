@@ -3,7 +3,8 @@ import pytest
 from sentry.constants import DataCategory
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
-from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
+from sentry.monitors.constants import AcceptedCheckInStatus
+from sentry.monitors.models import Monitor, MonitorObjectStatus, MonitorType
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -99,47 +100,37 @@ class QuotaTest(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="test monitor",
-            status=MonitorStatus.ACTIVE,
+            status=MonitorObjectStatus.ACTIVE,
             type=MonitorType.CRON_JOB,
         )
         assert self.backend.assign_monitor_seat(monitor) == Outcome.ACCEPTED
-        monitor.refresh_from_db()
-        assert monitor.status == MonitorStatus.OK
 
-    def test_unassign_monitor_seat(self):
+    def test_check_accept_crons_checkin(self):
         monitor = Monitor.objects.create(
             slug="test-monitor",
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="test monitor",
-            status=MonitorStatus.OK,
+            status=MonitorObjectStatus.ACTIVE,
             type=MonitorType.CRON_JOB,
         )
-        assert self.backend.unassign_monitor_seat(monitor) is None
-        monitor.refresh_from_db()
-        assert monitor.status == MonitorStatus.DISABLED
+        assert (
+            self.backend.check_accept_crons_checkin(
+                monitor_slug=monitor.slug, project_id=monitor.project_id
+            )
+            == AcceptedCheckInStatus.ACCEPT
+        )
 
-    def test_enable_seat_recreate(self):
+    def test_remove_monitor_seat(self):
         monitor = Monitor.objects.create(
             slug="test-monitor",
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="test monitor",
-            status=MonitorStatus.OK,
+            status=MonitorObjectStatus.ACTIVE,
             type=MonitorType.CRON_JOB,
         )
-        assert self.backend.enable_seat_recreate(monitor) is None
-
-    def test_disable_seat_recreate(self):
-        monitor = Monitor.objects.create(
-            slug="test-monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            name="test monitor",
-            status=MonitorStatus.OK,
-            type=MonitorType.CRON_JOB,
-        )
-        assert self.backend.disable_seat_recreate(monitor) is None
+        assert self.backend.remove_monitor_seat(monitor) is None
 
 
 @pytest.mark.parametrize(
