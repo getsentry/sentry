@@ -5,6 +5,7 @@ import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -17,8 +18,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {ScreenLoadSampleList} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples/sampleList';
+import {ScreenLoadSampleContainer} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples/samplesContainer';
 import SampleInfo from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleInfo';
 
 type Props = {
@@ -112,28 +112,26 @@ export function ScreenLoadSpanSamples({
           groupId={groupId}
           transactionName={transactionName}
           transactionMethod={transactionMethod}
-          displayedMetrics={[
-            'count()',
-            `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-            'time_spent_percentage()',
-          ]}
+          displayedMetrics={['count()', 'time_spent_percentage()']}
         />
 
         <ChartsContainer>
           <ChartsContainerItem key="release1">
-            <ScreenLoadSampleList
+            <ScreenLoadSampleContainer
               groupId={groupId}
               transactionName={transactionName}
               transactionMethod={transactionMethod}
               release={primaryRelease}
+              sectionTitle={t('Release 1')}
             />
           </ChartsContainerItem>
           <ChartsContainerItem key="release2">
-            <ScreenLoadSampleList
+            <ScreenLoadSampleContainer
               groupId={groupId}
               transactionName={transactionName}
               transactionMethod={transactionMethod}
               release={secondaryRelease}
+              sectionTitle={t('Release 2')}
             />
           </ChartsContainerItem>
         </ChartsContainer>

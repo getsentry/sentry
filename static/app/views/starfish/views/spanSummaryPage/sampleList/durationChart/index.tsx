@@ -127,7 +127,7 @@ function DurationChart({
       emphasis: {disabled: true},
       label: {
         position: 'insideEndBottom',
-        formatter: () => 'Average',
+        formatter: () => `Average`,
         fontSize: 14,
         color: theme.chartLabel,
         backgroundColor: theme.chartOther,
