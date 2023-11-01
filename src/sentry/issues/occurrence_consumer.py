@@ -173,6 +173,9 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         sample_rate=1.0,
                         tags={"occurrence_type": occurrence_data["type"]},
                     )
+                    logger.exception(
+                        "Error validating event payload, falling back to legacy validation"
+                    )
                     try:
                         jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
                     except jsonschema.exceptions.ValidationError:
