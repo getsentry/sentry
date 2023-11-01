@@ -87,10 +87,7 @@ function EventFunctionBreakpointChartInner({
 
   const throughputSeries = useMemo(() => {
     const rawData = functionStats?.data?.data?.find(({axis}) => axis === 'count()');
-    const timestamps = functionStats?.data?.timestamps;
-    if (!timestamps) {
-      return undefined;
-    }
+    const timestamps = functionStats?.data?.timestamps ?? [];
 
     const bucketSize = 12 * 60 * 60;
 

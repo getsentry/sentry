@@ -22,7 +22,7 @@ interface ChartProps {
   evidenceData: NormalizedTrendsTransaction;
   percentileSeries: Series[];
   start: string;
-  throughputSeries?: Series;
+  throughputSeries: Series;
 }
 
 function LineChart({
@@ -51,12 +51,7 @@ function LineChart({
     ];
   }, [percentileSeries, evidenceData, theme]);
 
-  const rightSeries = useMemo(() => {
-    if (!throughputSeries) {
-      return [];
-    }
-    return [throughputSeries];
-  }, [throughputSeries]);
+  const rightSeries = useMemo(() => [throughputSeries], [throughputSeries]);
 
   const series = useMemo(() => {
     return [
@@ -98,11 +93,8 @@ function LineChart({
     const legend = {
       right: 16,
       top: 12,
-      data: percentileSeries.map(s => s.seriesName),
+      data: [...percentileSeries.map(s => s.seriesName), throughputSeries.seriesName],
     };
-    if (throughputSeries) {
-      legend.data.push(throughputSeries.seriesName);
-    }
 
     const durationUnit = getDurationUnit(leftSeries);
 
@@ -126,8 +118,9 @@ function LineChart({
         },
       });
     }
+
     return {
-      colors: throughputSeries ? [theme.gray200, theme.gray500] : [theme.gray500],
+      colors: [theme.gray200, theme.gray500],
       grid: {
         left: '10px',
         right: '10px',
