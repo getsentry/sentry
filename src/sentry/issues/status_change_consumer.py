@@ -12,54 +12,54 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.activity import ActivityType
-from sentry.types.group import IGNORED_SUBSTATUS_CHOICES
+from sentry.types.group import IGNORED_SUBSTATUS_CHOICES, GroupSubStatus
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 
 def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
-    if (
-        group.status == status_change["new_status"]
-        and group.substatus == status_change["new_substatus"]
-    ):
+    new_status = status_change["new_status"]
+    new_substatus = status_change["new_substatus"]
+
+    if group.status == new_status and group.substatus == new_substatus:
         return
 
     log_extra = {
         "project_id": status_change["project_id"],
         "fingerprint": status_change["fingerprint"],
-        "new_status": status_change["new_status"],
-        "new_substatus": status_change["new_substatus"],
+        "new_status": new_status,
+        "new_substatus": new_substatus,
     }
 
     # Validate the provided status and substatus - we only allow setting a substatus for unresolved or ignored groups.
-    if status_change["new_status"] in [GroupStatus.UNRESOLVED, GroupStatus.IGNORED]:
-        if status_change["new_substatus"] is None:
+    if new_status in [GroupStatus.UNRESOLVED, GroupStatus.IGNORED]:
+        if new_substatus is None:
             logger.error(
                 "group.update_status.missing_substatus",
                 extra={**log_extra},
             )
             return
     else:
-        if status_change["new_substatus"] is not None:
+        if new_substatus is not None:
             logger.error(
                 "group.update_status.unexpected_substatus",
                 extra={**log_extra},
             )
             return
 
-    if status_change["new_status"] == GroupStatus.RESOLVED:
+    if new_status == GroupStatus.RESOLVED:
         Group.objects.update_group_status(
             groups=[group],
-            status=status_change["new_status"],
-            substatus=status_change["new_substatus"],
+            status=new_status,
+            substatus=new_substatus,
             activity_type=ActivityType.SET_RESOLVED,
         )
-    elif status_change["new_status"] == GroupStatus.IGNORED:
+    elif new_status == GroupStatus.IGNORED:
         # The IGNORED status supports 3 substatuses. For UNTIL_ESCALATING and
         # UNTIL_CONDITION_MET, we expect the caller to monitor the conditions/escalating
         # logic and call the API with the new status when the conditions change.
-        if status_change["new_substatus"] not in IGNORED_SUBSTATUS_CHOICES:
+        if new_substatus not in IGNORED_SUBSTATUS_CHOICES:
             logger.error(
                 "group.update_status.invalid_substatus",
                 extra={**log_extra},
@@ -68,11 +68,39 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
 
         Group.objects.update_group_status(
             groups=[group],
-            status=status_change["new_status"],
-            substatus=status_change["new_substatus"],
+            status=new_status,
+            substatus=new_substatus,
             activity_type=ActivityType.SET_IGNORED,
         )
+    elif new_status == GroupStatus.UNRESOLVED:
+        activity_type = None
+        if new_substatus == GroupSubStatus.ESCALATING:
+            activity_type = ActivityType.SET_ESCALATING
+        elif new_substatus == GroupSubStatus.REGRESSED:
+            activity_type = ActivityType.SET_REGRESSION
+        elif new_substatus == GroupSubStatus.ONGOING:
+            activity_type = ActivityType.SET_UNRESOLVED
+
+        # We don't support setting the UNRESOLVED status with substatus NEW as it
+        # is automatically set on creation. All other issues should be set to ONGOING.
+        if activity_type is None:
+            logger.error(
+                "group.update_status.invalid_substatus",
+                extra={**log_extra},
+            )
+            return
+
+        Group.objects.update_group_status(
+            groups=[group],
+            status=new_status,
+            substatus=new_substatus,
+            activity_type=activity_type,
+        )
     else:
+        logger.error(
+            "group.update_status.unsupported_status",
+            extra={**log_extra},
+        )
         raise NotImplementedError(
             f"Unsupported status: {status_change['new_status']} {status_change['new_substatus']}"
         )

@@ -76,3 +76,20 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
 
         assert group.status == GroupStatus.IGNORED
         assert group.substatus == GroupSubStatus.FOREVER
+
+    def test_valid_payload_unresolved_escalating(self) -> None:
+        message = get_test_message(
+            self.project.id,
+            fingerprint=[self.group_hash.hash],
+            new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.ESCALATING,
+        )
+        result = _process_message(message)
+        assert result is not None
+        group_info = result[1]
+        assert group_info is not None
+        group = group_info.group
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ESCALATING
