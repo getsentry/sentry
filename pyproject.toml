@@ -190,7 +190,6 @@ module = [
     "sentry.api.endpoints.notifications.notification_actions_available",
     "sentry.api.endpoints.notifications.notification_actions_details",
     "sentry.api.endpoints.organization_access_request_details",
-    "sentry.api.endpoints.organization_auth_provider_send_reminders",
     "sentry.api.endpoints.organization_code_mapping_codeowners",
     "sentry.api.endpoints.organization_code_mapping_details",
     "sentry.api.endpoints.organization_code_mappings",

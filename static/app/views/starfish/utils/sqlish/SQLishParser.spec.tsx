@@ -18,7 +18,9 @@ describe('SQLishParser', function () {
       'columns AS `tags[column]`', // ClickHouse backtics
       'SELECT * FROM #temp', // Temporary tables
       '# Fetches', // Comments
-      '\r\n', // Windows newlinse
+      '\r\n', // Windows newlines
+      '✌🏻', // Emoji
+      'ă', // Unicode
       'SELECT id, nam*', // Truncation
       'AND created >= :c1', // PHP-Style I
       'LIMIT $2', // PHP-style II

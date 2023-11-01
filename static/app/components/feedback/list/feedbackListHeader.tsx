@@ -1,12 +1,18 @@
 import styled from '@emotion/styled';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/actions/button';
 import Checkbox from 'sentry/components/checkbox';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
-import useBulkMutateFeedback from 'sentry/components/feedback/useBulkMutateFeedback';
+import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
@@ -17,12 +23,25 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
-interface Props {
-  checked: string[];
-  toggleChecked: (id: string) => void;
-}
+interface Props
+  extends Pick<
+    ReturnType<typeof useListItemCheckboxState>,
+    | 'countSelected'
+    | 'deselectAll'
+    | 'isAllSelected'
+    | 'isAnySelected'
+    | 'selectAll'
+    | 'selectedIds'
+  > {}
 
-export default function FeedbackListHeader({checked, toggleChecked}: Props) {
+export default function FeedbackListHeader({
+  countSelected,
+  deselectAll,
+  isAllSelected,
+  isAnySelected,
+  selectAll,
+  selectedIds,
+}: Props) {
   const {mailbox} = useLocationQuery({
     fields: {
       mailbox: decodeMailbox,
@@ -33,13 +52,22 @@ export default function FeedbackListHeader({checked, toggleChecked}: Props) {
   return (
     <HeaderPanelItem>
       <Checkbox
-        checked={checked.length ? 'indeterminate' : false}
+        checked={isAllSelected}
         onChange={() => {
-          checked.length ? checked.forEach(c => toggleChecked(c)) : null;
+          if (isAllSelected === true) {
+            deselectAll();
+          } else {
+            selectAll();
+          }
         }}
       />
-      {checked.length ? (
-        <HasSelection checked={checked} mailbox={mailbox} />
+      {isAnySelected ? (
+        <HasSelection
+          mailbox={mailbox}
+          countSelected={countSelected}
+          selectedIds={selectedIds}
+          deselectAll={deselectAll}
+        />
       ) : (
         <MailboxPicker value={mailbox} onChange={setMailbox} />
       )}
@@ -47,26 +75,54 @@ export default function FeedbackListHeader({checked, toggleChecked}: Props) {
   );
 }
 
-function HasSelection({checked, mailbox}) {
+interface HasSelectionProps
+  extends Pick<
+    ReturnType<typeof useListItemCheckboxState>,
+    'countSelected' | 'selectedIds' | 'deselectAll'
+  > {
+  mailbox: ReturnType<typeof decodeMailbox>;
+}
+
+function HasSelection({
+  mailbox,
+  countSelected,
+  selectedIds,
+  deselectAll,
+}: HasSelectionProps) {
   const organization = useOrganization();
-  const {markAsRead, resolve} = useBulkMutateFeedback({
-    feedbackList: checked,
+  const {markAsRead, resolve} = useMutateFeedback({
+    feedbackIds: selectedIds,
     organization,
   });
+
+  const mutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while updating the feedback.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Updated feedback'));
+    },
+  };
 
   return (
     <Flex gap={space(1)} align="center" justify="space-between" style={{flexGrow: 1}}>
       <span>
-        <strong>{tct('[count] Selected', {count: checked.length})}</strong>
+        <strong>
+          {tct('[countSelected] Selected', {
+            countSelected,
+          })}
+        </strong>
       </span>
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
           <Button
-            onClick={() =>
-              mailbox === 'resolved'
-                ? resolve(GroupStatus.UNRESOLVED)
-                : resolve(GroupStatus.RESOLVED)
-            }
+            onClick={() => {
+              addLoadingMessage(t('Updating feedback...'));
+              const newStatus =
+                mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
+              resolve(newStatus, mutationOptions);
+              deselectAll();
+            }}
           >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
           </Button>
@@ -84,12 +140,18 @@ function HasSelection({checked, mailbox}) {
               {
                 key: 'mark read',
                 label: t('Mark Read'),
-                onAction: () => markAsRead(true),
+                onAction: () => {
+                  addLoadingMessage(t('Updating feedback...'));
+                  markAsRead(true, mutationOptions);
+                },
               },
               {
                 key: 'mark unread',
                 label: t('Mark Unread'),
-                onAction: () => markAsRead(false),
+                onAction: () => {
+                  addLoadingMessage(t('Updating feedback...'));
+                  markAsRead(false, mutationOptions);
+                },
               },
             ]}
           />
