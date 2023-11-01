@@ -29,7 +29,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -43,12 +42,7 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
-export type ReferrerTableType =
-  | 'main'
-  | 'dead-table'
-  | 'errors-table'
-  | 'rage-table'
-  | 'selector-widget';
+export type ReferrerTableType = 'main' | 'selector-widget';
 
 type EditType = 'set' | 'remove';
 
@@ -310,15 +304,6 @@ export function ReplayCell({
     },
   };
 
-  const replayDetailsErrorTab = {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
-    query: {
-      referrer,
-      ...eventView.generateQueryStringObject(),
-      t_main: TabKey.ERRORS,
-    },
-  };
-
   const replayDetailsDeadRage = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
@@ -330,10 +315,6 @@ export function ReplayCell({
 
   const detailsTab = () => {
     switch (referrer_table) {
-      case 'errors-table':
-        return replayDetailsErrorTab;
-      case 'dead-table':
-      case 'rage-table':
       case 'selector-widget':
         return replayDetailsDeadRage;
       default:

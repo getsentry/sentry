@@ -14,6 +14,7 @@ from urllib.parse import urlsplit, urlunsplit
 import sentry_sdk
 from django.core.files.base import File as FileObj
 from django.db import models, router
+from typing_extensions import Self
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope
@@ -85,8 +86,8 @@ class ReleaseFile(Model):
 
     __repr__ = sane_repr("release", "ident")
 
-    objects = BaseManager()  # The default manager.
-    public_objects = PublicReleaseFileManager()
+    objects: ClassVar[BaseManager[Self]] = BaseManager()  # The default manager.
+    public_objects: ClassVar[PublicReleaseFileManager] = PublicReleaseFileManager()
 
     cache: ClassVar[ReleaseFileCache]
 

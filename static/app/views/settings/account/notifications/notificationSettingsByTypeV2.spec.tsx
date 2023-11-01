@@ -7,12 +7,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import {Organization as TOrganization} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
-import {
-  NotificationOptionsObject,
-  NotificationProvidersObject,
-} from 'sentry/views/settings/account/notifications/constants';
-import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByTypeV2';
-import {Identity} from 'sentry/views/settings/account/notifications/types';
+
+import {NotificationOptionsObject, NotificationProvidersObject} from './constants';
+import NotificationSettingsByType from './notificationSettingsByTypeV2';
+import {Identity} from './types';
 
 function renderMockRequests({
   notificationOptions = [],
@@ -197,6 +195,47 @@ describe('NotificationSettingsByType', function () {
     });
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
     expect(deleteSettingMock).toHaveBeenCalledTimes(1);
+  });
+  it('edits a project override', async function () {
+    renderComponent({
+      notificationOptions: [
+        {
+          id: '7',
+          scopeIdentifier: '4',
+          scopeType: 'project',
+          type: 'alerts',
+          value: 'always',
+        },
+      ],
+    });
+    const editSettingMock = MockApiClient.addMockResponse({
+      url: `/users/me/notification-options/`,
+      method: 'PUT',
+      body: {
+        id: '7',
+        scopeIdentifier: '4',
+        scopeType: 'project',
+        type: 'alerts',
+        value: 'never',
+      },
+    });
+
+    expect(await screen.findByText('foo')).toBeInTheDocument();
+    await selectEvent.select(screen.getAllByText('On')[1], 'Off');
+
+    expect(editSettingMock).toHaveBeenCalledTimes(1);
+    expect(editSettingMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          id: '7',
+          scopeIdentifier: '4',
+          scopeType: 'project',
+          type: 'alerts',
+          value: 'never',
+        },
+      })
+    );
   });
   it('renders and sets the provider options', async function () {
     renderComponent({

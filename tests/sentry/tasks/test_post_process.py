@@ -57,6 +57,7 @@ from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, Snuba
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -64,6 +65,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.cache import cache
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -1658,8 +1660,12 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:sdk-crash-detection")
-    @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234)
-    @override_settings(SDK_CRASH_DETECTION_SAMPLE_RATE=0.1234)
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": 1234,
+            "issues.sdk_crash_detection.cocoa.sample_rate": 1.0,
+        }
+    )
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
         event = self.create_event(
             data={"message": "testing"},
@@ -1677,8 +1683,31 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
-        assert args["event_project_id"] == 1234
-        assert args["sample_rate"] == 0.1234
+        assert args["configs"] == [
+            {"sdk_name": SdkName.Cocoa, "project_id": 1234, "sample_rate": 1.0}
+        ]
+
+    @with_feature("organizations:sdk-crash-detection")
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": 1234,
+            "issues.sdk_crash_detection.cocoa.sample_rate": 0.0,
+        }
+    )
+    def test_sdk_crash_monitoring_not_called_without_sample_rate(self, mock_sdk_crash_detection):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
     def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
         self, mock_sdk_crash_detection
@@ -1697,6 +1726,11 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": None,
+        }
+    )
     @with_feature("organizations:sdk-crash-detection")
     def test_sdk_crash_monitoring_is_not_called_without_project_id(self, mock_sdk_crash_detection):
         event = self.create_event(
@@ -1757,6 +1791,61 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
 
             incr.assert_any_call("post_process.process_replay_link.id_sampled")
             incr.assert_any_call("post_process.process_replay_link.id_exists")
+
+    def test_replay_linkage_with_tag(self, incr, kafka_producer, kafka_publisher):
+        replay_id = uuid.uuid4().hex
+        event = self.create_event(
+            data={"message": "testing", "tags": {"replayId": replay_id}},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            assert kafka_producer.return_value.publish.call_count == 1
+            assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
+
+            ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+
+            assert ret_value["type"] == "replay_event"
+            assert ret_value["start_time"]
+            assert ret_value["replay_id"] == replay_id
+            assert ret_value["project_id"] == self.project.id
+            assert ret_value["segment_id"] is None
+            assert ret_value["retention_days"] == 90
+
+            # convert ret_value_payload which is a list of bytes to a string
+            ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
+
+            assert ret_value_payload == {
+                "type": "event_link",
+                "replay_id": replay_id,
+                "error_id": event.event_id,
+                "timestamp": int(event.datetime.timestamp()),
+                "event_hash": str(uuid.UUID(md5((event.event_id).encode("utf-8")).hexdigest())),
+            }
+
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_exists")
+
+    def test_replay_linkage_with_tag_pii_scrubbed(self, incr, kafka_producer, kafka_publisher):
+        event = self.create_event(
+            data={"message": "testing", "tags": {"replayId": "***"}},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            assert kafka_producer.return_value.publish.call_count == 0
 
     def test_no_replay(self, incr, kafka_producer, kafka_publisher):
         event = self.create_event(
