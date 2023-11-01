@@ -220,7 +220,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         if getattr(member.flags, "partnership:restricted"):
             return Response(
-                {"detail": "This is a partnership user."},
+                {
+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
                 status=403,
             )
 
@@ -418,7 +420,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         if getattr(member.flags, "partnership:restricted"):
             return Response(
-                {"detail": "This is a partnership user."},
+                {
+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
                 status=403,
             )
 
