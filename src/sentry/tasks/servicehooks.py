@@ -46,7 +46,7 @@ def process_service_hook(servicehook_id, event, **kwargs):
 
     from sentry import tsdb
 
-    tsdb.incr(TSDBModel.servicehook_fired, servicehook.id)
+    tsdb.incr(TSDBModel.servicehook_fired, servicehook.id)  # type: ignore
 
     headers = {
         "Content-Type": "application/json",

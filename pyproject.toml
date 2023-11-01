@@ -627,7 +627,6 @@ module = [
     "sentry.tasks.process_buffer",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
-    "sentry.tasks.servicehooks",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.templatetags.sentry_admin_helpers",
