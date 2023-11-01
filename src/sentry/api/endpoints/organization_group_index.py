@@ -237,7 +237,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`, `unhandled`
         """
         stats_period = request.GET.get("groupStatsPeriod")
-        referrer = request.GET.get("referrer", "default")
+        referrer = request.GET.get("referrer", "search.group_index")
         try:
             start, end = get_date_range_from_stats_period(request.GET)
         except InvalidParams as e:
