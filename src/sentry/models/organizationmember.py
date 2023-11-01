@@ -60,6 +60,7 @@ _OrganizationMemberFlags = TypedDict(
         "member-limit:restricted": bool,
         "idp:provisioned": bool,
         "idp:role-restricted": bool,
+        "partnership:restricted": bool,
     },
 )
 

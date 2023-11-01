@@ -38,12 +38,16 @@ export default function FeedbackList() {
     isRowLoaded,
     issues,
     loadMoreRows,
+    hits,
   } = useFetchFeedbackInfiniteListData();
 
   const {setParamValue} = useUrlParams('query');
   const clearSearchTerm = () => setParamValue('');
 
-  const {checked, uncheckAll, toggleChecked} = useListItemCheckboxState();
+  const checkboxState = useListItemCheckboxState({
+    hits,
+    knownIds: issues.map(issue => issue.id),
+  });
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
@@ -75,11 +79,11 @@ export default function FeedbackList() {
       >
         <FeedbackListItem
           feedbackItem={item}
-          style={style}
-          isChecked={checked.includes(item.id)}
-          onChecked={() => {
-            toggleChecked(item.id);
+          isSelected={checkboxState.isSelected(item.id)}
+          onSelect={() => {
+            checkboxState.toggleSelected(item.id);
           }}
+          style={style}
         />
       </CellMeasurer>
     );
@@ -87,7 +91,7 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <FeedbackListHeader checked={checked} uncheckAll={uncheckAll} />
+      <FeedbackListHeader {...checkboxState} />
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
