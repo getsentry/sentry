@@ -99,7 +99,7 @@ function SpanSummaryPage({params}: Props) {
     useSpanMetricsSeries(
       groupId,
       queryFilter,
-      [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
+      [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()'],
       'api.starfish.span-summary-page-metrics-chart'
     );
 
