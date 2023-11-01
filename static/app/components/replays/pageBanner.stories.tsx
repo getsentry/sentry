@@ -106,20 +106,14 @@ export default storyBook(PageBanner, story => {
       <p>There are some examples where we change out the colors and mix things up:</p>
       <PageBanner
         button={storiesButton}
-        description={
-          <Fragment>
-            {tct(
-              'Build new products faster by exploring reusable the UI components available inside Sentry. [link]',
-              {
-                link: (
-                  <ExternalLink href="https://sentry.io/orgredirect/organizations/:orgslug/stories">
-                    {t('See stories.')}
-                  </ExternalLink>
-                ),
-              }
-            )}
-          </Fragment>
-        }
+        description={tct(
+          'Build new products faster by exploring reusable the UI components available inside Sentry. [link:See stories]',
+          {
+            link: (
+              <ExternalLink href="https://sentry.io/orgredirect/organizations/:orgslug/stories" />
+            ),
+          }
+        )}
         heading={t('Introducing the UI Component Library')}
         icon={<IconBroadcast size="sm" />}
         image={replaysDeadRageBackground}
