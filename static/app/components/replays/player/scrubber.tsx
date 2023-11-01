@@ -148,6 +148,7 @@ export const CompactTimelineScrubber = styled(Scrubber)`
    */
   ${PlaybackTimeValue},
   ${MouseTrackingValue} {
+    translate: ${space(0.25)};
     border-right: ${space(0.25)} solid ${p => p.theme.purple300};
   }
 `;
