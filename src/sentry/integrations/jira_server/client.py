@@ -153,7 +153,7 @@ class JiraServerClient(IntegrationProxyClient):
         fetch priorities for a project, so we instead fetch all priority schemes and find the one that
         applies to the project. Priority schemes only contain priority ids (not human-readable), so we also
         need to fetch the full list of priorities and find the overlap to get both ids and names.
-        XXX: Note that we can't use getAssignedPriorityScheme b/c it requires either global or proj administrator.
+        XXX: Note that we can't use getAssignedPriorityScheme b/c it requires global or proj admin permission.
         """
         priorities = self.get_cached(self.PRIORITIES_URL)
         all_schemes = self.get_cached(self.PRIORITY_SCHEMES_URL)["schemes"]

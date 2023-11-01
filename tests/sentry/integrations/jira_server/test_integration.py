@@ -382,8 +382,8 @@ class JiraServerIntegrationTest(APITestCase):
                         "expand": "projectKeys",
                         "self": "http://jira.example.org/rest/api/2/priorityschemes/2",
                         "id": 2,
-                        "name": "Missing Medium Priority",
-                        "description": "Excludes medium",
+                        "name": "Missing Low Priority",
+                        "description": "Excludes low",
                         "defaultOptionId": "2",
                         "optionIds": ["1"],
                         "defaultScheme": False,
@@ -451,9 +451,7 @@ class JiraServerIntegrationTest(APITestCase):
             }
 
     @responses.activate
-    def test_get_create_issue_config_failing_to_fetch_priorities_returns_all_priorities(
-        self, mock_logger
-    ):
+    def test_get_create_issue_config_failing_to_fetch_priorities_returns_all_priorities(self):
         """Test failing to fetch priorities fails silently and returns all priorities"""
         event = self.store_event(
             data={
@@ -535,7 +533,7 @@ class JiraServerIntegrationTest(APITestCase):
             assert priority_field == {
                 "default": "",
                 # When the project priorities cannot be fetched, we return all priorities
-                "choices": [("1", "High"), ("2", "Medium")],
+                "choices": [("1", "High"), ("2", "Low")],
                 "type": "select",
                 "name": "priority",
                 "label": "Priority",
