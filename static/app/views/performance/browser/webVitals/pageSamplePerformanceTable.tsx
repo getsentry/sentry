@@ -69,11 +69,13 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
     [projects, location.query.project]
   );
 
+  const limitInThirds = Math.floor(limit / 3);
+
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
   const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: limit / 3,
+      limit: limitInThirds,
       transaction,
       query: `measurements.lcp:<${PERFORMANCE_SCORE_P90S.lcp}`,
       withProfiles: true,
@@ -81,7 +83,7 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: limit / 3,
+      limit: limitInThirds,
       transaction,
       query: `measurements.lcp:<${PERFORMANCE_SCORE_MEDIANS.lcp} measurements.lcp:>=${PERFORMANCE_SCORE_P90S.lcp}`,
       withProfiles: true,
@@ -89,7 +91,7 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: limit / 3,
+      limit: limitInThirds,
       transaction,
       query: `measurements.lcp:>=${PERFORMANCE_SCORE_MEDIANS.lcp}`,
       withProfiles: true,

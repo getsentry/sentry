@@ -48,7 +48,7 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
   const throughtputData: LineChartSeries[] = [
     {
       data: seriesData,
-      seriesName: 'Page Loads',
+      seriesName: t('Page Loads'),
     },
   ];
 
