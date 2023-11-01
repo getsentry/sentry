@@ -9,6 +9,7 @@ from typing import (
     List,
     Mapping,
     MutableMapping,
+    Optional,
     Sequence,
     Tuple,
     Union,
@@ -55,7 +56,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
 from sentry.utils import metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
@@ -569,6 +570,28 @@ def combine_recipients_by_provider(
     return recipients_by_provider
 
 
+def get_notification_recipients_v2(
+    recipients: Iterable[RpcActor],
+    type: NotificationSettingEnum,
+    organization_id: Optional[int] = None,
+    project_ids: Optional[List[int]] = None,
+    actor_type: Optional[ActorType] = None,
+) -> Mapping[ExternalProviders, set[RpcActor]]:
+    recipients_by_provider = notifications_service.get_notification_recipients(
+        recipients=list(recipients),
+        type=type,
+        organization_id=organization_id,
+        project_ids=project_ids,
+        actor_type=actor_type,
+    )
+    # ensure we use a defaultdict here in case someone tries to access a provider that has no recipients
+    out = defaultdict(set)
+    for provider, actors in recipients_by_provider.items():
+        key = get_provider_enum_from_string(provider)
+        out[key] = actors
+    return out
+
+
 def get_recipients_by_provider(
     project: Project,
     recipients: Iterable[RpcActor],
@@ -585,7 +608,7 @@ def get_recipients_by_provider(
 
     if should_use_notifications_v2(project.organization):
         # get by team
-        teams_by_provider = notifications_service.get_notification_recipients(
+        teams_by_provider = get_notification_recipients_v2(
             recipients=teams,
             type=setting_type,
             organization_id=project.organization_id,
@@ -610,7 +633,8 @@ def get_recipients_by_provider(
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     if should_use_notifications_v2(project.organization):
-        users_by_provider = notifications_service.get_notification_recipients(
+        # convert from string to enum
+        users_by_provider = get_notification_recipients_v2(
             recipients=users,
             type=setting_type,
             organization_id=project.organization_id,
