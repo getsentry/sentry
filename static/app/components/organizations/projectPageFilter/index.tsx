@@ -392,6 +392,7 @@ export function ProjectPageFilter({
         )
       }
       menuFooterMessage={menuFooterMessage}
+      menuWiderThanTrigger
       trigger={
         trigger ??
         ((triggerProps, isOpen) => (

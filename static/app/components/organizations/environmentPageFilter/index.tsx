@@ -203,6 +203,7 @@ export function EnvironmentPageFilter({
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuBody={desynced && <DesyncedFilterMessage />}
       menuFooterMessage={footerMessage}
+      menuWiderThanTrigger
       trigger={
         trigger ??
         ((triggerProps, isOpen) => (
