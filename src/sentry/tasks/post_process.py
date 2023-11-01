@@ -355,15 +355,15 @@ def handle_group_owners(
             # Owners already in the database that we'll keep
             keeping_owners = set()
             for group_owner in current_group_owners:
-                owner_type = (
+                owner_rule_type: str = (
                     OwnerRuleType.CODEOWNERS.value
                     if group_owner.type == GroupOwnerType.CODEOWNERS.value
                     else OwnerRuleType.OWNERSHIP_RULE.value
                 )
                 lookup_key = (
-                    (Team, group_owner.team_id, owner_type)
+                    (Team, group_owner.team_id, owner_rule_type)
                     if group_owner.team_id is not None
-                    else (User, group_owner.user_id, owner_type)
+                    else (User, group_owner.user_id, owner_rule_type)
                 )
                 # Old groupowner assignments get deleted
                 lookup_key_value = None
@@ -384,6 +384,9 @@ def handle_group_owners(
 
             for key in new_owners.keys():
                 if key not in keeping_owners:
+                    owner_type: RpcUser | Team
+                    owner_id: int
+                    owner_source: OwnerRuleType
                     owner_type, owner_id, owner_source = key
                     rules = new_owners[key]
                     group_owner_type = (
@@ -630,11 +633,14 @@ def post_process_group(
             for ge in group_events.values():
                 ge.occurrence = occurrence
 
-        multi_groups: Sequence[Tuple[GroupEvent, GroupState]] = [
-            (group_events.get(gs.get("id")), gs)
-            for gs in (group_states or ())
-            if gs.get("id") is not None and group_events.get(gs.get("id")) is not None
-        ]
+        multi_groups: list[Tuple[GroupEvent, GroupState]] = []
+        if group_states:
+            for gs in group_states:
+                gs_id = gs.get("id")
+                if gs_id:
+                    associated_event = group_events.get(gs_id)
+                    if associated_event:
+                        multi_groups.append((associated_event, gs))
 
         group_jobs: Sequence[PostProcessJob] = [
             {
