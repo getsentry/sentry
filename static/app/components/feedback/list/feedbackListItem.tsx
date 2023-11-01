@@ -70,6 +70,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               checked={isSelected !== false}
               onChange={e => onSelect(e.target.checked)}
               onClick={e => e.stopPropagation()}
+              invertColors={isOpen}
             />
           </Flex>
           <Flex column style={{gridArea: 'right'}}>
