@@ -1,4 +1,4 @@
-import {CSSProperties, Fragment, useCallback, useState} from 'react';
+import {CSSProperties, Fragment, useCallback, useMemo, useState} from 'react';
 import {browserHistory, Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -30,6 +30,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalTagsDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
@@ -55,7 +56,7 @@ const columnOrder: GridColumnOrder[] = [
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   {key: 'transaction.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Performance Score'},
+  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
 const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
@@ -72,11 +73,16 @@ export function PageOverviewWebVitalsTagDetailPanel({
 }) {
   const location = useLocation();
   const theme = useTheme();
+  const {projects} = useProjects();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const routes = useRoutes();
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>(
     undefined
+  );
+  const project = useMemo(
+    () => projects.find(p => p.id === String(location.query.project)),
+    [projects, location.query.project]
   );
 
   const replayLinkGenerator = generateReplayLink(routes);
@@ -109,7 +115,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
     isRefetching,
     refetch,
   } = useTransactionSamplesWebVitalsQuery({
-    limit: 3,
+    limit: 9,
     transaction: transaction ?? '',
     query: tag ? `${tag.key}:${tag.name}` : undefined,
     enabled: Boolean(tag),
@@ -137,9 +143,15 @@ export function PageOverviewWebVitalsTagDetailPanel({
     return getDuration(value / 1000, 2, true);
   };
 
+  const getProjectSlug = (row: TransactionSampleRowWithScore): string => {
+    return project && !Array.isArray(location.query.project)
+      ? project.slug
+      : row.projectSlug;
+  };
+
   const renderBodyCell = (col: Column, row: TransactionSampleRowWithScore) => {
     const shouldHighlight = row.id === highlightedSampleId;
-
+    const projectSlug = getProjectSlug(row);
     const commonProps = {
       style: (shouldHighlight
         ? {textShadow: '0 0 0.5px black'}
@@ -160,7 +172,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
       return <NoOverflow {...commonProps}>{row[key]}</NoOverflow>;
     }
     if (key === 'id') {
-      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
+      const eventSlug = generateEventSlug({...row, project: projectSlug});
       const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
       return (
         <NoOverflow {...commonProps}>
@@ -193,12 +205,12 @@ export function PageOverviewWebVitalsTagDetailPanel({
       );
     }
     if (key === 'profile.id') {
-      if (!row.projectSlug || !defined(row['profile.id'])) {
+      if (!projectSlug || !defined(row['profile.id'])) {
         return <AlignCenter {...commonProps}>{' \u2014 '}</AlignCenter>;
       }
       const target = generateProfileFlamechartRoute({
         orgSlug: organization.slug,
-        projectSlug: row.projectSlug,
+        projectSlug,
         profileId: String(row['profile.id']),
       });
 
@@ -228,7 +240,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
       ],
       symbol: 'roundRect',
       color,
-      symbolSize: id === highlightedSampleId ? 16 : 12,
+      symbolSize: id === highlightedSampleId ? 18 : 14,
       seriesName: id.substring(0, 8),
     };
   });
@@ -268,7 +280,8 @@ export function PageOverviewWebVitalsTagDetailPanel({
       const [timestamp, score] = e.value as [string, number];
       const sample = tableData.find(s => s.timestamp === timestamp && s.score === score);
       if (sample) {
-        const eventSlug = generateEventSlug({...sample, project: sample.projectSlug});
+        const projectSlug = getProjectSlug(sample);
+        const eventSlug = generateEventSlug({...sample, project: projectSlug});
         const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
         browserHistory.push(eventTarget);
       }
@@ -297,6 +310,11 @@ export function PageOverviewWebVitalsTagDetailPanel({
     </LoadingIndicatorWrapper>
   );
 
+  const filteredColumnOrder =
+    tag?.key !== 'browser.name'
+      ? columnOrder.filter(({key}) => key !== 'browser')
+      : columnOrder;
+
   return (
     <PageErrorProvider>
       {tag && (
@@ -317,7 +335,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
                 data={[
                   {
                     data: chartIsLoading ? [] : chartSeriesData.total,
-                    seriesName: 'performance score',
+                    seriesName: t('Performance Score'),
                   },
                 ]}
                 loading={chartIsLoading}
@@ -335,7 +353,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
             <GridEditable
               data={tableData}
               isLoading={isSamplesTabledDataLoading || isRefetching}
-              columnOrder={columnOrder}
+              columnOrder={filteredColumnOrder}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
@@ -355,6 +373,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
 const NoOverflow = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const AlignCenter = styled('span')`

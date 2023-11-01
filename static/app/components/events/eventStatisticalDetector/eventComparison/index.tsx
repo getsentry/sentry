@@ -5,7 +5,7 @@ import moment from 'moment';
 import {EventDisplay} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Project} from 'sentry/types';
+import {Event, Project} from 'sentry/types';
 
 import {DataSection} from '../../styles';
 
@@ -15,11 +15,10 @@ const COMPARISON_DESCRIPTION = t(
 
 type EventComparisonProps = {
   event: Event;
-  group: Group;
   project: Project;
 };
 
-function EventComparison({event, project, group}: EventComparisonProps) {
+function EventComparison({event, project}: EventComparisonProps) {
   const now = useMemo(() => Date.now(), []);
   const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
   const {aggregateRange1, aggregateRange2, dataStart, breakpoint, transaction} =
@@ -38,7 +37,6 @@ function EventComparison({event, project, group}: EventComparisonProps) {
             end={breakpoint * 1000}
             transaction={transaction}
             durationBaseline={aggregateRange1}
-            group={group}
           />
         </StyledGridItem>
         <StyledGridItem position="right">
@@ -49,7 +47,6 @@ function EventComparison({event, project, group}: EventComparisonProps) {
             end={now}
             transaction={transaction}
             durationBaseline={aggregateRange2}
-            group={group}
           />
         </StyledGridItem>
       </StyledGrid>

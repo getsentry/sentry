@@ -36,6 +36,7 @@ from sentry.types.integrations import (
 )
 
 Recipient = Union[RpcActor, Team, RpcUser, User]
+TEAM_NOTIFICATION_PROVIDERS = [ExternalProviderEnum.SLACK]
 
 
 def sort_settings_by_scope(setting: NotificationSettingOption | NotificationSettingProvider) -> int:

@@ -100,6 +100,10 @@ class SpanChart {
         const start = node.span.start_timestamp - transactionStart;
         const end = start + duration;
 
+        if (duration <= 0) {
+          continue;
+        }
+
         const spanChartNode: SpanChartNode = {
           duration: this.toFinalUnit(duration),
           start: this.toFinalUnit(start),
