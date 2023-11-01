@@ -145,13 +145,14 @@ def process_event(message: IngestMessage, project: Project) -> None:
             project_id=project_id,
         )
     elif data.get("type") == "feedback":
-        save_event_feedback.delay(
-            cache_key=None,  # no need to cache as volume is low
-            data=data,
-            start_time=start_time,
-            event_id=event_id,
-            project_id=project_id,
-        )
+        if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+            save_event_feedback.delay(
+                cache_key=None,  # no need to cache as volume is low
+                data=data,
+                start_time=start_time,
+                event_id=event_id,
+                project_id=project_id,
+            )
     else:
         # Preprocess this event, which spawns either process_event or
         # save_event. Pass data explicitly to avoid fetching it again from the
