@@ -42,21 +42,16 @@ async function bootWithHydration() {
 
 function promiseRequest(url: string): Promise<any> {
   return new Promise(function (resolve, reject) {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url);
-    xhr.onload = function () {
-      try {
-        this.status >= 200 && this.status < 300
-          ? resolve([JSON.parse(xhr.response), this.statusText, xhr])
-          : reject([this.status, this.statusText]);
-      } catch (e) {
-        reject();
-      }
-    };
-    xhr.onerror = function () {
-      reject([this.status, this.statusText]);
-    };
-    xhr.send();
+    const request = fetch(url);
+    request.then(function (response: Response) {
+      response.json().then(function (json: any) {
+        if (response.ok) {
+          resolve([json, response.statusText, response]);
+        } else {
+          reject([response.status, response.statusText]);
+        }
+      });
+    });
   });
 }
 

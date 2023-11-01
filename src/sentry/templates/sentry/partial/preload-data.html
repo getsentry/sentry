@@ -18,21 +18,16 @@
 
     function promiseRequest(url) {
       return new Promise(function (resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', url);
-        xhr.onload = function () {
-          try {
-            this.status >= 200 && this.status < 300
-              ? resolve([JSON.parse(xhr.response), this.statusText, xhr])
-              : reject([this.status, this.statusText]);
-          } catch (e) {
-            reject();
-          }
-        };
-        xhr.onerror = function () {
-          reject([this.status, this.statusText]);
-        };
-        xhr.send();
+        var request = fetch(url);
+        request.then(function (response) {
+          response.json().then(function (json) {
+            if (response.ok) {
+              resolve([json, response.statusText, response]);
+            } else {
+              reject([response.status, response.statusText]);
+            }
+          });
+        });
       });
     }
 
