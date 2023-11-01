@@ -116,6 +116,9 @@ def span_is_segment_converter(search_filter: SearchFilter) -> Optional[WhereType
     """Convert the search filter from a string to a boolean
     and unalias the filter key.
     """
+    if search_filter.value.raw_value not in ["0", "1"]:
+        raise ValueError("is_segment must be 0 or 1")
+
     return Condition(
         Column("is_segment"),
         Op.NEQ if search_filter.operator == "!=" else Op.EQ,
