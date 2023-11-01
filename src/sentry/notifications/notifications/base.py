@@ -243,8 +243,8 @@ class BaseNotification(abc.ABC):
         if should_use_notifications_v2(self.organization):
             return get_notification_recipients_v2(
                 recipients=recipients,
-                organization_id=self.organization.id,
                 type=setting_type,
+                organization_id=self.organization.id,
             )
 
         accepting_recipients: Mapping[
