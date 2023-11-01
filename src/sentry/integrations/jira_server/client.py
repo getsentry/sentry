@@ -36,8 +36,8 @@ class JiraServerClient(IntegrationProxyClient):
     ISSUE_TYPES_URL = "/rest/api/2/issue/createmeta/%s/issuetypes"
     # https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/priority-getPriorities
     PRIORITIES_URL = "/rest/api/2/priority"
-    # https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/project/{projectKeyOrId}/priorityscheme
-    PRIORITY_SCHEME_URL = "/rest/api/2/project/%s/priorityscheme"
+    # https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/priorityschemes-getPrioritySchemes
+    PRIORITY_SCHEMES_URL = "/rest/api/2/priorityschemes?expand=schemes.projectKeys&maxResults=200"
     PROJECT_URL = "/rest/api/2/project"
     SEARCH_URL = "/rest/api/2/search/"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"
@@ -147,15 +147,27 @@ class JiraServerClient(IntegrationProxyClient):
     def get_versions(self, project):
         return self.get_cached(self.VERSIONS_URL % project)
 
-    def get_priorities(self, project: str):
+    def get_priorities(self, project_key: str | None):
         """
-        Fetches all priorities associated with the project. Jira Server does not provide a
-        single API to fetch priorities for a project, so we instead fetch the project's
-        priority scheme which contains the relevant priority ids (but not human-readable names).
-        We then fetch the full list of priorities and find the overlap to get both ids and names.
+        Fetches all priorities associated with the project. Jira Server does not provide a single API to
+        fetch priorities for a project, so we instead fetch all priority schemes and find the one that
+        applies to the project. Priority schemes only contain priority ids (not human-readable), so we also
+        need to fetch the full list of priorities and find the overlap to get both ids and names.
+        XXX: Note that we can't use getAssignedPriorityScheme b/c it requires either global or proj administrator.
         """
-        project_priority_ids = self.get_cached(self.PRIORITY_SCHEME_URL % project)["optionIds"]
         priorities = self.get_cached(self.PRIORITIES_URL)
+        all_schemes = self.get_cached(self.PRIORITY_SCHEMES_URL)["schemes"]
+
+        try:
+            project_scheme = [
+                scheme for scheme in all_schemes if project_key in scheme["projectKeys"]
+            ]
+            project_priority_ids = project_scheme[0]["optionIds"]
+        except (KeyError, IndexError) as err:
+            # Return all priorities if we're unable to fetch a specific project's priorities
+            logger.error("Unable to fetch priorities for a project", exc_info=err)
+            return priorities
+
         # Find the overlap between the project's priority ids and the full list of priorities
         priorities = [p for p in priorities if p["id"] in project_priority_ids]
         return priorities
