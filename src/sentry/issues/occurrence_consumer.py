@@ -174,7 +174,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         tags={"occurrence_type": occurrence_data["type"]},
                     )
                     logger.exception(
-                        "Error validating event payloa, falling back to legacy validation"
+                        "Error validating event payload, falling back to legacy validation"
                     )
                     try:
                         jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
