@@ -271,7 +271,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         with self.handle_query_errors():
             transaction_count_query = metrics_query(
                 ["count()"],
-                f"event.type:transaction transaction:{transaction_name}",
+                f'event.type:transaction transaction:"{transaction_name}"',
                 params,
                 referrer=f"{BASE_REFERRER}-{analysis_type}",
             )
