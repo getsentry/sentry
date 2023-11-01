@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional, Union, cast
+from typing import Any, Iterable, List, Mapping, Optional, Union
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.expressions import F
@@ -256,7 +256,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             org = Organization.objects.get_from_cache(slug=slug)
             if only_visible and org.status != OrganizationStatus.ACTIVE:
                 raise Organization.DoesNotExist
-            return cast(int, org.id)
+            return org.id
         except Organization.DoesNotExist:
             logger.info("Organization by slug [%s] not found", slug)
 

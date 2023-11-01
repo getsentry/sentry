@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import copy
-from typing import Any, List
+from typing import Any, ClassVar, List
 
 from django.db import models
 from django.utils import timezone
@@ -31,7 +31,7 @@ from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.types.region import find_regions_for_user
 
 
-class AuthenticatorManager(BaseManager):
+class AuthenticatorManager(BaseManager["Authenticator"]):
     def all_interfaces_for_user(self, user, return_missing=False, ignore_backup=False):
         """Returns a correctly sorted list of all interfaces the user
         has enabled.  If `return_missing` is set to `True` then all
@@ -154,7 +154,7 @@ class Authenticator(ControlOutboxProducingModel):
 
     config = AuthenticatorConfig()
 
-    objects = AuthenticatorManager()
+    objects: ClassVar[AuthenticatorManager] = AuthenticatorManager()
 
     class AlreadyEnrolled(Exception):
         pass
