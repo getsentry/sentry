@@ -1,5 +1,5 @@
-import {useMemo, useState} from 'react';
-import {Link} from 'react-router';
+import {useMemo} from 'react';
+import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -50,7 +51,8 @@ export function PagePerformanceTable() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
-  const [search, setSearch] = useState<string | undefined>(undefined);
+
+  const query = decodeScalar(location.query.query, '');
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
@@ -60,7 +62,7 @@ export function PagePerformanceTable() {
   const sort = useWebVitalsSort();
 
   const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
-    useProjectWebVitalsQuery({transaction: search});
+    useProjectWebVitalsQuery({transaction: query});
 
   const projectScore = calculatePerformanceScore({
     lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
@@ -74,7 +76,7 @@ export function PagePerformanceTable() {
     data,
     pageLinks,
     isLoading: isTransactionWebVitalsQueryLoading,
-  } = useTransactionWebVitalsQuery({limit: 10, transaction: search});
+  } = useTransactionWebVitalsQuery({limit: 10, transaction: query});
 
   const count = projectData?.data[0]['count()'] as number;
 
@@ -198,8 +200,14 @@ export function PagePerformanceTable() {
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 
-  const handleSearch = query => {
-    setSearch(query === '' ? undefined : `*${query}*`);
+  const handleSearch = (newQuery: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        query: newQuery === '' ? undefined : `*${newQuery}*`,
+      },
+    });
   };
 
   return (
