@@ -7,7 +7,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
-import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
+import {
+  DEFAULT_RESOURCE_FILTERS,
+  getResourceTypeFilter,
+} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {SPAN_DOMAIN, SPAN_OP, TRANSACTION} = SpanMetricsField;
@@ -15,7 +18,7 @@ const {SPAN_DOMAIN, SPAN_OP, TRANSACTION} = SpanMetricsField;
 /**
  * Gets a list of pages that have a resource.
  */
-export const useResourceDomainsQuery = () => {
+export const useResourceDomainsQuery = (defaultResourceTypes?: string[]) => {
   const location = useLocation();
   const pageFilters = usePageFilters();
   const {slug: orgSlug} = useOrganization();
@@ -25,8 +28,8 @@ export const useResourceDomainsQuery = () => {
 
   const queryConditions = [
     ...DEFAULT_RESOURCE_FILTERS,
-    `${SPAN_OP}:${resourceFilters[SPAN_OP] || '[resource.script,resource.css]'}`,
     `has:${SPAN_DOMAIN}`,
+    ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
     ...(resourceFilters[TRANSACTION]
       ? [`transaction:${resourceFilters[TRANSACTION]}`]
       : []),
@@ -59,6 +62,7 @@ export const useResourceDomainsQuery = () => {
         }
         return domains[0].toString();
       })
+      .filter(domain => domain !== '*')
       .sort() || [];
 
   return {...result, data};
