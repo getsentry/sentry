@@ -715,7 +715,7 @@ class GitHubClientMixin(GithubProxyClient):
             raise GitHubApproachingRateLimit()
 
         file_path_mapping = generate_file_path_mapping(files)
-        data = create_blame_query(file_path_mapping)
+        data = create_blame_query(file_path_mapping, extra=log_info)
         cache_key = self.get_cache_key("/graphql", data)
         response = self.check_cache(cache_key)
         if response:

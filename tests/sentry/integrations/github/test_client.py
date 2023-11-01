@@ -1161,12 +1161,6 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     def setUp(self):
         super().setUp()
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_get_blame_for_files_full_response(self, get_jwt):
-        """
-        Tests that the correct commits are selected from the blame range when a full response is returned.
-        """
         self.file1 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=10,
@@ -1257,7 +1251,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     @responses.activate
     def test_get_blame_for_files_full_response(self, get_jwt):
         """
-        Tests that the correct commits are returned when a full response is returned
+        Tests that the correct commits are selected from the blame range when a full response is returned.
         """
 
         responses.add(
@@ -1269,7 +1263,9 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             content_type="application/json",
         )
 
-        response = self.github_client.get_blame_for_files([self.file1, self.file2, self.file3], extra={})
+        response = self.github_client.get_blame_for_files(
+            [self.file1, self.file2, self.file3], extra={}
+        )
         self.assertEqual(
             response,
             [
@@ -1321,10 +1317,15 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             content_type="application/json",
         )
 
-        data = create_blame_query(generate_file_path_mapping([self.file1, self.file2, self.file3]))
+        data = create_blame_query(
+            generate_file_path_mapping([self.file1, self.file2, self.file3]), extra={}
+        )
         cache_key = self.github_client.get_cache_key("/graphql", data)
         assert self.github_client.check_cache(cache_key) is None
-        response = self.github_client.get_blame_for_files([self.file1, self.file2, self.file3])
+        response = self.github_client.get_blame_for_files(
+            [self.file1, self.file2, self.file3], extra={}
+        )
+
         self.assertEqual(
             response,
             [
@@ -1339,11 +1340,21 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                     ),
                 ),
                 FileBlameInfo(
-                    **asdict(self.file3),
+                    **asdict(self.file2),
                     commit=CommitInfo(
                         commitId="456",
                         commitAuthorName="foo2",
                         commitAuthorEmail="foo2@example.com",
+                        commitMessage="hello",
+                        committedDate=datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    ),
+                ),
+                FileBlameInfo(
+                    **asdict(self.file3),
+                    commit=CommitInfo(
+                        commitId="789",
+                        commitAuthorName="foo3",
+                        commitAuthorEmail="foo3@example.com",
                         commitMessage="hello",
                         committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
                     ),
@@ -1352,11 +1363,15 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
         )
         assert self.github_client.check_cache(cache_key)["data"] == self.data
         # Calling a second time should work
-        response = self.github_client.get_blame_for_files([self.file1, self.file2, self.file3])
+        response = self.github_client.get_blame_for_files(
+            [self.file1, self.file2, self.file3], extra={}
+        )
         assert self.github_client.check_cache(cache_key)["data"] == self.data
         # Calling again after the cache has been cleared should still work
         cache.delete(cache_key)
-        response = self.github_client.get_blame_for_files([self.file1, self.file2, self.file3])
+        response = self.github_client.get_blame_for_files(
+            [self.file1, self.file2, self.file3], extra={}
+        )
         assert self.github_client.check_cache(cache_key)["data"] == self.data
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
