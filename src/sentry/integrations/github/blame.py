@@ -201,6 +201,7 @@ def _get_matching_file_blame(
             "get_blame_for_files.extract_commits_from_blame.no_commit_data",
             extra=extra,
         )
+        return None
 
     committed_date_str = commit.get("committedDate")
     commit_id = commit.get("oid")
