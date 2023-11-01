@@ -26,6 +26,8 @@ type Props = {
   query?: string;
 };
 
+export const DEFAULT_RESOURCE_FILTERS = ['!span.description:"browser-extension://*"'];
+
 export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -38,6 +40,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
     }`,
     ...(!query
       ? [
+          ...DEFAULT_RESOURCE_FILTERS,
           ...(resourceFilters.transaction
             ? [`transaction:"${resourceFilters.transaction}"`]
             : []),
