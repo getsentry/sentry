@@ -419,8 +419,6 @@ class DSNAuthentication(StandardAuthentication):
 
 @AuthenticationSiloLimit(SiloMode.REGION)
 class SignedRequestAuthentication(BaseAuthentication):
-    token_name = b"dsn"
-
     def authenticate(self, request: Request) -> tuple[Any, Any]:
         user = process_signature(request)
         if not user:
