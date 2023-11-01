@@ -114,15 +114,15 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
 };
 
 export const getDomainFilter = (selectedDomain: string | undefined) => {
-  let domainFilter: string[] = [];
-  if (selectedDomain) {
-    if (selectedDomain === EMPTY_OPTION_VALUE) {
-      domainFilter = [`!has:${SPAN_DOMAIN}`];
-    } else {
-      domainFilter = [`${SPAN_DOMAIN}:${selectedDomain}`];
-    }
+  if (!selectedDomain) {
+    return [];
   }
-  return domainFilter;
+ 
+  if (selectedDomain === EMPTY_OPTION_VALUE) {
+    return [`!has:${SPAN_DOMAIN}`];
+  }
+  
+  return [`${SPAN_DOMAIN}:${selectedDomain}`];
 };
 
 export const getResourceTypeFilter = (
