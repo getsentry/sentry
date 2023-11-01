@@ -3,12 +3,12 @@ import first from 'lodash/first';
 
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
-import type {GroupStatus, Organization} from 'sentry/types';
+import type {Actor, GroupStatus, Organization} from 'sentry/types';
 import {fetchMutation, MutateOptions, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type TFeedbackIds = 'all' | string[];
-type TPayload = {hasSeen: boolean} | {status: GroupStatus};
+type TPayload = {hasSeen: boolean} | {status: GroupStatus} | {assignedTo: Actor | null};
 type TData = unknown;
 type TError = unknown;
 type TVariables = [TFeedbackIds, TPayload];
@@ -69,8 +69,19 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
     [mutation, feedbackIds]
   );
 
+  const assign = useCallback(
+    (
+      assignedTo: Actor | null,
+      options?: MutateOptions<TData, TError, TVariables, TContext>
+    ) => {
+      mutation.mutate([feedbackIds, {assignedTo}], options);
+    },
+    [mutation, feedbackIds]
+  );
+
   return {
     markAsRead,
     resolve,
+    assign,
   };
 }

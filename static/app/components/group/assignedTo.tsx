@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -63,7 +64,7 @@ type IssueOwner = {
   commits?: Commit[];
   rules?: Array<[string, string]> | null;
 };
-type EventOwners = {
+export type EventOwners = {
   owners: Actor[];
   rules: Rules;
 };
@@ -105,7 +106,7 @@ function getSuggestedReason(owner: IssueOwner) {
  *   rules:   [...]  # Project rules matched for this owner
  * ```
  */
-function getOwnerList(
+export function getOwnerList(
   committers: Committer[],
   eventOwners: EventOwners | null,
   assignedTo: Actor | null
@@ -148,7 +149,7 @@ function getOwnerList(
   }));
 }
 
-export function getAssignedToDisplayName(group: Group) {
+export function getAssignedToDisplayName(group: Group | FeedbackIssue) {
   if (group.assignedTo?.type === 'team') {
     const team = TeamStore.getById(group.assignedTo.id);
     return `#${team?.slug ?? group.assignedTo.name}`;
@@ -158,7 +159,7 @@ export function getAssignedToDisplayName(group: Group) {
     return user?.name ?? group.assignedTo.name;
   }
 
-  return group.assignedTo?.name ?? t('No one');
+  return group.assignedTo?.name;
 }
 
 function AssignedTo({
@@ -260,7 +261,7 @@ function AssignedTo({
                     <IconUser size="md" />
                   </IconWrapper>
                 )}
-                <ActorName>{getAssignedToDisplayName(group)}</ActorName>
+                <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
               </ActorWrapper>
               {!disableDropdown && (
                 <IconChevron
