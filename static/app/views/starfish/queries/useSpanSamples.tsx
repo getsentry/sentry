@@ -8,6 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
+import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
@@ -18,6 +19,7 @@ const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 type Options = {
   groupId: string;
   transactionName: string;
+  release?: string;
   transactionMethod?: string;
 };
 
@@ -28,6 +30,7 @@ export type SpanSample = Pick<
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.ID
+  | SpanIndexedField.PROFILE_ID
 >;
 
 export const useSpanSamples = (options: Options) => {
@@ -35,7 +38,7 @@ export const useSpanSamples = (options: Options) => {
   const url = `/api/0/organizations/${organization.slug}/spans-samples/`;
   const api = useApi();
   const pageFilter = usePageFilters();
-  const {groupId, transactionName, transactionMethod} = options;
+  const {groupId, transactionName, transactionMethod, release} = options;
   const location = useLocation();
 
   const query = new MutableSearch([
@@ -43,16 +46,18 @@ export const useSpanSamples = (options: Options) => {
     `transaction:"${transactionName}"`,
   ]);
 
-  if (transactionMethod) {
-    query.addFilterValue('transaction.method', transactionMethod);
-  }
-
-  const filters = {
+  const filters: SpanSummaryQueryFilters = {
     transactionName,
   };
 
   if (transactionMethod) {
+    query.addFilterValue('transaction.method', transactionMethod);
     filters['transaction.method'] = transactionMethod;
+  }
+
+  if (release) {
+    query.addFilterValue('release', release);
+    filters.release = release;
   }
 
   const dateCondtions = getDateConditions(pageFilter.selection);
@@ -70,6 +75,8 @@ export const useSpanSamples = (options: Options) => {
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
+  const queryString = query.formatString();
+
   const result = useQuery<SpanSample[]>({
     queryKey: [
       'span-samples',
@@ -78,6 +85,7 @@ export const useSpanSamples = (options: Options) => {
       dateCondtions.statsPeriod,
       dateCondtions.start,
       dateCondtions.end,
+      queryString,
     ],
     queryFn: async () => {
       const {data} = await api.requestPromise(
@@ -89,7 +97,7 @@ export const useSpanSamples = (options: Options) => {
           secondBound: maxYValue * (2 / 3),
           upperBound: maxYValue,
           project: pageFilter.selection.projects,
-          query: query.formatString(),
+          query: queryString,
         })}`
       );
       return data

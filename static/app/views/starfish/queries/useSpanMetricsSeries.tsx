@@ -79,7 +79,7 @@ function getEventView(
         queryFilters?.['transaction.method']
           ? ` transaction.method:${queryFilters?.['transaction.method']}`
           : ''
-      }`,
+      }${queryFilters?.release ? ` release:${queryFilters?.release}` : ''}`,
       fields: [],
       yAxis,
       dataset: DiscoverDatasets.SPANS_METRICS,
