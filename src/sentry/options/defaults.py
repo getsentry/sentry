@@ -1156,7 +1156,7 @@ register(
 register(
     "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org",
     default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 5000000},
     ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
