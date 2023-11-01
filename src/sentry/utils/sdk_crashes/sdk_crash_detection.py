@@ -5,7 +5,7 @@ from typing import Any, Mapping, Optional, Sequence
 
 import sentry_sdk
 
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
