@@ -14,7 +14,7 @@ export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
 
 export const DEFAULT_DURATION_AGGREGATE = 'avg';
 
-export const AVAILABLE_DURATION_AGGREGATES = ['avg', 'p50', 'p75', 'p95', 'p99'];
+export const AVAILABLE_DURATION_AGGREGATES = ['avg', 'p50', 'p75', 'p95', 'p99']; // TODO: `max` is not a supported aggregate for this dataset on the backend. Why?
 
 export const DURATION_AGGREGATE_LABELS = {
   avg: t('Average Duration'),
