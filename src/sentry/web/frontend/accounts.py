@@ -110,6 +110,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
     except LostPasswordHash.DoesNotExist:
         return render_to_response(get_template(mode, "failure"), {}, request)
 
+    # TODO(getsentry/team-ospo#190): Clean up ternary logic and only show relocation form if user is unclaimed
     form = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm
     if request.method == "POST":
         form = form(request.POST, user=user)
@@ -117,6 +118,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
             with transaction.atomic(router.db_for_write(User)):
                 if mode == "relocate":
                     user.username = form.cleaned_data["username"]
+                    user.is_unclaimed = False
                 user.set_password(form.cleaned_data["password"])
                 user.refresh_session_nonce(request)
                 user.save()
