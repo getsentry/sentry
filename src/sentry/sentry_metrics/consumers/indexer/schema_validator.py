@@ -1,7 +1,7 @@
 import random
 from typing import Any, Optional
 
-from sentry_kafka_schemas.codecs import Codec, ValidationError
+from sentry_kafka_schemas.codecs import Codec
 
 from sentry import options
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
@@ -39,14 +39,10 @@ class MetricsSchemaValidator:
         else:
             self.schema_validation_rules = {}
 
-    def validate(self, message: ParsedMessage) -> None:
+    def validate(self, use_case_id: str, message: ParsedMessage) -> None:
         if not self.input_codec:
             return None
 
-        if "use_case_id" not in message:
-            raise ValidationError("Use case id is not set")
-
-        use_case_id = message["use_case_id"].value
         validation_sample_rate = self.schema_validation_rules.get(use_case_id, 1.0)
         if random.random() <= validation_sample_rate:
             return self.input_codec.validate(message)
