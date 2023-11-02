@@ -33,6 +33,7 @@ from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.mail.notifications import get_builder_args
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -703,6 +704,28 @@ def recover_account(request):
             "domain": get_server_hostname(),
             "ip_address": request.META["REMOTE_ADDR"],
             "datetime": timezone.now(),
+        },
+    ).render(request)
+
+
+@login_required
+def relocate_account(request):
+    password_hash, __ = LostPasswordHash.objects.get_or_create(user_id=request.user.id)
+    return MailPreview(
+        html_template="sentry/emails/relocate_account.html",
+        text_template="sentry/emails/relocate_account.txt",
+        context={
+            "user": request.user,
+            "url": absolute_uri(
+                reverse(
+                    "sentry-account-relocate-confirm",
+                    args=[request.user.id, password_hash.hash],
+                )
+            ),
+            "domain": get_server_hostname(),
+            "ip_address": request.META["REMOTE_ADDR"],
+            "datetime": timezone.now(),
+            "orgs": ["testsentry", "testgetsentry"],
         },
     ).render(request)
 
