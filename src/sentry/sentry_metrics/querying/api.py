@@ -41,7 +41,9 @@ class QueryResult:
 
 
 def _parse_fields(
-    fields: Sequence[str], filters: ConditionGroup, groupby: List[Union[Column, AliasedExpression]]
+    fields: Sequence[str],
+    filters: Optional[ConditionGroup],
+    groupby: Optional[List[Union[Column, AliasedExpression]]],
 ) -> Generator[Timeseries, None, None]:
     """
     This function supports parsing in the form:
