@@ -731,8 +731,8 @@ def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
         ([ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widgets.
-        ([ON_DEMAND_METRICS_WIDGETS], 0),  # Nothing.
-        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRICS_WIDGETS], 1),  # Alerts.
+        ([ON_DEMAND_METRICS_WIDGETS], 1),  # Widgets.
+        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widget.
         ([], 0),  # Nothing.
     ],
 )
