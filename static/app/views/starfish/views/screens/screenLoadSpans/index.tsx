@@ -24,9 +24,9 @@ import {
   ScreenCharts,
   YAxis,
 } from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
+import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 import {ScreenLoadSpansSidebar} from 'sentry/views/starfish/views/screens/screenLoadSpans/sidebar';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
-import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 type Query = {
   primaryRelease: string;
@@ -103,7 +103,7 @@ function ScreenLoadSpans() {
                 secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
-                <SampleList
+                <ScreenLoadSpanSamples
                   groupId={spanGroup}
                   transactionName={transactionName}
                   spanDescription={spanDescription}

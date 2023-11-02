@@ -5,7 +5,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
-import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
+import {
+  DEFAULT_RESOURCE_FILTERS,
+  getDomainFilter,
+  getResourceTypeFilter,
+} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
@@ -13,7 +17,7 @@ const {SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
 /**
  * Gets a list of pages that have a resource.
  */
-export const useResourcePagesQuery = () => {
+export const useResourcePagesQuery = (defaultResourceTypes?: string[]) => {
   const location = useLocation();
   const pageFilters = usePageFilters();
   const {slug: orgSlug} = useOrganization();
@@ -24,8 +28,8 @@ export const useResourcePagesQuery = () => {
 
   const queryConditions = [
     ...DEFAULT_RESOURCE_FILTERS,
-    `${SPAN_OP}:${resourceFilters[SPAN_OP] || 'resource.*'}`,
-    ...(spanDomain ? [`${SPAN_DOMAIN}:${spanDomain}`] : []),
+    ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
+    ...getDomainFilter(spanDomain),
   ]; // TODO: We will need to consider other ops
 
   const eventView = EventView.fromNewQueryWithPageFilters(
