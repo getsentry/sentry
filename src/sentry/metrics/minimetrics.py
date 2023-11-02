@@ -162,13 +162,20 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         unit: Optional[str] = None,
     ) -> None:
         if self._keep_metric(sample_rate):
-            # XXX: make this into a gauge later
-            sentry_sdk.metrics.incr(
-                key=self._get_key(key),
-                value=value,
-                tags=tags,
-                unit=self._to_minimetrics_unit(unit=unit),
-            )
+            if options.get("delightful_metrics.emit_gauges"):
+                sentry_sdk.metrics.gauge(
+                    key=self._get_key(key),
+                    value=value,
+                    tags=tags,
+                    unit=self._to_minimetrics_unit(unit=unit),
+                )
+            else:
+                sentry_sdk.metrics.incr(
+                    key=self._get_key(key),
+                    value=value,
+                    tags=tags,
+                    unit=self._to_minimetrics_unit(unit=unit),
+                )
 
     def distribution(
         self,
