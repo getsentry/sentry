@@ -47,13 +47,9 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
         if not request.user_from_signed_request:
             raise NotFound()
         instance = self.fetch_instance(request, organization_slug, id)
-        display_name = ""
-        if hasattr(request.user, "get_display_name"):
-            display_name = request.user.get_display_name()
         view_url = ""
         if hasattr(instance, "get_absolute_url"):
             view_url = str(instance.get_absolute_url())
-
         display_name = ""
         user = request.user
         if hasattr(user, "get_display_name"):
