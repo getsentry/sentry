@@ -19,7 +19,6 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionTagsKey,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
@@ -51,7 +50,6 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-    @with_feature("organizations:metrics-api-new-metrics-layer")
     @patch("sentry.api.endpoints.organization_metrics.run_metrics_query")
     def test_query_with_feature_flag_enabled_but_param_missing(self, run_metrics_query):
         run_metrics_query.return_value = {}

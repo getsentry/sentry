@@ -129,7 +129,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["series"] == {field_2: [None, 5.0, 3.0], field_1: [None, 1.0, 2.0]}
         assert groups[0]["totals"] == {field_2: 5.0, field_1: 1.0}
 
-    @pytest.mark.skip(reason="use_case_id for Sessions is wrongly set to '' instead of 'sessions'")
     def test_with_sessions(self) -> None:
         self.store_session(
             self.build_session(
@@ -141,7 +140,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
         )
 
-        field = f"sum({SessionMRI.RAW_SESSION.value})"
+        field = f"sum({SessionMRI.RAW_DURATION.value})"
         results = run_metrics_query(
             fields=[field],
             query=None,

@@ -155,7 +155,7 @@ def _translate_query_results(
         for totals_item in totals:
             grouped_values = []
             for group_by in query_result.grouped_by or ():
-                grouped_values.append((group_by.key, totals_item.get(group_by.key)))
+                grouped_values.append((group_by, totals_item.get(group_by)))
 
             # The group key must be ordered, in order to be consistent across executions.
             group_key = tuple(sorted(grouped_values))
@@ -251,8 +251,12 @@ def _execute_series_and_totals_query(
     query = base_query.set_rollup(Rollup(interval=interval))
     series_result = run_query(request=_build_request(organization, query))
 
-    # Second we make the totals query.
-    query = base_query.set_rollup(Rollup(totals=True))
+    # Second we make the totals query by taking the same modified interval computed by the series query.
+    modified_start = series_result["modified_start"]
+    modified_end = series_result["modified_end"]
+    query = (
+        base_query.set_start(modified_start).set_end(modified_end).set_rollup(Rollup(totals=True))
+    )
     totals_result = run_query(request=_build_request(organization, query))
 
     return {**series_result, "totals": totals_result["data"]}
