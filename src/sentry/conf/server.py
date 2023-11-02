@@ -1662,6 +1662,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-tracing-without-performance": False,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
+    # Enable database view percentile graphs
+    "organizations:performance-database-view-percentiles": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable performance score calculation for transactions in relay
