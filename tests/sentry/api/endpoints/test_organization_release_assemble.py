@@ -11,7 +11,6 @@ from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.silo import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
@@ -83,9 +82,9 @@ class OrganizationReleaseAssembleTest(APITestCase):
                 "version": self.release.version,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
-                "project_ids": [],
-                "upload_as_artifact_bundle": False,
-                "is_release_bundle_migration": False,
+                "project_ids": [self.project.id],
+                "upload_as_artifact_bundle": True,
+                "is_release_bundle_migration": True,
             }
         )
 
@@ -101,7 +100,9 @@ class OrganizationReleaseAssembleTest(APITestCase):
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
+            project_ids=[self.project.id],
+            upload_as_artifact_bundle=True,
+            is_release_bundle_migration=True,
         )
 
         response = self.client.post(
@@ -123,7 +124,9 @@ class OrganizationReleaseAssembleTest(APITestCase):
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
+            project_ids=[self.project.id],
+            upload_as_artifact_bundle=True,
+            is_release_bundle_migration=True,
         )
 
         response = self.client.post(
@@ -136,7 +139,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.ERROR
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
-    @with_feature("organizations:sourcemaps-upload-release-as-artifact-bundle")
     def test_assemble_as_artifact_bundle(self, mock_assemble_artifacts):
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
