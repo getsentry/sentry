@@ -41,14 +41,16 @@ def get_source_context(
     return pre_context or None, context_line, post_context or None
 
 
-def trim_line(line: str, column=0) -> str:
+def trim_line(line: str | bytes, column=0) -> str:
     """
     Trims a line down to a goal of 140 characters, with a little
     wiggle room to be sensible and tries to trim around the given
     `column`. So it tries to extract 60 characters before and after
     the provided `column` and yield a better context.
     """
-    line = line.strip("\n")
+    if type(line) is bytes:
+        line = line.decode()
+    line = line.strip("\r\n")
     ll = len(line)
     if ll <= 150:
         return line
