@@ -219,7 +219,7 @@ class Quota(Service):
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
         "assign_monitor_seat",
-        "check_accept_crons_checkin",
+        "check_accept_monitor_checkin",
         "remove_monitor_seat",
         "update_monitor_slug",
     )

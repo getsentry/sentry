@@ -105,7 +105,7 @@ class QuotaTest(TestCase):
         )
         assert self.backend.assign_monitor_seat(monitor) == Outcome.ACCEPTED
 
-    def test_check_accept_crons_checkin(self):
+    def test_check_accept_monitor_checkin(self):
         monitor = Monitor.objects.create(
             slug="test-monitor",
             organization_id=self.organization.id,
@@ -115,7 +115,7 @@ class QuotaTest(TestCase):
             type=MonitorType.CRON_JOB,
         )
         assert (
-            self.backend.check_accept_crons_checkin(
+            self.backend.check_accept_monitor_checkin(
                 monitor_slug=monitor.slug, project_id=monitor.project_id
             )
             == AcceptedCheckInStatus.ACCEPT
