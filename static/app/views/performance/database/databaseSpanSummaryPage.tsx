@@ -115,27 +115,28 @@ function SpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
-  const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
-    useSpanMetricsSeries(
-      groupId,
-      queryFilter,
-      [`${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()'],
-      'api.starfish.span-summary-page-metrics-chart'
-    );
+  const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
+    groupId,
+    queryFilter,
+    ['spm()'],
+    'api.starfish.span-summary-page-metrics-chart'
+  );
+
+  const throughputSeries = throughputData['spm()'];
+
+  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
+    groupId,
+    queryFilter,
+    [`${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    'api.starfish.span-summary-page-metrics-chart'
+  );
+
+  const durationSeries =
+    durationData[`${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`];
+
+  const areSpanMetricsSeriesLoading = isThroughputDataLoading || isDurationDataLoading;
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
-
-  const spanMetricsThroughputSeries = {
-    seriesName: 'spm()',
-    data: spanMetricsSeriesData?.['spm()'].data,
-  };
-
-  const spanMetricsDurationSeries = {
-    seriesName: `${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`,
-    data: spanMetricsSeriesData?.[
-      `${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
-    ].data,
-  };
 
   return (
     <ModulePageProviders
@@ -200,8 +201,8 @@ function SpanSummaryPage({params}: Props) {
               >
                 <Chart
                   height={CHART_HEIGHT}
-                  data={[spanMetricsThroughputSeries]}
-                  loading={areSpanMetricsSeriesLoading}
+                  data={[throughputSeries]}
+                  loading={isThroughputDataLoading}
                   utc={false}
                   chartColors={[THROUGHPUT_COLOR]}
                   isLineChart
@@ -227,8 +228,8 @@ function SpanSummaryPage({params}: Props) {
               >
                 <Chart
                   height={CHART_HEIGHT}
-                  data={[spanMetricsDurationSeries]}
-                  loading={areSpanMetricsSeriesLoading}
+                  data={[durationSeries]}
+                  loading={isDurationDataLoading}
                   utc={false}
                   chartColors={[AVG_COLOR]}
                   isLineChart
