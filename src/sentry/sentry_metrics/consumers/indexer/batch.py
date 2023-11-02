@@ -159,16 +159,7 @@ class IndexerBatch:
             )
             raise
 
-        # We need the use case ID to determine what sort of schema validation rule
-        # to apply to the message. Use case id is determined from the metric name.
-        # So we need to peek into the message to get the metric name.
-        if "name" not in parsed_payload:
-            logger.error(
-                "process_messages.missing_name",
-                extra={"payload_value": str(msg.payload.value)},
-            )
-            raise ValueError("Missing metric name")
-
+        assert parsed_payload.get("name", None) is not None
         parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
 
         try:
