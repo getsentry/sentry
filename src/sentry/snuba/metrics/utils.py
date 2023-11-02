@@ -23,7 +23,6 @@ from sentry.snuba.dataset import EntityKey
 __all__ = (
     "MAX_POINTS",
     "GRANULARITY",
-    "TS_COL_QUERY",
     "TS_COL_GROUP",
     "TAG_REGEX",
     "MetricOperationType",
@@ -66,7 +65,6 @@ __all__ = (
 #: Max number of data points per time series:
 MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
-TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
 METRICS_LAYER_GRANULARITIES = [86400, 3600, 60]
 
@@ -138,6 +136,7 @@ MetricType = Literal[
     "generic_counter",
     "generic_set",
     "generic_distribution",
+    "generic_gauge",
 ]
 
 MetricEntity = Literal[
@@ -147,6 +146,7 @@ MetricEntity = Literal[
     "generic_metrics_counters",
     "generic_metrics_sets",
     "generic_metrics_distributions",
+    "generic_metrics_gauges",
 ]
 
 OP_TO_SNUBA_FUNCTION = {
@@ -176,11 +176,20 @@ OP_TO_SNUBA_FUNCTION = {
         "min_timestamp": "minIf",
         "max_timestamp": "maxIf",
     },
+    "metrics_gauges": {
+        "min": "minIf",
+        "max": "maxIf",
+        "sum": "sumIf",
+        "count": "countIf",
+        "last": "lastIf",
+        # TODO; avg will have to be supported as a derived operation.
+    },
 }
 GENERIC_OP_TO_SNUBA_FUNCTION = {
     "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
     "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
     "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
+    "generic_metrics_gauges": OP_TO_SNUBA_FUNCTION["metrics_gauges"],
 }
 
 # This set contains all the operations that require the "rhs" condition to be resolved
@@ -189,6 +198,18 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
 # in case new operations are added, which is not ideal but given the fact that we already
 # define operations in this file, it is not a deal-breaker.
 REQUIRES_RHS_CONDITION_RESOLUTION = {"transform_null_to_unparameterized"}
+
+
+def get_timestamp_column_name(entity_key: str) -> str:
+    """
+    Returns the column name of the timestamp column in Snuba.
+
+    The name of the timestamp column can change based on the entity.
+    """
+    if entity_key == "generic_metrics_gauges":
+        return "rounded_timestamp"
+
+    return "timestamp"
 
 
 def require_rhs_condition_resolution(op: MetricOperationType) -> bool:

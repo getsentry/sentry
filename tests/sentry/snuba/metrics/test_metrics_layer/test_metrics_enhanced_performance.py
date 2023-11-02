@@ -2049,6 +2049,39 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert mq.limit is not None
         assert mq.limit.limit == 50
 
+    def test_gauge(self):
+        mri = "g:custom/page_load@millisecond"
+
+        self.store_performance_metric(
+            name=mri,
+            tags={},
+            value=10.0,
+        )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=mri,
+                ),
+            ],
+            groupby=[],
+            orderby=[],
+            limit=Limit(limit=3),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.TRANSACTIONS,
+        )
+
+        assert data == []
+
 
 class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = [

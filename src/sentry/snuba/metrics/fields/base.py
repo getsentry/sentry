@@ -85,7 +85,6 @@ from sentry.snuba.metrics.utils import (
     GRANULARITY,
     OP_TO_SNUBA_FUNCTION,
     OPERATIONS_PERCENTILES,
-    TS_COL_QUERY,
     UNIT_TO_TYPE,
     DerivedMetricParseException,
     MetricDoesNotExistException,
@@ -95,6 +94,7 @@ from sentry.snuba.metrics.utils import (
     NotSupportedOverCompositeEntityException,
     OrderByNotSupportedOverCompositeEntityException,
     combine_dictionary_of_list_values,
+    get_timestamp_column_name,
 )
 from sentry.utils.snuba import raw_snql_query
 
@@ -149,8 +149,8 @@ def run_metrics_query(
         where=[
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column(TS_COL_QUERY), Op.GTE, start),
-            Condition(Column(TS_COL_QUERY), Op.LT, end),
+            Condition(Column(get_timestamp_column_name(entity_key.value)), Op.GTE, start),
+            Condition(Column(get_timestamp_column_name(entity_key.value)), Op.LT, end),
         ]
         + where,
         granularity=Granularity(GRANULARITY),
@@ -222,6 +222,7 @@ def _get_entity_of_metric_mri(
                 EntityKey.GenericMetricsCounters,
                 EntityKey.GenericMetricsSets,
                 EntityKey.GenericMetricsDistributions,
+                EntityKey.GenericMetricsGauges,
             }
         )
     elif use_case_id is UseCaseID.SESSIONS:

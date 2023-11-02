@@ -1423,7 +1423,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         cls,
         org_id: int,
         project_id: int,
-        type: Literal["counter", "set", "distribution"],
+        type: Literal["counter", "set", "distribution", "gauge"],
         name: str,
         tags: Dict[str, str],
         timestamp: int,
@@ -1477,6 +1477,14 @@ class BaseMetricsTestCase(SnubaTestCase):
             value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:8], "big")]
         elif type == "distribution":
             value = [value]
+        elif type == "gauge":
+            value = {
+                "min": value,
+                "max": value,
+                "sum": value,
+                "count": int(value),
+                "last": value,
+            }
 
         msg = {
             "org_id": org_id,
@@ -1484,7 +1492,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             "metric_id": metric_id(name),
             "timestamp": timestamp,
             "tags": {tag_key(key): tag_value(value) for key, value in tags.items()},
-            "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
+            "type": {"counter": "c", "set": "s", "distribution": "d", "gauge": "g"}[type],
             "value": value,
             "retention_days": 90,
             "use_case_id": use_case_id.value,
@@ -1512,13 +1520,15 @@ class BaseMetricsTestCase(SnubaTestCase):
         # DO NOT USE THIS METHOD IN YOUR TESTS, use store_metric instead. we
         # need to be able to make changes to the indexer's output protocol
         # without having to update a million tests
-        if entity.startswith("generic_"):
-            codec = sentry_kafka_schemas.get_codec("snuba-generic-metrics")
-        else:
-            codec = sentry_kafka_schemas.get_codec("snuba-metrics")
+        # TODO: remove this check once the kafka schema library is updated.
+        if entity != "generic_metrics_gauges":
+            if entity.startswith("generic_"):
+                codec = sentry_kafka_schemas.get_codec("snuba-generic-metrics")
+            else:
+                codec = sentry_kafka_schemas.get_codec("snuba-metrics")
 
-        for bucket in buckets:
-            codec.validate(bucket)
+            for bucket in buckets:
+                codec.validate(bucket)
 
         assert (
             requests.post(

@@ -76,10 +76,10 @@ from sentry.snuba.metrics.utils import (
     FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
     TS_COL_GROUP,
-    TS_COL_QUERY,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_num_intervals,
+    get_timestamp_column_name,
     require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
@@ -752,6 +752,7 @@ class SnubaQueryBuilder:
         "generic_metrics_counters",
         "generic_metrics_distributions",
         "generic_metrics_sets",
+        "generic_metrics_gauges",
     }
 
     def __init__(
@@ -870,11 +871,6 @@ class SnubaQueryBuilder:
             Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
         ]
 
-        if self._metrics_query.start:
-            where.append(Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start))
-        if self._metrics_query.end:
-            where.append(Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end))
-
         if not self._metrics_query.where:
             return where
 
@@ -912,6 +908,27 @@ class SnubaQueryBuilder:
         filter_ = resolve_tags(self._use_case_id, self._org_id, snuba_conditions, self._projects)
         if filter_:
             where.extend(filter_)
+
+        return where
+
+    def _build_timeframe(self, entity_key: str) -> List[Union[BooleanCondition, Condition]]:
+        """
+        Builds the timeframe of the query, comprehending the `start` and `end` intervals.
+        """
+        where = []
+
+        if self._metrics_query.start:
+            where.append(
+                Condition(
+                    Column(get_timestamp_column_name(entity_key)), Op.GTE, self._metrics_query.start
+                )
+            )
+        if self._metrics_query.end:
+            where.append(
+                Condition(
+                    Column(get_timestamp_column_name(entity_key)), Op.LT, self._metrics_query.end
+                )
+            )
 
         return where
 
@@ -1015,7 +1032,7 @@ class SnubaQueryBuilder:
 
             if self._use_case_id is UseCaseID.TRANSACTIONS:
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
-                    self._metrics_query.interval
+                    entity, self._metrics_query.interval
                 )
             else:
                 time_groupby_column = Column(TS_COL_GROUP)
@@ -1027,11 +1044,13 @@ class SnubaQueryBuilder:
         return rv
 
     @staticmethod
-    def __generate_time_groupby_column_for_discover_queries(interval: int) -> Function:
+    def __generate_time_groupby_column_for_discover_queries(
+        entity_key: str, interval: int
+    ) -> Function:
         return Function(
             function="toStartOfInterval",
             parameters=[
-                Column(name="timestamp"),
+                Column(name=get_timestamp_column_name(entity_key)),
                 Function(
                     function="toIntervalSecond",
                     parameters=[interval],
@@ -1156,6 +1175,7 @@ class SnubaQueryBuilder:
                     Op.IN,
                     list(metric_ids_set),
                 ),
+                *self._build_timeframe(entity),
             ]
             orderby = self._build_orderby()
             having = self._build_having()
