@@ -13,6 +13,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Event, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {getTransactionQuery} from 'sentry/utils/performance/regression/query';
 import {NumericChange, renderHeadCell} from 'sentry/utils/performance/regression/table';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -35,8 +36,8 @@ interface UseFetchAdvancedAnalysisProps {
   breakpoint: string;
   end: string;
   projectId: string;
+  query: string;
   start: string;
-  transaction: string;
 }
 
 interface RenderBodyCellProps {
@@ -51,7 +52,7 @@ interface RenderBodyCellProps {
 }
 
 function useFetchAdvancedAnalysis({
-  transaction,
+  query,
   start,
   end,
   breakpoint,
@@ -63,7 +64,7 @@ function useFetchAdvancedAnalysis({
       `/organizations/${organization.slug}/events-root-cause-analysis/`,
       {
         query: {
-          transaction,
+          query,
           project: projectId,
           start,
           end,
@@ -152,7 +153,7 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
     retentionDays: 30,
   });
   const {data, isLoading, isError} = useFetchAdvancedAnalysis({
-    transaction,
+    query: getTransactionQuery(transaction),
     start: (start as Date).toISOString(),
     end: (end as Date).toISOString(),
     breakpoint: breakpointTimestamp,
