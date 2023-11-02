@@ -1,5 +1,7 @@
-import datetime
+from __future__ import annotations
+
 import logging
+from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
@@ -41,7 +43,7 @@ def fix_for_issue_platform(event_data):
     # the issue platform has slightly different requirements than ingest
     # for event schema, so we need to massage the data a bit
     event_data["timestamp"] = ensure_aware(
-        datetime.datetime.fromtimestamp(event_data["timestamp"])
+        datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
     if "contexts" not in event_data:
         event_data["contexts"] = {}
@@ -87,11 +89,11 @@ def create_feedback_issue(event, project_id):
         evidence_data=evidcence_data,
         evidence_display=evidence_display,
         type=FeedbackGroup,
-        detection_time=ensure_aware(datetime.datetime.fromtimestamp(event["timestamp"])),
+        detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level="info",  # TODO: severity based on input?
     )
-    now = datetime.datetime.now()
+    now = datetime.now()
 
     event_data = {
         "project_id": project_id,
