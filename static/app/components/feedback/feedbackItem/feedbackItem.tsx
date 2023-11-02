@@ -8,7 +8,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
@@ -62,13 +61,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
               <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
-              {feedbackItem.metadata.contact_email ? (
-                <CopyToClipboardButton
-                  size="xs"
-                  iconSize="xs"
-                  text={feedbackItem.metadata.contact_email}
-                />
-              ) : null}
             </Flex>
             <Flex gap={space(0.5)} align="center">
               <ProjectAvatar
