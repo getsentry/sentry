@@ -73,7 +73,7 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
         prefix: selectorName,
         title: selectorValue,
       }}
-      triggerLabel={selectorValue ? centerTruncate(selectorValue, 25) : selectorValue}
+      triggerLabel={selectorValue ? centerTruncate(selectorValue, 20) : selectorValue}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
