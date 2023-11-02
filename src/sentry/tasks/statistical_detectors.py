@@ -71,7 +71,7 @@ TIMESERIES_PER_BATCH = 10
 
 
 def get_performance_project_settings(projects: List[Project]):
-    project_settings: dict[Any, Any] = {}
+    project_settings = {}
 
     project_option_settings = ProjectOption.objects.get_value_bulk(
         projects, "sentry:performance_issue_settings"
