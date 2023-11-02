@@ -9,6 +9,7 @@ import {
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 export default function NewJsonViewer(props: ViewerProps) {
@@ -21,7 +22,11 @@ export default function NewJsonViewer(props: ViewerProps) {
   );
 
   if (query.isLoading) {
-    return <LoadingIndicator mini />;
+    return (
+      <LoadingContainer>
+        <LoadingIndicator mini />
+      </LoadingContainer>
+    );
   }
 
   if (query.isError) {
@@ -55,6 +60,12 @@ export default function NewJsonViewer(props: ViewerProps) {
     </PreviewPanelItem>
   );
 }
+
+const LoadingContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${space(1)};
+`;
 
 const StyledContextData = styled(ContextData)`
   margin-bottom: 0;
