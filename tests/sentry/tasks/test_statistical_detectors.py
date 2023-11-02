@@ -10,13 +10,14 @@ from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.statistical_detectors.detector import DetectorPayload
+from sentry.statistical_detectors.detector import DetectorPayload, TrendType
 from sentry.tasks.statistical_detectors import (
     detect_function_change_points,
     detect_function_trends,
     detect_transaction_change_points,
     detect_transaction_trends,
     emit_function_regression_issue,
+    limit_regressions_by_project,
     query_functions,
     query_transactions,
     query_transactions_timeseries,
@@ -355,6 +356,47 @@ def test_detect_transaction_trends_ratelimit(
         assert detect_transaction_change_points.apply_async.call_count == 1
     else:
         assert detect_transaction_change_points.apply_async.call_count == 0
+
+
+@pytest.mark.parametrize(
+    ["ratelimit", "expected_idx"],
+    [
+        pytest.param(-1, 4, id="all"),
+        pytest.param(0, 0, id="zero per project"),
+        pytest.param(1, 2, id="one per project"),
+        pytest.param(2, 3, id="two per project"),
+        pytest.param(3, 4, id="three per project"),
+    ],
+)
+def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
+    payloads = {
+        (project_id, group): DetectorPayload(
+            project_id=project_id,
+            group=f"{project_id}_{group}",
+            count=int(f"{project_id}_{group}"),
+            value=int(f"{project_id}_{group}"),
+            timestamp=timestamp,
+        )
+        for project_id in range(1, 4)
+        for group in range(1, project_id + 1)
+    }
+
+    def trends():
+        yield (None, 0, payloads[(1, 1)])
+        yield (TrendType.Improved, 0, payloads[(2, 1)])
+        yield (TrendType.Regressed, 0, payloads[(2, 2)])
+        yield (TrendType.Regressed, 0, payloads[(3, 1)])
+        yield (TrendType.Regressed, 1, payloads[(3, 2)])
+        yield (TrendType.Regressed, 2, payloads[(3, 3)])
+
+    expected_regressions = [
+        payloads[(2, 2)],
+        payloads[(3, 3)],
+        payloads[(3, 2)],
+        payloads[(3, 1)],
+    ][:expected_idx]
+    regressions = limit_regressions_by_project(trends(), ratelimit)
+    assert set(regressions) == set(expected_regressions)
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
