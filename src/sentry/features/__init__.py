@@ -167,6 +167,7 @@ default_manager.add("organizations:performance-metrics-backed-transaction-summar
 default_manager.add("organizations:performance-slow-db-issue", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-tracing-without-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-database-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:performance-database-view-percentiles", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-statistical-detectors-ema", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-statistical-detectors-breakpoint", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
