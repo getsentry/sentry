@@ -272,6 +272,7 @@ class CellAction extends Component<Props, State> {
                 'left-end',
               ],
             }}
+            menuWiderThanTrigger={false}
             trigger={triggerProps => (
               <ActionMenuTrigger
                 {...triggerProps}
