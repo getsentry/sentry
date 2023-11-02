@@ -18,7 +18,7 @@ export default function FeedbackViewers({feedbackItem}: Props) {
     <StyledAvatarList
       users={displayUsers}
       avatarSize={28}
-      maxVisibleAvatars={3}
+      maxVisibleAvatars={5}
       tooltipOptions={{position: 'top'}}
       renderTooltip={user => (
         <Fragment>

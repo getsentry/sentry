@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import heapq
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, DefaultDict, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import sentry_sdk
 from django.utils import timezone as django_timezone
@@ -158,18 +160,17 @@ def detect_transaction_trends(
     if not options.get("statistical_detectors.enable"):
         return
 
-    regressions = filter(
-        lambda trend: trend[0] == TrendType.Regressed,
-        _detect_transaction_trends(org_ids, project_ids, start),
-    )
+    ratelimit = options.get("statistical_detectors.ratelimit.ema")
+    trends = _detect_transaction_trends(org_ids, project_ids, start)
+    regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    for trends in chunked(regressions, TRANSACTIONS_PER_BATCH):
+    for regression_chunk in chunked(regressions, TRANSACTIONS_PER_BATCH):
         detect_transaction_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for _, payload in trends],
+                [(payload.project_id, payload.group) for payload in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there
@@ -288,7 +289,7 @@ def get_all_transaction_payloads(
 
 def _detect_transaction_trends(
     org_ids: List[int], project_ids: List[int], start: datetime
-) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None]:
     unique_project_ids: Set[int] = set()
 
     transactions_count = 0
@@ -329,7 +330,7 @@ def _detect_transaction_trends(
                     sentry_sdk.capture_exception(e)
 
             detector = MovingAverageRelativeChangeDetector(state, detector_config)
-            trend_type = detector.update(payload)
+            trend_type, score = detector.update(payload)
             states.append(None if trend_type is None else detector.state.to_redis_dict())
 
             if trend_type == TrendType.Regressed:
@@ -339,7 +340,7 @@ def _detect_transaction_trends(
 
             unique_project_ids.add(payload.project_id)
 
-            yield (trend_type, payload)
+            yield (trend_type, score, payload)
 
         detector_store.bulk_write_states(payloads, states)
 
@@ -544,8 +545,10 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
+    ratelimit = options.get("statistical_detectors.ratelimit.ema")
+
     trends = _detect_function_trends(project_ids, start)
-    regressions = filter(lambda trend: trend[0] == TrendType.Regressed, trends)
+    regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
@@ -553,7 +556,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
         detect_function_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for _, payload in regression_chunk],
+                [(payload.project_id, payload.group) for payload in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there
@@ -600,7 +603,7 @@ def detect_function_change_points(
 
 def _detect_function_trends(
     project_ids: List[int], start: datetime
-) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None]:
     unique_project_ids: Set[int] = set()
 
     functions_count = 0
@@ -638,7 +641,7 @@ def _detect_function_trends(
                     sentry_sdk.capture_exception(e)
 
             detector = MovingAverageRelativeChangeDetector(state, detector_config)
-            trend_type = detector.update(payload)
+            trend_type, score = detector.update(payload)
 
             states.append(None if trend_type is None else detector.state.to_redis_dict())
 
@@ -649,7 +652,7 @@ def _detect_function_trends(
 
             unique_project_ids.add(payload.project_id)
 
-            yield (trend_type, payload)
+            yield (trend_type, score, payload)
 
         detector_store.bulk_write_states(payloads, states)
 
@@ -1094,3 +1097,24 @@ def query_functions_timeseries(
             )
             continue
         yield project.id, fingerprint, results[key]
+
+
+def limit_regressions_by_project(
+    trends: Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None],
+    ratelimit: int,
+) -> Generator[DetectorPayload, None, None]:
+    regressions_by_project: DefaultDict[int, List[Tuple[float, DetectorPayload]]] = defaultdict(
+        list
+    )
+
+    for trend_type, score, payload in trends:
+        if trend_type != TrendType.Regressed:
+            continue
+        heapq.heappush(regressions_by_project[payload.project_id], (score, payload))
+
+        while ratelimit >= 0 and len(regressions_by_project[payload.project_id]) > ratelimit:
+            heapq.heappop(regressions_by_project[payload.project_id])
+
+    for regressions in regressions_by_project.values():
+        for _, regression in regressions:
+            yield regression

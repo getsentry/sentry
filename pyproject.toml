@@ -113,8 +113,6 @@ module = [
     "u2flib_server.model.*",
     "ua_parser.user_agent_parser.*",
     "unidiff.*",
-    "uwsgi.*",
-    "uwsgidecorators.*",
 ]
 ignore_missing_imports = true
 # end: missing 3rd party stubs
@@ -492,7 +490,6 @@ module = [
     "sentry.models.artifactbundle",
     "sentry.models.auditlogentry",
     "sentry.models.integrations.external_issue",
-    "sentry.models.integrations.sentry_app",
     "sentry.models.integrations.sentry_app_installation",
     "sentry.models.notificationsetting",
     "sentry.models.organizationaccessrequest",
@@ -767,7 +764,6 @@ module = [
     "tests.sentry.integrations.msteams.test_message_builder",
     "tests.sentry.integrations.slack.test_requests",
     "tests.sentry.issues.test_utils",
-    "tests.sentry.lang.javascript.test_processor",
     "tests.sentry.models.test_organizationmember",
     "tests.sentry.replays.test_project_replay_recording_segment_index",
     "tests.sentry.replays.unit.test_dead_click_issue",
