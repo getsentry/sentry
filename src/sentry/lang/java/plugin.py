@@ -253,11 +253,11 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
                     (pre_context, context_line, post_context) = source_context
 
                     if pre_context is not None and len(pre_context) > 0:
-                        new_frame["pre_context"] = [trim_line(x) for x in pre_context]
+                        new_frame["pre_context"] = [trim_line(x.decode()) for x in pre_context]
                     if context_line is not None:
-                        new_frame["context_line"] = trim_line(context_line)
+                        new_frame["context_line"] = trim_line(context_line.decode())
                     if post_context is not None and len(post_context) > 0:
-                        new_frame["post_context"] = [trim_line(x) for x in post_context]
+                        new_frame["post_context"] = [trim_line(x.decode()) for x in post_context]
                 except KeyError:
                     # file not available in source bundle, proceed
                     pass

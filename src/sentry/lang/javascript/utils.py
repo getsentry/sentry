@@ -10,8 +10,8 @@ LINES_OF_CONTEXT = 5
 
 
 def get_source_context(
-    source: List[str], lineno: int, context=LINES_OF_CONTEXT
-) -> Tuple[List[str] | None, str | None, List[str] | None]:
+    source: List[bytes], lineno: int, context=LINES_OF_CONTEXT
+) -> Tuple[List[bytes] | None, bytes | None, List[bytes] | None]:
     if not source:
         return None, None, None
 
@@ -31,7 +31,7 @@ def get_source_context(
     try:
         context_line = source[lineno]
     except IndexError:
-        context_line = ""
+        context_line = b""
 
     try:
         post_context = source[(lineno + 1) : upper_bound]
@@ -41,15 +41,13 @@ def get_source_context(
     return pre_context or None, context_line, post_context or None
 
 
-def trim_line(line: str | bytes, column=0) -> str:
+def trim_line(line: str, column=0) -> str:
     """
     Trims a line down to a goal of 140 characters, with a little
     wiggle room to be sensible and tries to trim around the given
     `column`. So it tries to extract 60 characters before and after
     the provided `column` and yield a better context.
     """
-    if type(line) is bytes:
-        line = line.decode()
     line = line.strip("\r\n")
     ll = len(line)
     if ll <= 150:
