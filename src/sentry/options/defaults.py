@@ -1580,6 +1580,12 @@ register(
     default=14,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "statistical_detectors.ratelimit.ema",
+    type=Int,
+    default=-1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "options_automator_slack_webhook_enabled",
@@ -1657,6 +1663,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "delightful_metrics.emit_gauges",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
 register("metric_alerts.rate_limit", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # SDK Crash Detection
@@ -1671,6 +1684,19 @@ register(
 register(
     "issues.sdk_crash_detection.cocoa.sample_rate",
     default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4506155486085120.
+register(
+    "issues.sdk_crash_detection.react-native.project_id",
+    default=4506155486085120,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.react-native.sample_rate",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # END: SDK Crash Detection
