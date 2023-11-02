@@ -82,7 +82,7 @@ class InternalMetrics:
                 else:
                     full_key = key
                 try:
-                    tsdb.incr(TSDBModel.internal, full_key, count=amount)
+                    tsdb.backend.incr(TSDBModel.internal, full_key, count=amount)
                 except Exception:
                     logger = logging.getLogger("sentry.errors")
                     logger.exception("Unable to incr internal metric")
