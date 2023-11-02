@@ -99,6 +99,11 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
     for g in groups:
         if g.issue_category == GroupCategory.ERROR:
             error_groups.append(g)
+        elif (
+            features.has("organizations:issue-platform-api-crons-sd", g.organization)
+            and g.type.generate_escalating_forecasts
+        ):
+            other_groups.append(g)
         else:
             other_groups.append(g)
 

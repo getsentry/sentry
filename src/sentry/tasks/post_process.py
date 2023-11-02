@@ -598,6 +598,9 @@ def post_process_group(
         if (
             features.has("organizations:escalating-metrics-backend", event.project.organization)
             and not is_transaction_event
+            and event.group.issue_type.should_generate_escalating_forecasts(
+                event.project.organization
+            )
         ):
             _update_escalating_metrics(event)
 

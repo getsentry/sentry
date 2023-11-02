@@ -60,6 +60,7 @@ def run_escalating_forecast() -> None:
 )
 @retry
 def generate_forecasts_for_projects(project_ids: List[int]) -> None:
+    # maybe need organization here
     for until_escalating_groups in chunked(
         RangeQuerySetWrapper(
             Group.objects.filter(
