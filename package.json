@@ -26,7 +26,7 @@
     "@fullstory/babel-plugin-annotate-react": "^2.3.0",
     "@monaco-editor/react": "^4.4.5",
     "@popperjs/core": "^2.11.5",
-    "@react-aria/button": "^3.7.2",
+    "@react-aria/button": "^3.8.4",
     "@react-aria/focus": "^3.12.1",
     "@react-aria/gridlist": "^3.4.0",
     "@react-aria/i18n": "^3.7.2",
