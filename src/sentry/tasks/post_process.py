@@ -13,7 +13,6 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -116,7 +115,7 @@ def format_event_platform(event: Union[Event, GroupEvent]):
     try:
         group = event.group
     except Group.DoesNotExist:
-        raise ResourceDoesNotExist
+        raise Exception("Group could not be found")
     platform = group.platform
     if not platform:
         raise AttributeError("No platform on group")
@@ -788,7 +787,7 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 
             if not event.group:
-                raise ResourceDoesNotExist
+                raise Exception("Group not found")
 
             if is_reprocessed and is_new:
                 # keep Group.status=UNRESOLVED and Group.substatus=ONGOING if its reprocessed
@@ -834,7 +833,7 @@ def process_snoozes(job: PostProcessJob) -> None:
     try:
         group = event.group
     except Group.DoesNotExist:
-        raise ResourceDoesNotExist
+        raise Exception("Group not found")
 
     # Check is group is escalating
     if (
