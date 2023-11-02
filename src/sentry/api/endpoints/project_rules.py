@@ -338,25 +338,6 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
-**Create a GitHub Enterprise Issue**
-- `integration` - The integration ID associated with GitHub Enterprise.
-- `repo` - The name of the repository to create the issue in.
-- `title` - The title of the issue.
-- `body` (optional) - The contents of the issue.
-- `assignee` (optional) - The GitHub user to assign the issue to.
-- `labels` (optional) - A list of labels to assign to the issue.
-```json
-{
-    "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-    "integration": 93749,
-    "repo": default,
-    "title": "My Test Issue",
-    "assignee": "Baxter the Hacker",
-    "labels": ["bug", "p1"]
-    ""
-}
-```
-
 **Create an Azure DevOps work item**
 - `integration` - The integration ID.
 - `project` - The ID of the Azure DevOps project.
