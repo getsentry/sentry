@@ -6,6 +6,7 @@ from typing_extensions import TypedDict
 @unique
 class SdkName(Enum):
     Cocoa = "cocoa"
+    ReactNative = "react-native"
 
 
 class SDKCrashDetectionConfig(TypedDict):

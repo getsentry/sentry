@@ -278,6 +278,18 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
                 tags={"occurrence_type": mock.ANY},
             )
 
+    def test_valid_nan_exception_log(self) -> None:
+        # NaN is invalid in new event schema, but valid in legacy schema, so it emits logging, but doesn't raise
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"]["tags"]["nan-tag"] = float("nan")
+        with self.assertLogs("sentry.issues.occurrence_consumer", logging.ERROR) as cm:
+            self.run_test(message)
+
+        assert (
+            "Error validating event payload, falling back to legacy validation" in cm.records[0].msg
+        )
+        assert cm.records[0].exc_info is not None
+
     def test_invalid_payload_emits_both_metrics(self) -> None:
         with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
             self.run_invalid_payload_test(
