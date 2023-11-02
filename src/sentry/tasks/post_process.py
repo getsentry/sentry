@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
@@ -11,7 +12,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options
+from sentry import features
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -31,7 +32,9 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
+from sentry.utils.sdk_crashes.build_sdk_crash_detection_configs import (
+    build_sdk_crash_detection_configs,
+)
 from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
@@ -74,7 +77,6 @@ def _should_send_error_created_hooks(project):
     result = cache.get(cache_key)
 
     if result is None:
-
         org = Organization.objects.get_from_cache(id=project.organization_id)
         if not features.has("organizations:integrations-event-hooks", organization=org):
             cache.set(cache_key, 0, 60)
@@ -197,7 +199,6 @@ def handle_owner_assignment(job):
             # - we tried to calculate and could not find issue owners with TTL 1 day
             # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
-
                 with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
                     if should_issue_owners_ratelimit(project.id, group.id):
                         logger.info(
@@ -270,7 +271,6 @@ def handle_owner_assignment(job):
                             # see ProjectOwnership.get_issue_owners
                             issue_owners = []
                         else:
-
                             issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
                             # Cache for 1 day after we calculated. We don't need to move that fast.
@@ -891,6 +891,12 @@ def process_replay_link(job: PostProcessJob) -> None:
     if not replay_id:
         return
 
+    # Validate the UUID.
+    try:
+        uuid.UUID(replay_id)
+    except (ValueError, TypeError):
+        return None
+
     metrics.incr("post_process.process_replay_link.id_exists")
 
     publisher = initialize_replays_publisher(is_async=True)
@@ -1173,27 +1179,15 @@ def sdk_crash_monitoring(job: PostProcessJob):
     if not features.has("organizations:sdk-crash-detection", event.project.organization):
         return
 
-    cocoa_project_id = options.get(
-        "issues.sdk_crash_detection.cocoa.project_id",
-    )
-    if not cocoa_project_id or cocoa_project_id == 0:
-        sentry_sdk.capture_message("Cocoa project_id is not set.")
+    configs = build_sdk_crash_detection_configs()
+    if not configs or len(configs) == 0:
         return None
-
-    cocoa_sample_rate = options.get("issues.sdk_crash_detection.cocoa.sample_rate")
-    # When the sample rate is 0, we can skip the sdk crash detection.
-    if not cocoa_sample_rate or cocoa_sample_rate == 0:
-        return None
-
-    cocoa_config = SDKCrashDetectionConfig(
-        sdk_name="cocoa", project_id=cocoa_project_id, sample_rate=cocoa_sample_rate
-    )
 
     with metrics.timer("post_process.sdk_crash_monitoring.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
             sdk_crash_detection.detect_sdk_crash(
                 event=event,
-                configs=[cocoa_config],
+                configs=configs,
             )
 
 

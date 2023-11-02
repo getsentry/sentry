@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional, Union, cast
+from typing import Any, Iterable, List, Mapping, Optional, Union
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.expressions import F
@@ -20,7 +20,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.team import Team
+from sentry.models.team import Team, TeamStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import (
@@ -256,7 +256,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             org = Organization.objects.get_from_cache(slug=slug)
             if only_visible and org.status != OrganizationStatus.ACTIVE:
                 raise Organization.DoesNotExist
-            return cast(int, org.id)
+            return org.id
         except Organization.DoesNotExist:
             logger.info("Organization by slug [%s] not found", slug)
 
@@ -367,6 +367,21 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # It might be nice to return an RpcTeamMember to represent what we just
         # created, but doing so would require a list of project IDs. We can implement
         # that if a return value is needed in the future.
+
+    def get_or_create_default_team(
+        self,
+        *,
+        organization_id: int,
+        new_team_slug: str,
+    ) -> RpcTeam:
+        team_query = Team.objects.filter(
+            organization_id=organization_id, status=TeamStatus.ACTIVE
+        ).order_by("date_added")
+        if team_query.exists():
+            team = team_query[0]
+        else:
+            team = Team.objects.create(organization_id=organization_id, slug=new_team_slug)
+        return serialize_rpc_team(team)
 
     def get_or_create_team_member(
         self,

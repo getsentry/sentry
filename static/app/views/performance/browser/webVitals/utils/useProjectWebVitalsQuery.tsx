@@ -24,6 +24,7 @@ export const useProjectWebVitalsQuery = ({transaction, tag}: Props = {}) => {
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'p75(transaction.duration)',
         'count()',
         'failure_count()',
         'p95(transaction.duration)',
@@ -45,6 +46,7 @@ export const useProjectWebVitalsQuery = ({transaction, tag}: Props = {}) => {
     limit: 50,
     location,
     orgSlug: organization.slug,
+    cursor: '',
     options: {
       enabled: pageFilters.isReady,
       refetchOnWindowFocus: false,

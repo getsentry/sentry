@@ -311,6 +311,11 @@ urlpatterns += [
                     name="sentry-account-set-password-confirm",
                 ),
                 re_path(
+                    r"^relocation/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$",
+                    accounts.relocate_confirm,
+                    name="sentry-account-relocate-confirm",
+                ),
+                re_path(
                     r"^settings/$",
                     RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
                 ),
@@ -376,6 +381,8 @@ urlpatterns += [
                         pattern_name="sentry-account-settings-notifications", permanent=False
                     ),
                 ),
+                # TODO(hybridcloud) These routes can be removed in Jan 2024 as all valid links
+                # will have been generated with hybrid-cloud compatible URLs.
                 re_path(
                     r"^notifications/unsubscribe/(?P<project_id>\d+)/$",
                     accounts.email_unsubscribe_project,

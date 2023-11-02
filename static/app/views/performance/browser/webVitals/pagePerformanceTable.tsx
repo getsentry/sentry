@@ -1,5 +1,5 @@
-import {useMemo, useState} from 'react';
-import {Link} from 'react-router';
+import {useMemo} from 'react';
+import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -9,12 +9,14 @@ import GridEditable, {
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -49,7 +51,8 @@ export function PagePerformanceTable() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
-  const [search, setSearch] = useState<string | undefined>(undefined);
+
+  const query = decodeScalar(location.query.query, '');
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
@@ -59,7 +62,7 @@ export function PagePerformanceTable() {
   const sort = useWebVitalsSort();
 
   const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
-    useProjectWebVitalsQuery({transaction: search});
+    useProjectWebVitalsQuery({transaction: query});
 
   const projectScore = calculatePerformanceScore({
     lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
@@ -69,8 +72,11 @@ export function PagePerformanceTable() {
     fid: projectData?.data[0]['p75(measurements.fid)'] as number,
   });
 
-  const {data, isLoading: isTransactionWebVitalsQueryLoading} =
-    useTransactionWebVitalsQuery({limit: 10, transaction: search});
+  const {
+    data,
+    pageLinks,
+    isLoading: isTransactionWebVitalsQueryLoading,
+  } = useTransactionWebVitalsQuery({limit: 10, transaction: query});
 
   const count = projectData?.data[0]['count()'] as number;
 
@@ -194,15 +200,21 @@ export function PagePerformanceTable() {
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 
+  const handleSearch = (newQuery: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        query: newQuery === '' ? undefined : `*${newQuery}*`,
+        cursor: undefined,
+      },
+    });
+  };
+
   return (
     <span>
       <SearchBarContainer>
-        <SearchBar
-          placeholder={t('Search for Pages')}
-          onSearch={query => {
-            setSearch(query === '' ? undefined : `*${query}*`);
-          }}
-        />
+        <SearchBar placeholder={t('Search for Pages')} onSearch={handleSearch} />
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
@@ -217,6 +229,7 @@ export function PagePerformanceTable() {
           location={location}
         />
       </GridContainer>
+      <Pagination pageLinks={pageLinks} />
     </span>
   );
 }

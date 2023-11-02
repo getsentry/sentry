@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router';
 
-import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -12,6 +11,7 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ValidSort} from 'sentry/views/performance/browser/resources/imageView/utils/useImageResourceSort';
 import {useIndexedResourcesQuery} from 'sentry/views/performance/browser/resources/imageView/utils/useIndexedResourcesQuery';
+import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
@@ -77,7 +77,7 @@ function ResourceTable({sort}: Props) {
       );
     }
     if (key === 'http.response_content_length') {
-      return <FileSize bytes={row[key]} />;
+      return <ResourceSize bytes={row[key]} />;
     }
     if (key === `span.self_time`) {
       return <DurationCell milliseconds={row[key]} />;

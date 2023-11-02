@@ -17,7 +17,7 @@ from snuba_sdk import (
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
-from sentry.snuba.dataset import EntityKey
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
@@ -73,6 +73,12 @@ def run_query(request: Request) -> Mapping[str, Any]:
         resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
         request.query = resolved_metrics_query
         request.tenant_ids["use_case_id"] = resolved_metrics_query.scope.use_case_id
+        # Release health AKA sessions uses a separate Dataset. Change the dataset based on the use case id.
+        # This is necessary here because the product code that uses this isn't aware of which feature is
+        # using it.
+        if resolved_metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
+            request.dataset = Dataset.Metrics.value
+
     except Exception as e:
         metrics.incr(
             "metrics_layer.query",
@@ -222,18 +228,14 @@ def _resolve_metrics_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_entity(entity.value))
         )
 
+    # TODO: Once we support formula queries, we would need to resolve groupby and filters recursively given a Formula object
+    # For now, metrics_query.query will only ever be a Timeseries
     new_groupby, new_mappings = _resolve_groupby(metrics_query.query.groupby, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_groupby(new_groupby))
-    mappings.update(new_mappings)
-    new_groupby, new_mappings = _resolve_groupby(metrics_query.groupby, use_case_id, org_id)
-    metrics_query = metrics_query.set_groupby(new_groupby)
     mappings.update(new_mappings)
 
     new_filters, new_mappings = _resolve_filters(metrics_query.query.filters, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_filters(new_filters))
-    mappings.update(new_mappings)
-    new_filters, new_mappings = _resolve_filters(metrics_query.filters, use_case_id, org_id)
-    metrics_query = metrics_query.set_filters(new_filters)
     mappings.update(new_mappings)
 
     return metrics_query, mappings
