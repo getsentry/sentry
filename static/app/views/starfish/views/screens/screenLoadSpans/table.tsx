@@ -106,12 +106,8 @@ export function ScreenLoadSpansTable({
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': DataTitles.count,
     'time_spent_percentage()': DataTitles.timeSpent,
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
-      'Avg Duration (Release 1)'
-    ),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
-      'Avg Duration  (Release 2)'
-    ),
+    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t('Duration (Release 1)'),
+    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t('Duration  (Release 2)'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
