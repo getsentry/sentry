@@ -2,6 +2,7 @@ import {CSSProperties, forwardRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
@@ -69,6 +70,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               checked={isSelected !== false}
               onChange={e => onSelect(e.target.checked)}
               onClick={e => e.stopPropagation()}
+              invertColors={isOpen}
             />
           </Flex>
           <Flex column style={{gridArea: 'right'}}>
@@ -89,6 +91,11 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           </Flex>
           <div style={{gridArea: 'message'}}>
             <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
+          </div>
+          <div style={{gridArea: 'assigned', display: 'flex', justifyContent: 'end'}}>
+            {feedbackItem.assignedTo ? (
+              <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
+            ) : null}
           </div>
           <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
             <Flex align="center" gap={space(0.5)}>
@@ -133,7 +140,7 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-areas:
     'checkbox user time'
     'unread message message'
-    'right icons icons';
+    'right icons assigned';
   gap: ${space(1)};
   place-items: stretch;
   align-items: center;

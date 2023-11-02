@@ -228,18 +228,14 @@ def _resolve_metrics_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_entity(entity.value))
         )
 
+    # TODO: Once we support formula queries, we would need to resolve groupby and filters recursively given a Formula object
+    # For now, metrics_query.query will only ever be a Timeseries
     new_groupby, new_mappings = _resolve_groupby(metrics_query.query.groupby, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_groupby(new_groupby))
-    mappings.update(new_mappings)
-    new_groupby, new_mappings = _resolve_groupby(metrics_query.groupby, use_case_id, org_id)
-    metrics_query = metrics_query.set_groupby(new_groupby)
     mappings.update(new_mappings)
 
     new_filters, new_mappings = _resolve_filters(metrics_query.query.filters, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_filters(new_filters))
-    mappings.update(new_mappings)
-    new_filters, new_mappings = _resolve_filters(metrics_query.filters, use_case_id, org_id)
-    metrics_query = metrics_query.set_filters(new_filters)
     mappings.update(new_mappings)
 
     return metrics_query, mappings

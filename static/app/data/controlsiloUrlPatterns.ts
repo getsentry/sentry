@@ -38,6 +38,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/organizations/[^/]+/api-keys/$'),
   new RegExp('^api/0/organizations/[^/]+/api-keys/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/audit-logs/$'),
+  new RegExp('^api/0/organizations/[^/]+/integrations/$'),
   new RegExp('^api/0/organizations/[^/]+/integrations/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/sentry-app-installations/$'),
   new RegExp('^api/0/organizations/[^/]+/sentry-apps/$'),

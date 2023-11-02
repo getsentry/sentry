@@ -125,7 +125,6 @@ export enum TimePeriod {
   // Seven days is actually 10080m but we have a max of 10000 events
   SEVEN_DAYS = '10000m',
   FOURTEEN_DAYS = '14d',
-  THIRTY_DAYS = '30d',
 }
 
 export enum TimeWindow {
