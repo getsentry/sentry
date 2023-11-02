@@ -2045,7 +2045,7 @@ def _process_existing_aggregate(
 
     update_kwargs = {"times_seen": 1}
 
-    buffer_incr(Group, update_kwargs, {"pk": group.id}, updated_group_values)
+    buffer_incr(Group, update_kwargs, {"id": group.id}, updated_group_values)
 
     return bool(is_regression)
 

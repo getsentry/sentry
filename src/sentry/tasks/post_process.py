@@ -430,7 +430,7 @@ def fetch_buffered_group_stats(group):
     from sentry import buffer
     from sentry.models.group import Group
 
-    result = buffer.backend.get(Group, ["times_seen"], {"pk": group.id})
+    result = buffer.backend.get(Group, ["times_seen"], {"id": group.id})
     group.times_seen_pending = result["times_seen"]
 
 

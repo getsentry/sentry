@@ -278,7 +278,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             )
             group = event.group
             event.group.update(times_seen=1)
-            buffer.backend.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
 
             url = f"/api/0/issues/{group.id}/"
             response = self.client.get(url, format="json")

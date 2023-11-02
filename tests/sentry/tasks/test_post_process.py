@@ -432,7 +432,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             event.group.update(times_seen=2)
             assert MockAction.return_value.after.call_count == 0
 
-            buffer.backend.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -1597,7 +1597,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             )
             assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
-            buffer.backend.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 60}, filters={"id": event.group.id})
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
