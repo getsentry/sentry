@@ -113,8 +113,6 @@ module = [
     "u2flib_server.model.*",
     "ua_parser.user_agent_parser.*",
     "unidiff.*",
-    "uwsgi.*",
-    "uwsgidecorators.*",
 ]
 ignore_missing_imports = true
 # end: missing 3rd party stubs
