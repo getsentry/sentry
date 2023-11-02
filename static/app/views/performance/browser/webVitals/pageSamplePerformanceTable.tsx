@@ -12,9 +12,11 @@ import GridEditable, {
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/formatters';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -28,14 +30,16 @@ import {TransactionSampleRow} from 'sentry/views/performance/browser/webVitals/u
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
-type TransactionSampleRowWithScoreAndExtra = TransactionSampleRow & {
+export type TransactionSampleRowWithScoreAndExtra = TransactionSampleRow & {
   score: number;
   view: any;
 };
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScoreAndExtra>;
 
-const columnOrder: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[] = [
+export const COLUMN_ORDER: GridColumnOrder<
+  keyof TransactionSampleRowWithScoreAndExtra
+>[] = [
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
   {key: 'transaction.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
@@ -49,9 +53,11 @@ const columnOrder: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[
 
 type Props = {
   transaction: string;
+  columnOrder?: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[];
+  limit?: number;
 };
 
-export function PageSamplePerformanceTable({transaction}: Props) {
+export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
@@ -63,42 +69,66 @@ export function PageSamplePerformanceTable({transaction}: Props) {
     [projects, location.query.project]
   );
 
+  const limitInThirds = Math.floor(limit / 3);
+
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
   const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 3,
+      limit: limitInThirds,
       transaction,
       query: `measurements.lcp:<${PERFORMANCE_SCORE_P90S.lcp}`,
+      withProfiles: true,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 3,
+      limit: limitInThirds,
       transaction,
       query: `measurements.lcp:<${PERFORMANCE_SCORE_MEDIANS.lcp} measurements.lcp:>=${PERFORMANCE_SCORE_P90S.lcp}`,
+      withProfiles: true,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 3,
+      limit: limitInThirds,
       transaction,
       query: `measurements.lcp:>=${PERFORMANCE_SCORE_MEDIANS.lcp}`,
+      withProfiles: true,
     });
 
   // In case we don't have enough data, get some transactions with no LCP data
   const {data: noLcpData, isLoading: isNoLcpTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 9,
+      limit,
       transaction,
       query: `!has:measurements.lcp`,
+      withProfiles: true,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
 
+  // If we have enough data, but not enough with profiles, replace rows without profiles with no LCP data that have profiles
+  if (
+    data.length >= 9 &&
+    data.filter(row => row['profile.id']).length < 9 &&
+    noLcpData.filter(row => row['profile.id']).length > 0
+  ) {
+    const noLcpDataWithProfiles = noLcpData.filter(row => row['profile.id']);
+    let numRowsToReplace = Math.min(
+      data.filter(row => !row['profile.id']).length,
+      noLcpDataWithProfiles.length
+    );
+    while (numRowsToReplace > 0) {
+      const index = data.findIndex(row => !row['profile.id']);
+      data[index] = noLcpDataWithProfiles.pop()!;
+      numRowsToReplace--;
+    }
+  }
+
   // If we don't have enough data, fill in the rest with no LCP data
-  if (data.length < 9) {
-    data.push(...noLcpData.slice(0, 9 - data.length));
+  if (data.length < limit) {
+    data.push(...noLcpData.slice(0, limit - data.length));
   }
 
   const isTransactionWebVitalsQueryLoading =
@@ -196,7 +226,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
     }
     if (key === 'view') {
-      const eventSlug = generateEventSlug({...row, project: project?.slug});
+      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
       const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
       const replayTarget =
         row['transaction.duration'] !== null &&
@@ -210,13 +240,26 @@ export function PageSamplePerformanceTable({transaction}: Props) {
           },
           undefined
         );
+      const profileTarget =
+        defined(project) && defined(row['profile.id'])
+          ? generateProfileFlamechartRoute({
+              orgSlug: organization.slug,
+              projectSlug: project.slug,
+              profileId: String(row['profile.id']),
+            })
+          : null;
 
       return (
         <NoOverflow>
           <Flex>
             <LinkButton to={eventTarget} size="xs">
-              {t('Event')}
+              {t('Transaction')}
             </LinkButton>
+            {profileTarget && (
+              <LinkButton to={profileTarget} size="xs">
+                {t('Profile')}
+              </LinkButton>
+            )}
             {row.replayId && replayTarget && (
               <LinkButton to={replayTarget} size="xs">
                 <IconPlay size="xs" />
@@ -234,7 +277,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
       <GridContainer>
         <GridEditable
           isLoading={isTransactionWebVitalsQueryLoading}
-          columnOrder={columnOrder}
+          columnOrder={columnOrder ?? COLUMN_ORDER}
           columnSortBy={[]}
           data={tableData}
           grid={{

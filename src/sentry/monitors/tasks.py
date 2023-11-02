@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from functools import lru_cache
@@ -124,7 +126,7 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
 
     # Find the slowest partition from our sorted set of partitions, where the
     # clock is the score.
-    slowest_partitions = redis_client.zrange(
+    slowest_partitions: list[tuple[str, float]] = redis_client.zrange(
         name=MONITOR_TASKS_PARTITION_CLOCKS,
         withscores=True,
         start=0,
@@ -336,7 +338,15 @@ def check_timeout(current_datetime: datetime):
     metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
-        mark_checkin_timeout.delay(checkin.id, current_datetime)
+        # used for temporary debugging
+        kwargs = {
+            "monitor_id": checkin.monitor.id,
+            "monitor_environment_id": checkin.monitor_environment.id,
+            "status": checkin.status,
+            "date_added": checkin.date_added,
+            "timeout_at": checkin.timeout_at,
+        }
+        mark_checkin_timeout.delay(checkin.id, current_datetime, **kwargs)
 
 
 @instrumented_task(
@@ -344,7 +354,7 @@ def check_timeout(current_datetime: datetime):
     max_retries=0,
     record_timing=True,
 )
-def mark_checkin_timeout(checkin_id: int, ts: datetime):
+def mark_checkin_timeout(checkin_id: int, ts: datetime, **kwargs):
     logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
 
     checkin = (

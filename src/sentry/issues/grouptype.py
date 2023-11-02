@@ -120,6 +120,8 @@ class GroupType:
     # decide if this is released.
     released: bool = False
 
+    # Allow automatic resolution of an issue type, using the project-level option.
+    enable_auto_resolve: bool = True
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
@@ -332,15 +334,17 @@ class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, Group
     description = "Transaction Duration Regression (Experimental)"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
 
 
 @dataclass(frozen=True)
-class PerformanceP95DurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceP95EndpointRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1018
-    slug = "performance_p95_duration_regression"
-    description = "Transaction Duration Regression"
+    slug = "performance_p95_endpoint_regression"
+    description = "Endpoint Regression"
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
@@ -420,6 +424,16 @@ class ProfileFunctionRegressionExperimentalType(GroupType):
     slug = "profile_function_regression_exp"
     description = "Function Duration Regression (Experimental)"
     category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
+
+
+@dataclass(frozen=True)
+class ProfileFunctionRegressionType(GroupType):
+    type_id = 2011
+    slug = "profile_function_regression"
+    description = "Function Regression"
+    category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
 
 
 @dataclass(frozen=True)
@@ -429,6 +443,7 @@ class MonitorCheckInFailure(GroupType):
     description = "Monitor Check In Failed"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -438,6 +453,7 @@ class MonitorCheckInTimeout(GroupType):
     description = "Monitor Check In Timeout"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -447,6 +463,7 @@ class MonitorCheckInMissed(GroupType):
     description = "Monitor Check In Missed"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -463,6 +480,7 @@ class FeedbackGroup(GroupType):
     slug = "feedback"
     description = "Feedback"
     category = GroupCategory.FEEDBACK.value
+    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)

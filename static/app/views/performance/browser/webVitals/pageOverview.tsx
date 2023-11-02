@@ -1,10 +1,15 @@
 import {useMemo, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
+import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -13,21 +18,30 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Tag} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {PageOverviewFeaturedTagsList} from 'sentry/views/performance/browser/webVitals/components/pageOverviewFeaturedTagsList';
 import {PageOverviewSidebar} from 'sentry/views/performance/browser/webVitals/components/pageOverviewSidebar';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import WebVitalsRingMeters from 'sentry/views/performance/browser/webVitals/components/webVitalsRingMeters';
+import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
+import {
+  PageSamplePerformanceTable,
+  TransactionSampleRowWithScoreAndExtra,
+} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
-enum LandingDisplayField {
+import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
+
+export enum LandingDisplayField {
   OVERVIEW = 'overview',
   SPANS = 'spans',
 }
@@ -38,15 +52,37 @@ const LANDING_DISPLAYS = [
     field: LandingDisplayField.OVERVIEW,
   },
   {
-    label: t('Spans'),
+    label: t('Aggregate Spans'),
     field: LandingDisplayField.SPANS,
   },
 ];
+
+const SAMPLES_COLUMN_ORDER: GridColumnOrder<
+  keyof TransactionSampleRowWithScoreAndExtra
+>[] = [
+  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
+  {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
+  {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
+  {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
+  {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
+  {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
+  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'view', width: COL_WIDTH_UNDEFINED, name: 'View'},
+];
+
+function getCurrentTabSelection(selectedTab) {
+  const tab = decodeScalar(selectedTab);
+  if (tab && Object.values(LandingDisplayField).includes(tab as LandingDisplayField)) {
+    return tab as LandingDisplayField;
+  }
+  return LandingDisplayField.OVERVIEW;
+}
 
 export default function PageOverview() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
+  const router = useRouter();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -57,11 +93,14 @@ export default function PageOverview() {
     [projects, location.query.project]
   );
 
+  const tab = getCurrentTabSelection(location.query.tab);
+
   // TODO: When visiting page overview from a specific webvital detail panel in the landing page,
   // we should automatically default this webvital state to the respective webvital so the detail
   // panel in this page opens automatically.
-  const [state, setState] = useState<{webVital: WebVitals | null}>({
-    webVital: null,
+  const [state, setState] = useState<{webVital: WebVitals | null; tag?: Tag}>({
+    webVital: (location.query.webVital as WebVitals) ?? null,
+    tag: undefined,
   });
 
   const {data: pageData, isLoading} = useProjectWebVitalsQuery({transaction});
@@ -73,6 +112,17 @@ export default function PageOverview() {
     );
     return null;
   }
+
+  const transactionSummaryTarget =
+    project &&
+    !Array.isArray(location.query.project) && // Only render button to transaction summary when one project is selected.
+    transaction &&
+    transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction,
+      query: {...location.query},
+      projectID: project.id,
+    });
 
   const projectScore = isLoading
     ? undefined
@@ -86,7 +136,18 @@ export default function PageOverview() {
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
-      <Tabs value={LandingDisplayField.OVERVIEW}>
+      <Tabs
+        value={tab}
+        onChange={value => {
+          browserHistory.push({
+            ...location,
+            query: {
+              ...location.query,
+              tab: value,
+            },
+          });
+        }}
+      >
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
@@ -112,65 +173,89 @@ export default function PageOverview() {
               <FeatureBadge type="alpha" />
             </Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions />
+          <Layout.HeaderActions>
+            {transactionSummaryTarget && (
+              <LinkButton to={transactionSummaryTarget} size="sm">
+                {t('View Transaction Summary')}
+              </LinkButton>
+            )}
+          </Layout.HeaderActions>
           <TabList hideBorder>
             {LANDING_DISPLAYS.map(({label, field}) => (
               <TabList.Item key={field}>{label}</TabList.Item>
             ))}
           </TabList>
         </Layout.Header>
-        <Layout.Body>
-          <Layout.Main>
-            <TopMenuContainer>
-              {transaction && (
-                <ViewAllPagesButton
-                  to={{
-                    ...location,
-                    pathname: '/performance/browser/pageloads/',
-                    query: {...location.query, transaction: undefined},
+        {tab === LandingDisplayField.SPANS ? (
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              {defined(transaction) && <AggregateSpans transaction={transaction} />}
+            </Layout.Main>
+          </Layout.Body>
+        ) : (
+          <Layout.Body>
+            <FeedbackWidget />
+            <Layout.Main>
+              <TopMenuContainer>
+                {transaction && (
+                  <ViewAllPagesButton
+                    to={{
+                      ...location,
+                      pathname: '/performance/browser/pageloads/',
+                      query: {...location.query, transaction: undefined},
+                    }}
+                  >
+                    <IconChevron direction="left" /> {t('View All Pages')}
+                  </ViewAllPagesButton>
+                )}
+                <PageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <DatePageFilter />
+                </PageFilterBar>
+              </TopMenuContainer>
+              <Flex>
+                <PerformanceScoreBreakdownChart transaction={transaction} />
+              </Flex>
+              <WebVitalMetersContainer>
+                <WebVitalMeters
+                  projectData={pageData}
+                  projectScore={projectScore}
+                  onClick={webVital => {
+                    router.replace({
+                      pathname: location.pathname,
+                      query: {...location.query, webVital},
+                    });
+                    setState({...state, webVital});
                   }}
-                >
-                  <IconChevron direction="left" /> {t('View All Pages')}
-                </ViewAllPagesButton>
-              )}
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
-            </TopMenuContainer>
-            <Flex>
-              <PerformanceScoreBreakdownChart transaction={transaction} />
-            </Flex>
-            <WebVitalsRingMeters
-              projectScore={projectScore}
-              onClick={webVital => setState({...state, webVital})}
-              transaction={transaction}
-            />
-            {/* TODO: Need to pass in a handler function to each tag list here to handle opening detail panel for tags */}
-            <Flex>
-              <PageOverviewFeaturedTagsList
-                tag="browser.name"
+                  transaction={transaction}
+                />
+              </WebVitalMetersContainer>
+              <PageSamplePerformanceTableContainer>
+                <PageSamplePerformanceTable
+                  transaction={transaction}
+                  columnOrder={SAMPLES_COLUMN_ORDER}
+                  limit={9}
+                />
+              </PageSamplePerformanceTableContainer>
+            </Layout.Main>
+            <Layout.Side>
+              <PageOverviewSidebar
+                projectScore={projectScore}
                 transaction={transaction}
               />
-              <PageOverviewFeaturedTagsList tag="release" transaction={transaction} />
-              {/* TODO: need a way to map country code to actual country name */}
-              <PageOverviewFeaturedTagsList
-                tag="geo.country_code"
-                transaction={transaction}
-              />
-            </Flex>
-          </Layout.Main>
-          <Layout.Side>
-            <PageOverviewSidebar projectScore={projectScore} transaction={transaction} />
-          </Layout.Side>
-        </Layout.Body>
+            </Layout.Side>
+          </Layout.Body>
+        )}
         <PageOverviewWebVitalsDetailPanel
           webVital={state.webVital}
           onClose={() => {
+            router.replace({
+              pathname: router.location.pathname,
+              query: omit(router.location.query, 'webVital'),
+            });
             setState({...state, webVital: null});
           }}
         />
-        {/* TODO: Add the detail panel for tags here. Can copy foundation from PageOverviewWebVitalsDetailPanel above. */}
       </Tabs>
     </ModulePageProviders>
   );
@@ -181,6 +266,7 @@ const ViewAllPagesButton = styled(LinkButton)`
 `;
 
 const TopMenuContainer = styled('div')`
+  margin-bottom: ${space(1)};
   display: flex;
 `;
 
@@ -190,5 +276,12 @@ const Flex = styled('div')`
   justify-content: space-between;
   width: 100%;
   gap: ${space(1)};
+`;
+
+const PageSamplePerformanceTableContainer = styled('div')`
   margin-top: ${space(1)};
+`;
+
+const WebVitalMetersContainer = styled('div')`
+  margin: ${space(1)} 0 ${space(1)} 0;
 `;

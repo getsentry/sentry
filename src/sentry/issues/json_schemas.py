@@ -1,6 +1,12 @@
+import logging
+import pathlib
 from typing import Any, Mapping
 
-EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
+from sentry.utils import json
+
+logger = logging.getLogger(__name__)
+
+LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
     "type": "object",
     "properties": {
         # required properties
@@ -154,3 +160,16 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
     ],
     "additionalProperties": False,
 }
+
+
+_EVENT_PAYLOAD_SCHEMA_JSON_FILE = pathlib.PurePath(__file__).with_name("event.schema.json")
+
+try:
+    with open(_EVENT_PAYLOAD_SCHEMA_JSON_FILE) as f:
+        EVENT_PAYLOAD_SCHEMA = json.load(f)
+
+except Exception:
+    logger.exception(
+        "Failed to load Events schema from 'event.schema.json', falling back to hardcoded schema"
+    )
+    EVENT_PAYLOAD_SCHEMA = LEGACY_EVENT_PAYLOAD_SCHEMA

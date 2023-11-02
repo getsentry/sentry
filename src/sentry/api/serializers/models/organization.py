@@ -263,9 +263,10 @@ class OrganizationSerializer(Serializer):
             avatar = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:
-            avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
+            avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
 
         status = OrganizationStatus(obj.status)
 

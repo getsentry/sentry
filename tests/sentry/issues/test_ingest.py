@@ -86,7 +86,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         )
         assert release_project_env.new_issues_count == 0
         occurrence_data = self.build_occurrence_data(event_id=event.event_id)
-        with self.tasks():
+        with self.tasks(), mock.patch("sentry.issues.ingest.eventstream") as eventstream:
             occurrence, group_info = save_issue_occurrence(occurrence_data, event)
         assert group_info is not None
         group = group_info.group
@@ -100,6 +100,23 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         release_project_env.refresh_from_db()
         assert release_project_env.new_issues_count == 1
         assert GroupRelease.objects.filter(group_id=group.id, release_id=release.id).exists()
+        eventstream.insert.assert_called_once_with(
+            event=event.for_group(group_info.group),
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            primary_hash=occurrence.fingerprint[0],
+            received_timestamp=event.data.get("received") or event.datetime,
+            skip_consume=False,
+            group_states=[
+                {
+                    "id": group_info.group.id,
+                    "is_new": True,
+                    "is_regression": False,
+                    "is_new_group_environment": True,
+                }
+            ],
+        )
 
     def test_different_ids(self) -> None:
         create_default_projects()
@@ -338,7 +355,11 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
     def test_populates_feedback_metadata(self) -> None:
         occurrence = self.build_occurrence(
             type=FeedbackGroup.type_id,
-            evidence_data={"contact_email": "test@test.com", "message": "test"},
+            evidence_data={
+                "contact_email": "test@test.com",
+                "message": "test",
+                "name": "Name Test",
+            },
         )
         event = self.store_event(data={}, project_id=self.project.id)
         event.data.setdefault("metadata", {})
@@ -351,6 +372,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "dogs": "are great",
             "contact_email": "test@test.com",
             "message": "test",
+            "name": "Name Test",
         }
 
 

@@ -6,7 +6,6 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, List, Mapping, Optional, Sequence, Tuple
 
-import sentry_sdk
 from django.utils.datastructures import OrderedSet
 
 from sentry import analytics
@@ -87,6 +86,12 @@ def find_commit_context_for_event_all_frames(
         else None
     )
 
+    selected_install, selected_provider = (
+        integration_to_install_mapping[selected_blame.code_mapping.organization_integration_id]
+        if selected_blame
+        else (None, None)
+    )
+
     _record_commit_context_all_frames_analytics(
         selected_blame=selected_blame,
         most_recent_blame=most_recent_blame,
@@ -96,14 +101,10 @@ def find_commit_context_for_event_all_frames(
         frames=valid_frames,
         file_blames=file_blames,
         num_successfully_mapped_frames=num_successfully_mapped_frames,
+        selected_provider=selected_provider,
     )
 
-    return (
-        selected_blame,
-        integration_to_install_mapping[selected_blame.code_mapping.organization_integration_id]
-        if selected_blame
-        else None,
-    )
+    return (selected_blame, selected_install)
 
 
 def find_commit_context_for_event(
@@ -156,14 +157,15 @@ def find_commit_context_for_event(
             )
             continue
 
+        log_info = {
+            **extra,
+            "code_mapping_id": code_mapping.id,
+            "stacktrace_path": stacktrace_path,
+            "src_path": src_path,
+        }
         logger.info(
             "process_commit_context.found_stacktrace_and_src_paths",
-            extra={
-                **extra,
-                "code_mapping_id": code_mapping.id,
-                "stacktrace_path": stacktrace_path,
-                "src_path": src_path,
-            },
+            extra=log_info,
         )
         integration = integration_service.get_integration(
             organization_integration_id=code_mapping.organization_integration_id
@@ -177,7 +179,21 @@ def find_commit_context_for_event(
             )
         except ApiError as e:
             commit_context = None
-            sentry_sdk.capture_exception(e)
+
+            if e.code == 429:
+                metrics.incr("sentry.integrations.github.get_blame_for_file.rate_limit")
+            if e.code in (401, 403, 404, 429):
+                logger.warning(
+                    "process_commit_context.failed_to_fetch_commit_context.api_error",
+                    extra={**log_info, "code": e.code, "error_message": e.text},
+                )
+            # Only create Sentry errors for status codes that aren't expected
+            else:
+                logger.exception(
+                    "process_commit_context.failed_to_fetch_commit_context.api_error",
+                    extra={**log_info, "code": e.code, "error_message": e.text},
+                )
+
             analytics.record(
                 "integrations.failed_to_fetch_commit_context",
                 organization_id=code_mapping.organization_id,
@@ -186,16 +202,6 @@ def find_commit_context_for_event(
                 code_mapping_id=code_mapping.id,
                 provider=integration.provider,
                 error_message=e.text,
-            )
-            logger.error(
-                "process_commit_context.failed_to_fetch_commit_context",
-                extra={
-                    **extra,
-                    "code_mapping_id": code_mapping.id,
-                    "stacktrace_path": stacktrace_path,
-                    "src_path": src_path,
-                    "error_message": e.text,
-                },
             )
 
         # Only return suspect commits that are less than a year old
@@ -353,14 +359,14 @@ def _get_blames_from_all_integrations(
     organization_id: int,
     project_id: int,
     extra: Mapping[str, Any],
-) -> tuple[list[FileBlameInfo], dict[str, IntegrationInstallation]]:
+) -> tuple[list[FileBlameInfo], dict[str, tuple[IntegrationInstallation, str]]]:
     """
     Calls get_commit_context_all_frames for each integration, using the file
     list provided for the integration ID, and returns a combined list of
     file blames.
     """
     file_blames: list[FileBlameInfo] = []
-    integration_to_install_mapping: dict[str, IntegrationInstallation] = {}
+    integration_to_install_mapping: dict[str, tuple[IntegrationInstallation, str]] = {}
 
     for integration_organization_id, files in integration_to_files_mapping.items():
         integration = integration_service.get_integration(
@@ -371,9 +377,12 @@ def _get_blames_from_all_integrations(
         install = integration.get_installation(organization_id=organization_id)
         if not isinstance(install, CommitContextMixin):
             continue
-        integration_to_install_mapping[integration_organization_id] = install
+        integration_to_install_mapping[integration_organization_id] = (
+            install,
+            integration.provider,
+        )
         try:
-            blames = install.get_commit_context_all_frames(files)
+            blames = install.get_commit_context_all_frames(files, extra=extra)
             file_blames.extend(blames)
         except Exception as e:
             log_info = {
@@ -409,6 +418,7 @@ def _record_commit_context_all_frames_analytics(
     frames: Sequence[EventFrame],
     file_blames: Sequence[FileBlameInfo],
     num_successfully_mapped_frames: int,
+    selected_provider: Optional[str],
 ):
     if not selected_blame:
         reason = "commit_too_old" if most_recent_blame else "no_commit_found"
@@ -464,6 +474,6 @@ def _record_commit_context_all_frames_analytics(
         num_unique_commit_authors=len(unique_author_emails),
         num_successfully_mapped_frames=num_successfully_mapped_frames,
         selected_frame_index=selected_frame_index,
-        selected_provider=selected_blame.repo.provider,
+        selected_provider=selected_provider,
         selected_code_mapping_id=selected_blame.code_mapping.id,
     )

@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from typing import Mapping
 
+import pytest
+
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import (
     GroupSubscriptionReason,
@@ -21,6 +24,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
@@ -342,12 +346,36 @@ class GetParticipantsTest(TestCase):
             defaults={"value": NotificationSettingsOptionEnum.NEVER.value},
         )
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def update_team_setting_subscribe_only(self, team_id: int):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+            team_id=team_id,
+        )
+        NotificationSettingOption.objects.update_or_create(
+            scope_type=NotificationScopeEnum.TEAM.value,
+            scope_identifier=team_id,
+            type=NotificationSettingEnum.WORKFLOW.value,
+            team_id=team_id,
+            defaults={"value": NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value},
+        )
+        NotificationSettingProvider.objects.update_or_create(
+            scope_type=NotificationScopeEnum.TEAM.value,
+            scope_identifier=team_id,
+            type=NotificationSettingEnum.WORKFLOW.value,
+            team_id=team_id,
+            provider=ExternalProviderEnum.SLACK.value,
+            defaults={"value": NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value},
+        )
+
     def _assert_subscribers_are(
         self,
         group: Group | None = None,
         *,
-        email: Mapping[User, int] | None = None,
-        slack: Mapping[User, int] | None = None,
+        email: Mapping[User, int] | Mapping[Team, int] | None = None,
+        slack: Mapping[User, int] | Mapping[Team, int] | None = None,
     ):
         all_participants = GroupSubscription.objects.get_participants(group or self.group)
 
@@ -355,7 +383,7 @@ class GetParticipantsTest(TestCase):
         for provider in ExternalProviders:
             actual = dict(all_participants.get_participants_by_provider(provider))
             expected = {
-                RpcActor.from_orm_user(user): reason
+                RpcActor.from_object(user): reason
                 for (user, reason) in (all_expected.get(provider) or {}).items()
             }
             assert actual == expected
@@ -403,7 +431,41 @@ class GetParticipantsTest(TestCase):
             slack={self.user: GroupSubscriptionReason.comment},
         )
 
+    # TODO(jangjodi): Fix this test once ExternalActor mode is fixed
+    @pytest.mark.xfail(
+        reason="ExternalActor (called from team_is_valid_recipient) can only be used in MONOLITH and REGION mode"
+    )
     @with_feature("organizations:notification-settings-v2")
+    @with_feature("organizations:team-workflow-notifications")
+    def test_simple_teams_v2(self):
+        team = self.create_team(organization=self.org)
+        project = self.create_project(teams=[self.team, team], organization=self.org)
+        group = self.create_group(project=project)
+        user2 = self.create_user("bar@example.com")
+        self.create_member(user=user2, organization=self.org)
+
+        link_team(team, self.integration, "#team-channel", "team_channel_id")
+
+        # explicit participation
+        GroupSubscription.objects.create(
+            team_id=team.id,
+            group=group,
+            project=project,
+            is_active=True,
+            reason=GroupSubscriptionReason.comment,
+        )
+
+        self._assert_subscribers_are(
+            group,
+            email={self.user: GroupSubscriptionReason.implicit},
+            slack={
+                self.user: GroupSubscriptionReason.implicit,
+                team: GroupSubscriptionReason.comment,
+            },
+        )
+
+    @with_feature("organizations:notification-settings-v2")
+    @with_feature("organizations:team-workflow-notifications")
     def test_simple_v2(self):
         # Include an extra team here to prove the subquery works
         team_2 = self.create_team(organization=self.org)
@@ -411,6 +473,7 @@ class GetParticipantsTest(TestCase):
         group = self.create_group(project=project)
         user2 = self.create_user("bar@example.com")
         self.create_member(user=user2, organization=self.org)
+        self.update_team_setting_subscribe_only(team_2.id)
 
         # implicit membership
         self._assert_subscribers_are(
