@@ -365,7 +365,7 @@ function Sidebar({location, organization}: Props) {
         label={t('User Feedback')}
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
-        isAlpha
+        isBeta
         variant="short"
       />
     </Feature>
