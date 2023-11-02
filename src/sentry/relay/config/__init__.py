@@ -60,6 +60,7 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:user-feedback-ingest",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
     "organizations:custom-metrics",
@@ -467,7 +468,7 @@ class _ConfigBase:
     def __init__(self, **kwargs: Any) -> None:
         data: MutableMapping[str, Any] = {}
         object.__setattr__(self, "data", data)
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             if val is not None:
                 data[key] = val
 
