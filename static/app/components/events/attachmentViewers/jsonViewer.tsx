@@ -1,53 +1,56 @@
 import styled from '@emotion/styled';
 
 import ContextData from 'sentry/components/contextData';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import {
   getAttachmentUrl,
   ViewerProps,
 } from 'sentry/components/events/attachmentViewers/utils';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
-type Props = ViewerProps & DeprecatedAsyncComponent['props'];
+export default function NewJsonViewer(props: ViewerProps) {
+  const query = useApiQuery([getAttachmentUrl(props)], {
+    staleTime: Infinity,
+    retry: false,
+  });
 
-type State = DeprecatedAsyncComponent['state'];
-
-export default class JsonViewer extends DeprecatedAsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [
-      [
-        'attachmentJson',
-        getAttachmentUrl(this.props),
-        {headers: {Accept: '*/*; charset=utf-8'}},
-      ],
-    ];
+  if (query.isLoading) {
+    return <LoadingIndicator mini />;
   }
 
-  renderBody() {
-    const {attachmentJson} = this.state;
-    if (!attachmentJson) {
-      return null;
-    }
-
-    let json;
-    try {
-      json = JSON.parse(attachmentJson);
-    } catch (e) {
-      json = null;
-    }
-
+  if (query.isError) {
     return (
-      <PreviewPanelItem>
-        <StyledContextData
-          data={json}
-          maxDefaultDepth={4}
-          preserveQuotes
-          style={{width: '100%'}}
-          jsonConsts
-        />
-      </PreviewPanelItem>
+      <LoadingError message={t('Failed to load attachment.')} onRetry={query.refetch} />
     );
   }
+
+  const attachmentJson = query.data as string;
+
+  if (!attachmentJson) {
+    return null;
+  }
+
+  let json;
+  try {
+    json = JSON.parse(attachmentJson);
+  } catch (e) {
+    json = null;
+  }
+
+  return (
+    <PreviewPanelItem>
+      <StyledContextData
+        data={json}
+        maxDefaultDepth={4}
+        preserveQuotes
+        style={{width: '100%'}}
+        jsonConsts
+      />
+    </PreviewPanelItem>
+  );
 }
 
 const StyledContextData = styled(ContextData)`
