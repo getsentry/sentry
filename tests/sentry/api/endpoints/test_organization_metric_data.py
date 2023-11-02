@@ -39,6 +39,79 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 @region_silo_test(stable=True)
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
+class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
+    endpoint = "sentry-api-0-organization-metrics-data"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+    @property
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
+
+    @patch("sentry.api.endpoints.organization_metrics.run_metrics_query")
+    def test_query_with_feature_flag_enabled_but_param_missing(self, run_metrics_query):
+        run_metrics_query.return_value = {}
+
+        self.get_response(
+            self.project.organization.slug,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="false",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        run_metrics_query.assert_not_called()
+
+        self.get_response(
+            self.project.organization.slug,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="true",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        run_metrics_query.assert_called_once()
+
+    def test_query_with_transactions_metric(self):
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "/hello", "platform": "ios"},
+            value=10,
+        )
+
+        responses = []
+        for flag_value in False, True:
+            with self.feature({"organizations:metrics-api-new-metrics-layer": flag_value}):
+                response = self.get_response(
+                    self.project.organization.slug,
+                    field=f"sum({TransactionMRI.DURATION.value})",
+                    useCase="transactions",
+                    useNewMetricsLayer="true" if flag_value else "false",
+                    statsPeriod="1h",
+                    interval="1h",
+                )
+                responses.append(response)
+
+        response_old = responses[0].data
+        response_new = responses[1].data
+
+        # We want to only compare a subset of the fields, since the new integration doesn't have all features.
+        assert response_old["groups"][0]["by"] == response_new["groups"][0]["by"]
+        assert list(response_old["groups"][0]["series"].values()) == list(
+            response_new["groups"][0]["series"].values()
+        )
+        assert list(response_old["groups"][0]["totals"].values()) == list(
+            response_new["groups"][0]["totals"].values()
+        )
+        assert response_old["intervals"] == response_new["intervals"]
+        assert response_old["start"] == response_new["start"]
+        assert response_old["end"] == response_new["end"]
+
+
+@region_silo_test(stable=True)
+@freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
