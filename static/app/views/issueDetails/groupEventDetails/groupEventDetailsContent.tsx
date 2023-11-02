@@ -22,7 +22,6 @@ import {EventFunctionComparisonList} from 'sentry/components/events/eventStatist
 import {EventFunctionRegressionEvidence} from 'sentry/components/events/eventStatisticalDetector/eventFunctionRegressionEvidence';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
-import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/spanOpBreakdown';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -199,9 +198,6 @@ function PerformanceDurationRegressionIssueDetailsContent({
         <RegressionMessage event={event} group={group} />
         <ErrorBoundary mini>
           <EventBreakpointChart event={event} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventSpanOpBreakdown event={event} />
         </ErrorBoundary>
         <ErrorBoundary mini>
           <AggregateSpanDiff event={event} projectId={project.id} />

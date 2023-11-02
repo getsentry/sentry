@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import VisualMap from 'sentry/components/charts/components/visualMap';
 import BarSeries from 'sentry/components/charts/series/barSeries';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {Series} from 'sentry/types/echarts';
@@ -39,19 +40,18 @@ function LineChart({
     const needsLabel = true;
     const intervalSeries = getIntervalLine(
       theme,
-      percentileSeries || [],
+      percentileSeries,
       0.5,
       needsLabel,
       evidenceData,
       true
     );
-    return [
-      ...percentileSeries,
-      ...intervalSeries.filter(s => !s.markArea), // get rid of the shading
-    ];
+    return [...percentileSeries, ...intervalSeries];
   }, [percentileSeries, evidenceData, theme]);
 
-  const rightSeries = useMemo(() => [throughputSeries], [throughputSeries]);
+  const rightSeries = useMemo(() => {
+    return [throughputSeries];
+  }, [throughputSeries]);
 
   const series = useMemo(() => {
     return [
@@ -68,6 +68,7 @@ function LineChart({
           animation: false,
           animationThreshold: 1,
           animationDuration: 0,
+          xAxisIndex: 1,
           yAxisIndex: 1,
         })
       ),
@@ -80,6 +81,7 @@ function LineChart({
           animationThreshold: 1,
           animationDuration: 0,
           showSymbol: false,
+          xAxisIndex: 0,
           yAxisIndex: 0,
         })
       ),
@@ -106,27 +108,39 @@ function LineChart({
           formatter: (value: number) =>
             axisLabelFormatter(value, 'duration', undefined, durationUnit),
         },
+        gridIndex: 0,
       },
-    ];
-
-    if (rightSeries.length) {
-      yAxes.push({
+      {
         axisLabel: {
           color: theme.chartLabel,
           formatter: (value: number) =>
             axisLabelFormatter(value, 'rate', true, undefined, RateUnits.PER_SECOND),
         },
-      });
-    }
+        gridIndex: 1,
+      },
+    ];
 
     return {
-      colors: [theme.gray200, theme.gray500],
-      grid: {
-        left: '10px',
-        right: '10px',
-        top: '40px',
-        bottom: '0px',
+      axisPointer: {
+        link: [
+          {
+            xAxisIndex: [0, 1],
+            yAxisIndex: [0, 1],
+          },
+        ],
       },
+      colors: [theme.gray200, theme.gray500],
+      height: 400,
+      grid: [
+        {
+          top: '40px',
+          bottom: '200px',
+        },
+        {
+          top: '240px',
+          bottom: '0px',
+        },
+      ],
       legend,
       toolBox: {show: false},
       tooltip: {
@@ -134,10 +148,42 @@ function LineChart({
           return tooltipFormatter(value, aggregateOutputType(seriesName));
         },
       },
-      xAxis: {type: 'time'},
+      xAxes: [
+        {gridIndex: 0, type: 'time'},
+        {gridIndex: 1, type: 'time'},
+      ],
       yAxes,
+      options: {
+        visualMap: VisualMap({
+          show: false,
+          type: 'piecewise',
+          selectedMode: false,
+          dimension: 0,
+          pieces: [
+            {
+              gte: 0,
+              lt: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+              color: theme.gray500,
+            },
+            {
+              gte: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+              color: theme.red300,
+            },
+          ],
+          seriesIndex: series
+            .map((s, idx) => (s.yAxisIndex === 0 ? idx : -1))
+            .filter(idx => idx >= 0),
+        }),
+      },
     };
-  }, [theme, leftSeries, rightSeries, percentileSeries, throughputSeries]);
+  }, [
+    series,
+    theme,
+    leftSeries,
+    percentileSeries,
+    throughputSeries,
+    evidenceData.breakpoint,
+  ]);
 
   return (
     <ChartZoom router={router} start={start} end={end} utc={getUserTimezone() === 'UTC'}>
