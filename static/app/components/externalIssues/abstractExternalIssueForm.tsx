@@ -311,6 +311,11 @@ export default class AbstractExternalIssueForm<
     };
   };
 
+  /**
+   * Populate all async fields with their choices, then return the full list of fields.
+   * We pull from the fetchedFieldOptionsCache which contains the most recent response
+   * for each async field.
+   */
   getCleanedFields = (): IssueConfigField[] => {
     const {fetchedFieldOptionsCache, integrationDetails} = this.state;
 
