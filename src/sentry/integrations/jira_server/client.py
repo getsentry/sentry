@@ -145,6 +145,20 @@ class JiraServerClient(IntegrationProxyClient):
         return self.get_cached(self.VERSIONS_URL % project)
 
     def get_priorities(self):
+        """
+        XXX(schew2381): There is an existing bug where we fetch and show all project priorities instead of scoping
+        them to the selected project. This is fine when manually creating a Jira Server issue b/c we surface that
+        the selected priority is not available. However for the alert rule action, you can save the action with an
+        invalid priority for the chosen project.
+
+        We are limited by the Jira Server API b/c fetching priorities requires global/project admin permissions.
+        There is currently no workaround for this!
+
+        Please DO NOT attempt to use the following APIs:
+        https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/priorityschemes-getPrioritySchemes
+        https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/project/{projectKeyOrId}/priorityscheme-getAssignedPriorityScheme
+
+        """
         return self.get_cached(self.PRIORITIES_URL)
 
     def get_users_for_project(self, project):
