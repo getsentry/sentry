@@ -111,6 +111,9 @@ from sentry.monitors.endpoints.organization_monitor_index import OrganizationMon
 from sentry.monitors.endpoints.organization_monitor_index_stats import (
     OrganizationMonitorIndexStatsEndpoint,
 )
+from sentry.monitors.endpoints.organization_monitor_schedule_sample_data import (
+    OrganizationMonitorScheduleSampleDataEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
@@ -1481,6 +1484,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/monitors-stats/$",
         OrganizationMonitorIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-index-stats",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/monitors-schedule-data/$",
+        OrganizationMonitorScheduleSampleDataEndpoint.as_view(),
+        name="sentry-api-0-organization-monitors-schedule-sample-data",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/$",
