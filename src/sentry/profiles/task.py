@@ -14,6 +14,7 @@ from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
+from sentry.lang.native.utils import native_images_from_data
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
 from sentry.models.organization import Organization
@@ -151,10 +152,10 @@ def get_profile_platforms(profile: Profile) -> List[str]:
     return platforms
 
 
-def get_debug_images_for_platform(images, platform):
+def get_debug_images_for_platform(profile, platform):
     if platform in SHOULD_SYMBOLICATE_JS:
-        return [frame for frame in images if frame["type"] == "sourcemap"]
-    return [frame for frame in images if frame["type"] == "macho"]
+        return [image for image in profile["debug_meta"]["images"] if image["type"] == "sourcemap"]
+    return native_images_from_data(profile)
 
 
 def _symbolicate_profile(profile: Profile, project: Project) -> bool:
@@ -174,9 +175,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
             platforms = get_profile_platforms(profile)
             images = dict()
             for platform in platforms:
-                images[platform] = get_debug_images_for_platform(
-                    profile["debug_meta"]["images"], platform
-                )
+                images[platform] = get_debug_images_for_platform(profile, platform)
 
             for platform in platforms:
                 # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
