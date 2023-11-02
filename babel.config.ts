@@ -25,13 +25,6 @@ const config: TransformOptions = {
     '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
     '@babel/plugin-transform-class-properties',
-    [
-      '@fullstory/babel-plugin-annotate-react',
-      {
-        'annotate-fragments': false,
-        ignoreComponents: [['noDataMessage.tsx', '*', '*']],
-      },
-    ],
   ],
   env: {
     production: {
@@ -51,12 +44,14 @@ const config: TransformOptions = {
           },
         ],
         ['babel-plugin-add-react-displayname'],
+        ['@fullstory/babel-plugin-annotate-react', {'annotate-fragments': false}],
       ],
     },
     development: {
       plugins: [
         '@emotion/babel-plugin',
         '@babel/plugin-transform-react-jsx-source',
+        ['@fullstory/babel-plugin-annotate-react', {'annotate-fragments': false}],
         ...(process.env.SENTRY_UI_HOT_RELOAD ? ['react-refresh/babel'] : []),
       ],
     },
