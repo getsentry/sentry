@@ -331,11 +331,8 @@ def _prepare_frames_from_profile(
 
                 frames = [profile["profile"]["frames"][idx] for idx in frames_sent]
             else:
-                # if the root platform is cocoa, then we know we have only cocoa frames
-                if profile["platform"] == "cocoa":
-                    frames = profile["profile"]["frames"]
-                else:
-                    # else, we might have both js and cocoa ones (ract native)
+                if profile["platform"] != platform:
+                    # we might have both js and cocoa frames (ract native)
                     # and we need to filter only for the cocoa ones
                     for idx, f in enumerate(profile["profile"]["frames"]):
                         if (
@@ -344,6 +341,9 @@ def _prepare_frames_from_profile(
                         ):
                             frames_sent.add(idx)
                     frames = [profile["profile"]["frames"][idx] for idx in frames_sent]
+                else:
+                    # if the root platform is cocoa, then we know we have only cocoa frames
+                    frames = profile["profile"]["frames"]
 
                 for stack in profile["profile"]["stacks"]:
                     if len(stack) > 0:
