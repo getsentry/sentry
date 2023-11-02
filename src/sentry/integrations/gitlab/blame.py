@@ -18,7 +18,7 @@ from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.shared_integrations.response.sequence import SequenceApiResponse
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -83,11 +83,20 @@ def _fetch_file_blame(
     project_id = file.repo.config.get("project_id")
     encoded_path = quote(file.path, safe="")
     request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
-    response = client.get_cached(
-        request_path,
-        params={"ref": file.ref, "range[start]": file.lineno, "range[end]": file.lineno},
-        cache_time=60,
-    )
+    params = {"ref": file.ref, "range[start]": file.lineno, "range[end]": file.lineno}
+    cache_key = client.get_cache_key(request_path, json.dumps(params))
+    response = client.check_cache(cache_key)
+    if response:
+        logger.info(
+            "sentry.integrations.gitlab.get_blame_for_files.got_cached",
+            extra=extra,
+        )
+    else:
+        response = client.get(
+            request_path,
+            params=params,
+        )
+        client.set_cache(cache_key, response, 60)
 
     if not isinstance(response, SequenceApiResponse):
         raise ApiError("Response is not in expected format")

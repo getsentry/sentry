@@ -407,7 +407,6 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     def test_success_multiple_files(self):
         self.set_up_success_responses()
         resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
-
         assert resp == [self.blame_1, self.blame_2, self.blame_3]
 
     @responses.activate

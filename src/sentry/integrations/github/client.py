@@ -723,7 +723,7 @@ class GitHubClientMixin(GithubProxyClient):
                 "sentry.integrations.github.get_blame_for_files.got_cached",
                 extra=log_info,
             )
-        if not response:
+        else:
             try:
                 response = self.post(
                     path="/graphql",
