@@ -1,3 +1,4 @@
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge';
@@ -6,6 +7,7 @@ import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -19,6 +21,8 @@ import TransactionsTable from '../../components/discover/transactionsTable';
 export function TraceTable() {
   const location = useLocation();
   const organization = useOrganization();
+  const router = useRouter();
+  const routerQuery = useMemo(() => router.location.query ?? {}, [router.location.query]);
 
   const eventView = EventView.fromLocation(location);
 
@@ -145,6 +149,22 @@ export function TraceTable() {
       dataset: 'discover',
     },
   };
+
+  const [rows, setRows] = useState(tableData.data);
+
+  useEffect(() => {
+    function shuffleArray(data) {
+      const array = [...data];
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    setRows(shuffleArray(tableData.data));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routerQuery]);
 
   const columnOrder: any = [
     {
@@ -312,7 +332,7 @@ export function TraceTable() {
         organization={organization}
         location={location}
         isLoading={false}
-        tableData={tableData}
+        tableData={{meta: tableData.meta, data: rows}}
         columnOrder={columnOrder}
         titles={[
           'event id',
