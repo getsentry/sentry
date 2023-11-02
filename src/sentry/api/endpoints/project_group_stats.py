@@ -42,7 +42,7 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         if not group_ids:
             return Response(status=204)
 
-        data = tsdb.get_range(
+        data = tsdb.backend.get_range(
             model=TSDBModel.group,
             keys=group_ids,
             **self._parse_args(request, environment_id),

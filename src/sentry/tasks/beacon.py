@@ -69,7 +69,7 @@ def send_beacon():
         return
 
     end = timezone.now()
-    events_24h = tsdb.get_sums(
+    events_24h = tsdb.backend.get_sums(
         model=TSDBModel.internal, keys=["events.total"], start=end - timedelta(hours=24), end=end
     )["events.total"]
 

@@ -24,7 +24,7 @@ class GroupStatsEndpoint(GroupEndpoint, EnvironmentMixin, StatsMixin):
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
 
-        data = tsdb.get_range(
+        data = tsdb.backend.get_range(
             model=TSDBModel.group,
             keys=[group.id],
             **self._parse_args(request, environment_id),

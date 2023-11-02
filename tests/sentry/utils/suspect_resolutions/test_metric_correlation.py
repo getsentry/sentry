@@ -41,7 +41,7 @@ class MetricCorrelationTest(TestCase):
         """
         return [(t, random.randint(0, 30)) for t in range(start, end, window)]
 
-    @mock.patch("sentry.tsdb.get_range")
+    @mock.patch("sentry.tsdb.backend.get_range")
     def test_correlated_issues(self, mock_get_range):
         start, end = self.generate_timestamps()
         group1 = self.create_group(status=GroupStatus.RESOLVED, resolved_at=timezone.now())
@@ -79,7 +79,7 @@ class MetricCorrelationTest(TestCase):
         ]
         assert result.issue_resolved_time == group1.resolved_at
 
-    @mock.patch("sentry.tsdb.get_range")
+    @mock.patch("sentry.tsdb.backend.get_range")
     def test_uncorrelated_issues(self, mock_get_range):
         start, end = self.generate_timestamps()
         group1 = self.create_group(status=GroupStatus.RESOLVED, resolved_at=timezone.now())
@@ -114,7 +114,7 @@ class MetricCorrelationTest(TestCase):
         ]
         assert result.issue_resolved_time == group1.resolved_at
 
-    @mock.patch("sentry.tsdb.get_range")
+    @mock.patch("sentry.tsdb.backend.get_range")
     def test_perfect_correlation(self, mock_get_range):
         start, end = self.generate_timestamps()
         group1 = self.create_group(status=GroupStatus.RESOLVED, resolved_at=timezone.now())
@@ -148,7 +148,7 @@ class MetricCorrelationTest(TestCase):
         ]
         assert result.issue_resolved_time == group1.resolved_at
 
-    @mock.patch("sentry.tsdb.get_range")
+    @mock.patch("sentry.tsdb.backend.get_range")
     def test_multiple_groups(self, mock_get_range):
         start, end = self.generate_timestamps()
         group1 = self.create_group(status=GroupStatus.RESOLVED, resolved_at=timezone.now())
