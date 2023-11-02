@@ -175,6 +175,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
             end=end,
             organization=organization,
             projects=projects,
+            # TODO: move referrers into a centralized place.
+            referrer="metrics.data.api",
         )
 
         return Response(status=200, data=results)

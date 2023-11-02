@@ -3,24 +3,30 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
 
-from sentry_kafka_schemas.codecs import ValidationError
-from snuba_sdk import Column, Metric, MetricsQuery, MetricsScope, Request, Rollup, Timeseries
-from snuba_sdk.conditions import Condition, Op
+from snuba_sdk import (
+    AliasedExpression,
+    Column,
+    Metric,
+    MetricsQuery,
+    MetricsScope,
+    Request,
+    Rollup,
+    Timeseries,
+)
+from snuba_sdk.conditions import Condition, ConditionGroup, Op
 
-from sentry.api.utils import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, is_mri
+from sentry.snuba.metrics.naming_layer.mapping import is_mri
 from sentry.snuba.metrics_layer.query import run_query
 
 # These regexes are temporary since the DSL is supposed to be parsed internally by the snuba SDK, thus this
 # is only bridging code to validate and evolve the metrics layer.
 # TODO(layer): The layer should implement a grammar which parses queries using a custom DSL.
 FIELD_REGEX = re.compile(r"^(\w+)\(([^\s)]+)\)$")
-QUERY_REGEX = re.compile(r"(\w+):([^\s]+)")
+QUERY_REGEX = re.compile(r"(\w+):([^\s]+)(?:\s|$)")
 
 
 class InvalidMetricsQuery(Exception):
@@ -34,7 +40,9 @@ class QueryResult:
     result: Mapping[str, Any]
 
 
-def _parse_fields(fields: Sequence[str]) -> Generator[Timeseries, None, None]:
+def _parse_fields(
+    fields: Sequence[str], filters: ConditionGroup, groupby: List[Union[Column, AliasedExpression]]
+) -> Generator[Timeseries, None, None]:
     """
     This function supports parsing in the form:
     aggregate(metric_name)
@@ -55,7 +63,7 @@ def _parse_fields(fields: Sequence[str]) -> Generator[Timeseries, None, None]:
         else:
             metric = Metric(public_name=metric_name)
 
-        yield Timeseries(metric=metric, aggregate=aggregate)
+        yield Timeseries(metric=metric, aggregate=aggregate, filters=filters, groupby=groupby)
 
 
 def _parse_filters(query: Optional[str]) -> Optional[Sequence[Condition]]:
@@ -213,51 +221,31 @@ def _translate_query_results(
     }
 
 
-def _build_request(organization: Organization, query: MetricsQuery) -> Request:
-    dataset = (
-        Dataset.Metrics
-        if query.scope.use_case_id == UseCaseID.SESSIONS.value
-        else Dataset.PerformanceMetrics
-    )
+def _build_request(organization: Organization, referrer: str, query: MetricsQuery) -> Request:
     return Request(
-        dataset=dataset.value,
+        dataset=Dataset.Metrics.value,
         query=query,
         app_id="default",
-        tenant_ids={"referrer": "metrics.data", "organization_id": organization.id},
+        tenant_ids={"referrer": referrer, "organization_id": organization.id},
     )
-
-
-def _infer_use_case_id_from_timeseries(timeseries: Timeseries) -> UseCaseID:
-    if timeseries.metric.mri is not None:
-        mri = timeseries.metric.mri
-    else:
-        mri = get_mri(timeseries.metric.public_name)
-
-    try:
-        return extract_use_case_id(mri)
-    except ValidationError:
-        raise InvalidParams(f"The query contains an invalid MRI: {mri}")
 
 
 def _execute_series_and_totals_query(
-    organization: Organization, interval: int, base_query: MetricsQuery
+    organization: Organization, interval: int, referrer: str, base_query: MetricsQuery
 ) -> Mapping[str, Any]:
-    # We infer the use case id from the timeseries.
-    inferred_use_case_id = _infer_use_case_id_from_timeseries(base_query.query)
-    extended_scope = base_query.scope.set_use_case_id(inferred_use_case_id.value)
-    base_query = base_query.set_scope(extended_scope)
-
     # First we make the series query.
     query = base_query.set_rollup(Rollup(interval=interval))
-    series_result = run_query(request=_build_request(organization, query))
+    series_result = run_query(request=_build_request(organization, referrer, query))
 
+    # TODO(layer): maybe totals will have to be handled by the layer, so that the time intervals will be
+    #  inferred automatically, instead of doing the manual work here.
     # Second we make the totals query by taking the same modified interval computed by the series query.
     modified_start = series_result["modified_start"]
     modified_end = series_result["modified_end"]
     query = (
         base_query.set_start(modified_start).set_end(modified_end).set_rollup(Rollup(totals=True))
     )
-    totals_result = run_query(request=_build_request(organization, query))
+    totals_result = run_query(request=_build_request(organization, referrer, query))
 
     return {**series_result, "totals": totals_result["data"]}
 
@@ -271,6 +259,7 @@ def run_metrics_query(
     end: datetime,
     organization: Organization,
     projects: Sequence[Project],
+    referrer: str,
 ):
     base_scope = MetricsScope(
         org_ids=[organization.id],
@@ -279,18 +268,20 @@ def run_metrics_query(
 
     # Build the basic query that contains the metadata.
     base_query = MetricsQuery(
-        filters=_parse_filters(query) if query else None,
-        groupby=[Column(group_by) for group_by in group_bys] if group_bys else None,
         start=start,
         end=end,
         scope=base_scope,
     )
 
+    # We generate the filters and group bys which are going to be applied to each timeseries.
+    filters = _parse_filters(query) if query else None
+    groupby = [Column(group_by) for group_by in group_bys] if group_bys else None
+
     # For each field generate the query.
     query_results = []
-    for timeseries in _parse_fields(fields):
+    for timeseries in _parse_fields(fields, filters, groupby):
         query = base_query.set_query(timeseries)
-        result = _execute_series_and_totals_query(organization, interval, query)
+        result = _execute_series_and_totals_query(organization, interval, referrer, query)
         query_results.append(
             QueryResult(
                 name=f"{timeseries.aggregate}({timeseries.metric.mri or timeseries.metric.public_name})",
