@@ -22,4 +22,5 @@ class ApiOwner(Enum):
     REPLAY = "replay-backend"
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
     FEEDBACK = "feedback-backend"
+    CRONS = "crons"
     UNOWNED = "unowned"

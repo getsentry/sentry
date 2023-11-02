@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
@@ -191,7 +192,8 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconIssues />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
-      to={`/organizations/${organization.slug}/issues/?referrer=sidebar`}
+      to={`/organizations/${organization.slug}/issues/`}
+      search="?referrer=sidebar"
       id="issues"
     />
   );
@@ -361,11 +363,18 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
-        label={t('User Feedback')}
+        label={
+          <Fragment>
+            {t('User Feedback')}{' '}
+            <FeatureBadge
+              title={t('This feature is available for early adopters and may change')}
+              type="alpha"
+              variant="short"
+            />
+          </Fragment>
+        }
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
-        isAlpha
-        variant="short"
       />
     </Feature>
   );
@@ -419,7 +428,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconGraph />}
-        label={t('DDM')}
+        label={t('Metrics')}
         to={`/organizations/${organization.slug}/ddm/`}
         id="ddm"
         isAlpha
