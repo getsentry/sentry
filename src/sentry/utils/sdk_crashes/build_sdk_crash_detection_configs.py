@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Optional, Sequence
 
 import sentry_sdk
 
@@ -7,20 +7,22 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectio
 
 
 def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
-    cocoa_project_id = options.get(
-        "issues.sdk_crash_detection.cocoa.project_id",
-    )
-    if not cocoa_project_id or cocoa_project_id == 0:
-        sentry_sdk.capture_message("Cocoa project_id is not set.")
-        return []
+    def build_config(sdk_name: SdkName) -> Optional[SDKCrashDetectionConfig]:
+        options_prefix = f"issues.sdk_crash_detection.{sdk_name.value}"
 
-    cocoa_sample_rate = options.get("issues.sdk_crash_detection.cocoa.sample_rate")
-    # When the sample rate is 0, we can skip the sdk crash detection.
-    if not cocoa_sample_rate or cocoa_sample_rate == 0:
-        return []
+        project_id = options.get(f"{options_prefix}.project_id")
+        if not project_id or project_id == 0:
+            sentry_sdk.capture_message(f"{sdk_name.value} project_id is not set.")
+            return None
 
-    cocoa_config = SDKCrashDetectionConfig(
-        sdk_name=SdkName.Cocoa, project_id=cocoa_project_id, sample_rate=cocoa_sample_rate
-    )
+        sample_rate = options.get(f"{options_prefix}.sample_rate")
+        if not sample_rate or sample_rate == 0:
+            return None
 
-    return [cocoa_config]
+        return SDKCrashDetectionConfig(
+            sdk_name=sdk_name, project_id=project_id, sample_rate=sample_rate
+        )
+
+    configs = [build_config(SdkName.Cocoa), build_config(SdkName.ReactNative)]
+
+    return [config for config in configs if config is not None]
