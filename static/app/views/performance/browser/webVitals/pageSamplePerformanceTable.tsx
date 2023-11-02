@@ -241,10 +241,10 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
           undefined
         );
       const profileTarget =
-        defined(project) && defined(row['profile.id'])
+        defined(row.projectSlug) && defined(row['profile.id'])
           ? generateProfileFlamechartRoute({
               orgSlug: organization.slug,
-              projectSlug: project.slug,
+              projectSlug: row.projectSlug,
               profileId: String(row['profile.id']),
             })
           : null;
