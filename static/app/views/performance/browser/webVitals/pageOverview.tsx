@@ -7,7 +7,6 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import SearchBar from 'sentry/components/events/searchBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
@@ -232,18 +231,6 @@ export default function PageOverview() {
                 />
               </WebVitalMetersContainer>
               <PageSamplePerformanceTableContainer>
-                <SearchBarContainer>
-                  <SearchBar
-                    query={query}
-                    organization={organization}
-                    onSearch={search =>
-                      router.replace({
-                        ...location,
-                        query: {...location.query, query: search},
-                      })
-                    }
-                  />
-                </SearchBarContainer>
                 <PageSamplePerformanceTable
                   transaction={transaction}
                   columnOrder={SAMPLES_COLUMN_ORDER}
@@ -298,9 +285,4 @@ const PageSamplePerformanceTableContainer = styled('div')`
 
 const WebVitalMetersContainer = styled('div')`
   margin: ${space(2)} 0 ${space(1)} 0;
-`;
-
-const SearchBarContainer = styled('div')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
 `;
