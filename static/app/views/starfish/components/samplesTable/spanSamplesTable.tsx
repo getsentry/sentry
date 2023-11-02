@@ -123,7 +123,7 @@ export function SpanSamplesTable({
       return row.profile_id ? (
         <Link
           {...commonProps}
-          to={`/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`}
+          to={`/profiling/profile/${row.project}/${row.profile_id}/flamechart/`}
         >
           {row.profile_id.slice(0, 8)}
         </Link>
