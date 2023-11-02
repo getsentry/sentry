@@ -135,7 +135,7 @@ export function useMetricsData({
   query,
   groupBy,
 }: MetricsQuery) {
-  const {slug} = useOrganization();
+  const {slug, features} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
 
@@ -153,7 +153,12 @@ export function useMetricsData({
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // max result groups
     per_page: 20,
+    useNewMetricsLayer: false,
   };
+
+  if (features.includes('metrics-api-new-metrics-layer')) {
+    queryToSend.useNewMetricsLayer = true;
+  }
 
   return useApiQuery<MetricsData>(
     [`/organizations/${slug}/metrics/data/`, {query: queryToSend}],
