@@ -508,7 +508,7 @@ class Quota(Service):
 
         return Outcome.ACCEPTED
 
-    def check_accept_crons_checkin(self, project_id: int, monitor_slug: str):
+    def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
         """
         Will return an `AcceptedCheckInStatus`.
         """
@@ -522,4 +522,9 @@ class Quota(Service):
     ):
         """
         Removes a monitor seat assignment when a Monitor is deleted.
+        """
+
+    def update_monitor_slug(self, previous_slug: str, new_slug: str, project_id: int):
+        """
+        Updates a monitor seat assignment's slug.
         """
