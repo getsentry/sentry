@@ -122,8 +122,6 @@ function SpanSummaryPage({params}: Props) {
     'api.starfish.span-summary-page-metrics-chart'
   );
 
-  const throughputSeries = throughputData['spm()'];
-
   const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
     groupId,
     queryFilter,
@@ -131,12 +129,7 @@ function SpanSummaryPage({params}: Props) {
     'api.starfish.span-summary-page-metrics-chart'
   );
 
-  const durationSeries =
-    durationData[`${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`];
-
-  const areSpanMetricsSeriesLoading = isThroughputDataLoading || isDurationDataLoading;
-
-  useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
+  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
     <ModulePageProviders
@@ -201,7 +194,7 @@ function SpanSummaryPage({params}: Props) {
               >
                 <Chart
                   height={CHART_HEIGHT}
-                  data={[throughputSeries]}
+                  data={[throughputData['spm()']]}
                   loading={isThroughputDataLoading}
                   utc={false}
                   chartColors={[THROUGHPUT_COLOR]}
@@ -228,7 +221,11 @@ function SpanSummaryPage({params}: Props) {
               >
                 <Chart
                   height={CHART_HEIGHT}
-                  data={[durationSeries]}
+                  data={[
+                    durationData[
+                      `${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
+                    ],
+                  ]}
                   loading={isDurationDataLoading}
                   utc={false}
                   chartColors={[AVG_COLOR]}
