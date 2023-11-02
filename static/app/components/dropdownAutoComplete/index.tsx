@@ -68,6 +68,7 @@ function DropdownAutoComplete(
   );
 
   const isLazy = typeof props.lazyItems === 'function';
+
   return (
     <Menu {...rest} items={isLazy ? maybeLazyItems : items === undefined ? null : items}>
       {renderProps => (

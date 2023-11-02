@@ -346,7 +346,7 @@ export class AssigneeSelectorDropdown extends Component<
       if (assignee.type !== 'user' && assignee.type !== 'team') {
         continue;
       }
-      if (assignee.type !== assignedTo?.type && assignee.id !== assignedTo?.id) {
+      if (!(assignee.type !== assignedTo?.type && assignee.id !== assignedTo?.id)) {
         continue;
       }
 
