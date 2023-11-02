@@ -314,21 +314,19 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
     """
     total_count = 0
     for i in timeseries:
-        if parser.parse(i["time"]) > ethreshold.get("end"):
+        if parser.parse(i["time"]) > ethreshold["end"]:
             # timeseries are ordered chronologically
             # So if we're past our threshold.end, we can skip the rest
             break
+        threshold_environment: str | None = None
+        if ethreshold["environment"]:
+            threshold_environment = ethreshold["environment"]["name"]
         if (
-            parser.parse(i["time"]) <= ethreshold.get("start")  # ts is before our threshold start
-            or parser.parse(i["time"]) > ethreshold.get("end")  # ts is after our threshold ned
-            or i["release"] != ethreshold.get("release")  # ts is not our the right release
-            or i["project_id"] != ethreshold.get("project_id")  # ts is not the right project
-            or i["environment"]
-            != (
-                ethreshold.get("environment", {}).get("name", None)
-                if ethreshold.get("environment")
-                else None
-            )  # ts is not the right environment
+            parser.parse(i["time"]) <= ethreshold["start"]  # ts is before our threshold start
+            or parser.parse(i["time"]) > ethreshold["end"]  # ts is after our threshold ned
+            or i["release"] != ethreshold["release"]  # ts is not our the right release
+            or i["project_id"] != ethreshold["project_id"]  # ts is not the right project
+            or i["environment"] != threshold_environment  # ts is not the right environment
         ):
             continue
         # else ethreshold.start < i.time <= ethreshold.end
@@ -336,7 +334,7 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
 
     if ethreshold.get("trigger_type") == TriggerType.OVER:
         # If total is under/equal the threshold value, then it is healthy
-        return total_count <= ethreshold.get("value")
+        return total_count <= ethreshold["value"]
 
     # Else, if total is over/equal the threshold value, then it is healthy
-    return total_count >= ethreshold.get("value")
+    return total_count >= ethreshold["value"]
