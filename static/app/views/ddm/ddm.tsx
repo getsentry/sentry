@@ -22,13 +22,13 @@ function DDM() {
   const organization = useOrganization();
 
   return (
-    <SentryDocumentTitle title={t('DDM')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Metrics')} orgSlug={organization.slug}>
       <PageFiltersContainer disablePersistence>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
               <Layout.Title>
-                {t('DDM')}
+                {t('Metrics')}
                 <PageHeadingQuestionTooltip
                   docsUrl="https://docs.sentry.io"
                   title={t('Delightful Developer Metrics.')}

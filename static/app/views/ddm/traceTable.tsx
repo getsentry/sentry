@@ -1,11 +1,13 @@
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import Badge from 'sentry/components/badge';
+import {PanelTableHeader} from 'sentry/components/panels/panelTable';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -19,6 +21,8 @@ import TransactionsTable from '../../components/discover/transactionsTable';
 export function TraceTable() {
   const location = useLocation();
   const organization = useOrganization();
+  const router = useRouter();
+  const routerQuery = useMemo(() => router.location.query ?? {}, [router.location.query]);
 
   const eventView = EventView.fromLocation(location);
 
@@ -43,7 +47,7 @@ export function TraceTable() {
       {
         'profile.id': '2a3ef28213b2f408ca2828b6a27149c2b',
         timestamp: '2023-10-29T22:17:08+00:00',
-        'spans.ui': 1985.199929,
+        'spans.ui': 19985.199929,
         'span_ops_breakdown.relative': '',
         replayId: '',
         'transaction.duration': 11888,
@@ -69,7 +73,7 @@ export function TraceTable() {
         'spans.resource': 2082.90124,
         id: 'acc1854b13a04f84bd2f0fc5b803dd65',
         'user.display': 'riccardo.busetti@sentry.io',
-        'spans.browser': 389.699936,
+        'spans.browser': 3389.699936,
         'project.name': 'javascript',
       },
       {
@@ -85,7 +89,7 @@ export function TraceTable() {
         'spans.resource': 222.597839,
         id: 'e491bd2be0734357ab9dcc690133a43b',
         'user.display': 'ognjen.bostjancic@sentry.io',
-        'spans.browser': 877.500056,
+        'spans.browser': 9877.500056,
         'project.name': 'javascript',
       },
       {
@@ -98,7 +102,7 @@ export function TraceTable() {
         'spans.db': null,
         trace: 'eaad797b3c2c34b79bb705e5af2db688b',
         'spans.http': 4308.000088,
-        'spans.resource': 6362.000228,
+        'spans.resource': 16362.000228,
         id: 'd53b10ef8edc43023b92caf8d0a8a473d',
         'user.display': 'arhur.knaus@sentry.io',
         'spans.browser': 615.000009,
@@ -145,6 +149,22 @@ export function TraceTable() {
       dataset: 'discover',
     },
   };
+
+  const [rows, setRows] = useState(tableData.data);
+
+  useEffect(() => {
+    function shuffleArray(data) {
+      const array = [...data];
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    setRows(shuffleArray(tableData.data));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routerQuery]);
 
   const columnOrder: any = [
     {
@@ -301,44 +321,92 @@ export function TraceTable() {
 
   return (
     <TraceTableWrapper>
-      <Tooltip title={t('Coming soon. This is where you will see samples.')}>
-        <TransactionsTable
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          isLoading={false}
-          tableData={tableData}
-          columnOrder={columnOrder}
-          titles={[
-            'event id',
-            'user',
-            'operation duration',
-            'total duration',
-            'trace id',
-            'timestamp',
-            'replay',
-            'profile',
-          ]}
-          generateLink={{
-            id: generateTransactionLink(''),
-            trace: generateTraceLink(eventView.normalizeDateSelection(location)),
-            replayId: generateReplayLink([]),
-            'profile.id': generateProfileLink(),
-          }}
-          useAggregateAlias
-        />
-      </Tooltip>
+      <TitleOverlay>
+        <StyledBadge type="alpha" color="white">
+          Coming Soon
+        </StyledBadge>
+        <div>Sampled traces</div>
+      </TitleOverlay>
+      <TransactionsTable
+        eventView={eventView}
+        organization={organization}
+        location={location}
+        isLoading={false}
+        tableData={{meta: tableData.meta, data: rows}}
+        columnOrder={columnOrder}
+        titles={[
+          'event id',
+          'user',
+          'operation duration',
+          'total duration',
+          'trace id',
+          'timestamp',
+          'replay',
+          'profile',
+        ]}
+        generateLink={{
+          id: generateTransactionLink(''),
+          trace: generateTraceLink(eventView.normalizeDateSelection(location)),
+          replayId: generateReplayLink([]),
+          'profile.id': generateProfileLink(),
+        }}
+        useAggregateAlias
+      />
     </TraceTableWrapper>
   );
 }
 
+const TitleOverlay = styled('span')`
+  position: absolute;
+
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  z-index: 1;
+
+  line-height: 1.1;
+  height: 46px;
+  max-width: 250px;
+  padding: 0px 16px;
+  background-color: rgb(250, 249, 251);
+  color: rgb(128, 112, 143);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  user-select: none;
+
+  border-top: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.border};
+
+  border-top-left-radius: 4px;
+`;
+
+const StyledBadge = styled(Badge)`
+  color: white !important;
+  margin-top: -1px;
+`;
+
 const TraceTableWrapper = styled('div')`
   margin-top: ${space(3)};
-  filter: blur(3px);
+
   width: 100%;
   user-select: none;
-  > span {
+
+  > div {
     width: 100%;
+  }
+
+  > div > div > div {
+    filter: blur(3px);
+  }
+
+  > div > ${PanelTableHeader} {
+    color: ${p => p.theme.backgroundSecondary};
+
+    span {
+      display: none;
+    }
   }
 
   > span > div {
