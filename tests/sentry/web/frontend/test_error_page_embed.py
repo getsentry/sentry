@@ -1,4 +1,5 @@
 import logging
+from unittest import mock
 from urllib.parse import quote, urlencode
 from uuid import uuid4
 
@@ -191,6 +192,21 @@ class ErrorPageEmbedTest(TestCase):
             HTTP_ACCEPT="application/json",
         )
         assert resp.status_code == 400, resp.content
+
+    @mock.patch("sentry.web.frontend.error_page_embed.shim_to_feedback")
+    def test_calls_feedback_shim_if_ff_enabld(self, mock_get_feedback_shim):
+        with self.feature({"organizations:user-feedback-ingest": True}):
+            self.client.post(
+                self.path_with_qs,
+                {
+                    "name": "Jane Bloggs",
+                    "email": "jane@example.com",
+                    "comments": "This is an example!",
+                },
+                HTTP_REFERER="http://example.com",
+                HTTP_ACCEPT="application/json",
+            )
+            assert mock_get_feedback_shim.called
 
 
 @region_silo_test(stable=True)

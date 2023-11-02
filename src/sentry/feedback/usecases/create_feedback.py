@@ -1,4 +1,8 @@
-import datetime
+from __future__ import annotations
+
+import logging
+from datetime import datetime
+from typing import Any
 from uuid import uuid4
 
 import jsonschema
@@ -10,6 +14,9 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received
 from sentry.utils.dates import ensure_aware
+from sentry.utils.safe import get_path
+
+logger = logging.getLogger(__name__)
 
 
 def make_evidence(feedback):
@@ -36,7 +43,7 @@ def fix_for_issue_platform(event_data):
     # the issue platform has slightly different requirements than ingest
     # for event schema, so we need to massage the data a bit
     event_data["timestamp"] = ensure_aware(
-        datetime.datetime.fromtimestamp(event_data["timestamp"])
+        datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
     if "contexts" not in event_data:
         event_data["contexts"] = {}
@@ -82,11 +89,11 @@ def create_feedback_issue(event, project_id):
         evidence_data=evidcence_data,
         evidence_display=evidence_display,
         type=FeedbackGroup,
-        detection_time=ensure_aware(datetime.datetime.fromtimestamp(event["timestamp"])),
+        detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level="info",  # TODO: severity based on input?
     )
-    now = datetime.datetime.now()
+    now = datetime.now()
 
     event_data = {
         "project_id": project_id,
@@ -119,3 +126,44 @@ def validate_issue_platform_event_schema(event_data):
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
         jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+
+
+def shim_to_feedback(report, event, project):
+    """
+    takes user reports from the legacy user report form/endpoint and
+    user reports that come from relay envelope ingestion and
+    creates a new User Feedback from it.
+    User feedbacks are an event type, so we try and grab as much from the
+    legacy user report and event to create the new feedback.
+    """
+    try:
+        feedback_event: dict[str, Any] = {
+            "feedback": {
+                "name": report.get("name", ""),
+                "contact_email": report["email"],
+                "message": report["comments"],
+            },
+            "contexts": {},
+        }
+
+        if event:
+            feedback_event["feedback"]["crash_report_event_id"] = event.event_id
+
+            if get_path(event.data, "contexts", "replay", "replay_id"):
+                feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
+                feedback_event["feedback"]["replay_id"] = event.data["contexts"]["replay"][
+                    "replay_id"
+                ]
+            feedback_event["timestamp"] = event.datetime.timestamp()
+
+            feedback_event["platform"] = event.platform
+
+        else:
+            feedback_event["timestamp"] = datetime.utcnow().timestamp()
+            feedback_event["platform"] = "other"
+
+        create_feedback_issue(feedback_event, project.id)
+    except Exception:
+        logger.exception(
+            "Error attempting to create new User Feedback from Shiming old User Report"
+        )
