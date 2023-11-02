@@ -72,6 +72,7 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
         prefix: selectorName,
         title: selectorValue,
       }}
+      menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
       value={selectorValue}
