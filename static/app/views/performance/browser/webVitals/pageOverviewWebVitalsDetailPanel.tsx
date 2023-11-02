@@ -43,7 +43,7 @@ import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 type Column = GridColumnHeader;
 
 const columnOrder: GridColumnOrder[] = [
-  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Transaction'},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: 'Web Vital'},

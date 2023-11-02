@@ -83,6 +83,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   // XXX(epurkhiser): Attachmnets are still experimental and may not exist in
   // the future. For now hide these if they're not being used.
   const hasAttachments = checkInList?.some(checkin => checkin.attachmentId !== null);
+  const hasMultiEnv = monitorEnvs.length > 1;
 
   const headers = [
     t('Status'),
@@ -90,6 +91,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     t('Duration'),
     t('Issues'),
     ...(hasAttachments ? [t('Attachment')] : []),
+    ...(hasMultiEnv ? [t('Environment')] : []),
     t('Expected At'),
   ];
 
@@ -187,6 +189,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 ) : (
                   emptyCell
                 )}
+                {!hasMultiEnv ? null : <div>{checkIn.environment}</div>}
                 <div>
                   <Tooltip
                     disabled={!customTimezone}

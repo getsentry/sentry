@@ -376,6 +376,8 @@ urlpatterns += [
                         pattern_name="sentry-account-settings-notifications", permanent=False
                     ),
                 ),
+                # TODO(hybridcloud) These routes can be removed in Jan 2024 as all valid links
+                # will have been generated with hybrid-cloud compatible URLs.
                 re_path(
                     r"^notifications/unsubscribe/(?P<project_id>\d+)/$",
                     accounts.email_unsubscribe_project,
