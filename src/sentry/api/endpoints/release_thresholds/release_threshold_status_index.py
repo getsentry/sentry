@@ -323,9 +323,12 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
             or parser.parse(i["time"]) > ethreshold.get("end")  # ts is after our threshold ned
             or i["release"] != ethreshold.get("release")  # ts is not our the right release
             or i["project_id"] != ethreshold.get("project_id")  # ts is not the right project
-            or i["environment"] != ethreshold.get("environment", {}).get("name", None)
-            if ethreshold.get("environment")
-            else None  # ts is not the right environment
+            or i["environment"]
+            != (
+                ethreshold.get("environment", {}).get("name", None)
+                if ethreshold.get("environment")
+                else None
+            )  # ts is not the right environment
         ):
             continue
         # else ethreshold.start < i.time <= ethreshold.end
