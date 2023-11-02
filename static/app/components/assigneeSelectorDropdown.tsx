@@ -63,6 +63,7 @@ export interface AssigneeSelectorDropdownProps {
   disabled?: boolean;
   memberList?: User[];
   onAssign?: OnAssignCallback;
+  onClear?: () => void;
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
 
@@ -239,6 +240,11 @@ export class AssigneeSelectorDropdown extends Component<
     // clears assignment
     clearAssignment(this.props.id, organization.slug, 'assignee_selector');
     this.setState({loading: true});
+    const {onClear} = this.props;
+
+    if (onClear) {
+      onClear();
+    }
     e.stopPropagation();
   };
 
