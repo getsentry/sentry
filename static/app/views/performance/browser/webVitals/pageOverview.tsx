@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -8,6 +9,7 @@ import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -22,20 +24,22 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {PageOverviewFeaturedTagsList} from 'sentry/views/performance/browser/webVitals/components/pageOverviewFeaturedTagsList';
 import {PageOverviewSidebar} from 'sentry/views/performance/browser/webVitals/components/pageOverviewSidebar';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import WebVitalsRingMeters from 'sentry/views/performance/browser/webVitals/components/webVitalsRingMeters';
+import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
+import {
+  PageSamplePerformanceTable,
+  TransactionSampleRowWithScoreAndExtra,
+} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
-
-import {PageOverviewWebVitalsTagDetailPanel} from './pageOverWebVitalsTagDetailPanel';
 
 export enum LandingDisplayField {
   OVERVIEW = 'overview',
@@ -53,6 +57,19 @@ const LANDING_DISPLAYS = [
   },
 ];
 
+const SAMPLES_COLUMN_ORDER: GridColumnOrder<
+  keyof TransactionSampleRowWithScoreAndExtra
+>[] = [
+  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
+  {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
+  {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
+  {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
+  {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
+  {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
+  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'view', width: COL_WIDTH_UNDEFINED, name: 'View'},
+];
+
 function getCurrentTabSelection(selectedTab) {
   const tab = decodeScalar(selectedTab);
   if (tab && Object.values(LandingDisplayField).includes(tab as LandingDisplayField)) {
@@ -65,6 +82,7 @@ export default function PageOverview() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
+  const router = useRouter();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -198,31 +216,27 @@ export default function PageOverview() {
               <Flex>
                 <PerformanceScoreBreakdownChart transaction={transaction} />
               </Flex>
-              <WebVitalsRingMeters
-                projectScore={projectScore}
-                onClick={webVital => setState({...state, webVital})}
-                transaction={transaction}
-              />
-              <Flex>
-                <PageOverviewFeaturedTagsList
-                  tag="browser.name"
-                  title={t('Slowest Browsers')}
+              <WebVitalMetersContainer>
+                <WebVitalMeters
+                  projectData={pageData}
+                  projectScore={projectScore}
+                  onClick={webVital => {
+                    router.replace({
+                      pathname: location.pathname,
+                      query: {...location.query, webVital},
+                    });
+                    setState({...state, webVital});
+                  }}
                   transaction={transaction}
-                  onClick={tag => setState({...state, tag})}
                 />
-                <PageOverviewFeaturedTagsList
-                  tag="release"
-                  title={t('Slowest Releases')}
+              </WebVitalMetersContainer>
+              <PageSamplePerformanceTableContainer>
+                <PageSamplePerformanceTable
                   transaction={transaction}
-                  onClick={tag => setState({...state, tag})}
+                  columnOrder={SAMPLES_COLUMN_ORDER}
+                  limit={9}
                 />
-                <PageOverviewFeaturedTagsList
-                  tag="geo.country_code"
-                  title={t('Slowest Regions')}
-                  transaction={transaction}
-                  onClick={tag => setState({...state, tag})}
-                />
-              </Flex>
+              </PageSamplePerformanceTableContainer>
             </Layout.Main>
             <Layout.Side>
               <PageOverviewSidebar
@@ -235,13 +249,11 @@ export default function PageOverview() {
         <PageOverviewWebVitalsDetailPanel
           webVital={state.webVital}
           onClose={() => {
+            router.replace({
+              pathname: router.location.pathname,
+              query: omit(router.location.query, 'webVital'),
+            });
             setState({...state, webVital: null});
-          }}
-        />
-        <PageOverviewWebVitalsTagDetailPanel
-          tag={state.tag}
-          onClose={() => {
-            setState({...state, tag: undefined});
           }}
         />
       </Tabs>
@@ -254,6 +266,7 @@ const ViewAllPagesButton = styled(LinkButton)`
 `;
 
 const TopMenuContainer = styled('div')`
+  margin-bottom: ${space(1)};
   display: flex;
 `;
 
@@ -263,5 +276,12 @@ const Flex = styled('div')`
   justify-content: space-between;
   width: 100%;
   gap: ${space(1)};
+`;
+
+const PageSamplePerformanceTableContainer = styled('div')`
   margin-top: ${space(1)};
+`;
+
+const WebVitalMetersContainer = styled('div')`
+  margin: ${space(1)} 0 ${space(1)} 0;
 `;

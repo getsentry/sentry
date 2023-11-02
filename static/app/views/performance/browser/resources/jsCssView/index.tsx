@@ -23,6 +23,8 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
 } = BrowserStarfishFields;
 
+const DEFAULT_RESOURCE_TYPES = ['resource.script', 'resource.css'];
+
 type Option = {
   label: string;
   value: string;
@@ -48,9 +50,15 @@ function JSCSSView() {
   return (
     <Fragment>
       <FilterOptionsContainer>
-        <DomainSelector value={filters[SPAN_DOMAIN] || ''} />
+        <DomainSelector
+          value={filters[SPAN_DOMAIN] || ''}
+          defaultResourceTypes={DEFAULT_RESOURCE_TYPES}
+        />
         <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
-        <PageSelector value={filters[TRANSACTION] || ''} />
+        <PageSelector
+          value={filters[TRANSACTION] || ''}
+          defaultResourceTypes={DEFAULT_RESOURCE_TYPES}
+        />
         <SwitchContainer>
           <SwitchButton
             isActive={filters[RESOURCE_RENDER_BLOCKING_STATUS] === 'blocking'}
@@ -59,7 +67,7 @@ function JSCSSView() {
           {t('Render Blocking')}
         </SwitchContainer>
       </FilterOptionsContainer>
-      <ResourceTable sort={sort} />
+      <ResourceTable sort={sort} defaultResourceTypes={DEFAULT_RESOURCE_TYPES} />
     </Fragment>
   );
 }
@@ -90,9 +98,15 @@ function ResourceTypeSelector({value}: {value?: string}) {
   );
 }
 
-function PageSelector({value}: {value?: string}) {
+function PageSelector({
+  value,
+  defaultResourceTypes,
+}: {
+  defaultResourceTypes?: string[];
+  value?: string;
+}) {
   const location = useLocation();
-  const {data: pages} = useResourcePagesQuery();
+  const {data: pages} = useResourcePagesQuery(defaultResourceTypes);
 
   const options: Option[] = [
     {value: '', label: 'All'},
