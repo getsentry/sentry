@@ -71,23 +71,35 @@ TIMESERIES_PER_BATCH = 10
 
 def get_performance_project_settings(project_ids: List[int]):
     project_settings = {}
-    for chunked_project_ids in chunked(project_ids, 100):
-        project_option_settings = ProjectOption.objects.get_value_bulk(
-            chunked_project_ids, "sentry:performance_issue_settings"
+    project_option_settings = ProjectOption.objects.get_value_bulk(
+        project_ids, "sentry:performance_issue_settings"
+    )
+
+    for project_id in project_ids:
+        default_project_settings = projectoptions.get_well_known_default(
+            "sentry:performance_issue_settings",
+            project=project_id,
         )
 
-        for project_id in chunked_project_ids:
-            default_project_settings = projectoptions.get_well_known_default(
-                "sentry:performance_issue_settings",
-                project=project_id,
-            )
-
-            project_settings[project_id] = {
-                **default_project_settings,
-                **project_option_settings[project_id],
-            }  # Merge saved project settings into default so updating the default to add new settings works in the future.
+        project_settings[project_id] = {
+            **default_project_settings,
+            **project_option_settings[project_id],
+        }  # Merge saved project settings into default so updating the default to add new settings works in the future.
 
     return project_settings
+
+
+def all_projects_with_settings():
+    for projects in chunked(
+        RangeQuerySetWrapper(
+            Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
+            step=100,
+        ),
+        100,
+    ):
+        project_settings = get_performance_project_settings([project.id for project in projects])
+        for project, project_id in zip(projects, project_settings):
+            yield project, project_settings[project_id]
 
 
 @instrumented_task(
@@ -114,21 +126,12 @@ def run_detection() -> None:
     performance_projects_count = 0
     profiling_projects_count = 0
 
-    projects = RangeQuerySetWrapper(
-        Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
-        step=100,
-    )
-
-    performance_project_settings = get_performance_project_settings(
-        [project.id for project in projects]
-    )
-
-    for project in projects:
+    for project, project_settings in all_projects_with_settings():
         if project.flags.has_transactions and (
             features.has(
                 "organizations:performance-statistical-detectors-ema", project.organization
             )
-            and performance_project_settings[project.id]["duration_regression_detection_enabled"]
+            and project_settings["duration_regression_detection_enabled"]
             or project.id in enabled_performance_projects
         ):
             performance_projects.append(project)
