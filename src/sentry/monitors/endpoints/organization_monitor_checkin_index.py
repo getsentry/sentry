@@ -7,6 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.helpers.environments import get_environments
@@ -29,6 +30,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.CRONS
 
     @extend_schema(
         operation_id="Retrieve Check-Ins for a Monitor",
