@@ -6,7 +6,7 @@ import os
 import random
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import jsonschema
 import sentry_sdk
@@ -117,11 +117,65 @@ GCS_SOURCE_SCHEMA = {
     "additionalProperties": False,
 }
 
+SOURCE_SCHEMA = {
+    "oneOf": [
+        HTTP_SOURCE_SCHEMA,
+        S3_SOURCE_SCHEMA,
+        GCS_SOURCE_SCHEMA,
+        APP_STORE_CONNECT_SCHEMA,
+    ]
+}
+
 SOURCES_SCHEMA = {
     "type": "array",
-    "items": {
-        "oneOf": [HTTP_SOURCE_SCHEMA, S3_SOURCE_SCHEMA, GCS_SOURCE_SCHEMA, APP_STORE_CONNECT_SCHEMA]
-    },
+    "items": SOURCE_SCHEMA,
+}
+
+
+# Schemas for sources with redacted secrets
+HIDDEN_SECRET_SCHEMA = {
+    "type": "object",
+    "properties": {"hidden-secret": {"type": "boolean", "enum": [True]}},
+}
+
+
+def _redact_schema(schema: Dict, keys_to_redact: List[str]) -> Dict:
+    """
+    Returns a deepcopy of the input schema, overriding any keys in keys_to_redact
+    with HIDDEN_SECRET_SCHEMA. Works on nested dictionaries.
+    """
+
+    def override_key(schema: Dict, keys_to_redact: List[str]) -> None:
+        for key, value in schema.items():
+            if key in keys_to_redact:
+                schema[key] = HIDDEN_SECRET_SCHEMA
+            elif isinstance(value, dict):
+                override_key(value, keys_to_redact)
+
+    copy = deepcopy(schema)
+    override_key(copy, keys_to_redact)
+    return copy
+
+
+REDACTED_APP_STORE_CONNECT_SCHEMA = _redact_schema(
+    APP_STORE_CONNECT_SCHEMA, ["appConnectPrivateKey"]
+)
+REDACTED_HTTP_SOURCE_SCHEMA = _redact_schema(HTTP_SOURCE_SCHEMA, ["password"])
+REDACTED_S3_SOURCE_SCHEMA = _redact_schema(S3_SOURCE_SCHEMA, ["secret_key"])
+REDACTED_GCS_SOURCE_SCHEMA = _redact_schema(GCS_SOURCE_SCHEMA, ["private_key"])
+
+REDACTED_SOURCE_SCHEMA = {
+    "oneOf": [
+        REDACTED_HTTP_SOURCE_SCHEMA,
+        REDACTED_S3_SOURCE_SCHEMA,
+        REDACTED_GCS_SOURCE_SCHEMA,
+        REDACTED_APP_STORE_CONNECT_SCHEMA,
+    ]
+}
+
+REDACTED_SOURCES_SCHEMA = {
+    "type": "array",
+    "items": REDACTED_SOURCE_SCHEMA,
 }
 
 LAST_UPLOAD_TTL = 24 * 3600
@@ -324,6 +378,25 @@ def secret_fields(source_type):
     yield from []
 
 
+def validate_sources(sources):
+    """
+    Validates sources against the JSON schema and checks that
+    their IDs are ok.
+    """
+    try:
+        jsonschema.validate(sources, SOURCES_SCHEMA)
+    except jsonschema.ValidationError as e:
+        raise InvalidSourcesError(f"{e}")
+
+    ids = set()
+    for source in sources:
+        if is_internal_source_id(source["id"]):
+            raise InvalidSourcesError('Source ids must not start with "sentry:"')
+        if source["id"] in ids:
+            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
+        ids.add(source["id"])
+
+
 def parse_sources(config, filter_appconnect=True):
     """
     Parses the given sources in the config string (from JSON).
@@ -337,22 +410,11 @@ def parse_sources(config, filter_appconnect=True):
     except Exception as e:
         raise InvalidSourcesError(f"{e}")
 
-    try:
-        jsonschema.validate(sources, SOURCES_SCHEMA)
-    except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(f"{e}")
+    validate_sources(sources)
 
     # remove App Store Connect sources (we don't need them in Symbolicator)
     if filter_appconnect:
         filter(lambda src: src.get("type") != "appStoreConnect", sources)
-
-    ids = set()
-    for source in sources:
-        if is_internal_source_id(source["id"]):
-            raise InvalidSourcesError('Source ids must not start with "sentry:"')
-        if source["id"] in ids:
-            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
-        ids.add(source["id"])
 
     return sources
 
@@ -373,35 +435,32 @@ def parse_backfill_sources(sources_json, original_sources):
 
     orig_by_id = {src["id"]: src for src in original_sources}
 
-    ids = set()
     for source in sources:
-        if is_internal_source_id(source["id"]):
-            raise InvalidSourcesError('Source ids must not start with "sentry:"')
-        if source["id"] in ids:
-            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
+        backfill_source(source, orig_by_id)
 
-        ids.add(source["id"])
-
-        for secret in secret_fields(source["type"]):
-            if secret in source and source[secret] == {"hidden-secret": True}:
-                secret_value = safe.get_path(orig_by_id, source["id"], secret)
-                if secret_value is None:
-                    with sentry_sdk.push_scope():
-                        sentry_sdk.set_tag("missing_secret", secret)
-                        sentry_sdk.set_tag("source_id", source["id"])
-                        sentry_sdk.capture_message(
-                            "Obfuscated symbol source secret does not have a corresponding saved value in project options"
-                        )
-                    raise InvalidSourcesError("Hidden symbol source secret is missing a value")
-                else:
-                    source[secret] = secret_value
-
-    try:
-        jsonschema.validate(sources, SOURCES_SCHEMA)
-    except jsonschema.ValidationError as e:
-        raise InvalidSourcesError("Sources did not validate JSON-schema") from e
+    validate_sources(sources)
 
     return sources
+
+
+def backfill_source(source, original_sources_by_id):
+    """
+    Backfills redacted secrets in a source by
+    finding their previous values stored in original_sources_by_id.
+    """
+    for secret in secret_fields(source["type"]):
+        if secret in source and source[secret] == {"hidden-secret": True}:
+            secret_value = safe.get_path(original_sources_by_id, source["id"], secret)
+            if secret_value is None:
+                with sentry_sdk.push_scope():
+                    sentry_sdk.set_tag("missing_secret", secret)
+                    sentry_sdk.set_tag("source_id", source["id"])
+                    sentry_sdk.capture_message(
+                        "Obfuscated symbol source secret does not have a corresponding saved value in project options"
+                    )
+                raise InvalidSourcesError("Hidden symbol source secret is missing a value")
+            else:
+                source[secret] = secret_value
 
 
 def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
