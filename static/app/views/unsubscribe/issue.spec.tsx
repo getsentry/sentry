@@ -26,7 +26,10 @@ describe('UnsubscribeIssue', function () {
 
   it('loads data from the the API based on URL parameters', async function () {
     const {router, routerProps, routerContext} = initializeOrg({
-      router: {location: {query: {_: 'signature-value'}}},
+      router: {
+        location: {query: {_: 'signature-value'}},
+        params,
+      },
     });
     render(
       <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
@@ -41,7 +44,10 @@ describe('UnsubscribeIssue', function () {
 
   it('makes an API request when the form is submitted', async function () {
     const {router, routerProps, routerContext} = initializeOrg({
-      router: {location: {query: {_: 'signature-value'}}},
+      router: {
+        location: {query: {_: 'signature-value'}},
+        params,
+      },
     });
     render(
       <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,

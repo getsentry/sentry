@@ -365,17 +365,6 @@ urlpatterns += [
                     SetupWizardView.as_view(),
                     name="sentry-project-wizard-fetch",
                 ),
-                # Notification unsubscribe
-                re_path(
-                    r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
-                    generic_react_page_view,
-                    name="sentry-account-org-unsubscribe-project",
-                ),
-                re_path(
-                    r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
-                    generic_react_page_view,
-                    name="sentry-account-org-unsubscribe-issue",
-                ),
                 # Compatibility
                 re_path(
                     r"^settings/notifications/",
@@ -649,6 +638,26 @@ urlpatterns += [
                     r"^legal/",
                     react_page_view,
                     name="sentry-customer-domain-legal-settings",
+                ),
+                re_path(
+                    r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
+                    generic_react_page_view,
+                    name="sentry-organization-unsubscribe-project",
+                ),
+                re_path(
+                    r"^unsubscribe/project/(?P<project_id>\d+)/$",
+                    react_page_view,
+                    name="sentry-customer-domain-unsubscribe-project",
+                ),
+                re_path(
+                    r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
+                    generic_react_page_view,
+                    name="sentry-organization-unsubscribe-issue",
+                ),
+                re_path(
+                    r"^unsubscribe/issue/(?P<issue_id>\d+)/$",
+                    react_page_view,
+                    name="sentry-customer-domain-unsubscribe-issue",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",

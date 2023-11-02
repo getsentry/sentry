@@ -12,6 +12,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useParams} from 'sentry/utils/useParams';
 
 type RouteParams = {
   id: string;
@@ -20,8 +21,9 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}>;
 
-function UnsubscribeIssue({location, params}: Props) {
+function UnsubscribeIssue({location}: Props) {
   const signature = decodeScalar(location.query._);
+  const params = useParams();
   return (
     <SentryDocumentTitle title={t('Issue Notification Unsubscribe')}>
       <NarrowLayout>
