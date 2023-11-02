@@ -20,7 +20,7 @@
     "@dnd-kit/core": "^3.1.1",
     "@dnd-kit/sortable": "^4.0.0",
     "@emotion/babel-plugin": "^11.10.5",
-    "@emotion/css": "^11.10.5",
+    "@emotion/css": "^11.11.2",
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
     "@fullstory/babel-plugin-annotate-react": "^2.3.0",
