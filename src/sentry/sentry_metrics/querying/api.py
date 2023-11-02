@@ -3,22 +3,18 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
 
+from sentry_kafka_schemas.codecs import ValidationError
 from snuba_sdk import Column, Metric, MetricsQuery, MetricsScope, Request, Rollup, Timeseries
 from snuba_sdk.conditions import Condition, Op
 
-from sentry.models import Organization, Project
+from sentry.api.utils import InvalidParams
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mapping import is_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, is_mri
 from sentry.snuba.metrics_layer.query import run_query
-
-GRANULARITIES = [
-    10,  # 10 seconds
-    60,  # 1 minute
-    60 * 60,  # 1 hour
-    60 * 60 * 24,  # 24 hours
-]
 
 # These regexes are temporary since the DSL is supposed to be parsed internally by the snuba SDK, thus this
 # is only bridging code to validate and evolve the metrics layer.
@@ -82,23 +78,6 @@ def _parse_filters(query: Optional[str]) -> Optional[Sequence[Condition]]:
     return filters
 
 
-def _get_granularity(time_seconds: int) -> int:
-    """
-    Determines the optimal granularity to resolve a query over an interval of time_seconds.
-    """
-    # TODO(layer): The layer should be responsible of determining the best granularity for the query.
-    best_granularity: Optional[int] = None
-
-    for granularity in sorted(GRANULARITIES):
-        if granularity <= time_seconds:
-            best_granularity = granularity
-
-    if best_granularity is None:
-        raise InvalidMetricsQuery("The time specified is lower than the minimum granularity")
-
-    return best_granularity
-
-
 def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[datetime]:
     """
     Builds a list of all the intervals that are queried by the metrics layer.
@@ -150,11 +129,11 @@ def _translate_query_results(
     intermediate_meta: Dict[str, str] = {}
     for query_result in query_results:
         # Very ugly way to build the intervals start and end from the run queries, since they are all using
-        # the same params. This would be solved once this code is embedded within the layer itself.
+        # the same params.
         if start is None:
-            start = query_result.result["start"]
+            start = query_result.result["modified_start"]
         if end is None:
-            end = query_result.result["end"]
+            end = query_result.result["modified_end"]
         if intervals is None:
             intervals = _build_intervals(start, end, interval)
 
@@ -162,7 +141,7 @@ def _translate_query_results(
         for data_item in data:
             grouped_values = []
             for group_by in query_result.grouped_by or ():
-                grouped_values.append((group_by.key, data_item.get(group_by.key)))
+                grouped_values.append((group_by, data_item.get(group_by)))
 
             # The group key must be ordered, in order to be consistent across executions.
             group_key = tuple(sorted(grouped_values))
@@ -234,11 +213,12 @@ def _translate_query_results(
     }
 
 
-def _build_request(
-    organization: Organization, use_case_id: UseCaseID, query: MetricsQuery
-) -> Request:
-    # TODO(layer): The layer should handle the dataset selection automatically.
-    dataset = Dataset.Metrics if use_case_id == UseCaseID.SESSIONS else Dataset.PerformanceMetrics
+def _build_request(organization: Organization, query: MetricsQuery) -> Request:
+    dataset = (
+        Dataset.Metrics
+        if query.scope.use_case_id == UseCaseID.SESSIONS.value
+        else Dataset.PerformanceMetrics
+    )
     return Request(
         dataset=dataset.value,
         query=query,
@@ -247,24 +227,33 @@ def _build_request(
     )
 
 
-def _execute_series_and_totals_query(
-    organization: Organization, use_case_id: UseCaseID, interval: int, base_query: MetricsQuery
-) -> Mapping[str, Any]:
-    query = base_query.set_rollup(Rollup(interval=interval, granularity=_get_granularity(interval)))
-    series_result = run_query(request=_build_request(organization, use_case_id, query))
+def _infer_use_case_id_from_timeseries(timeseries: Timeseries) -> UseCaseID:
+    if timeseries.metric.mri is not None:
+        mri = timeseries.metric.mri
+    else:
+        mri = get_mri(timeseries.metric.public_name)
 
-    # TODO(layer): The layer should be able to make the totals query and the series query in one.
-    # This is a hack, to make sure that we choose the right granularity for the totals query.
-    # This is done since for example if we query 24 hours with 1 hour interval:
-    # * For series the granularity is 1 hour since we want to aggregate on 1 hour
-    # * For totals it doesn't make sense to choose 1 hour, and instead it's better to choose 24 hours
-    series_start_seconds = series_result["start"].timestamp()
-    series_end_seconds = series_result["end"].timestamp()
-    totals_interval_seconds = int(series_end_seconds - series_start_seconds)
-    query = base_query.set_rollup(
-        Rollup(totals=True, granularity=_get_granularity(totals_interval_seconds))
-    )
-    totals_result = run_query(request=_build_request(organization, use_case_id, query))
+    try:
+        return extract_use_case_id(mri)
+    except ValidationError:
+        raise InvalidParams(f"The query contains an invalid MRI: {mri}")
+
+
+def _execute_series_and_totals_query(
+    organization: Organization, interval: int, base_query: MetricsQuery
+) -> Mapping[str, Any]:
+    # We infer the use case id from the timeseries.
+    inferred_use_case_id = _infer_use_case_id_from_timeseries(base_query.query)
+    extended_scope = base_query.scope.set_use_case_id(inferred_use_case_id.value)
+    base_query = base_query.set_scope(extended_scope)
+
+    # First we make the series query.
+    query = base_query.set_rollup(Rollup(interval=interval))
+    series_result = run_query(request=_build_request(organization, query))
+
+    # Second we make the totals query.
+    query = base_query.set_rollup(Rollup(totals=True))
+    totals_result = run_query(request=_build_request(organization, query))
 
     return {**series_result, "totals": totals_result["data"]}
 
@@ -290,15 +279,14 @@ def run_metrics_query(
         groupby=[Column(group_by) for group_by in group_bys] if group_bys else None,
         start=start,
         end=end,
+        scope=base_scope,
     )
 
     # For each field generate the query.
     query_results = []
     for timeseries in _parse_fields(fields):
-        # TODO(layer): The layer should automatically infer the use case id from the passed metrics.
-        use_case_id = UseCaseID.SESSIONS
-        query = base_query.set_query(timeseries).set_scope(base_scope.set_use_case_id(use_case_id))
-        result = _execute_series_and_totals_query(organization, use_case_id, interval, query)
+        query = base_query.set_query(timeseries)
+        result = _execute_series_and_totals_query(organization, interval, query)
         query_results.append(
             QueryResult(
                 name=f"{timeseries.aggregate}({timeseries.metric.mri or timeseries.metric.public_name})",
@@ -309,6 +297,4 @@ def run_metrics_query(
         )
 
     # We translate the result back to the pre-existing format.
-    return _translate_query_results(
-        interval=base_query.rollup.interval, query_results=query_results
-    )
+    return _translate_query_results(interval=interval, query_results=query_results)

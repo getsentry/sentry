@@ -2,7 +2,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -214,9 +213,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         use_new_metrics_layer = request.GET.get("useNewMetricsLayer", "false") == "true"
-        if use_new_metrics_layer and features.has(
-            "organizations:metrics-api-new-metrics-layer", organization, actor=request.user
-        ):
+        if use_new_metrics_layer:
             return self._new_get(request, organization)
         else:
             return self._old_get(request, organization)
