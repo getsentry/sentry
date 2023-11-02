@@ -260,6 +260,13 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message["event"]["timestamp"] = 0000
         self.run_test(message)
 
+    def test_frame_data_valid_with_new_schema(self) -> None:
+        # per https://develop.sentry.dev/sdk/event-payloads/ timestamp can be numeric
+
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"]["stacktrace"]["frames"][0]["data"] = {"foo": "bar"}
+        self.run_test(message)
+
     def test_tags_not_required_with_new_schema(self) -> None:
         # per https://develop.sentry.dev/sdk/event-payloads/ tags are optional
         message = deepcopy(get_test_message(self.project.id))
