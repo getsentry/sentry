@@ -13,7 +13,7 @@ import {OrganizationSummary} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 enum RegionDisplayName {
-  US = '🇺🇸 United States of America (USA)',
+  US = '🇺🇸 United States of America (US)',
   DE = '🇪🇺 European Union (EU)',
 }
 
