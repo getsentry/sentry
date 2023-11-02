@@ -8,10 +8,10 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {useInfiniteFeedbackListData} from 'sentry/components/feedback/feedbackDataContext';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import useFetchFeedbackInfiniteListData from 'sentry/components/feedback/useFetchFeedbackInfiniteListData';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -29,25 +29,25 @@ const cellMeasurer = {
 
 export default function FeedbackList() {
   const {
-    // error,
-    // hasNextPage,
-    // isError,
+    hasNextPage,
     isFetching, // If the network is active
     isFetchingNextPage,
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
-    // Below are fields that are shims for react-virtualized
     getRow,
     isRowLoaded,
     issues,
     loadMoreRows,
-    // setFeedback,
-  } = useInfiniteFeedbackListData();
+    hits,
+  } = useFetchFeedbackInfiniteListData();
 
   const {setParamValue} = useUrlParams('query');
   const clearSearchTerm = () => setParamValue('');
 
-  const {checked, toggleChecked} = useListItemCheckboxState();
+  const checkboxState = useListItemCheckboxState({
+    hits,
+    knownIds: issues.map(issue => issue.id),
+  });
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
@@ -79,11 +79,11 @@ export default function FeedbackList() {
       >
         <FeedbackListItem
           feedbackItem={item}
-          style={style}
-          isChecked={checked.includes(item.id)}
-          onChecked={() => {
-            toggleChecked(item.id);
+          isSelected={checkboxState.isSelected(item.id)}
+          onSelect={() => {
+            checkboxState.toggleSelected(item.id);
           }}
+          style={style}
         />
       </CellMeasurer>
     );
@@ -91,12 +91,12 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
-      <FeedbackListHeader checked={checked} toggleChecked={toggleChecked} />
+      <FeedbackListHeader {...checkboxState} />
       <OverflowPanelItem noPadding>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
           loadMoreRows={loadMoreRows}
-          rowCount={issues.length}
+          rowCount={hasNextPage ? issues.length + 1 : issues.length}
         >
           {({onRowsRendered, registerChild}) => (
             <AutoSizer onResize={updateList}>

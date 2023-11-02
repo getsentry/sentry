@@ -83,9 +83,9 @@ function PerformanceScoreRing({
     // TODO: Hacky way to add padding to ring segments. Should clean this up so it's more accurate to the value.
     // This only mostly works because we expect values to be somewhere between 0 and 100.
     const maxOffset =
-      (1 - (maxValue - ringSegmentPadding) / sumMaxValues) * circumference;
+      (1 - Math.max(maxValue - ringSegmentPadding, 0) / sumMaxValues) * circumference;
     const progressOffset =
-      (1 - (boundedValue - ringSegmentPadding) / sumMaxValues) * circumference;
+      (1 - Math.max(boundedValue - ringSegmentPadding, 0) / sumMaxValues) * circumference;
     const rotate = currentRotate;
     currentRotate += (360 * maxValue) / sumMaxValues;
 

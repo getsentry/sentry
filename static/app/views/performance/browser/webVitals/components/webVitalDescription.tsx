@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ProgressRing from 'sentry/components/progressRing';
-import {Tooltip} from 'sentry/components/tooltip';
+import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
@@ -93,39 +93,39 @@ export function WebVitalTagsDetailHeader({
   const theme = useTheme();
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
-  const title = `${tag.key}:${tag.name}`;
+  const title =
+    tag.key === 'geo.country_code' ? COUNTRY_CODE_TO_NAME_MAP[tag.name] : tag.name;
   return (
-    <StyledHeader>
+    <Header>
       <span>
         <TitleWrapper>
           <WebVitalName>{title}</WebVitalName>
-          <StyledCopyToClipboardButton borderless text={title} size="sm" iconSize="sm" />
+          <StyledCopyToClipboardButton
+            borderless
+            text={`${tag.key}:${tag.name}`}
+            size="sm"
+            iconSize="sm"
+          />
         </TitleWrapper>
         <Value>{value}</Value>
       </span>
       {isProjectScoreCalculated && projectScore ? (
-        <ProgressRingWrapper>
-          <PerformanceScoreRingWithTooltips
-            hideWebVitalLabels
-            projectScore={projectScore}
-            text={
-              <ProgressRingTextContainer>
-                <ProgressRingText>{projectScore.totalScore}</ProgressRingText>
-                <StyledTooltip title={title} showOnlyOnOverflow skipWrapper>
-                  <ProgressRingTabSubText>{title.toUpperCase()}</ProgressRingTabSubText>
-                </StyledTooltip>
-              </ProgressRingTextContainer>
-            }
-            width={220}
-            height={180}
-            ringBackgroundColors={ringBackgroundColors}
-            ringSegmentColors={ringSegmentColors}
-          />
-        </ProgressRingWrapper>
+        <PerformanceScoreRingWithTooltips
+          hideWebVitalLabels
+          projectScore={projectScore}
+          text={projectScore.totalScore}
+          width={100}
+          height={100}
+          ringBackgroundColors={ringBackgroundColors}
+          ringSegmentColors={ringSegmentColors}
+          size={100}
+          x={0}
+          y={0}
+        />
       ) : (
         <StyledLoadingIndicator size={50} />
       )}
-    </StyledHeader>
+    </Header>
   );
 }
 
@@ -208,36 +208,15 @@ const ProgressRingSubText = styled('h5')`
   color: ${p => p.theme.textColor};
 `;
 
-const ProgressRingTabSubText = styled(ProgressRingSubText)`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  max-width: 70px;
-  text-transform: capitalize;
-  ${p => p.theme.overflowEllipsis}
-`;
-
-const StyledHeader = styled(Header)`
-  align-items: end;
-`;
-
-const StyledTooltip = styled(Tooltip)`
-  ${p => p.theme.overflowEllipsis}
-`;
-
 const TitleWrapper = styled('div')`
   display: flex;
   align-items: baseline;
 `;
 
 const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
-  padding-left: ${space(0.25)};
+  padding-left: ${space(0.5)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 20px 65px;
-`;
-
-const ProgressRingWrapper = styled('span')`
-  position: absolute;
-  right: 0;
-  top: 15px;
 `;

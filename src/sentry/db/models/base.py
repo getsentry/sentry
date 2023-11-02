@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, TypeVar
+from typing import Any, Callable, ClassVar, Iterable, Mapping, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
@@ -50,7 +50,7 @@ class BaseModel(models.Model):
     __relocation_scope__: RelocationScope | set[RelocationScope]
     __relocation_dependencies__: set[str]
 
-    objects: BaseManager[Self] = BaseManager()
+    objects: ClassVar[BaseManager[Self]] = BaseManager()
 
     update = update
 
