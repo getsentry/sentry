@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 from django.db.models import F
 
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -104,10 +105,8 @@ def project(organization):
 )
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_trends")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_trends")
-@mock.patch("sentry.tasks.statistical_detectors.get_performance_project_settings")
 @django_db_all
 def test_run_detection_options(
-    get_performance_project_settings,
     detect_function_trends,
     detect_transaction_trends,
     project_flags,
@@ -133,9 +132,14 @@ def test_run_detection_options(
         else [],
     }
 
-    get_performance_project_settings.return_value = {
-        [project.id]: {"duration_regression_detection_enabled": performance_project_option_enabled}
-    }
+    if performance_project_option_enabled:
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={
+                "transaction_duration_regression_detection_enabled": performance_project_option_enabled
+            },
+        )
 
     with freeze_time(timestamp), override_options(options), TaskRunner():
         run_detection()
