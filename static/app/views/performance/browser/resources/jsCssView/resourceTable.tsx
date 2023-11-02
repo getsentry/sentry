@@ -17,6 +17,7 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 const {
   SPAN_DESCRIPTION,
@@ -46,28 +47,29 @@ type Column = GridColumnHeader<keyof Row>;
 
 type Props = {
   sort: ValidSort;
+  defaultResourceTypes?: string[];
 };
 
-function ResourceTable({sort}: Props) {
+function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
-    defaultResourceTypes: ['resource.script', 'resource.css'],
+    defaultResourceTypes,
   });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
-    {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: 'Resource name'},
-    {key: SPAN_OP, width: COL_WIDTH_UNDEFINED, name: 'Type'},
-    {key: `avg(${SPAN_SELF_TIME})`, width: COL_WIDTH_UNDEFINED, name: 'Avg Duration'},
+    {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: t('Resource Description')},
+    {key: SPAN_OP, width: COL_WIDTH_UNDEFINED, name: t('Type')},
+    {key: `avg(${SPAN_SELF_TIME})`, width: COL_WIDTH_UNDEFINED, name: DataTitles.avg},
     {
       key: `${SPM}()`,
       width: COL_WIDTH_UNDEFINED,
-      name: t('Throughput'),
+      name: getThroughputTitle('http'),
     },
     {
       key: `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
       width: COL_WIDTH_UNDEFINED,
-      name: t('Avg Resource size'),
+      name: DataTitles['avg(http.response_content_length)'],
     },
   ];
   const tableData: Row[] = data.length

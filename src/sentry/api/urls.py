@@ -23,6 +23,10 @@ from sentry.api.endpoints.organization_projects_experiment import (
 )
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
+from sentry.api.endpoints.organization_unsubscribe import (
+    OrganizationUnsubscribeIssue,
+    OrganizationUnsubscribeProject,
+)
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -106,6 +110,9 @@ from sentry.monitors.endpoints.organization_monitor_details import (
 from sentry.monitors.endpoints.organization_monitor_index import OrganizationMonitorIndexEndpoint
 from sentry.monitors.endpoints.organization_monitor_index_stats import (
     OrganizationMonitorIndexStatsEndpoint,
+)
+from sentry.monitors.endpoints.organization_monitor_schedule_sample_data import (
+    OrganizationMonitorScheduleSampleDataEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
@@ -1479,6 +1486,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-monitor-index-stats",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/monitors-schedule-data/$",
+        OrganizationMonitorScheduleSampleDataEndpoint.as_view(),
+        name="sentry-api-0-organization-monitors-schedule-sample-data",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/$",
         OrganizationMonitorDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-details",
@@ -1944,6 +1956,17 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^/]+)/grouping-configs/$",
         GroupingConfigsEndpoint.as_view(),
         name="sentry-api-0-organization-grouping-configs",
+    ),
+    # Unsubscribe from organization notifications
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/unsubscribe/project/(?P<id>\d+)/$",
+        OrganizationUnsubscribeProject.as_view(),
+        name="sentry-api-0-organization-unsubscribe-project",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/unsubscribe/issue/(?P<id>\d+)/$",
+        OrganizationUnsubscribeIssue.as_view(),
+        name="sentry-api-0-organization-unsubscribe-issue",
     ),
 ]
 

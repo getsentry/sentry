@@ -382,7 +382,7 @@ def _get_blames_from_all_integrations(
             integration.provider,
         )
         try:
-            blames = install.get_commit_context_all_frames(files)
+            blames = install.get_commit_context_all_frames(files, extra=extra)
             file_blames.extend(blames)
         except Exception as e:
             log_info = {

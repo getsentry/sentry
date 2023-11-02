@@ -173,6 +173,9 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         sample_rate=1.0,
                         tags={"occurrence_type": occurrence_data["type"]},
                     )
+                    logger.exception(
+                        "Error validating event payload, falling back to legacy validation"
+                    )
                     try:
                         jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
                     except jsonschema.exceptions.ValidationError:
@@ -261,11 +264,19 @@ def _process_message(
         sampled=True,
     ) as txn:
         try:
-            if message.get("payload_type") == PayloadType.OCCURRENCE.value:
-                return process_occurrence_message(message, txn)
-            elif message.get("payload_type") == PayloadType.STATUS_CHANGE.value:
+            # Assume messaged without a payload type are of type OCCURRENCE
+            payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
+            if payload_type == PayloadType.STATUS_CHANGE.value:
                 group = process_status_change_message(message, txn)
                 return None, GroupInfo(group=group, is_new=False, is_regression=False)
+            elif payload_type == PayloadType.OCCURRENCE.value:
+                return process_occurrence_message(message, txn)
+            else:
+                metrics.incr(
+                    "occurrence_consumer._process_message.dropped_invalid_payload_type",
+                    sample_rate=1.0,
+                    tags={"payload_type": payload_type},
+                )
         except (ValueError, KeyError) as e:
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
