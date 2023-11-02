@@ -435,6 +435,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasReplays"] is True
 
+    def test_has_feedbacks_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasFeedbacks"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_feedbacks))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasFeedbacks"] is True
+
     def test_has_monitors_flag(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasMonitors"] is False

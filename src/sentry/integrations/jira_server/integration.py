@@ -32,6 +32,7 @@ from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -366,7 +367,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
 
-        organization = Organization.objects.get(id=self.organization_id)
+        organization = organization_service.get_organization_by_id(id=self.organization_id)
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
         if not has_issue_sync:
             for field in configuration:
@@ -494,7 +495,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:
-        return ["project", "issuetype", "labels"]
+        return ["project", "issuetype", "priority", "labels"]
 
     def get_persisted_user_default_config_fields(self):
         return ["reporter"]
@@ -835,15 +836,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
         for field in fields:
             if field["name"] == "priority":
-                # The default project may be deleted and not in the list of
-                # available projects. In that case, set project_key to None and
-                # fetching priorities will fail silently, returning all priorities.
-                filtered_projects = [proj for proj in jira_projects if proj["id"] == project_id]
-                project_key = filtered_projects[0]["key"] if filtered_projects else None
-
                 # whenever priorities are available, put the available ones in the list.
                 # allowedValues for some reason doesn't pass enough info.
-                field["choices"] = self.make_choices(client.get_priorities(project_key))
+                field["choices"] = self.make_choices(client.get_priorities())
                 field["default"] = defaults.get("priority", "")
             elif field["name"] == "fixVersions":
                 field["choices"] = self.make_choices(client.get_versions(project_id))

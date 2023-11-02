@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Mapping
 
-import pytest
-
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsetting import NotificationSetting
@@ -387,10 +385,6 @@ class GetParticipantsTest(TestCase):
             slack={self.user: GroupSubscriptionReason.comment},
         )
 
-    # TODO(jangjodi): Fix this test once ExternalActor mode is fixed
-    @pytest.mark.xfail(
-        reason="ExternalActor (called from team_is_valid_recipient) can only be used in MONOLITH and REGION mode"
-    )
     @with_feature("organizations:team-workflow-notifications")
     def test_simple_teams(self):
         team = self.create_team(organization=self.org)
