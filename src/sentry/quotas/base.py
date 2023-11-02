@@ -221,6 +221,7 @@ class Quota(Service):
         "assign_monitor_seat",
         "check_accept_crons_checkin",
         "remove_monitor_seat",
+        "update_monitor_slug",
     )
 
     def __init__(self, **options):
