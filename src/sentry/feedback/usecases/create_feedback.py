@@ -7,6 +7,8 @@ from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.models.project import Project
+from sentry.signals import first_feedback_received
 from sentry.utils.dates import ensure_aware
 
 
@@ -97,6 +99,11 @@ def create_feedback_issue(event, project_id):
 
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_data)
+
+    project = Project.objects.get_from_cache(id=project_id)
+
+    if not project.flags.has_feedbacks:
+        first_feedback_received.send_robust(project=project, sender=Project)
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
