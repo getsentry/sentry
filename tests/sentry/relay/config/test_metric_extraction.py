@@ -19,6 +19,7 @@ from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
@@ -56,8 +57,13 @@ def create_alert(
 
 
 def create_widget(
-    aggregates: Sequence[str], query: str, project: Project, title="Dashboard"
+    aggregates: Sequence[str],
+    query: str,
+    project: Project,
+    title="Dashboard",
+    columns: Optional[Sequence[str]] = None,
 ) -> DashboardWidgetQuery:
+    columns = columns or []
     dashboard = Dashboard.objects.create(
         organization=project.organization,
         created_by_id=1,
@@ -72,7 +78,7 @@ def create_widget(
     )
 
     widget_query = DashboardWidgetQuery.objects.create(
-        aggregates=aggregates, conditions=query, order=0, widget=widget
+        aggregates=aggregates, conditions=query, columns=columns, order=0, widget=widget
     )
 
     return widget_query
@@ -612,6 +618,90 @@ def test_get_metric_extraction_config_with_user_misery(default_project):
                 ],
             }
         ]
+
+
+@django_db_all
+def test_get_metric_extraction_config_user_misery_with_tag_columns(default_project):
+    threshold = 100
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(
+            [f"user_misery({threshold})"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            "Dashboard",
+            columns=["lcp.element", "custom"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
+                # This is necessary for calculating unique users
+                "field": "event.user.id",
+                "mri": "s:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {"name": "event.duration", "op": "gt", "value": threshold * 4},
+                        "key": "satisfaction",
+                        "value": "frustrated",
+                    },
+                    {"key": "query_hash", "value": ANY},
+                    {"key": "lcp.element", "field": "event.tags.lcp.element"},
+                    {"key": "custom", "field": "event.tags.custom"},
+                ],
+            }
+        ]
+
+
+@django_db_all
+def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            "Dashboard",
+            columns=["user.id", "release"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": ANY},
+                    {"key": "user.id", "field": "event.user.id"},
+                    {"key": "release", "field": "event.release"},
+                ],
+            }
+        ]
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_cardinality.count": -1})
+def test_get_metric_extraction_config_with_high_cardinality(default_project):
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert not config
 
 
 @django_db_all

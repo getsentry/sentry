@@ -494,7 +494,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:
-        return ["project", "issuetype", "labels"]
+        return ["project", "issuetype", "priority", "labels"]
 
     def get_persisted_user_default_config_fields(self):
         return ["reporter"]
@@ -837,7 +837,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             if field["name"] == "priority":
                 # whenever priorities are available, put the available ones in the list.
                 # allowedValues for some reason doesn't pass enough info.
-                field["choices"] = self.make_choices(client.get_priorities(project_id))
+                field["choices"] = self.make_choices(client.get_priorities())
                 field["default"] = defaults.get("priority", "")
             elif field["name"] == "fixVersions":
                 field["choices"] = self.make_choices(client.get_versions(project_id))
@@ -976,6 +976,10 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             # in the projectmeta API call, and would normally be converted in the
             # above clean method.)
             cleaned_data["issuetype"] = {"id": issue_type}
+
+        # sometimes the project is missing as well and we need to add it
+        if "project" not in cleaned_data:
+            cleaned_data["project"] = {"id": jira_project}
 
         try:
             logger.info(

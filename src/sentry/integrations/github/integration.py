@@ -253,9 +253,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return True
 
     def get_commit_context_all_frames(
-        self, files: Sequence[SourceLineInfo]
+        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
     ) -> Sequence[FileBlameInfo]:
-        return self.get_blame_for_files(files)
+        return self.get_blame_for_files(files, extra)
 
     def get_commit_context(
         self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]

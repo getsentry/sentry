@@ -263,6 +263,7 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=self.group.id,
             notification_uuid=notification_uuid,
+            actor_type="User",
         )
 
     @responses.activate
@@ -326,6 +327,7 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=None,
             notification_uuid=notification_uuid,
+            actor_type="User",
         )
 
     @responses.activate
@@ -389,6 +391,7 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=group.id,
             notification_uuid=notification_uuid,
+            actor_type="User",
         )
 
     @responses.activate
@@ -446,6 +449,7 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=self.group.id,
             notification_uuid=notification_uuid,
+            actor_type="User",
         )
 
     @responses.activate
@@ -527,6 +531,7 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=event.group_id,
             notification_uuid=notification_uuid,
+            actor_type="User",
         )
 
 

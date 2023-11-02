@@ -1,10 +1,16 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
@@ -18,47 +24,36 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, GroupStatus} from 'sentry/types';
+import type {Event} from 'sentry/types';
+import {GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;
   feedbackItem: FeedbackIssue;
-  refetchIssue: () => void;
   tags: Record<string, string>;
 }
 
-export default function FeedbackItem({
-  feedbackItem,
-  eventData,
-  refetchIssue,
-  tags,
-}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
   const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
   const {markAsRead, resolve} = useMutateFeedback({
-    feedbackId: feedbackItem.id,
+    feedbackIds: [feedbackItem.id],
     organization,
-    refetchIssue,
   });
-  const api = useApi();
-
-  const markReadUrl = `/organizations/${organization.slug}/issues/${feedbackItem.id}/`;
-
-  useEffect(() => {
-    (async () => {
-      await api.requestPromise(markReadUrl, {
-        method: 'PUT',
-        data: {hasSeen: true},
-      });
-      refetchIssue();
-    })();
-  }, []); // eslint-disable-line
 
   const url = eventData?.tags.find(tag => tag.key === 'url');
   const replayId = eventData?.contexts?.feedback?.replay_id;
+
+  const mutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while updating the feedback.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Updated feedback'));
+    },
+  };
 
   return (
     <Fragment>
@@ -66,11 +61,7 @@ export default function FeedbackItem({
         <Flex gap={space(2)} justify="space-between">
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
-              <FeedbackItemUsername
-                feedbackIssue={feedbackItem}
-                feedbackEvent={eventData}
-                detailDisplay
-              />
+              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
               {feedbackItem.metadata.contact_email ? (
                 <CopyToClipboardButton
                   size="xs"
@@ -92,14 +83,20 @@ export default function FeedbackItem({
           </Flex>
           <Flex gap={space(1)} align="center">
             <ErrorBoundary mini>
-              <FeedbackViewers feedbackItem={feedbackItem} />
+              <FeedbackAssignedTo
+                feedbackIssue={feedbackItem}
+                feedbackEvent={eventData}
+              />
             </ErrorBoundary>
             <ErrorBoundary mini>
               <Button
                 onClick={() => {
-                  feedbackItem.status === 'resolved'
-                    ? resolve(GroupStatus.UNRESOLVED)
-                    : resolve(GroupStatus.RESOLVED);
+                  addLoadingMessage(t('Updating feedback...'));
+                  const newStatus =
+                    feedbackItem.status === 'resolved'
+                      ? GroupStatus.UNRESOLVED
+                      : GroupStatus.RESOLVED;
+                  resolve(newStatus, mutationOptions);
                 }}
               >
                 {feedbackItem.status === 'resolved' ? t('Unresolve') : t('Resolve')}
@@ -108,7 +105,8 @@ export default function FeedbackItem({
             <ErrorBoundary mini>
               <Button
                 onClick={() => {
-                  feedbackItem.hasSeen ? markAsRead(false) : markAsRead(true);
+                  addLoadingMessage(t('Updating feedback...'));
+                  markAsRead(!feedbackItem.hasSeen, mutationOptions);
                 }}
               >
                 {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
@@ -118,7 +116,14 @@ export default function FeedbackItem({
         </Flex>
       </HeaderPanelItem>
       <OverflowPanelItem>
-        <Section title={t('Description')}>
+        <Section
+          title={t('Description')}
+          contentRight={
+            <ErrorBoundary>
+              <FeedbackViewers feedbackItem={feedbackItem} />
+            </ErrorBoundary>
+          }
+        >
           <Blockquote>
             <pre>{feedbackItem.metadata.message}</pre>
           </Blockquote>

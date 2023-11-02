@@ -784,7 +784,12 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
                     repo=other_code_mapping.repository,
                     code_mapping=other_code_mapping,
                 )
-            ]
+            ],
+            extra={
+                "event": self.event.event_id,
+                "group": self.event.group_id,
+                "organization": self.event.project.organization_id,
+            },
         )
 
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
@@ -1203,7 +1208,12 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
                     repo=self.repo,
                     code_mapping=self.code_mapping,
                 ),
-            ]
+            ],
+            extra={
+                "event": self.event.event_id,
+                "group": self.event.group_id,
+                "organization": self.organization.id,
+            },
         )
         mock_record.assert_any_call(
             "integrations.successfully_fetched_commit_context_all_frames",
