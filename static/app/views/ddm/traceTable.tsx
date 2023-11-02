@@ -47,7 +47,7 @@ export function TraceTable() {
       {
         'profile.id': '2a3ef28213b2f408ca2828b6a27149c2b',
         timestamp: '2023-10-29T22:17:08+00:00',
-        'spans.ui': 1985.199929,
+        'spans.ui': 19985.199929,
         'span_ops_breakdown.relative': '',
         replayId: '',
         'transaction.duration': 11888,
@@ -73,7 +73,7 @@ export function TraceTable() {
         'spans.resource': 2082.90124,
         id: 'acc1854b13a04f84bd2f0fc5b803dd65',
         'user.display': 'riccardo.busetti@sentry.io',
-        'spans.browser': 389.699936,
+        'spans.browser': 3389.699936,
         'project.name': 'javascript',
       },
       {
@@ -89,7 +89,7 @@ export function TraceTable() {
         'spans.resource': 222.597839,
         id: 'e491bd2be0734357ab9dcc690133a43b',
         'user.display': 'ognjen.bostjancic@sentry.io',
-        'spans.browser': 877.500056,
+        'spans.browser': 9877.500056,
         'project.name': 'javascript',
       },
       {
@@ -102,7 +102,7 @@ export function TraceTable() {
         'spans.db': null,
         trace: 'eaad797b3c2c34b79bb705e5af2db688b',
         'spans.http': 4308.000088,
-        'spans.resource': 6362.000228,
+        'spans.resource': 16362.000228,
         id: 'd53b10ef8edc43023b92caf8d0a8a473d',
         'user.display': 'arhur.knaus@sentry.io',
         'spans.browser': 615.000009,
