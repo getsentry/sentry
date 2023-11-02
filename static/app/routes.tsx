@@ -1991,7 +1991,9 @@ function buildRoutes() {
     <Fragment>
       <Route
         path="/organizations/:orgId/issues/:groupId/"
-        component={withDomainRedirect(make(() => import('sentry/views/issueDetails')))}
+        component={withDomainRedirect(
+          make(() => import('sentry/views/issueDetails/groupDetails'))
+        )}
         key="org-issues-group-id"
       >
         {issueDetailsChildRoutes({forCustomerDomain: false})}
@@ -1999,7 +2001,9 @@ function buildRoutes() {
       {usingCustomerDomain && (
         <Route
           path="/issues/:groupId/"
-          component={withDomainRequired(make(() => import('sentry/views/issueDetails')))}
+          component={withDomainRequired(
+            make(() => import('sentry/views/issueDetails/groupDetails'))
+          )}
           key="orgless-issues-group-id-route"
         >
           {issueDetailsChildRoutes({forCustomerDomain: true})}
