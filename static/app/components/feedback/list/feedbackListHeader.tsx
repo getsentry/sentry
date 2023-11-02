@@ -1,3 +1,4 @@
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -5,6 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/actions/button';
 import Checkbox from 'sentry/components/checkbox';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -23,6 +25,37 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
+function openConfirmModal({
+  onConfirm,
+  body,
+  footerConfirm,
+}: {
+  body: ReactNode;
+  footerConfirm: ReactNode;
+  onConfirm: () => void | Promise<void>;
+}) {
+  openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
+    <Fragment>
+      <Body>{body}</Body>
+      <Footer>
+        <Flex gap={space(1)}>
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button
+            priority="primary"
+            onClick={() => {
+              closeModal();
+              addLoadingMessage(t('Updating feedback...'));
+              onConfirm();
+            }}
+          >
+            {footerConfirm}
+          </Button>
+        </Flex>
+      </Footer>
+    </Fragment>
+  ));
+}
+
 interface Props
   extends Pick<
     ReturnType<typeof useListItemCheckboxState>,
@@ -33,6 +66,11 @@ interface Props
     | 'selectAll'
     | 'selectedIds'
   > {}
+
+const statusToText: Record<string, string> = {
+  resolved: 'Resolve',
+  unresolved: 'Unresolve',
+};
 
 export default function FeedbackListHeader({
   countSelected,
@@ -95,7 +133,17 @@ function HasSelection({
     organization,
   });
 
-  const mutationOptions = {
+  const mutationOptionsResolve = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while updating the feedback.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Updated feedback'));
+      deselectAll();
+    },
+  };
+
+  const mutationOptionsRead = {
     onError: () => {
       addErrorMessage(t('An error occurred while updating the feedback.'));
     },
@@ -117,11 +165,17 @@ function HasSelection({
         <ErrorBoundary mini>
           <Button
             onClick={() => {
-              addLoadingMessage(t('Updating feedback...'));
               const newStatus =
                 mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
-              resolve(newStatus, mutationOptions);
-              deselectAll();
+              openConfirmModal({
+                onConfirm: () => {
+                  resolve(newStatus, mutationOptionsResolve);
+                },
+                body: tct('Are you sure you want to [status] these feedbacks?', {
+                  status: statusToText[newStatus].toLowerCase(),
+                }),
+                footerConfirm: statusToText[newStatus],
+              });
             }}
           >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
@@ -141,16 +195,22 @@ function HasSelection({
                 key: 'mark read',
                 label: t('Mark Read'),
                 onAction: () => {
-                  addLoadingMessage(t('Updating feedback...'));
-                  markAsRead(true, mutationOptions);
+                  openConfirmModal({
+                    onConfirm: () => markAsRead(true, mutationOptionsRead),
+                    body: t('Are you sure you want to mark these feedbacks as read?'),
+                    footerConfirm: 'Mark read',
+                  });
                 },
               },
               {
                 key: 'mark unread',
                 label: t('Mark Unread'),
                 onAction: () => {
-                  addLoadingMessage(t('Updating feedback...'));
-                  markAsRead(false, mutationOptions);
+                  openConfirmModal({
+                    onConfirm: () => markAsRead(false, mutationOptionsRead),
+                    body: t('Are you sure you want to mark these feedbacks as unread?'),
+                    footerConfirm: 'Mark unread',
+                  });
                 },
               },
             ]}
