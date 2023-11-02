@@ -162,7 +162,7 @@ class GroupType:
         return features.has(cls.build_post_process_group_feature_name(), organization)
 
     @classmethod
-    def can_generate_escalating_forecasts(cls, organization: Organization) -> bool:
+    def should_generate_escalating_forecasts(cls, organization: Organization) -> bool:
         if not features.has("organizations:issue-platform-api-crons-sd", organization):
             return True
         return cls.generate_escalating_forecasts
