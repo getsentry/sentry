@@ -22,7 +22,6 @@ import {ModulePageProviders} from 'sentry/views/performance/database/modulePageP
 import {
   AVAILABLE_DURATION_AGGREGATE_OPTIONS,
   DEFAULT_DURATION_AGGREGATE,
-  DURATION_AGGREGATE_LABELS,
 } from 'sentry/views/performance/database/settings';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
@@ -127,12 +126,12 @@ function SpanSummaryPage({params}: Props) {
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 
   const spanMetricsThroughputSeries = {
-    seriesName: t('Queries'),
+    seriesName: 'spm()',
     data: spanMetricsSeriesData?.['spm()'].data,
   };
 
   const spanMetricsDurationSeries = {
-    seriesName: DURATION_AGGREGATE_LABELS[durationAggregate],
+    seriesName: `${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`,
     data: spanMetricsSeriesData?.[
       `${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
     ].data,
