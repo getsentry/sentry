@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 from dataclasses import dataclass
 from typing import (
@@ -140,6 +141,9 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
             self.__flush()
 
     def submit(self, message: Message[KafkaPayload]) -> None:
+        if random.random() > 0.1:
+            raise MessageRejected
+
         if self.__apply_backpressure is True:
             raise MessageRejected
 
