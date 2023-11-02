@@ -52,7 +52,5 @@ class ErrorsQueryBuilder(QueryBuilder):
 
         :param name: The unresolved sentry name.
         """
-        # Probably need to handle the entity here somehow. Either include it in the name, have an optional entity param,
-        # and if no entity included, maybe have a default entity on the QueryBuilder to default to?
         resolved_column = self.resolve_column_name(name)
         return Column(resolved_column, entity=Entity(self.dataset.value, alias=self.dataset.value))
