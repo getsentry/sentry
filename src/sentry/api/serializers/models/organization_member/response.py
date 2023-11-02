@@ -56,6 +56,7 @@ _OrganizationMemberFlags = TypedDict(
         "sso:linked": bool,
         "sso:invalid": bool,
         "member-limit:restricted": bool,
+        "partnership:restricted": bool,
     },
 )
 
