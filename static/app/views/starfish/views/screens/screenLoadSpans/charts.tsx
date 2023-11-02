@@ -236,22 +236,14 @@ export function ScreenCharts({yAxes, additionalFilters, chartHeight}: Props) {
 
   return (
     <div data-test-id="starfish-mobile-view">
-      <StyledRow minSize={200}>
-        <ChartsContainer>{renderCharts()}</ChartsContainer>
-      </StyledRow>
+      <StyledRow minSize={200}>{renderCharts()}</StyledRow>
     </div>
   );
 }
 
 const StyledRow = styled(PerformanceLayoutBodyRow)`
   margin-bottom: ${space(2)};
-`;
-
-const ChartsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(2)};
+  grid-template-columns: repeat(2, 1fr);
 `;
 
 const ChartsContainerItem = styled('div')`
