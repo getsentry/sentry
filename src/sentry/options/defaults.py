@@ -1580,6 +1580,12 @@ register(
     default=14,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "statistical_detectors.ratelimit.ema",
+    type=Int,
+    default=-1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "options_automator_slack_webhook_enabled",
@@ -1653,6 +1659,12 @@ register(
 
 register(
     "delightful_metrics.allow_all_gauge",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.emit_gauges",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
