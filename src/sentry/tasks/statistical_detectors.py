@@ -27,6 +27,7 @@ from snuba_sdk import (
 )
 
 from sentry import features, options, projectoptions
+from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
@@ -131,7 +132,7 @@ def run_detection() -> None:
             features.has(
                 "organizations:performance-statistical-detectors-ema", project.organization
             )
-            and project_settings["duration_regression_detection_enabled"]
+            and project_settings[InternalProjectOptions.TRANSACTION_DURATION_REGRESSION]
             or project.id in enabled_performance_projects
         ):
             performance_projects.append(project)
