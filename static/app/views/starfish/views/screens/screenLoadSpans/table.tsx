@@ -6,7 +6,6 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -25,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {TableColumn} from 'sentry/views/discover/table/types';
+import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
@@ -140,7 +140,7 @@ export function ScreenLoadSpansTable({
             });
           }}
         >
-          <Truncate value={label} maxLength={75} />
+          <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
         </Link>
       );
     }
