@@ -258,7 +258,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             color: isPrimary
               ? theme.charts.getColorPalette(TOP_SCREENS - 2)[index]
               : Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-                  .lighten(0.5)
+                  .lighten(0.3)
                   .string(),
           },
         } as SeriesDataUnit;
@@ -279,17 +279,17 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
           case 'medium':
             return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.2)
+              .lighten(0.1)
               .string();
 
           case 'low':
             return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.4)
+              .lighten(0.2)
               .string();
 
           default:
             return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.6)
+              .lighten(0.3)
               .string();
         }
       }
