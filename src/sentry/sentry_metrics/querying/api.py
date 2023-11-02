@@ -30,7 +30,7 @@ class InvalidMetricsQuery(Exception):
 @dataclass(frozen=True)
 class QueryResult:
     name: str
-    grouped_by: Sequence[str]
+    grouped_by: Optional[Sequence[str]]
     result: Mapping[str, Any]
 
 
