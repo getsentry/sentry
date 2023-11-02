@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest.mock import patch
 from urllib.parse import urlparse
 
 from django.test import override_settings
@@ -21,6 +22,11 @@ class TestAccounts(TestCase):
 
     def password_recover_path(self, user_id, hash_):
         return reverse("sentry-account-recover-confirm", kwargs={"user_id": user_id, "hash": hash_})
+
+    def relocation_recover_path(self, user_id, hash_):
+        return reverse(
+            "sentry-account-relocate-confirm", kwargs={"user_id": user_id, "hash": hash_}
+        )
 
     def test_get_renders_form(self):
         resp = self.client.get(self.path)
@@ -98,6 +104,83 @@ class TestAccounts(TestCase):
         )
         assert resp.status_code == 200
         assert b"The password is too similar to the username." in resp.content
+
+    def test_relocate_recovery_no_inputs(self):
+        user = self.create_user()
+
+        resp = self.client.post(self.path, {"user": user.email})
+        assert resp.status_code == 200
+
+        lost_password = LostPasswordHash.objects.get(user=user)
+
+        resp = self.client.get(
+            self.relocation_recover_path(lost_password.user_id, lost_password.hash),
+        )
+
+        header_name = "Referrer-Policy"
+
+        assert resp.has_header(header_name)
+        assert resp.templates[0].name == ("sentry/account/relocate/confirm.html")
+        assert resp.status_code == 200
+        assert resp[header_name] == "strict-origin-when-cross-origin"
+
+    def test_relocate_recovery_post(self):
+        user = self.create_user()
+
+        resp = self.client.post(self.path, {"user": user.email})
+        assert resp.status_code == 200
+
+        lost_password = LostPasswordHash.objects.get(user=user)
+        user.is_unclaimed = True
+        user.save()
+        old_password = user.password
+        new_username = "test_username"
+
+        resp = self.client.post(
+            self.relocation_recover_path(lost_password.user_id, lost_password.hash),
+            {"username": new_username, "password": "test_password"},
+        )
+
+        header_name = "Referrer-Policy"
+
+        user.refresh_from_db()
+        assert resp.has_header(header_name)
+        assert resp.templates[0].name == ("sentry/emails/password-changed.txt")
+        assert not user.is_unclaimed
+        assert user.username == new_username
+        assert user.password != old_password
+        assert resp.status_code == 302
+        assert resp[header_name] == "strict-origin-when-cross-origin"
+
+    def test_relocate_recovery_invalid_password(self):
+        user = self.create_user()
+
+        resp = self.client.post(self.path, {"user": user.email})
+        assert resp.status_code == 200
+
+        lost_password = LostPasswordHash.objects.get(user=user)
+        user.is_unclaimed = True
+        user.save()
+        old_password = user.password
+        new_username = "test_username"
+
+        with patch.object(lost_password, "is_valid", return_value=False):
+            with patch.object(LostPasswordHash.objects, "get", return_value=lost_password):
+                resp = self.client.post(
+                    self.relocation_recover_path(lost_password.user_id, lost_password.hash),
+                    {"username": new_username, "password": "test_password123"},
+                )
+
+                header_name = "Referrer-Policy"
+
+                user.refresh_from_db()
+                assert resp.has_header(header_name)
+                assert resp.templates[0].name == ("sentry/account/relocate/failure.html")
+                assert user.is_unclaimed
+                assert user.username != new_username
+                assert user.password == old_password
+                assert resp.status_code == 200
+                assert resp[header_name] == "strict-origin-when-cross-origin"
 
 
 @region_silo_test(stable=True)

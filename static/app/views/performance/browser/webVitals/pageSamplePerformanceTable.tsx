@@ -30,14 +30,16 @@ import {TransactionSampleRow} from 'sentry/views/performance/browser/webVitals/u
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
-type TransactionSampleRowWithScoreAndExtra = TransactionSampleRow & {
+export type TransactionSampleRowWithScoreAndExtra = TransactionSampleRow & {
   score: number;
   view: any;
 };
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScoreAndExtra>;
 
-const columnOrder: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[] = [
+export const COLUMN_ORDER: GridColumnOrder<
+  keyof TransactionSampleRowWithScoreAndExtra
+>[] = [
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
   {key: 'transaction.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
@@ -51,9 +53,11 @@ const columnOrder: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[
 
 type Props = {
   transaction: string;
+  columnOrder?: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[];
+  limit?: number;
 };
 
-export function PageSamplePerformanceTable({transaction}: Props) {
+export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
@@ -65,11 +69,13 @@ export function PageSamplePerformanceTable({transaction}: Props) {
     [projects, location.query.project]
   );
 
+  const limitInThirds = Math.floor(limit / 3);
+
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
   const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 3,
+      limit: limitInThirds,
       transaction,
       query: `measurements.lcp:<${PERFORMANCE_SCORE_P90S.lcp}`,
       withProfiles: true,
@@ -77,7 +83,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 3,
+      limit: limitInThirds,
       transaction,
       query: `measurements.lcp:<${PERFORMANCE_SCORE_MEDIANS.lcp} measurements.lcp:>=${PERFORMANCE_SCORE_P90S.lcp}`,
       withProfiles: true,
@@ -85,7 +91,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 3,
+      limit: limitInThirds,
       transaction,
       query: `measurements.lcp:>=${PERFORMANCE_SCORE_MEDIANS.lcp}`,
       withProfiles: true,
@@ -94,7 +100,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
   // In case we don't have enough data, get some transactions with no LCP data
   const {data: noLcpData, isLoading: isNoLcpTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsQuery({
-      limit: 9,
+      limit,
       transaction,
       query: `!has:measurements.lcp`,
       withProfiles: true,
@@ -121,8 +127,8 @@ export function PageSamplePerformanceTable({transaction}: Props) {
   }
 
   // If we don't have enough data, fill in the rest with no LCP data
-  if (data.length < 9) {
-    data.push(...noLcpData.slice(0, 9 - data.length));
+  if (data.length < limit) {
+    data.push(...noLcpData.slice(0, limit - data.length));
   }
 
   const isTransactionWebVitalsQueryLoading =
@@ -220,7 +226,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
     }
     if (key === 'view') {
-      const eventSlug = generateEventSlug({...row, project: project?.slug});
+      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
       const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
       const replayTarget =
         row['transaction.duration'] !== null &&
@@ -271,7 +277,7 @@ export function PageSamplePerformanceTable({transaction}: Props) {
       <GridContainer>
         <GridEditable
           isLoading={isTransactionWebVitalsQueryLoading}
-          columnOrder={columnOrder}
+          columnOrder={columnOrder ?? COLUMN_ORDER}
           columnSortBy={[]}
           data={tableData}
           grid={{

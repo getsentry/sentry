@@ -11,6 +11,7 @@ import {
 } from 'sentry/actionCreators/pageFilters';
 import * as Layout from 'sentry/components/layouts/thirds';
 import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -145,6 +146,15 @@ function Container({
   // we need to update our store to reflect URL changes
   useEffect(() => {
     if (location.query === lastQuery.current) {
+      return;
+    }
+
+    // We may need to re-initialize the URL state if we completely clear
+    // out the global selection URL state, for example by navigating with
+    // the sidebar on the same view.
+    if (location.state?.source === SIDEBAR_NAVIGATION_SOURCE) {
+      doInitialization();
+      lastQuery.current = location.query;
       return;
     }
 
