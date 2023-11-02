@@ -123,7 +123,7 @@ class GroupType:
     # Allow automatic resolution of an issue type, using the project-level option.
     enable_auto_resolve: bool = True
     # Allow escalation forecasts and detection
-    generate_escalating_forecasts: bool = True
+    enable_escalation_detection: bool = True
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
@@ -162,10 +162,10 @@ class GroupType:
         return features.has(cls.build_post_process_group_feature_name(), organization)
 
     @classmethod
-    def should_generate_escalating_forecasts(cls, organization: Organization) -> bool:
+    def should_detect_escalation(cls, organization: Organization) -> bool:
         if not features.has("organizations:issue-platform-api-crons-sd", organization):
             return True
-        return cls.generate_escalating_forecasts
+        return cls.enable_escalation_detection
 
     @classmethod
     def build_feature_name_slug(cls) -> str:
@@ -343,7 +343,7 @@ class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, Group
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
-    generate_escalating_forecasts = False
+    enable_escalation_detection = False
 
 
 @dataclass(frozen=True)
@@ -354,7 +354,7 @@ class PerformanceP95DurationRegressionGroupType(PerformanceGroupTypeDefaults, Gr
     noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
-    generate_escalating_forecasts = False
+    enable_escalation_detection = False
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType

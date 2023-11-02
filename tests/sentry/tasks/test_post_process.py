@@ -1517,8 +1517,8 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
     ):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group = event.group
-        should_generate_escalating_forecasts = (
-            group.issue_type.should_generate_escalating_forecasts(self.project.organization)
+        should_detect_escalation = group.issue_type.should_detect_escalation(
+            self.project.organization
         )
 
         # Check for has_reappeared=False if is_new=True
@@ -1551,7 +1551,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
         )
         mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
 
-        if should_generate_escalating_forecasts:
+        if should_detect_escalation:
             mock_send_escalating_robust.assert_called_once_with(
                 project=group.project,
                 group=group,
@@ -1565,7 +1565,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
             assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
         group.refresh_from_db()
-        if should_generate_escalating_forecasts:
+        if should_detect_escalation:
             assert group.status == GroupStatus.UNRESOLVED
             assert group.substatus == GroupSubStatus.ESCALATING
             assert GroupInbox.objects.filter(

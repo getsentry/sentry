@@ -786,7 +786,7 @@ def process_snoozes(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
-    if not group.issue_type.should_generate_escalating_forecasts(group.organization):
+    if not group.issue_type.should_detect_escalation(group.organization):
         return
 
     # Check if group is escalating
