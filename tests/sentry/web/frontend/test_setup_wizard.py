@@ -6,11 +6,12 @@ from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models.apitoken import ApiToken
 from sentry.models.projectkey import ProjectKey
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PermissionTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SetupWizard(PermissionTestCase):
     def test_redirect(self):
         user = self.create_user("foo@example.com", is_active=False)
@@ -71,7 +72,8 @@ class SetupWizard(PermissionTestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
 
-        self.project.key_set.add(ProjectKey.objects.create(project=self.project, label="abc"))
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.project.key_set.add(ProjectKey.objects.create(project=self.project, label="abc"))
 
         self.login_as(self.user)
 
@@ -99,8 +101,8 @@ class SetupWizard(PermissionTestCase):
         self.org2 = self.create_organization(name="org2", owner=self.user)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-
-        self.project.key_set.add(ProjectKey.objects.create(project=self.project, label="abc"))
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.project.key_set.add(ProjectKey.objects.create(project=self.project, label="abc"))
 
         self.login_as(self.user)
 
@@ -121,7 +123,8 @@ class SetupWizard(PermissionTestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
 
-        self.project.key_set.add(ProjectKey.objects.create(project=self.project, label="abc"))
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.project.key_set.add(ProjectKey.objects.create(project=self.project, label="abc"))
 
         self.login_as(self.user)
 
