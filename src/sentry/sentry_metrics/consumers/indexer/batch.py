@@ -159,6 +159,9 @@ class IndexerBatch:
             )
             raise
 
+        # We need the use case ID to determine what sort of schema validation rule
+        # to apply to the message. Use case id is determined from the metric name.
+        # So we need to peek into the message to get the metric name.
         if "name" not in parsed_payload:
             logger.error(
                 "process_messages.missing_name",
@@ -169,7 +172,7 @@ class IndexerBatch:
         parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
 
         try:
-            self.schema_validator(use_case_id, parsed_payload)
+            self.schema_validator(use_case_id.value, parsed_payload)
         except ValidationError:
             if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
                 raise

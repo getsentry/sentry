@@ -6,6 +6,7 @@ import sentry_kafka_schemas
 import sentry_sdk
 from arroyo.types import Message
 from django.conf import settings
+from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
 from sentry.sentry_metrics.configuration import (
     IndexerStorage,
@@ -14,7 +15,6 @@ from sentry.sentry_metrics.configuration import (
 )
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
-from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.schema_validator import MetricsSchemaValidator
 from sentry.sentry_metrics.consumers.indexer.tags_validator import (
     GenericMetricsTagsValidator,
@@ -66,7 +66,7 @@ class MessageProcessor:
         else:
             return GenericMetricsTagsValidator().is_allowed
 
-    def __get_schema_validator(self) -> Callable[[ParsedMessage], None]:
+    def __get_schema_validator(self) -> Callable[[str, IngestMetric], None]:
         """
         Get the schema validator function for the current use case.
         """
