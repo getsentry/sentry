@@ -67,13 +67,16 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             value=1,
         )
         metrics_query = MetricsQuery(
-            query=Timeseries(Metric(mri=TransactionMRI.DURATION.value), aggregate="count"),
+            query=Timeseries(
+                Metric(mri=TransactionMRI.DURATION.value),
+                aggregate="count",
+                groupby=[Column("transaction")],
+            ),
             scope=MetricsScope(
                 org_ids=[self.project.organization_id],
                 project_ids=[self.project.id],
                 use_case_id=UseCaseID.TRANSACTIONS.value,
             ),
-            groupby=[Column("transaction")],
         )
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
@@ -89,7 +92,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
         assert resolved_metrics_query.query.metric.public_name == "transaction.duration"
         assert resolved_metrics_query.query.metric.id == expected_metric_id
-        assert resolved_metrics_query.groupby == [
+        assert resolved_metrics_query.query.groupby == [
             AliasedExpression(Column(f"tags_raw[{expected_transaction_id}]"), "transaction")
         ]
         assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
@@ -106,22 +109,22 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             query=Timeseries(
                 Metric(mri=TransactionMRI.DURATION.value),
                 aggregate="count",
-                filters=[Condition(Column("transaction"), Op.EQ, "/checkout")],
+                filters=[
+                    Condition(Column("transaction"), Op.EQ, "/checkout"),
+                    Or(
+                        [
+                            Condition(Column("device"), Op.EQ, "BlackBerry"),
+                            Condition(Column("device"), Op.EQ, "Nokia"),
+                        ]
+                    ),
+                ],
+                groupby=[Column("transaction")],
             ),
             scope=MetricsScope(
                 org_ids=[self.project.organization_id],
                 project_ids=[self.project.id],
                 use_case_id=UseCaseID.TRANSACTIONS.value,
             ),
-            groupby=[Column("transaction")],
-            filters=[
-                Or(
-                    [
-                        Condition(Column("device"), Op.EQ, "BlackBerry"),
-                        Condition(Column("device"), Op.EQ, "Nokia"),
-                    ]
-                )
-            ],
         )
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
@@ -143,15 +146,13 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         assert resolved_metrics_query.query.metric.public_name == "transaction.duration"
         assert resolved_metrics_query.query.metric.id == expected_metric_id
         assert resolved_metrics_query.query.filters == [
-            Condition(Column(f"tags_raw[{expected_transaction_id}]"), Op.EQ, "/checkout")
-        ]
-        assert resolved_metrics_query.filters == [
+            Condition(Column(f"tags_raw[{expected_transaction_id}]"), Op.EQ, "/checkout"),
             Or(
                 [
                     Condition(Column(f"tags_raw[{expected_device_id}]"), Op.EQ, "BlackBerry"),
                     Condition(Column(f"tags_raw[{expected_device_id}]"), Op.EQ, "Nokia"),
                 ]
-            )
+            ),
         ]
         assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
         assert mappings["transaction"] == expected_transaction_id
