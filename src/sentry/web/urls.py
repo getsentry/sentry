@@ -641,7 +641,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
-                    generic_react_page_view,
+                    react_page_view,
                     name="sentry-organization-unsubscribe-project",
                 ),
                 re_path(
@@ -651,7 +651,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
-                    generic_react_page_view,
+                    react_page_view,
                     name="sentry-organization-unsubscribe-issue",
                 ),
                 re_path(
