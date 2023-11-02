@@ -162,8 +162,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         unit: Optional[str] = None,
     ) -> None:
         if self._keep_metric(sample_rate):
-            # XXX: make this into a gauge later
-            sentry_sdk.metrics.incr(
+            sentry_sdk.metrics.gauge(
                 key=self._get_key(key),
                 value=value,
                 tags=tags,
