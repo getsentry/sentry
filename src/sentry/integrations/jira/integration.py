@@ -25,6 +25,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -208,7 +209,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
 
-        organization = Organization.objects.get(id=self.organization_id)
+        organization = organization_service.get_organization_by_id(id=self.organization_id)
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
         if not has_issue_sync:
             for field in configuration:
