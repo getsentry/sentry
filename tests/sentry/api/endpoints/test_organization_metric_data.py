@@ -1524,6 +1524,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 f"min({mri})",
                 f"max({mri})",
                 f"last({mri})",
+                f"sum({mri})",
             ],
             query="",
             statsPeriod="1h",
@@ -1544,12 +1545,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     "max(g:custom/page_load@millisecond)": [20.0, 21.0],
                     "min(g:custom/page_load@millisecond)": [1.0, 2.0],
                     "last(g:custom/page_load@millisecond)": [20.0, 4.0],
+                    "sum(g:custom/page_load@millisecond)": [21.0, 25.0],
                 },
                 "totals": {
                     "count(g:custom/page_load@millisecond)": 5,
                     "max(g:custom/page_load@millisecond)": 21.0,
                     "min(g:custom/page_load@millisecond)": 1.0,
                     "last(g:custom/page_load@millisecond)": 4.0,
+                    "sum(g:custom/page_load@millisecond)": 46.0,
                 },
             }
         ]
