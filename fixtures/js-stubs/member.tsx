@@ -29,6 +29,7 @@ export function Member(params: Partial<MemberType> = {}): MemberType {
       'idp:role-restricted': false,
       'member-limit:restricted': false,
       'sso:invalid': false,
+      'partnership:restricted': false,
     },
     user: User(),
     inviteStatus: 'approved',

@@ -392,7 +392,13 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
                 organization={organization}
                 member={member}
                 status={this.state.invited[member.id]}
-                memberCanLeave={!isOnlyOwner && !member.flags['idp:provisioned']}
+                memberCanLeave={
+                  !(
+                    isOnlyOwner ||
+                    member.flags['idp:provisioned'] ||
+                    member.flags['partnership:restricted']
+                  )
+                }
                 currentUser={currentUser}
                 canRemoveMembers={canRemove}
                 canAddMembers={canAddMembers}
