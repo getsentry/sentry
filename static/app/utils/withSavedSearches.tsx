@@ -10,6 +10,7 @@ type InjectedSavedSearchesProps = {
   savedSearch: SavedSearch | null;
   savedSearchLoading: boolean;
   savedSearches: SavedSearch[];
+  selectedSearchId: string | null;
 } & RouteComponentProps<{searchId?: string}, {}>;
 
 /**

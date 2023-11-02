@@ -93,7 +93,7 @@ type Props = {
   savedSearch: SavedSearch;
   savedSearchLoading: boolean;
   savedSearches: SavedSearch[];
-  selectedSearchId: string | null;
+  selectedSearchId: string;
   selection: PageFilters;
   tags: TagCollection;
 } & RouteComponentProps<{searchId?: string}, {}> &
@@ -548,10 +548,14 @@ class IssueListOverview extends Component<Props, State> {
           ? 0
           : 1
         : 1,
-      searchId: this.props.organization.features.includes('issue-stream-performance')
-        ? this.props.selectedSearchId ?? null
-        : null,
     };
+
+    if (
+      this.props.organization.features.includes('issue-stream-performance') &&
+      this.props.selectedSearchId
+    ) {
+      requestParams.searchId = this.props.selectedSearchId;
+    }
 
     const currentQuery = this.props.location.query || {};
     if ('cursor' in currentQuery) {
