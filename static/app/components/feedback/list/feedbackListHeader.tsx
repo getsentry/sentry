@@ -8,6 +8,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/actions/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Checkbox from 'sentry/components/checkbox';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -39,17 +40,18 @@ function openConfirmModal({
       <Body>{body}</Body>
       <Footer>
         <Flex gap={space(1)}>
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button
-            priority="primary"
-            onClick={() => {
-              closeModal();
-              addLoadingMessage(t('Updating feedback...'));
-              onConfirm();
-            }}
-          >
-            {footerConfirm}
-          </Button>
+          <ButtonBar gap={1}>
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <Button
+              priority="primary"
+              onClick={() => {
+                closeModal();
+                onConfirm();
+              }}
+            >
+              {footerConfirm}
+            </Button>
+          </ButtonBar>
         </Flex>
       </Footer>
     </Fragment>
@@ -135,20 +137,20 @@ function HasSelection({
 
   const mutationOptionsResolve = {
     onError: () => {
-      addErrorMessage(t('An error occurred while updating the feedback.'));
+      addErrorMessage(t('An error occurred while updating the feedbacks.'));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Updated feedback'));
+      addSuccessMessage(t('Updated feedbacks'));
       deselectAll();
     },
   };
 
   const mutationOptionsRead = {
     onError: () => {
-      addErrorMessage(t('An error occurred while updating the feedback.'));
+      addErrorMessage(t('An error occurred while updating the feedbacks.'));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Updated feedback'));
+      addSuccessMessage(t('Updated feedbacks'));
     },
   };
 
@@ -169,6 +171,7 @@ function HasSelection({
                 mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
               openConfirmModal({
                 onConfirm: () => {
+                  addLoadingMessage(t('Updating feedbacks...'));
                   resolve(newStatus, mutationOptionsResolve);
                 },
                 body: tct('Are you sure you want to [status] these feedbacks?', {
@@ -196,7 +199,10 @@ function HasSelection({
                 label: t('Mark Read'),
                 onAction: () => {
                   openConfirmModal({
-                    onConfirm: () => markAsRead(true, mutationOptionsRead),
+                    onConfirm: () => {
+                      addLoadingMessage(t('Updating feedbacks...'));
+                      markAsRead(true, mutationOptionsRead);
+                    },
                     body: t('Are you sure you want to mark these feedbacks as read?'),
                     footerConfirm: 'Mark read',
                   });
@@ -207,7 +213,10 @@ function HasSelection({
                 label: t('Mark Unread'),
                 onAction: () => {
                   openConfirmModal({
-                    onConfirm: () => markAsRead(false, mutationOptionsRead),
+                    onConfirm: () => {
+                      addLoadingMessage(t('Updating feedbacks...'));
+                      markAsRead(false, mutationOptionsRead);
+                    },
                     body: t('Are you sure you want to mark these feedbacks as unread?'),
                     footerConfirm: 'Mark unread',
                   });
