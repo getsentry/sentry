@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -19,11 +20,13 @@ export default function FeedbackItemUsername({feedbackIssue, detailDisplay}: Pro
 
   if (detailDisplay) {
     return (
-      <strong>
-        {name ?? t('No Name')}
-        <Purple>•</Purple>
-        {email ?? t('No Email')}
-      </strong>
+      <Flex wrap="wrap" align="center" padding-bottom="3px">
+        <strong>
+          {name ?? t('No Name')}
+          <Purple>•</Purple>
+        </strong>
+        <strong>{email ?? t('No Email')}</strong>
+      </Flex>
     );
   }
 
