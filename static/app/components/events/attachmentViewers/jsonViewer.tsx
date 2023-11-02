@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-export default function NewJsonViewer(props: ViewerProps) {
+export default function JsonViewer(props: ViewerProps) {
   const query = useApiQuery(
     [getAttachmentUrl(props), {headers: {Accept: '*/*; charset=utf-8'}}],
     {
