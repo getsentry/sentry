@@ -9,6 +9,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
@@ -71,7 +72,8 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
   const pageError = usePageError();
   const theme = useTheme();
-  const {data: projectData} = useProjectWebVitalsQuery();
+  const {data: projectData, isLoading: isProjectWebVitalDataLoading} =
+    useProjectWebVitalsQuery();
   const colors = [...theme.charts.getColorPalette(5)].reverse();
   const field = fields[0];
 
@@ -427,25 +429,21 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
                   <Truncate value={transaction} maxLength={40} />
                 </GrowLink>
                 <StyledRightAlignedCell>
-                  <Tooltip
-                    title={t(
-                      'The opportunity to improve your cumulative performance score.'
-                    )}
-                    isHoverable
-                    showUnderline
-                  >
-                    <PerformanceBadge score={rowScore.totalScore} />
-                  </Tooltip>
-                  <Tooltip
-                    title={t(
-                      'The opportunity to improve your cumulative performance score.'
-                    )}
-                    isHoverable
-                    showUnderline
-                    skipWrapper
-                  >
-                    {opportunity}
-                  </Tooltip>
+                  <PerformanceBadge score={rowScore.totalScore} />
+                  {isProjectWebVitalDataLoading ? (
+                    <StyledLoadingIndicator size={20} />
+                  ) : (
+                    <Tooltip
+                      title={t(
+                        'The opportunity to improve your cumulative performance score.'
+                      )}
+                      isHoverable
+                      showUnderline
+                      skipWrapper
+                    >
+                      {opportunity}
+                    </Tooltip>
+                  )}
                 </StyledRightAlignedCell>
               </Fragment>
             );
@@ -538,5 +536,12 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
 const StyledRightAlignedCell = styled(RightAlignedCell)`
   justify-content: space-between;
   width: 115px;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  &,
+  .loading-message {
+    margin: 0;
+  }
 `;
 const EventsRequest = withApi(_EventsRequest);
