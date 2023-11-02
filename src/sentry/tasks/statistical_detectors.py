@@ -167,10 +167,10 @@ def detect_transaction_trends(
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    for trends in chunked(regressions, TRANSACTIONS_PER_BATCH):
+    for regression_chunk in chunked(regressions, TRANSACTIONS_PER_BATCH):
         detect_transaction_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for payload in trends],
+                [(payload.project_id, payload.group) for payload in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there
