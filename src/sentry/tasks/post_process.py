@@ -447,6 +447,14 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
 fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
 
+def should_update_escalating_metrics(event: Event, is_transaction_event: bool):
+    return (
+        features.has("organizations:escalating-metrics-backend", event.project.organization)
+        and not is_transaction_event
+        and event.group.issue_type.should_detect_escalation(event.project.organization)
+    )
+
+
 @instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
@@ -595,13 +603,7 @@ def post_process_group(
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
-        if (
-            features.has("organizations:escalating-metrics-backend", event.project.organization)
-            and not is_transaction_event
-            and event.group.issue_type.should_generate_escalating_forecasts(
-                event.project.organization
-            )
-        ):
+        if should_update_escalating_metrics(event, is_transaction_event):
             _update_escalating_metrics(event)
 
         group_events: Mapping[int, GroupEvent] = {

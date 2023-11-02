@@ -40,6 +40,8 @@ def run_escalating_forecast() -> None:
     """
     logger.info("Starting task for sentry.tasks.weekly_escalating_forecast.run_escalating_forecast")
 
+    # get projects then return ids
+
     for project_ids in chunked(
         RangeQuerySetWrapper(
             Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", flat=True),
@@ -60,7 +62,6 @@ def run_escalating_forecast() -> None:
 )
 @retry
 def generate_forecasts_for_projects(project_ids: List[int]) -> None:
-    # maybe need organization here
     for until_escalating_groups in chunked(
         RangeQuerySetWrapper(
             Group.objects.filter(

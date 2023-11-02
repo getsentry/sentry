@@ -3,13 +3,9 @@ from typing import List
 from unittest.mock import MagicMock, patch
 
 from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, EscalatingGroupForecast
-from sentry.issues.grouptype import (  # ErrorGroupType,; PerformanceDurationRegressionGroupType,
-    PerformanceSlowDBQueryGroupType,
-)
 from sentry.models.group import Group, GroupStatus
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 
@@ -19,9 +15,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         group_list = []
         project_1 = self.project
         for i in range(num_groups):
-            group = self.create_group(
-                project=project_1, type=PerformanceSlowDBQueryGroupType.type_id
-            )
+            group = self.create_group(project=project_1)
             group.status = GroupStatus.IGNORED
             group.substatus = GroupSubStatus.UNTIL_ESCALATING
             group.save()
@@ -52,7 +46,6 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
     @patch("sentry.analytics.record")
     @patch("sentry.issues.forecasts.query_groups_past_counts")
-    @with_feature("organizations:issue-platform-api-crons-sd")
     def test_single_group_escalating_forecast(
         self, mock_query_groups_past_counts: MagicMock, record_mock: MagicMock
     ) -> None:
