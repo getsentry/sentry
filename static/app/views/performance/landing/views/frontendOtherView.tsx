@@ -38,6 +38,12 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
     PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
 
+  if (
+    props.organization.features.includes('starfish-browser-webvitals-pageoverview-v2')
+  ) {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
+  }
+
   return (
     <PerformanceDisplayProvider
       value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
