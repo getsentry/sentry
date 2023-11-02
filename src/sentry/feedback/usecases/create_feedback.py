@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from enum import Enum
 from typing import Any
 from uuid import uuid4
 
@@ -13,10 +14,19 @@ from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received
+from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
+
+
+class FeedbackCreationSource(Enum):
+    NEW_FEEDBACK_ENVELOPE = "new_feedback_envelope"
+    NEW_FEEDBACK_DJANGO_ENDPOINT = "new_feedback_sentry_django_endpoint"
+    USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
+    USER_REPORT_ENVELOPE = "user_report_envelope"
+    CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
 
 
 def make_evidence(feedback):
@@ -70,9 +80,10 @@ def fix_for_issue_platform(event_data):
         event_data["user"]["id"] = str(event_data["user"]["id"])
 
 
-def create_feedback_issue(event, project_id):
+def create_feedback_issue(event, project_id, referrer: FeedbackCreationSource):
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
+    metrics.incr("feedback.created", tags={"referrer": referrer.value})
 
     event["event_id"] = event.get("event_id") or uuid4().hex
     evidcence_data, evidence_display = make_evidence(event["feedback"])
@@ -128,7 +139,9 @@ def validate_issue_platform_event_schema(event_data):
         jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
 
 
-def shim_to_feedback(report, event, project):
+def shim_to_feedback(
+    report: dict[str, Any], event, project: Project, referrer: FeedbackCreationSource
+):
     """
     takes user reports from the legacy user report form/endpoint and
     user reports that come from relay envelope ingestion and
@@ -162,7 +175,7 @@ def shim_to_feedback(report, event, project):
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
 
-        create_feedback_issue(feedback_event, project.id)
+        create_feedback_issue(feedback_event, project.id, referrer)
     except Exception:
         logger.exception(
             "Error attempting to create new User Feedback from Shiming old User Report"

@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
 from sentry import eventstore, features
-from sentry.feedback.usecases.create_feedback import shim_to_feedback
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -195,7 +195,9 @@ class ErrorPageEmbedView(View):
             if features.has(
                 "organizations:user-feedback-ingest", project.organization, actor=request.user
             ):
-                shim_to_feedback(report, event, project)
+                shim_to_feedback(
+                    report, event, project, FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+                )
 
             return self._smart_response(request)
         elif request.method == "POST":

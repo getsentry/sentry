@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest import mock
 
 from sentry.api.serializers import serialize
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import find_event_user, save_userreport
 from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
@@ -144,7 +145,9 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             "email": "",
             "comments": "It broke",
         }
-        save_userreport(self.project_1, report_data)
+        save_userreport(
+            self.project_1, report_data, FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+        )
         eventuser = find_event_user(report_data, event)
         response = self.get_response(self.project_1.organization.slug, project=[self.project_1.id])
         assert response.status_code == 200

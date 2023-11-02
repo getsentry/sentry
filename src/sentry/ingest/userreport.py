@@ -11,7 +11,7 @@ from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 from sentry import analytics, eventstore, features
 from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
-from sentry.feedback.usecases.create_feedback import shim_to_feedback
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
 from sentry.models.eventuser import EventUser
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
@@ -29,7 +29,12 @@ class Conflict(Exception):
     pass
 
 
-def save_userreport(project, report, start_time=None):
+def save_userreport(
+    project,
+    report,
+    referrer: FeedbackCreationSource,
+    start_time=None,
+):
     with metrics.timer("sentry.ingest.userreport.save_userreport"):
         if start_time is None:
             start_time = timezone.now()
@@ -103,7 +108,7 @@ def save_userreport(project, report, start_time=None):
         user_feedback_received.send(project=project, sender=save_userreport)
 
         if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
-            shim_to_feedback(report, event, project)
+            shim_to_feedback(report, event, project, referrer)
 
         return report_instance
 
