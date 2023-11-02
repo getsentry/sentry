@@ -433,6 +433,8 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         assert cache.get(self.cache_key2) == self.make_blame_response(id="2")
         assert cache.get(self.cache_key3) == self.make_blame_response(id="3")
 
+        assert resp != self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2])
+
     @mock.patch(
         "sentry.integrations.gitlab.blame.logger.exception",
     )

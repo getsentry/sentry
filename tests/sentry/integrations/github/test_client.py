@@ -1373,6 +1373,9 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             [self.file1, self.file2, self.file3], extra={}
         )
         assert self.github_client.check_cache(cache_key)["data"] == self.data
+        assert (
+            self.github_client.get_blame_for_files([self.file1, self.file2], extra={}) != response
+        )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
