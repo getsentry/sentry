@@ -20,6 +20,26 @@ class SDKCrashDetectorConfig:
 
     sdk_frame_filename_matchers: Set[str]
 
+    """
+    When stripping the frames of the original event, we have to replace the original
+    abs_path, module, and package field with something cause these fields could contain
+    the application name or other unwanted private data. This property contains the
+    replacements string for these fields. The first str of the mapping is a regex
+    pattern, the second str is the replacement name. If the regex pattern matches the
+    field, the field is replaced with the replacement name. If no regex pattern matches
+    the field, the `sdk_frame_path_default_replacement_name` is used.
+
+    str: regex pattern
+    str: replacement name
+    """
+    sdk_frame_path_replacement_names: Mapping[str, str]
+
+    """
+    If `sdk_frame_path_replacement_names` doesn't contain a replacement name for the
+    path field, this is the default replacement name.
+    """
+    sdk_frame_path_default_replacement_name: str
+
     sdk_crash_ignore_functions_matchers: Set[str]
 
 
@@ -40,6 +60,13 @@ class SDKCrashDetector:
     @property
     def fields_containing_paths(self) -> Set[str]:
         return {"package", "module", "abs_path"}
+
+    def replace_sdk_frame_path(self, field: str) -> str:
+        for matcher, replacement_name in self.config.sdk_frame_path_replacement_names.items():
+            if glob_match(field, matcher, ignorecase=True):
+                return replacement_name
+
+        return self.config.sdk_frame_path_default_replacement_name
 
     def should_detect_sdk_crash(self, event_data: NodeData) -> bool:
         sdk_name = get_path(event_data, "sdk", "name")
@@ -86,7 +113,6 @@ class SDKCrashDetector:
         # Cocoa SDK frames can be marked as in_app. Therefore, the algorithm only checks if frames
         # are SDK frames or from system libraries.
         for frame in reversed(frames):
-
             function = frame.get("function")
             if function:
                 for matcher in self.config.sdk_crash_ignore_functions_matchers:

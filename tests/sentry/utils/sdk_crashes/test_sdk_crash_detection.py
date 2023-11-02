@@ -38,7 +38,6 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
         pass
 
     def execute_test(self, event_data, should_be_reported, mock_sdk_crash_reporter):
-
         event = self.create_event(
             data=event_data,
             project_id=self.project.id,
@@ -712,7 +711,6 @@ class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
     @django_db_all
     def test_sdk_crash_event_stored_to_sdk_crash_project(self):
-
         cocoa_sdk_crashes_project = self.create_project(
             name="Cocoa SDK Crashes",
             slug="cocoa-sdk-crashes",
