@@ -126,34 +126,6 @@ def detect_performance_problems(data: dict[str, Any], project: Project) -> List[
     return []
 
 
-def get_performance_issues_project_settings(
-    project_id: Optional[int] = None,
-) -> Dict[str | Any, Any]:
-    default_project_settings = (
-        projectoptions.get_well_known_default(
-            "sentry:performance_issue_settings",
-            project=project_id,
-        )
-        if project_id
-        else {}
-    )
-
-    project_option_settings = (
-        ProjectOption.objects.get_value(
-            project_id, "sentry:performance_issue_settings", default_project_settings
-        )
-        if project_id
-        else DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
-    )
-
-    project_settings = {
-        **default_project_settings,
-        **project_option_settings,
-    }  # Merge saved project settings into default so updating the default to add new settings works in the future.
-
-    return project_settings
-
-
 # Merges system defaults, with default project settings and saved project settings.
 def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any]:
     system_settings = {
@@ -214,7 +186,27 @@ def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any
         ),
     }
 
-    project_settings = get_performance_issues_project_settings(project_id)
+    default_project_settings = (
+        projectoptions.get_well_known_default(
+            "sentry:performance_issue_settings",
+            project=project_id,
+        )
+        if project_id
+        else {}
+    )
+
+    project_option_settings = (
+        ProjectOption.objects.get_value(
+            project_id, "sentry:performance_issue_settings", default_project_settings
+        )
+        if project_id
+        else DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
+    )
+
+    project_settings = {
+        **default_project_settings,
+        **project_option_settings,
+    }  # Merge saved project settings into default so updating the default to add new settings works in the future.
 
     return {**system_settings, **project_settings}
 

@@ -69,21 +69,21 @@ PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
 
-def get_performance_project_settings(project_ids: List[int]):
+def get_performance_project_settings(projects: List[Project]):
     project_settings = {}
     project_option_settings = ProjectOption.objects.get_value_bulk(
-        project_ids, "sentry:performance_issue_settings"
+        projects, "sentry:performance_issue_settings"
     )
 
-    for project_id in project_ids:
+    for project in projects:
         default_project_settings = projectoptions.get_well_known_default(
             "sentry:performance_issue_settings",
-            project=project_id,
+            project=project,
         )
 
-        project_settings[project_id] = {
+        project_settings[project] = {
             **default_project_settings,
-            **project_option_settings[project_id],
+            **project_option_settings[project],
         }  # Merge saved project settings into default so updating the default to add new settings works in the future.
 
     return project_settings
@@ -97,9 +97,9 @@ def all_projects_with_settings():
         ),
         100,
     ):
-        project_settings = get_performance_project_settings([project.id for project in projects])
-        for project, project_id in zip(projects, project_settings):
-            yield project, project_settings[project_id]
+        project_settings = get_performance_project_settings(projects)
+        for project in projects:
+            yield project, project_settings[project]
 
 
 @instrumented_task(
