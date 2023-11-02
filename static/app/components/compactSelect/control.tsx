@@ -140,6 +140,12 @@ export interface ControlProps
     | React.ReactNode
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   /**
+   * Items to be displayed in the trailing (right) side of the menu's header.
+   */
+  menuHeaderTrailingItems?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
   menuTitle?: React.ReactNode;
@@ -214,6 +220,7 @@ export function Control({
   maxMenuWidth,
   menuWidth,
   menuWiderThanTrigger = false,
+  menuHeaderTrailingItems,
   menuBody,
   menuFooter,
 
@@ -466,7 +473,11 @@ export function Control({
     setTriggerWidth(triggerRef.current?.offsetWidth ?? 0);
   }, [menuWiderThanTrigger, triggerRef]);
 
-  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
+  useResizeObserver({
+    // Passing undefined disables ResizeObserver
+    ref: menuWiderThanTrigger ? triggerRef : undefined,
+    onResize: updateTriggerWidth,
+  });
   // If ResizeObserver is not available, manually update the width
   // when any of [trigger, triggerLabel, triggerProps] changes.
   useEffect(() => {
@@ -508,11 +519,16 @@ export function Control({
             data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
-              {(menuTitle || (clearable && showClearButton)) && (
+              {(menuTitle ||
+                menuHeaderTrailingItems ||
+                (clearable && showClearButton)) && (
                 <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
                     {loading && <StyledLoadingIndicator size={12} mini />}
+                    {typeof menuHeaderTrailingItems === 'function'
+                      ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                      : menuHeaderTrailingItems}
                     {clearable && showClearButton && (
                       <ClearButton onClick={clearSelection} size="zero" borderless>
                         {t('Clear')}
@@ -560,6 +576,7 @@ const ControlWrap = styled('div')`
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
+  line-height: normal;
 `;
 
 const StyledBadge = styled(Badge)`

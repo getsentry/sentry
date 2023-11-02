@@ -1,46 +1,71 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {space} from 'sentry/styles/space';
+import {Tag} from 'sentry/types';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {useSlowestTagValuesQuery} from 'sentry/views/performance/browser/webVitals/utils/useSlowestTagValuesQuery';
 
 type Props = {
+  onClick: (tag: Tag) => void;
   tag: string;
   transaction: string;
   title?: string;
 };
 
-const LIMIT = 4;
+const LIMIT = 10;
 
-export function PageOverviewFeaturedTagsList({transaction, tag, title}: Props) {
+function toReadableValue(tag, tagValue) {
+  if (tag === 'geo.country_code') {
+    return COUNTRY_CODE_TO_NAME_MAP[tagValue] ?? tagValue;
+  }
+
+  return tagValue;
+}
+
+function getPerformanceTotalScore(row: TableDataRow): number {
+  const score = calculatePerformanceScore({
+    lcp: row['p75(measurements.lcp)'] as number,
+    fcp: row['p75(measurements.fcp)'] as number,
+    cls: row['p75(measurements.cls)'] as number,
+    ttfb: row['p75(measurements.ttfb)'] as number,
+    fid: row['p75(measurements.fid)'] as number,
+  });
+
+  return score.totalScore;
+}
+
+export function PageOverviewFeaturedTagsList({transaction, tag, title, onClick}: Props) {
   const {data} = useSlowestTagValuesQuery({transaction, tag, limit: LIMIT});
   const tagValues = data?.data ?? [];
+
+  // Sort the tag values in asc order of total performance score
+  const sortedTagValues = tagValues.sort(
+    (a, b) => getPerformanceTotalScore(a) - getPerformanceTotalScore(b)
+  );
+
   return (
     <Container>
       <Title>{title ?? tag}</Title>
       <TagValuesContainer>
-        {tagValues.map((row, index) => {
-          const score = calculatePerformanceScore({
-            lcp: row['p75(measurements.lcp)'] as number,
-            fcp: row['p75(measurements.fcp)'] as number,
-            cls: row['p75(measurements.cls)'] as number,
-            ttfb: row['p75(measurements.ttfb)'] as number,
-            fid: row['p75(measurements.fid)'] as number,
-          });
+        {sortedTagValues.map((row, index) => {
+          const score = getPerformanceTotalScore(row);
           return (
             <RowContainer key={`${tag}:${index}`}>
               <TagValue>
                 <TagButton
                   priority="link"
-                  onClick={() => {
-                    // TODO: need to pass in handler here to open detail panel
-                  }}
+                  onClick={() => onClick({key: tag, name: row[tag].toString()})}
                 >
-                  {row[tag]}
+                  {toReadableValue(tag, row[tag])}
                 </TagButton>
               </TagValue>
-              <Score>{score.totalScore}</Score>
+              <Score>
+                <PerformanceBadge score={score} />
+              </Score>
             </RowContainer>
           );
         })}
@@ -71,7 +96,7 @@ const TagValuesContainer = styled('div')`
 
 const RowContainer = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 32px;
+  grid-template-columns: 1fr auto;
   height: 32px;
 `;
 

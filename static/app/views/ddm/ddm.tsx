@@ -16,18 +16,19 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
+import {TraceTable} from 'sentry/views/ddm/traceTable';
 
 function DDM() {
   const organization = useOrganization();
 
   return (
-    <SentryDocumentTitle title={t('DDM')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Metrics')} orgSlug={organization.slug}>
       <PageFiltersContainer disablePersistence>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
               <Layout.Title>
-                {t('DDM')}
+                {t('Metrics')}
                 <PageHeadingQuestionTooltip
                   docsUrl="https://docs.sentry.io"
                   title={t('Delightful Developer Metrics.')}
@@ -52,6 +53,7 @@ function DDM() {
                 <ScratchpadSelector />
               </PaddedContainer>
               <MetricScratchpad />
+              <TraceTable />
             </Layout.Main>
           </Layout.Body>
         </Layout.Page>

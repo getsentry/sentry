@@ -22,7 +22,11 @@ export type MenuFooterChildProps = {
 
 type ListProps = React.ComponentProps<typeof List>;
 
-type Props = {
+export interface MenuProps
+  extends Pick<
+    ListProps,
+    'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll'
+  > {
   children: (
     args: Pick<
       AutoCompleteChildrenArgs,
@@ -200,10 +204,7 @@ type Props = {
    * Optional element to be rendered on the right side of the dropdown menu
    */
   subPanel?: React.ReactNode;
-} & Pick<
-  ListProps,
-  'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll'
->;
+}
 
 function Menu({
   autoCompleteFilter = defaultAutoCompleteFilter,
@@ -245,7 +246,7 @@ function Menu({
   closeOnSelect,
   'data-test-id': dataTestId,
   ...props
-}: Props) {
+}: MenuProps) {
   // Can't search if there are no items
   const hasItems = !!items?.length;
 
@@ -493,7 +494,7 @@ const LabelWithPadding = styled('div')<{disableLabelPadding: boolean}>`
   padding: ${p => !p.disableLabelPadding && `${space(0.25)} ${space(1)}`};
 `;
 
-const ItemList = styled('div')<{maxHeight: NonNullable<Props['maxHeight']>}>`
+const ItemList = styled('div')<{maxHeight: NonNullable<MenuProps['maxHeight']>}>`
   max-height: ${p => `${p.maxHeight}px`};
   overflow-y: auto;
 `;

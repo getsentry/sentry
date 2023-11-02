@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from itertools import chain
-from typing import TYPE_CHECKING, Collection, Iterable, Mapping
+from typing import TYPE_CHECKING, ClassVar, Collection, Iterable, Mapping
 from uuid import uuid1
 
 import sentry_sdk
@@ -149,7 +149,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
 ]
 
 
-class ProjectManager(BaseManager):
+class ProjectManager(BaseManager["Project"]):
     def get_by_users(self, users: Iterable[User]) -> Mapping[int, Iterable[int]]:
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
@@ -257,6 +257,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This Project has sent replays
         has_replays: bool
 
+        # This project has sent feedbacks
+        has_feedbacks: bool
+
         # spike_protection_error_currently_active
         spike_protection_error_currently_active: bool
 
@@ -275,7 +278,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         bitfield_default = 10
         bitfield_null = True
 
-    objects = ProjectManager(cache_fields=["pk"])
+    objects: ClassVar[ProjectManager] = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:

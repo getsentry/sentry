@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 
 from sentry.middleware.integrations.classifications import (
@@ -89,7 +90,7 @@ class IntegrationControlMiddlewareTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(SlackRequestParser, "get_response")
     def test_returns_parser_get_response_integration(self, mock_parser_get_response):
-        result = {"ok": True}
+        result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.middleware(self.factory.post("/extensions/slack/webhook/"))
         assert result == response
@@ -97,7 +98,7 @@ class IntegrationControlMiddlewareTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(PluginRequestParser, "get_response")
     def test_returns_parser_get_response_plugin(self, mock_parser_get_response):
-        result = {"ok": True}
+        result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.middleware(self.factory.post("/plugins/bitbucket/organizations/1/webhook/"))
         assert result == response

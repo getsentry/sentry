@@ -15,7 +15,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
-from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
+from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
@@ -173,7 +173,18 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         sample_rate=1.0,
                         tags={"occurrence_type": occurrence_data["type"]},
                     )
-                    raise
+                    logger.exception(
+                        "Error validating event payload, falling back to legacy validation"
+                    )
+                    try:
+                        jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+                    except jsonschema.exceptions.ValidationError:
+                        metrics.incr(
+                            "occurrence_ingest.legacy_event_payload_invalid",
+                            sample_rate=1.0,
+                            tags={"occurrence_type": occurrence_data["type"]},
+                        )
+                        raise
 
                 event_data["metadata"] = {
                     # This allows us to show the title consistently in discover
@@ -253,11 +264,19 @@ def _process_message(
         sampled=True,
     ) as txn:
         try:
-            if message.get("payload_type") == PayloadType.OCCURRENCE.value:
-                return process_occurrence_message(message, txn)
-            elif message.get("payload_type") == PayloadType.STATUS_CHANGE.value:
+            # Assume messaged without a payload type are of type OCCURRENCE
+            payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
+            if payload_type == PayloadType.STATUS_CHANGE.value:
                 group = process_status_change_message(message, txn)
                 return None, GroupInfo(group=group, is_new=False, is_regression=False)
+            elif payload_type == PayloadType.OCCURRENCE.value:
+                return process_occurrence_message(message, txn)
+            else:
+                metrics.incr(
+                    "occurrence_consumer._process_message.dropped_invalid_payload_type",
+                    sample_rate=1.0,
+                    tags={"payload_type": payload_type},
+                )
         except (ValueError, KeyError) as e:
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)

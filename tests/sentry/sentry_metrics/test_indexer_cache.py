@@ -22,7 +22,12 @@ def use_case_id() -> str:
 
 
 def test_cache(use_case_id: str) -> None:
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         cache.clear()
         namespace = "test"
         assert indexer_cache.get(namespace, f"{use_case_id}:1:blah:123") is None
@@ -32,9 +37,67 @@ def test_cache(use_case_id: str) -> None:
         indexer_cache.delete(namespace, f"{use_case_id}:1:blah:123")
         assert indexer_cache.get(namespace, f"{use_case_id}:1:blah:123") is None
 
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": True,
+        }
+    ):
+        cache.clear()
+        namespace = "test"
+        assert indexer_cache.get(namespace, f"{use_case_id}:1:blah:123") is None
+        indexer_cache.set(namespace, f"{use_case_id}:1:blah:123", 1)
+        assert indexer_cache.get(namespace, f"{use_case_id}:1:blah:123") == 1
+
+        indexer_cache.delete(namespace, f"{use_case_id}:1:blah:123")
+        assert indexer_cache.get(namespace, f"{use_case_id}:1:blah:123") is None
+
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": True,
+            "sentry-metrics.indexer.write-new-cache-namespace": True,
+        }
+    ):
+        cache.clear()
+        namespace = "test"
+        assert indexer_cache.get(namespace, f"{use_case_id}:1:blah:123") is None
+        indexer_cache.set(namespace, f"{use_case_id}:1:blah:123", 1)
+        assert indexer_cache.get(namespace, f"{use_case_id}:1:blah:123") == 1
+
+        indexer_cache.delete(namespace, f"{use_case_id}:1:blah:123")
+        assert indexer_cache.get(namespace, f"{use_case_id}:1:blah:123") is None
+
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": True,
+            "sentry-metrics.indexer.write-new-cache-namespace": True,
+        }
+    ):
+        cache.clear()
+        namespace_1 = "1"
+        namespace_2 = "2"
+        assert indexer_cache.get(namespace_1, f"{use_case_id}:1:blah:123") is None
+        indexer_cache.set(namespace_1, f"{use_case_id}:1:blah:123", 1)
+        assert indexer_cache.get(namespace_1, f"{use_case_id}:1:blah:123") == 1
+
+        indexer_cache.delete(namespace_1, f"{use_case_id}:1:blah:123")
+        assert indexer_cache.get(namespace_1, f"{use_case_id}:1:blah:123") is None
+
+        assert indexer_cache.get(namespace_2, f"{use_case_id}:1:blah:123") is None
+        indexer_cache.set(namespace_2, f"{use_case_id}:1:blah:123", 2)
+        assert indexer_cache.get(namespace_2, f"{use_case_id}:1:blah:123") == 2
+
+        indexer_cache.delete(namespace_2, f"{use_case_id}:1:blah:123")
+        assert indexer_cache.get(namespace_2, f"{use_case_id}:1:blah:123") is None
+
 
 def test_cache_many(use_case_id: str) -> None:
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         cache.clear()
         namespace = "test"
         values = {f"{use_case_id}:100:hello": 2, f"{use_case_id}:100:bye": 3}
@@ -53,7 +116,12 @@ def test_cache_many(use_case_id: str) -> None:
 
 
 def test_make_cache_key(use_case_id: str) -> None:
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         cache.clear()
         namespace = "test"
         orgId = 1
@@ -64,7 +132,12 @@ def test_make_cache_key(use_case_id: str) -> None:
 
         assert key == f"indexer:test:org:str:{use_case_id}:{hashed}"
 
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": True}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": True,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         cache.clear()
         namespace = "test"
         orgId = 1
@@ -77,14 +150,24 @@ def test_make_cache_key(use_case_id: str) -> None:
 
 
 def test_formatted_results(use_case_id: str) -> None:
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         cache.clear()
         namespace = "test"
         values = {f"{use_case_id}:1:::hello": 2, f"{use_case_id}:1:::bye": 3}
         results = {indexer_cache._make_cache_key(k): v for k, v in values.items()}
         assert indexer_cache._format_results(list(values.keys()), results) == values
 
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": True}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": True,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         cache.clear()
         namespace = "test"
         values = {
@@ -114,7 +197,12 @@ def test_ttl_jitter() -> None:
 
 
 def test_separate_namespacing() -> None:
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         namespace = "test"
         indexer_cache.set(namespace, "sessions:3:what", 1)
         assert indexer_cache.get(namespace, "sessions:3:what") == 1

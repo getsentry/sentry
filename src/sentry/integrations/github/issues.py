@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from operator import attrgetter
-from typing import Any, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Sequence
 
 from django.urls import reverse
 
@@ -9,6 +9,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
 from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
@@ -71,16 +72,35 @@ class GitHubIssueBasic(IssueBasicMixin):
         return default_repo, default_repo.split("/")[1]
 
     def get_create_issue_config(
-        self, group: Group, user: User, **kwargs: Any
-    ) -> Sequence[Mapping[str, Any]]:
+        self, group: Group | None, user: User, **kwargs: Any
+    ) -> List[Dict[str, Any]]:
+        """
+        We use the `group` to get three things: organization_slug, project
+        defaults, and default title and description. In the case where we're
+        getting `createIssueConfig` from GitHub for Ticket Rules, we don't know
+        the issue group beforehand.
+
+        :param group: (Optional) Group model.
+        :param user: User model.
+        :param kwargs: (Optional) Object
+            * params: (Optional) Object
+        :return:
+        """
         kwargs["link_referrer"] = "github_integration"
-        fields = super().get_create_issue_config(group, user, **kwargs)
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+
+        if group:
+            fields = super().get_create_issue_config(group, user, **kwargs)
+            org = group.organization
+        else:
+            fields = []
+            org = Organization.objects.get_from_cache(id=self.organization_id)
+
+        params = kwargs.pop("params", {})
+        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
         labels = self.get_repo_labels(default_repo) if default_repo else []
 
-        org = group.organization
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
@@ -108,7 +128,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             {
                 "name": "labels",
                 "label": "Labels",
-                "default": "",
+                "default": [],
                 "type": "select",
                 "multiple": True,
                 "required": False,
@@ -145,8 +165,9 @@ class GitHubIssueBasic(IssueBasicMixin):
             "repo": repo,
         }
 
-    def get_link_issue_config(self, group: Group, **kwargs: Any) -> Sequence[Mapping[str, Any]]:
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+    def get_link_issue_config(self, group: Group, **kwargs: Any) -> List[Dict[str, Any]]:
+        params = kwargs.pop("params", {})
+        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
