@@ -60,6 +60,7 @@ class MetricExtractionConfig(TypedDict):
     metrics: List[MetricSpec]
 
 
+@metrics.wraps("on_demand_metrics.get_metric_extraction_config")
 def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
     """
     Returns generic metric extraction config for the given project.
@@ -103,6 +104,7 @@ def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
     return enabled_features
 
 
+@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
 def _get_alert_metric_specs(
     project: Project, enabled_features: Set[str], prefilling: bool
 ) -> List[HashedMetricSpec]:
@@ -129,27 +131,29 @@ def _get_alert_metric_specs(
     )
 
     specs = []
-    for alert in alert_rules:
-        alert_snuba_query = alert.snuba_query
-        metrics.incr(
-            "on_demand_metrics.before_alert_spec_generation",
-            tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
-        )
-        if result := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
-            _log_on_demand_metric_spec(
-                project_id=project.id,
-                spec_for="alert",
-                spec=result,
-                id=alert.id,
-                field=alert_snuba_query.aggregate,
-                query=alert_snuba_query.query,
-                prefilling=prefilling,
-            )
+    with metrics.timer("on_demand_metrics.alert_spec_convert"):
+        for alert in alert_rules:
+            alert_snuba_query = alert.snuba_query
             metrics.incr(
-                "on_demand_metrics.on_demand_spec.for_alert",
-                tags={"prefilling": prefilling},
+                "on_demand_metrics.before_alert_spec_generation",
+                tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
             )
-            specs.append(result)
+
+            if result := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
+                _log_on_demand_metric_spec(
+                    project_id=project.id,
+                    spec_for="alert",
+                    spec=result,
+                    id=alert.id,
+                    field=alert_snuba_query.aggregate,
+                    query=alert_snuba_query.query,
+                    prefilling=prefilling,
+                )
+                metrics.incr(
+                    "on_demand_metrics.on_demand_spec.for_alert",
+                    tags={"prefilling": prefilling},
+                )
+                specs.append(result)
 
     max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
     if len(specs) > max_alert_specs:
@@ -161,6 +165,7 @@ def _get_alert_metric_specs(
     return specs
 
 
+@metrics.wraps("on_demand_metrics._get_widget_metric_specs")
 def _get_widget_metric_specs(
     project: Project, enabled_features: Set[str], prefilling: bool
 ) -> List[HashedMetricSpec]:
@@ -182,9 +187,10 @@ def _get_widget_metric_specs(
     )
 
     specs = []
-    for widget in widget_queries:
-        for result in _convert_widget_query_to_metric(project, widget, prefilling):
-            specs.append(result)
+    with metrics.timer("on_demand_metrics.widget_spec_convert"):
+        for widget in widget_queries:
+            for result in _convert_widget_query_to_metric(project, widget, prefilling):
+                specs.append(result)
 
     max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
     if len(specs) > max_widget_specs:
@@ -196,6 +202,7 @@ def _get_widget_metric_specs(
     return specs
 
 
+@metrics.wraps("on_demand_metrics._merge_metric_specs")
 def _merge_metric_specs(
     alert_specs: List[HashedMetricSpec], widget_specs: List[HashedMetricSpec]
 ) -> List[MetricSpec]:
