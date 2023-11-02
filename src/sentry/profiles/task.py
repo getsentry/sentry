@@ -186,7 +186,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                     profile, platform
                 )
 
-                set_measurement(f"profile.frames.sent{platform}", len(frames_sent))
+                set_measurement(f"profile.frames.sent.{platform}", len(frames_sent))
 
                 modules, stacktraces, success = run_symbolicate(
                     project=project,
