@@ -69,18 +69,15 @@ def _prepare_occurrence_message(
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
         # write to the issue platform directly
-        from sentry.issues.ingest import process_occurrence_data
         from sentry.issues.occurrence_consumer import (
             lookup_event_and_process_issue_occurrence,
             process_event_and_issue_occurrence,
         )
 
-        occurrence = occurrence.to_dict()
-        process_occurrence_data(occurrence)
         if event_data:
-            process_event_and_issue_occurrence(occurrence, event_data)
+            process_event_and_issue_occurrence(occurrence.to_dict(), event_data)
         else:
-            lookup_event_and_process_issue_occurrence(occurrence)
+            lookup_event_and_process_issue_occurrence(occurrence.to_dict())
         return None
 
     payload_data = cast(MutableMapping[str, Any], occurrence.to_dict())
