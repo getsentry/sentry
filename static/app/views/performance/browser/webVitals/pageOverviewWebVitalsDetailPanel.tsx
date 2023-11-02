@@ -218,12 +218,18 @@ export function PageOverviewWebVitalsDetailPanel({
           <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
         </AlignCenter>
       ) : (
-        <AlignCenter>{' \u2014 '}</AlignCenter>
+        <AlignCenter>
+          <NoValue>{t('(no value)')}</NoValue>
+        </AlignCenter>
       );
     }
     if (key === 'profile.id') {
       if (!defined(project) || !defined(row['profile.id'])) {
-        return <AlignCenter>{' \u2014 '}</AlignCenter>;
+        return (
+          <AlignCenter>
+            <NoValue>{t('(no value)')}</NoValue>
+          </AlignCenter>
+        );
       }
       const target = generateProfileFlamechartRoute({
         orgSlug: organization.slug,

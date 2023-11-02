@@ -8,21 +8,11 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {addToFilter} from 'sentry/views/discover/table/cellAction';
-import {Tags} from 'sentry/views/discover/tags';
 import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -38,20 +28,10 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
   const theme = useTheme();
   const router = useRouter();
   const pageFilters = usePageFilters();
-  const location = useLocation();
-  const organization = useOrganization();
-  const api = useApi();
   const {period, start, end, utc} = pageFilters.selection.datetime;
-  const query = decodeScalar(location.query.query);
 
   const {data, isLoading: isLoading} = useProjectWebVitalsValuesTimeseriesQuery({
     transaction,
-  });
-
-  // We need to query for indexed data since the tags facets component only works with indexed data
-  const {data: indexedData, isLoading: isIndexedDataLoading} = useProjectWebVitalsQuery({
-    transaction,
-    dataset: DiscoverDatasets.DISCOVER,
   });
 
   let seriesData = !isLoading
@@ -105,16 +85,6 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
-
-  const eventView = EventView.fromNewQueryWithLocation(
-    {
-      fields: [],
-      name: '',
-      version: 1,
-      query: `event.type:transaction transaction:"${transaction}"`,
-    },
-    location
-  );
 
   return (
     <Fragment>
@@ -180,27 +150,6 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
         <MiniAggregateWaterfall transaction={transaction} />
       </MiniAggregateWaterfallContainer>
       <SidebarSpacer />
-      {!isIndexedDataLoading && (
-        <Tags
-          generateUrl={() => ''}
-          totalValues={(indexedData?.data[0]['count()'] ?? 0) as number}
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          api={api}
-          onTagValueClick={(title, value) => {
-            const mutableSearch = new MutableSearch(query ?? '');
-            addToFilter(mutableSearch, title, value.name);
-            router.replace({
-              ...location,
-              query: {
-                ...location.query,
-                query: mutableSearch.formatString(),
-              },
-            });
-          }}
-        />
-      )}
     </Fragment>
   );
 }
