@@ -389,15 +389,6 @@ const TraceTableWrapper = styled('div')`
     }
   }
 
-  > div > :first-child {
-    color: ${p => p.theme.gray300};
-    overflow: overlay;
-
-    span {
-      display: none;
-    }
-  }
-
   > span > div {
     pointer-events: none;
   }
