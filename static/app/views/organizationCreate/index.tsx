@@ -37,7 +37,10 @@ function getDefaultRegionChoice(
     return undefined;
   }
 
-  const usRegion = regionChoices.find(([regionName, _]) => regionName === 'us');
+  const usRegion = regionChoices.find(
+    ([_, regionName]) => regionName === RegionDisplayName.US
+  );
+
   if (usRegion) {
     return usRegion;
   }
