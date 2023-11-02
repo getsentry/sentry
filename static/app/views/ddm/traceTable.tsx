@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import Badge from 'sentry/components/badge';
+import {PanelTableHeader} from 'sentry/components/panels/panelTable';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -301,44 +301,101 @@ export function TraceTable() {
 
   return (
     <TraceTableWrapper>
-      <Tooltip title={t('Coming soon. This is where you will see samples.')}>
-        <TransactionsTable
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          isLoading={false}
-          tableData={tableData}
-          columnOrder={columnOrder}
-          titles={[
-            'event id',
-            'user',
-            'operation duration',
-            'total duration',
-            'trace id',
-            'timestamp',
-            'replay',
-            'profile',
-          ]}
-          generateLink={{
-            id: generateTransactionLink(''),
-            trace: generateTraceLink(eventView.normalizeDateSelection(location)),
-            replayId: generateReplayLink([]),
-            'profile.id': generateProfileLink(),
-          }}
-          useAggregateAlias
-        />
-      </Tooltip>
+      <TitleOverlay>
+        <StyledBadge type="alpha" color="white">
+          Coming Soon
+        </StyledBadge>
+        <div>Sampled traces</div>
+      </TitleOverlay>
+      <TransactionsTable
+        eventView={eventView}
+        organization={organization}
+        location={location}
+        isLoading={false}
+        tableData={tableData}
+        columnOrder={columnOrder}
+        titles={[
+          'event id',
+          'user',
+          'operation duration',
+          'total duration',
+          'trace id',
+          'timestamp',
+          'replay',
+          'profile',
+        ]}
+        generateLink={{
+          id: generateTransactionLink(''),
+          trace: generateTraceLink(eventView.normalizeDateSelection(location)),
+          replayId: generateReplayLink([]),
+          'profile.id': generateProfileLink(),
+        }}
+        useAggregateAlias
+      />
     </TraceTableWrapper>
   );
 }
 
+const TitleOverlay = styled('span')`
+  position: absolute;
+
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  z-index: 1;
+
+  line-height: 1.1;
+  height: 46px;
+  max-width: 250px;
+  padding: 0px 16px;
+  background-color: rgb(250, 249, 251);
+  color: rgb(128, 112, 143);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  user-select: none;
+
+  border-top: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.border};
+
+  border-top-left-radius: 4px;
+`;
+
+const StyledBadge = styled(Badge)`
+  color: white !important;
+  margin-top: -1px;
+`;
+
 const TraceTableWrapper = styled('div')`
   margin-top: ${space(3)};
-  filter: blur(3px);
+
   width: 100%;
   user-select: none;
-  > span {
+
+  > div {
     width: 100%;
+  }
+
+  > div > div > div {
+    filter: blur(3px);
+  }
+
+  > div > ${PanelTableHeader} {
+    color: ${p => p.theme.backgroundSecondary};
+
+    span {
+      display: none;
+    }
+  }
+
+  > div > :first-child {
+    color: ${p => p.theme.gray300};
+    overflow: overlay;
+
+    span {
+      display: none;
+    }
   }
 
   > span > div {
