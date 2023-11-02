@@ -2049,27 +2049,47 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert mq.limit is not None
         assert mq.limit.limit == 50
 
-    def test_gauge(self):
-        mri = "g:custom/page_load@millisecond"
 
-        self.store_performance_metric(
-            name=mri,
-            tags={},
-            value=10.0,
-        )
+@pytest.mark.snuba_ci
+@freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
+class CustomMetricsMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
+    def setUp(self):
+        self.gauge_1 = {
+            "min": 1.0,
+            "max": 20.0,
+            "sum": 21.0,
+            "count": 2,
+            "last": 20.0,
+        }
+        self.gauge_2 = {
+            "min": 2.0,
+            "max": 21.0,
+            "sum": 25.0,
+            "count": 3,
+            "last": 4.0,
+        }
+        self.mri = "g:custom/page_load@millisecond"
+
+    @property
+    def now(self):
+        return BaseMetricsLayerTestCase.MOCK_DATETIME
+
+    def test_gauge_count(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
 
         metrics_query = self.build_metrics_query(
             before_now="1h",
-            granularity="1h",
+            granularity="30m",
             select=[
                 MetricField(
                     op="count",
-                    metric_mri=mri,
+                    metric_mri=self.mri,
                 ),
             ],
-            groupby=[],
-            orderby=[],
-            limit=Limit(limit=3),
+            limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=True,
         )
@@ -2077,10 +2097,110 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseID.TRANSACTIONS,
+            use_case_id=UseCaseID.CUSTOM,
         )
 
-        assert data == []
+        assert data["groups"] == [
+            {"by": {}, "series": {"count(page_load)": [2, 3]}, "totals": {"count(page_load)": 5}}
+        ]
+
+    def test_gauge_min(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="min",
+                    metric_mri=self.mri,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {"by": {}, "series": {"min(page_load)": [1.0, 2.0]}, "totals": {"min(page_load)": 1.0}}
+        ]
+
+    def test_gauge_max(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="max",
+                    metric_mri=self.mri,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {
+                "by": {},
+                "series": {"max(page_load)": [20.0, 21.0]},
+                "totals": {"max(page_load)": 21.0},
+            }
+        ]
+
+    def test_gauge_last(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="last",
+                    metric_mri=self.mri,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {
+                "by": {},
+                "series": {"last(page_load)": [20.0, 4.0]},
+                "totals": {"last(page_load)": 4.0},
+            }
+        ]
 
 
 class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):

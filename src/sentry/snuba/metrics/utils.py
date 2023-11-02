@@ -94,6 +94,7 @@ MetricOperationType = Literal[
     "uniq_if_column",
     "min_timestamp",
     "max_timestamp",
+    "last",
     # Custom operations used for on demand derived metrics.
     "on_demand_apdex",
     "on_demand_epm",
@@ -322,14 +323,7 @@ DERIVED_OPERATIONS = (
     "on_demand_user_misery",
 )
 OPERATIONS = (
-    (
-        "avg",
-        "count_unique",
-        "count",
-        "max",
-        "min",
-        "sum",
-    )
+    ("avg", "count_unique", "count", "max", "min", "sum", "last")
     + OPERATIONS_PERCENTILES
     + DERIVED_OPERATIONS
 )
@@ -347,6 +341,7 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "p99": None,
     "sum": 0,
     "percentage": None,
+    "last": None,
 }
 UNIT_TO_TYPE = {
     "sessions": "count",

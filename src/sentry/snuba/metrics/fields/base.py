@@ -216,7 +216,7 @@ def _get_entity_of_metric_mri(
         raise InvalidParams
 
     entity_keys_set: frozenset[EntityKey]
-    if use_case_id is UseCaseID.TRANSACTIONS:
+    if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]:
         entity_keys_set = frozenset(
             {
                 EntityKey.GenericMetricsCounters,
