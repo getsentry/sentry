@@ -7,6 +7,6 @@ export const ROUTE_NAMES = {
   'span-summary': t('Span Summary'),
   'web-service': t('Web Service'),
   initialization: t('App Initialization'),
-  pageload: t('Pageload'),
+  pageload: t('Screens'),
   responsiveness: t('Responsiveness'),
 };
