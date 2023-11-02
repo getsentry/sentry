@@ -202,7 +202,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                         "This user is managed through your organization's identity provider."
                       )
                     : isPartnershipUser
-                    ? t('This is a partnership user.')
+                    ? t('You cannot make changes to this partner-provisioned user.')
                     : t('You do not have access to remove members')
                 }
                 icon={<IconSubtract isCircled size="xs" />}
@@ -235,7 +235,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                         "Your account is managed through your organization's identity provider."
                       )
                     : isPartnershipUser
-                    ? t('You are a partnership user.')
+                    ? t('You cannot make changes as a partner-provisioned user.')
                     : t(
                         'You cannot leave this organization as you are the only organization owner.'
                       )

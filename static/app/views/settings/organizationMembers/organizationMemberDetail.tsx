@@ -286,7 +286,7 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
 
     const {access, orgRoleList} = organization;
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
-    const isPartnershipUser = !!member.flags['partnership:restricted'];
+    const isPartnershipUser = member.flags['partnership:restricted'] === true;
 
     const {email, expired, pending} = member;
     const canResend = !expired;
@@ -388,7 +388,11 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
           roleList={orgRoleList}
           roleSelected={orgRole}
           setSelected={this.onChangeOrgRole}
-          helpText={isPartnershipUser ? t('This is a partnership user.') : undefined}
+          helpText={
+            isPartnershipUser
+              ? t('You cannot make changes to this partner-provisioned user.')
+              : undefined
+          }
         />
 
         <Teams slugs={member.teams}>
