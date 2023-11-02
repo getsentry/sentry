@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 import sentry_sdk
 from django.conf import settings
 from django.db import models
@@ -105,7 +107,7 @@ class NotificationSetting(Model):
         null=False,
     )
 
-    objects = NotificationsManager()
+    objects: ClassVar[NotificationsManager] = NotificationsManager()
 
     class Meta:
         app_label = "sentry"

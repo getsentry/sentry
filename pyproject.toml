@@ -492,7 +492,6 @@ module = [
     "sentry.models.artifactbundle",
     "sentry.models.auditlogentry",
     "sentry.models.integrations.external_issue",
-    "sentry.models.integrations.sentry_app",
     "sentry.models.integrations.sentry_app_installation",
     "sentry.models.notificationsetting",
     "sentry.models.organizationaccessrequest",

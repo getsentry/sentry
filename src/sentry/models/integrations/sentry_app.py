@@ -2,7 +2,7 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
-from typing import List
+from typing import ClassVar, List
 
 from django.db import models, router, transaction
 from django.db.models import QuerySet
@@ -92,7 +92,7 @@ def track_response_code(status, integration_slug, webhook_event):
     )
 
 
-class SentryAppManager(ParanoidManager):
+class SentryAppManager(ParanoidManager["SentryApp"]):
     def get_alertable_sentry_apps(self, organization_id: int) -> QuerySet:
         return self.filter(
             installations__organization_id=organization_id,
@@ -163,7 +163,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
 
     popularity = models.PositiveSmallIntegerField(null=True, default=1)
 
-    objects = SentryAppManager()
+    objects: ClassVar[SentryAppManager] = SentryAppManager()
 
     class Meta:
         app_label = "sentry"
@@ -206,6 +206,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
         ).exists()
 
     def build_signature(self, body):
+        assert self.application is not None
         secret = self.application.client_secret
         return hmac.new(
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
