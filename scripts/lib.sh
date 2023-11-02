@@ -92,7 +92,7 @@ install-py-dev() {
     echo "--> Installing Sentry (for development)"
 
     # pip doesn't do well with swapping drop-ins
-    pip uninstall -qqy uwsgi
+    pip uninstall -qqy sentry-forked-django-stubs sentry-forked-djangorestframework-stubs
 
     pip-install -r requirements-dev-frozen.txt
 
