@@ -420,6 +420,7 @@ class IndexerBatch:
             sentry_received_timestamp = message.value.timestamp.timestamp()
 
             if self.__should_index_tag_values:
+                assert not isinstance(old_payload_value["value"], dict)
                 new_payload_v1: Metric = {
                     "tags": new_tags,
                     # XXX: relay actually sends this value unconditionally
@@ -431,7 +432,7 @@ class IndexerBatch:
                     "timestamp": old_payload_value["timestamp"],
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
-                    "value": old_payload_value["value"],  # type: ignore
+                    "value": old_payload_value["value"],
                     "sentry_received_timestamp": sentry_received_timestamp,
                 }
 
