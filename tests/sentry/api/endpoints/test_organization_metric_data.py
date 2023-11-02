@@ -1495,6 +1495,65 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
 
+    def test_gauges(self):
+        mri = "g:custom/page_load@millisecond"
+
+        gauge_1 = {
+            "min": 1.0,
+            "max": 20.0,
+            "sum": 21.0,
+            "count": 2,
+            "last": 20.0,
+        }
+
+        gauge_2 = {
+            "min": 2.0,
+            "max": 21.0,
+            "sum": 25.0,
+            "count": 3,
+            "last": 4.0,
+        }
+
+        for value, minutes in ((gauge_1, 35), (gauge_2, 5)):
+            self.store_custom_metric(name=mri, tags={}, value=value, minutes_before_now=minutes)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                f"count({mri})",
+                f"min({mri})",
+                f"max({mri})",
+                f"last({mri})",
+            ],
+            query="",
+            statsPeriod="1h",
+            interval="30m",
+            per_page=3,
+            useCase="custom",
+            includeSeries="1",
+            allowPrivate="true",
+        )
+        groups = response.data["groups"]
+
+        assert len(groups) == 1
+        assert groups == [
+            {
+                "by": {},
+                "series": {
+                    "count(g:custom/page_load@millisecond)": [2, 3],
+                    "max(g:custom/page_load@millisecond)": [20.0, 21.0],
+                    "min(g:custom/page_load@millisecond)": [1.0, 2.0],
+                    "last(g:custom/page_load@millisecond)": [20.0, 4.0],
+                },
+                "totals": {
+                    "count(g:custom/page_load@millisecond)": 5,
+                    "max(g:custom/page_load@millisecond)": 21.0,
+                    "min(g:custom/page_load@millisecond)": 1.0,
+                    "last(g:custom/page_load@millisecond)": 4.0,
+                },
+            }
+        ]
+
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):

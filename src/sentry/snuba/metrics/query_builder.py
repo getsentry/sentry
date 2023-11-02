@@ -129,7 +129,7 @@ def parse_mri_field(field: str, allow_private: bool = False) -> MetricField:
         operation = None
         mri = field
 
-    return MetricField(operation, mri, alias=mri, allow_private=allow_private)
+    return MetricField(op=operation, metric_mri=mri, allow_private=allow_private)
 
 
 def parse_public_field(field: str) -> MetricField:
