@@ -2,8 +2,6 @@ import logging
 
 from sentry import features
 from sentry.api.endpoints.organization_missing_org_members import (
-    FILTERED_CHARACTERS,
-    FILTERED_EMAIL_DOMAINS,
     _format_external_id,
     _get_missing_organization_members,
     _get_shared_email_domain,
@@ -79,8 +77,13 @@ def send_nudge_email(org_id):
         )
         return
 
+    shared_domain = _get_shared_email_domain(organization)
+
     commit_author_query = _get_missing_organization_members(
-        organization, provider="github", integration_ids=[i.id for i in integrations]
+        organization,
+        provider="github",
+        integration_ids=[i.id for i in integrations],
+        shared_domain=shared_domain,
     )
 
     if not commit_author_query.exists():  # don't email if no missing commit authors
@@ -89,17 +92,6 @@ def send_nudge_email(org_id):
             extra={"organization_id": org_id},
         )
         return
-
-    shared_domain = _get_shared_email_domain(organization)
-
-    if shared_domain:
-        commit_author_query = commit_author_query.filter(email__endswith=shared_domain)
-    else:
-        for filtered_email in FILTERED_EMAIL_DOMAINS:
-            commit_author_query = commit_author_query.exclude(email__endswith=filtered_email)
-
-    for filtered_character in FILTERED_CHARACTERS:
-        commit_author_query = commit_author_query.exclude(email__icontains=filtered_character)
 
     commit_authors = []
     for commit_author in commit_author_query[:3]:
