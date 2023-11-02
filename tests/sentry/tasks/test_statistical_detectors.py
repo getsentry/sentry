@@ -104,10 +104,10 @@ def project(organization):
 )
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_trends")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_trends")
-@mock.patch("sentry.tasks.statistical_detectors.get_performance_issues_project_settings")
+@mock.patch("sentry.tasks.statistical_detectors.get_performance_project_settings")
 @django_db_all
 def test_run_detection_options(
-    get_performance_issues_project_settings,
+    get_performance_project_settings,
     detect_function_trends,
     detect_transaction_trends,
     project_flags,
@@ -133,8 +133,8 @@ def test_run_detection_options(
         else [],
     }
 
-    get_performance_issues_project_settings.return_value = {
-        "duration_regression_detection_enabled": performance_project_option_enabled
+    get_performance_project_settings.return_value = {
+        [project.id]: {"duration_regression_detection_enabled": performance_project_option_enabled}
     }
 
     with freeze_time(timestamp), override_options(options), TaskRunner():
