@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
 from typing import Literal, Mapping
 
@@ -29,7 +31,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         return int(dt.timestamp())
 
     def setUp(self) -> None:
-        super().setUp()  # type: ignore
+        super().setUp()
 
         self.metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
             TransactionMRI.DURATION.value: "distribution",
@@ -43,6 +45,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         for mri, metric_type in self.metrics.items():
             assert metric_type in {"counter", "distribution", "set", "gauge"}
             for i in range(360):
+                value: int | dict[str, int]
                 if metric_type == "gauge":
                     value = {
                         "min": i,
