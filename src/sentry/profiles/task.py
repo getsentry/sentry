@@ -392,7 +392,7 @@ def symbolicate(
     profile: Profile,
     modules: List[Any],
     stacktraces: List[Any],
-    platform: Optional[str] = None,
+    platform: str,
 ) -> Any:
     if platform in SHOULD_SYMBOLICATE_JS:
         return symbolicator.process_js(
@@ -417,7 +417,7 @@ def run_symbolicate(
     profile: Profile,
     modules: List[Any],
     stacktraces: List[Any],
-    platform: Optional[str] = None,
+    platform: str,
 ) -> Tuple[List[Any], List[Any], bool]:
     symbolication_start_time = time()
 
@@ -426,8 +426,6 @@ def run_symbolicate(
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
 
-    if platform is None:
-        platform = profile["platform"]
     is_js = platform in SHOULD_SYMBOLICATE_JS
     symbolicator = Symbolicator(
         task_kind=SymbolicatorTaskKind(is_js=is_js),
@@ -483,14 +481,11 @@ def _process_symbolicator_results(
     modules: List[Any],
     stacktraces: List[Any],
     frames_sent: set[int],
-    platform: Optional[str] = None,
+    platform: str,
 ) -> None:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.process_results"):
         # update images with status after symbolication
         profile["debug_meta"]["images"] = modules
-
-        if platform is None:
-            platform = profile["platform"]
 
         if "version" in profile:
             _process_symbolicator_results_for_sample(
@@ -511,10 +506,8 @@ def _process_symbolicator_results(
 
 
 def _process_symbolicator_results_for_sample(
-    profile: Profile, stacktraces: List[Any], frames_sent: set[int], platform: Optional[str] = None
+    profile: Profile, stacktraces: List[Any], frames_sent: set[int], platform: str
 ) -> None:
-    if platform is None:
-        platform = profile["platform"]
 
     if platform == "rust":
 
