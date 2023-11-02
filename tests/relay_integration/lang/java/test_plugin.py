@@ -835,7 +835,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "    class AdditionalInnerClass {",
             "        fun whoops3() {",
         ]
-        assert frames[5].post_context == ["        }", "    }", "}", "", ""]
+        assert frames[5].post_context == ["        }", "    }", "}", ""]
 
     def test_source_lookup_with_proguard(self):
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
