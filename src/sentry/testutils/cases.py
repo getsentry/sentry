@@ -1522,15 +1522,13 @@ class BaseMetricsTestCase(SnubaTestCase):
         # DO NOT USE THIS METHOD IN YOUR TESTS, use store_metric instead. we
         # need to be able to make changes to the indexer's output protocol
         # without having to update a million tests
-        # TODO: remove this check once the kafka schema library is updated.
-        if entity != "generic_metrics_gauges":
-            if entity.startswith("generic_"):
-                codec = sentry_kafka_schemas.get_codec("snuba-generic-metrics")
-            else:
-                codec = sentry_kafka_schemas.get_codec("snuba-metrics")
+        if entity.startswith("generic_"):
+            codec = sentry_kafka_schemas.get_codec("snuba-generic-metrics")
+        else:
+            codec = sentry_kafka_schemas.get_codec("snuba-metrics")
 
-            for bucket in buckets:
-                codec.validate(bucket)
+        for bucket in buckets:
+            codec.validate(bucket)
 
         assert (
             requests.post(

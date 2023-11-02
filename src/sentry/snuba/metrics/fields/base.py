@@ -149,8 +149,8 @@ def run_metrics_query(
         where=[
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column(get_timestamp_column_name(entity_key.value)), Op.GTE, start),
-            Condition(Column(get_timestamp_column_name(entity_key.value)), Op.LT, end),
+            Condition(Column(get_timestamp_column_name()), Op.GTE, start),
+            Condition(Column(get_timestamp_column_name()), Op.LT, end),
         ]
         + where,
         granularity=Granularity(GRANULARITY),

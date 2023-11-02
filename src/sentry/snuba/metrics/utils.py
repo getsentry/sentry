@@ -201,15 +201,12 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
 REQUIRES_RHS_CONDITION_RESOLUTION = {"transform_null_to_unparameterized"}
 
 
-def get_timestamp_column_name(entity_key: str) -> str:
+def get_timestamp_column_name() -> str:
     """
     Returns the column name of the timestamp column in Snuba.
 
     The name of the timestamp column can change based on the entity.
     """
-    if entity_key == "generic_metrics_gauges":
-        return "rounded_timestamp"
-
     return "timestamp"
 
 

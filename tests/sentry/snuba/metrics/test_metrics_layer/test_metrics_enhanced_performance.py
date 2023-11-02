@@ -2270,10 +2270,10 @@ class CustomMetricsMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_meta=True,
             use_case_id=UseCaseID.CUSTOM,
         )
-
-        assert data["groups"] == [
+        groups = sorted(data["groups"], key=lambda group: group["by"]["transaction"])
+        assert groups == [
             {
-                "by": {"transaction": "foo"},
+                "by": {"transaction": "bar"},
                 "series": {"count(page_load)": [2, 3]},
                 "totals": {"count(page_load)": 5},
             },
@@ -2283,7 +2283,7 @@ class CustomMetricsMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "totals": {"count(page_load)": 5},
             },
             {
-                "by": {"transaction": "bar"},
+                "by": {"transaction": "foo"},
                 "series": {"count(page_load)": [2, 3]},
                 "totals": {"count(page_load)": 5},
             },

@@ -871,6 +871,8 @@ class SnubaQueryBuilder:
             Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
         ]
 
+        where += self._build_timeframe()
+
         if not self._metrics_query.where:
             return where
 
@@ -911,7 +913,7 @@ class SnubaQueryBuilder:
 
         return where
 
-    def _build_timeframe(self, entity_key: str) -> List[Union[BooleanCondition, Condition]]:
+    def _build_timeframe(self) -> List[Union[BooleanCondition, Condition]]:
         """
         Builds the timeframe of the query, comprehending the `start` and `end` intervals.
         """
@@ -919,15 +921,11 @@ class SnubaQueryBuilder:
 
         if self._metrics_query.start:
             where.append(
-                Condition(
-                    Column(get_timestamp_column_name(entity_key)), Op.GTE, self._metrics_query.start
-                )
+                Condition(Column(get_timestamp_column_name()), Op.GTE, self._metrics_query.start)
             )
         if self._metrics_query.end:
             where.append(
-                Condition(
-                    Column(get_timestamp_column_name(entity_key)), Op.LT, self._metrics_query.end
-                )
+                Condition(Column(get_timestamp_column_name()), Op.LT, self._metrics_query.end)
             )
 
         return where
@@ -1032,7 +1030,7 @@ class SnubaQueryBuilder:
 
             if self._use_case_id is UseCaseID.TRANSACTIONS:
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
-                    entity, self._metrics_query.interval
+                    self._metrics_query.interval
                 )
             else:
                 time_groupby_column = Column(TS_COL_GROUP)
@@ -1044,13 +1042,11 @@ class SnubaQueryBuilder:
         return rv
 
     @staticmethod
-    def __generate_time_groupby_column_for_discover_queries(
-        entity_key: str, interval: int
-    ) -> Function:
+    def __generate_time_groupby_column_for_discover_queries(interval: int) -> Function:
         return Function(
             function="toStartOfInterval",
             parameters=[
-                Column(name=get_timestamp_column_name(entity_key)),
+                Column(name=get_timestamp_column_name()),
                 Function(
                     function="toIntervalSecond",
                     parameters=[interval],
@@ -1175,7 +1171,6 @@ class SnubaQueryBuilder:
                     Op.IN,
                     list(metric_ids_set),
                 ),
-                *self._build_timeframe(entity),
             ]
             orderby = self._build_orderby()
             having = self._build_having()
