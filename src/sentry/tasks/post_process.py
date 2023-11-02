@@ -117,7 +117,7 @@ def format_event_platform(event: Union[Event, GroupEvent]):
         raise Exception("Group not found on event")
     platform = group.platform
     if not platform:
-        raise AttributeError("No platform on group")
+        raise Exception("Platform not found on group")
     return platform.split("-", 1)[0].split("_", 1)[0]
 
 
@@ -632,7 +632,7 @@ def post_process_group(
             for ge in group_events.values():
                 ge.occurrence = occurrence
 
-        multi_groups: list[Tuple[GroupEvent, GroupState]] = []
+        multi_groups = []
         if group_states:
             for gs in group_states:
                 gs_id = gs.get("id")

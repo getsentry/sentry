@@ -58,7 +58,7 @@ def score_path_match_length(path_a: str, path_b: str) -> int:
     return score
 
 
-def get_frame_paths(event: Event | GroupEvent) -> Union[Any, Sequence[Any]]:
+def get_frame_paths(event: Union[Event, GroupEvent]) -> Union[Any, Sequence[Any]]:
     return find_stack_frames(event.data)
 
 
