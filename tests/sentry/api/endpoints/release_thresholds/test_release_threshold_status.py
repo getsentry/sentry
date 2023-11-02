@@ -4,6 +4,7 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
     EnrichedThreshold,
     is_error_count_healthy,
 )
+from sentry.api.serializers import serialize
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
@@ -153,12 +154,12 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         so response should look like
         {
-            {p1.id}-{canary}-{release1.version}: [threshold1, threshold2]
-            {p1.id}-{prod}-{release1.version}: [threshold]
-            {p2.id}-{canary}-{release1.version}: [threshold]
-            {p1.id}-{prod}-{release2.version}: [threshold, threshold]
-            {p1.id}-{prod}-{release2.version}: [threshold]
-            {p1.id}-None-{release3.version}: [threshold]
+            {p1.slug}-{canary}-{release1.version}: [threshold1, threshold2]
+            {p1.slug}-{prod}-{release1.version}: [threshold]
+            {p2.slug}-{canary}-{release1.version}: [threshold]
+            {p1.slug}-{prod}-{release2.version}: [threshold, threshold]
+            {p1.slug}-{prod}-{release2.version}: [threshold]
+            {p1.slug}-None-{release3.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -179,28 +180,32 @@ class ReleaseThresholdStatusTest(APITestCase):
         r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
         assert len(r1_keys) == 3  # 3 keys produced in release 1 (p1-canary, p1-prod, p2-canary)
 
-        temp_key = f"{self.project1.id}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 2
-        temp_key = f"{self.project2.id}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
-        temp_key = f"{self.project1.id}-{self.production_environment.name}-{self.release1.version}"
+        temp_key = (
+            f"{self.project1.slug}-{self.production_environment.name}-{self.release1.version}"
+        )
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
         # release2
         r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
         assert len(r2_keys) == 2  # 2 keys produced in release 2 (p1-canary, p1-prod)
-        temp_key = f"{self.project1.id}-{self.canary_environment.name}-{self.release2.version}"
+        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release2.version}"
         assert temp_key in r2_keys
         assert len(data[temp_key]) == 2
-        temp_key = f"{self.project1.id}-{self.production_environment.name}-{self.release2.version}"
+        temp_key = (
+            f"{self.project1.slug}-{self.production_environment.name}-{self.release2.version}"
+        )
         assert temp_key in r2_keys
         assert len(data[temp_key]) == 1
         # release3
         r3_keys = [k for k, v in data.items() if k.split("-")[2] == self.release3.version]
         assert len(r3_keys) == 1  # 1 key produced in release 3 (p1-None)
-        temp_key = f"{self.project3.id}-None-{self.release3.version}"
+        temp_key = f"{self.project3.slug}-None-{self.release3.version}"
         assert temp_key in r3_keys
         assert len(data[temp_key]) == 1
 
@@ -223,8 +228,8 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         We'll filter for _only_ canary releases, so the response should look like
         {
-            {p1.id}-{canary}-{release1.version}: [threshold1, threshold2]
-            {p2.id}-{canary}-{release1.version}: [threshold]
+            {p1.slug}-{canary}-{release1.version}: [threshold1, threshold2]
+            {p2.slug}-{canary}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -239,11 +244,11 @@ class ReleaseThresholdStatusTest(APITestCase):
         r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
         assert len(r1_keys) == 2  # 2 keys produced in release 1 (p1-canary, p2-canary)
 
-        temp_key = f"{self.project1.id}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 2
 
-        temp_key = f"{self.project2.id}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
 
@@ -266,9 +271,9 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         We'll filter for _only_ release1, so the response should look like
         {
-            {p1.id}-{canary}-{release1.version}: [threshold1, threshold2]
-            {p1.id}-{prod}-{release1.version}: [threshold]
-            {p2.id}-{canary}-{release1.version}: [threshold]
+            {p1.slug}-{canary}-{release1.version}: [threshold1, threshold2]
+            {p1.slug}-{prod}-{release1.version}: [threshold]
+            {p2.slug}-{canary}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -283,13 +288,15 @@ class ReleaseThresholdStatusTest(APITestCase):
         r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
         assert len(r1_keys) == 3  # 3 keys produced in release 1 (p1-canary, p1-prod, p2-canary)
 
-        temp_key = f"{self.project1.id}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 2
-        temp_key = f"{self.project2.id}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
-        temp_key = f"{self.project1.id}-{self.production_environment.name}-{self.release1.version}"
+        temp_key = (
+            f"{self.project1.slug}-{self.production_environment.name}-{self.release1.version}"
+        )
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
 
@@ -297,9 +304,9 @@ class ReleaseThresholdStatusTest(APITestCase):
         r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
         assert len(r2_keys) == 0
 
-    def test_get_success_project_id_filter(self):
+    def test_get_success_project_slug_filter(self):
         """
-        Tests fetching thresholds within the past 24hrs filtered on project_id's
+        Tests fetching thresholds within the past 24hrs filtered on project_slug's
         NOTE: Because releases may have multiple projects, filtering by project is _not_ adequate to
         return accurate release health
         So - filtering on project will give us all the releases associated with that project
@@ -322,13 +329,13 @@ class ReleaseThresholdStatusTest(APITestCase):
         We'll filter for _only_ project2, so the response should look like
         since project2 was only ever added to release1
         {
-            {p2.id}-{canary}-{release1.version}: [threshold]
+            {p2.slug}-{canary}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
         response = self.get_success_response(
-            self.organization.slug, start=yesterday, end=now, project=[self.project2.id]
+            self.organization.slug, start=yesterday, end=now, project=[self.project2.slug]
         )
 
         assert len(response.data.keys()) == 1
@@ -337,12 +344,14 @@ class ReleaseThresholdStatusTest(APITestCase):
         r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
         assert len(r1_keys) == 1  # 1 key produced in release 1 (p2-canary)
 
-        temp_key = f"{self.project1.id}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
         assert temp_key not in r1_keys
-        temp_key = f"{self.project2.id}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
-        temp_key = f"{self.project1.id}-{self.production_environment.name}-{self.release1.version}"
+        temp_key = (
+            f"{self.project1.slug}-{self.production_environment.name}-{self.release1.version}"
+        )
         assert temp_key not in r1_keys
 
         # release2
@@ -419,8 +428,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "environment": None,
             "is_healthy": False,
             "key": "",
-            "project": self.project1,
+            "project": serialize(self.project1),
             "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
@@ -437,8 +447,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "environment": None,
             "is_healthy": False,
             "key": "",
-            "project": self.project1,
+            "project": serialize(self.project1),
             "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
@@ -455,8 +466,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "environment": None,
             "is_healthy": False,
             "key": "",
-            "project": self.project1,
+            "project": serialize(self.project1),
             "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
@@ -473,8 +485,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "environment": None,
             "is_healthy": False,
             "key": "",
-            "project": self.project1,
+            "project": serialize(self.project1),
             "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.UNDER,
@@ -493,8 +506,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "environment": None,
             "is_healthy": False,
             "key": "",
-            "project": self.project1,
+            "project": serialize(self.project1),
             "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
@@ -572,8 +586,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "environment": None,
             "is_healthy": False,
             "key": "",
-            "project": self.project1,
+            "project": serialize(self.project1),
             "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
@@ -590,8 +605,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "environment": None,
             "is_healthy": False,
             "key": "",
-            "project": self.project1,
+            "project": serialize(self.project1),
             "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
             "release": self.release2.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
@@ -662,6 +678,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         ]
 
         # base threshold within series
+        # unhealthy means error count OVER 4 over 1m window
         threshold_healthy: EnrichedThreshold = {
             "date": now,
             "start": now - timedelta(minutes=1),
@@ -669,8 +686,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "environment": None,
             "is_healthy": False,
             "key": "",
-            "project": self.project1,
+            "project": serialize(self.project1),
             "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
@@ -687,8 +705,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "environment": None,
             "is_healthy": False,
             "key": "",
-            "project": self.project2,
+            "project": serialize(self.project2),
             "project_id": self.project2.id,
+            "project_slug": self.project2.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
@@ -766,8 +785,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "environment": None,
             "is_healthy": False,
             "key": "",
-            "project": self.project1,
+            "project": serialize(self.project1),
             "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
@@ -781,11 +801,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
-            "environment": self.canary_environment,
+            "environment": serialize(self.canary_environment),
             "is_healthy": False,
             "key": "",
-            "project": self.project1,
+            "project": serialize(self.project1),
             "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER,
