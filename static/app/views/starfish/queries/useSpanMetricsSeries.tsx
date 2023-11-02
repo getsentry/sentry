@@ -36,7 +36,6 @@ export const useSpanMetricsSeries = (
   const enabled =
     Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
 
-  // TODO: Add referrer
   const result = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
@@ -44,7 +43,6 @@ export const useSpanMetricsSeries = (
     enabled,
   });
 
-  // TODO: The series name is very often discarded by the caller. Maybe it shouldn't return a `Series`, and return raw data instead
   const parsedData = keyBy(
     yAxis.map(seriesName => {
       const series: Series = {
