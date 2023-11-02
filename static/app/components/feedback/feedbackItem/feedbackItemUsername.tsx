@@ -20,7 +20,7 @@ export default function FeedbackItemUsername({feedbackIssue, detailDisplay}: Pro
 
   if (detailDisplay) {
     return (
-      <Flex wrap="wrap" align="center" padding-bottom="3px">
+      <Flex wrap="wrap" align="center">
         <strong>
           {name ?? t('No Name')}
           <Purple>•</Purple>
