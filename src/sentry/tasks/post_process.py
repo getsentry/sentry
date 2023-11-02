@@ -447,7 +447,7 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
 fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
 
-def should_update_escalating_metrics(event: Event, is_transaction_event: bool):
+def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -> bool:
     return (
         features.has("organizations:escalating-metrics-backend", event.project.organization)
         and not is_transaction_event
