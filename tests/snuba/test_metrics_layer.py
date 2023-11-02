@@ -35,7 +35,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             TransactionMRI.DURATION.value: "distribution",
             TransactionMRI.USER.value: "set",
             TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
-            # "g:custom/test_gauge@none": "gauge", # TODO: Add this once the entities are in Snuba
+            "g:transactions/test_gauge@none": "gauge",
         }
         self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
         self.hour_ago = self.now - timedelta(hours=1)
@@ -43,6 +43,16 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         for mri, metric_type in self.metrics.items():
             assert metric_type in {"counter", "distribution", "set", "gauge"}
             for i in range(360):
+                if metric_type == "gauge":
+                    value = {
+                        "min": i,
+                        "max": i,
+                        "sum": i,
+                        "count": i,
+                        "last": i,
+                    }
+                else:
+                    value = i
                 self.store_metric(
                     self.org_id,
                     self.project.id,
@@ -54,7 +64,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
                         "device": "BlackBerry" if i % 3 == 0 else "Nokia",
                     },
                     self.ts(self.hour_ago + timedelta(minutes=1 * i)),
-                    i,
+                    value,
                     UseCaseID.TRANSACTIONS,
                 )
 
@@ -405,15 +415,14 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         assert request.dataset == "metrics"
         assert len(result["data"]) == 0
 
-    @pytest.mark.xfail(reason="gauges entity isn't live yet")
     def test_gauges(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     None,
-                    "g:custom/test_gauge@none",
+                    "g:transactions/test_gauge@none",
                 ),
-                aggregate="max",
+                aggregate="last",
             ),
             start=self.hour_ago,
             end=self.now,
@@ -432,5 +441,5 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         )
         result = run_query(request)
 
-        assert len(result["data"]) == 54
-        assert result["totals"]["aggregate_value"] == 59
+        assert len(result["data"]) == 61
+        assert result["totals"]["aggregate_value"] == 60
