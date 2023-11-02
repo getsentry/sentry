@@ -9,7 +9,8 @@ import GridEditable, {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import {IconPlay} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconLightning, IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -55,9 +56,15 @@ type Props = {
   transaction: string;
   columnOrder?: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[];
   limit?: number;
+  search?: string;
 };
 
-export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}: Props) {
+export function PageSamplePerformanceTable({
+  transaction,
+  columnOrder,
+  search,
+  limit = 9,
+}: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
@@ -77,7 +84,7 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
     useTransactionSamplesWebVitalsQuery({
       limit: limitInThirds,
       transaction,
-      query: `measurements.lcp:<${PERFORMANCE_SCORE_P90S.lcp}`,
+      query: `measurements.lcp:<${PERFORMANCE_SCORE_P90S.lcp} ${search ?? ''}`,
       withProfiles: true,
     });
 
@@ -85,7 +92,9 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
     useTransactionSamplesWebVitalsQuery({
       limit: limitInThirds,
       transaction,
-      query: `measurements.lcp:<${PERFORMANCE_SCORE_MEDIANS.lcp} measurements.lcp:>=${PERFORMANCE_SCORE_P90S.lcp}`,
+      query: `measurements.lcp:<${PERFORMANCE_SCORE_MEDIANS.lcp} measurements.lcp:>=${
+        PERFORMANCE_SCORE_P90S.lcp
+      } ${search ?? ''}`,
       withProfiles: true,
     });
 
@@ -93,7 +102,7 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
     useTransactionSamplesWebVitalsQuery({
       limit: limitInThirds,
       transaction,
-      query: `measurements.lcp:>=${PERFORMANCE_SCORE_MEDIANS.lcp}`,
+      query: `measurements.lcp:>=${PERFORMANCE_SCORE_MEDIANS.lcp} ${search ?? ''}`,
       withProfiles: true,
     });
 
@@ -102,7 +111,7 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
     useTransactionSamplesWebVitalsQuery({
       limit,
       transaction,
-      query: `!has:measurements.lcp`,
+      query: `!has:measurements.lcp ${search ?? ''}`,
       withProfiles: true,
     });
 
@@ -215,7 +224,7 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
       return (
         <AlignRight>
           {row[key] === null ? (
-            <NoValue>{t('(no value)')}</NoValue>
+            <NoValue>{' \u2014 '}</NoValue>
           ) : (
             getFormattedDuration((row[key] as number) / 1000)
           )}
@@ -252,18 +261,24 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
       return (
         <NoOverflow>
           <Flex>
-            <LinkButton to={eventTarget} size="xs">
-              {t('Transaction')}
-            </LinkButton>
-            {profileTarget && (
-              <LinkButton to={profileTarget} size="xs">
-                {t('Profile')}
+            <Tooltip title={t('View Transaction')}>
+              <LinkButton to={eventTarget} size="xs">
+                <IconLightning size="xs" />
               </LinkButton>
+            </Tooltip>
+            {profileTarget && (
+              <Tooltip title={t('View Profile')}>
+                <LinkButton to={profileTarget} size="xs">
+                  <IconProfiling size="xs" />
+                </LinkButton>
+              </Tooltip>
             )}
             {row.replayId && replayTarget && (
-              <LinkButton to={replayTarget} size="xs">
-                <IconPlay size="xs" />
-              </LinkButton>
+              <Tooltip title={t('View Replay')}>
+                <LinkButton to={replayTarget} size="xs">
+                  <IconPlay size="xs" />
+                </LinkButton>
+              </Tooltip>
             )}
           </Flex>
         </NoOverflow>
