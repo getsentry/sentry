@@ -2202,6 +2202,59 @@ class CustomMetricsMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             }
         ]
 
+    def test_gauge_group_by(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            for transaction in (
+                "foo",
+                "bar",
+                "baz",
+            ):
+                self.store_custom_metric(
+                    name=self.mri,
+                    tags={"transaction": transaction},
+                    value=value,
+                    minutes_before_now=minutes,
+                )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=self.mri,
+                ),
+            ],
+            groupby=[MetricGroupByField("transaction")],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {
+                "by": {"transaction": "foo"},
+                "series": {"count(page_load)": [2, 3]},
+                "totals": {"count(page_load)": 5},
+            },
+            {
+                "by": {"transaction": "baz"},
+                "series": {"count(page_load)": [2, 3]},
+                "totals": {"count(page_load)": 5},
+            },
+            {
+                "by": {"transaction": "bar"},
+                "series": {"count(page_load)": [2, 3]},
+                "totals": {"count(page_load)": 5},
+            },
+        ]
+
 
 class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = [

@@ -216,13 +216,12 @@ def _get_entity_of_metric_mri(
         raise InvalidParams
 
     entity_keys_set: frozenset[EntityKey]
-    if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]:
+    if use_case_id in [UseCaseID.TRANSACTIONS]:
         entity_keys_set = frozenset(
             {
                 EntityKey.GenericMetricsCounters,
                 EntityKey.GenericMetricsSets,
                 EntityKey.GenericMetricsDistributions,
-                EntityKey.GenericMetricsGauges,
             }
         )
     elif use_case_id is UseCaseID.SESSIONS:
@@ -231,6 +230,15 @@ def _get_entity_of_metric_mri(
         )
     elif use_case_id is UseCaseID.ESCALATING_ISSUES:
         entity_keys_set = frozenset({EntityKey.GenericMetricsCounters})
+    elif use_case_id is UseCaseID.CUSTOM:
+        entity_keys_set = frozenset(
+            {
+                EntityKey.GenericMetricsCounters,
+                EntityKey.GenericMetricsSets,
+                EntityKey.GenericMetricsDistributions,
+                EntityKey.GenericMetricsGauges,
+            }
+        )
     else:
         raise InvalidParams
 
