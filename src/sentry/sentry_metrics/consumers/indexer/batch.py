@@ -431,7 +431,7 @@ class IndexerBatch:
                     "timestamp": old_payload_value["timestamp"],
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
-                    "value": old_payload_value["value"],
+                    "value": old_payload_value["value"],  # type: ignore
                     "sentry_received_timestamp": sentry_received_timestamp,
                 }
 
