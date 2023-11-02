@@ -21,8 +21,10 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
@@ -66,10 +68,10 @@ class RuleProcessor:
         has_reappeared: bool,
     ) -> None:
         self.event = event
-        if event.group:
+        try:
             self.group = event.group
-        else:
-            raise Exception("Group not found on event")
+        except Group.DoesNotExist:
+            raise ResourceDoesNotExist
         self.project = event.project
 
         self.is_new = is_new
