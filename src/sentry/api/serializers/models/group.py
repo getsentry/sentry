@@ -454,7 +454,9 @@ class GroupSerializerBase(Serializer, ABC):
             status_label = "pending_merge"
         elif status == GroupStatus.REPROCESSING:
             status_label = "reprocessing"
-            status_details["pendingEvents"], status_details["info"] = get_progress(attrs["id"])
+            status_details["pendingEvents"], status_details["info"] = get_progress(
+                attrs["id"], obj.project.id
+            )
         else:
             status_label = "unresolved"
         return status_details, status_label

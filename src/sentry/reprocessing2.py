@@ -122,6 +122,10 @@ GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != model
 #    up those queries for them to not get too slow
 EVENT_MODELS_TO_MIGRATE = (models.EventAttachment, models.UserReport)
 
+# The amount of seconds after which we assume there was no progress during reprocessing,
+# and after which we just give up and mark the group as finished.
+REPROCESSING_TIMEOUT = 20 * 60
+
 
 # Note: This list of reasons is exposed in the EventReprocessableEndpoint to
 # the frontend.
@@ -693,15 +697,29 @@ def is_group_finished(group_id):
     return pending <= 0
 
 
-def get_progress(group_id):
-    pending = _get_sync_redis_client().get(_get_sync_counter_key(group_id))
-    info = _get_sync_redis_client().get(_get_info_reprocessed_key(group_id))
+def get_progress(group_id, project_id=None):
+    client = _get_sync_redis_client()
+    pending_key = _get_sync_counter_key(group_id)
+    pending = client.get(pending_key)
+    ttl = client.ttl(pending_key)
+    info = client.get(_get_info_reprocessed_key(group_id))
     if pending is None:
         logger.error("reprocessing2.missing_counter")
         return 0, None
     if info is None:
         logger.error("reprocessing2.missing_info")
         return 0, None
+
+    # We expect reprocessing to make progress every now and then, by bumping the
+    # TTL of the "counter" key. If that TTL wasn't bumped in a while, we just
+    # assume that reprocessing is stuck, and will just call finish on it.
+    if project_id is not None and ttl is not None and ttl > 0:
+        default_ttl = settings.SENTRY_REPROCESSING_SYNC_TTL
+        age = default_ttl - ttl
+        if age > REPROCESSING_TIMEOUT:
+            from sentry.tasks.reprocessing2 import finish_reprocessing
+
+            finish_reprocessing.delay(project_id=project_id, group_id=group_id)
 
     info = json.loads(info)
     # Our internal sync counters are counting over *all* events, but the
