@@ -111,6 +111,7 @@ export interface CheckIn {
   attachmentId: number | null;
   dateCreated: string;
   duration: number;
+  environment: string;
   expectedTime: string;
   id: string;
   status: CheckInStatus;
