@@ -58,7 +58,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   return (
     <Fragment>
       <HeaderPanelItem>
-        <Flex gap={space(2)} justify="space-between">
+        <Flex gap={space(2)} justify="space-between" wrap="wrap">
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
               <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
@@ -70,18 +70,16 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                 />
               ) : null}
             </Flex>
-            <Flex gap={space(1)}>
-              <Flex align="center" gap={space(0.5)}>
-                <ProjectAvatar
-                  project={feedbackItem.project}
-                  size={12}
-                  title={feedbackItem.project.slug}
-                />
-                {feedbackItem.project.slug}
-              </Flex>
+            <Flex gap={space(0.5)} align="center">
+              <ProjectAvatar
+                project={feedbackItem.project}
+                size={12}
+                title={feedbackItem.project.slug}
+              />
+              {feedbackItem.project.slug}
             </Flex>
           </Flex>
-          <Flex gap={space(1)} align="center">
+          <Flex gap={space(1)} align="center" wrap="wrap">
             <ErrorBoundary mini>
               <FeedbackAssignedTo
                 feedbackIssue={feedbackItem}
