@@ -112,10 +112,9 @@ def should_write_event_stats(event: Union[Event, GroupEvent]):
 
 
 def format_event_platform(event: Union[Event, GroupEvent]):
-    try:
-        group = event.group
-    except Group.DoesNotExist:
-        raise Exception("Group could not be found")
+    group = event.group
+    if not group:
+        raise Exception("Group not found on event")
     platform = group.platform
     if not platform:
         raise AttributeError("No platform on group")
@@ -787,7 +786,7 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 
             if not event.group:
-                raise Exception("Group not found")
+                raise Exception("Group not found on event")
 
             if is_reprocessed and is_new:
                 # keep Group.status=UNRESOLVED and Group.substatus=ONGOING if its reprocessed
@@ -830,10 +829,9 @@ def process_snoozes(job: PostProcessJob) -> None:
     from sentry.types.group import GroupSubStatus
 
     event = job["event"]
-    try:
-        group = event.group
-    except Group.DoesNotExist:
-        raise Exception("Group not found")
+    group = event.group
+    if not group:
+        raise Exception("Group not found on event")
 
     # Check is group is escalating
     if (
