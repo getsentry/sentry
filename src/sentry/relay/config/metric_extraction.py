@@ -75,7 +75,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
 
     alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
-    widget_specs = _get_widget_metric_specs(project, enabled_features)
+    widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
 
     metric_specs = _merge_metric_specs(alert_specs, widget_specs)
     if not metric_specs:
@@ -162,12 +162,15 @@ def _get_alert_metric_specs(
 
 
 def _get_widget_metric_specs(
-    project: Project, enabled_features: Set[str], prefilling: bool = True
+    project: Project, enabled_features: Set[str], prefilling: bool
 ) -> List[HashedMetricSpec]:
     if "organizations:on-demand-metrics-extraction-widgets" not in enabled_features:
         return []
 
-    metrics.incr("on_demand_metrics.get_widgets")
+    metrics.incr(
+        "on_demand_metrics.get_widgets",
+        tags={"prefilling": prefilling},
+    )
 
     # fetch all queries of all on demand metrics widgets of this organization
     widget_queries = DashboardWidgetQuery.objects.filter(
