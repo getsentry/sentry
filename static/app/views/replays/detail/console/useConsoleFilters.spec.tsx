@@ -92,28 +92,11 @@ const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
       logger: 'console',
     },
   }),
-  // ReplayConsoleFrame({
-  //   type: BreadcrumbType.ERROR,
-  //   timestamp: new Date('2022-05-11T23:05:51.531000Z'),
-  //   level: BreadcrumbLevelType.ERROR,
-  //   color: 'red300',
-  //   description: '',
-  //   id: 4,
-  //   message:
-  //     'NotFoundError GET "/projects/{orgSlug}/{projectSlug}/replays/2b5b78831dc849a0b663a72acdef9fa6/" 404',
-  //   category: 'issue',
-  //   data: {
-  //     arguments: [
-  //       'NotFoundError GET "/projects/{orgSlug}/{projectSlug}/replays/2b5b78831dc849a0b663a72acdef9fa6/" 404',
-  //     ],
-  //     logger: 'console',
-  //   },
-  // }),
 ]);
 
 describe('useConsoleFilters', () => {
   beforeEach(() => {
-    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(browserHistory.replace).mockReset();
   });
 
   it('should update the url when setters are called', () => {
@@ -135,7 +118,7 @@ describe('useConsoleFilters', () => {
     });
 
     result.current.setLogLevel(LOG_FILTER);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_c_logLevel: LOG_FILTER,
@@ -145,7 +128,7 @@ describe('useConsoleFilters', () => {
     rerender();
 
     result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_c_logLevel: LOG_FILTER,

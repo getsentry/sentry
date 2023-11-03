@@ -44,7 +44,7 @@ class EventAttachmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(attachment1.id)
-        assert response.data[0]["mimetype"] == attachment1.mimetype
+        assert response.data[0]["mimetype"] == "image/png"
         assert response.data[0]["event_id"] == attachment1.event_id
 
     def test_is_screenshot(self):
@@ -78,5 +78,5 @@ class EventAttachmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(attachment1.id)
-        assert response.data[0]["mimetype"] == attachment1.mimetype
+        assert response.data[0]["mimetype"] == "image/png"
         assert response.data[0]["event_id"] == attachment1.event_id

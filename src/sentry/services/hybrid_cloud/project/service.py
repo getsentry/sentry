@@ -14,7 +14,11 @@ from sentry.services.hybrid_cloud.project import (
     RpcProject,
     RpcProjectOptionValue,
 )
-from sentry.services.hybrid_cloud.region import ByOrganizationId, ByOrganizationIdAttribute
+from sentry.services.hybrid_cloud.region import (
+    ByOrganizationId,
+    ByOrganizationIdAttribute,
+    ByRegionName,
+)
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
@@ -29,6 +33,17 @@ class ProjectService(RpcService):
         from sentry.services.hybrid_cloud.project.impl import DatabaseBackedProjectService
 
         return DatabaseBackedProjectService()
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def get_many_by_organizations(
+        self,
+        *,
+        region_name: str,
+        organization_ids: List[int],
+        limit: int = 100,
+    ) -> List[RpcProject]:
+        pass
 
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
@@ -65,6 +80,19 @@ class ProjectService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def create_project_for_organization(
+        self,
+        *,
+        organization_id: int,
+        project_name: str,
+        platform: str,
+        user_id: int,
+        add_org_default_team: Optional[bool] = False,
+    ) -> RpcProject:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_or_create_project_for_organization(
         self,
         *,
         organization_id: int,

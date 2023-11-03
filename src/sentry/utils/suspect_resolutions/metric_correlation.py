@@ -39,7 +39,7 @@ def is_issue_error_rate_correlated(
     start_time = resolution_time - timedelta(hours=5)
     end_time = resolution_time + timedelta(hours=1)
 
-    data = tsdb.get_range(
+    data = tsdb.backend.get_range(
         model=TSDBModel.group,
         keys=[resolved_issue.id] + [csr.id for csr in candidate_suspect_resolutions],
         rollup=600,

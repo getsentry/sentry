@@ -11,7 +11,8 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
-from sentry import eventstore
+from sentry import eventstore, features
+from sentry.feedback.usecases.create_feedback import shim_to_feedback
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -189,6 +190,12 @@ class ErrorPageEmbedView(View):
                 project=Project.objects.get(id=report.project_id),
                 sender=self,
             )
+
+            project = Project.objects.get(id=report.project_id)
+            if features.has(
+                "organizations:user-feedback-ingest", project.organization, actor=request.user
+            ):
+                shim_to_feedback(report, event, project)
 
             return self._smart_response(request)
         elif request.method == "POST":

@@ -199,6 +199,26 @@ function buildRoutes() {
         path="/organizations/:orgId/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
+      {usingCustomerDomain && (
+        <Route
+          path="/unsubscribe/project/:id/"
+          component={make(() => import('sentry/views/unsubscribe/project'))}
+        />
+      )}
+      <Route
+        path="/unsubscribe/:orgId/project/:id/"
+        component={make(() => import('sentry/views/unsubscribe/project'))}
+      />
+      {usingCustomerDomain && (
+        <Route
+          path="/unsubscribe/issue/:id/"
+          component={make(() => import('sentry/views/unsubscribe/issue'))}
+        />
+      )}
+      <Route
+        path="/unsubscribe/:orgId/issue/:id/"
+        component={make(() => import('sentry/views/unsubscribe/issue'))}
+      />
       <Route
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
