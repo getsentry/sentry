@@ -13,6 +13,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    # the default default is:
+    #      bash --noprofile --norc -eo pipefail {0}
+    shell: bash --noprofile --norc -eo pipefail -ux {0}
+
 jobs:
     files-changed:
         name: detect what files changed
@@ -88,14 +94,18 @@ jobs:
         - name: Codecov Automated Test Selection
           id: codecov_automated_test_selection
           run: |
+            # Directory for the artifacts from this step
+            mkdir .artifacts/codecov_ats
+            # This is the base for the git diff BASE..HEAD
             BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
-            echo $BASE_COMMIT
+            # Get list of tests to run from Codecov
             output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}) || true
+            # Post processing and validation
             if [ -n "${output}" ];
             then
 
-              echo $(jq <<< $output '.runner_options + .ats_tests_to_run | @json' --raw-output) > .artifacts/codecov_ats_tests_to_run.json
-              echo $(jq <<< $output '.runner_options + .ats_tests_to_skip | @json' --raw-output) > .artifacts/codecov_ats_tests_to_skip.json
+              jq <<< $output '.runner_options + .ats_tests_to_run | @json' --raw-output > .artifacts/codecov_ats/tests_to_run.json
+              jq <<< $output '.runner_options + .ats_tests_to_skip | @json' --raw-output > .artifacts/codecov_ats/tests_to_skip.json
 
               testcount() { jq <<< $output ".$1 | length"; }
               run_count=$(testcount ats_tests_to_run)
@@ -111,7 +121,7 @@ jobs:
               tee <<< \
                 "{\"ats_success\": $ats_success, \"error\": $ats_fallback_reason, \"tests_to_run\": $run_count, \"tests_analyzed\": $((run_count+skip_count))}" \
                 "$GITHUB_STEP_SUMMARY" \
-                ".artifacts/codecov_ats_result.json"
+                ".artifacts/codecov_ats/result.json"
             else
               # We need not forget to add the search options in the fallback command, otherwise pytest might run more tests than expected
               # These search options match what's defined in codecov.yml:105
@@ -125,28 +135,18 @@ jobs:
                 "--ignore=tests/sentry/search/events",
                 "--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py",
                 "--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py"
-              ]' > .artifacts/codecov_ats_tests_to_skip.json
-              echo '[]' > .artifacts/codecov_ats_tests_to_run.json
+              ]' > .artifacts/codecov_ats/tests_to_skip.json
+              echo '[]' > .artifacts/codecov_ats/tests_to_run.json
               # If we reached this point it means that ATS failed with some error
-              tee <<< '{"ats_success": false, "error": "exception_raised"}' "$GITHUB_STEP_SUMMARY" ".artifacts/codecov_ats_result.json"
+              tee <<< '{"ats_success": false, "error": "exception_raised"}' "$GITHUB_STEP_SUMMARY" ".artifacts/codecov_ats/result.json"
             fi
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
             CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
         - uses: actions/upload-artifact@v3
           with:
-            name: ats_tests_to_run.json
-            path: .artifacts/codecov_ats_tests_to_run.json
-            if-no-files-found: error
-        - uses: actions/upload-artifact@v3
-          with:
-            name: ats_tests_to_skip.json
-            path: .artifacts/codecov_ats_tests_to_skip.json
-            if-no-files-found: error
-        - uses: actions/upload-artifact@v3
-          with:
-            name: ats_result.json
-            path: .artifacts/codecov_ats_result.json
+            name: codecov_ats
+            path: .artifacts/codecov_ats
             if-no-files-found: error
     # The actual running of tests would come here, after the labels are available
     # Something like pytest <options> $ATS_TESTS_TO_RUN
@@ -155,35 +155,33 @@ jobs:
       needs:
         - coverage-ats
         - files-changed
+      # Avoids running this job if it's a frontend change
+      # It would fail if the coverage-ats step didn't run
       if: needs.files-changed.outputs.backend == 'true'
       steps:
         - uses: actions/download-artifact@v3
           with:
-            name: ats_tests_to_run.json
-            path: .artifacts
-        - uses: actions/download-artifact@v3
-          with:
-            name: ats_tests_to_skip.json
+            name: codecov_ats
             path: .artifacts
         - name: Debug ATS_TESTS_TO_RUN
           run: |
-            length_of_tests=$(cat .artifacts/codecov_ats_tests_to_run.json | jq 'length')
+            length_of_tests=$(cat .artifacts/tests_to_run.json | jq 'length')
             # The 1st value doesn't count, it's '--cov-context=test' (hence -gt 1)
             if [ $length_of_tests -gt 1 ]; then
               echo "Running $length_of_tests tests"
               # --raw-output0 doesn't work.
-              cat .artifacts/codecov_ats_tests_to_run.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
+              cat .artifacts/tests_to_run.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
             else
               echo "No tests to run"
             fi
         - name: Debug ATS_TESTS_TO_SKIP
           run: |
-            length_of_tests=$(cat .artifacts/codecov_ats_tests_to_skip.json | jq 'length')
+            length_of_tests=$(cat .artifacts/tests_to_skip.json | jq 'length')
             # The 1st value doesn't count, it's '--cov-context=test'
             if [ $length_of_tests -gt 1 ]; then
               echo "Running $length_of_tests tests"
               # --raw-output0 doesn't work.
-              cat .artifacts/codecov_ats_tests_to_skip.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
+              cat .artifacts/tests_to_skip.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
             else
               echo "No tests to run"
             fi
