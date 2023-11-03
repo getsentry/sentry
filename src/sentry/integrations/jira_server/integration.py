@@ -28,7 +28,6 @@ from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -622,7 +621,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             organization = (
                 group.organization
                 if group
-                else Organization.objects.get_from_cache(id=self.organization_id)
+                else organization_service.get_organization_by_id(id=self.organization_id)
             )
             fkwargs["url"] = self.search_url(organization.slug)
             fkwargs["choices"] = []
