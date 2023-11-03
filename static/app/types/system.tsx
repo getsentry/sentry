@@ -73,6 +73,11 @@ declare global {
      * Assets public location
      */
     __sentryGlobalStaticPrefix: string;
+    /**
+     * Is populated with promises/strings of commonly used data.
+     */
+    __sentry_preload: Record<string, any>;
+
     // typing currently used for demo add on
     // TODO: improve typing
     SentryApp?: {

@@ -202,7 +202,12 @@ def test_static_and_non_static_strings_generic_metrics(indexer):
 
 
 def test_indexer(indexer, indexer_cache, use_case_id):
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         org1_id = 1
         org2_id = 2
         strings = {"hello", "hey", "hi"}
@@ -257,7 +262,12 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id):
     """
     Test `resolve` and `reverse_resolve` methods
     """
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         org1_id = 1
         strings = {"hello", "hey", "hi"}
 
@@ -285,7 +295,12 @@ def test_already_created_plus_written_results(indexer, indexer_cache, use_case_i
     Test that we correctly combine db read results with db write results
     for the same organization.
     """
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         org_id = 1234
 
         raw_indexer = indexer
@@ -332,7 +347,12 @@ def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -
     Test that we correctly combine cached results with read results
     for the same organization.
     """
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         org_id = 8
         cached = {
             f"{use_case_id.value}:{org_id}:beep": 10,
@@ -371,7 +391,12 @@ def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -
 
 
 def test_read_when_bulk_record(indexer, use_case_id):
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         strings = {
             use_case_id: {
                 1: {"a"},
@@ -483,7 +508,12 @@ def test_bulk_reverse_resolve(indexer):
     Tests reverse resolve properly returns the corresponding strings
     in the proper order when given a combination of shared and non-shared ids.
     """
-    with override_options({"sentry-metrics.indexer.read-new-cache-namespace": False}):
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
         org_id = 7
         use_case_id = UseCaseID.SESSIONS  # any use case would do
         static_indexer = StaticStringIndexer(indexer)

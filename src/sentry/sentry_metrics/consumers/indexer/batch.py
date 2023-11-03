@@ -1,6 +1,6 @@
 import logging
 import random
-from collections import defaultdict
+from collections import defaultdict, deque
 from typing import (
     Any,
     Callable,
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 # ensure that the database can store the data.
 MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
-ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
+ACCEPTED_METRIC_TYPES = {"s", "c", "d", "g"}  # set, counter, distribution, gauge
 
 OrgId = int
 Headers = MutableSequence[Tuple[str, bytes]]
@@ -126,8 +126,13 @@ class IndexerBatch:
                 parsed_payload = self._extract_message(msg)
                 self._validate_message(parsed_payload)
                 self.parsed_payloads_by_meta[broker_meta] = parsed_payload
-            except Exception:
+            except Exception as e:
                 self.invalid_msg_meta.add(broker_meta)
+                logger.error(
+                    e,
+                    extra={"payload_value": str(msg.payload.value)},
+                    exc_info=True,
+                )
 
         for namespace, cnt in skipped_msgs_cnt.items():
             metrics.incr(
@@ -163,17 +168,7 @@ class IndexerBatch:
                 extra={"payload_value": str(msg.payload.value)},
                 exc_info=True,
             )
-        try:
-            parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(
-                parsed_payload["name"]
-            )
-        except ValidationError:
-            logger.error(
-                "process_messages.invalid_metric_resource_identifier",
-                extra={"payload_value": str(msg.payload.value)},
-                exc_info=True,
-            )
-            raise
+        parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
 
         self.__message_count[use_case_id] += 1
         self.__message_size_max[use_case_id] = max(
@@ -425,6 +420,9 @@ class IndexerBatch:
             sentry_received_timestamp = message.value.timestamp.timestamp()
 
             if self.__should_index_tag_values:
+                # Metrics don't support gauges (which use dicts), so assert value type
+                value = old_payload_value["value"]
+                assert isinstance(value, (int, float, list))
                 new_payload_v1: Metric = {
                     "tags": new_tags,
                     # XXX: relay actually sends this value unconditionally
@@ -436,7 +434,7 @@ class IndexerBatch:
                     "timestamp": old_payload_value["timestamp"],
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
-                    "value": old_payload_value["value"],
+                    "value": value,
                     "sentry_received_timestamp": sentry_received_timestamp,
                 }
 
@@ -501,5 +499,6 @@ class IndexerBatch:
             )
         return IndexerOutputMessageBatch(
             new_messages,
+            deque(sorted(self.invalid_msg_meta)),
             cogs_usage,
         )

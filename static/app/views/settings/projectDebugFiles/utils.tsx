@@ -3,7 +3,7 @@ import {DebugFile, DebugFileFeature, DebugFileType} from 'sentry/types/debugFile
 
 const PRETTY_SYMBOL_TYPES = {
   proguard: t('ProGuard mapping'),
-  breakpad: t('Breadpad'),
+  breakpad: t('Breakpad'),
   macho: t('Mach-O'),
   elf: t('ELF'),
   pe: t('PE'),

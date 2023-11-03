@@ -1,5 +1,5 @@
-import {useMemo, useState} from 'react';
-import {Link} from 'react-router';
+import {useMemo} from 'react';
+import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -8,19 +8,28 @@ import GridEditable, {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {Row} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {
+  Row,
+  SORTABLE_FIELDS,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
+import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type RowWithScoreAndOpportunity = Row & {opportunity: number; score: number};
 
@@ -39,17 +48,21 @@ const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
 ];
 
 export function PagePerformanceTable() {
+  const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
-  const [search, setSearch] = useState<string | undefined>(undefined);
+
+  const query = decodeScalar(location.query.query, '');
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
     [projects, location.query.project]
   );
 
+  const sort = useWebVitalsSort();
+
   const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
-    useProjectWebVitalsQuery({transaction: search});
+    useProjectWebVitalsQuery({transaction: query});
 
   const projectScore = calculatePerformanceScore({
     lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
@@ -59,41 +72,55 @@ export function PagePerformanceTable() {
     fid: projectData?.data[0]['p75(measurements.fid)'] as number,
   });
 
-  const {data, isLoading: isTransactionWebVitalsQueryLoading} =
-    useTransactionWebVitalsQuery({limit: 10, transaction: search});
+  const {
+    data,
+    pageLinks,
+    isLoading: isTransactionWebVitalsQueryLoading,
+  } = useTransactionWebVitalsQuery({limit: 10, transaction: query});
 
   const count = projectData?.data[0]['count()'] as number;
 
-  const tableData: RowWithScoreAndOpportunity[] = data
-    .map(row => ({
-      ...row,
-      opportunity: calculateOpportunity(
-        projectScore.totalScore,
-        count,
-        row.score,
-        row['count()']
-      ),
-    }))
-    .sort((a, b) => b.opportunity - a.opportunity);
+  const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
+    ...row,
+    opportunity: calculateOpportunity(
+      projectScore.totalScore,
+      count,
+      row.score,
+      row['count()']
+    ),
+  }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
   };
 
   function renderHeadCell(col: Column) {
-    if (
-      [
-        'p75(measurements.fcp)',
-        'p75(measurements.lcp)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
-        'p75(measurements.cls)',
-        'count()',
-      ].includes(col.key)
-    ) {
+    function generateSortLink() {
+      let newSortDirection: Sort['kind'] = 'desc';
+      if (sort?.field === col.key) {
+        if (sort.kind === 'desc') {
+          newSortDirection = 'asc';
+        }
+      }
+
+      const newSort = `${newSortDirection === 'desc' ? '-' : ''}${col.key}`;
+
+      return {
+        ...location,
+        query: {...location.query, sort: newSort},
+      };
+    }
+
+    const canSort = (SORTABLE_FIELDS as unknown as string[]).includes(col.key);
+
+    if (canSort) {
       return (
-        <AlignRight>
-          <span>{col.name}</span>
-        </AlignRight>
+        <SortLink
+          align="right"
+          title={col.name}
+          direction={sort?.field === col.key ? sort.kind : undefined}
+          canSort={canSort}
+          generateSortLink={generateSortLink}
+        />
       );
     }
     if (col.key === 'score') {
@@ -142,7 +169,15 @@ export function PagePerformanceTable() {
             />
           )}
           <Link
-            to={{...location, query: {...location.query, transaction: row.transaction}}}
+            to={{
+              ...location,
+              ...(organization.features.includes(
+                'starfish-browser-webvitals-pageoverview-v2'
+              )
+                ? {pathname: `${location.pathname}overview/`}
+                : {}),
+              query: {...location.query, transaction: row.transaction},
+            }}
           >
             {row.transaction}
           </Link>
@@ -165,15 +200,21 @@ export function PagePerformanceTable() {
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 
+  const handleSearch = (newQuery: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        query: newQuery === '' ? undefined : `*${newQuery}*`,
+        cursor: undefined,
+      },
+    });
+  };
+
   return (
     <span>
       <SearchBarContainer>
-        <SearchBar
-          placeholder={t('Search for Pages')}
-          onSearch={query => {
-            setSearch(query === '' ? undefined : `*${query}*`);
-          }}
-        />
+        <SearchBar placeholder={t('Search for Pages')} onSearch={handleSearch} />
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
@@ -188,6 +229,7 @@ export function PagePerformanceTable() {
           location={location}
         />
       </GridContainer>
+      <Pagination pageLinks={pageLinks} />
     </span>
   );
 }

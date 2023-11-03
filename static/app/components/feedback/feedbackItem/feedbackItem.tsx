@@ -1,144 +1,120 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import useMarkRead from 'sentry/components/feedback/feedbackItem/useMarkAsRead';
-import useUpdateFeedback from 'sentry/components/feedback/feedbackItem/useUpdateFeedback';
-import ObjectInspector from 'sentry/components/objectInspector';
+import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
+import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, GroupStatus} from 'sentry/types';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import type {Event} from 'sentry/types';
+import {GroupStatus} from 'sentry/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;
-  feedbackItem: HydratedFeedbackItem;
-  replayId: string;
+  feedbackItem: FeedbackIssue;
   tags: Record<string, string>;
 }
 
-export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: Props) {
+export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const {onSetStatus} = useUpdateFeedback({feedbackItem});
-  const {markAsRead} = useMarkRead({feedbackItem});
+  const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
+  const {markAsRead, resolve} = useMutateFeedback({
+    feedbackIds: [feedbackItem.id],
+    organization,
+  });
+
   const url = eventData?.tags.find(tag => tag.key === 'url');
+  const replayId = eventData?.contexts?.feedback?.replay_id;
+
+  const mutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while updating the feedback.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Updated feedback'));
+    },
+  };
 
   return (
     <Fragment>
       <HeaderPanelItem>
-        <Flex gap={space(2)} justify="space-between">
+        <Flex gap={space(2)} justify="space-between" wrap="wrap">
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
-              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay />
-              {feedbackItem.metadata.contact_email ? (
-                <CopyToClipboardButton
-                  size="xs"
-                  iconSize="xs"
-                  text={feedbackItem.metadata.contact_email}
-                />
-              ) : null}
+              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
             </Flex>
-            <Flex gap={space(1)}>
-              <Flex align="center" gap={space(0.5)}>
-                <ProjectAvatar
-                  project={feedbackItem.project}
-                  size={12}
-                  title={feedbackItem.project.slug}
-                />
-                {feedbackItem.project.slug}
-              </Flex>
+            <Flex gap={space(0.5)} align="center">
+              <ProjectAvatar
+                project={feedbackItem.project}
+                size={12}
+                title={feedbackItem.project.slug}
+              />
+              <TextOverflow>{feedbackItem.project.slug}</TextOverflow>
             </Flex>
           </Flex>
-          <Flex gap={space(1)} align="center">
+          <Flex gap={space(1)} align="center" wrap="wrap">
             <ErrorBoundary mini>
-              <FeedbackViewers feedbackItem={feedbackItem} />
-            </ErrorBoundary>
-            <ErrorBoundary mini>
-              <DropdownMenu
-                position="bottom-end"
-                triggerLabel={
-                  feedbackItem.status === GroupStatus.IGNORED
-                    ? t('Archived')
-                    : feedbackItem.status === GroupStatus.RESOLVED
-                    ? t('Resolved')
-                    : t('Unresolved')
-                }
-                triggerProps={{
-                  'aria-label': t('Resolve or Archive Menu'),
-                  showChevron: true,
-                  size: 'xs',
-                }}
-                items={[
-                  {
-                    key: 'resolve',
-                    label:
-                      feedbackItem.status === GroupStatus.RESOLVED
-                        ? t('Unresolve')
-                        : t('Resolve'),
-                    onAction: () =>
-                      onSetStatus(
-                        feedbackItem.status === GroupStatus.RESOLVED
-                          ? GroupStatus.UNRESOLVED
-                          : GroupStatus.RESOLVED
-                      ),
-                  },
-                  {
-                    key: 'archive',
-                    label:
-                      feedbackItem.status === GroupStatus.IGNORED
-                        ? t('Unarchive')
-                        : t('Archive'),
-                    onAction: () =>
-                      onSetStatus(
-                        feedbackItem.status === GroupStatus.IGNORED
-                          ? GroupStatus.UNRESOLVED
-                          : GroupStatus.IGNORED
-                      ),
-                  },
-                ]}
+              <FeedbackAssignedTo
+                feedbackIssue={feedbackItem}
+                feedbackEvent={eventData}
               />
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <DropdownMenu
-                position="bottom-end"
-                triggerProps={{
-                  'aria-label': t('Read Menu'),
-                  icon: <IconEllipsis size="xs" />,
-                  showChevron: false,
-                  size: 'xs',
+              <Button
+                onClick={() => {
+                  addLoadingMessage(t('Updating feedback...'));
+                  const newStatus =
+                    feedbackItem.status === 'resolved'
+                      ? GroupStatus.UNRESOLVED
+                      : GroupStatus.RESOLVED;
+                  resolve(newStatus, mutationOptions);
                 }}
-                items={[
-                  {
-                    key: 'mark read',
-                    label: t('Mark as read'),
-                    onAction: () => markAsRead(true),
-                  },
-                  {
-                    key: 'mark unread',
-                    label: t('Mark as unread'),
-                    onAction: () => markAsRead(false),
-                  },
-                ]}
-              />
+              >
+                {feedbackItem.status === 'resolved' ? t('Unresolve') : t('Resolve')}
+              </Button>
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <Button
+                onClick={() => {
+                  addLoadingMessage(t('Updating feedback...'));
+                  markAsRead(!feedbackItem.hasSeen, mutationOptions);
+                }}
+              >
+                {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
+              </Button>
             </ErrorBoundary>
           </Flex>
         </Flex>
       </HeaderPanelItem>
       <OverflowPanelItem>
-        <Section title={t('Description')}>
+        <Section
+          title={t('Description')}
+          contentRight={
+            <ErrorBoundary>
+              <FeedbackViewers feedbackItem={feedbackItem} />
+            </ErrorBoundary>
+          }
+        >
           <Blockquote>
             <pre>{feedbackItem.metadata.message}</pre>
           </Blockquote>
@@ -150,32 +126,15 @@ export default function FeedbackItem({feedbackItem, eventData, tags, replayId}: 
           </ErrorBoundary>
         </Section>
 
-        {replayId ? (
-          <ReplaySection organization={organization} replayId={replayId} />
+        {hasReplayId && replayId ? (
+          <ReplaySection
+            eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
+            organization={organization}
+            replayId={replayId}
+          />
         ) : null}
 
         <TagsSection tags={tags} />
-
-        <Section icon={<IconJson size="xs" />} title={t('Raw Issue Data')}>
-          <ObjectInspector
-            data={feedbackItem}
-            expandLevel={3}
-            theme={{
-              TREENODE_FONT_SIZE: '0.7rem',
-              ARROW_FONT_SIZE: '0.5rem',
-            }}
-          />
-        </Section>
-        <Section icon={<IconJson size="xs" />} title={t('Raw Event Data')}>
-          <ObjectInspector
-            data={eventData}
-            expandLevel={3}
-            theme={{
-              TREENODE_FONT_SIZE: '0.7rem',
-              ARROW_FONT_SIZE: '0.5rem',
-            }}
-          />
-        </Section>
       </OverflowPanelItem>
     </Fragment>
   );

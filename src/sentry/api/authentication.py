@@ -33,7 +33,7 @@ from sentry.services.hybrid_cloud.rpc import compare_signature
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit, SiloMode
-from sentry.utils.env import AuthComponent, should_use_authenticated_token, should_use_rpc_user
+from sentry.utils.linksign import process_signature
 from sentry.utils.sdk import configure_scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -132,16 +132,8 @@ def relay_from_id(request, relay_id) -> Tuple[Optional[Relay], bool]:
 
 
 class QuietBasicAuthentication(BasicAuthentication):
-    _hybrid_cloud_rollout_auth_component: AuthComponent
-
     def authenticate_header(self, request: Request) -> str:
         return 'xBasic realm="%s"' % self.www_authenticate_realm
-
-    def _use_authenticated_token(self) -> bool:
-        return should_use_authenticated_token(self._hybrid_cloud_rollout_auth_component)
-
-    def _use_rpc_user(self) -> bool:
-        return should_use_rpc_user(self._hybrid_cloud_rollout_auth_component)
 
     def transform_auth(
         self,
@@ -149,15 +141,11 @@ class QuietBasicAuthentication(BasicAuthentication):
         request_auth: Any,
         entity_id_tag: str | None = None,
         **tags,
-    ) -> Tuple[User | RpcUser | AnonymousUser, Any]:
+    ) -> Tuple[RpcUser | AnonymousUser, AuthenticatedToken | None]:
         if isinstance(user, int):
-            if self._use_rpc_user():
-                user = user_service.get_user(user_id=user)
-            else:
-                user = User.objects.filter(id=user).first()
+            user = user_service.get_user(user_id=user)
         elif isinstance(user, User):
-            if self._use_rpc_user():
-                user = user_service.get_user(user_id=user.id)
+            user = user_service.get_user(user_id=user.id)
         if user is None:
             user = AnonymousUser()
 
@@ -168,12 +156,7 @@ class QuietBasicAuthentication(BasicAuthentication):
                 for k, v in tags.items():
                     scope.set_tag(k, v)
 
-        return (
-            user,
-            auth_token
-            if request_auth is not None and self._use_authenticated_token()
-            else request_auth,
-        )
+        return (user, auth_token)
 
 
 class StandardAuthentication(QuietBasicAuthentication):
@@ -236,7 +219,6 @@ class RelayAuthentication(BasicAuthentication):
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class ApiKeyAuthentication(QuietBasicAuthentication):
     token_name = b"basic"
-    _hybrid_cloud_rollout_auth_component = AuthComponent.API_KEY_BACKED_AUTH
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
@@ -282,8 +264,6 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     For example, the request to exchange a Grant Code for an Api Token.
     """
 
-    _hybrid_cloud_rollout_auth_component = AuthComponent.SENTRY_APP_BACKED_AUTH
-
     def authenticate(self, request: Request):
         if not request.json_body:
             raise AuthenticationFailed("Invalid request")
@@ -316,7 +296,6 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 @AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
-    _hybrid_cloud_rollout_auth_component = AuthComponent.API_TOKEN_BACKED_AUTH
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth):
@@ -386,7 +365,6 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class OrgAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
-    _hybrid_cloud_rollout_auth_component = AuthComponent.ORG_AUTH_TOKEN_BACKED_AUTH
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth) or len(auth) != 2:
@@ -437,6 +415,17 @@ class DSNAuthentication(StandardAuthentication):
             scope.set_tag("api_project_key", key.id)
 
         return (AnonymousUser(), key)
+
+
+@AuthenticationSiloLimit(SiloMode.REGION)
+class SignedRequestAuthentication(BaseAuthentication):
+    def authenticate(self, request: Request) -> tuple[Any, Any]:
+        user = process_signature(request)
+        if not user:
+            return (AnonymousUser(), None)
+
+        setattr(request, "user_from_signed_request", True)
+        return (user, None)
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)

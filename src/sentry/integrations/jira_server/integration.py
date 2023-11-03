@@ -28,10 +28,10 @@ from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -366,7 +366,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
 
-        organization = Organization.objects.get(id=self.organization_id)
+        organization = organization_service.get_organization_by_id(id=self.organization_id)
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
         if not has_issue_sync:
             for field in configuration:
@@ -494,7 +494,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:
-        return ["project", "issuetype", "labels"]
+        return ["project", "issuetype", "priority", "labels"]
 
     def get_persisted_user_default_config_fields(self):
         return ["reporter"]
@@ -621,7 +621,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             organization = (
                 group.organization
                 if group
-                else Organization.objects.get_from_cache(id=self.organization_id)
+                else organization_service.get_organization_by_id(id=self.organization_id)
             )
             fkwargs["url"] = self.search_url(organization.slug)
             fkwargs["choices"] = []
@@ -837,7 +837,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             if field["name"] == "priority":
                 # whenever priorities are available, put the available ones in the list.
                 # allowedValues for some reason doesn't pass enough info.
-                field["choices"] = self.make_choices(client.get_priorities(project_id))
+                field["choices"] = self.make_choices(client.get_priorities())
                 field["default"] = defaults.get("priority", "")
             elif field["name"] == "fixVersions":
                 field["choices"] = self.make_choices(client.get_versions(project_id))
@@ -976,6 +976,10 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             # in the projectmeta API call, and would normally be converted in the
             # above clean method.)
             cleaned_data["issuetype"] = {"id": issue_type}
+
+        # sometimes the project is missing as well and we need to add it
+        if "project" not in cleaned_data:
+            cleaned_data["project"] = {"id": jira_project}
 
         try:
             logger.info(

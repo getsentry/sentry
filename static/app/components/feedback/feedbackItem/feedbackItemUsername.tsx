@@ -1,21 +1,43 @@
+import styled from '@emotion/styled';
+
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import {space} from 'sentry/styles/space';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 interface Props {
   detailDisplay: boolean;
-  feedbackItem: HydratedFeedbackItem;
+  feedbackIssue: FeedbackIssue;
 }
 
-export default function FeedbackItemUsername({feedbackItem, detailDisplay}: Props) {
-  const email = feedbackItem.metadata.contact_email;
+export default function FeedbackItemUsername({feedbackIssue, detailDisplay}: Props) {
+  const name = feedbackIssue.metadata.name;
+  const email = feedbackIssue.metadata.contact_email;
 
-  if (!email) {
+  if (!email && !name) {
     return <strong>{t('Anonymous User')}</strong>;
   }
 
   if (detailDisplay) {
-    return <strong>{email ?? t('No Email')}</strong>;
+    return (
+      <Flex wrap="wrap" align="center">
+        <strong>
+          {name ?? t('No Name')}
+          <Purple>•</Purple>
+        </strong>
+        <Flex align="center" gap={space(1)}>
+          <strong>{email ?? t('No Email')}</strong>
+          {email ? <CopyToClipboardButton size="xs" iconSize="xs" text={email} /> : null}
+        </Flex>
+      </Flex>
+    );
   }
 
-  return <strong>{email}</strong>;
+  return <strong>{name ?? email}</strong>;
 }
+
+const Purple = styled('span')`
+  color: ${p => p.theme.purple300};
+  padding: ${space(0.5)};
+`;
