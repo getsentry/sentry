@@ -101,6 +101,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 release=None,
             )
         )
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp, project.id, "error", replay1_id, "a3a62ef6ac86415b83c2416fc2f76db1"
+            )
+        )
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
@@ -607,9 +612,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "url:example.com",
                 "activity:3",
                 "activity:>2",
-                "new_count_errors:2",
-                "new_count_errors:>1",
-                "new_count_errors:<3",
                 "count_warnings:1",
                 "count_warnings:>0",
                 "count_warnings:<2",
@@ -823,7 +825,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.email",
                 "user.id",
                 "user.username",
-                "new_count_errors",
                 "count_warnings",
                 "count_infos",
             ]
@@ -968,7 +969,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "new_error_ids": None,
                     "warning_ids": None,
                     "info_ids": None,
-                    "new_count_errors": None,
                     "count_warnings": None,
                     "count_infos": None,
                 }
@@ -1593,6 +1593,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, error_ids=[]))
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp, project.id, "error", replay1_id, "a3a62ef6ac86415b83c2416fc2f76db1"
+            )
+        )
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
@@ -1968,10 +1973,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(
                 self.url
-                + f"?field=id&field=new_count_errors&field=count_warnings&field=count_infos&query=id:{replay1_id}"
+                + f"?field=id&&field=count_warnings&field=count_infos&query=id:{replay1_id}"
             )
             assert response.status_code == 200
             response_data = response.json()
-            assert response_data["data"][0]["new_count_errors"] == 2
             assert response_data["data"][0]["count_warnings"] == 1
-            assert response_data["data"][0]["new_count_errors"] == 2

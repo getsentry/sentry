@@ -30,7 +30,6 @@ VALID_FIELD_SET = (
     "info_ids",
     "warning_ids",
     "new_error_ids",
-    "new_count_errors",
     "count_warnings",
     "count_infos",
 )
