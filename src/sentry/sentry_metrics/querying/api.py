@@ -166,9 +166,8 @@ class QueryExecutor:
     def __init__(self, organization: Organization, referrer: str):
         self._organization = organization
         self._referrer = referrer
-        self._next_id = 0
         # List of queries scheduled for execution.
-        self._scheduled_queries: Dict[int, Tuple[MetricsQuery, bool]] = {}
+        self._scheduled_queries: List[Tuple[MetricsQuery, bool]] = []
 
     def _build_request(self, query: MetricsQuery) -> Request:
         return Request(
@@ -199,8 +198,7 @@ class QueryExecutor:
 
     def schedule(self, query: MetricsQuery, with_totals: bool = True):
         # By default we want to execute totals.
-        self._scheduled_queries[self._next_id] = (query, with_totals)
-        self._next_id += 1
+        self._scheduled_queries.append((query, with_totals))
 
     def execute(self, in_batch: bool = False) -> Generator[ExecutionResult, None, None]:
         if in_batch:
@@ -208,7 +206,7 @@ class QueryExecutor:
             # Run batch query and flatten results.
             pass
         else:
-            for query_id, (query, with_totals) in self._scheduled_queries.items():
+            for query, with_totals in self._scheduled_queries:
                 result = self._execute(query, with_totals)
                 yield ExecutionResult(query=query, result=result, with_totals=with_totals)
 
