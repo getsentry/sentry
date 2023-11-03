@@ -539,15 +539,19 @@ class IssueListOverview extends Component<Props, State> {
       error: null,
     });
 
+    // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend
+    const savedSearchLookupEnabled = 0;
+    const savedSearchLookupDisabled = 1;
+
     const requestParams: any = {
       ...this.getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
       savedSearch: this.props.organization.features.includes('issue-stream-performance')
         ? this.props.savedSearchLoading
-          ? 0
-          : 1
-        : 1,
+          ? savedSearchLookupEnabled
+          : savedSearchLookupDisabled
+        : savedSearchLookupDisabled,
     };
 
     if (
