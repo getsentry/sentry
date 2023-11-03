@@ -73,9 +73,8 @@ def fix_for_issue_platform(event_data):
 def create_feedback_issue(event, project_id):
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
-
     event["event_id"] = event.get("event_id") or uuid4().hex
-    evidcence_data, evidence_display = make_evidence(event["feedback"])
+    evidcence_data, evidence_display = make_evidence(event["contexts"]["feedback"])
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
@@ -84,7 +83,7 @@ def create_feedback_issue(event, project_id):
             uuid4().hex
         ],  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title="User Feedback",
-        subtitle=event["feedback"]["message"],
+        subtitle=event["contexts"]["feedback"]["message"],
         resource_id=None,
         evidence_data=evidcence_data,
         evidence_display=evidence_display,
@@ -138,22 +137,23 @@ def shim_to_feedback(report, event, project):
     """
     try:
         feedback_event: dict[str, Any] = {
-            "feedback": {
-                "name": report.get("name", ""),
-                "contact_email": report["email"],
-                "message": report["comments"],
+            "contexts": {
+                "feedback": {
+                    "name": report.get("name", ""),
+                    "contact_email": report["email"],
+                    "message": report["comments"],
+                },
             },
-            "contexts": {},
         }
 
         if event:
-            feedback_event["feedback"]["crash_report_event_id"] = event.event_id
+            feedback_event["contexts"]["feedback"]["crash_report_event_id"] = event.event_id
 
             if get_path(event.data, "contexts", "replay", "replay_id"):
                 feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
-                feedback_event["feedback"]["replay_id"] = event.data["contexts"]["replay"][
-                    "replay_id"
-                ]
+                feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"][
+                    "replay"
+                ]["replay_id"]
             feedback_event["timestamp"] = event.datetime.timestamp()
 
             feedback_event["platform"] = event.platform
