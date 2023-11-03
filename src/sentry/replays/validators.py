@@ -29,7 +29,6 @@ VALID_FIELD_SET = (
     "clicks",
     "info_ids",
     "warning_ids",
-    "new_error_ids",
     "count_warnings",
     "count_infos",
 )

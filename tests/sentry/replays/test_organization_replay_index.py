@@ -966,7 +966,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "count_segments": None,
                     "count_urls": None,
                     "clicks": None,
-                    "new_error_ids": None,
                     "warning_ids": None,
                     "info_ids": None,
                     "count_warnings": None,
@@ -1816,7 +1815,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert len(response_data["data"][0]["error_ids"]) == 2, query
 
             response = self.client.get(
-                self.url + f"?field=id&field=error_ids&query=new_error_id:{uid3}"
+                self.url + f"?field=id&field=error_ids&query=error_id:{uid3}"
             )
             assert response.status_code == 200
             response_data = response.json()
