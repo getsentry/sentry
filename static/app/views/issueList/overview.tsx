@@ -338,18 +338,22 @@ class IssueListOverview extends Component<Props, State> {
       return false;
     }
 
-    setTimeout(() => {
-      console.log('hit');
-      GroupStore.loadInitialData(cache.groups);
-      this.setState({
+    console.log('hit');
+    this.setState(
+      {
         issuesLoading: false,
         queryCount: cache.queryCount,
         queryMaxCount: cache.queryMaxCount,
-        groupIds: cache.groups.map(group => group.id),
         pageLinks: cache.pageLinks,
-      });
-      IssueListCacheStore.reset();
-    }, 0);
+      },
+      () => {
+        // Group details clears the GroupStore at the same time this component loads
+        GroupStore.loadInitialData(cache.groups);
+        // Clear store after loading
+        IssueListCacheStore.reset();
+      }
+    );
+
     return true;
   }
 
