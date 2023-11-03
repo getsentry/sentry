@@ -42,32 +42,25 @@ def make_evidence(feedback):
 def fix_for_issue_platform(event_data):
     # the issue platform has slightly different requirements than ingest
     # for event schema, so we need to massage the data a bit
-    event_data["timestamp"] = ensure_aware(
+    ret_event = {}
+
+    ret_event["timestamp"] = ensure_aware(
         datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
-    if "contexts" not in event_data:
-        event_data["contexts"] = {}
 
-    if event_data.get("feedback") and not event_data.get("contexts", {}).get("feedback"):
-        event_data["contexts"]["feedback"] = event_data["feedback"]
-        del event_data["feedback"]
+    ret_event["project_id"] = event_data["project_id"]
 
-        if not event_data["contexts"].get("replay") and event_data["contexts"]["feedback"].get(
-            "replay_id"
-        ):
-            event_data["contexts"]["replay"] = {
-                "replay_id": event_data["contexts"]["feedback"].get("replay_id")
-            }
+    ret_event["contexts"] = event_data.get("contexts", {})
+    ret_event["event_id"] = event_data["event_id"]
+    ret_event["tags"] = event_data.get("tags", [])
 
-    if event_data.get("dist") is not None:
-        del event_data["dist"]
-    if event_data.get("user", {}).get("name") is not None:
-        del event_data["user"]["name"]
-    if event_data.get("user", {}).get("isStaff") is not None:
-        del event_data["user"]["isStaff"]
+    ret_event["platform"] = event_data["platform"]
+    ret_event["environment"] = event_data.get("environment", "production")
+    ret_event["sdk"] = event_data["sdk"]
+    ret_event["request"] = event_data.get("request", {})
 
-    if event_data.get("user", {}).get("id") is not None:
-        event_data["user"]["id"] = str(event_data["user"]["id"])
+    ret_event["user"] = event_data.get("user", {})
+    return ret_event
 
 
 def create_feedback_issue(event, project_id):
@@ -101,10 +94,10 @@ def create_feedback_issue(event, project_id):
         "tags": event.get("tags", {}),
         **event,
     }
-    fix_for_issue_platform(event_data)
+    event_fixed = fix_for_issue_platform(event_data)
 
     # make sure event data is valid for issue platform
-    validate_issue_platform_event_schema(event_data)
+    validate_issue_platform_event_schema(event_fixed)
 
     project = Project.objects.get_from_cache(id=project_id)
 
@@ -112,7 +105,7 @@ def create_feedback_issue(event, project_id):
         first_feedback_received.send_robust(project=project, sender=Project)
 
     produce_occurrence_to_kafka(
-        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
+        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
 
 
