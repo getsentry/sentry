@@ -153,4 +153,5 @@ const DetailsContainer = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   gap: ${space(1)};
+  min-width: 200px;
 `;
