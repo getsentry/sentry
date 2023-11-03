@@ -1,8 +1,10 @@
 from urllib.parse import urlencode
 
+import pytest
 import responses
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.exceptions import NotFound
 
 from sentry.silo import SiloMode
 from sentry.testutils.helpers.api_gateway import ApiGatewayTestCase, verify_request_params
@@ -124,3 +126,62 @@ class ApiGatewayTest(ApiGatewayTestCase):
             resp_json = json.loads(close_streaming_response(resp))
             assert resp_json["proxy"]
             assert resp_json["details"]
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
+    @responses.activate
+    def test_proxy_sentryapp_installation_path(self):
+        sentry_app = self.create_sentry_app()
+        install = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+
+        responses.add(
+            responses.GET,
+            f"http://us.internal.sentry.io/sentry-app-installations/{install.uuid}/external-requests/",
+            json={"proxy": True, "name": "external-requests"},
+        )
+        responses.add(
+            responses.GET,
+            f"http://us.internal.sentry.io/sentry-app-installations/{install.uuid}/external-issues/",
+            json={"proxy": True, "name": "external-issues"},
+        )
+        responses.add(
+            responses.GET,
+            f"http://us.internal.sentry.io/sentry-app-installations/{install.uuid}/external-issue-actions/",
+            json={"proxy": True, "name": "external-issue-actions"},
+        )
+
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(f"/sentry-app-installations/{install.uuid}/external-requests/")
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"]
+            assert resp_json["name"] == "external-requests"
+
+            resp = self.client.get(f"/sentry-app-installations/{install.uuid}/external-issues/")
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"]
+            assert resp_json["name"] == "external-issues"
+
+            resp = self.client.get(
+                f"/sentry-app-installations/{install.uuid}/external-issue-actions/"
+            )
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"]
+            assert resp_json["name"] == "external-issue-actions"
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
+    @responses.activate
+    def test_proxy_sentryapp_installation_path_invalid(self):
+        # No responses configured so that requests will fail if they are made.
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
+            with pytest.raises(NotFound):
+                self.client.get("/sentry-app-installations/abc123/external-requests/")
+
+            with pytest.raises(NotFound):
+                self.client.get("/sentry-app-installations/abc123/external-issues/")
+
+            with pytest.raises(NotFound):
+                self.client.get("/sentry-app-installations/abc123/external-issue-actions/")

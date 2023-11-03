@@ -4,7 +4,7 @@ import logging
 import secrets
 import warnings
 from string import ascii_letters, digits
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Any, ClassVar, List, Mapping, Optional, Tuple
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -52,7 +52,7 @@ RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
 RANDOM_PASSWORD_LENGTH = 32
 
 
-class UserManager(BaseManager, DjangoUserManager):
+class UserManager(BaseManager["User"], DjangoUserManager):
     def get_users_with_only_one_integration_for_provider(
         self, provider: ExternalProviders, organization_id: int
     ) -> QuerySet:
@@ -171,7 +171,7 @@ class User(BaseModel, AbstractBaseUser):
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=UserAvatar.AVATAR_TYPES)
     avatar_url = models.CharField(_("avatar url"), max_length=120, null=True)
 
-    objects = UserManager(cache_fields=["pk"])
+    objects: ClassVar[UserManager] = UserManager(cache_fields=["pk"])
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]
@@ -360,12 +360,12 @@ class User(BaseModel, AbstractBaseUser):
             # NOTE: This could, become calls to identity_service.delete_ide
             for ai in AuthIdentity.objects.filter(
                 user=from_user,
-                auth_provider__organization_id__in=AuthIdentity.objects.filter(user=to_user).values(
-                    "auth_provider__organization_id"
-                ),
+                auth_provider__organization_id__in=AuthIdentity.objects.filter(
+                    user_id=to_user.id
+                ).values("auth_provider__organization_id"),
             ):
                 ai.delete()
-            for ai in AuthIdentity.objects.filter(user=from_user):
+            for ai in AuthIdentity.objects.filter(user_id=from_user.id):
                 ai.update(user=to_user)
 
     def set_password(self, raw_password):
@@ -439,7 +439,9 @@ class User(BaseModel, AbstractBaseUser):
                 SuperuserUserSerializer,
                 UserSerializer,
             )
-            from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+            from sentry.services.hybrid_cloud.lost_password_hash.impl import (
+                DatabaseLostPasswordHashService,
+            )
 
             serializer_cls = BaseUserSerializer
             if scope not in {ImportScope.Config, ImportScope.Global}:
@@ -453,9 +455,7 @@ class User(BaseModel, AbstractBaseUser):
             self.save(force_insert=True)
 
             if scope != ImportScope.Global:
-                # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for
-                # transient reasons (network etc). How do we handle that?
-                lost_password_hash_service.get_or_create(user_id=self.id)
+                DatabaseLostPasswordHashService().get_or_create(user_id=self.id)
 
             # TODO(getsentry/team-ospo#191): we need to send an email informing the user of their
             # new account with a resettable password - we'll need to figure out where in the process

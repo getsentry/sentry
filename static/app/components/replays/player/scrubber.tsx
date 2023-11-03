@@ -130,18 +130,13 @@ export const CompactTimelineScrubber = styled(Scrubber)`
   height: 100%;
 
   ${Meter} {
-    border-radius: ${p => p.theme.borderRadius};
-    background: ${p => p.theme.translucentInnerBorder};
+    background: transparent;
   }
 
   ${RangeWrapper},
   ${Range},
   ${SliderAndInputWrapper} {
     height: 100%;
-  }
-
-  ${PlaybackTimeValue} {
-    background: ${p => p.theme.purple100};
   }
 
   /**
@@ -153,6 +148,7 @@ export const CompactTimelineScrubber = styled(Scrubber)`
    */
   ${PlaybackTimeValue},
   ${MouseTrackingValue} {
+    translate: 3px;
     border-right: ${space(0.25)} solid ${p => p.theme.purple300};
   }
 `;

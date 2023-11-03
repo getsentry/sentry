@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import {FullQueryDescription} from 'sentry/views/starfish/components/fullQueryDescription';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
 import {SpanDescriptionLink} from 'sentry/views/starfish/components/spanDescriptionLink';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
@@ -41,18 +44,48 @@ export function SpanDescriptionCell({
     />
   );
 
-  return ModuleName.DB ? (
-    <DescriptionWrapper>
-      <WiderHovercard
-        position="right"
-        body={<FullQueryDescription group={group} shortDescription={description} />}
-      >
-        {descriptionLink}
-      </WiderHovercard>
-    </DescriptionWrapper>
-  ) : (
-    descriptionLink
-  );
+  if (moduleName === ModuleName.DB) {
+    return (
+      <DescriptionWrapper>
+        <WiderHovercard
+          position="right"
+          body={
+            <FullSpanDescription
+              group={group}
+              shortDescription={description}
+              language="sql"
+            />
+          }
+        >
+          {descriptionLink}
+        </WiderHovercard>
+      </DescriptionWrapper>
+    );
+  }
+
+  if (moduleName === ModuleName.HTTP) {
+    return (
+      <DescriptionWrapper>
+        <WiderHovercard
+          position="right"
+          body={
+            <Fragment>
+              <TitleWrapper>{t('Example')}</TitleWrapper>
+              <FullSpanDescription
+                group={group}
+                shortDescription={description}
+                language="http"
+              />
+            </Fragment>
+          }
+        >
+          {descriptionLink}
+        </WiderHovercard>
+      </DescriptionWrapper>
+    );
+  }
+
+  return descriptionLink;
 }
 
 const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
@@ -77,6 +110,10 @@ export const WiderHovercard = styled(
     width: auto;
     max-width: 550px;
   }
+`;
+
+const TitleWrapper = styled('div')`
+  margin-bottom: ${space(1)};
 `;
 
 const DescriptionWrapper = styled('div')`

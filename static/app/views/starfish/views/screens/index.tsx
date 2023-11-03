@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {BarChart} from 'sentry/components/charts/barChart';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
@@ -19,12 +19,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {
   ScreensTable,
   useTableQuery,
@@ -121,10 +120,10 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     fields: [
       'transaction',
       SpanMetricsField.PROJECT_ID,
-      'avg(measurements.time_to_initial_display)', // TODO: Update these to avgIf with primary release when available
-      `avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`,
-      'avg(measurements.time_to_full_display)',
-      `avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`,
+      `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+      `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+      `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
+      `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
       'count()',
     ],
     query: queryString,
@@ -135,7 +134,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   newQuery.orderby = orderby;
   const tableEventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  useSynchronizeCharts();
   const {
     data: topTransactionsData,
     isLoading: topTransactionsLoading,
@@ -146,7 +144,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   });
 
   const topTransactions =
-    topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction) ?? [];
+    topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction as string) ??
+    [];
 
   const topEventsQuery = new MutableSearch([
     'event.type:transaction',
@@ -161,11 +160,27 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     secondaryRelease
   );
 
-  const {data: releaseEvents} = useTableQuery({
+  const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithLocation(
       {
         name: '',
         fields: ['transaction', 'release', ...yAxisCols],
+        orderby: yAxisCols[0],
+        yAxis: yAxisCols,
+        query: topEventsQueryString,
+        dataset: DiscoverDatasets.METRICS,
+        version: 2,
+      },
+      location
+    ),
+    enabled: !topTransactionsLoading,
+  });
+
+  const {data: deviceClassEvents, isLoading: isDeviceClassEventsLoading} = useTableQuery({
+    eventView: EventView.fromNewQueryWithLocation(
+      {
+        name: '',
+        fields: ['transaction', 'device.class', ...yAxisCols],
         orderby: yAxisCols[0],
         yAxis: yAxisCols,
         query: topEventsQueryString,
@@ -182,7 +197,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   });
 
   if (isReleasesLoading) {
-    return <LoadingContainer />;
+    return (
+      <LoadingContainer>
+        <LoadingIndicator />
+      </LoadingContainer>
+    );
   }
 
   const transformedReleaseEvents: {
@@ -207,81 +226,121 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     }
   });
 
-  const transformedReleaseSeries: {
+  const transformedDeviceEvents: {
     [yAxisName: string]: {
-      [releaseVersion: string]: {[deviceClass: string]: Series | undefined};
+      [deviceClass: string]: Series;
     };
   } = {};
+
   yAxes.forEach(val => {
-    transformedReleaseSeries[YAXIS_COLUMNS[val]] = {};
-    if (primaryRelease) {
-      transformedReleaseSeries[YAXIS_COLUMNS[val]][primaryRelease] = {};
-    }
-    if (secondaryRelease) {
-      transformedReleaseSeries[YAXIS_COLUMNS[val]][secondaryRelease] = {};
-    }
+    transformedDeviceEvents[YAXIS_COLUMNS[val]] = {};
+    ['high', 'medium', 'low', 'Unknown'].forEach(deviceClass => {
+      transformedDeviceEvents[YAXIS_COLUMNS[val]][deviceClass] = {
+        seriesName: deviceClass,
+        data: Array(topTransactions.length).fill(0),
+      };
+    });
   });
 
   const topTransactionsIndex = Object.fromEntries(topTransactions.map((e, i) => [e, i]));
 
-  function renderBarCharts() {
-    if (defined(releaseEvents)) {
-      releaseEvents.data?.forEach(row => {
-        const release = row.release;
-        const isPrimary = release === primaryRelease;
-        const transaction = row.transaction;
-        const index = topTransactionsIndex[transaction];
-        yAxes.forEach(val => {
-          transformedReleaseEvents[YAXIS_COLUMNS[val]][release].data[index] = {
-            name: row.transaction,
-            value: row[YAXIS_COLUMNS[val]],
-            itemStyle: {
-              color: isPrimary
-                ? theme.charts.getColorPalette(TOP_SCREENS - 2)[index]
-                : Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-                    .lighten(0.5)
-                    .string(),
-            },
-          } as SeriesDataUnit;
-        });
+  if (defined(releaseEvents)) {
+    releaseEvents.data?.forEach(row => {
+      const release = row.release;
+      const isPrimary = release === primaryRelease;
+      const transaction = row.transaction;
+      const index = topTransactionsIndex[transaction];
+      yAxes.forEach(val => {
+        transformedReleaseEvents[YAXIS_COLUMNS[val]][release].data[index] = {
+          name: row.transaction,
+          value: row[YAXIS_COLUMNS[val]],
+          itemStyle: {
+            color: isPrimary
+              ? theme.charts.getColorPalette(TOP_SCREENS - 2)[index]
+              : Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
+                  .lighten(0.3)
+                  .string(),
+          },
+        } as SeriesDataUnit;
       });
-    }
+    });
+  }
 
-    return (
-      <Fragment>
-        {yAxes.map(val => {
-          return (
-            <ChartsContainerItem key={val}>
-              <MiniChartPanel title={CHART_TITLES[val]}>
-                <BarChart
-                  height={chartHeight ?? 180}
-                  series={Object.values(transformedReleaseEvents[YAXIS_COLUMNS[val]])}
-                  grid={{
-                    left: '0',
-                    right: '0',
-                    top: '16px',
-                    bottom: '0',
-                  }}
-                  xAxis={{
-                    type: 'category',
-                    data: topTransactions,
-                    axisTick: {
-                      interval: 5,
-                      alignWithLabel: true,
-                    },
-                  }}
-                />
-              </MiniChartPanel>
-            </ChartsContainerItem>
-          );
-        })}
-      </Fragment>
-    );
+  if (defined(deviceClassEvents)) {
+    deviceClassEvents.data?.forEach(row => {
+      const deviceClass = row['device.class'];
+      const transaction = row.transaction;
+      const index = topTransactionsIndex[transaction];
+
+      function deviceClassColor() {
+        switch (deviceClass) {
+          case 'high':
+            return theme.charts.getColorPalette(TOP_SCREENS - 2)[index];
+
+          case 'medium':
+            return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
+              .lighten(0.1)
+              .string();
+
+          case 'low':
+            return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
+              .lighten(0.2)
+              .string();
+
+          default:
+            return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
+              .lighten(0.3)
+              .string();
+        }
+      }
+
+      yAxes.forEach(val => {
+        transformedDeviceEvents[YAXIS_COLUMNS[val]][deviceClass].data[index] = {
+          name: row.transaction,
+          value: row[YAXIS_COLUMNS[val]],
+          itemStyle: {
+            color: deviceClassColor(),
+          },
+        } as SeriesDataUnit;
+      });
+    });
   }
 
   return (
     <div data-test-id="starfish-mobile-view">
-      <ChartsContainer>{renderBarCharts()}</ChartsContainer>
+      <ChartsContainer>
+        <Fragment>
+          <ChartsContainerItem key="release">
+            <ScreensBarChart
+              chartOptions={yAxes.map(yAxis => {
+                return {
+                  title: t('%s by Release', CHART_TITLES[yAxis]),
+                  yAxis: YAXIS_COLUMNS[yAxis],
+                  xAxisLabel: topTransactions,
+                  series: Object.values(transformedReleaseEvents[YAXIS_COLUMNS[yAxis]]),
+                };
+              })}
+              chartHeight={chartHeight ?? 180}
+              isLoading={isReleaseEventsLoading}
+            />
+          </ChartsContainerItem>
+
+          <ChartsContainerItem key="deviceClass">
+            <ScreensBarChart
+              chartOptions={yAxes.map(yAxis => {
+                return {
+                  title: t('%s by Device Class', CHART_TITLES[yAxis]),
+                  yAxis: YAXIS_COLUMNS[yAxis],
+                  xAxisLabel: topTransactions,
+                  series: Object.values(transformedDeviceEvents[YAXIS_COLUMNS[yAxis]]),
+                };
+              })}
+              chartHeight={chartHeight ?? 180}
+              isLoading={isDeviceClassEventsLoading}
+            />
+          </ChartsContainerItem>
+        </Fragment>
+      </ChartsContainer>
       <ScreensTable
         eventView={tableEventView}
         data={topTransactionsData}

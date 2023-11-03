@@ -373,8 +373,8 @@ function RuleNode({
               <TicketRuleModal
                 {...deps}
                 formFields={node.formFields || {}}
-                link={node.link}
-                ticketType={node.ticketType}
+                link={node.link!}
+                ticketType={node.ticketType!}
                 instance={data}
                 index={index}
                 onSubmitAction={updateParentFromTicketRule}

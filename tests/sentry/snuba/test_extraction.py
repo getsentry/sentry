@@ -155,6 +155,115 @@ def test_spec_simple_query_distribution():
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
 
+def test_spec_simple_query_with_environment():
+    spec = OnDemandMetricSpec("count()", "transaction.duration:>1s", "production")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.environment", "op": "eq", "value": "production"},
+            {"name": "event.duration", "op": "gt", "value": 1000.0},
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_simple_query_with_environment_only():
+    # We use apdex, since it's the only metric which is on demand also without a query.
+    spec = OnDemandMetricSpec("apdex(0.8)", "", "production")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_apdex"
+    assert spec.condition == {"name": "event.environment", "op": "eq", "value": "production"}
+
+
+def test_spec_context_mapping():
+    spec = OnDemandMetricSpec("count()", "device:SM-A226B")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "name": "event.contexts.device.model",
+        "op": "eq",
+        "value": "SM-A226B",
+    }
+
+
+def test_spec_query_with_parentheses_and_environment():
+    spec = OnDemandMetricSpec(
+        "count()", "(transaction.duration:>1s OR http.status_code:200)", "dev"
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.environment", "op": "eq", "value": "dev"},
+            {
+                "inner": [
+                    {"name": "event.duration", "op": "gt", "value": 1000.0},
+                    {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
+                ],
+                "op": "or",
+            },
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_count_if_query_with_environment():
+    spec = OnDemandMetricSpec(
+        "count_if(transaction.duration,equals,300)", "http.method:GET", "production"
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.environment", "op": "eq", "value": "production"},
+            {"name": "event.request.method", "op": "eq", "value": "GET"},
+            {
+                "name": "event.duration",
+                "op": "eq",
+                "value": 300.0,
+            },
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_complex_query_with_environment():
+    spec = OnDemandMetricSpec(
+        "count()",
+        "transaction.duration:>1s AND http.status_code:200 OR os.browser:Chrome",
+        "staging",
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {
+                "inner": [
+                    {"name": "event.environment", "op": "eq", "value": "staging"},
+                    {"name": "event.duration", "op": "gt", "value": 1000.0},
+                    {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
+                ],
+                "op": "and",
+            },
+            {"name": "event.tags.os.browser", "op": "eq", "value": "Chrome"},
+        ],
+        "op": "or",
+    }
+
+
 def test_spec_or_condition():
     spec = OnDemandMetricSpec("count()", "transaction.duration:>=100 OR transaction.duration:<1000")
 
@@ -343,6 +452,20 @@ def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project):
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
     assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["10"])
+
+
+@django_db_all
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
+def test_spec_apdex_decimal(_get_satisfactory_threshold_and_metric, default_project):
+    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
+
+    spec = OnDemandMetricSpec("apdex(0.8)", "release:a")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_apdex"
+    assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["0.8"])
 
 
 @django_db_all

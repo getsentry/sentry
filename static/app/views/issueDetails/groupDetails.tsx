@@ -81,11 +81,9 @@ type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 type RouterParams = {groupId: string; eventId?: string};
 type RouteProps = RouteComponentProps<RouterParams, {}>;
 
-type GroupDetailsProps = {
+interface GroupDetailsProps extends RouteComponentProps<{groupId: string}, {}> {
   children: React.ReactNode;
-  organization: Organization;
-  projects: Project[];
-};
+}
 
 type FetchGroupDetailsState = {
   error: boolean;
@@ -621,6 +619,9 @@ function useTrackView({
     trace_status: 'none',
     // Will be updated in GroupDetailsHeader if there are replays
     group_has_replay: false,
+    // Will be updated in EventCause if there are suspect commits
+    num_suspect_commits: -1,
+    suspect_commit_calculation: 'none',
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }

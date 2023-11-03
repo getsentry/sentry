@@ -40,7 +40,7 @@ function AggregateSpanWaterfall(): React.ReactElement {
         projects={projects.projects}
         tab={Tab.AGGREGATE_WATERFALL}
         generateEventView={() => EventView.fromLocation(location)}
-        getDocumentTitle={() => t(`Aggregate Waterfall: %s`, transaction)}
+        getDocumentTitle={() => t(`Aggregate Spans: %s`, transaction)}
         childComponent={() => {
           return (
             <Layout.Main fullWidth>

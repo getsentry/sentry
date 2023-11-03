@@ -1,15 +1,13 @@
 from typing import Any, Optional, Set, Tuple
 
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.dispatch import receiver
 from pydantic import ValidationError
 from sentry_sdk import capture_exception
 
-from sentry import options
 from sentry.hybridcloud.rpc_services.region_organization_provisioning import (
     region_organization_provisioning_rpc_service,
 )
-from sentry.models.organization import Organization
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
@@ -27,10 +25,6 @@ class OrganizationSlugCollisionException(Exception):
 
 class OrganizationProvisioningException(Exception):
     pass
-
-
-def should_use_control_provisioning() -> bool:
-    return options.get("hybrid_cloud.control-organization-provisioning")
 
 
 class OrganizationProvisioningService:
@@ -91,17 +85,8 @@ class OrganizationProvisioningService:
         """
 
         destination_region_name = self._validate_or_default_region(region_name=region_name)
-        if should_use_control_provisioning():
-            return self._control_based_provisioning(
-                provisioning_options=provisioning_options, region_name=destination_region_name
-            )
-
-        from sentry.services.hybrid_cloud.organization_provisioning import (
-            organization_provisioning_service as rpc_org_provisioning_service,
-        )
-
-        return rpc_org_provisioning_service.provision_organization(
-            region_name=destination_region_name, org_provision_args=provisioning_options
+        return self._control_based_provisioning(
+            provisioning_options=provisioning_options, region_name=destination_region_name
         )
 
     def idempotent_provision_organization_in_region(
@@ -149,25 +134,9 @@ class OrganizationProvisioningService:
         :return:
         """
 
-        if should_use_control_provisioning():
-            return self._control_based_slug_change(
-                organization_id=organization_id, slug=slug, region_name=region_name
-            )
-
-        # Default local monolith implementation
-        try:
-            with transaction.atomic(using=router.db_for_write(Organization)):
-                organization = Organization.objects.get(id=organization_id)
-                organization.slug = slug
-                organization.save()
-
-                from sentry.services.hybrid_cloud.organization.serial import (
-                    serialize_rpc_organization,
-                )
-
-                return serialize_rpc_organization(org=organization)
-        except IntegrityError:
-            raise OrganizationSlugCollisionException()
+        return self._control_based_slug_change(
+            organization_id=organization_id, slug=slug, region_name=region_name
+        )
 
     def bulk_create_organization_slugs(
         self, org_ids_and_slugs: Set[Tuple[int, str]], region_name: Optional[str] = None
@@ -188,9 +157,6 @@ class OrganizationProvisioningService:
         :param region_name: The region where the imported organizations exist
         :return:
         """
-        if not should_use_control_provisioning():
-            raise Exception("Cannot bulk create slugs with control provisioning disabled")
-
         destination_region_name = self._validate_or_default_region(region_name=region_name)
 
         from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
@@ -257,11 +223,6 @@ def handle_organization_provisioning_outbox_payload(
 def process_provision_organization_outbox(
     object_identifier: int, region_name: str, payload: Any, **kwds: Any
 ):
-    if not should_use_control_provisioning():
-        raise Exception(
-            "Outbox handler should not be triggered while control provisioning disabled"
-        )
-
     try:
         provision_payload = OrganizationProvisioningOptions.parse_obj(payload)
     except ValidationError as e:
@@ -294,11 +255,6 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
     # Only process temporary aliases for slug swaps
     if not org_slug_reservation_qs.exists():
         return
-
-    if not should_use_control_provisioning():
-        raise Exception(
-            "Outbox handler should not be triggered while control provisioning disabled"
-        )
 
     org_slug_reservation = org_slug_reservation_qs.first()
 
