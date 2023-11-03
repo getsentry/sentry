@@ -260,7 +260,8 @@ function GroupEventDetailsContent({
   }
 
   switch (group.issueType) {
-    case IssueType.PERFORMANCE_DURATION_REGRESSION: {
+    case IssueType.PERFORMANCE_DURATION_REGRESSION:
+    case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
       return (
         <PerformanceDurationRegressionIssueDetailsContent
           group={group}
@@ -269,7 +270,8 @@ function GroupEventDetailsContent({
         />
       );
     }
-    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL: {
+    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
+    case IssueType.PROFILE_FUNCTION_REGRESSION: {
       return (
         <ProfilingDurationRegressionIssueDetailsContent
           group={group}
