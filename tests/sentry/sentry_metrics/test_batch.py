@@ -350,6 +350,7 @@ def test_extract_strings_with_multiple_use_case_ids():
     }
 
 
+@pytest.mark.django_db
 @override_options({"sentry-metrics.indexer.disabled-namespaces": ["escalating_issues"]})
 def test_extract_strings_with_single_use_case_ids_blocked():
     """
@@ -427,6 +428,7 @@ def test_extract_strings_with_single_use_case_ids_blocked():
     assert not batch.invalid_msg_meta
 
 
+@pytest.mark.django_db
 @override_options({"sentry-metrics.indexer.disabled-namespaces": ["spans", "escalating_issues"]})
 def test_extract_strings_with_multiple_use_case_ids_blocked():
     """
