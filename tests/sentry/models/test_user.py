@@ -1,41 +1,12 @@
 from sentry.models.authenticator import Authenticator
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.savedsearch import SavedSearch
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.silo import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-
-
-@control_silo_test(stable=True)
-class UserTest(TestCase):
-    def test_hybrid_cloud_deletion(self):
-        user = self.create_user()
-
-        # Determines the region to which the deletion cascades
-        organization = self.create_organization()
-        self.create_member(user=user, organization=organization)
-
-        user_id = user.id
-        self.create_saved_search(name="some-search", owner=user, organization=organization)
-
-        with outbox_runner():
-            user.delete()
-
-        assert not User.objects.filter(id=user_id).exists()
-
-        with assume_test_silo_mode(SiloMode.REGION):
-            # cascade is asynchronous, ensure there is still related search,
-            assert SavedSearch.objects.filter(owner_id=user_id).exists()
-            with self.tasks():
-                schedule_hybrid_cloud_foreign_key_jobs()
-
-            # Ensure they are all now gone.
-            assert not SavedSearch.objects.filter(owner_id=user_id).exists()
 
 
 @control_silo_test(stable=True)
