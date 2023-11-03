@@ -1,4 +1,6 @@
 import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {Event} from 'sentry-fixture/event';
+import {Project} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -11,10 +13,16 @@ import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
   it('display redacted values from exception entry', async function () {
-    const project = TestStubs.Project({
-      id: '0',
+    const project = Project({id: '0'});
+    const projectDetails = Project({
+      ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/`,
+      body: projectDetails,
+    });
+    ProjectsStore.loadInitialData([project]);
 
     const {organization, router, routerContext} = initializeOrg({
       router: {
@@ -23,10 +31,7 @@ describe('Exception Content', function () {
       projects: [project],
     });
 
-    ProjectsStore.loadInitialData([project]);
-
-    const event = {
-      ...TestStubs.Event(),
+    const event = Event({
       _meta: {
         entries: {
           0: {
@@ -101,7 +106,7 @@ describe('Exception Content', function () {
           },
         },
       ],
-    };
+    });
 
     render(
       <Content
@@ -113,7 +118,7 @@ describe('Exception Content', function () {
         stackView={StackView.APP}
         event={event}
         values={event.entries[0].data.values}
-        meta={event._meta.entries[0].data.values}
+        meta={event._meta!.entries[0].data.values}
         projectSlug={project.slug}
       />,
       {organization, router, context: routerContext}
