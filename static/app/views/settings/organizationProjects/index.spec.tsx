@@ -2,9 +2,8 @@ import {Organization} from 'sentry-fixture/organization';
 import {Project} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
 
 describe('OrganizationProjects', function () {
@@ -66,9 +65,6 @@ describe('OrganizationProjects', function () {
 
     await userEvent.type(searchBox, project.slug);
     await userEvent.type(searchBox, '{enter}');
-
-    act(() => jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1));
-    jest.useRealTimers();
 
     expect(searchMock).toHaveBeenCalledTimes(2);
     expect(searchMock).toHaveBeenLastCalledWith(
