@@ -12,6 +12,7 @@ from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils.signing import unsign
 
 logger = logging.getLogger(__name__)
 
@@ -25,16 +26,20 @@ class DiscordRequestParser(BaseRequestParser):
         DiscordUnlinkIdentityView,
     ]
 
+    # Dynamically set to avoid RawPostDataException from double reads
+    discord_request: DiscordRequest | None
+
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
-            return None
+            params = unsign(self.match.kwargs.get("signed_params"))
+            return Integration.objects.filter(id=params.get("integration_id")).first()
 
         drf_request: Request = DiscordInteractionsEndpoint().initialize_request(self.request)
-        discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
+        self.discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
 
         return Integration.objects.filter(
             provider=self.provider,
-            external_id=discord_request.guild_id,
+            external_id=self.discord_request.guild_id,
         ).first()
 
     def get_response(self):
@@ -47,12 +52,10 @@ class DiscordRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         if self.view_class == DiscordInteractionsEndpoint:
-            drf_request: Request = DiscordInteractionsEndpoint().initialize_request(self.request)
-            discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
-
-            if discord_request.is_command():
+            if self.discord_request.is_command():
                 return self.get_response_from_first_region()
-            if discord_request.is_message_component():
+
+            if self.discord_request.is_message_component():
                 return self.get_response_from_all_regions()
 
         return self.get_response_from_control_silo()
