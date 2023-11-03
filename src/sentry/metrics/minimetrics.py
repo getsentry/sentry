@@ -94,7 +94,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         return random.random() < sample_rate
 
     @staticmethod
-    def _to_minimetrics_unit(unit: Optional[str], default: Optional[str] = None) -> str:
+    def _to_minimetrics_unit(unit: Optional[str], default: Optional[str] = None) -> Optional[str]:
         if unit is None and default is None:
             return "none"
         elif unit is None:
