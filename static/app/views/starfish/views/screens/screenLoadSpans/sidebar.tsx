@@ -89,6 +89,7 @@ export function ScreenLoadSpansSidebar({transaction}: Props) {
               organization={organization}
               version={primaryRelease}
               tooltipRawVersion
+              truncate
             />
           )}
           <SidebarMetricsValue>
@@ -111,6 +112,7 @@ export function ScreenLoadSpansSidebar({transaction}: Props) {
               organization={organization}
               version={secondaryRelease}
               tooltipRawVersion
+              truncate
             />
           )}
           <SidebarMetricsValue>
@@ -136,6 +138,7 @@ export function ScreenLoadSpansSidebar({transaction}: Props) {
               organization={organization}
               version={primaryRelease}
               tooltipRawVersion
+              truncate
             />
           )}
           <SidebarMetricsValue>
@@ -193,8 +196,8 @@ const SidebarMetricsValue = styled('div')`
 `;
 
 const Container = styled('div')`
-  display: flex;
-  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
 `;
 
