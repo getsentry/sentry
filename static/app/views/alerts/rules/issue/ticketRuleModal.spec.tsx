@@ -195,8 +195,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     });
 
     it('should not persist value when unavailable in new choices', async function () {
-      renderComponent();
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
+      renderComponent({data: {reporter: 'a'}});
 
       addMockConfigsAPICall({
         label: 'Reporter',
