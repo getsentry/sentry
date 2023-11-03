@@ -710,7 +710,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project2.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
