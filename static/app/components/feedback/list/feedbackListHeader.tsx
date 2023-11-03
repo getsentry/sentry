@@ -1,3 +1,4 @@
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -5,12 +6,15 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/actions/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Checkbox from 'sentry/components/checkbox';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
+import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -22,12 +26,62 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
-interface Props {
-  checked: string[];
-  uncheckAll: (ids: string[]) => void;
+function openConfirmModal({
+  onConfirm,
+  body,
+  footerConfirm,
+}: {
+  body: ReactNode;
+  footerConfirm: ReactNode;
+  onConfirm: () => void | Promise<void>;
+}) {
+  openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
+    <Fragment>
+      <Body>{body}</Body>
+      <Footer>
+        <Flex gap={space(1)}>
+          <ButtonBar gap={1}>
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <Button
+              priority="primary"
+              onClick={() => {
+                closeModal();
+                onConfirm();
+              }}
+            >
+              {footerConfirm}
+            </Button>
+          </ButtonBar>
+        </Flex>
+      </Footer>
+    </Fragment>
+  ));
 }
 
-export default function FeedbackListHeader({checked, uncheckAll}: Props) {
+interface Props
+  extends Pick<
+    ReturnType<typeof useListItemCheckboxState>,
+    | 'countSelected'
+    | 'deselectAll'
+    | 'isAllSelected'
+    | 'isAnySelected'
+    | 'selectAll'
+    | 'selectedIds'
+  > {}
+
+const statusToText: Record<string, string> = {
+  resolved: 'Resolve',
+  unresolved: 'Unresolve',
+};
+
+export default function FeedbackListHeader({
+  countSelected,
+  deselectAll,
+  isAllSelected,
+  isAnySelected,
+  selectAll,
+  selectedIds,
+}: Props) {
   const {mailbox} = useLocationQuery({
     fields: {
       mailbox: decodeMailbox,
@@ -38,13 +92,22 @@ export default function FeedbackListHeader({checked, uncheckAll}: Props) {
   return (
     <HeaderPanelItem>
       <Checkbox
-        checked={checked.length ? 'indeterminate' : false}
+        checked={isAllSelected}
         onChange={() => {
-          checked.length ? uncheckAll(checked) : null;
+          if (isAllSelected === true) {
+            deselectAll();
+          } else {
+            selectAll();
+          }
         }}
       />
-      {checked.length ? (
-        <HasSelection checked={checked} mailbox={mailbox} uncheckAll={uncheckAll} />
+      {isAnySelected ? (
+        <HasSelection
+          mailbox={mailbox}
+          countSelected={countSelected}
+          selectedIds={selectedIds}
+          deselectAll={deselectAll}
+        />
       ) : (
         <MailboxPicker value={mailbox} onChange={setMailbox} />
       )}
@@ -52,36 +115,70 @@ export default function FeedbackListHeader({checked, uncheckAll}: Props) {
   );
 }
 
-function HasSelection({checked, mailbox, uncheckAll}) {
+interface HasSelectionProps
+  extends Pick<
+    ReturnType<typeof useListItemCheckboxState>,
+    'countSelected' | 'selectedIds' | 'deselectAll'
+  > {
+  mailbox: ReturnType<typeof decodeMailbox>;
+}
+
+function HasSelection({
+  mailbox,
+  countSelected,
+  selectedIds,
+  deselectAll,
+}: HasSelectionProps) {
   const organization = useOrganization();
   const {markAsRead, resolve} = useMutateFeedback({
-    feedbackIds: checked,
+    feedbackIds: selectedIds,
     organization,
   });
 
-  const mutationOptions = {
+  const mutationOptionsResolve = {
     onError: () => {
-      addErrorMessage(t('An error occurred while updating the feedback.'));
+      addErrorMessage(t('An error occurred while updating the feedbacks.'));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Updated feedback'));
+      addSuccessMessage(t('Updated feedbacks'));
+      deselectAll();
+    },
+  };
+
+  const mutationOptionsRead = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while updating the feedbacks.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Updated feedbacks'));
     },
   };
 
   return (
     <Flex gap={space(1)} align="center" justify="space-between" style={{flexGrow: 1}}>
       <span>
-        <strong>{tct('[count] Selected', {count: checked.length})}</strong>
+        <strong>
+          {tct('[countSelected] Selected', {
+            countSelected,
+          })}
+        </strong>
       </span>
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
           <Button
             onClick={() => {
-              addLoadingMessage(t('Updating feedback...'));
               const newStatus =
                 mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
-              resolve(newStatus, mutationOptions);
-              uncheckAll(checked);
+              openConfirmModal({
+                onConfirm: () => {
+                  addLoadingMessage(t('Updating feedbacks...'));
+                  resolve(newStatus, mutationOptionsResolve);
+                },
+                body: tct('Are you sure you want to [status] these feedbacks?', {
+                  status: statusToText[newStatus].toLowerCase(),
+                }),
+                footerConfirm: statusToText[newStatus],
+              });
             }}
           >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
@@ -101,16 +198,28 @@ function HasSelection({checked, mailbox, uncheckAll}) {
                 key: 'mark read',
                 label: t('Mark Read'),
                 onAction: () => {
-                  addLoadingMessage(t('Updating feedback...'));
-                  markAsRead(true, mutationOptions);
+                  openConfirmModal({
+                    onConfirm: () => {
+                      addLoadingMessage(t('Updating feedbacks...'));
+                      markAsRead(true, mutationOptionsRead);
+                    },
+                    body: t('Are you sure you want to mark these feedbacks as read?'),
+                    footerConfirm: 'Mark read',
+                  });
                 },
               },
               {
                 key: 'mark unread',
                 label: t('Mark Unread'),
                 onAction: () => {
-                  addLoadingMessage(t('Updating feedback...'));
-                  markAsRead(false, mutationOptions);
+                  openConfirmModal({
+                    onConfirm: () => {
+                      addLoadingMessage(t('Updating feedbacks...'));
+                      markAsRead(false, mutationOptionsRead);
+                    },
+                    body: t('Are you sure you want to mark these feedbacks as unread?'),
+                    footerConfirm: 'Mark unread',
+                  });
                 },
               },
             ]}

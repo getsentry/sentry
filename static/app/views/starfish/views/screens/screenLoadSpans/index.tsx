@@ -13,6 +13,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -24,9 +25,9 @@ import {
   ScreenCharts,
   YAxis,
 } from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
+import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 import {ScreenLoadSpansSidebar} from 'sentry/views/starfish/views/screens/screenLoadSpans/sidebar';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
-import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 type Query = {
   primaryRelease: string;
@@ -54,12 +55,12 @@ function ScreenLoadSpans() {
   const crumbs: Crumb[] = [
     {
       to: screenLoadModule,
-      label: t('Module View'),
+      label: t('Screens'),
       preservePageFilters: true,
     },
     {
       to: '',
-      label: t('Screen Load'),
+      label: decodeScalar(location.query.transaction),
     },
   ];
 
@@ -103,7 +104,7 @@ function ScreenLoadSpans() {
                 secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
-                <SampleList
+                <ScreenLoadSpanSamples
                   groupId={spanGroup}
                   transactionName={transactionName}
                   spanDescription={spanDescription}

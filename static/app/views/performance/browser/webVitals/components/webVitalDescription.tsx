@@ -100,7 +100,12 @@ export function WebVitalTagsDetailHeader({
       <span>
         <TitleWrapper>
           <WebVitalName>{title}</WebVitalName>
-          <StyledCopyToClipboardButton borderless text={title} size="sm" iconSize="sm" />
+          <StyledCopyToClipboardButton
+            borderless
+            text={`${tag.key}:${tag.name}`}
+            size="sm"
+            iconSize="sm"
+          />
         </TitleWrapper>
         <Value>{value}</Value>
       </span>

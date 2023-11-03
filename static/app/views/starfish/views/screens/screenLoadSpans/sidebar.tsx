@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
+import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
@@ -10,8 +10,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
@@ -30,6 +30,7 @@ type Props = {
 export function ScreenLoadSpansSidebar({transaction}: Props) {
   const {selection} = usePageFilters();
   const location = useLocation();
+  const organization = useOrganization();
   const searchQuery = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
@@ -79,69 +80,100 @@ export function ScreenLoadSpansSidebar({transaction}: Props) {
           : formatAbbreviatedNumber(data?.data[0]?.['count()'] as number)}
       </SidebarMetricsValue>
       <SidebarSpacer />
-      <SectionHeading>{t('Avg TTID (Release 1)')}</SectionHeading>
-      <SidebarMetricsValue>
-        {isLoading
-          ? undefinedText
-          : getDuration(
-              (data?.data[0]?.[
-                `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`
-              ] as number) / 1000,
-              2,
-              true
-            )}
-      </SidebarMetricsValue>
+      <SectionHeading>{t('Avg TTID')}</SectionHeading>
+      <Container>
+        <ContainerItem>
+          <Label>{t('Release 1')}</Label>
+          {secondaryRelease && (
+            <Version
+              organization={organization}
+              version={primaryRelease}
+              tooltipRawVersion
+            />
+          )}
+          <SidebarMetricsValue>
+            {isLoading
+              ? undefinedText
+              : getDuration(
+                  (data?.data[0]?.[
+                    `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`
+                  ] as number) / 1000,
+                  2,
+                  true
+                )}
+          </SidebarMetricsValue>
+        </ContainerItem>
+
+        <ContainerItem>
+          <Label>{t('Release 2')}</Label>
+          {secondaryRelease && (
+            <Version
+              organization={organization}
+              version={secondaryRelease}
+              tooltipRawVersion
+            />
+          )}
+          <SidebarMetricsValue>
+            {isLoading
+              ? undefinedText
+              : getDuration(
+                  (data?.data[0]?.[
+                    `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`
+                  ] as number) / 1000,
+                  2,
+                  true
+                )}
+          </SidebarMetricsValue>
+        </ContainerItem>
+      </Container>
       <SidebarSpacer />
-      <SectionHeading>{t('Avg TTID (Release 2)')}</SectionHeading>
-      <SidebarMetricsValue>
-        {isLoading
-          ? undefinedText
-          : getDuration(
-              (data?.data[0]?.[
-                `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`
-              ] as number) / 1000,
-              2,
-              true
-            )}
-      </SidebarMetricsValue>
+      <SectionHeading>{t('Avg TTFD')}</SectionHeading>
+      <Container>
+        <ContainerItem>
+          <Label>{t('Release 1')}</Label>
+          {secondaryRelease && (
+            <Version
+              organization={organization}
+              version={primaryRelease}
+              tooltipRawVersion
+            />
+          )}
+          <SidebarMetricsValue>
+            {isLoading
+              ? undefinedText
+              : getDuration(
+                  (data?.data[0]?.[
+                    `avg_if(measurements.time_to_full_display,release,${primaryRelease})`
+                  ] as number) / 1000,
+                  2,
+                  true
+                )}
+          </SidebarMetricsValue>
+        </ContainerItem>
+        <ContainerItem>
+          <Label>{t('Release 2')}</Label>
+          {secondaryRelease && (
+            <Version
+              organization={organization}
+              version={secondaryRelease}
+              tooltipRawVersion
+              truncate
+            />
+          )}
+          <SidebarMetricsValue>
+            {isLoading
+              ? undefinedText
+              : getDuration(
+                  (data?.data[0]?.[
+                    `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`
+                  ] as number) / 1000,
+                  2,
+                  true
+                )}
+          </SidebarMetricsValue>
+        </ContainerItem>
+      </Container>
       <SidebarSpacer />
-      <SectionHeading>{t('Avg TTFD (Release 1)')}</SectionHeading>
-      <SidebarMetricsValue>
-        {isLoading
-          ? undefinedText
-          : getDuration(
-              (data?.data[0]?.[
-                `avg_if(measurements.time_to_full_display,release,${primaryRelease})`
-              ] as number) / 1000,
-              2,
-              true
-            )}
-      </SidebarMetricsValue>
-      <SidebarSpacer />
-      <SectionHeading>{t('Avg TTFD (Release 2)')}</SectionHeading>
-      <SidebarMetricsValue>
-        {isLoading
-          ? undefinedText
-          : getDuration(
-              (data?.data[0]?.[
-                `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`
-              ] as number) / 1000,
-              2,
-              true
-            )}
-      </SidebarMetricsValue>
-      <SidebarSpacer />
-      <SectionHeading>{t('Aggregate Spans')}</SectionHeading>
-      <MiniAggregateWaterfallContainer>
-        <MiniAggregateWaterfall
-          transaction={transaction}
-          aggregateSpansLocation={{
-            ...location,
-            pathname: '/performance/summary/aggregateWaterfall',
-            query: omit(location.query, ['primaryRelease', 'secondaryRelease']),
-          }}
-        />
-      </MiniAggregateWaterfallContainer>
     </Fragment>
   );
 }
@@ -156,11 +188,20 @@ const SectionHeading = styled('h4')`
   margin: 0;
 `;
 
-const MiniAggregateWaterfallContainer = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
 const SidebarMetricsValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const Container = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
+
+const ContainerItem = styled('div')`
+  flex: 1;
+`;
+
+const Label = styled('div')`
+  font-weight: bold;
 `;

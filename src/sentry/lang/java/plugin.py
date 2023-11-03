@@ -1,6 +1,5 @@
 import sentry_sdk
 from symbolic.proguard import ProguardMapper
-from symbolic.sourcemap import SourceView
 
 from sentry.lang.java.processing import deobfuscate_exception_value
 from sentry.lang.java.utils import (
@@ -9,7 +8,7 @@ from sentry.lang.java.utils import (
     get_proguard_images,
     has_proguard_file,
 )
-from sentry.lang.javascript.processor import get_source_context, trim_line
+from sentry.lang.javascript.utils import get_source_context, trim_line
 from sentry.models.artifactbundle import ArtifactBundleArchive
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
@@ -248,17 +247,17 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
             for archive in self._archives:
                 try:
                     result, _ = archive.get_file_by_url(source_file_name)
-                    source_view = SourceView.from_bytes(result.read())
+                    source_view = list(result.readlines())
                     source_context = get_source_context(source_view, lineno)
 
                     (pre_context, context_line, post_context) = source_context
 
                     if pre_context is not None and len(pre_context) > 0:
-                        new_frame["pre_context"] = [trim_line(x) for x in pre_context]
+                        new_frame["pre_context"] = [trim_line(x.decode()) for x in pre_context]
                     if context_line is not None:
-                        new_frame["context_line"] = trim_line(context_line)
+                        new_frame["context_line"] = trim_line(context_line.decode())
                     if post_context is not None and len(post_context) > 0:
-                        new_frame["post_context"] = [trim_line(x) for x in post_context]
+                        new_frame["post_context"] = [trim_line(x.decode()) for x in post_context]
                 except KeyError:
                     # file not available in source bundle, proceed
                     pass
