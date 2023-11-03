@@ -21,6 +21,7 @@ const CHART_HEIGHTS = 100;
 type Props = {
   transaction: string;
   projectScore?: ProjectScore;
+  search?: string;
 };
 
 export function PageOverviewSidebar({projectScore, transaction}: Props) {
@@ -148,6 +149,7 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
       <MiniAggregateWaterfallContainer>
         <MiniAggregateWaterfall transaction={transaction} />
       </MiniAggregateWaterfallContainer>
+      <SidebarSpacer />
     </Fragment>
   );
 }

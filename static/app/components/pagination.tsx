@@ -31,7 +31,7 @@ type Props = {
   onCursor?: CursorHandler;
   pageLinks?: string | null;
   paginationAnalyticsEvent?: (direction: string) => void;
-  size?: 'zero' | 'xs' | 'sm';
+  size?: 'zero' | 'xs' | 'sm' | 'md';
   to?: string;
 };
 

@@ -10,15 +10,17 @@ import {
 export function useWebVitalsSort({
   sortName = 'sort',
   defaultSort = DEFAULT_SORT,
+  sortableFields = SORTABLE_FIELDS as unknown as string[],
 }: {
   defaultSort?: Sort;
   sortName?: string;
+  sortableFields?: string[];
 } = {}) {
   const location = useLocation();
 
   const sort =
     fromSorts(decodeScalar(location.query[sortName])).filter(s =>
-      (SORTABLE_FIELDS as unknown as string[]).includes(s.field)
+      (sortableFields as unknown as string[]).includes(s.field)
     )[0] ?? defaultSort;
 
   return sort;
