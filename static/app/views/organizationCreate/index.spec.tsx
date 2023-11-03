@@ -7,9 +7,12 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationCreate from 'sentry/views/organizationCreate';
 
 describe('OrganizationCreate', function () {
+  let oldRegions: any[] = [];
   beforeEach(() => {
     ConfigStore.get('termsUrl');
     ConfigStore.get('privacyUrl');
+
+    oldRegions = ConfigStore.get('regions');
 
     // Set only a single region in the config store by default
     ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
@@ -18,6 +21,7 @@ describe('OrganizationCreate', function () {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
+    ConfigStore.set('regions', oldRegions);
   });
 
   it('renders without terms', function () {

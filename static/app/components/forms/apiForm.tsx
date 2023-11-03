@@ -25,7 +25,7 @@ function ApiForm({onSubmit, apiMethod, apiEndpoint, hostOverride, ...otherProps}
       const transformed = onSubmit?.(data);
       addLoadingMessage(t('Saving changes\u2026'));
 
-      const request_options: RequestOptions = {
+      const requestOptions: RequestOptions = {
         method: apiMethod,
         data: transformed ?? data,
         success: response => {
@@ -39,10 +39,10 @@ function ApiForm({onSubmit, apiMethod, apiEndpoint, hostOverride, ...otherProps}
       };
 
       if (hostOverride) {
-        request_options.host = hostOverride;
+        requestOptions.host = hostOverride;
       }
 
-      api.request(apiEndpoint, request_options);
+      api.request(apiEndpoint, requestOptions);
     },
     [api, onSubmit, apiMethod, apiEndpoint, hostOverride]
   );
