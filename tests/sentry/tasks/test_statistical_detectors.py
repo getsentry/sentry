@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 from django.db.models import F
 
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -57,30 +58,49 @@ def project(organization):
     [
         "project_flags",
         "enable",
+        "performance_project_option_enabled",
         "performance_project",
         "expected_performance_project",
         "profiling_project",
         "expected_profiling_project",
     ],
     [
-        pytest.param(None, False, True, False, True, False, id="disabled"),
-        pytest.param(None, True, False, False, False, False, id="no projects"),
-        pytest.param(None, True, True, False, False, False, id="no transactions"),
-        pytest.param(None, True, False, False, True, False, id="no profiles"),
+        pytest.param(None, False, True, True, False, True, False, id="disabled"),
+        pytest.param(None, True, True, False, False, False, False, id="no projects"),
+        pytest.param(None, True, True, True, False, False, False, id="no transactions"),
+        pytest.param(None, True, True, False, False, True, False, id="no profiles"),
         pytest.param(
-            Project.flags.has_transactions, True, True, True, False, False, id="performance only"
+            Project.flags.has_transactions,
+            True,
+            True,
+            True,
+            True,
+            False,
+            False,
+            id="performance only",
         ),
         pytest.param(
-            Project.flags.has_profiles, True, False, False, True, True, id="profiling only"
+            Project.flags.has_profiles, True, True, False, False, True, True, id="profiling only"
         ),
         pytest.param(
             Project.flags.has_transactions | Project.flags.has_profiles,
+            True,
             True,
             False,
             False,
             True,
             True,
             id="performance + profiling",
+        ),
+        pytest.param(
+            Project.flags.has_transactions,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            id="performance project option disabled",
         ),
     ],
 )
@@ -94,6 +114,7 @@ def test_run_detection_options(
     enable,
     performance_project,
     profiling_project,
+    performance_project_option_enabled,
     expected_performance_project,
     expected_profiling_project,
     project,
@@ -111,6 +132,15 @@ def test_run_detection_options(
         if profiling_project
         else [],
     }
+
+    if performance_project_option_enabled:
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={
+                "transaction_duration_regression_detection_enabled": performance_project_option_enabled
+            },
+        )
 
     with freeze_time(timestamp), override_options(options), TaskRunner():
         run_detection()

@@ -21,6 +21,7 @@ from sentry.issues.grouptype import (
     PerformanceLargeHTTPPayloadGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
+    PerformanceP95EndpointRegressionGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
@@ -48,6 +49,7 @@ class InternalProjectOptions(Enum):
     RENDER_BLOCKING_ASSET = "large_render_blocking_asset_detection_enabled"
     SLOW_DB_QUERY = "slow_db_queries_detection_enabled"
     HTTP_OVERHEAD = "http_overhead_detection_enabled"
+    TRANSACTION_DURATION_REGRESSION = "transaction_duration_regression_detection_enabled"
 
 
 class ConfigurableThresholds(Enum):
@@ -77,6 +79,7 @@ internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
     InternalProjectOptions.RENDER_BLOCKING_ASSET.value: PerformanceRenderBlockingAssetSpanGroupType,
     InternalProjectOptions.SLOW_DB_QUERY.value: PerformanceSlowDBQueryGroupType,
     InternalProjectOptions.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
+    InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
 }
 
 configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
@@ -150,6 +153,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     large_render_blocking_asset_detection_enabled = serializers.BooleanField(required=False)
     slow_db_queries_detection_enabled = serializers.BooleanField(required=False)
     http_overhead_detection_enabled = serializers.BooleanField(required=False)
+    transaction_duration_regression_detection_enabled = serializers.BooleanField(required=False)
 
 
 def get_disabled_threshold_options(payload, current_settings):
