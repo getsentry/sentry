@@ -56,6 +56,13 @@ function shouldDisplayRegions(): boolean {
   );
 }
 
+function removeRegionFromRequestForm(formData: Record<string, any>) {
+  const shallowFormDataCopy = {...formData};
+
+  delete shallowFormDataCopy.region;
+  return shallowFormDataCopy;
+}
+
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
@@ -80,6 +87,7 @@ function OrganizationCreate() {
           apiEndpoint="/organizations/"
           apiMethod="POST"
           hostOverride={regionUrl}
+          onSubmit={removeRegionFromRequestForm}
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
             const hasCustomerDomain = createdOrg?.features.includes('customer-domains');
             let nextUrl = normalizeUrl(

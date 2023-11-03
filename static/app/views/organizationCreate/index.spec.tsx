@@ -166,7 +166,7 @@ describe('OrganizationCreate', function () {
         error: expect.any(Function),
         method: 'POST',
         host: expectedHost,
-        data: {defaultTeam: true, name: 'Good Burger', region: expectedHost},
+        data: {defaultTeam: true, name: 'Good Burger'},
       });
     });
 
@@ -218,7 +218,7 @@ describe('OrganizationCreate', function () {
         error: expect.any(Function),
         method: 'POST',
         host: expectedHost,
-        data: {defaultTeam: true, name: 'Good Burger', region: expectedHost},
+        data: {defaultTeam: true, name: 'Good Burger'},
       });
     });
 
