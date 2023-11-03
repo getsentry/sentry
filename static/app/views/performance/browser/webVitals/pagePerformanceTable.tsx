@@ -3,15 +3,19 @@ import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Sort} from 'sentry/utils/discover/fields';
@@ -47,6 +51,8 @@ const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
   {key: 'opportunity', width: COL_WIDTH_UNDEFINED, name: 'Opportunity'},
 ];
 
+const MAX_ROWS = 25;
+
 export function PagePerformanceTable() {
   const organization = useOrganization();
   const location = useLocation();
@@ -76,7 +82,7 @@ export function PagePerformanceTable() {
     data,
     pageLinks,
     isLoading: isTransactionWebVitalsQueryLoading,
-  } = useTransactionWebVitalsQuery({limit: 10, transaction: query});
+  } = useTransactionWebVitalsQuery({limit: MAX_ROWS, transaction: query});
 
   const count = projectData?.data[0]['count()'] as number;
 
@@ -133,9 +139,18 @@ export function PagePerformanceTable() {
     if (col.key === 'opportunity') {
       return (
         <Tooltip
-          title={t(
-            'The biggest opportunities to improve your cumulative performance score.'
-          )}
+          isHoverable
+          title={
+            <span>
+              {t(
+                "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
+              )}
+              <br />
+              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                {t('How is this calculated?')}
+              </ExternalLink>
+            </span>
+          }
         >
           <OpportunityHeader>{col.name}</OpportunityHeader>
         </Tooltip>
@@ -214,7 +229,36 @@ export function PagePerformanceTable() {
   return (
     <span>
       <SearchBarContainer>
-        <SearchBar placeholder={t('Search for Pages')} onSearch={handleSearch} />
+        <StyledSearchBar
+          placeholder={t('Search for more Pages')}
+          onSearch={handleSearch}
+        />
+        <StyledPagination
+          pageLinks={pageLinks}
+          disabled={isProjectWebVitalsQueryLoading || isTransactionWebVitalsQueryLoading}
+          size="md"
+        />
+        {/* The Pagination component disappears if pageLinks is not defined,
+        which happens any time the table data is loading. So we render a
+        disabled button bar if pageLinks is not defined to minimize ui shifting */}
+        {!pageLinks && (
+          <Wrapper>
+            <ButtonBar merged>
+              <Button
+                icon={<IconChevron direction="left" size="sm" />}
+                size="md"
+                disabled
+                aria-label={t('Previous')}
+              />
+              <Button
+                icon={<IconChevron direction="right" size="sm" />}
+                size="md"
+                disabled
+                aria-label={t('Next')}
+              />
+            </ButtonBar>
+          </Wrapper>
+        )}
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
@@ -229,7 +273,6 @@ export function PagePerformanceTable() {
           location={location}
         />
       </GridContainer>
-      <Pagination pageLinks={pageLinks} />
     </span>
   );
 }
@@ -258,7 +301,9 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
 `;
 
 const SearchBarContainer = styled('div')`
+  display: flex;
   margin-bottom: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const GridContainer = styled('div')`
@@ -267,4 +312,19 @@ const GridContainer = styled('div')`
 
 const OpportunityHeader = styled('span')`
   ${p => p.theme.tooltipUnderline()};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;
+
+const Wrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0;
 `;
