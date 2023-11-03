@@ -645,26 +645,6 @@ urlpatterns += [
                     name="sentry-customer-domain-legal-settings",
                 ),
                 re_path(
-                    r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
-                    react_page_view,
-                    name="sentry-organization-unsubscribe-project",
-                ),
-                re_path(
-                    r"^unsubscribe/project/(?P<project_id>\d+)/$",
-                    react_page_view,
-                    name="sentry-customer-domain-unsubscribe-project",
-                ),
-                re_path(
-                    r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
-                    react_page_view,
-                    name="sentry-organization-unsubscribe-issue",
-                ),
-                re_path(
-                    r"^unsubscribe/issue/(?P<issue_id>\d+)/$",
-                    react_page_view,
-                    name="sentry-customer-domain-unsubscribe-issue",
-                ),
-                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",
@@ -705,6 +685,26 @@ urlpatterns += [
         r"^extensions/external-install/(?P<provider_id>\w+)/(?P<installation_id>\w+)/$",
         react_page_view,
         name="integration-installation",
+    ),
+    re_path(
+        r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
+        react_page_view,
+        name="sentry-organization-unsubscribe-project",
+    ),
+    re_path(
+        r"^unsubscribe/project/(?P<project_id>\d+)/$",
+        react_page_view,
+        name="sentry-customer-domain-unsubscribe-project",
+    ),
+    re_path(
+        r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
+        react_page_view,
+        name="sentry-organization-unsubscribe-issue",
+    ),
+    re_path(
+        r"^unsubscribe/issue/(?P<issue_id>\d+)/$",
+        react_page_view,
+        name="sentry-customer-domain-unsubscribe-issue",
     ),
     # Issues
     re_path(
