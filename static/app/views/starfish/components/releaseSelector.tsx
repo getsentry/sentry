@@ -53,18 +53,14 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
   data
     ?.filter(({version}) => selectorValue !== version)
     .forEach(release => {
-      const screenCount = release.count;
-      if (screenCount) {
-        const option = {
-          value: release.version,
-          label: release.version,
-          details: (
-            <LabelDetails screenCount={screenCount} dateCreated={release.dateCreated} />
-          ),
-        };
-
-        options.push(option);
-      }
+      const option = {
+        value: release.version,
+        label: release.version,
+        details: (
+          <LabelDetails screenCount={release.count} dateCreated={release.dateCreated} />
+        ),
+      };
+      options.push(option);
     });
 
   return (
