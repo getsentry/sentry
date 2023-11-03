@@ -13,7 +13,7 @@ from snuba_sdk import (
     Rollup,
     Timeseries,
 )
-from snuba_sdk.conditions import Condition, ConditionGroup, Op
+from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.dsl.dsl import parse_mql
 
 from sentry.models.organization import Organization
@@ -55,50 +55,162 @@ class GroupValue:
 
 
 @dataclass(frozen=True)
-class QueryResult:
-    name: str
-    grouped_by: Optional[Sequence[str]]
+class ExecutionResult:
+    # This refers to the timeseries query, not the totals.
+    query: MetricsQuery
     result: Mapping[str, Any]
+    with_totals: bool
+
+    @property
+    def query_name(self) -> str:
+        timeseries = self.query.query
+        return f"{timeseries.aggregate}({timeseries.metric.mri or timeseries.metric.public_name})"
+
+    @property
+    def modified_start(self) -> datetime:
+        return self.result["modified_start"]
+
+    @property
+    def modified_end(self) -> datetime:
+        return self.result["modified_end"]
+
+    @property
+    def interval(self) -> int:
+        return self.query.rollup.interval
+
+    @property
+    def group_bys(self) -> Sequence[str]:
+        group_bys = []
+        for group_by in self.query.query.groupby or ():
+            if isinstance(group_by, Column):
+                group_bys.append(group_by.name)
+            elif isinstance(group_by, AliasedExpression):
+                group_bys.append(group_by.exp.name)
+
+        return group_bys
+
+    @property
+    def data(self) -> Mapping[str, Any]:
+        return self.result["data"]
+
+    @property
+    def totals(self) -> Mapping[str, Any]:
+        return self.result["totals"]
+
+    @property
+    def meta(self) -> Sequence[Mapping[str, str]]:
+        return self.result["meta"]
 
 
-def _parse_fields(
-    fields: Sequence[str],
-    filters: Optional[ConditionGroup],
-    groupby: Optional[List[Union[Column, AliasedExpression]]],
-) -> Generator[Timeseries, None, None]:
-    """
-    This function supports parsing in the form:
-    aggregate(metric_name)
-    """
-    if not fields:
-        raise InvalidMetricsQuery("You must query at least one field.")
+class QueryParser:
+    def __init__(
+        self,
+        fields: Sequence[str],
+        query: Optional[str],
+        group_bys: Optional[Sequence[str]],
+    ):
+        self._fields = fields
+        self._query = query
+        self._group_bys = group_bys
 
-    for field in fields:
-        # As a first iteration, we leverage only a subset of the mql grammar to pass the basic expressions like
-        # `aggregate(metric)` and then we inject the conditions that were parsed from the query passed with the old
-        # discover grammar.
-        timeseries = parse_mql(field).query
-        yield timeseries.set_filters(filters).set_groupby(groupby)
+    def _parse_query(self) -> Optional[Sequence[Condition]]:
+        """
+        This function supports parsing in the form:
+        key:value (_ key:value)?
+        in which the only supported operator is AND until this logic is switched to the metrics layer.
+        """
+        if self._query is None:
+            return None
+
+        # TODO: implement parsing via the discover grammar.
+        filters = []
+        matches = QUERY_REGEX.findall(self._query)
+        for key, value in matches:
+            filters.append(Condition(lhs=Column(name=key), op=Op.EQ, rhs=value))
+
+        if not self._query:
+            raise InvalidMetricsQuery("Error while parsing the query.")
+
+        return filters
+
+    def _parse_group_bys(self) -> Optional[Sequence[Column]]:
+        """
+        Parses the group bys by converting them into a list of snuba columns.
+        """
+        if self._group_bys is None:
+            return None
+
+        return [Column(group_by) for group_by in self._group_bys]
+
+    def parse_timeserieses(self) -> Generator[Timeseries, None, None]:
+        """
+        Parses the incoming fields with the MQL grammar.
+
+        Note that for now the filters and groupy are passed in, since we want to still keep the filtering
+        via the discover grammar.
+        """
+        if not self._fields:
+            raise InvalidMetricsQuery("You must query at least one field.")
+
+        # We first parse the filters and group bys, which are then going to be applied on each individual query
+        # that is executed.
+        filters = self._parse_query()
+        group_bys = self._parse_group_bys()
+
+        for field in self._fields:
+            timeseries = parse_mql(field).query
+            yield timeseries.set_filters(filters).set_groupby(group_bys)
 
 
-def _parse_filters(query: Optional[str]) -> Optional[Sequence[Condition]]:
-    """
-    This function supports parsing in the form:
-    key:value (_ key:value)?
-    in which the only supported operator is AND until this logic is switched to the metrics layer.
-    """
-    if query is None:
-        return None
+class QueryExecutor:
+    def __init__(self, organization: Organization, referrer: str):
+        self._organization = organization
+        self._referrer = referrer
+        self._next_id = 0
+        # List of queries scheduled for execution.
+        self._scheduled_queries: Dict[int, Tuple[MetricsQuery, bool]] = {}
 
-    filters = []
-    matches = QUERY_REGEX.findall(query)
-    for key, value in matches:
-        filters.append(Condition(lhs=Column(name=key), op=Op.EQ, rhs=value))
+    def _build_request(self, query: MetricsQuery) -> Request:
+        return Request(
+            dataset=Dataset.Metrics.value,
+            query=query,
+            app_id="default",
+            tenant_ids={"referrer": self._referrer, "organization_id": self._organization.id},
+        )
 
-    if not query:
-        raise InvalidMetricsQuery("Error while parsing the query.")
+    def _execute(self, query: MetricsQuery, with_totals: bool) -> Mapping[str, Any]:
+        series_result = run_query(request=self._build_request(query))
 
-    return filters
+        if with_totals:
+            # TODO(layer): maybe totals will have to be handled by the layer, so that the time intervals will be
+            #  inferred automatically, instead of doing the manual work here.
+            modified_start = series_result["modified_start"]
+            modified_end = series_result["modified_end"]
+            query = (
+                query.set_start(modified_start)
+                .set_end(modified_end)
+                .set_rollup(Rollup(totals=True))
+            )
+            totals_result = run_query(request=self._build_request(query))
+
+            return {**series_result, "totals": totals_result["data"]}
+
+        return series_result
+
+    def schedule(self, query: MetricsQuery, with_totals: bool = True):
+        # By default we want to execute totals.
+        self._scheduled_queries[self._next_id] = (query, with_totals)
+        self._next_id += 1
+
+    def execute(self, in_batch: bool = False) -> Generator[ExecutionResult, None, None]:
+        if in_batch:
+            # TODO: implement batching.
+            # Run batch query and flatten results.
+            pass
+        else:
+            for query_id, (query, with_totals) in self._scheduled_queries.items():
+                result = self._execute(query, with_totals)
+                yield ExecutionResult(query=query, result=result, with_totals=with_totals)
 
 
 def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[datetime]:
@@ -166,47 +278,45 @@ def _nan_to_none(value: ResultValue) -> ResultValue:
     return value
 
 
-def _translate_query_results(
-    interval: int,
-    query_results: Sequence[QueryResult],
-) -> Mapping[str, Any]:
+def _translate_query_results(execution_results: List[ExecutionResult]) -> Mapping[str, Any]:
     """
     Converts the default format from the metrics layer format into the old format which is understood by the frontend.
     """
     start: Optional[datetime] = None
     end: Optional[datetime] = None
-    intervals: Optional[Sequence[datetime]] = None
+    interval: Optional[int] = None
 
     # For efficiency reasons, we translate the incoming data into our custom in-memory representations.
     intermediate_groups: Dict[GroupKey, Dict[str, GroupValue]] = {}
     intermediate_meta: Dict[str, str] = {}
-    for query_result in query_results:
-        # Very ugly way to build the intervals start and end from the run queries, since they are all using
-        # the same params.
+    for execution_result in execution_results:
+        # All queries must have the same timerange, so under this assumption we take the first occurrence of each.
         if start is None:
-            start = query_result.result["modified_start"]
+            start = execution_result.modified_start
         if end is None:
-            end = query_result.result["modified_end"]
-        if intervals is None:
-            intervals = _build_intervals(start, end, interval)
+            end = execution_result.modified_end
+        if interval is None:
+            interval = execution_result.interval
 
         def _group(values, block):
             for value in values:
                 # We compute a list containing all the group values.
                 grouped_values = []
-                for group_by in query_result.grouped_by or ():
+                for group_by in execution_result.group_bys or ():
                     grouped_values.append((group_by, value.get(group_by)))
 
                 # We order the group values in order to be consistent across executions.
                 group_key = tuple(sorted(grouped_values))
                 group_metrics = intermediate_groups.setdefault(group_key, {})
                 # The item at position 0 is the "series".
-                group_value = group_metrics.setdefault(query_result.name, GroupValue.empty())
+                group_value = group_metrics.setdefault(
+                    execution_result.query_name, GroupValue.empty()
+                )
                 block(value, group_value)
 
         # We group the timeseries data.
         _group(
-            query_result.result["data"],
+            execution_result.data,
             lambda value, group: group.add_series_entry(
                 value.get("time"), value.get("aggregate_value")
             ),
@@ -214,30 +324,30 @@ def _translate_query_results(
 
         # We group the total data.
         _group(
-            query_result.result["totals"],
+            execution_result.totals,
             lambda value, group: group.add_total(value.get("aggregate_value")),
         )
 
-        meta = query_result.result["meta"]
+        meta = execution_result.meta
         for meta_item in meta:
-            meta_name = meta_item.get("name")
-            meta_type = meta_item.get("type")
+            meta_name = meta_item["name"]
+            meta_type = meta_item["type"]
 
             # Since we have to handle multiple time series, we map the aggregate value to the actual
             # metric name that was queried.
             if meta_name == "aggregate_value":
-                intermediate_meta[query_result.name] = meta_type
+                intermediate_meta[execution_result.query_name] = meta_type
             else:
                 intermediate_meta[meta_name] = meta_type
 
+    # If we don't have time bounds and an interval, we can't return anything.
+    assert start is not None and end is not None and interval is not None
+
+    # We build the intervals that we will return to the API user.
+    intervals = _build_intervals(start, end, interval)
+
     translated_groups = []
     for group_key, group_metrics in sorted(intermediate_groups.items(), key=lambda v: v[0]):
-        # This case should never happen, since if we have start and intervals not None
-        assert start is not None and end is not None and intervals is not None
-
-        start_seconds = int(start.timestamp())
-        num_intervals = len(intervals)
-
         translated_serieses: Dict[str, Sequence[Optional[Union[int, float]]]] = {}
         translated_totals: Dict[str, ResultValue] = {}
         for metric_name, metric_values in sorted(group_metrics.items(), key=lambda v: v[0]):
@@ -247,7 +357,7 @@ def _translate_query_results(
             # We generate the full series by passing as default value the identity of the totals, which is the default
             # value applied in the timeseries.
             translated_serieses[metric_name] = _generate_full_series(
-                start_seconds, num_intervals, interval, series, _get_identity(total)
+                int(start.timestamp()), len(intervals), interval, series, _get_identity(total)
             )
             # In case we get nan, we will cast it to None but this can be changed in case there is the need.
             translated_totals[metric_name] = _nan_to_none(total)
@@ -273,35 +383,6 @@ def _translate_query_results(
     }
 
 
-def _build_request(organization: Organization, referrer: str, query: MetricsQuery) -> Request:
-    return Request(
-        dataset=Dataset.Metrics.value,
-        query=query,
-        app_id="default",
-        tenant_ids={"referrer": referrer, "organization_id": organization.id},
-    )
-
-
-def _execute_series_and_totals_query(
-    organization: Organization, interval: int, referrer: str, base_query: MetricsQuery
-) -> Mapping[str, Any]:
-    # First we make the series query.
-    query = base_query.set_rollup(Rollup(interval=interval))
-    series_result = run_query(request=_build_request(organization, referrer, query))
-
-    # TODO(layer): maybe totals will have to be handled by the layer, so that the time intervals will be
-    #  inferred automatically, instead of doing the manual work here.
-    # Second we make the totals query by taking the same modified interval computed by the series query.
-    modified_start = series_result["modified_start"]
-    modified_end = series_result["modified_end"]
-    query = (
-        base_query.set_start(modified_start).set_end(modified_end).set_rollup(Rollup(totals=True))
-    )
-    totals_result = run_query(request=_build_request(organization, referrer, query))
-
-    return {**series_result, "totals": totals_result["data"]}
-
-
 def run_metrics_query(
     fields: Sequence[str],
     query: Optional[str],
@@ -313,35 +394,29 @@ def run_metrics_query(
     projects: Sequence[Project],
     referrer: str,
 ):
-    base_scope = MetricsScope(
-        org_ids=[organization.id],
-        project_ids=[project.id for project in projects],
-    )
-
     # Build the basic query that contains the metadata.
     base_query = MetricsQuery(
         start=start,
         end=end,
-        scope=base_scope,
+        scope=MetricsScope(
+            org_ids=[organization.id],
+            project_ids=[project.id for project in projects],
+        ),
     )
 
-    # We generate the filters and group bys which are going to be applied to each timeseries.
-    filters = _parse_filters(query) if query else None
-    groupby = [Column(group_by) for group_by in group_bys] if group_bys else None
+    # Preparing the executor, that will be responsible for scheduling the execution multiple queries.
+    executor = QueryExecutor(organization=organization, referrer=referrer)
 
-    # For each field generate the query.
-    query_results = []
-    for timeseries in _parse_fields(fields, filters, groupby):
-        query = base_query.set_query(timeseries)
-        result = _execute_series_and_totals_query(organization, interval, referrer, query)
-        query_results.append(
-            QueryResult(
-                name=f"{timeseries.aggregate}({timeseries.metric.mri or timeseries.metric.public_name})",
-                # We pass the group bys since its more efficient for the transformation.
-                grouped_by=group_bys,
-                result=result,
-            )
-        )
+    # Parsing the input and iterating over each timeseries.
+    parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
+    for timeseries in parser.parse_timeserieses():
+        query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
+        executor.schedule(query)
+
+    # Iterating over each result.
+    results = []
+    for result in executor.execute():
+        results.append(result)
 
     # We translate the result back to the pre-existing format.
-    return _translate_query_results(interval=interval, query_results=query_results)
+    return _translate_query_results(execution_results=results)
