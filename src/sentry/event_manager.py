@@ -451,7 +451,10 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
-            metric_tags = {"platform": job["event"].platform or "unknown"}
+            metric_tags = {
+                "platform": job["event"].platform or "unknown",
+                "sdk": job["event"].data.get("sdk", {}).get("name") or "unknown",
+            }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
@@ -776,7 +779,7 @@ def _auto_update_grouping(project: Project) -> None:
             "sentry:secondary_grouping_expiry": expiry,
             "sentry:grouping_config": new_grouping,
         }
-        for (key, value) in changes.items():
+        for key, value in changes.items():
             project.update_option(key, value)
         create_system_audit_entry(
             organization=project.organization,
@@ -1581,7 +1584,6 @@ def _save_aggregate(
     kwargs["data"]["last_received"] = received_timestamp
 
     if existing_grouphash is None:
-
         if killswitch_matches_context(
             "store.load-shed-group-creation-projects",
             {
@@ -1621,7 +1623,6 @@ def _save_aggregate(
                 root_hierarchical_grouphash = None
 
             if existing_grouphash is None:
-
                 group = _create_group(project, event, **kwargs)
 
                 if (
@@ -1654,7 +1655,10 @@ def _save_aggregate(
                 metrics.incr(
                     "group.created",
                     skip_internal=True,
-                    tags={"platform": event.platform or "unknown"},
+                    tags={
+                        "platform": event.platform or "unknown",
+                        "sdk": event.data.get("sdk", {}).get("name") or "unknown",
+                    },
                 )
 
                 # This only applies to events with stacktraces
@@ -1665,6 +1669,7 @@ def _save_aggregate(
                         sample_rate=1.0,
                         tags={
                             "platform": event.platform or "unknown",
+                            "sdk": event.data.get("sdk", {}).get("name") or "unknown",
                             "frame_mix": frame_mix,
                         },
                     )
@@ -1826,7 +1831,10 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     except OperationalError:
         metrics.incr(
             "next_short_id.timeout",
-            tags={"platform": event.platform or "unknown"},
+            tags={
+                "platform": event.platform or "unknown",
+                "sdk": event.data.get("sdk", {}).get("name") or "unknown",
+            },
         )
         sentry_sdk.capture_message("short_id.timeout")
         raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
@@ -2207,7 +2215,10 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     metrics.incr(
         "events.discarded",
         skip_internal=True,
-        tags={"platform": job["platform"]},
+        tags={
+            "platform": job["platform"],
+            "sdk": job["event"].data.get("sdk", {}).get("name") or "unknown",
+        },
     )
 
 
@@ -2466,6 +2477,7 @@ def _calculate_event_grouping(
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
+        "sdk": event.data.get("sdk", {}).get("name") or "unknown",
     }
 
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
@@ -2518,7 +2530,10 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
             metrics.incr(
                 "save_event.transaction.span_group_count.default",
                 amount=len(unique_default_hashes),
-                tags={"platform": job["platform"] or "unknown"},
+                tags={
+                    "platform": job["platform"] or "unknown",
+                    "sdk": event.data.get("sdk", {}).get("name") or "unknown",
+                },
             )
         except Exception:
             sentry_sdk.capture_exception()
