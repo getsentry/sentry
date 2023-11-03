@@ -82,6 +82,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "sdk.version": "sdk.version",
     # Subset of context fields
     "app.in_foreground": "contexts.app.in_foreground",
+    "device": "contexts.device.model",
     "device.arch": "contexts.device.arch",
     "device.battery_level": "contexts.device.battery_level",
     "device.brand": "contexts.device.brand",
