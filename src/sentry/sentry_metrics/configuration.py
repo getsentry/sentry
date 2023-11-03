@@ -27,6 +27,13 @@ PERFORMANCE_PG_NAMESPACE = "performance"
 RELEASE_HEALTH_CS_NAMESPACE = "releasehealth.cs"
 PERFORMANCE_CS_NAMESPACE = "performance.cs"
 
+RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME = (
+    "sentry-metrics.indexer.release-health.schema-validation-rules"
+)
+GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME = (
+    "sentry-metrics.indexer.generic-metrics.schema-validation-rules"
+)
+
 
 class IndexerStorage(Enum):
     POSTGRES = "postgres"
@@ -47,6 +54,7 @@ class MetricsIngestConfiguration:
     cardinality_limiter_namespace: str
 
     should_index_tag_values: bool
+    schema_validation_rule_option_name: Optional[str] = None
     is_output_sliced: Optional[bool] = False
 
 
@@ -78,6 +86,7 @@ def get_ingest_config(
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 should_index_tag_values=True,
+                schema_validation_rule_option_name=RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
         )
 
@@ -95,6 +104,7 @@ def get_ingest_config(
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
                 should_index_tag_values=False,
+                schema_validation_rule_option_name=GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
         )
 
@@ -112,6 +122,7 @@ def get_ingest_config(
                 cardinality_limiter_cluster_options={},
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 should_index_tag_values=True,
+                schema_validation_rule_option_name=RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
         )
 
@@ -129,6 +140,7 @@ def get_ingest_config(
                 cardinality_limiter_cluster_options={},
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 should_index_tag_values=False,
+                schema_validation_rule_option_name=GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
         )
 
