@@ -14,12 +14,13 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconLightning, IconPlay, IconProfiling} from 'sentry/icons';
+import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {Sort} from 'sentry/utils/discover/fields';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -41,7 +42,6 @@ import {generateReplayLink} from 'sentry/views/performance/transactionSummary/ut
 
 export type TransactionSampleRowWithScoreAndExtra = TransactionSampleRow & {
   score: number;
-  view: any;
 };
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScoreAndExtra>;
@@ -57,7 +57,6 @@ export const COLUMN_ORDER: GridColumnOrder<
   {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
   {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
-  {key: 'view', width: COL_WIDTH_UNDEFINED, name: 'View'},
 ];
 
 type Props = {
@@ -157,6 +156,13 @@ export function PageSamplePerformanceTable({
     if (col.key === 'score') {
       return (
         <AlignCenter>
+          <span>{t('Perf Score')}</span>
+        </AlignCenter>
+      );
+    }
+    if (col.key === 'replayId' || col.key === 'profile.id') {
+      return (
+        <AlignCenter>
           <span>{col.name}</span>
         </AlignCenter>
       );
@@ -215,9 +221,31 @@ export function PageSamplePerformanceTable({
     if (['measurements.cls', 'opportunity'].includes(key)) {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
     }
-    if (key === 'view') {
-      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
-      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+    if (key === 'profile.id') {
+      const profileTarget =
+        defined(project) && defined(row['profile.id'])
+          ? generateProfileFlamechartRoute({
+              orgSlug: organization.slug,
+              projectSlug: project.slug,
+              profileId: String(row['profile.id']),
+            })
+          : null;
+      return (
+        <NoOverflow>
+          <AlignCenter>
+            {profileTarget && (
+              <Tooltip title={t('View Profile')}>
+                <LinkButton to={profileTarget} size="xs">
+                  <IconProfiling size="xs" />
+                </LinkButton>
+              </Tooltip>
+            )}
+          </AlignCenter>
+        </NoOverflow>
+      );
+    }
+
+    if (key === 'replayId') {
       const replayTarget =
         row['transaction.duration'] !== null &&
         replayLinkGenerator(
@@ -230,38 +258,29 @@ export function PageSamplePerformanceTable({
           },
           undefined
         );
-      const profileTarget =
-        defined(project) && defined(row['profile.id'])
-          ? generateProfileFlamechartRoute({
-              orgSlug: organization.slug,
-              projectSlug: project.slug,
-              profileId: String(row['profile.id']),
-            })
-          : null;
-
       return (
         <NoOverflow>
-          <Flex>
-            <Tooltip title={t('View Transaction')}>
-              <LinkButton to={eventTarget} size="xs">
-                <IconLightning size="xs" />
-              </LinkButton>
-            </Tooltip>
-            {profileTarget && (
-              <Tooltip title={t('View Profile')}>
-                <LinkButton to={profileTarget} size="xs">
-                  <IconProfiling size="xs" />
-                </LinkButton>
-              </Tooltip>
-            )}
-            {row.replayId && replayTarget && (
+          <AlignCenter>
+            {replayTarget && (
               <Tooltip title={t('View Replay')}>
                 <LinkButton to={replayTarget} size="xs">
                   <IconPlay size="xs" />
                 </LinkButton>
               </Tooltip>
             )}
-          </Flex>
+          </AlignCenter>
+        </NoOverflow>
+      );
+    }
+
+    if (key === 'id') {
+      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
+      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+      return (
+        <NoOverflow>
+          <Tooltip title={t('View Transaction')}>
+            <Link to={eventTarget}>{getShortEventId(row.id)}</Link>
+          </Tooltip>
         </NoOverflow>
       );
     }
@@ -315,6 +334,7 @@ export function PageSamplePerformanceTable({
             renderBodyCell,
           }}
           location={location}
+          minimumColWidth={70}
         />
       </GridContainer>
     </span>
@@ -333,7 +353,7 @@ const AlignRight = styled('span')<{color?: string}>`
   ${p => (p.color ? `color: ${p.color};` : '')}
 `;
 
-const AlignCenter = styled('span')`
+const AlignCenter = styled('div')`
   text-align: center;
   width: 100%;
 `;
@@ -344,13 +364,26 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
 `;
 
+// Not pretty but we need to override gridEditable styles since the original
+// styles have too much padding for small spaces
 const GridContainer = styled('div')`
   margin-bottom: ${space(1)};
-`;
-
-const Flex = styled('div')`
-  display: flex;
-  gap: ${space(1)};
+  th {
+    padding: 0 ${space(1)};
+  }
+  th:first-child {
+    padding-left: ${space(2)};
+  }
+  th:last-child {
+    padding-right: ${space(2)};
+  }
+  td {
+    padding: ${space(1)};
+  }
+  td:first-child {
+    padding-right: ${space(1)};
+    padding-left: ${space(2)};
+  }
 `;
 
 const NoValue = styled('span')`
