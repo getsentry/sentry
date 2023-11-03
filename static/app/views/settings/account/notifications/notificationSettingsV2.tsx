@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
 import {LinkButton} from 'sentry/components/button';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {FieldObject} from 'sentry/components/forms/types';
@@ -11,10 +10,12 @@ import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMail, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
@@ -27,11 +28,11 @@ import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notific
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = DeprecatedAsyncComponent['props'] & {
+interface NotificationSettingsProps {
   organizations: Organization[];
-};
+}
 
-function NotificationSettings({organizations}: Props) {
+function NotificationSettings({organizations}: NotificationSettingsProps) {
   const checkFeatureFlag = (flag: string) => {
     return organizations.some(org => org.features?.includes(flag));
   };
@@ -73,13 +74,11 @@ function NotificationSettings({organizations}: Props) {
     data: initialLegacyData,
     isLoading,
     isError,
+    isSuccess,
+    refetch,
   } = useApiQuery<{[key: string]: string}>(['/users/me/notifications/'], {
     staleTime: 0,
   });
-
-  if (isError) {
-    return <LoadingError />;
-  }
 
   return (
     <Fragment>
@@ -88,20 +87,32 @@ function NotificationSettings({organizations}: Props) {
       <TextBlock>
         {t('Personal notifications sent by email or an integration.')}
       </TextBlock>
+      {isError && <LoadingError onRetry={refetch} />}
       <PanelNoBottomMargin>
         <PanelHeader>{t('Notification')}</PanelHeader>
-        <Container>{notificationFields.map(renderOneSetting)}</Container>
+        <PanelBody>{notificationFields.map(renderOneSetting)}</PanelBody>
       </PanelNoBottomMargin>
-      {!isLoading && (
-        <Form
-          saveOnBlur
-          apiMethod="PUT"
-          apiEndpoint="/users/me/notifications/"
-          initialData={initialLegacyData}
-        >
-          <BottomForm fields={legacyFields} />
-        </Form>
-      )}
+      <BottomFormWrapper>
+        {isLoading && (
+          <Panel>
+            {new Array(2).fill(0).map((_, idx) => (
+              <PanelItem key={idx}>
+                <Placeholder height="38px" />
+              </PanelItem>
+            ))}
+          </Panel>
+        )}
+        {isSuccess && (
+          <Form
+            saveOnBlur
+            apiMethod="PUT"
+            apiEndpoint="/users/me/notifications/"
+            initialData={initialLegacyData}
+          >
+            <JsonForm fields={legacyFields} />
+          </Form>
+        )}
+      </BottomFormWrapper>
       <AlertLink to="/settings/account/emails" icon={<IconMail />}>
         {t('Looking to add or remove an email address? Use the emails panel.')}
       </AlertLink>
@@ -126,16 +137,14 @@ const FieldWrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const Container = styled(PanelBody)``;
-
 const IconWrapper = styled('div')`
   display: flex;
   margin: auto;
   cursor: pointer;
 `;
 
-const BottomForm = styled(JsonForm)`
-  & > ${Panel} {
+const BottomFormWrapper = styled('div')`
+  ${Panel} {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
     border-top: 0;
