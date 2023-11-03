@@ -115,6 +115,7 @@ export interface FrameSourceMapDebuggerData {
   scrapingProgress: number;
   scrapingProgressPercent: number;
   sdkDebugIdSupport: 'full' | 'needs-upgrade' | 'not-supported' | 'unofficial-sdk';
+  sdkName: string | null;
   sdkVersion: string | null;
   sourceFileReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceFileScrapingStatus:
@@ -255,7 +256,12 @@ export function SourceMapsDebuggerModal({
               textValue={`${t('Hosting Publicly')} (${
                 sourceResolutionResults.scrapingProgress
               }/4)`}
-              hidden={!sourceResolutionResults.hasScrapingData}
+              hidden={
+                !sourceResolutionResults.hasScrapingData ||
+                !sourceResolutionResults.sdkName?.startsWith(
+                  'sentry.javascript.react-native'
+                )
+              }
             >
               <StyledProgressRing
                 progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
@@ -639,7 +645,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
-          <h6>{t('No Soure File With Matching Debug ID')}</h6>
+          <h6>{t('No Source File With Matching Debug ID')}</h6>
           <p>
             {tct(
               "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
@@ -703,7 +709,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
-          <h6>{t('No Soure Map With Matching Debug ID')}</h6>
+          <h6>{t('No Source Map With Matching Debug ID')}</h6>
           <p>
             {tct(
               "You already uploaded artifacts with Debug IDs but none of the uploaded source maps had a Debug ID matching this stack frame's Debug ID: [debugId]",
@@ -799,6 +805,12 @@ function ReleaseHasUploadedArtifactsChecklistItem({
   const successMessage = t('Release has uploaded artifacts');
   const errorMessage = t("Release doesn't have uploaded artifacts");
 
+  const docsLink = sourceResolutionResults.sdkName?.startsWith(
+    'sentry.javascript.react-native'
+  )
+    ? 'https://docs.sentry.io/platforms/react-native/sourcemaps/'
+    : 'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/';
+
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
   }
@@ -821,9 +833,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
           {tct(
             'Read the [link:Sentry Source Maps Documentation] to learn how to to upload your build artifacts to Sentry.',
             {
-              link: (
-                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/" />
-              ),
+              link: <ExternalLinkWithIcon href={docsLink} />,
             }
           )}
         </p>
