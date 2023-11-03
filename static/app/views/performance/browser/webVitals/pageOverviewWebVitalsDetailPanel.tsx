@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -24,8 +25,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
-import {Recommendations} from 'sentry/views/performance/browser/webVitals/components/recommendations';
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
+import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
 import {
   calculatePerformanceScore,
   PERFORMANCE_SCORE_MEDIANS,
@@ -36,6 +37,7 @@ import {
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
+import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -135,6 +137,20 @@ export function PageOverviewWebVitalsDetailPanel({
   const tableData: TransactionSampleRowWithScore[] = data.sort(
     (a, b) => a[`${webVital}Score`] - b[`${webVital}Score`]
   );
+
+  const {data: timeseriesData, isLoading: isTimeseriesLoading} =
+    useProjectWebVitalsValuesTimeseriesQuery({transaction});
+
+  const webVitalData: LineChartSeries = {
+    data:
+      !isTimeseriesLoading && webVital
+        ? timeseriesData?.[webVital].map(({name, value}) => ({
+            name,
+            value,
+          }))
+        : [],
+    seriesName: webVital ?? '',
+  };
 
   const getProjectSlug = (row: TransactionSampleRowWithScore): string => {
     return project && !Array.isArray(location.query.project)
@@ -261,9 +277,9 @@ export function PageOverviewWebVitalsDetailPanel({
             score={projectScore[`${webVital}Score`]}
           />
         )}
-        {transaction && webVital && (
-          <Recommendations transaction={transaction} webVital={webVital} />
-        )}
+        <ChartContainer>
+          {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
+        </ChartContainer>
         <GridEditable
           data={tableData}
           isLoading={isTransactionWebVitalsQueryLoading}
@@ -295,6 +311,11 @@ const AlignRight = styled('span')<{color?: string}>`
 const AlignCenter = styled('span')`
   text-align: center;
   width: 100%;
+`;
+
+const ChartContainer = styled('div')`
+  position: relative;
+  flex: 1;
 `;
 
 const NoValue = styled('span')`

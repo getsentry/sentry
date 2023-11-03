@@ -1423,7 +1423,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         cls,
         org_id: int,
         project_id: int,
-        type: Literal["counter", "set", "distribution"],
+        type: Literal["counter", "set", "distribution", "gauge"],
         name: str,
         tags: Dict[str, str],
         timestamp: int,
@@ -1477,6 +1477,16 @@ class BaseMetricsTestCase(SnubaTestCase):
             value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:8], "big")]
         elif type == "distribution":
             value = [value]
+        elif type == "gauge":
+            # In case we pass either an int or float, we will emit a gauge with all the same values.
+            if not isinstance(value, Dict):
+                value = {
+                    "min": value,
+                    "max": value,
+                    "sum": value,
+                    "count": int(value),
+                    "last": value,
+                }
 
         msg = {
             "org_id": org_id,
@@ -1484,7 +1494,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             "metric_id": metric_id(name),
             "timestamp": timestamp,
             "tags": {tag_key(key): tag_value(value) for key, value in tags.items()},
-            "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
+            "type": {"counter": "c", "set": "s", "distribution": "d", "gauge": "g"}[type],
             "value": value,
             "retention_days": 90,
             "use_case_id": use_case_id.value,
@@ -1571,7 +1581,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self,
         name: str,
         tags: Dict[str, str],
-        value: int,
+        value: int | float | Dict[str, int | float],
         use_case_id: UseCaseID,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
@@ -1648,7 +1658,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self,
         name: str,
         tags: Dict[str, str],
-        value: int | float,
+        value: int | float | Dict[str, int | float],
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
@@ -1698,6 +1708,35 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
             seconds_before_now=seconds_before_now,
+        )
+
+    def store_custom_metric(
+        self,
+        name: str,
+        tags: Dict[str, str],
+        value: int | float | Dict[str, int | float],
+        type: Optional[str] = None,
+        org_id: Optional[int] = None,
+        project_id: Optional[int] = None,
+        days_before_now: int = 0,
+        hours_before_now: int = 0,
+        minutes_before_now: int = 0,
+        seconds_before_now: int = 0,
+        aggregation_option: Optional[AggregationOption] = None,
+    ):
+        self._store_metric(
+            type=type,
+            name=name,
+            tags=tags,
+            value=value,
+            org_id=org_id,
+            project_id=project_id,
+            use_case_id=UseCaseID.CUSTOM,
+            days_before_now=days_before_now,
+            hours_before_now=hours_before_now,
+            minutes_before_now=minutes_before_now,
+            seconds_before_now=seconds_before_now,
+            aggregation_option=aggregation_option,
         )
 
     def build_metrics_query(

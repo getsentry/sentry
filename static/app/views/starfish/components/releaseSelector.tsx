@@ -35,7 +35,7 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
     let selectedReleaseSessionCount: number | undefined = undefined;
     let selectedReleaseDateCreated: string | undefined = undefined;
     if (defined(selectedRelease)) {
-      selectedReleaseSessionCount = selectedRelease['sum(session)'];
+      selectedReleaseSessionCount = selectedRelease.count;
       selectedReleaseDateCreated = selectedRelease.dateCreated;
     }
 
@@ -44,7 +44,7 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
       label: selectorValue,
       details: (
         <LabelDetails
-          sessionCount={selectedReleaseSessionCount}
+          screenCount={selectedReleaseSessionCount}
           dateCreated={selectedReleaseDateCreated}
         />
       ),
@@ -57,13 +57,9 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
         value: release.version,
         label: release.version,
         details: (
-          <LabelDetails
-            sessionCount={release['sum(session)']}
-            dateCreated={release.dateCreated}
-          />
+          <LabelDetails screenCount={release.count} dateCreated={release.dateCreated} />
         ),
       };
-
       options.push(option);
     });
 
@@ -81,7 +77,7 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
       options={[
         {
           value: '_releases',
-          label: t('Sorted by session count'),
+          label: t('Sorted by date created'),
           options,
         },
       ]}
@@ -106,16 +102,16 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
 
 type LabelDetailsProps = {
   dateCreated?: string;
-  sessionCount?: number;
+  screenCount?: number;
 };
 
 function LabelDetails(props: LabelDetailsProps) {
   return (
     <DetailsContainer>
       <div>
-        {defined(props.sessionCount)
-          ? tn('%s session', '%s sessions', props.sessionCount)
-          : t('No sessions')}
+        {defined(props.screenCount)
+          ? tn('%s event', '%s events', props.screenCount)
+          : t('No screens')}
       </div>
       <div>
         {defined(props.dateCreated)

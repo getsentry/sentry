@@ -28,9 +28,11 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features, options
+from sentry import features, options, projectoptions
+from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import ObjectStatus
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
@@ -51,7 +53,7 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.detector import DetectorPayload, TrendType
-from sentry.statistical_detectors.issue_platform_adapter import send_regressions_to_plaform
+from sentry.statistical_detectors.issue_platform_adapter import send_regression_to_platform
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -68,6 +70,40 @@ TRANSACTIONS_PER_PROJECT = 50
 TRANSACTIONS_PER_BATCH = 10
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
+
+
+def get_performance_project_settings(projects: List[Project]):
+    project_settings = {}
+
+    project_option_settings = ProjectOption.objects.get_value_bulk(
+        projects, "sentry:performance_issue_settings"
+    )
+
+    for project in projects:
+        default_project_settings = projectoptions.get_well_known_default(
+            "sentry:performance_issue_settings",
+            project=project,
+        )
+
+        project_settings[project] = {
+            **default_project_settings,
+            **(project_option_settings[project] or {}),
+        }  # Merge saved project settings into default so updating the default to add new settings works in the future.
+
+    return project_settings
+
+
+def all_projects_with_settings():
+    for projects in chunked(
+        RangeQuerySetWrapper(
+            Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
+            step=100,
+        ),
+        100,
+    ):
+        project_settings = get_performance_project_settings(projects)
+        for project in projects:
+            yield project, project_settings[project]
 
 
 @instrumented_task(
@@ -94,14 +130,12 @@ def run_detection() -> None:
     performance_projects_count = 0
     profiling_projects_count = 0
 
-    for project in RangeQuerySetWrapper(
-        Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
-        step=100,
-    ):
+    for project, project_settings in all_projects_with_settings():
         if project.flags.has_transactions and (
             features.has(
                 "organizations:performance-statistical-detectors-ema", project.organization
             )
+            and project_settings[InternalProjectOptions.TRANSACTION_DURATION_REGRESSION]
             or project.id in enabled_performance_projects
         ):
             performance_projects.append(project)
@@ -191,11 +225,37 @@ def detect_transaction_change_points(
     if not options.get("statistical_detectors.enable"):
         return
 
+    enabled_performance_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.performance")
+    )
+
+    projects_by_id = {
+        project.id: project
+        for project in Project.objects.filter(
+            id__in=[project_id for project_id, _ in transactions]
+        ).select_related("organization")
+        if (
+            features.has(
+                "organizations:performance-statistical-detectors-breakpoint", project.organization
+            )
+            or project.id in enabled_performance_projects
+        )
+    }
+
+    transaction_pairs: List[Tuple[Project, Union[int, str]]] = [
+        (projects_by_id[item[0]], item[1]) for item in transactions if item[0] in projects_by_id
+    ]
+
     breakpoint_count = 0
 
-    for breakpoints in chunked(_detect_transaction_change_points(transactions, start), 10):
-        breakpoint_count += len(breakpoints)
-        send_regressions_to_plaform(breakpoints, True)
+    for regression in _detect_transaction_change_points(transaction_pairs, start):
+        breakpoint_count += 1
+        project = projects_by_id.get(int(regression["project"]))
+        released = project is not None and features.has(
+            "organizations:performance-p95-endpoint-regression-ingest",
+            project.organization,
+        )
+        send_regression_to_platform(regression, released)
 
     metrics.incr(
         "statistical_detectors.breakpoint.transactions",
@@ -205,32 +265,10 @@ def detect_transaction_change_points(
 
 
 def _detect_transaction_change_points(
-    transactions_pairs: List[Tuple[int, Union[int, str]]],
+    transactions: List[Tuple[Project, Union[int, str]]],
     start: datetime,
 ) -> Generator[BreakpointData, None, None]:
     serializer = SnubaTSResultSerializer(None, None, None)
-
-    enabled_performance_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.performance")
-    )
-
-    projects_by_id = {
-        project.id: project
-        for project in Project.objects.filter(
-            id__in=[project_id for project_id, _ in transactions_pairs]
-        ).select_related("organization")
-        if (
-            features.has(
-                "organizations:performance-statistical-detectors-breakpoint", project.organization
-            )
-            or project.id in enabled_performance_projects
-        )
-    }
-    transactions: List[Tuple[Project, Union[int, str]]] = [
-        (projects_by_id[item[0]], item[1])
-        for item in transactions_pairs
-        if item[0] in projects_by_id
-    ]
 
     trend_function = "p95(transaction.duration)"
 
@@ -580,13 +618,30 @@ def detect_function_change_points(
     breakpoint_count = 0
     emitted_count = 0
 
-    breakpoints = _detect_function_change_points(functions_list, start)
+    enabled_profiling_projects: Set[int] = set(
+        options.get("statistical_detectors.enable.projects.profiling")
+    )
+
+    projects_by_id = {
+        project.id: project
+        for project in Project.objects.filter(
+            id__in=[project_id for project_id, _ in functions_list]
+        ).select_related("organization")
+        if (
+            features.has(
+                "organizations:profiling-statistical-detectors-breakpoint", project.organization
+            )
+            or project.id in enabled_profiling_projects
+        )
+    }
+
+    breakpoints = _detect_function_change_points(projects_by_id, functions_list, start)
 
     chunk_size = 100
 
     for breakpoint_chunk in chunked(breakpoints, chunk_size):
         breakpoint_count += len(breakpoint_chunk)
-        emitted_count += emit_function_regression_issue(breakpoint_chunk, start)
+        emitted_count += emit_function_regression_issue(projects_by_id, breakpoint_chunk, start)
 
     metrics.incr(
         "statistical_detectors.breakpoint.functions",
@@ -685,27 +740,12 @@ def _detect_function_trends(
 
 
 def _detect_function_change_points(
+    projects_by_id: Dict[int, Project],
     functions_pairs: List[Tuple[int, int]],
     start: datetime,
 ) -> Generator[BreakpointData, None, None]:
     serializer = SnubaTSResultSerializer(None, None, None)
 
-    enabled_profiling_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.profiling")
-    )
-
-    projects_by_id = {
-        project.id: project
-        for project in Project.objects.filter(
-            id__in=[project_id for project_id, _ in functions_pairs]
-        ).select_related("organization")
-        if (
-            features.has(
-                "organizations:profiling-statistical-detectors-breakpoint", project.organization
-            )
-            or project.id in enabled_profiling_projects
-        )
-    }
     functions_list: List[Tuple[Project, int]] = [
         (projects_by_id[item[0]], item[1]) for item in functions_pairs if item[0] in projects_by_id
     ]
@@ -748,6 +788,7 @@ def _detect_function_change_points(
 
 
 def emit_function_regression_issue(
+    projects_by_id: Dict[int, Project],
     breakpoints: List[BreakpointData],
     start: datetime,
 ) -> int:
@@ -755,8 +796,7 @@ def emit_function_regression_issue(
     start = start.replace(minute=0, second=0, microsecond=0)
 
     project_ids = [int(entry["project"]) for entry in breakpoints]
-    projects = Project.objects.filter(id__in=project_ids)
-    projects_by_id = {project.id: project for project in projects}
+    projects = [projects_by_id[project_id] for project_id in project_ids]
 
     params: Dict[str, Any] = {
         "start": start,
@@ -817,6 +857,10 @@ def emit_function_regression_issue(
                 "trend_percentage": entry["trend_percentage"],
                 "unweighted_p_value": entry["unweighted_p_value"],
                 "unweighted_t_value": entry["unweighted_t_value"],
+                "released": features.has(
+                    "organizations:profile-function-regression-ingest",
+                    project.organization,
+                ),
             }
         )
 
