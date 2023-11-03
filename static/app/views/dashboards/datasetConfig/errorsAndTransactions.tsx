@@ -485,11 +485,11 @@ function getEventsRequest(
       ...eventView.generateQueryStringObject(),
       ...params,
     },
-    // Tries events request up to 3 times on rate limit
+    // Tries events request up to 5 times on rate limit
     {
       retry: {
         statusCodes: [429],
-        tries: 3,
+        tries: 5,
       },
     }
   );
