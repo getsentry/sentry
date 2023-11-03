@@ -1,10 +1,8 @@
 # Setting coverage targets per flag
 coverage:
   status:
-    project:
-      default: false
+    project: false
     patch:
-      default: false
       frontend:
         # codecov will not fail status checks for master
         only_pulls: true
@@ -62,6 +60,18 @@ flags:
     # NOTE: If you change this, make sure to change `comment.after_n_builds` below as well.
     after_n_builds: 18
 
+# https://docs.codecov.com/docs/flags#two-approaches-to-flag-management
+flag_management:
+  individual_flags:
+    - name: smart-tests
+      carryforward: true
+      # https://docs.codecov.com/docs/getting-started-with-ats#step-2-configure-the-codecovyml-for-automated-test-selection
+      carryforward_mode: "labels"
+      statuses:
+        # https://github.com/codecov/shared/blob/main/shared/validation/user_schema.py#L310
+        - type: "patch"
+          only_pulls: true
+
 # Read more here: https://docs.codecov.com/docs/pull-request-comments
 comment:
   # This is the addition of carry forward builds and fresh builds, thus, it's the addition
@@ -83,16 +93,18 @@ cli:
   plugins:
     pycoverage:
       report_type: "json"
+    compress-pycoverage:
+      file_to_compress: ".artifacts/python.coverage.json"
+      # We don't want to upload the original coverage report by accident
+      # Because it's too big
+      delete_uncompressed: true
   runners:
-    python:
-      include_curr_dir: true
+    pytest:
       # Same args used for the backend tests
+      # See Makefile:135
       collect_tests_options:
-        - "tests/sentry"
-        - "tests/integration"
-        - "--ignore=tests/sentry/eventstream/kafka"
-        - "--ignore=tests/sentry/post_process_forwarder"
-        - "--ignore=tests/sentry/snuba"
-        - "--ignore=tests/sentry/search/events"
-        - "--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py"
-        - "--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py"
+        - "tests"
+        - "--ignore=tests/acceptance"
+        - "--ignore=tests/apidocs"
+        - "--ignore=tests/js"
+        - "--ignore=tests/tools"

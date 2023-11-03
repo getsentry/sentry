@@ -3,6 +3,11 @@ name: shuffle-tests
 on:
   # Allow manually running
   workflow_dispatch:
+    inputs:
+      per-test-coverage:
+        description: Whether to get per-test coverage (uses ./github/workflows/codecov_per_test_coverage.yml)
+        required: true
+        default: 'true'
   # Run once a week on sunday
   schedule:
     - cron: '0 1 * * 0'
@@ -15,6 +20,10 @@ env:
   SENTRY_SHUFFLE_TESTS: true
 
 jobs:
+  per-test-coverage:
+    if: ${{ inputs.per-test-coverage == 'true' || github.event_name == 'schedule' }}
+    uses: ./.github/workflows/codecov_per_test_coverage.yml
+    secrets: inherit
   backend-test:
     name: run backend tests
     runs-on: ubuntu-20.04
