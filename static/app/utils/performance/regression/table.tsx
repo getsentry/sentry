@@ -93,6 +93,7 @@ const Change = styled('span')`
   display: grid;
   grid-template-columns: 1fr 12px 1fr 1fr;
   gap: ${space(1)};
+  align-items: center;
 `;
 
 const ChangeDescription = styled('span')`
