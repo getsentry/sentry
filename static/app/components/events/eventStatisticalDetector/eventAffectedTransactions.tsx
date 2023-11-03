@@ -241,7 +241,7 @@ function EventAffectedTransactionsInner({
   }
 
   return (
-    <EventDataSection type="transactions-impacted" title={t('Transactions Impacted')}>
+    <EventDataSection type="most-affected" title={t('Most Affected')}>
       {transactionsDeltaQuery.isLoading ? (
         <LoadingIndicator hideMessage />
       ) : transactionsDeltaQuery.isError ? (
