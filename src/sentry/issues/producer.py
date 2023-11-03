@@ -75,12 +75,12 @@ def _prepare_occurrence_message(
             process_event_and_issue_occurrence,
         )
 
-        occurrence = occurrence.to_dict()
-        process_occurrence_data(occurrence)
+        occurrence_dict = occurrence.to_dict()
+        process_occurrence_data(occurrence_dict)
         if event_data:
-            process_event_and_issue_occurrence(occurrence, event_data)
+            process_event_and_issue_occurrence(occurrence_dict, event_data)
         else:
-            lookup_event_and_process_issue_occurrence(occurrence)
+            lookup_event_and_process_issue_occurrence(occurrence_dict)
         return None
 
     payload_data = cast(MutableMapping[str, Any], occurrence.to_dict())
