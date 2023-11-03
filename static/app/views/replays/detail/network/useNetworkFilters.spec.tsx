@@ -117,7 +117,7 @@ describe('useNetworkFilters', () => {
   ];
 
   beforeEach(() => {
-    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(browserHistory.replace).mockReset();
   });
 
   it('should update the url when setters are called', () => {
@@ -152,7 +152,7 @@ describe('useNetworkFilters', () => {
     });
 
     result.current.setFilters([TYPE_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_method: [],
@@ -164,7 +164,7 @@ describe('useNetworkFilters', () => {
     rerender();
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_method: [],
@@ -176,7 +176,7 @@ describe('useNetworkFilters', () => {
     rerender();
 
     result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_type: [TYPE_OPTION.value],
@@ -230,7 +230,7 @@ describe('useNetworkFilters', () => {
     });
 
     result.current.setFilters([TYPE_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_method: [],
@@ -242,7 +242,7 @@ describe('useNetworkFilters', () => {
     rerender();
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_method: [],
@@ -254,7 +254,7 @@ describe('useNetworkFilters', () => {
     rerender();
 
     result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_status: [STATUS_OPTION.value],
