@@ -226,7 +226,7 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
     }
     if (key === 'view') {
-      const eventSlug = generateEventSlug({...row, project: project?.slug});
+      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
       const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
       const replayTarget =
         row['transaction.duration'] !== null &&
@@ -241,10 +241,10 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
           undefined
         );
       const profileTarget =
-        defined(project) && defined(row['profile.id'])
+        defined(row.projectSlug) && defined(row['profile.id'])
           ? generateProfileFlamechartRoute({
               orgSlug: organization.slug,
-              projectSlug: project.slug,
+              projectSlug: row.projectSlug,
               profileId: String(row['profile.id']),
             })
           : null;

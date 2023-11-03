@@ -6,7 +6,6 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -23,8 +22,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {TableColumn} from 'sentry/views/discover/table/types';
+import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
@@ -51,7 +50,6 @@ export function ScreenLoadSpansTable({
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const routingContext = useRoutingContext();
-  const router = useRouter();
 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
@@ -106,12 +104,8 @@ export function ScreenLoadSpansTable({
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': DataTitles.count,
     'time_spent_percentage()': DataTitles.timeSpent,
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
-      'Avg Duration (Release 1)'
-    ),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
-      'Avg Duration  (Release 2)'
-    ),
+    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t('Duration (Release 1)'),
+    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t('Duration  (Release 2)'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -122,7 +116,7 @@ export function ScreenLoadSpansTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = `${routingContext.baseURL}/pageload/spans`;
+      const pathname = `${routingContext.baseURL}/pageload/spans/`;
       const query = {
         ...location.query,
         transaction,
@@ -131,16 +125,8 @@ export function ScreenLoadSpansTable({
       };
 
       return (
-        <Link
-          to={`${pathname}?${qs.stringify(query)}`}
-          onClick={() => {
-            router.replace({
-              pathname,
-              query,
-            });
-          }}
-        >
-          <Truncate value={label} maxLength={75} />
+        <Link to={`${pathname}?${qs.stringify(query)}`}>
+          <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
         </Link>
       );
     }

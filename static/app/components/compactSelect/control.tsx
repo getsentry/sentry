@@ -473,7 +473,11 @@ export function Control({
     setTriggerWidth(triggerRef.current?.offsetWidth ?? 0);
   }, [menuWiderThanTrigger, triggerRef]);
 
-  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
+  useResizeObserver({
+    // Passing undefined disables ResizeObserver
+    ref: menuWiderThanTrigger ? triggerRef : undefined,
+    onResize: updateTriggerWidth,
+  });
   // If ResizeObserver is not available, manually update the width
   // when any of [trigger, triggerLabel, triggerProps] changes.
   useEffect(() => {
@@ -572,6 +576,7 @@ const ControlWrap = styled('div')`
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
+  line-height: normal;
 `;
 
 const StyledBadge = styled(Badge)`

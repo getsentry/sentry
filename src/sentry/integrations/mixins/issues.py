@@ -268,7 +268,7 @@ class IssueBasicMixin:
         """
         return ""
 
-    def get_repository_choices(self, group: Group, params: Mapping[str, Any], **kwargs):
+    def get_repository_choices(self, group: Group | None, params: Mapping[str, Any], **kwargs):
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
         """
@@ -279,7 +279,7 @@ class IssueBasicMixin:
         else:
             repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
 
-        defaults = self.get_project_defaults(group.project_id)
+        defaults = self.get_project_defaults(group.project_id) if group else {}
         repo = params.get("repo") or defaults.get("repo")
 
         try:
