@@ -1810,7 +1810,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },

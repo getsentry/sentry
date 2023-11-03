@@ -1379,7 +1379,7 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_project",
             },
-            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),  # type: ignore
+            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),
         ),
         migrations.CreateModel(
             name="ProjectAvatar",
@@ -2217,7 +2217,7 @@ class Migration(CheckedMigration):
                     ("organization_id", "provider", "external_id"),
                 },
             },
-            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),  # type: ignore
+            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),
         ),
         migrations.AddField(
             model_name="release",

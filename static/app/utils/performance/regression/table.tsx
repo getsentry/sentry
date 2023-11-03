@@ -6,7 +6,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {RateUnits} from 'sentry/utils/discover/fields';
-import {NumberContainer} from 'sentry/utils/discover/styles';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -67,7 +66,7 @@ export function NumericChange({
   return (
     <Change>
       {renderer(afterRawValue)}
-      <ChangeDescription>{t('(No significant change)')}</ChangeDescription>
+      <ChangeDescription>{t('(No change)')}</ChangeDescription>
     </Change>
   );
 }
@@ -91,17 +90,14 @@ const ChangeLabel = styled('div')<{isNeutral: boolean; isPositive: boolean}>`
 `;
 
 const Change = styled('span')`
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 12px 1fr 1fr;
   gap: ${space(1)};
-  justify-content: right;
-
-  ${NumberContainer} {
-    width: unset;
-  }
 `;
 
 const ChangeDescription = styled('span')`
   color: ${p => p.theme.gray300};
   white-space: nowrap;
+  grid-column: span 3;
+  text-align: right;
 `;

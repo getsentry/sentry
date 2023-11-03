@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import heapq
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, DefaultDict, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import sentry_sdk
 from django.utils import timezone as django_timezone
@@ -26,9 +28,11 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features, options
+from sentry import features, options, projectoptions
+from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import ObjectStatus
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
@@ -68,6 +72,40 @@ PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
 
+def get_performance_project_settings(projects: List[Project]):
+    project_settings = {}
+
+    project_option_settings = ProjectOption.objects.get_value_bulk(
+        projects, "sentry:performance_issue_settings"
+    )
+
+    for project in projects:
+        default_project_settings = projectoptions.get_well_known_default(
+            "sentry:performance_issue_settings",
+            project=project,
+        )
+
+        project_settings[project] = {
+            **default_project_settings,
+            **(project_option_settings[project] or {}),
+        }  # Merge saved project settings into default so updating the default to add new settings works in the future.
+
+    return project_settings
+
+
+def all_projects_with_settings():
+    for projects in chunked(
+        RangeQuerySetWrapper(
+            Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
+            step=100,
+        ),
+        100,
+    ):
+        project_settings = get_performance_project_settings(projects)
+        for project in projects:
+            yield project, project_settings[project]
+
+
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.run_detection",
     queue="performance.statistical_detector",
@@ -92,14 +130,12 @@ def run_detection() -> None:
     performance_projects_count = 0
     profiling_projects_count = 0
 
-    for project in RangeQuerySetWrapper(
-        Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
-        step=100,
-    ):
+    for project, project_settings in all_projects_with_settings():
         if project.flags.has_transactions and (
             features.has(
                 "organizations:performance-statistical-detectors-ema", project.organization
             )
+            and project_settings[InternalProjectOptions.TRANSACTION_DURATION_REGRESSION]
             or project.id in enabled_performance_projects
         ):
             performance_projects.append(project)
@@ -158,18 +194,17 @@ def detect_transaction_trends(
     if not options.get("statistical_detectors.enable"):
         return
 
-    regressions = filter(
-        lambda trend: trend[0] == TrendType.Regressed,
-        _detect_transaction_trends(org_ids, project_ids, start),
-    )
+    ratelimit = options.get("statistical_detectors.ratelimit.ema")
+    trends = _detect_transaction_trends(org_ids, project_ids, start)
+    regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    for trends in chunked(regressions, TRANSACTIONS_PER_BATCH):
+    for regression_chunk in chunked(regressions, TRANSACTIONS_PER_BATCH):
         detect_transaction_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for _, payload in trends],
+                [(payload.project_id, payload.group) for payload in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there
@@ -288,7 +323,7 @@ def get_all_transaction_payloads(
 
 def _detect_transaction_trends(
     org_ids: List[int], project_ids: List[int], start: datetime
-) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None]:
     unique_project_ids: Set[int] = set()
 
     transactions_count = 0
@@ -329,7 +364,7 @@ def _detect_transaction_trends(
                     sentry_sdk.capture_exception(e)
 
             detector = MovingAverageRelativeChangeDetector(state, detector_config)
-            trend_type = detector.update(payload)
+            trend_type, score = detector.update(payload)
             states.append(None if trend_type is None else detector.state.to_redis_dict())
 
             if trend_type == TrendType.Regressed:
@@ -339,7 +374,7 @@ def _detect_transaction_trends(
 
             unique_project_ids.add(payload.project_id)
 
-            yield (trend_type, payload)
+            yield (trend_type, score, payload)
 
         detector_store.bulk_write_states(payloads, states)
 
@@ -544,8 +579,10 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
+    ratelimit = options.get("statistical_detectors.ratelimit.ema")
+
     trends = _detect_function_trends(project_ids, start)
-    regressions = filter(lambda trend: trend[0] == TrendType.Regressed, trends)
+    regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
@@ -553,7 +590,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
         detect_function_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for _, payload in regression_chunk],
+                [(payload.project_id, payload.group) for payload in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there
@@ -600,7 +637,7 @@ def detect_function_change_points(
 
 def _detect_function_trends(
     project_ids: List[int], start: datetime
-) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None]:
     unique_project_ids: Set[int] = set()
 
     functions_count = 0
@@ -638,7 +675,7 @@ def _detect_function_trends(
                     sentry_sdk.capture_exception(e)
 
             detector = MovingAverageRelativeChangeDetector(state, detector_config)
-            trend_type = detector.update(payload)
+            trend_type, score = detector.update(payload)
 
             states.append(None if trend_type is None else detector.state.to_redis_dict())
 
@@ -649,7 +686,7 @@ def _detect_function_trends(
 
             unique_project_ids.add(payload.project_id)
 
-            yield (trend_type, payload)
+            yield (trend_type, score, payload)
 
         detector_store.bulk_write_states(payloads, states)
 
@@ -1094,3 +1131,24 @@ def query_functions_timeseries(
             )
             continue
         yield project.id, fingerprint, results[key]
+
+
+def limit_regressions_by_project(
+    trends: Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None],
+    ratelimit: int,
+) -> Generator[DetectorPayload, None, None]:
+    regressions_by_project: DefaultDict[int, List[Tuple[float, DetectorPayload]]] = defaultdict(
+        list
+    )
+
+    for trend_type, score, payload in trends:
+        if trend_type != TrendType.Regressed:
+            continue
+        heapq.heappush(regressions_by_project[payload.project_id], (score, payload))
+
+        while ratelimit >= 0 and len(regressions_by_project[payload.project_id]) > ratelimit:
+            heapq.heappop(regressions_by_project[payload.project_id])
+
+    for regressions in regressions_by_project.values():
+        for _, regression in regressions:
+            yield regression

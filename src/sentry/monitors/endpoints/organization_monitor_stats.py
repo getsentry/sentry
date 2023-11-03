@@ -8,6 +8,7 @@ from django.db.models.functions import Extract
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.helpers.environments import get_environments
@@ -31,8 +32,9 @@ def normalize_to_epoch(timestamp: datetime, seconds: int):
 @region_silo_endpoint
 class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.CRONS
 
     # TODO(dcramer): probably convert to tsdb
     def get(self, request: Request, organization, project, monitor) -> Response:
