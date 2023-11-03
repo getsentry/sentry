@@ -15,12 +15,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.search.events.constants import METRICS_GRANULARITIES
-from sentry.seer.utils import BreakpointData, detect_breakpoints
+from sentry.seer.utils import detect_breakpoints
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
-from sentry.statistical_detectors.issue_platform_adapter import send_regressions_to_plaform
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaTSResult
 
@@ -359,39 +358,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 else {},
             }
 
-        def parse_and_send_regressions_to_plaform(found_trending_events):
-            nonlocal top_trending_transactions
-            qualifying_trends = []
-            for trend in found_trending_events:
-                if (
-                    request.GET.get("statsPeriod", None) == "14d"
-                    and trend.get("change", None) == "regression"
-                    # trends >50%
-                    and (trend.get("trend_percentage", None) - 1) >= 0.5
-                    and trend_function == "p95(transaction.duration)"
-                ):
-                    qualifying_trends.append(trend)
-
-            if len(qualifying_trends) > 0:
-                regressions_to_send = []
-                for qualifying_trend in qualifying_trends:
-                    project_id = qualifying_trend["project"]
-                    if not experiment_use_project_id:
-                        project_id = next(
-                            transaction["project_id"]
-                            for transaction in top_trending_transactions["data"]
-                            if transaction["transaction"] == qualifying_trend["transaction"]
-                        )
-
-                    regression: BreakpointData = {
-                        **qualifying_trend,  # type: ignore
-                        "project": project_id,
-                    }
-
-                    regressions_to_send.append(regression)
-
-                send_regressions_to_plaform(regressions_to_send, False)
-
         with self.handle_query_errors():
             stats_data = self.get_event_stats_data(
                 request,
@@ -425,14 +391,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 trending_events,
                 trends_requests,
             ) = get_trends_data(stats_data, request)
-
-            if features.has(
-                "organizations:performance-trends-issues", organization, actor=request.user
-            ):
-                try:
-                    parse_and_send_regressions_to_plaform(trending_events)
-                except Exception as error:
-                    sentry_sdk.capture_exception(error)
 
             return self.paginate(
                 request=request,
