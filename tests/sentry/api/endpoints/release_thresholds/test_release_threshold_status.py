@@ -433,7 +433,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 4,  # error counts _not_ be over threshold value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
@@ -452,7 +452,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 1,  # error counts equal to threshold limit value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
@@ -471,7 +471,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
@@ -490,7 +490,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.UNDER,
+            "trigger_type": TriggerType.UNDER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
@@ -511,7 +511,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
@@ -591,7 +591,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
@@ -610,7 +610,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project1.slug,
             "release": self.release2.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
@@ -691,7 +691,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
@@ -710,7 +710,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project2.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
@@ -790,7 +790,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
@@ -809,7 +809,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_slug": self.project1.slug,
             "release": self.release1.version,
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER,
+            "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }

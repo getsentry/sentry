@@ -40,7 +40,7 @@ class SerializedThreshold(TypedDict):
     project: Dict[str, Any]
     release: str
     threshold_type: int
-    trigger_type: int
+    trigger_type: str
     value: int
     window_in_seconds: int
 
@@ -291,7 +291,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 for ethreshold in category_thresholds:
                     # TODO: filter by environment as well?
                     is_healthy = is_error_count_healthy(ethreshold, error_counts)
-                    ethreshold["is_healthy"] = is_healthy
+                    ethreshold.update({"is_healthy": is_healthy})
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
@@ -389,7 +389,7 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
         },
     )
 
-    if ethreshold["trigger_type"] == TriggerType.OVER:
+    if ethreshold["trigger_type"] == TriggerType.OVER_STR:
         # If total is under/equal the threshold value, then it is healthy
         return total_count <= ethreshold["value"]
 
