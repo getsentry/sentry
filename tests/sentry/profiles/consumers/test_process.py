@@ -97,7 +97,7 @@ def test_adjust_instruction_addr_original_format():
         "debug_meta": {"images": []},
     }
 
-    _, stacktraces, _ = _prepare_frames_from_profile(profile, profile["platform"])
+    _, stacktraces, _ = _prepare_frames_from_profile(profile, str(profile["platform"]))
     frames = stacktraces[0]["frames"]
 
     assert not frames[0]["adjust_instruction_addr"]
