@@ -436,16 +436,12 @@ function BaseGroupRow({
 
       {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
         <ChartWrapper narrowGroups={narrowGroups}>
-          {!group.filtered?.stats && !group.stats ? (
-            <Placeholder height="24px" />
-          ) : (
-            <GroupChart
-              statsPeriod={statsPeriod!}
-              data={group}
-              showSecondaryPoints={showSecondaryPoints}
-              showMarkLine
-            />
-          )}
+          <GroupChart
+            statsPeriod={statsPeriod!}
+            data={group}
+            showSecondaryPoints={showSecondaryPoints}
+            showMarkLine
+          />
         </ChartWrapper>
       )}
       {displayReprocessingLayout ? (
