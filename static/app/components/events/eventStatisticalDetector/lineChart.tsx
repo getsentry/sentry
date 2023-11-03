@@ -36,26 +36,45 @@ function LineChart({
   const theme = useTheme();
   const router = useRouter();
 
-  const leftSeries = useMemo(() => {
-    const needsLabel = true;
+  const topSeries = useMemo(() => {
     const intervalSeries = getIntervalLine(
       theme,
       percentileSeries,
       0.5,
-      needsLabel,
+      true,
       evidenceData,
       true
     );
     return [...percentileSeries, ...intervalSeries];
   }, [percentileSeries, evidenceData, theme]);
 
-  const rightSeries = useMemo(() => {
+  const bottomSeries = useMemo(() => {
+    if (evidenceData.breakpoint) {
+      throughputSeries.markLine = {
+        data: [
+          {
+            xAxis: evidenceData.breakpoint * 1000,
+          },
+        ],
+        label: {show: false},
+        lineStyle: {
+          color: theme.red300,
+          type: 'solid',
+          width: 2,
+        },
+        symbol: ['none', 'none'],
+        tooltip: {
+          show: false,
+        },
+        silent: true,
+      };
+    }
     return [throughputSeries];
-  }, [throughputSeries]);
+  }, [throughputSeries, evidenceData, theme]);
 
   const series = useMemo(() => {
     return [
-      ...rightSeries.map(({seriesName, data, ...options}) =>
+      ...bottomSeries.map(({seriesName, data, ...options}) =>
         BarSeries({
           ...options,
           name: seriesName,
@@ -72,7 +91,7 @@ function LineChart({
           yAxisIndex: 1,
         })
       ),
-      ...leftSeries.map(({seriesName, data, ...options}) =>
+      ...topSeries.map(({seriesName, data, ...options}) =>
         LineSeries({
           ...options,
           name: seriesName,
@@ -86,7 +105,7 @@ function LineChart({
         })
       ),
     ];
-  }, [leftSeries, rightSeries]);
+  }, [topSeries, bottomSeries]);
 
   const chartOptions: Omit<
     React.ComponentProps<typeof BaseChart>,
@@ -98,7 +117,7 @@ function LineChart({
       data: [...percentileSeries.map(s => s.seriesName), throughputSeries.seriesName],
     };
 
-    const durationUnit = getDurationUnit(leftSeries);
+    const durationUnit = getDurationUnit(topSeries);
 
     const yAxes: React.ComponentProps<typeof BaseChart>['yAxes'] = [
       {
@@ -170,6 +189,7 @@ function LineChart({
               color: theme.red300,
             },
           ],
+          // only want to apply the visual map on the first grid which contains the p95
           seriesIndex: series
             .map((s, idx) => (s.yAxisIndex === 0 ? idx : -1))
             .filter(idx => idx >= 0),
@@ -179,7 +199,7 @@ function LineChart({
   }, [
     series,
     theme,
-    leftSeries,
+    topSeries,
     percentileSeries,
     throughputSeries,
     evidenceData.breakpoint,
