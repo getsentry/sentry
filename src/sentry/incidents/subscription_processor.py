@@ -11,7 +11,7 @@ from django.db import router, transaction
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import features, options
+from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -552,7 +552,9 @@ class SubscriptionProcessor:
         """
         self.trigger_alert_counts[trigger.id] += 1
 
-        if options.get("metric_alerts.rate_limit"):
+        if features.has(
+            "organizations:metric-alert-rate-limiting", self.subscription.project.organization
+        ):
             # If an incident was created for this rule, trigger type, and subscription
             # within the last 10 minutes, don't make another one
             last_it = (
