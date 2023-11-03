@@ -216,7 +216,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
             return False
         profile["debug_meta"]["images"] = []
         for imgs in images.values():
-            profile["debug_meta"]["images"] += imgs
+            profile["debug_meta"]["images"].extend(imgs)
         profile["processed_by_symbolicator"] = True
         return True
 
