@@ -621,6 +621,9 @@ function useTrackView({
     trace_status: 'none',
     // Will be updated in GroupDetailsHeader if there are replays
     group_has_replay: false,
+    // Will be updated in EventCause if there are suspect commits
+    num_suspect_commits: -1,
+    suspect_commit_calculation: 'none',
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }

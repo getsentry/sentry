@@ -112,8 +112,13 @@ export type TeamInsightsEventParameters = {
   };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
+    suspect_commit_calculation: string;
+    suspect_commit_index: number;
   };
-  'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert;
+  'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert & {
+    suspect_commit_calculation: string;
+    suspect_commit_index: number;
+  };
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
