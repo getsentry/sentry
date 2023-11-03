@@ -11,12 +11,17 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserTest(TestCase):
     def test_hybrid_cloud_deletion(self):
         user = self.create_user()
+
+        # Determines the region to which the deletion cascades
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization)
+
         user_id = user.id
-        self.create_saved_search(name="some-search", owner=user)
+        self.create_saved_search(name="some-search", owner=user, organization=organization)
 
         with outbox_runner():
             user.delete()
