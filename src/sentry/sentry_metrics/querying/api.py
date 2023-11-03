@@ -1,3 +1,4 @@
+import math
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -6,7 +7,6 @@ from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tupl
 from snuba_sdk import (
     AliasedExpression,
     Column,
-    Metric,
     MetricsQuery,
     MetricsScope,
     Request,
@@ -14,18 +14,22 @@ from snuba_sdk import (
     Timeseries,
 )
 from snuba_sdk.conditions import Condition, ConditionGroup, Op
+from snuba_sdk.dsl.dsl import parse_mql
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mapping import is_mri
 from sentry.snuba.metrics_layer.query import run_query
+
+QueryValue = Optional[Union[int, float]]
+GroupKey = Tuple[Tuple[str, str], ...]
+Series = List[Tuple[str, QueryValue]]
+Totals = QueryValue
 
 # These regexes are temporary since the DSL is supposed to be parsed internally by the snuba SDK, thus this
 # is only bridging code to validate and evolve the metrics layer.
 # TODO(layer): The layer should implement a grammar which parses queries using a custom DSL.
-FIELD_REGEX = re.compile(r"^(\w+)\(([^\s)]+)\)$")
 QUERY_REGEX = re.compile(r"(\w+):([^\s]+)(?:\s|$)")
 
 
@@ -53,19 +57,11 @@ def _parse_fields(
         raise InvalidMetricsQuery("You must query at least one field.")
 
     for field in fields:
-        match = FIELD_REGEX.match(field)
-        if match is None:
-            raise InvalidMetricsQuery(f"The field {field} can't be parsed.")
-
-        aggregate = match.group(1)
-        metric_name = match.group(2)
-
-        if is_mri(metric_name):
-            metric = Metric(mri=metric_name)
-        else:
-            metric = Metric(public_name=metric_name)
-
-        yield Timeseries(metric=metric, aggregate=aggregate, filters=filters, groupby=groupby)
+        # As a first iteration, we leverage only a subset of the mql grammar to pass the basic expressions like
+        # `aggregate(metric)` and then we inject the conditions that were parsed from the query passed with the old
+        # discover grammar.
+        timeseries = parse_mql(field).query
+        yield timeseries.set_filters(filters).set_groupby(groupby)
 
 
 def _parse_filters(query: Optional[str]) -> Optional[Sequence[Condition]]:
@@ -107,18 +103,36 @@ def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[
 
 
 def _generate_full_series(
-    start_seconds: int, num_intervals: int, interval: int, series: Sequence[Tuple[str, Any]]
-) -> Union[int, float, Sequence[Optional[Union[int, float]]]]:
+    start_seconds: int,
+    num_intervals: int,
+    interval: int,
+    series: Sequence[Tuple[str, Any]],
+    null_value: QueryValue = None,
+) -> Sequence[Optional[Union[int, float]]]:
     """
     Computes a full series over the entire requested interval with None set where there are no data points.
     """
-    full_series = [None] * num_intervals
+    full_series = [null_value] * num_intervals
     for time, value in series:
         time_seconds = parse_datetime_string(time).timestamp()
         index = int((time_seconds - start_seconds) / interval)
         full_series[index] = value
 
     return full_series
+
+
+def _get_identity(value: QueryValue) -> QueryValue:
+    """
+    Computes the identity of a value.
+
+    For nan, we want to return None instead of 0.0 but this is just a design decision that conforms
+    to the previous implementation of the layer.
+    """
+    if math.isnan(value):
+        return None
+
+    # We might decide in the future to have identity values specific to each aggregate.
+    return type(value)()
 
 
 def _translate_query_results(
@@ -133,9 +147,7 @@ def _translate_query_results(
     intervals: Optional[Sequence[datetime]] = None
 
     # For efficiency reasons, we translate the incoming data into our custom in-memory representations.
-    intermediate_groups: Dict[
-        Tuple[Tuple[str, str], ...], Dict[str, List[Union[Any, List[Tuple[str, Any]]]]]
-    ] = {}
+    intermediate_groups: Dict[GroupKey, Dict[str, List[Union[Series, Totals]]]] = {}
     intermediate_meta: Dict[str, str] = {}
     for query_result in query_results:
         # Very ugly way to build the intervals start and end from the run queries, since they are all using
@@ -156,11 +168,13 @@ def _translate_query_results(
             # The group key must be ordered, in order to be consistent across executions.
             group_key = tuple(sorted(grouped_values))
             group_metrics = intermediate_groups.setdefault(group_key, {})
-            metric_values = group_metrics.setdefault(query_result.name, [[], 0])
+            metric_values = group_metrics.setdefault(query_result.name, [[], None])
             # The item at position 0 is the "series".
             metric_values[0].append((data_item.get("time"), data_item.get("aggregate_value")))
 
-        # TODO: reduce duplication.
+        # A totals query will always return at least one element, thus if the query has no results the totals will
+        # contain one element with the value set to the identity of the aggregate. Which will result in the algorithm
+        # computing the empty group with [] series and the identity as totals.
         totals = query_result.result["totals"]
         for totals_item in totals:
             grouped_values = []
@@ -170,7 +184,7 @@ def _translate_query_results(
             # The group key must be ordered, in order to be consistent across executions.
             group_key = tuple(sorted(grouped_values))
             group_metrics = intermediate_groups.setdefault(group_key, {})
-            metric_values = group_metrics.setdefault(query_result.name, [[], 0])
+            metric_values = group_metrics.setdefault(query_result.name, [[], None])
             # The item at position 1 is the "totals".
             metric_values[1] = totals_item.get("aggregate_value")
 
@@ -194,17 +208,23 @@ def _translate_query_results(
         start_seconds = int(start.timestamp())
         num_intervals = len(intervals)
 
-        series = {}
-        totals = {}
+        serieses: Dict[str, Sequence[Optional[Union[int, float]]]] = {}
+        totals: Dict[str, QueryValue] = {}
         for metric_name, metric_values in sorted(group_metrics.items(), key=lambda v: v[0]):
-            series[metric_name] = _generate_full_series(
-                start_seconds, num_intervals, interval, metric_values[0]
+            series = metric_values[0]
+            total = metric_values[1]
+
+            # We generate the full series by passing as default value the identity of the totals, which is the default
+            # value applied in the timeseries.
+            serieses[metric_name] = _generate_full_series(
+                start_seconds, num_intervals, interval, series, _get_identity(total)
             )
-            totals[metric_name] = metric_values[1]
+            # In case we get nan, we will cast it to None but this can be changed in case there is the need.
+            totals[metric_name] = None if math.isnan(total) else total
 
         inner_group = {
             "by": {name: value for name, value in group_key},
-            "series": series,
+            "series": serieses,
             "totals": totals,
         }
 
