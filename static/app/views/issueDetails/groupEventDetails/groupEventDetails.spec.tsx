@@ -494,8 +494,7 @@ describe('EventCause', () => {
 
     render(<TestComponent project={props.project} />, {organization: props.organization});
 
-    expect(await screen.findByTestId(/event-cause/)).toBeInTheDocument();
-    expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
+    expect(await screen.findByTestId(/suspect-commit/)).toBeInTheDocument();
   });
 });
 

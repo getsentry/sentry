@@ -1,18 +1,22 @@
+import {Event} from 'sentry-fixture/event';
+import {Group} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {EventCause} from 'sentry/components/events/eventCause';
+import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 
 import {CommitRow} from '../commitRow';
-import {QuickContextCommitRow} from '../discover/quickContextCommitRow';
 
-describe('EventCause', function () {
+import {SuspectCommits} from './suspectCommits';
+
+describe('SuspectCommits', function () {
   const organization = Organization();
-  const project = TestStubs.Project();
-  const event = TestStubs.Event();
-  const group = TestStubs.Group({firstRelease: {}});
+  const project = Project();
+  const event = Event();
+  const group = Group({firstRelease: {}} as any);
 
   const committers = [
     {
@@ -66,15 +70,12 @@ describe('EventCause', function () {
 
   it('Renders base commit row', async function () {
     render(
-      <EventCause
+      <SuspectCommits
         project={project}
         commitRow={CommitRow}
         eventId={event.id}
         group={group}
-      />,
-      {
-        organization,
-      }
+      />
     );
 
     expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
@@ -84,15 +85,12 @@ describe('EventCause', function () {
 
   it('Renders quick context commit row', async function () {
     render(
-      <EventCause
+      <SuspectCommits
         project={project}
         commitRow={QuickContextCommitRow}
         eventId={event.id}
         group={group}
-      />,
-      {
-        organization,
-      }
+      />
     );
 
     expect(await screen.findByTestId('quick-context-commit-row')).toBeInTheDocument();
@@ -111,15 +109,12 @@ describe('EventCause', function () {
     });
 
     render(
-      <EventCause
+      <SuspectCommits
         project={project}
         commitRow={CommitRow}
         eventId={event.id}
         group={group}
-      />,
-      {
-        organization,
-      }
+      />
     );
 
     expect(await screen.findByText(/Suspect Commit/i)).toBeInTheDocument();
@@ -128,15 +123,12 @@ describe('EventCause', function () {
 
   it('renders correct heading for multiple commits (and filters to unique commits)', async () => {
     render(
-      <EventCause
+      <SuspectCommits
         project={project}
         commitRow={CommitRow}
         eventId={event.id}
         group={group}
-      />,
-      {
-        organization,
-      }
+      />
     );
 
     // There are two commits rather than three because two of the mock commits above are the same
@@ -145,15 +137,12 @@ describe('EventCause', function () {
 
   it('expands', async function () {
     render(
-      <EventCause
+      <SuspectCommits
         project={project}
         commitRow={CommitRow}
         eventId={event.id}
         group={group}
-      />,
-      {
-        organization,
-      }
+      />
     );
 
     await userEvent.click(await screen.findByText('Show more'));
@@ -187,15 +176,12 @@ describe('EventCause', function () {
     });
 
     render(
-      <EventCause
+      <SuspectCommits
         project={project}
         commitRow={CommitRow}
         eventId={event.id}
         group={group}
-      />,
-      {
-        organization,
-      }
+      />
     );
 
     expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
