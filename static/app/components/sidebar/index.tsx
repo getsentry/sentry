@@ -327,7 +327,7 @@ function Sidebar({location, organization}: Props) {
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Screen Load')}</GuideAnchor>}
+          label={<GuideAnchor target="starfish">{t('Screens')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/starfish/pageload/`}
           id="starfish-mobile-screen-loads"
           icon={<SubitemDot collapsed={collapsed} />}
@@ -428,7 +428,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconGraph />}
-        label={t('DDM')}
+        label={t('Metrics')}
         to={`/organizations/${organization.slug}/ddm/`}
         id="ddm"
         isAlpha

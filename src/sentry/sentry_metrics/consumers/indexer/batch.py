@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 # ensure that the database can store the data.
 MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
-ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
+ACCEPTED_METRIC_TYPES = {"s", "c", "d", "g"}  # set, counter, distribution, gauge
 
 OrgId = int
 Headers = MutableSequence[Tuple[str, bytes]]
@@ -420,6 +420,9 @@ class IndexerBatch:
             sentry_received_timestamp = message.value.timestamp.timestamp()
 
             if self.__should_index_tag_values:
+                # Metrics don't support gauges (which use dicts), so assert value type
+                value = old_payload_value["value"]
+                assert isinstance(value, (int, float, list))
                 new_payload_v1: Metric = {
                     "tags": new_tags,
                     # XXX: relay actually sends this value unconditionally
@@ -431,7 +434,7 @@ class IndexerBatch:
                     "timestamp": old_payload_value["timestamp"],
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
-                    "value": old_payload_value["value"],
+                    "value": value,
                     "sentry_received_timestamp": sentry_received_timestamp,
                 }
 

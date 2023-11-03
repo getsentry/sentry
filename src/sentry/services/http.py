@@ -189,7 +189,7 @@ class SentryHTTPServer(Service):
             assert os.environ.get("UWSGI_MODULE") == "sentry.wsgi:application"
 
             host, port = os.environ["UWSGI_HTTP_SOCKET"].split(":")
-            httpd = make_server(host, int(port), application)  # type: ignore[arg-type]  # issue: typeddjango/django-stubs#1053
+            httpd = make_server(host, int(port), application)
             httpd.serve_forever()
             raise AssertionError("unreachable")
         else:

@@ -187,7 +187,7 @@ def test_get_metric_extraction_config_environment(default_project, default_envir
 
 @django_db_all
 def test_get_metric_extraction_config_single_standard_widget(default_project):
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "", default_project)
 
         assert not get_metric_extraction_config(default_project)
@@ -195,7 +195,7 @@ def test_get_metric_extraction_config_single_standard_widget(default_project):
 
 @django_db_all
 def test_get_metric_extraction_config_single_widget(default_project):
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "transaction.duration:>=1000", default_project)
 
         config = get_metric_extraction_config(default_project)
@@ -214,7 +214,7 @@ def test_get_metric_extraction_config_single_widget(default_project):
 @django_db_all
 def test_get_metric_extraction_config_single_widget_multiple_aggregates(default_project):
     # widget with multiple fields should result in multiple metrics
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
         )
@@ -242,7 +242,7 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(default_
 @django_db_all
 def test_get_metric_extraction_config_single_widget_multiple_count_if(default_project):
     # widget with multiple fields should result in multiple metrics
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         aggregates = [
             "count()",
             "count_if(transaction.duration, greater, 2000)",
@@ -292,7 +292,7 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(default_pr
 @django_db_all
 def test_get_metric_extraction_config_multiple_aggregates_single_field(default_project):
     # widget with multiple aggregates on the same field in a single metric
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             ["sum(transaction.duration)", "avg(transaction.duration)"],
             "transaction.duration:>=1000",
@@ -315,7 +315,7 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(default_p
 @django_db_all
 def test_get_metric_extraction_config_multiple_widgets_duplicated(default_project):
     # metrics should be deduplicated across widgets
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
         )
@@ -364,7 +364,7 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project):
 @django_db_all
 def test_get_metric_extraction_config_alerts_and_widgets(default_project):
     # deduplication should work across alerts and widgets
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_alert("count()", "transaction.duration:>=1000", default_project)
         create_widget(
             ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
@@ -392,7 +392,7 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
 
 @django_db_all
 def test_get_metric_extraction_config_with_failure_count(default_project):
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["failure_count()"], "transaction.duration:>=1000", default_project)
 
         config = get_metric_extraction_config(default_project)
@@ -424,7 +424,7 @@ def test_get_metric_extraction_config_with_failure_count(default_project):
 
 @django_db_all
 def test_get_metric_extraction_config_with_apdex(default_project):
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS: True}):
         threshold = 10
         create_alert(f"apdex({threshold})", "transaction.duration:>=1000", default_project)
         # The threshold stored in the database will not be considered and rather the one from the parameter will be
@@ -473,7 +473,7 @@ def test_get_metric_extraction_config_with_apdex(default_project):
 def test_get_metric_extraction_config_with_count_web_vitals(
     default_project, measurement_rating, measurement
 ):
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             [f"count_web_vitals({measurement}, {measurement_rating})"],
             "transaction.duration:>=1000",
@@ -591,7 +591,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
 def test_get_metric_extraction_config_with_user_misery(default_project):
     threshold = 100
     duration = 1000
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             [f"user_misery({threshold})"],
             f"transaction.duration:>={duration}",
@@ -624,7 +624,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project):
 def test_get_metric_extraction_config_user_misery_with_tag_columns(default_project):
     threshold = 100
     duration = 1000
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             [f"user_misery({threshold})"],
             f"transaction.duration:>={duration}",
@@ -660,7 +660,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(default_proje
 @django_db_all
 def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
     duration = 1000
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             ["epm()"],
             f"transaction.duration:>={duration}",
@@ -691,7 +691,7 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
 @override_options({"on_demand.max_widget_cardinality.count": -1})
 def test_get_metric_extraction_config_with_high_cardinality(default_project):
     duration = 1000
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             ["epm()"],
             f"transaction.duration:>={duration}",
@@ -707,7 +707,7 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project):
 @django_db_all
 @pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
 def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget([metric], "transaction.duration:>=1000", default_project)
 
         config = get_metric_extraction_config(default_project)
@@ -731,8 +731,8 @@ def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
         ([ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widgets.
-        ([ON_DEMAND_METRICS_WIDGETS], 0),  # Nothing.
-        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRICS_WIDGETS], 1),  # Alerts.
+        ([ON_DEMAND_METRICS_WIDGETS], 1),  # Widgets.
+        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widget.
         ([], 0),  # Nothing.
     ],
 )
