@@ -419,7 +419,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
 
         if (
-            self.use_case_id is UseCaseID.TRANSACTIONS
+            self.use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]
             and self.include_series
             and self.interval is None
         ):
