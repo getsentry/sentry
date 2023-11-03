@@ -654,7 +654,9 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             }
             for project in self.projects
         ]
-        emitted = emit_function_regression_issue(breakpoints, self.now)
+        emitted = emit_function_regression_issue(
+            {project.id: project for project in self.projects}, breakpoints, self.now
+        )
         assert emitted == 5
 
 
@@ -921,10 +923,10 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
         ]
         assert len(results) == 1
 
-    @mock.patch("sentry.tasks.statistical_detectors.send_regressions_to_plaform")
+    @mock.patch("sentry.tasks.statistical_detectors.send_regression_to_platform")
     @mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
     def test_transaction_change_point_detection(
-        self, mock_detect_breakpoints, mock_send_regressions_to_platform
+        self, mock_detect_breakpoints, mock_send_regression_to_platform
     ) -> None:
         mock_detect_breakpoints.return_value = {
             "data": [
@@ -959,4 +961,4 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                 ],
                 self.now,
             )
-        assert mock_send_regressions_to_platform.called
+        assert mock_send_regression_to_platform.called

@@ -370,11 +370,7 @@ urlpatterns += [
                     SetupWizardView.as_view(),
                     name="sentry-project-wizard-fetch",
                 ),
-                # compatibility
-                re_path(
-                    r"^settings/notifications/unsubscribe/(?P<project_id>\d+)/$",
-                    accounts.email_unsubscribe_project,
-                ),
+                # Compatibility
                 re_path(
                     r"^settings/notifications/",
                     RedirectView.as_view(
@@ -383,6 +379,10 @@ urlpatterns += [
                 ),
                 # TODO(hybridcloud) These routes can be removed in Jan 2024 as all valid links
                 # will have been generated with hybrid-cloud compatible URLs.
+                re_path(
+                    r"^settings/notifications/unsubscribe/(?P<project_id>\d+)/$",
+                    accounts.email_unsubscribe_project,
+                ),
                 re_path(
                     r"^notifications/unsubscribe/(?P<project_id>\d+)/$",
                     accounts.email_unsubscribe_project,
@@ -643,6 +643,26 @@ urlpatterns += [
                     r"^legal/",
                     react_page_view,
                     name="sentry-customer-domain-legal-settings",
+                ),
+                re_path(
+                    r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
+                    react_page_view,
+                    name="sentry-organization-unsubscribe-project",
+                ),
+                re_path(
+                    r"^unsubscribe/project/(?P<project_id>\d+)/$",
+                    react_page_view,
+                    name="sentry-customer-domain-unsubscribe-project",
+                ),
+                re_path(
+                    r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
+                    react_page_view,
+                    name="sentry-organization-unsubscribe-issue",
+                ),
+                re_path(
+                    r"^unsubscribe/issue/(?P<issue_id>\d+)/$",
+                    react_page_view,
+                    name="sentry-customer-domain-unsubscribe-issue",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",

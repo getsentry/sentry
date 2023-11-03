@@ -12,11 +12,15 @@ import {
   WidgetDataConstraint,
   WidgetDataProps,
 } from '../types';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 export function WidgetHeader<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T>
 ) {
-  const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle} = props;
+  const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle, chartSetting} =
+    props;
+  const isHighestOpportunityPagesWidget =
+    chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES;
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
@@ -26,6 +30,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
           ) : (
             <TextOverflow>{title}</TextOverflow>
           )}
+          {isHighestOpportunityPagesWidget && <FeatureBadge type="alpha" />}
           <MEPTag />
           {titleTooltip && (
             <QuestionTooltip position="top" size="sm" title={titleTooltip} />
@@ -48,6 +53,7 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   ${FeatureBadge} {
     position: relative;
     top: -${space(0.25)};
+    margin-left: ${space(0.25)};
   }
 `;
 
