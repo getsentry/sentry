@@ -22,7 +22,6 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   data: TableData | undefined;
@@ -49,7 +48,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
       t('TTFD (Release 1)'),
     [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]:
       t('TTFD (Release 2)'),
-    'count()': DataTitles.count,
+    'count()': t('Total Count'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {

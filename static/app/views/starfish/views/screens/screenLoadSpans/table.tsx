@@ -30,7 +30,6 @@ import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseCompariso
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
@@ -55,6 +54,7 @@ export function ScreenLoadSpansTable({
     'transaction.op:ui.load',
     `transaction:${transaction}`,
     'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
+    'has:span.description',
   ]);
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
@@ -102,8 +102,8 @@ export function ScreenLoadSpansTable({
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    'count()': DataTitles.count,
-    'time_spent_percentage()': DataTitles.timeSpent,
+    'count()': t('Total Count'),
+    'time_spent_percentage()': t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t('Duration (Release 1)'),
     [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t('Duration  (Release 2)'),
   };
