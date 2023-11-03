@@ -180,6 +180,19 @@ def test_spec_simple_query_with_environment_only():
     assert spec.condition == {"name": "event.environment", "op": "eq", "value": "production"}
 
 
+def test_spec_context_mapping():
+    spec = OnDemandMetricSpec("count()", "device:SM-A226B")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "name": "event.contexts.device.model",
+        "op": "eq",
+        "value": "SM-A226B",
+    }
+
+
 def test_spec_query_with_parentheses_and_environment():
     spec = OnDemandMetricSpec(
         "count()", "(transaction.duration:>1s OR http.status_code:200)", "dev"
