@@ -16,7 +16,6 @@ function PageTimeRangeSelector(props: PageTimeRangeSelectorProps) {
           ? props.relativeOptions[props.relative]
           : null
       }
-      menuWiderThanTrigger
       {...props}
     />
   );
