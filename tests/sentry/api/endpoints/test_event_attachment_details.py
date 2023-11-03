@@ -35,7 +35,6 @@ class CreateAttachmentMixin:
             type=self.file.type,
             name="hello.png",
         )
-        assert self.attachment.mimetype == "image/png"
 
         return self.attachment
 
@@ -53,7 +52,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.attachment.id)
-        assert response.data["mimetype"] == self.attachment.mimetype
+        assert response.data["mimetype"] == "image/png"
         assert response.data["event_id"] == self.event.event_id
 
     def test_download(self):
