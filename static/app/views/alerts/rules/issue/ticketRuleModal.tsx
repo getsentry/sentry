@@ -39,8 +39,12 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     const issueConfigFieldsCache = Object.values(instance?.dynamic_form_fields || {});
     return {
       ...super.getDefaultState(),
+      // fetchedFieldOptionsCache should contain async fields so we
+      // need to filter beforehand. Only async fields have a `url` property.
       fetchedFieldOptionsCache: Object.fromEntries(
-        issueConfigFieldsCache.map(field => [field.name, field.choices as Choices])
+        issueConfigFieldsCache
+          .filter(field => field.url)
+          .map(field => [field.name, field.choices as Choices])
       ),
       issueConfigFieldsCache,
     };
@@ -162,18 +166,30 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
       } as IssueConfigField,
     ];
 
-    return fields.concat(
-      this.getCleanedFields()
-        // Skip fields if they already exist.
-        .filter(field => !fields.map(f => f.name).includes(field.name))
-        .map(field => {
-          // Overwrite defaults from cache.
-          if (instance.hasOwnProperty(field.name)) {
-            field.default = instance[field.name] || field.default;
-          }
-          return field;
-        })
-    );
+    const cleanedFields = this.loadAsyncThenFetchAllFields()
+      // Don't overwrite the default values for title and description.
+      .filter(field => !fields.map(f => f.name).includes(field.name))
+      .map(field => {
+        // Overwrite defaults with previously selected values if they exist.
+        // Certain fields such as priority (for Jira) have their options change
+        // because they depend on another field such as Project, so we need to
+        // check if the last selected value is in the list of available field choices.
+        const prevChoice = instance?.[field.name];
+        // Note that field.choices is an array of tuples, where each tuple
+        // contains a numeric id and string label, eg. ("10000", "EX") or ("1", "Bug")
+        if (
+          prevChoice && field.choices && Array.isArray(prevChoice)
+            ? // Multi-select fields have an array of values, eg: ['a', 'b'] so we
+              // check that every value exists in choices
+              prevChoice.every(value => field.choices?.some(tuple => tuple[0] === value))
+            : // Single-select fields have a single value, eg: 'a'
+              field.choices?.some(item => item[0] === prevChoice)
+        ) {
+          field.default = prevChoice;
+        }
+        return field;
+      });
+    return [...fields, ...cleanedFields];
   };
 
   getErrors() {
