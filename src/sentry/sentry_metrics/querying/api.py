@@ -200,8 +200,8 @@ class QueryExecutor:
         # By default we want to execute totals.
         self._scheduled_queries.append((query, with_totals))
 
-    def execute(self, in_batch: bool = False) -> Generator[ExecutionResult, None, None]:
-        if in_batch:
+    def execute(self, batch: bool = False) -> Generator[ExecutionResult, None, None]:
+        if batch:
             # TODO: implement batching.
             # Run batch query and flatten results.
             pass
