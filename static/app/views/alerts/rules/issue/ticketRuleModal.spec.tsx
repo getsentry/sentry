@@ -194,7 +194,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should not persist value when not available in new choices', async function () {
+    it('should not persist value when unavailable in new choices', async function () {
       renderComponent();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
 
@@ -207,6 +207,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         ignorePriorChoices: true,
       });
 
+      // Switch Issue Type so we refetch the config and update Reporter choices
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
       await expect(
         selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a')
