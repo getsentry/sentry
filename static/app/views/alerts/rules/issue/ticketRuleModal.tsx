@@ -168,7 +168,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 
     const cleanedFields = this.getCleanedFields();
     const newFields = cleanedFields
-      // Skip fields if they already exist.
+      // Don't overwrite the default values for title and description.
       .filter(field => !fields.map(f => f.name).includes(field.name))
       .map(field => {
         // Overwrite defaults with previously selected values if they exist.
