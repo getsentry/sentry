@@ -168,6 +168,7 @@ export function useTableQuery({
   referrer,
   initialData,
   limit,
+  staleTime,
 }: {
   eventView: EventView;
   enabled?: boolean;
@@ -175,6 +176,7 @@ export function useTableQuery({
   initialData?: TableData;
   limit?: number;
   referrer?: string;
+  staleTime?: number;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -188,6 +190,7 @@ export function useTableQuery({
     options: {
       refetchOnWindowFocus: false,
       enabled,
+      staleTime,
     },
   });
 

@@ -26,6 +26,7 @@ type Props = {
 export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm);
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const location = useLocation();
 
   const options: SelectOption<string>[] = [];
@@ -51,7 +52,7 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
     });
   }
   data
-    ?.filter(({version}) => selectorValue !== version)
+    ?.filter(({version}) => ![primaryRelease, secondaryRelease].includes(version))
     .forEach(release => {
       const option = {
         value: release.version,
