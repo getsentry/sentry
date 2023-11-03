@@ -3,36 +3,45 @@ import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import SearchBar from 'sentry/components/events/searchBar';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import {IconPlay} from 'sentry/icons';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import Pagination from 'sentry/components/pagination';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {Sort} from 'sentry/utils/discover/fields';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {
-  PERFORMANCE_SCORE_MEDIANS,
-  PERFORMANCE_SCORE_P90S,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {TransactionSampleRow} from 'sentry/views/performance/browser/webVitals/utils/types';
+  DEFAULT_INDEXED_SORT,
+  SORTABLE_INDEXED_FIELDS,
+  TransactionSampleRow,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
+import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 export type TransactionSampleRowWithScoreAndExtra = TransactionSampleRow & {
   score: number;
-  view: any;
 };
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScoreAndExtra>;
@@ -48,20 +57,30 @@ export const COLUMN_ORDER: GridColumnOrder<
   {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
   {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
-  {key: 'view', width: COL_WIDTH_UNDEFINED, name: 'View'},
 ];
 
 type Props = {
   transaction: string;
   columnOrder?: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[];
   limit?: number;
+  search?: string;
 };
 
-export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}: Props) {
+export function PageSamplePerformanceTable({
+  transaction,
+  columnOrder,
+  search,
+  limit = 9,
+}: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
   const routes = useRoutes();
+  const router = useRouter();
+  const sort = useWebVitalsSort({
+    defaultSort: DEFAULT_INDEXED_SORT,
+    sortableFields: SORTABLE_INDEXED_FIELDS as unknown as string[],
+  });
   const replayLinkGenerator = generateReplayLink(routes);
 
   const project = useMemo(
@@ -69,85 +88,44 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
     [projects, location.query.project]
   );
 
-  const limitInThirds = Math.floor(limit / 3);
+  const query = decodeScalar(location.query.query);
 
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
-  const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
-    useTransactionSamplesWebVitalsQuery({
-      limit: limitInThirds,
-      transaction,
-      query: `measurements.lcp:<${PERFORMANCE_SCORE_P90S.lcp}`,
-      withProfiles: true,
-    });
+  const {data, isLoading, pageLinks} = useTransactionSamplesWebVitalsQuery({
+    limit,
+    transaction,
+    query: search,
+    withProfiles: true,
+  });
 
-  const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
-    useTransactionSamplesWebVitalsQuery({
-      limit: limitInThirds,
-      transaction,
-      query: `measurements.lcp:<${PERFORMANCE_SCORE_MEDIANS.lcp} measurements.lcp:>=${PERFORMANCE_SCORE_P90S.lcp}`,
-      withProfiles: true,
-    });
-
-  const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
-    useTransactionSamplesWebVitalsQuery({
-      limit: limitInThirds,
-      transaction,
-      query: `measurements.lcp:>=${PERFORMANCE_SCORE_MEDIANS.lcp}`,
-      withProfiles: true,
-    });
-
-  // In case we don't have enough data, get some transactions with no LCP data
-  const {data: noLcpData, isLoading: isNoLcpTransactionWebVitalsQueryLoading} =
-    useTransactionSamplesWebVitalsQuery({
-      limit,
-      transaction,
-      query: `!has:measurements.lcp`,
-      withProfiles: true,
-    });
-
-  const data = [...goodData, ...mehData, ...poorData];
-
-  // If we have enough data, but not enough with profiles, replace rows without profiles with no LCP data that have profiles
-  if (
-    data.length >= 9 &&
-    data.filter(row => row['profile.id']).length < 9 &&
-    noLcpData.filter(row => row['profile.id']).length > 0
-  ) {
-    const noLcpDataWithProfiles = noLcpData.filter(row => row['profile.id']);
-    let numRowsToReplace = Math.min(
-      data.filter(row => !row['profile.id']).length,
-      noLcpDataWithProfiles.length
-    );
-    while (numRowsToReplace > 0) {
-      const index = data.findIndex(row => !row['profile.id']);
-      data[index] = noLcpDataWithProfiles.pop()!;
-      numRowsToReplace--;
-    }
-  }
-
-  // If we don't have enough data, fill in the rest with no LCP data
-  if (data.length < limit) {
-    data.push(...noLcpData.slice(0, limit - data.length));
-  }
-
-  const isTransactionWebVitalsQueryLoading =
-    isGoodTransactionWebVitalsQueryLoading ||
-    isMehTransactionWebVitalsQueryLoading ||
-    isPoorTransactionWebVitalsQueryLoading ||
-    isNoLcpTransactionWebVitalsQueryLoading;
-
-  const tableData: TransactionSampleRowWithScoreAndExtra[] = data
-    .map(row => ({
-      ...row,
-      view: null,
-    }))
-    .sort((a, b) => a.score - b.score);
+  const tableData: TransactionSampleRowWithScoreAndExtra[] = data.map(row => ({
+    ...row,
+    view: null,
+  }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
   };
 
   function renderHeadCell(col: Column) {
+    function generateSortLink() {
+      let newSortDirection: Sort['kind'] = 'desc';
+      if (sort?.field === col.key) {
+        if (sort.kind === 'desc') {
+          newSortDirection = 'asc';
+        }
+      }
+
+      const newSort = `${newSortDirection === 'desc' ? '-' : ''}${col.key}`;
+
+      return {
+        ...location,
+        query: {...location.query, sort: newSort},
+      };
+    }
+
+    const canSort = (SORTABLE_INDEXED_FIELDS as ReadonlyArray<string>).includes(col.key);
+
     if (
       [
         'measurements.fcp',
@@ -158,6 +136,17 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
         'transaction.duration',
       ].includes(col.key)
     ) {
+      if (canSort) {
+        return (
+          <SortLink
+            align="right"
+            title={col.name}
+            direction={sort?.field === col.key ? sort.kind : undefined}
+            canSort={canSort}
+            generateSortLink={generateSortLink}
+          />
+        );
+      }
       return (
         <AlignRight>
           <span>{col.name}</span>
@@ -165,6 +154,13 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
       );
     }
     if (col.key === 'score') {
+      return (
+        <AlignCenter>
+          <span>{t('Perf Score')}</span>
+        </AlignCenter>
+      );
+    }
+    if (col.key === 'replayId' || col.key === 'profile.id') {
       return (
         <AlignCenter>
           <span>{col.name}</span>
@@ -215,7 +211,7 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
       return (
         <AlignRight>
           {row[key] === null ? (
-            <NoValue>{t('(no value)')}</NoValue>
+            <NoValue>{' \u2014 '}</NoValue>
           ) : (
             getFormattedDuration((row[key] as number) / 1000)
           )}
@@ -225,9 +221,31 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
     if (['measurements.cls', 'opportunity'].includes(key)) {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
     }
-    if (key === 'view') {
-      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
-      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+    if (key === 'profile.id') {
+      const profileTarget =
+        defined(row.projectSlug) && defined(row['profile.id'])
+          ? generateProfileFlamechartRoute({
+              orgSlug: organization.slug,
+              projectSlug: row.projectSlug,
+              profileId: String(row['profile.id']),
+            })
+          : null;
+      return (
+        <NoOverflow>
+          <AlignCenter>
+            {profileTarget && (
+              <Tooltip title={t('View Profile')}>
+                <LinkButton to={profileTarget} size="xs">
+                  <IconProfiling size="xs" />
+                </LinkButton>
+              </Tooltip>
+            )}
+          </AlignCenter>
+        </NoOverflow>
+      );
+    }
+
+    if (key === 'replayId') {
       const replayTarget =
         row['transaction.duration'] !== null &&
         replayLinkGenerator(
@@ -240,32 +258,29 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
           },
           undefined
         );
-      const profileTarget =
-        defined(row.projectSlug) && defined(row['profile.id'])
-          ? generateProfileFlamechartRoute({
-              orgSlug: organization.slug,
-              projectSlug: row.projectSlug,
-              profileId: String(row['profile.id']),
-            })
-          : null;
-
       return (
         <NoOverflow>
-          <Flex>
-            <LinkButton to={eventTarget} size="xs">
-              {t('Transaction')}
-            </LinkButton>
-            {profileTarget && (
-              <LinkButton to={profileTarget} size="xs">
-                {t('Profile')}
-              </LinkButton>
+          <AlignCenter>
+            {replayTarget && (
+              <Tooltip title={t('View Replay')}>
+                <LinkButton to={replayTarget} size="xs">
+                  <IconPlay size="xs" />
+                </LinkButton>
+              </Tooltip>
             )}
-            {row.replayId && replayTarget && (
-              <LinkButton to={replayTarget} size="xs">
-                <IconPlay size="xs" />
-              </LinkButton>
-            )}
-          </Flex>
+          </AlignCenter>
+        </NoOverflow>
+      );
+    }
+
+    if (key === 'id') {
+      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
+      const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
+      return (
+        <NoOverflow>
+          <Tooltip title={t('View Transaction')}>
+            <Link to={eventTarget}>{getShortEventId(row.id)}</Link>
+          </Tooltip>
         </NoOverflow>
       );
     }
@@ -274,9 +289,43 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
 
   return (
     <span>
+      <SearchBarContainer>
+        <StyledSearchBar
+          query={query}
+          organization={organization}
+          onSearch={queryString =>
+            router.replace({
+              ...location,
+              query: {...location.query, query: queryString},
+            })
+          }
+        />
+        <StyledPagination pageLinks={pageLinks} disabled={isLoading} size="md" />
+        {/* The Pagination component disappears if pageLinks is not defined,
+        which happens any time the table data is loading. So we render a
+        disabled button bar if pageLinks is not defined to minimize ui shifting */}
+        {!pageLinks && (
+          <Wrapper>
+            <ButtonBar merged>
+              <Button
+                icon={<IconChevron direction="left" size="sm" />}
+                size="md"
+                disabled
+                aria-label={t('Previous')}
+              />
+              <Button
+                icon={<IconChevron direction="right" size="sm" />}
+                size="md"
+                disabled
+                aria-label={t('Next')}
+              />
+            </ButtonBar>
+          </Wrapper>
+        )}
+      </SearchBarContainer>
       <GridContainer>
         <GridEditable
-          isLoading={isTransactionWebVitalsQueryLoading}
+          isLoading={isLoading}
           columnOrder={columnOrder ?? COLUMN_ORDER}
           columnSortBy={[]}
           data={tableData}
@@ -285,6 +334,7 @@ export function PageSamplePerformanceTable({transaction, columnOrder, limit = 9}
             renderBodyCell,
           }}
           location={location}
+          minimumColWidth={70}
         />
       </GridContainer>
     </span>
@@ -303,7 +353,7 @@ const AlignRight = styled('span')<{color?: string}>`
   ${p => (p.color ? `color: ${p.color};` : '')}
 `;
 
-const AlignCenter = styled('span')`
+const AlignCenter = styled('div')`
   text-align: center;
   width: 100%;
 `;
@@ -314,15 +364,50 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
 `;
 
+// Not pretty but we need to override gridEditable styles since the original
+// styles have too much padding for small spaces
 const GridContainer = styled('div')`
   margin-bottom: ${space(1)};
-`;
-
-const Flex = styled('div')`
-  display: flex;
-  gap: ${space(1)};
+  th {
+    padding: 0 ${space(1)};
+  }
+  th:first-child {
+    padding-left: ${space(2)};
+  }
+  th:last-child {
+    padding-right: ${space(2)};
+  }
+  td {
+    padding: ${space(1)};
+  }
+  td:first-child {
+    padding-right: ${space(1)};
+    padding-left: ${space(2)};
+  }
 `;
 
 const NoValue = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const SearchBarContainer = styled('div')`
+  display: flex;
+  margin-top: ${space(2)};
+  margin-bottom: ${space(1)};
+  gap: ${space(1)};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;
+
+const Wrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0;
 `;

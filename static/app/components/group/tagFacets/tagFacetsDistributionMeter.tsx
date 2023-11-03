@@ -30,6 +30,7 @@ type Props = {
   colors?: string[];
   expandByDefault?: boolean;
   onTagClick?: (title: string, value: TagSegment) => void;
+  onTagValueClick?: (title: string, value: TagSegment) => void;
   otherUrl?: LocationDescriptor;
   project?: Project;
 };
@@ -40,6 +41,7 @@ function TagFacetsDistributionMeter({
   title,
   totalValues,
   onTagClick,
+  onTagValueClick,
   project,
   expandByDefault,
   otherUrl,
@@ -164,27 +166,40 @@ function TagFacetsDistributionMeter({
                   segment.value,
                   `${pctLabel}%`
                 );
+
+            const legend = (
+              <LegendRow
+                onMouseOver={() => setHoveredValue(segment)}
+                onMouseLeave={() => setHoveredValue(null)}
+              >
+                <LegendDot
+                  color={colors[segment.isOther ? colors.length - 1 : index]}
+                  focus={focus}
+                />
+                <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
+                  <LegendText unfocus={unfocus}>
+                    {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
+                  </LegendText>
+                </Tooltip>
+                {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+              </LegendRow>
+            );
+
             return (
               <li key={`segment-${segment.name}-${index}`}>
-                <Link to={segment.url} aria-label={linkLabel}>
-                  <LegendRow
-                    onMouseOver={() => setHoveredValue(segment)}
-                    onMouseLeave={() => setHoveredValue(null)}
+                {onTagValueClick ? (
+                  <StyledButton
+                    aria-label={linkLabel}
+                    onClick={() => onTagValueClick?.(title, segment)}
+                    priority="link"
                   >
-                    <LegendDot
-                      color={colors[segment.isOther ? colors.length - 1 : index]}
-                      focus={focus}
-                    />
-                    <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
-                      <LegendText unfocus={unfocus}>
-                        {segment.name ?? (
-                          <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>
-                        )}
-                      </LegendText>
-                    </Tooltip>
-                    {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
-                  </LegendRow>
-                </Link>
+                    {legend}
+                  </StyledButton>
+                ) : (
+                  <Link to={segment.url} aria-label={linkLabel}>
+                    {legend}
+                  </Link>
+                )}
               </li>
             );
           })}
@@ -374,5 +389,12 @@ const NotApplicableLabel = styled('span')`
 const StyledSummary = styled('summary')`
   &::-webkit-details-marker {
     display: none;
+  }
+`;
+
+const StyledButton = styled(Button)`
+  width: 100%;
+  > span {
+    display: block;
   }
 `;

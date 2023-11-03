@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, TypedDict
@@ -23,6 +24,9 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.utils import metrics
+
+logger = logging.getLogger("sentry.release_threshold_status")
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -136,6 +140,13 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         start: datetime
         end: datetime
         start, end = get_date_range_from_params(params=data)
+        logger.info(
+            "Checking release status health",
+            extra={
+                "start": start,
+                "end": end,
+            },
+        )
 
         serializer = ReleaseThresholdStatusIndexSerializer(
             data=request.query_params,
@@ -178,6 +189,16 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             "projects__release_thresholds"
         )  # maybe prefetch "deploy_set" as well?
 
+        logger.info(
+            "Fetched releases",
+            extra={
+                "results": len(queryset),
+                "project_slugs": project_slug_list,
+                "releases": releases_list,
+                "environments": environments_list,
+            },
+        )
+
         # ========================================================================
         # Step 3: flatten thresholds and compile projects/release-thresholds by type
         # ========================================================================
@@ -218,7 +239,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                             ),
                             "start": release.date,  # deploy.date_finished _would_ be more accurate, but is not keyed on project so cannot be used
                             "end": release.date
-                            + timedelta(threshold.window_in_seconds),  # start + threshold.window
+                            + timedelta(
+                                seconds=threshold.window_in_seconds
+                            ),  # start + threshold.window
                             "release": release.version,
                             "project_slug": project.slug,
                             "project_id": project.id,
@@ -238,12 +261,25 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             release_value_list = [release_version for release_version in filter_list["releases"]]
             category_thresholds: List[EnrichedThreshold] = filter_list["thresholds"]
             if threshold_type == ReleaseThresholdType.TOTAL_ERROR_COUNT:
+                metrics.incr("check.error_count")
                 """
                 Fetch errors timeseries for all projects with an error_count threshold in desired releases
                 Iterate through timeseries given threshold window and determine health status
 
+                NOTE: Timeseries query start & end are determined by API param window (_not_ threshold window)
+                    IF the param window doesn't cover the full threshold window, results will be inaccurate
                 TODO: If too many results, then throw an error and request user to narrow their search window
                 """
+                logger.info(
+                    "querying error counts",
+                    extra={
+                        "start": start,
+                        "end": end,
+                        "project_ids": project_id_list,
+                        "releases": release_value_list,
+                        "environments": environments_list,
+                    },
+                )
                 error_counts = get_errors_counts_timeseries_by_project_and_release(
                     end=end,
                     environments_list=environments_list,
@@ -260,31 +296,37 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
+                metrics.incr("check.new_issue_count")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.UNHANDLED_ISSUE_COUNT:
+                metrics.incr("check.unhandled_issue_count")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.REGRESSED_ISSUE_COUNT:
+                metrics.incr("check.regressed_issue_count")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.FAILURE_RATE:
+                metrics.incr("check.failure_rate")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_SESSION_RATE:
+                metrics.incr("check.crash_free_session_rate")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_USER_RATE:
+                metrics.incr("check.crash_free_user_rate")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
@@ -313,12 +355,12 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
     enriched threshold (ethreshold) includes `start`, `end`, and a constructed `key` identifier
     """
     total_count = 0
+    threshold_environment: str | None = None
     for i in timeseries:
         if parser.parse(i["time"]) > ethreshold["end"]:
             # timeseries are ordered chronologically
             # So if we're past our threshold.end, we can skip the rest
             break
-        threshold_environment: str | None = None
         if ethreshold["environment"]:
             threshold_environment = ethreshold["environment"]["name"]
         if (
@@ -332,7 +374,22 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
         # else ethreshold.start < i.time <= ethreshold.end
         total_count += i["count()"]
 
-    if ethreshold.get("trigger_type") == TriggerType.OVER:
+    logger.info(
+        "is_error_count_healthy",
+        extra={
+            "key": ethreshold["key"],
+            "environment": threshold_environment,
+            "release": ethreshold["release"],
+            "project": ethreshold["project_id"],
+            "total_count": total_count,
+            "value": ethreshold["value"],
+            "trigger_type": ethreshold["trigger_type"],
+            "start": ethreshold["start"],
+            "end": ethreshold["end"],
+        },
+    )
+
+    if ethreshold["trigger_type"] == TriggerType.OVER:
         # If total is under/equal the threshold value, then it is healthy
         return total_count <= ethreshold["value"]
 
