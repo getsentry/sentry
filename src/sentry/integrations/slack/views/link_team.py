@@ -192,19 +192,22 @@ class SlackLinkTeamView(BaseView):
                 },
             )
 
-        # Turn on notifications for all of a team's projects.
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor(id=team.id, actor_type=ActorType.TEAM),
-            organization_id_for_team=team.organization_id,
+        has_team_workflow = features.has(
+            "organizations:team-workflow-notifications", team.organization
         )
+        # Turn on notifications for all of a team's projects.
+        # TODO(jangjodi): Remove this once the flag is removed
+        if not has_team_workflow:
+            notifications_service.update_settings(
+                external_provider=ExternalProviders.SLACK,
+                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+                setting_option=NotificationSettingOptionValues.ALWAYS,
+                actor=RpcActor(id=team.id, actor_type=ActorType.TEAM),
+                organization_id_for_team=team.organization_id,
+            )
         message = SUCCESS_LINKED_MESSAGE.format(
             slug=team.slug,
-            workflow_addon=" and workflow"
-            if features.has("organizations:team-workflow-notifications", team.organization)
-            else "",
+            workflow_addon=" and workflow" if has_team_workflow else "",
             channel_name=channel_name,
         )
         integration_service.send_message(
