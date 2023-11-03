@@ -40,7 +40,7 @@ class SerializedThreshold(TypedDict):
     project: Dict[str, Any]
     release: str
     threshold_type: int
-    trigger_type: int
+    trigger_type: str
     value: int
     window_in_seconds: int
 
