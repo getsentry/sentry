@@ -140,6 +140,13 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         start: datetime
         end: datetime
         start, end = get_date_range_from_params(params=data)
+        logger.info(
+            "Checking release status health",
+            extra={
+                "start": start,
+                "end": end,
+            },
+        )
 
         serializer = ReleaseThresholdStatusIndexSerializer(
             data=request.query_params,
@@ -232,7 +239,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                             ),
                             "start": release.date,  # deploy.date_finished _would_ be more accurate, but is not keyed on project so cannot be used
                             "end": release.date
-                            + timedelta(threshold.window_in_seconds),  # start + threshold.window
+                            + timedelta(
+                                seconds=threshold.window_in_seconds
+                            ),  # start + threshold.window
                             "release": release.version,
                             "project_slug": project.slug,
                             "project_id": project.id,
@@ -257,8 +266,20 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 Fetch errors timeseries for all projects with an error_count threshold in desired releases
                 Iterate through timeseries given threshold window and determine health status
 
+                NOTE: Timeseries query start & end are determined by API param window (_not_ threshold window)
+                    IF the param window doesn't cover the full threshold window, results will be inaccurate
                 TODO: If too many results, then throw an error and request user to narrow their search window
                 """
+                logger.info(
+                    "querying error counts",
+                    extra={
+                        "start": start,
+                        "end": end,
+                        "project_ids": project_id_list,
+                        "releases": release_value_list,
+                        "environments": environments_list,
+                    },
+                )
                 error_counts = get_errors_counts_timeseries_by_project_and_release(
                     end=end,
                     environments_list=environments_list,
@@ -363,6 +384,8 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
             "total_count": total_count,
             "value": ethreshold["value"],
             "trigger_type": ethreshold["trigger_type"],
+            "start": ethreshold["start"],
+            "end": ethreshold["end"],
         },
     )
 
