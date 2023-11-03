@@ -114,10 +114,17 @@ def should_write_event_stats(event: Union[Event, GroupEvent]):
 def format_event_platform(event: Union[Event, GroupEvent]):
     group = event.group
     if not group:
-        raise Exception("Group not found on event")
+        logger.error(
+            "Group not found on event during formatting", extra={"event_id": event.event_id}
+        )
+        return
     platform = group.platform
     if not platform:
-        raise Exception("Platform not found on group")
+        logger.error(
+            "Platform not found on group during formatting",
+            extra={"event_id": event.event_id, "group_id": group.id},
+        )
+        return
     return platform.split("-", 1)[0].split("_", 1)[0]
 
 
@@ -716,7 +723,7 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)
+    event.data = EventDict(event.data, skip_renormalization=True)  # type: ignore[assignment]  # the setter for the data property uses NodeData as a wrapper
 
     return event
 
@@ -786,7 +793,11 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 
             if not event.group:
-                raise Exception("Group not found on event")
+                logger.error(
+                    "Group not found on event while processing inbox adds",
+                    extra={"event_id": event.event_id},
+                )
+                return
 
             if is_reprocessed and is_new:
                 # keep Group.status=UNRESOLVED and Group.substatus=ONGOING if its reprocessed
@@ -831,7 +842,10 @@ def process_snoozes(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
     if not group:
-        raise Exception("Group not found on event")
+        logger.error(
+            "Group not found on event while processing snoozes", extra={"event_id": event.event_id}
+        )
+        return
 
     if not group.issue_type.should_detect_escalation(group.organization):
         return
