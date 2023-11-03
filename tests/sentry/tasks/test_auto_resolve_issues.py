@@ -112,7 +112,7 @@ class ScheduleAutoResolutionTest(TestCase):
 
     @patch("sentry.tasks.auto_ongoing_issues.backend")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
-    @with_feature("organizations:issue-platform-api-crons-sd")
+    @with_feature("organizations:issue-platform-crons-sd")
     def test_single_event_performance_ff_enabled(self, mock_kick_off_status_syncs, mock_backend):
         project = self.create_project()
 
@@ -170,7 +170,7 @@ class ScheduleAutoResolutionTest(TestCase):
         assert project.get_option("sentry:_last_auto_resolve") > current_ts
 
     @patch("sentry.tasks.auto_ongoing_issues.backend")
-    @with_feature("organizations:issue-platform-api-crons-sd")
+    @with_feature("organizations:issue-platform-crons-sd")
     def test_aggregate_performance_ff_enabled(self, mock_backend):
         project = self.create_project()
 

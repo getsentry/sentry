@@ -66,7 +66,7 @@ def schedule_auto_resolution():
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
     project = Project.objects.get_from_cache(id=project_id)
     organization = project.organization
-    flag_enabled = features.has("organizations:issue-platform-api-crons-sd", organization)
+    flag_enabled = features.has("organizations:issue-platform-crons-sd", organization)
 
     age = project.get_option("sentry:resolve_age", None)
     if not age:

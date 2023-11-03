@@ -163,7 +163,7 @@ class GroupType:
 
     @classmethod
     def should_detect_escalation(cls, organization: Organization) -> bool:
-        if not features.has("organizations:issue-platform-api-crons-sd", organization):
+        if not features.has("organizations:issue-platform-crons-sd", organization):
             return True
         return cls.enable_escalation_detection
 

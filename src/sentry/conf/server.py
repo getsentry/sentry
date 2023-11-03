@@ -1493,6 +1493,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-platform-extra-logging": False,
     # Enable issue platform status change API for crons and SD issues
     "organizations:issue-platform-api-crons-sd": False,
+    # Enable issue platform feature changes for crons and SD issues
+    "organizations:issue-platform-crons-sd": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
