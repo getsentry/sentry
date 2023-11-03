@@ -716,7 +716,7 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)  # type: ignore  # NodeData uses EventDict as wrapper
+    event.data = EventDict(event.data, skip_renormalization=True)
 
     return event
 

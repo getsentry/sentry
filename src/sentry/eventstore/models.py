@@ -607,7 +607,7 @@ class Event(BaseEvent):
         return state
 
     @property
-    def data(self) -> NodeData:
+    def data(self) -> NodeData | EventDict:
         return self._data
 
     @data.setter
