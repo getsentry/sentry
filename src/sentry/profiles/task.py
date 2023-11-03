@@ -331,7 +331,7 @@ def _prepare_frames_from_profile(
                 frames = [profile["profile"]["frames"][idx] for idx in frames_sent]
             else:
                 if profile["platform"] != platform:
-                    # we might have both js and cocoa frames (ract native)
+                    # we might have both js and cocoa frames (react native)
                     # and we need to filter only for the cocoa ones
                     for idx, f in enumerate(profile["profile"]["frames"]):
                         if (
