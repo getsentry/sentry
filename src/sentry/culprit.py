@@ -76,7 +76,7 @@ def get_frame_culprit(frame, platform):
 
 def get_nel_culprit(data_nel):
     body = data_nel.get("body")
-    ty = body.get("type")
+    ty = body.get("type", "<missing>")
     if ty == "http.error":
         return NEL_CULPRITS[ty].format(body.get("status_code"))
-    return NEL_CULPRITS[ty]
+    return NEL_CULPRITS.get(ty, f"Unknown type: {ty}")

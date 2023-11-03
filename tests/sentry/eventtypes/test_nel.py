@@ -9,7 +9,7 @@ class NelEventTest(TestCase):
         inst = NelEvent()
         data = {
             "logentry": {"formatted": "connection / tcp.refused"},
-            "nel": {"url": "https://example.com/"},
+            "request": {"url": "https://example.com/"},
         }
         assert inst.get_metadata(data) == {
             "title": "connection / tcp.refused",
