@@ -1,7 +1,10 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
 
 describe('OrganizationProjects', function () {
@@ -9,10 +12,8 @@ describe('OrganizationProjects', function () {
   let statsGetMock: jest.Mock;
   let projectsPutMock: jest.Mock;
   const org = Organization();
-  const project = TestStubs.Project();
-  const routerProps = TestStubs.routeComponentProps();
-  const routerContext = TestStubs.routerContext();
-  const router = TestStubs.router();
+  const project = Project();
+  const {routerContext} = initializeOrg();
 
   beforeEach(function () {
     projectsGetMock = MockApiClient.addMockResponse({
@@ -36,22 +37,17 @@ describe('OrganizationProjects', function () {
   });
 
   it('should render the projects in the store', async function () {
-    render(
-      <OrganizationProjectsContainer
-        {...routerProps}
-        location={{...router.location, query: {}}}
-      />
-    );
+    render(<OrganizationProjectsContainer />);
 
-    expect(screen.getByText('project-slug')).toBeInTheDocument();
+    expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
     expect(projectsGetMock).toHaveBeenCalledTimes(1);
     expect(statsGetMock).toHaveBeenCalledTimes(1);
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Bookmark Project'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Bookmark Project'}));
     expect(
-      screen.getByRole('button', {name: 'Bookmark Project', pressed: true})
+      await screen.findByRole('button', {name: 'Bookmark Project', pressed: true})
     ).toBeInTheDocument();
 
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
@@ -62,20 +58,19 @@ describe('OrganizationProjects', function () {
       url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
-    render(
-      <OrganizationProjectsContainer
-        {...routerProps}
-        location={{...router.location, query: {}}}
-      />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<OrganizationProjectsContainer />, {
+      context: routerContext,
+    });
 
-    const searchBox = screen.getByRole('textbox');
+    const searchBox = await screen.findByRole('textbox');
 
     await userEvent.type(searchBox, project.slug);
+    await userEvent.type(searchBox, '{enter}');
 
+    act(() => jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1));
+    jest.useRealTimers();
+
+    expect(searchMock).toHaveBeenCalledTimes(2);
     expect(searchMock).toHaveBeenLastCalledWith(
       `/organizations/${org.slug}/projects/`,
       expect.objectContaining({
@@ -85,8 +80,5 @@ describe('OrganizationProjects', function () {
         },
       })
     );
-
-    await userEvent.type(searchBox, '{enter}');
-    expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
   });
 });
