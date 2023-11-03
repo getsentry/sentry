@@ -3,7 +3,7 @@ from functools import wraps
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 import sentry_sdk
-from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop  # type: ignore
+from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
 
 from sentry import options
 from sentry.metrics.base import MetricsBackend, Tags
@@ -89,9 +89,6 @@ def before_emit_metric(key: str, tags: Dict[str, Any]) -> bool:
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):
-    def __init__(self, prefix: Optional[str] = None):
-        super().__init__(prefix=prefix)
-
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
         return random.random() < sample_rate
