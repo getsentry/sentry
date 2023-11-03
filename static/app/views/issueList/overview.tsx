@@ -27,6 +27,7 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {space} from 'sentry/styles/space';
 import {
@@ -185,7 +186,10 @@ class IssueListOverview extends Component<Props, State> {
       !this.props.savedSearchLoading ||
       this.props.organization.features.includes('issue-stream-performance')
     ) {
-      this.fetchData();
+      const loadedFromCache = this.loadFromCache();
+      if (!loadedFromCache) {
+        this.fetchData();
+      }
     }
     this.fetchTags();
     this.fetchMemberList();
@@ -206,6 +210,7 @@ class IssueListOverview extends Component<Props, State> {
     // If the project selection has changed reload the member list and tag keys
     // allowing autocomplete and tag sidebar to be more accurate.
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+      this.loadFromCache();
       this.fetchMemberList();
       this.fetchTags();
     }
@@ -227,7 +232,10 @@ class IssueListOverview extends Component<Props, State> {
       prevProps.savedSearchLoading &&
       !this.props.organization.features.includes('issue-stream-performance')
     ) {
-      this.fetchData();
+      const loadedFromCache = this.loadFromCache();
+      if (!loadedFromCache) {
+        this.fetchData();
+      }
       return;
     }
 
@@ -271,6 +279,15 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   componentWillUnmount() {
+    const groups = GroupStore.getState() as Group[];
+    if (groups.length > 0 && !this.state.issuesLoading && !this.state.realtimeActive) {
+      IssueListCacheStore.save(this.getCacheEdpointParams(), {
+        groups,
+        queryCount: this.state.queryCount,
+        queryMaxCount: this.state.queryMaxCount,
+        pageLinks: this.state.pageLinks,
+      });
+    }
     this._poller.disable();
     SelectedGroupStore.reset();
     GroupStore.reset();
@@ -312,6 +329,28 @@ class IssueListOverview extends Component<Props, State> {
       return location.query.sort as string;
     }
     return DEFAULT_ISSUE_STREAM_SORT;
+  }
+
+  loadFromCache(): boolean {
+    const cache = IssueListCacheStore.getFromCache(this.getCacheEdpointParams());
+    if (!cache) {
+      console.log('miss', this.getCacheEdpointParams());
+      return false;
+    }
+
+    setTimeout(() => {
+      console.log('hit');
+      GroupStore.loadInitialData(cache.groups);
+      this.setState({
+        issuesLoading: false,
+        queryCount: cache.queryCount,
+        queryMaxCount: cache.queryMaxCount,
+        groupIds: cache.groups.map(group => group.id),
+        pageLinks: cache.pageLinks,
+      });
+      IssueListCacheStore.reset();
+    }, 0);
+    return true;
   }
 
   getQuery(): string {
@@ -374,6 +413,14 @@ class IssueListOverview extends Component<Props, State> {
 
     // only include defined values.
     return pickBy(params, v => defined(v)) as EndpointParams;
+  };
+
+  getCacheEdpointParams = (): EndpointParams => {
+    const cursor = this.props.location.query.cursor;
+    return {
+      ...this.getEndpointParams(),
+      cursor,
+    };
   };
 
   getSelectedProjectIds = (): string[] => {
