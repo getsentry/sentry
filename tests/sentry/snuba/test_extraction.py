@@ -181,7 +181,6 @@ def test_spec_simple_query_with_environment_only():
 
 
 def test_spec_context_mapping():
-    # We use apdex, since it's the only metric which is on demand also without a query.
     spec = OnDemandMetricSpec("count()", "device:SM-A226B")
 
     assert spec._metric_type == "c"
