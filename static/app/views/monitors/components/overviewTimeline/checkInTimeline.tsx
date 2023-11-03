@@ -76,9 +76,13 @@ export interface MockCheckInTimelineProps extends TimelineProps {
   mockTimestamps: Date[];
 }
 
-export function MockCheckInTimeline(props: MockCheckInTimelineProps) {
-  const {mockTimestamps, start, end, timeWindowConfig, width} = props;
-
+export function MockCheckInTimeline({
+  mockTimestamps,
+  start,
+  end,
+  timeWindowConfig,
+  width,
+}: MockCheckInTimelineProps) {
   const elapsedMs = end.getTime() - start.getTime();
   const msPerPixel = elapsedMs / width;
 
