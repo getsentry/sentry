@@ -16,6 +16,7 @@ from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -334,6 +335,7 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         return contents or []
 
     def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> list[FileBlameInfo]:
+        metrics.incr("sentry.integrations.gitlab.get_blame_for_files")
         return fetch_file_blames(
             self, files, extra={"provider": "gitlab", "org_integration_id": self.org_integration_id}
         )
