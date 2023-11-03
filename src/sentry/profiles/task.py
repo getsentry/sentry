@@ -335,7 +335,7 @@ def _prepare_frames_from_profile(
                     # and we need to filter only for the cocoa ones
                     for idx, f in enumerate(profile["profile"]["frames"]):
                         if (
-                            f.get("platform", "") == "cocoa"
+                            f.get("platform", "") == platform
                             and f.get("instruction_addr") is not None
                         ):
                             frames_sent.add(idx)
