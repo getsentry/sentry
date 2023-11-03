@@ -18,6 +18,14 @@ encoder = DependenciesJSONEncoder(
 )
 
 
+def check_model_dep_graph_changes(diff):
+    if diff:
+        raise AssertionError(
+            "Model dependency graph does not match fixture. This means that you have changed the model dependency graph in some load bearing way. If you are seeing this in CI, and the dependency changes are intentional, please run `bin/generate-model-dependency-fixtures` and re-upload:\n\n"
+            + "\n".join(diff)
+        )
+
+
 def test_detailed():
     fixture_path = get_fixture_path("backup", "model_dependencies", "detailed.json")
     with open(fixture_path) as fixture:
@@ -25,11 +33,7 @@ def test_detailed():
 
     actual = encoder.encode({str(k): v for k, v in dependencies().items()}).splitlines()
     diff = list(unified_diff(expect, actual, n=3))
-    if diff:
-        raise AssertionError(
-            "Model dependency graph does not match fixture. If you are seeing this in CI, please run `bin/generate-model-dependency-fixtures` and re-upload:\n\n"
-            + "\n".join(diff)
-        )
+    check_model_dep_graph_changes(diff)
 
 
 def test_flat():
@@ -39,11 +43,7 @@ def test_flat():
 
     actual = encoder.encode({str(k): v.flatten() for k, v in dependencies().items()}).splitlines()
     diff = list(unified_diff(expect, actual, n=3))
-    if diff:
-        raise AssertionError(
-            "Model dependency graph does not match fixture. If you are seeing this in CI, please run `bin/generate-model-dependency-fixtures` and re-upload:\n\n"
-            + "\n".join(diff)
-        )
+    check_model_dep_graph_changes(diff)
 
 
 def test_sorted():
@@ -53,11 +53,7 @@ def test_sorted():
 
     actual = encoder.encode(sorted_dependencies()).splitlines()
     diff = list(unified_diff(expect, actual, n=3))
-    if diff:
-        raise AssertionError(
-            "Model dependency list does not match fixture. If you are seeing this in CI, please run `bin/generate-model-dependency-fixtures` and re-upload:\n\n"
-            + "\n".join(diff)
-        )
+    check_model_dep_graph_changes(diff)
 
 
 def test_truncate():
@@ -69,8 +65,4 @@ def test_truncate():
         [dependencies()[get_model_name(m)].table_name for m in sorted_dependencies()]
     ).splitlines()
     diff = list(unified_diff(expect, actual, n=3))
-    if diff:
-        raise AssertionError(
-            "Model dependency list does not match fixture. If you are seeing this in CI, please run `bin/generate-model-dependency-fixtures` and re-upload:\n\n"
-            + "\n".join(diff)
-        )
+    check_model_dep_graph_changes(diff)

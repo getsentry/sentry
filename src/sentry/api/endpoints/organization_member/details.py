@@ -66,9 +66,9 @@ Configures the team role of the member. The two roles are:
 ```
 """
 
-# Required to explictly define roles w/ descriptions because OrganizationMemberSerializer
+# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
 # has the wrong descriptions, includes deprecated admin, and excludes billing
-_role_choices = [
+ROLE_CHOICES = [
     ("billing", "Can manage payment and compliance details."),
     (
         "member",
@@ -172,7 +172,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             fields={
                 "orgRole": serializers.ChoiceField(
                     help_text="The organization role of the member. The options are:",
-                    choices=_role_choices,
+                    choices=ROLE_CHOICES,
                     required=False,
                 ),
                 "teamRoles": serializers.ListField(
@@ -217,6 +217,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
 
         result = serializer.validated_data
+
+        if getattr(member.flags, "partnership:restricted"):
+            return Response(
+                {
+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+                status=403,
+            )
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level
@@ -407,6 +415,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if getattr(member.flags, "idp:provisioned"):
             return Response(
                 {"detail": "This user is managed through your organization's identity provider."},
+                status=403,
+            )
+
+        if getattr(member.flags, "partnership:restricted"):
+            return Response(
+                {
+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
                 status=403,
             )
 

@@ -548,7 +548,7 @@ class BaseQueryBuilder:
     def resolve_boolean_condition(
         self, term: event_filter.ParsedTerm
     ) -> Tuple[List[WhereType], List[WhereType]]:
-        if isinstance(term, event_filter.ParenExpression):
+        if isinstance(term, event_search.ParenExpression):
             return self.resolve_boolean_conditions(term.children)
 
         where, having = [], []
@@ -850,6 +850,8 @@ class BaseQueryBuilder:
                     resolved_orderby = bare_orderby
                 # Allow ordering equations directly with the raw alias (ie. equation|a + b)
                 elif is_equation(bare_orderby):
+                    if not strip_equation(bare_orderby):
+                        raise InvalidSearchQuery("Cannot sort by an empty equation")
                     resolved_orderby = self.equation_alias_map[strip_equation(bare_orderby)]
                     bare_orderby = resolved_orderby.alias
                 else:

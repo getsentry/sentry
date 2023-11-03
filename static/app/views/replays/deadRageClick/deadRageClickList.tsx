@@ -1,16 +1,14 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,9 +21,6 @@ import ReplayTabs from 'sentry/views/replays/tabs';
 export default function DeadRageClickList() {
   const organization = useOrganization();
   const location = useLocation();
-  const hasDeadClickFeature = organization.features.includes(
-    'session-replay-rage-dead-selectors'
-  );
 
   const {isLoading, isError, data, pageLinks} = useDeadRageSelectors({
     per_page: 50,
@@ -34,14 +29,6 @@ export default function DeadRageClickList() {
     prefix: '',
     isWidgetData: false,
   });
-
-  if (!hasDeadClickFeature) {
-    return (
-      <Layout.Page withPadding>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </Layout.Page>
-    );
-  }
 
   return (
     <SentryDocumentTitle
@@ -56,7 +43,6 @@ export default function DeadRageClickList() {
               title={t('See the top selectors your users have dead and rage clicked on.')}
               docsUrl="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
             />
-            <FeatureBadge type="beta" />
           </Layout.Title>
         </Layout.HeaderContent>
         <div /> {/* wraps the tabs below the page title */}
@@ -68,7 +54,7 @@ export default function DeadRageClickList() {
             <PageFilterBar condensed>
               <ProjectPageFilter resetParamsOnChange={['cursor']} />
               <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-              <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
+              <DatePageFilter resetParamsOnChange={['cursor']} />
             </PageFilterBar>
             <LayoutGap>
               <SelectorTable

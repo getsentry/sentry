@@ -133,7 +133,15 @@ export function getProfilesTableFields(platform: Project['platform']) {
   return DEFAULT_FIELDS;
 }
 
-const MOBILE_FIELDS: ProfilingFieldType[] = [...ALL_FIELDS];
+const MOBILE_FIELDS: ProfilingFieldType[] = [
+  'profile.id',
+  'timestamp',
+  'release',
+  'device.model',
+  'device.classification',
+  'device.arch',
+  'transaction.duration',
+];
 const DEFAULT_FIELDS: ProfilingFieldType[] = [
   'profile.id',
   'timestamp',

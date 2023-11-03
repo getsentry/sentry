@@ -177,14 +177,22 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 team_filter_query = team_filter_query | Q(owner_id=None)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-        if not features.has("organizations:performance-view", organization):
-            # Filter to only error alert rules
-            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],
             project__in=projects,
         )
+
+        if not features.has("organizations:performance-view", organization):
+            # Filter to only error alert rules
+            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+        else:
+            datasets = request.GET.getlist("dataset", [])
+            if len(datasets) > 0:
+                alert_rules = alert_rules.filter(snuba_query__dataset__in=datasets)
+                if Dataset.Events.value not in datasets:
+                    issue_rules = Rule.objects.none()
+
         name = request.GET.get("name", None)
         if name:
             alert_rules = alert_rules.filter(Q(name__icontains=name))

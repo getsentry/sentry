@@ -7,25 +7,41 @@ from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.models import ApiKeyReplica
+from sentry.hybridcloud.models import (
+    ApiKeyReplica,
+    ApiTokenReplica,
+    ExternalActorReplica,
+    OrgAuthTokenReplica,
+)
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
 from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import OutboxCategory
 from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthIdentity, RpcAuthProvider
+from sentry.services.hybrid_cloud.auth import (
+    RpcApiKey,
+    RpcApiToken,
+    RpcAuthIdentity,
+    RpcAuthProvider,
+)
+from sentry.services.hybrid_cloud.notifications import RpcExternalActor
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
@@ -77,9 +93,16 @@ def get_conflicting_unique_columns(
     scope_controlled_columns: List[str]
     if scope == scope.USER_SCOPE:
         scope_controlled_columns = [get_foreign_key_column(destination, User)]
+
+        if isinstance(destination, AuthIdentityReplica):
+            scope_controlled_columns.append("ident")
     elif scope == scope.ORGANIZATION_SCOPE:
         scope_controlled_columns = list(
             get_foreign_key_columns(destination, Organization, AuthProvider)
+        )
+    elif scope == scope.INTEGRATION_SCOPE:
+        scope_controlled_columns = list(
+            get_foreign_key_columns(destination, Organization, Integration)
         )
     else:
         raise TypeError(
@@ -123,6 +146,46 @@ def handle_replication(
 
 
 class DatabaseBackedRegionReplicaService(RegionReplicaService):
+    def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
+        organization: Optional[Organization] = None
+        if api_token.organization_id is not None:
+            try:
+                organization = Organization.objects.get(id=api_token.organization_id)
+            except Organization.DoesNotExist:
+                return
+
+        destination = ApiTokenReplica(
+            application_id=api_token.application_id,  # type: ignore
+            organization=organization,
+            application_is_active=api_token.application_is_active,
+            token=api_token.token,
+            expires_at=api_token.expires_at,
+            apitoken_id=api_token.id,
+            scope_list=api_token.scope_list,
+            allowed_origins="\n".join(api_token.allowed_origins)
+            if api_token.allowed_origins
+            else None,
+            user_id=api_token.user_id,
+        )
+        handle_replication(ApiToken, destination)
+
+    def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
+        try:
+            organization = Organization.objects.get(id=token.organization_id)
+        except Organization.DoesNotExist:
+            return
+
+        destination = OrgAuthTokenReplica(
+            organization=organization,
+            orgauthtoken_id=token.id,
+            token_hashed=token.token_hashed,
+            name=token.name,
+            scope_list=token.scope_list,
+            created_by_id=token.created_by_id,  # type: ignore
+            date_deactivated=token.date_deactivated,
+        )
+        handle_replication(OrgAuthToken, destination)
+
     def upsert_replicated_auth_provider(
         self, *, auth_provider: RpcAuthProvider, region_name: str
     ) -> None:
@@ -215,6 +278,27 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
+    def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
+        try:
+            if external_actor.user_id is not None:
+                # Validating existence of user
+                User.objects.get(id=external_actor.user_id)
+            integration = Integration.objects.get(id=external_actor.integration_id)
+        except (User.DoesNotExist, Integration.DoesNotExist):
+            return
+
+        destination = ExternalActorReplica(
+            externalactor_id=external_actor.id,
+            external_id=external_actor.external_id,
+            external_name=external_actor.external_name,
+            organization_id=external_actor.organization_id,
+            user_id=external_actor.user_id,
+            provider=external_actor.provider,
+            team_id=external_actor.team_id,  # type: ignore
+            integration_id=integration.id,
+        )
+        handle_replication(ExternalActor, destination, "externalactor_id")
+
     def remove_replicated_organization_member_team(
         self, *, organization_id: int, organization_member_team_id: int
     ) -> None:

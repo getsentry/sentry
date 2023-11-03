@@ -890,3 +890,27 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         for data in response.data:
             if data["name"] == disabled_alert.label:
                 assert data["status"] == "disabled"
+
+    def test_dataset_filter(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.create_alert_rule(dataset=Dataset.Metrics)
+        transaction_rule = self.create_alert_rule(dataset=Dataset.Transactions)
+        events_rule = self.create_alert_rule(dataset=Dataset.Events)
+        self.login_as(self.user)
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            transactions_res = self.get_success_response(
+                self.organization.slug, dataset=[Dataset.Transactions.value]
+            )
+            self.assert_alert_rule_serialized(
+                transaction_rule, transactions_res.data[0], skip_dates=True
+            )
+            events_res = self.get_success_response(
+                self.organization.slug, dataset=[Dataset.Events.value]
+            )
+            self.assert_alert_rule_serialized(events_rule, events_res.data[0], skip_dates=True)
+
+        with self.feature("organizations:incidents"):
+            # without performance-view, we should only see events rules
+            res = self.get_success_response(self.organization.slug)
+            self.assert_alert_rule_serialized(events_rule, res.data[0], skip_dates=True)

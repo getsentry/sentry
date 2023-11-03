@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, cast
+from typing import List, Optional
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -14,7 +14,11 @@ from sentry.services.hybrid_cloud.project import (
     RpcProject,
     RpcProjectOptionValue,
 )
-from sentry.services.hybrid_cloud.region import ByOrganizationId, ByOrganizationIdAttribute
+from sentry.services.hybrid_cloud.region import (
+    ByOrganizationId,
+    ByOrganizationIdAttribute,
+    ByRegionName,
+)
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
@@ -29,6 +33,17 @@ class ProjectService(RpcService):
         from sentry.services.hybrid_cloud.project.impl import DatabaseBackedProjectService
 
         return DatabaseBackedProjectService()
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def get_many_by_organizations(
+        self,
+        *,
+        region_name: str,
+        organization_ids: List[int],
+        limit: int = 100,
+    ) -> List[RpcProject]:
+        pass
 
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
@@ -62,5 +77,31 @@ class ProjectService(RpcService):
     ) -> List[OpaqueSerializedResponse]:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def create_project_for_organization(
+        self,
+        *,
+        organization_id: int,
+        project_name: str,
+        platform: str,
+        user_id: int,
+        add_org_default_team: Optional[bool] = False,
+    ) -> RpcProject:
+        pass
 
-project_service = cast(ProjectService, ProjectService.create_delegation())
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_or_create_project_for_organization(
+        self,
+        *,
+        organization_id: int,
+        project_name: str,
+        platform: str,
+        user_id: int,
+        add_org_default_team: Optional[bool] = False,
+    ) -> RpcProject:
+        pass
+
+
+project_service = ProjectService.create_delegation()

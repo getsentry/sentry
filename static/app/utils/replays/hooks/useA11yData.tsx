@@ -1,6 +1,6 @@
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import hydrateA11yIssue, {A11yIssue} from 'sentry/utils/replays/hydrateA11yRecord';
+import hydrateA11yFrame, {RawA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -13,7 +13,7 @@ export default function useA11yData() {
   const startTimestampMs = replayRecord?.started_at.getTime();
   const project = projects.find(p => p.id === replayRecord?.project_id);
 
-  const {data} = useApiQuery<A11yIssue[]>(
+  const {data} = useApiQuery<RawA11yFrame[]>(
     [
       `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/accessibility-issues/`,
     ],
@@ -24,7 +24,7 @@ export default function useA11yData() {
   );
 
   if (project && replayRecord && startTimestampMs) {
-    return data?.map(record => hydrateA11yIssue(record, startTimestampMs));
+    return data?.map(record => hydrateA11yFrame(record));
   }
   return [];
 }

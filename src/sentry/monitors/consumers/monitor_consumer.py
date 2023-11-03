@@ -18,7 +18,6 @@ from django.utils.text import slugify
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import ratelimits
-from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -32,6 +31,7 @@ from sentry.monitors.models import (
     MonitorEnvironmentLimitsExceeded,
     MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
+    MonitorObjectStatus,
     MonitorType,
 )
 from sentry.monitors.tasks import try_monitor_tasks_trigger
@@ -40,7 +40,7 @@ from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
     signal_first_checkin,
-    signal_first_monitor_created,
+    signal_monitor_created,
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
@@ -102,12 +102,13 @@ def _ensure_monitor_with_config(
             defaults={
                 "project_id": project.id,
                 "name": monitor_slug,
-                "status": ObjectStatus.ACTIVE,
+                "status": MonitorObjectStatus.ACTIVE,
                 "type": MonitorType.CRON_JOB,
                 "config": validated_config,
             },
         )
-        signal_first_monitor_created(project, None, True)
+        if created:
+            signal_monitor_created(project, None, True)
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
@@ -220,6 +221,7 @@ def transform_checkin_uuid(
 
 def _process_checkin(
     params: CheckinPayload,
+    message_ts: datetime,
     start_time: datetime,
     project_id: int,
     source_sdk: str,
@@ -457,8 +459,10 @@ def _process_checkin(
                 if use_latest_checkin:
                     check_in = (
                         MonitorCheckIn.objects.select_for_update()
-                        .filter(monitor_environment=monitor_environment)
-                        .exclude(status__in=CheckInStatus.FINISHED_VALUES)
+                        .filter(
+                            monitor_environment=monitor_environment,
+                            status=CheckInStatus.IN_PROGRESS,
+                        )
                         .order_by("-date_added")[:1]
                         .get()
                     )
@@ -546,6 +550,14 @@ def _process_checkin(
             else:
                 mark_ok(check_in, ts=start_time)
 
+            # how long in wall-clock time did it take for us to process this
+            # check-in. This records from when the message was first appended
+            # into the Kafka topic until we just completed processing.
+            #
+            # XXX: We are ONLY recording this metric for completed check-ins.
+            delay = datetime.now() - message_ts
+            metrics.gauge("monitors.checkin.completion_time", delay.total_seconds())
+
             metrics.incr(
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "complete"},
@@ -570,15 +582,20 @@ def _process_checkin(
         logger.exception("Failed to process check-in", exc_info=True)
 
 
-def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) -> None:
-    # XXX: Relay does not attach a message type, to properly discriminate
-    # we add it by default here. This can be removed once the message_type
-    # is guaranteed
+def _process_message(
+    ts: datetime,
+    partition: int,
+    wrapper: CheckinMessage | ClockPulseMessage,
+) -> None:
+
+    # XXX: Relay does not attach a message type, to properly discriminate the
+    # message_type we add it by default here. This can be removed once the
+    # message_type is guaranteed
     if "message_type" not in wrapper:
         wrapper["message_type"] = "check_in"
 
     try:
-        try_monitor_tasks_trigger(ts)
+        try_monitor_tasks_trigger(ts, partition)
     except Exception:
         logger.exception("Failed to trigger monitor tasks", exc_info=True)
 
@@ -595,7 +612,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
         project_id = int(wrapper["project_id"])
         source_sdk = wrapper["sdk"]
 
-        _process_checkin(params, start_time, project_id, source_sdk, txn)
+        _process_checkin(params, ts, start_time, project_id, source_sdk, txn)
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -608,7 +625,11 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
             assert isinstance(message.value, BrokerValue)
             try:
                 wrapper = msgpack.unpackb(message.payload.value)
-                _process_message(message.value.timestamp, wrapper)
+                _process_message(
+                    message.value.timestamp,
+                    message.value.partition.index,
+                    wrapper,
+                )
             except Exception:
                 logger.exception("Failed to process message payload")
 

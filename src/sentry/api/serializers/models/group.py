@@ -25,7 +25,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -325,8 +325,8 @@ class GroupSerializerBase(Serializer, ABC):
                 "share_id": share_ids.get(item.id),
                 "authorized": authorized,
             }
-
-            result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
+            if snuba_stats is not None:
+                result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
 
             if seen_stats:
                 result[item].update(seen_stats.get(item, {}))
@@ -454,7 +454,9 @@ class GroupSerializerBase(Serializer, ABC):
             status_label = "pending_merge"
         elif status == GroupStatus.REPROCESSING:
             status_label = "reprocessing"
-            status_details["pendingEvents"], status_details["info"] = get_progress(attrs["id"])
+            status_details["pendingEvents"], status_details["info"] = get_progress(
+                attrs["id"], obj.project.id
+            )
         else:
             status_label = "unresolved"
         return status_details, status_label
@@ -493,6 +495,14 @@ class GroupSerializerBase(Serializer, ABC):
     def _get_group_snuba_stats(
         self, item_list: Sequence[Group], seen_stats: Optional[Mapping[Group, SeenStats]]
     ):
+        if (
+            self._collapse("unhandled")
+            and len(item_list) > 0
+            and features.has(
+                "organizations:issue-stream-performance", item_list[0].project.organization
+            )
+        ):
+            return None
         start = self._get_start_from_seen_stats(seen_stats)
         unhandled = {}
 

@@ -94,6 +94,7 @@ def timeseries_query(
         ),
     )
     results = builder.run_query(referrer)
+    results = builder.strip_alias_prefix(results)
 
     return SnubaTSResult(
         {
@@ -173,6 +174,7 @@ def top_events_timeseries(
         assert False, "Other is not supported"  # TODO: support other
 
     result = top_functions_builder.run_query(referrer)
+
     return format_top_events_timeseries_results(
         result,
         top_functions_builder,
@@ -213,8 +215,10 @@ def format_top_events_timeseries_results(
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
+        result = query_builder.strip_alias_prefix(result)
+
         span.set_data("result_count", len(result.get("data", [])))
-        result = query_builder.process_results(result)
+        processed_result = query_builder.process_results(result)
 
         if result_key_order is None:
             result_key_order = query_builder.translated_groupby
@@ -225,7 +229,7 @@ def format_top_events_timeseries_results(
         for index, item in enumerate(top_events["data"]):
             result_key = create_result_key(item, result_key_order)
             results[result_key] = {"order": index, "data": []}
-        for row in result["data"]:
+        for row in processed_result["data"]:
             result_key = create_result_key(row, result_key_order)
             if result_key in results:
                 results[result_key]["data"].append(row)
@@ -242,6 +246,14 @@ def format_top_events_timeseries_results(
                     if zerofill_results
                     else item["data"],
                     "order": item["order"],
+                    "meta": {
+                        "fields": {
+                            value["name"]: get_json_meta_type(
+                                value["name"], value.get("type"), query_builder
+                            )
+                            for value in result["meta"]
+                        }
+                    },
                 },
                 params["start"],
                 params["end"],

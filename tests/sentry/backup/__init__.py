@@ -11,8 +11,7 @@ from sentry.backup.dependencies import (
     get_model_name,
     sorted_dependencies,
 )
-from sentry.backup.exports import DatetimeSafeDjangoJSONEncoder
-from sentry.backup.helpers import get_exportable_sentry_models
+from sentry.backup.helpers import DatetimeSafeDjangoJSONEncoder, get_exportable_sentry_models
 
 
 def targets(expected_models: list[Type[models.Model]]):

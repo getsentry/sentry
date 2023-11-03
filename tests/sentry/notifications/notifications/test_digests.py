@@ -120,7 +120,6 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             alert_id=self.rule.id,
             project_id=self.project.id,
             organization_id=self.organization.id,
-            actor_id=ANY,
             id=ANY,
             actor_type="User",
             group_id=None,

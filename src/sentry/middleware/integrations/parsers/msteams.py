@@ -35,7 +35,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
 
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
-            logger.error("no_regions", extra={"path": self.request.path})
+            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
         return self.get_response_from_outbox_creation(regions=regions)

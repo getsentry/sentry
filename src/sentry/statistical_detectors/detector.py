@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Generic, List, Mapping, Optional, TypeVar
+from typing import Any, Generic, List, Mapping, Optional, Tuple, TypeVar
 
 
 class TrendType(Enum):
@@ -55,5 +55,5 @@ class DetectorStore(ABC, Generic[T]):
 
 class DetectorAlgorithm(ABC, Generic[T]):
     @abstractmethod
-    def update(self, payload: DetectorPayload) -> Optional[TrendType]:
+    def update(self, payload: DetectorPayload) -> Tuple[Optional[TrendType], float]:
         ...

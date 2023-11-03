@@ -27,14 +27,86 @@ import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
 
+const SOURCE_MAP_SCRAPING_REASON_MAP = {
+  not_found: {
+    shortName: t('Not Found'),
+    explanation: t('The source map could not be found at its defined location.'),
+  },
+  disabled: {
+    shortName: t('Disabled'),
+    explanation: t('JavaScript source fetching is disabled in your project settings.'),
+  },
+  invalid_host: {
+    shortName: t('Invalid Host'),
+    explanation: t(
+      'The source map location was not in the list of allowed domains in your project settings, or the URL was malformed.'
+    ),
+  },
+  permission_denied: {
+    shortName: t('Permission Denied'),
+    explanation: t(
+      'Permission to access the source map was denied by the server hosting the source map. This means that the server hosting the source map returned a 401 Unauthorized or a 403 Forbidden response code.'
+    ),
+  },
+  timeout: {
+    shortName: t('Timeout'),
+    explanation: t('The request to download the source map timed out.'),
+  },
+  download_error: {
+    shortName: t('Download Error'),
+    explanation: t('There was an error while downloading the source map.'),
+  },
+  other: {
+    shortName: t('Unknown'),
+    explanation: t('Fetching the source map failed for an unknown reason.'),
+  },
+} as const;
+
+const SOURCE_FILE_SCRAPING_REASON_MAP = {
+  not_found: {
+    shortName: t('Not Found'),
+    explanation: t('The source file could not be found at its defined location.'),
+  },
+  disabled: {
+    shortName: t('Disabled'),
+    explanation: t('JavaScript source fetching is disabled in your project settings.'),
+  },
+  invalid_host: {
+    shortName: t('Invalid Host'),
+    explanation: t(
+      'The source file location was not in the list of allowed domains in your project settings, or the URL was malformed.'
+    ),
+  },
+  permission_denied: {
+    shortName: t('Permission Denied'),
+    explanation: t(
+      'Permission to access the source file was denied by the server hosting it. This means that the server hosting the source file returned a 401 Unauthorized or a 403 Forbidden response code.'
+    ),
+  },
+  timeout: {
+    shortName: t('Timeout'),
+    explanation: t('The request to download the source file timed out.'),
+  },
+  download_error: {
+    shortName: t('Download Error'),
+    explanation: t('There was an error while downloading the source file.'),
+  },
+  other: {
+    shortName: t('Unknown'),
+    explanation: t('Fetching the source file failed for an unknown reason.'),
+  },
+} as const;
+
 export interface FrameSourceMapDebuggerData {
   debugIdProgress: number;
   debugIdProgressPercent: number;
   dist: string | null;
   eventHasDebugIds: boolean;
   frameIsResolved: boolean;
+  hasScrapingData: boolean;
   matchingSourceFileNames: string[];
   matchingSourceMapName: string | null;
+  minDebugIdSdkVersion: string | null;
   release: string | null;
   releaseHasSomeArtifact: boolean;
   releaseProgress: number;
@@ -43,17 +115,20 @@ export interface FrameSourceMapDebuggerData {
   scrapingProgress: number;
   scrapingProgressPercent: number;
   sdkDebugIdSupport: 'full' | 'needs-upgrade' | 'not-supported' | 'unofficial-sdk';
+  sdkName: string | null;
   sdkVersion: string | null;
   sourceFileReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceFileScrapingStatus:
-    | {status: 'found'}
-    | {error: string; status: 'error'}
-    | {status: 'none'};
+    | {status: 'success'; url: string}
+    | {reason: string; status: 'failure'; url: string; details?: string}
+    | {status: 'not_attempted'; url: string}
+    | null;
   sourceMapReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceMapScrapingStatus:
-    | {status: 'found'}
-    | {error: string; status: 'error'}
-    | {status: 'none'};
+    | {status: 'success'; url: string}
+    | {reason: string; status: 'failure'; url: string; details?: string}
+    | {status: 'not_attempted'; url: string}
+    | null;
   stackFrameDebugId: string | null;
   stackFramePath: string | null;
   uploadedSomeArtifactWithDebugId: boolean;
@@ -178,13 +253,15 @@ export function SourceMapsDebuggerModal({
             </TabList.Item>
             <TabList.Item
               key="fetching"
-              // TODO: Remove "coming soon" when we add data crawling from symbolicator
-              textValue={`${t('Hosting Publicly')} (${t('coming soon')}) (${
+              textValue={`${t('Hosting Publicly')} (${
                 sourceResolutionResults.scrapingProgress
               }/4)`}
-              // TODO: enable when we add crawling data from symbolicator
-              disabled
-              hidden
+              hidden={
+                !sourceResolutionResults.hasScrapingData ||
+                !sourceResolutionResults.sdkName?.startsWith(
+                  'sentry.javascript.react-native'
+                )
+              }
             >
               <StyledProgressRing
                 progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
@@ -193,8 +270,7 @@ export function SourceMapsDebuggerModal({
                 size={16}
                 barWidth={4}
               />
-              {/* TODO: Remove "coming soon" when we add data crawling from symbolicator */}
-              {`${t('Hosting Publicly')} (${t('coming soon')})`}
+              {t('Hosting Publicly')}
             </TabList.Item>
           </TabList>
           <StyledTabPanels>
@@ -292,9 +368,6 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ScrapingSourceMapAvailableChecklistItem
-                  shouldValidate={
-                    sourceResolutionResults.sourceFileScrapingStatus.status === 'found'
-                  }
                   sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
@@ -378,22 +451,25 @@ function InstalledSdkChecklistItem({
         <CheckListInstruction type="muted">
           <h6>{t('Outdated SDK')}</h6>
           <p>
-            {sourceResolutionResults.sdkVersion
+            {sourceResolutionResults.sdkVersion !== null
               ? tct(
-                  'You are using version [currentVersion] of the Sentry SDK which does not support debug IDs. You should upgrade to at lease version [targetVersion].',
+                  'You are using version [currentVersion] of the Sentry SDK which does not support debug IDs.',
                   {
                     currentVersion: (
                       <MonoBlock>{sourceResolutionResults.sdkVersion}</MonoBlock>
                     ),
-                    targetVersion: <MonoBlock>7.56.0</MonoBlock>,
                   }
                 )
-              : tct(
-                  'You are using an outdated version of the Sentry SDK which does not support debug IDs. You should upgrade to at least version [targetVersion]',
-                  {
-                    targetVersion: <MonoBlock>7.56.0</MonoBlock>,
-                  }
-                )}
+              : t(
+                  'You are using an outdated version of the Sentry SDK which does not support debug IDs.'
+                )}{' '}
+            {sourceResolutionResults.minDebugIdSdkVersion !== null
+              ? tct('You should upgrade to version [targetVersion] or higher.', {
+                  targetVersion: (
+                    <MonoBlock>{sourceResolutionResults.minDebugIdSdkVersion}</MonoBlock>
+                  ),
+                })
+              : t('You should upgrade to the latest version.')}
           </p>
           <p>
             {tct(
@@ -489,18 +565,26 @@ function HasDebugIdChecklistItem({
           <h6>Uploaded Files Not Deployed</h6>
           <p>
             {t(
-              "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Make sure the files you deployed are exactly the files you uploaded to Sentry. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
-            )}
-          </p>
-          <p>
-            {t(
-              'If you are using a bundler plugin, you need to use the plugin when you build your production app. It is not possible to build your app once with the plugin, just to upload, and then once without. The plugin needs to be active for every build!'
+              "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Generally this means that you didn't deploy the same files you injected the Debug IDs into. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
             )}
           </p>
           <p>
             {tct(
-              'If you are using Sentry CLI, make sure to deploy the files you ran [injectCommand] on!',
+              'If you are using a [bundlerPluginRepoLink:Sentry Plugin for your Bundler], the plugin needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
               {
+                bundlerPluginRepoLink: (
+                  <ExternalLinkWithIcon href="https://github.com/getsentry/sentry-javascript-bundler-plugins" />
+                ),
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              'If you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified!',
+              {
+                sentryCliLink: (
+                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/cli/" />
+                ),
                 injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
               }
             )}
@@ -561,7 +645,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
-          <h6>{t('No Soure File With Matching Debug ID')}</h6>
+          <h6>{t('No Source File With Matching Debug ID')}</h6>
           <p>
             {tct(
               "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
@@ -625,7 +709,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
-          <h6>{t('No Soure Map With Matching Debug ID')}</h6>
+          <h6>{t('No Source Map With Matching Debug ID')}</h6>
           <p>
             {tct(
               "You already uploaded artifacts with Debug IDs but none of the uploaded source maps had a Debug ID matching this stack frame's Debug ID: [debugId]",
@@ -721,6 +805,12 @@ function ReleaseHasUploadedArtifactsChecklistItem({
   const successMessage = t('Release has uploaded artifacts');
   const errorMessage = t("Release doesn't have uploaded artifacts");
 
+  const docsLink = sourceResolutionResults.sdkName?.startsWith(
+    'sentry.javascript.react-native'
+  )
+    ? 'https://docs.sentry.io/platforms/react-native/sourcemaps/'
+    : 'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/';
+
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
   }
@@ -743,9 +833,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
           {tct(
             'Read the [link:Sentry Source Maps Documentation] to learn how to to upload your build artifacts to Sentry.',
             {
-              link: (
-                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/" />
-              ),
+              link: <ExternalLinkWithIcon href={docsLink} />,
             }
           )}
         </p>
@@ -988,25 +1076,14 @@ function ScrapingSourceFileAvailableChecklistItem({
 }: {
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const successMessage = t('Source file available to Sentry');
-  const errorMessage = t('Source file is not available to Sentry');
-
-  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
-    return <CheckListItem status="checked" title={successMessage} />;
-  }
-
-  if (
-    sourceResolutionResults.uploadedSourceFileWithCorrectDebugId ||
-    sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'found' ||
-    sourceResolutionResults.sourceFileScrapingStatus.status === 'none'
-  ) {
+  if (sourceResolutionResults.sourceFileScrapingStatus === null) {
     return (
-      <CheckListItem status="alert" title={errorMessage}>
+      <CheckListItem status="alert" title={t('Source file was not fetched')}>
         <CheckListInstruction type="muted">
-          <h6>{t('Fetching Not Attempted')}</h6>
+          <h6>{t('Missing Information')}</h6>
           <p>
             {t(
-              'The source file was already locaded via Debug IDs or Releases. Sentry will only attempt to fetch the source file from your servers as a fallback mechanism.'
+              'This stack frame is missing information to attempt fetching the source file.'
             )}
           </p>
         </CheckListInstruction>
@@ -1015,14 +1092,52 @@ function ScrapingSourceFileAvailableChecklistItem({
     );
   }
 
+  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'success') {
+    return (
+      <CheckListItem status="checked" title={t('Source file available to Sentry')} />
+    );
+  }
+
+  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'not_attempted') {
+    return (
+      <CheckListItem status="alert" title={t('Source file was not fetched')}>
+        <CheckListInstruction type="muted">
+          <h6>{t('Fetching Was Not Attempted')}</h6>
+          <p>
+            {t(
+              'The source file was already located via Debug IDs or Releases. Sentry will only attempt to fetch the source file from your servers as a fallback mechanism.'
+            )}
+          </p>
+        </CheckListInstruction>
+        <SourceMapStepNotRequiredNote />
+      </CheckListItem>
+    );
+  }
+
+  const failureReasonTexts =
+    SOURCE_FILE_SCRAPING_REASON_MAP[
+      sourceResolutionResults.sourceFileScrapingStatus.reason
+    ] ?? SOURCE_FILE_SCRAPING_REASON_MAP.other;
+
   return (
-    <CheckListItem status="alert" title={errorMessage}>
+    <CheckListItem status="alert" title={t('Source file is not available to Sentry')}>
       <CheckListInstruction type="muted">
-        <h6>{t('Error While Fetching')}</h6>
-        <p>{t('Sentry encountered an error while fetching your source file.')}</p>
+        <h6>
+          {t('Error While Fetching The Source File:')} {failureReasonTexts.shortName}
+        </h6>
+        <p>{failureReasonTexts.explanation}</p>
         <p>
-          {t('Error message')}: "{sourceResolutionResults.sourceFileScrapingStatus.error}"
+          {t('Sentry looked for the source file at this location:')}{' '}
+          <MonoBlock>{sourceResolutionResults.sourceFileScrapingStatus.url}</MonoBlock>
         </p>
+        {sourceResolutionResults.sourceFileScrapingStatus.details && (
+          <Fragment>
+            <p>{t('Sentry symbolification error message:')}</p>
+            <ScrapingSymbolificationErrorMessage>
+              "{sourceResolutionResults.sourceFileScrapingStatus.details}"
+            </ScrapingSymbolificationErrorMessage>
+          </Fragment>
+        )}
       </CheckListInstruction>
     </CheckListItem>
   );
@@ -1030,36 +1145,70 @@ function ScrapingSourceFileAvailableChecklistItem({
 
 function ScrapingSourceMapAvailableChecklistItem({
   sourceResolutionResults,
-  shouldValidate,
 }: {
-  shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
-  const successMessage = t('Source map available to Sentry');
-  const errorMessage = t('Source map is not available to Sentry');
-
-  if (!shouldValidate) {
-    return <CheckListItem status="none" title={successMessage} />;
+  if (sourceResolutionResults.sourceMapScrapingStatus?.status === 'success') {
+    return <CheckListItem status="checked" title={t('Source map available to Sentry')} />;
   }
 
-  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'found') {
-    return <CheckListItem status="checked" title={successMessage} />;
+  if (sourceResolutionResults.sourceFileScrapingStatus?.status !== 'success') {
+    return <CheckListItem status="none" title={t('Source map available to Sentry')} />;
   }
 
-  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'none') {
-    return <CheckListItem status="none" title={successMessage} />;
+  if (sourceResolutionResults.sourceMapScrapingStatus === null) {
+    return (
+      <CheckListItem status="none" title={t('Source map was not fetched')}>
+        <CheckListInstruction type="muted">
+          <h6>{t('No Source Map Reference')}</h6>
+          <p>{t('There was no source map reference on the source file.')}</p>
+        </CheckListInstruction>
+        <SourceMapStepNotRequiredNote />
+      </CheckListItem>
+    );
   }
+
+  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'not_attempted') {
+    return (
+      <CheckListItem status="alert" title={t('Source map was not fetched')}>
+        <CheckListInstruction type="muted">
+          <h6>{t('Fetching Was Not Attempted')}</h6>
+          <p>
+            {t(
+              'The source map was already located via Debug IDs or Releases. Sentry will only attempt to fetch the source map from your servers as a fallback mechanism.'
+            )}
+          </p>
+        </CheckListInstruction>
+        <SourceMapStepNotRequiredNote />
+      </CheckListItem>
+    );
+  }
+
+  const failureReasonTexts =
+    SOURCE_MAP_SCRAPING_REASON_MAP[
+      sourceResolutionResults.sourceMapScrapingStatus.reason
+    ] ?? SOURCE_MAP_SCRAPING_REASON_MAP.other;
 
   return (
-    <CheckListItem status="alert" title={errorMessage}>
+    <CheckListItem status="alert" title={t('Source map is not available to Sentry')}>
       <CheckListInstruction type="muted">
-        <h6>{t('Error While Fetching')}</h6>
-        <p>{t('Sentry encountered an error while fetching your source map.')}</p>
+        <h6>
+          {t('Error While Fetching The Source Map:')} {failureReasonTexts.shortName}
+        </h6>
+        <p>{failureReasonTexts.explanation}</p>
         <p>
-          {t('Error message')}: "{sourceResolutionResults.sourceMapScrapingStatus.error}"
+          {t('Sentry looked for the source map at this location:')}{' '}
+          <MonoBlock>{sourceResolutionResults.sourceMapScrapingStatus.url}</MonoBlock>
         </p>
+        {sourceResolutionResults.sourceMapScrapingStatus.details && (
+          <Fragment>
+            <p>{t('Sentry symbolification error message:')}</p>
+            <ScrapingSymbolificationErrorMessage>
+              "{sourceResolutionResults.sourceMapScrapingStatus.details}"
+            </ScrapingSymbolificationErrorMessage>
+          </Fragment>
+        )}
       </CheckListInstruction>
-      <SourceMapStepNotRequiredNote />
     </CheckListItem>
   );
 }
@@ -1239,4 +1388,11 @@ const InstructionList = styled('ul')`
 const ModalHeadingContainer = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const ScrapingSymbolificationErrorMessage = styled('p')`
+  color: ${p => p.theme.gray300};
+  border-left: 2px solid ${p => p.theme.gray200};
+  padding-left: ${space(1)};
+  margin-top: -${space(1)};
 `;

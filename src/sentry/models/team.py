@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, Optional, Sequence, Tuple, Union, overload
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
-class TeamManager(BaseManager):
+class TeamManager(BaseManager["Team"]):
     @overload
     def get_for_user(
         self,
@@ -61,6 +61,7 @@ class TeamManager(BaseManager):
         organization: Organization,
         user: Union[User, RpcUser],
         scope: Optional[str] = None,
+        is_team_admin: bool = False,
         with_projects: bool = False,
     ) -> Union[Sequence[Team], Sequence[Tuple[Team, Sequence[Project]]]]:
         """
@@ -91,13 +92,13 @@ class TeamManager(BaseManager):
             if scope is not None and scope not in om.get_scopes():
                 return []
 
-            team_list = list(
-                base_team_qs.filter(
-                    id__in=OrganizationMemberTeam.objects.filter(
-                        organizationmember=om, is_active=True
-                    ).values_list("team")
-                )
+            org_member_team_filter = OrganizationMemberTeam.objects.filter(
+                organizationmember=om, is_active=True
             )
+            if is_team_admin:
+                org_member_team_filter = org_member_team_filter.filter(role="admin")
+
+            team_list = list(base_team_qs.filter(id__in=org_member_team_filter.values_list("team")))
 
         results = sorted(team_list, key=lambda x: x.name.lower())
 
@@ -191,7 +192,7 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
     date_added = models.DateTimeField(default=timezone.now, null=True)
     org_role = models.CharField(max_length=32, null=True)
 
-    objects = TeamManager(cache_fields=("pk", "slug"))
+    objects: ClassVar[TeamManager] = TeamManager(cache_fields=("pk", "slug"))
 
     class Meta:
         app_label = "sentry"
@@ -338,6 +339,12 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
         ).values_list("id", flat=True)
 
         return owner_ids
+
+    # TODO(hybrid-cloud): actor refactor. Remove this method when done. For now, we do no filtering
+    # on teams.
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, _: PrimaryKeyMap) -> models.Q:
+        return q
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def normalize_before_relocation_import(

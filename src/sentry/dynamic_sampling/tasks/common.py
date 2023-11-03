@@ -240,7 +240,7 @@ class GetActiveOrgs:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
             )
             self.log_state.num_db_calls += 1
             data = raw_snql_query(
@@ -427,7 +427,7 @@ class GetActiveOrgsVolumes:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
             )
             self.log_state.num_db_calls += 1
             data = raw_snql_query(

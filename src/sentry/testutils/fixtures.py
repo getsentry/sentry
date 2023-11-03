@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional
 
 import pytest
@@ -99,7 +100,13 @@ class Fixtures:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def integration(self):
         integration = Integration.objects.create(
-            provider="github", name="GitHub", external_id="github:1"
+            provider="github",
+            name="GitHub",
+            external_id="github:1",
+            metadata={
+                "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "expires_at": iso_format(datetime.utcnow() + timedelta(days=14)),
+            },
         )
         integration.add_organization(self.organization, self.user)
         return integration

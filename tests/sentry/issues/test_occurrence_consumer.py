@@ -4,6 +4,7 @@ import uuid
 from copy import deepcopy
 from datetime import timezone
 from typing import Any, Dict, Optional, Sequence, Type
+from unittest import mock
 
 import pytest
 from jsonschema import ValidationError
@@ -49,6 +50,7 @@ def get_test_message(
         ],
         "type": ProfileFileIOGroupType.type_id,
         "detection_time": now.isoformat(),
+        "payload_type": "occurrence",
     }
 
     if include_event:
@@ -143,6 +145,27 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             with self.feature("organizations:profile-file-io-main-thread-ingest"):
                 _process_message(message)
 
+    @django_db_all
+    def test_occurrence_consumer_without_payload_type(self) -> None:
+        message = get_test_message(self.project.id)
+        message.pop("payload_type")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+
+        fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
+        assert fetched_occurrence is not None
+        self.assert_occurrences_identical(occurrence, fetched_occurrence)
+        assert fetched_occurrence.event_id is not None
+        fetched_event = self.eventstore.get_event_by_id(
+            self.project.id, fetched_occurrence.event_id
+        )
+        assert fetched_event is not None
+        assert fetched_event.get_event_type() == "generic"
+
+        assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
+
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
     def test_lookup_event_doesnt_exist(self) -> None:
@@ -207,7 +230,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
 
     def test_invalid_payload(self) -> None:
         self.run_invalid_payload_test(
-            remove_event_fields=["project_id"],
+            remove_event_fields=["project_id"], expected_error=InvalidEventPayloadError
         )
         self.run_invalid_payload_test(
             remove_event_fields=["timestamp"], expected_error=ValidationError
@@ -215,13 +238,11 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         self.run_invalid_payload_test(
             remove_event_fields=["platform"], expected_error=ValidationError
         )
-        self.run_invalid_payload_test(remove_event_fields=["tags"], expected_error=ValidationError)
+
         self.run_invalid_payload_test(
             update_event_fields={"project_id": "p_id"}, expected_error=InvalidEventPayloadError
         )
-        self.run_invalid_payload_test(
-            update_event_fields={"timestamp": 0000}, expected_error=ValidationError
-        )
+
         self.run_invalid_payload_test(
             update_event_fields={"platform": 0000}, expected_error=ValidationError
         )
@@ -232,10 +253,67 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def test_valid(self) -> None:
         self.run_test(get_test_message(self.project.id))
 
+    def test_numeric_timestamp_valid_with_new_schema(self) -> None:
+        # per https://develop.sentry.dev/sdk/event-payloads/ timestamp can be numeric
+
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"]["timestamp"] = 0000
+        self.run_test(message)
+
+    def test_frame_additional_fields_valid_with_new_schema(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"]["stacktrace"]["frames"][0]["data"] = {"foo": "bar"}
+        self.run_test(message)
+
+    def test_tags_not_required_with_new_schema(self) -> None:
+        # per https://develop.sentry.dev/sdk/event-payloads/ tags are optional
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"].pop("tags")
+        self.run_test(message)
+
     def test_valid_nan(self) -> None:
+        # NaN is invalid in new event schema, but valid in legacy schema, so it emits only one of the metrics
         message = deepcopy(get_test_message(self.project.id))
         message["event"]["tags"]["nan-tag"] = float("nan")
-        self.run_test(message)
+        with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
+            self.run_test(message)
+            metrics.incr.assert_called_once_with(
+                "occurrence_ingest.event_payload_invalid",
+                sample_rate=mock.ANY,
+                tags={"occurrence_type": mock.ANY},
+            )
+
+    def test_valid_nan_exception_log(self) -> None:
+        # NaN is invalid in new event schema, but valid in legacy schema, so it emits logging, but doesn't raise
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"]["tags"]["nan-tag"] = float("nan")
+        with self.assertLogs("sentry.issues.occurrence_consumer", logging.ERROR) as cm:
+            self.run_test(message)
+
+        assert (
+            "Error validating event payload, falling back to legacy validation" in cm.records[0].msg
+        )
+        assert cm.records[0].exc_info is not None
+
+    def test_invalid_payload_emits_both_metrics(self) -> None:
+        with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
+            self.run_invalid_payload_test(
+                remove_event_fields=["timestamp"], expected_error=ValidationError
+            )
+            metrics.incr.assert_has_calls(
+                [
+                    mock.call(
+                        "occurrence_ingest.event_payload_invalid",
+                        sample_rate=mock.ANY,
+                        tags={"occurrence_type": mock.ANY},
+                    ),
+                    mock.call(
+                        "occurrence_ingest.legacy_event_payload_invalid",
+                        sample_rate=mock.ANY,
+                        tags={"occurrence_type": mock.ANY},
+                    ),
+                ]
+            )
 
     def test_missing_event_id_and_event_data(self) -> None:
         message = deepcopy(get_test_message(self.project.id))

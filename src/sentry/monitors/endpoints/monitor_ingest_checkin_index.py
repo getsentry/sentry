@@ -10,12 +10,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -28,9 +28,10 @@ from sentry.monitors.models import (
     MonitorEnvironmentLimitsExceeded,
     MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
+    MonitorObjectStatus,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializer
-from sentry.monitors.utils import get_timeout_at, signal_first_checkin, signal_first_monitor_created
+from sentry.monitors.utils import get_timeout_at, signal_first_checkin, signal_monitor_created
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -48,6 +49,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.CRONS
 
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -98,8 +100,8 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
         if monitor and monitor.status in [
-            ObjectStatus.PENDING_DELETION,
-            ObjectStatus.DELETION_IN_PROGRESS,
+            MonitorObjectStatus.PENDING_DELETION,
+            MonitorObjectStatus.DELETION_IN_PROGRESS,
         ]:
             return self.respond(status=404)
 
@@ -118,7 +120,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         result = checkin_validator.validated_data
 
         # MonitorEnvironment.ensure_environment handles empty environments, but
-        # we don't wan to call that before the rate limit, for the rate limit
+        # we don't want to call that before the rate limit, for the rate limit
         # key we don't care as much about a user not sending an environment, so
         # let's be explicit about it not being production
         env_rate_limit_key = result.get("environment", "-")
@@ -163,7 +165,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     )
 
                     if created:
-                        signal_first_monitor_created(project, request.user, True)
+                        signal_monitor_created(project, request.user, True)
             except MonitorLimitsExceeded as e:
                 return self.respond({type(e).__name__: str(e)}, status=400)
 
@@ -224,7 +226,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             return self.respond({"id": str(checkin.guid)}, status=201)
 
         response = self.respond(serialize(checkin, request.user), status=201)
-        # TODO(dcramer): this should return a single aboslute uri, aka ALWAYS including org domains if enabled
+        # TODO(dcramer): this should return a single absolute uri, aka ALWAYS including org domains if enabled
         # TODO(dcramer): both of these are patterns that we should make easier to accomplish in other endpoints
         response["Link"] = self.build_link_header(request, "checkins/latest/", rel="latest")
         response["Location"] = request.build_absolute_uri(f"checkins/{checkin.guid}/")

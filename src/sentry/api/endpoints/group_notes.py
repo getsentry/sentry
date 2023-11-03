@@ -70,24 +70,29 @@ class GroupNotesEndpoint(GroupEndpoint):
         GroupSubscription.objects.subscribe(
             group=group, subscriber=request.user, reason=GroupSubscriptionReason.comment
         )
+        if not features.has("organizations:participants-purge", group.organization):
+            mentioned_users = extract_user_ids_from_mentions(group.organization.id, mentions)
+            GroupSubscription.objects.bulk_subscribe(
+                group=group,
+                user_ids=mentioned_users["users"],
+                reason=GroupSubscriptionReason.mentioned,
+            )
 
-        mentioned_users = extract_user_ids_from_mentions(group.organization.id, mentions)
-        GroupSubscription.objects.bulk_subscribe(
-            group=group, user_ids=mentioned_users["users"], reason=GroupSubscriptionReason.mentioned
-        )
-
-        if features.has("organizations:team-workflow-notifications", group.organization):
+        if features.has(
+            "organizations:team-workflow-notifications", group.organization
+        ) and not features.has("organizations:participants-purge", group.organization):
             GroupSubscription.objects.bulk_subscribe(
                 group=group,
                 team_ids=mentioned_users["teams"],
                 reason=GroupSubscriptionReason.team_mentioned,
             )
         else:
-            GroupSubscription.objects.bulk_subscribe(
-                group=group,
-                user_ids=mentioned_users["team_users"],
-                reason=GroupSubscriptionReason.team_mentioned,
-            )
+            if not features.has("organizations:participants-purge", group.organization):
+                GroupSubscription.objects.bulk_subscribe(
+                    group=group,
+                    user_ids=mentioned_users["team_users"],
+                    reason=GroupSubscriptionReason.team_mentioned,
+                )
 
         activity = Activity.objects.create_group_activity(
             group, ActivityType.NOTE, user_id=request.user.id, data=data

@@ -14,6 +14,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import MonitorCreateForm from 'sentry/views/monitors/components/monitorCreateForm';
 import MonitorForm from 'sentry/views/monitors/components/monitorForm';
 import {Monitor} from 'sentry/views/monitors/types';
 
@@ -25,10 +26,12 @@ import {
 import {
   CeleryBeatAutoDiscovery,
   GoUpsertPlatformGuide,
+  JavaUpsertPlatformGuide,
   LaravelUpsertPlatformGuide,
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
   QuickStartProps,
+  RubyUpsertPlatformGuide,
 } from './quickStartEntries';
 
 enum GuideKey {
@@ -80,13 +83,29 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
       key: GuideKey.UPSERT,
     },
   ],
+  java: [
+    {
+      Guide: JavaUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  'java-spring-boot': [],
+  ruby: [
+    {
+      Guide: RubyUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  'ruby-rails': [],
 };
 
-function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
+export function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
   return !!(platform && platform in platformGuides);
 }
 
-function isValidGuide(guide?: string): guide is GuideKey {
+export function isValidGuide(guide?: string): guide is GuideKey {
   return !!(guide && Object.values<string>(GuideKey).includes(guide));
 }
 
@@ -144,6 +163,8 @@ export function CronsLandingPanel() {
     browserHistory.push(url);
   }
 
+  const hasNewOnboarding = organization.features.includes('crons-new-monitor-form');
+
   return (
     <Panel>
       <BackButton
@@ -178,12 +199,16 @@ export function CronsLandingPanel() {
               )),
               <TabPanels.Item key={GuideKey.MANUAL}>
                 <GuideContainer>
-                  <MonitorForm
-                    apiMethod="POST"
-                    apiEndpoint={`/organizations/${organization.slug}/monitors/`}
-                    onSubmitSuccess={onCreateMonitor}
-                    submitLabel={t('Next')}
-                  />
+                  {hasNewOnboarding ? (
+                    <MonitorCreateForm />
+                  ) : (
+                    <MonitorForm
+                      apiMethod="POST"
+                      apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+                      onSubmitSuccess={onCreateMonitor}
+                      submitLabel={t('Next')}
+                    />
+                  )}
                 </GuideContainer>
               </TabPanels.Item>,
             ]}

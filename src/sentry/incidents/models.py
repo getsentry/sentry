@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 from enum import Enum
-from typing import Optional
+from typing import Any, ClassVar, Optional
 from uuid import uuid4
 
 from django.conf import settings
@@ -10,8 +10,9 @@ from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
+from typing_extensions import Self
 
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
@@ -62,7 +63,7 @@ class IncidentSeen(Model):
         unique_together = (("user_id", "incident"),)
 
 
-class IncidentManager(BaseManager):
+class IncidentManager(BaseManager["Incident"]):
     CACHE_KEY = "incidents:active:%s:%s"
 
     def fetch_for_organization(self, organization, projects):
@@ -175,7 +176,7 @@ INCIDENT_STATUS = {
 class Incident(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    objects = IncidentManager()
+    objects: ClassVar[IncidentManager] = IncidentManager()
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
@@ -261,6 +262,7 @@ class IncidentSnapshot(Model):
 @region_silo_only_model
 class TimeSeriesSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
+    __relocation_dependencies__ = {"sentry.Incident"}
 
     start = models.DateTimeField()
     end = models.DateTimeField()
@@ -271,6 +273,14 @@ class TimeSeriesSnapshot(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_timeseriessnapshot"
+
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        pks = IncidentSnapshot.objects.filter(
+            incident__in=pk_map.get_pks(get_model_name(Incident))
+        ).values_list("event_stats_snapshot_id", flat=True)
+
+        return q & models.Q(pk__in=pks)
 
 
 class IncidentActivityType(Enum):
@@ -337,7 +347,7 @@ class AlertRuleThresholdType(Enum):
     BELOW = 1
 
 
-class AlertRuleManager(BaseManager):
+class AlertRuleManager(BaseManager["AlertRule"]):
     """
     A manager that excludes all rows that are snapshots.
     """
@@ -411,8 +421,8 @@ class AlertRuleExcludedProjects(Model):
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    objects = AlertRuleManager()
-    objects_with_snapshots = BaseManager()
+    objects: ClassVar[AlertRuleManager] = AlertRuleManager()
+    objects_with_snapshots: ClassVar[BaseManager[Self]] = BaseManager()
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
@@ -421,6 +431,8 @@ class AlertRule(Model):
         null=True,
         on_delete=models.SET_NULL,
     )
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
@@ -447,6 +459,15 @@ class AlertRule(Model):
 
     __repr__ = sane_repr("id", "name", "date_added")
 
+    def _validate_actor(self):
+        # TODO: Remove once owner is fully removed.
+        if self.owner_id is not None and self.team_id is None and self.user_id is None:
+            raise ValueError("AlertRule with owner requires either team_id or user_id")
+
+    def save(self, **kwargs: Any) -> None:
+        self._validate_actor()
+        return super().save(**kwargs)
+
     @property
     def created_by_id(self):
         try:
@@ -467,7 +488,7 @@ class TriggerStatus(Enum):
     RESOLVED = 1
 
 
-class IncidentTriggerManager(BaseManager):
+class IncidentTriggerManager(BaseManager["IncidentTrigger"]):
     CACHE_KEY = "incident:triggers:%s"
 
     @classmethod
@@ -502,7 +523,7 @@ class IncidentTriggerManager(BaseManager):
 class IncidentTrigger(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    objects = IncidentTriggerManager()
+    objects: ClassVar[IncidentTriggerManager] = IncidentTriggerManager()
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
@@ -514,9 +535,10 @@ class IncidentTrigger(Model):
         app_label = "sentry"
         db_table = "sentry_incidenttrigger"
         unique_together = (("incident", "alert_rule_trigger"),)
+        index_together = (("alert_rule_trigger", "incident_id"),)
 
 
-class AlertRuleTriggerManager(BaseManager):
+class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):
     CACHE_KEY = "alert_rule_triggers:alert_rule:%s"
 
     @classmethod
@@ -560,7 +582,7 @@ class AlertRuleTrigger(Model):
     )
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = AlertRuleTriggerManager()
+    objects: ClassVar[AlertRuleTriggerManager] = AlertRuleTriggerManager()
 
     class Meta:
         app_label = "sentry"

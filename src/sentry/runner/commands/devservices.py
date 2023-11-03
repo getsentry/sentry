@@ -782,5 +782,5 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     "vroom": ServiceHealthcheck(check=check_vroom),
     "symbolicator": ServiceHealthcheck(check=check_symbolicator),
     "chartcuterie": ServiceHealthcheck(check=check_chartcuterie),
-    "snuba": ServiceHealthcheck(check=check_snuba, retries=6, timeout=10),
+    "snuba": ServiceHealthcheck(check=check_snuba, retries=12, timeout=10),
 }

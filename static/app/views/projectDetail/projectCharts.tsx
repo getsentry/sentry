@@ -32,6 +32,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
+import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -82,14 +83,14 @@ class ProjectCharts extends Component<Props, State> {
   };
 
   get defaultDisplayModes() {
-    const {hasSessions, hasTransactions, organization, project} = this.props;
+    const {hasSessions, hasTransactions, project} = this.props;
 
     if (!hasSessions && !hasTransactions) {
       return [DisplayModes.ERRORS];
     }
 
     if (hasSessions && !hasTransactions) {
-      if (organization.features.includes('anr-rate') && project?.platform === 'android') {
+      if (isPlatformANRCompatible(project?.platform)) {
         return [DisplayModes.STABILITY, DisplayModes.ANR_RATE];
       }
       return [DisplayModes.STABILITY, DisplayModes.ERRORS];
@@ -99,7 +100,7 @@ class ProjectCharts extends Component<Props, State> {
       return [DisplayModes.FAILURE_RATE, DisplayModes.APDEX];
     }
 
-    if (organization.features.includes('anr-rate') && project?.platform === 'android') {
+    if (isPlatformANRCompatible(project?.platform)) {
       return [DisplayModes.STABILITY, DisplayModes.ANR_RATE];
     }
 
@@ -212,7 +213,7 @@ class ProjectCharts extends Component<Props, State> {
       },
     ];
 
-    if (organization.features.includes('anr-rate') && project?.platform === 'android') {
+    if (isPlatformANRCompatible(project?.platform)) {
       return [
         {
           value: DisplayModes.ANR_RATE,
@@ -322,8 +323,7 @@ class ProjectCharts extends Component<Props, State> {
     const {totalValues} = this.state;
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
-    const hasAnrRateFeature =
-      organization.features.includes('anr-rate') && project?.platform === 'android';
+    const hasAnrRateFeature = isPlatformANRCompatible(project?.platform);
 
     return (
       <Panel>

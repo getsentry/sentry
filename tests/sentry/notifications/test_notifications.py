@@ -13,12 +13,15 @@ from sentry_relay.processing import parse_release
 
 from sentry.digests.notifications import Notification
 from sentry.event_manager import EventManager
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.options.user_option import UserOption
 from sentry.models.rule import Rule
+from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
+from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.silo import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase
@@ -26,6 +29,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 pytestmark = [requires_snuba]
@@ -183,6 +187,35 @@ class ActivityNotificationTest(APITestCase):
         )
 
     @responses.activate
+    def test_html_escape(self):
+        other_user = self.create_user(name="<b>test</b>", is_staff=False, is_superuser=False)
+        activity = Activity(
+            project=self.project, data={"assignee": other_user.id}, group=self.group
+        )
+        notification = AssignedActivityNotification(activity)
+
+        html = notification.get_context()["html_description"]
+
+        assert "&lt;b&gt;test&lt;/b&gt;" in html
+        assert "<b>test</b>" not in html
+
+    @responses.activate
+    def test_regression_html_link(self):
+        notification = RegressionActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user_id=self.user.id,
+                type=ActivityType.SET_REGRESSION,
+                data={"version": "777"},
+            )
+        )
+        context = notification.get_context()
+
+        assert "as a regression in 777" in context["text_description"]
+        assert "as a regression in <a href=" in context["html_description"]
+
+    @responses.activate
     @patch("sentry.analytics.record")
     def test_sends_resolution_notification(self, record_analytics):
         """
@@ -230,6 +263,7 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=self.group.id,
             notification_uuid=notification_uuid,
+            actor_type="User",
         )
 
     @responses.activate
@@ -293,6 +327,7 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=None,
             notification_uuid=notification_uuid,
+            actor_type="User",
         )
 
     @responses.activate
@@ -356,6 +391,7 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=group.id,
             notification_uuid=notification_uuid,
+            actor_type="User",
         )
 
     @responses.activate
@@ -413,6 +449,7 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=self.group.id,
             notification_uuid=notification_uuid,
+            actor_type="User",
         )
 
     @responses.activate
@@ -494,6 +531,7 @@ class ActivityNotificationTest(APITestCase):
             organization_id=self.organization.id,
             group_id=event.group_id,
             notification_uuid=notification_uuid,
+            actor_type="User",
         )
 
 

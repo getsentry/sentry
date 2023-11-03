@@ -72,6 +72,7 @@ enum DetectorConfigAdmin {
   N_PLUS_ONE_API_CALLS_ENABLED = 'n_plus_one_api_calls_detection_enabled',
   CONSECUTIVE_HTTP_ENABLED = 'consecutive_http_spans_detection_enabled',
   HTTP_OVERHEAD_ENABLED = 'http_overhead_detection_enabled',
+  TRANSACTION_DURATION_REGRESSION_ENABLED = 'transaction_duration_regression_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -134,14 +135,12 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
 
-    if (organization.features.includes('project-performance-settings-admin')) {
-      const performanceIssuesEndpoint = [
-        'performance_issue_settings',
-        `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
-      ] as [string, string];
+    const performanceIssuesEndpoint = [
+      'performance_issue_settings',
+      `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
+    ] as [string, string];
 
-      endpoints.push(performanceIssuesEndpoint);
-    }
+    endpoints.push(performanceIssuesEndpoint);
 
     return endpoints;
   }
@@ -436,6 +435,19 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             performance_issue_settings: {
               ...this.state.performance_issue_settings,
               [DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED,
+        type: 'boolean',
+        label: t('Transaction Duration Regression Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue__settings,
+              [DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED]: value,
             },
           }),
       },
@@ -924,81 +936,79 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
               </Access>
             </Form>
           </Feature>
-          <Feature features={['organizations:project-performance-settings-admin']}>
-            {isSuperUser && (
-              <Form
-                saveOnBlur
-                allowUndo
-                initialData={this.state.performance_issue_settings}
-                apiMethod="PUT"
-                onSubmitError={error => {
-                  if (error.status === 403) {
-                    addErrorMessage(
-                      t(
-                        'This action requires active super user access. Please re-authenticate to make changes.'
-                      )
-                    );
-                  }
-                }}
-                apiEndpoint={performanceIssuesEndpoint}
-              >
-                <JsonForm
-                  title={t(
-                    '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
-                  )}
-                  fields={this.performanceIssueDetectorAdminFields}
-                  disabled={!isSuperUser}
-                />
-              </Form>
-            )}
+          {isSuperUser && (
             <Form
+              saveOnBlur
               allowUndo
               initialData={this.state.performance_issue_settings}
               apiMethod="PUT"
-              apiEndpoint={performanceIssuesEndpoint}
-              saveOnBlur
-              onSubmitSuccess={(option: {[key: string]: number}) => {
-                const [threshold_key, threshold_value] = Object.entries(option)[0];
-
-                trackAnalytics(
-                  'performance_views.project_issue_detection_threshold_changed',
-                  {
-                    organization,
-                    project_slug: project.slug,
-                    threshold_key,
-                    threshold_value,
-                  }
-                );
+              onSubmitError={error => {
+                if (error.status === 403) {
+                  addErrorMessage(
+                    t(
+                      'This action requires active super user access. Please re-authenticate to make changes.'
+                    )
+                  );
+                }
               }}
+              apiEndpoint={performanceIssuesEndpoint}
             >
-              <Access access={requiredScopes} project={project}>
-                {({hasAccess}) => (
-                  <div id={projectDetectorSettingsId}>
-                    <StyledPanelHeader>
-                      {t('Performance Issues - Detector Threshold Settings')}
-                    </StyledPanelHeader>
-                    <StyledJsonForm
-                      forms={this.project_owner_detector_settings(hasAccess)}
-                      collapsible
-                    />
-                    <StyledPanelFooter>
-                      <Actions>
-                        <Confirm
-                          message={t(
-                            'Are you sure you wish to reset all detector thresholds?'
-                          )}
-                          onConfirm={() => this.handleThresholdsReset()}
-                          disabled={!hasAccess || this.areAllConfigurationsDisabled}
-                        >
-                          <Button>{t('Reset All Thresholds')}</Button>
-                        </Confirm>
-                      </Actions>
-                    </StyledPanelFooter>
-                  </div>
+              <JsonForm
+                title={t(
+                  '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
                 )}
-              </Access>
+                fields={this.performanceIssueDetectorAdminFields}
+                disabled={!isSuperUser}
+              />
             </Form>
-          </Feature>
+          )}
+          <Form
+            allowUndo
+            initialData={this.state.performance_issue_settings}
+            apiMethod="PUT"
+            apiEndpoint={performanceIssuesEndpoint}
+            saveOnBlur
+            onSubmitSuccess={(option: {[key: string]: number}) => {
+              const [threshold_key, threshold_value] = Object.entries(option)[0];
+
+              trackAnalytics(
+                'performance_views.project_issue_detection_threshold_changed',
+                {
+                  organization,
+                  project_slug: project.slug,
+                  threshold_key,
+                  threshold_value,
+                }
+              );
+            }}
+          >
+            <Access access={requiredScopes} project={project}>
+              {({hasAccess}) => (
+                <div id={projectDetectorSettingsId}>
+                  <StyledPanelHeader>
+                    {t('Performance Issues - Detector Threshold Settings')}
+                  </StyledPanelHeader>
+                  <StyledJsonForm
+                    forms={this.project_owner_detector_settings(hasAccess)}
+                    collapsible
+                  />
+                  <StyledPanelFooter>
+                    <Actions>
+                      <Confirm
+                        message={t(
+                          'Are you sure you wish to reset all detector thresholds?'
+                        )}
+                        onConfirm={() => this.handleThresholdsReset()}
+                        disabled={!hasAccess || this.areAllConfigurationsDisabled}
+                      >
+                        <Button>{t('Reset All Thresholds')}</Button>
+                      </Confirm>
+                    </Actions>
+                  </StyledPanelFooter>
+                </div>
+              )}
+            </Access>
+          </Form>
         </Fragment>
       </Fragment>
     );

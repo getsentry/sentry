@@ -1,12 +1,12 @@
 from typing import List
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
@@ -20,13 +20,14 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
+from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.validators import ReplayValidator
-from sentry.utils.snuba import QueryMemoryLimitExceeded
 
 
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -57,6 +58,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         },
         examples=ReplayExamples.GET_REPLAYS,
     )
+    @handled_snuba_exceptions
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Return a list of replays belonging to an organization.
@@ -99,20 +101,13 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 actor=request.user,
             )
 
-        try:
-            return self.paginate(
-                request=request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn),
-                on_results=lambda results: {
-                    "data": process_raw_response(
-                        results,
-                        fields=request.query_params.getlist("field"),
-                    )
-                },
-            )
-        except QueryMemoryLimitExceeded as e:
-            sentry_sdk.capture_exception(e)
-            context = {
-                "detail": "Replay search query limits exceeded. Please narrow the time-range."
-            }
-            return self.respond(context, status=400)
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
+            on_results=lambda results: {
+                "data": process_raw_response(
+                    results,
+                    fields=request.query_params.getlist("field"),
+                )
+            },
+        )

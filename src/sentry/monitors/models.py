@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
 from uuid import uuid4
 
 import jsonschema
 import pytz
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
@@ -74,6 +75,28 @@ class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
+class MonitorObjectStatus:
+    ACTIVE = 0
+    DISABLED = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+
+    WAITING = 4
+    """
+    Active but does not have a seat assigned yet
+    """
+
+    @classmethod
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+        return (
+            (cls.ACTIVE, "active"),
+            (cls.DISABLED, "disabled"),
+            (cls.PENDING_DELETION, "pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
+            (cls.WAITING, "waiting"),
+        )
+
+
 class MonitorStatus:
     """
     The monitor status is an extension of the ObjectStatus constants. In this
@@ -81,7 +104,7 @@ class MonitorStatus:
     represented.
 
     [!!]: This is NOT used for the status of the Monitor model itself. That is
-          simply an ObjectStatus.
+          a MonitorObjectStatus.
     """
 
     ACTIVE = 0
@@ -95,7 +118,7 @@ class MonitorStatus:
     TIMEOUT = 7
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> Sequence[Tuple[int, str]]:
         return (
             # TODO: It is unlikely a MonitorEnvironment should ever be in the
             # 'active' state, since for a monitor environment to be created
@@ -183,20 +206,47 @@ class ScheduleType:
 class Monitor(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    guid = UUIDField(unique=True, auto_add=True)
-    slug = models.SlugField()
+    date_added = models.DateTimeField(default=timezone.now)
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
+
+    guid = UUIDField(unique=True, auto_add=True)
+    """
+    Globally unique identifier for the monitor. Mostly legacy, used in legacy
+    API endpoints.
+    """
+
+    slug = models.SlugField()
+    """
+    Organization unique slug of the monitor. Used to identify the monitor in
+    check-in payloads. The slug can be changed.
+    """
+
     name = models.CharField(max_length=128)
+    """
+    Human readible name of the monitor. Used for display purposes.
+    """
+
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+        default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
     )
+    """
+    Active status of the monitor. This is similar to most other ObjectStatus's
+    within the app. Used to mark monitors as disabled and pending deletions
+    """
+
     type = BoundedPositiveIntegerField(
         default=MonitorType.UNKNOWN,
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
+    """
+    Type of monitor. Currently there are only CRON_JOB monitors.
+    """
+
     config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
-    date_added = models.DateTimeField(default=timezone.now)
+    """
+    Stores the monitor configuration. See MONITOR_CONFIG for the schema.
+    """
 
     class Meta:
         app_label = "sentry"
@@ -231,6 +281,10 @@ class Monitor(Model):
 
         raise NotImplementedError("unknown schedule_type")
 
+    @property
+    def timezone(self):
+        return pytz.timezone(self.config.get("timezone") or "UTC")
+
     def get_schedule_type_display(self):
         return ScheduleType.get_name(self.config["schedule_type"])
 
@@ -243,8 +297,7 @@ class Monitor(Model):
         """
         from sentry.monitors.schedule import get_next_schedule
 
-        tz = pytz.timezone(self.config.get("timezone") or "UTC")
-        return get_next_schedule(last_checkin.astimezone(tz), self.schedule)
+        return get_next_schedule(last_checkin.astimezone(self.timezone), self.schedule)
 
     def get_next_expected_checkin_latest(self, last_checkin: datetime) -> datetime:
         """
@@ -420,15 +473,23 @@ class MonitorCheckIn(Model):
     attachment_id = BoundedBigIntegerField(null=True)
     config = JSONField(default=dict)
 
-    objects = BaseManager(cache_fields=("guid",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorcheckin"
         indexes = [
+            # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
+            # used for latest in monitor consumer
+            models.Index(fields=["monitor", "status", "date_added"]),
+            # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),
+            # used for latest on api endpoints
+            models.Index(fields=["monitor_environment", "status", "date_added"]),
+            # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
+            # used for check-in list
             models.Index(fields=["trace_id"]),
         ]
 
@@ -447,6 +508,16 @@ class MonitorCheckIn(Model):
         pass
 
 
+def delete_file_for_monitorcheckin(instance: MonitorCheckIn, **kwargs):
+    if file_id := instance.attachment_id:
+        from sentry.models.files import File
+
+        File.objects.filter(id=file_id).delete()
+
+
+post_delete.connect(delete_file_for_monitorcheckin, sender=MonitorCheckIn)
+
+
 @region_silo_only_model
 class MonitorLocation(Model):
     __relocation_scope__ = RelocationScope.Excluded
@@ -454,7 +525,7 @@ class MonitorLocation(Model):
     guid = UUIDField(unique=True, auto_add=True)
     name = models.CharField(max_length=128)
     date_added = models.DateTimeField(default=timezone.now)
-    objects = BaseManager(cache_fields=("guid",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "sentry"
@@ -463,7 +534,7 @@ class MonitorLocation(Model):
     __repr__ = sane_repr("guid", "name")
 
 
-class MonitorEnvironmentManager(BaseManager):
+class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
     """
     A manager that consolidates logic for monitor environment updates
     """
@@ -526,7 +597,7 @@ class MonitorEnvironment(Model):
     The last time that the monitor changed state. Used for issue fingerprinting.
     """
 
-    objects = MonitorEnvironmentManager()
+    objects: ClassVar[MonitorEnvironmentManager] = MonitorEnvironmentManager()
 
     class Meta:
         app_label = "sentry"

@@ -1,16 +1,25 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
+import {LinkButton} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
+import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -20,23 +29,40 @@ import {ModulePageProviders} from 'sentry/views/performance/database/modulePageP
 
 export default function WebVitalsLandingPage() {
   const organization = useOrganization();
+  const location = useLocation();
+  const {projects} = useProjects();
+  const transaction = location.query.transaction
+    ? Array.isArray(location.query.transaction)
+      ? location.query.transaction[0]
+      : location.query.transaction
+    : undefined;
+
+  const project = useMemo(
+    () => projects.find(p => p.id === String(location.query.project)),
+    [projects, location.query.project]
+  );
 
   const [state, setState] = useState<{webVital: WebVitals | null}>({
     webVital: null,
   });
 
-  const {data: projectData} = useProjectWebVitalsQuery();
+  const {data: projectData, isLoading} = useProjectWebVitalsQuery({transaction});
 
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-  });
+  const noTransactions = !isLoading && projectData?.data[0]['count()'] === 0;
+
+  const projectScore =
+    isLoading || noTransactions
+      ? undefined
+      : calculatePerformanceScore({
+          lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
+          fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
+          cls: projectData?.data[0]['p75(measurements.cls)'] as number,
+          ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
+          fid: projectData?.data[0]['p75(measurements.fid)'] as number,
+        });
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Page Loads')].join(' — ')}>
+    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -47,31 +73,52 @@ export default function WebVitalsLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'Page Loads',
+                label: 'Web Vitals',
               },
+              ...(transaction ? [{label: 'Page Overview'}] : []),
             ]}
           />
 
           <Layout.Title>
-            {t('Page Loads')}
+            {transaction && project && <ProjectAvatar project={project} size={24} />}
+            {transaction ?? t('Web Vitals')}
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
       <Layout.Body>
+        <FeedbackWidget />
         <Layout.Main fullWidth>
-          <PageFilterBar condensed>
-            <ProjectPageFilter />
-            <DatePageFilter alignDropdown="left" />
-          </PageFilterBar>
-          <PerformanceScoreChart projectScore={projectScore} />
+          <TopMenuContainer>
+            {transaction && (
+              <ViewAllPagesButton
+                to={{...location, query: {...location.query, transaction: undefined}}}
+              >
+                <IconChevron direction="left" /> {t('View All Pages')}
+              </ViewAllPagesButton>
+            )}
+            <PageFilterBar condensed>
+              <ProjectPageFilter />
+              <DatePageFilter />
+            </PageFilterBar>
+          </TopMenuContainer>
+          <PerformanceScoreChartContainer>
+            <PerformanceScoreChart
+              projectScore={projectScore}
+              transaction={transaction}
+              isProjectScoreLoading={isLoading}
+              webVital={state.webVital}
+            />
+          </PerformanceScoreChartContainer>
           <WebVitalMeters
             projectData={projectData}
             projectScore={projectScore}
             onClick={webVital => setState({...state, webVital})}
+            transaction={transaction}
           />
-          <PagePerformanceTable />
+          {!transaction && <PagePerformanceTable />}
+          {transaction && <PageSamplePerformanceTable transaction={transaction} />}
         </Layout.Main>
       </Layout.Body>
       <WebVitalsDetailPanel
@@ -83,3 +130,15 @@ export default function WebVitalsLandingPage() {
     </ModulePageProviders>
   );
 }
+
+const ViewAllPagesButton = styled(LinkButton)`
+  margin-right: ${space(1)};
+`;
+
+const TopMenuContainer = styled('div')`
+  display: flex;
+`;
+
+const PerformanceScoreChartContainer = styled('div')`
+  margin-bottom: ${space(1)};
+`;

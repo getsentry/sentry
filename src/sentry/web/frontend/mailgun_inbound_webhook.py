@@ -1,7 +1,9 @@
 import hmac
 import logging
 from hashlib import sha256
+from typing import Any
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -10,7 +12,8 @@ from django.views.generic import View
 from email_reply_parser import EmailReplyParser
 
 from sentry import options
-from sentry.tasks.email import process_inbound_email
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.utils.email import email_to_group_id
 
 logger = logging.getLogger("sentry.mailgun")
@@ -52,7 +55,8 @@ class MailgunInboundWebhookView(View):
         from_email = request.POST["sender"]
 
         try:
-            group_id = email_to_group_id(to_email)
+            # This needs to return a tuple of orgid, groupid
+            group_id, org_id = email_to_group_id(to_email)
         except Exception:
             logger.info("mailgun.invalid-email", extra={"email": to_email})
             return HttpResponse(status=200)
@@ -62,6 +66,23 @@ class MailgunInboundWebhookView(View):
             # If there's no body, we don't need to go any further
             return HttpResponse(status=200)
 
-        process_inbound_email.delay(from_email, group_id, payload)
+        if org_id:
+            org_mapping = OrganizationMapping.objects.get(organization_id=org_id)
+            region_name = org_mapping.region_name
+        else:
+            region_name = settings.SENTRY_MONOLITH_REGION
+
+        # Email replies cannot be coaleseced so we
+        # need to generate unique object_identifier values.
+        outbox_payload: Any = {"from_email": from_email, "text": payload, "group_id": group_id}
+        outbox = ControlOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org_id or 0,
+            category=OutboxCategory.ISSUE_COMMENT_UPDATE,
+            object_identifier=ControlOutbox.next_object_identifier(),
+            region_name=region_name,
+            payload=outbox_payload,
+        )
+        outbox.save()
 
         return HttpResponse(status=201)
