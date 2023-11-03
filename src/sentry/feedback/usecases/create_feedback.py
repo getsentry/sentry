@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
 
+from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
@@ -75,7 +76,7 @@ def create_feedback_issue(event, project_id):
     # are not used by the feedback UI, but are required.
 
     event["event_id"] = event.get("event_id") or uuid4().hex
-    evidcence_data, evidence_display = make_evidence(event["feedback"])
+    evidence_data, evidence_display = make_evidence(event["feedback"])
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
@@ -86,7 +87,7 @@ def create_feedback_issue(event, project_id):
         issue_title="User Feedback",
         subtitle=event["feedback"]["message"],
         resource_id=None,
-        evidence_data=evidcence_data,
+        evidence_data=evidence_data,
         evidence_display=evidence_display,
         type=FeedbackGroup,
         detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
@@ -128,7 +129,13 @@ def validate_issue_platform_event_schema(event_data):
         jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
 
 
-def shim_to_feedback(report, event, project):
+class UserReportShimDict(TypedDict):
+    name: str
+    email: str
+    comments: str
+
+
+def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project):
     """
     takes user reports from the legacy user report form/endpoint and
     user reports that come from relay envelope ingestion and
