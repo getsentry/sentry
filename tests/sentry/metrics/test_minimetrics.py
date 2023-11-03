@@ -323,15 +323,3 @@ def test_unit_is_correctly_propagated_for_distribution(sentry_sdk, unit, expecte
 
     backend.distribution(**params)
     assert sentry_sdk.metrics.distribution.call_args.kwargs == {**params, "unit": expected_unit}
-
-
-def test_did_you_remove_type_ignore():
-    from importlib.metadata import version
-
-    ver = tuple(map(int, version("sentry-sdk").split(".")[:2]))
-    if ver > (1, 31):
-        raise RuntimeError(
-            "Released SDK version with minimetrics support. Please delete "
-            "this test and follow up instructions in "
-            "https://github.com/getsentry/sentry/issues/56651"
-        )

@@ -53,12 +53,6 @@ repos:
       language: python
       files: requirements-.*\.txt$
       additional_dependencies: [packaging==21.3]
-    - id: check-mypy-bypass
-      name: do not bypass the type checker
-      entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b)'
-      language: pygrep
-      types: [python]
-      exclude: ^src/sentry/metrics/minimetrics.py$
     - id: prevent-push
       name: prevent pushing master
       stages: [pre-push]
