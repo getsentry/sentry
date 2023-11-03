@@ -40,7 +40,7 @@ class UserResponseType(TypedDict, total=False):
     display_name: Optional[str]
 
 
-@extend_schema_serializer(exclude_fields=["info_ids", "warning_ids", "new_error_ids"])
+@extend_schema_serializer(exclude_fields=["info_ids", "warning_ids"])
 class ReplayDetailsResponse(TypedDict, total=False):
     id: str
     project_id: str
@@ -69,7 +69,6 @@ class ReplayDetailsResponse(TypedDict, total=False):
     platform: Optional[str]
     releases: List[str]
     dist: Optional[str]
-    new_error_ids: Optional[List[str]]
     warning_ids: Optional[List[str]]
     info_ids: Optional[List[str]]
     count_warnings: Optional[int]
@@ -178,7 +177,6 @@ def generate_normalized_output(
         ret_item["replay_type"] = item.pop("replay_type", "session")
         ret_item["started_at"] = item.pop("started_at", None)
 
-        ret_item["new_error_ids"] = item.pop("new_error_ids", None)
         ret_item["warning_ids"] = item.pop("warning_ids", None)
         ret_item["info_ids"] = item.pop("info_ids", None)
         ret_item["count_infos"] = item.pop("count_infos", None)

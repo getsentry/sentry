@@ -1802,23 +1802,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         )
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                f"new_error_id:{uid1}",
-                f"new_error_id:{uid2}",
-                f"new_error_id:[{uid1}]",
-                f"!new_error_id:[{uid3}]",
-                f"!new_error_id:{uid3}",
+                f"error_id:{uid1}",
+                f"error_id:{uid2}",
+                f"error_id:[{uid1}]",
+                f"!error_id:[{uid3}]",
+                f"!error_id:{uid3}",
             ]
             for query in queries:
-                response = self.client.get(
-                    self.url + f"?field=id&field=new_error_ids&query={query}"
-                )
+                response = self.client.get(self.url + f"?field=id&field=error_ids&query={query}")
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
-                assert len(response_data["data"][0]["new_error_ids"]) == 2, query
+                assert len(response_data["data"][0]["error_ids"]) == 2, query
 
             response = self.client.get(
-                self.url + f"?field=id&field=new_error_ids&query=new_error_id:{uid3}"
+                self.url + f"?field=id&field=error_ids&query=new_error_id:{uid3}"
             )
             assert response.status_code == 200
             response_data = response.json()
@@ -1918,19 +1916,17 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                f"new_error_ids:{uid1}",
-                f"!new_error_ids:{uid2}",
-                f"new_error_ids:[{uid1},{uid2}]",
-                f"!new_error_ids:[{uid2}]",
+                f"error_ids:{uid1}",
+                f"!error_ids:{uid2}",
+                f"error_ids:[{uid1},{uid2}]",
+                f"!error_ids:[{uid2}]",
             ]
             for query in queries:
-                response = self.client.get(
-                    self.url + f"?field=id&field=new_error_ids&query={query}"
-                )
+                response = self.client.get(self.url + f"?field=id&field=error_ids&query={query}")
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
-                assert len(response_data["data"][0]["new_error_ids"]) == 1, query
+                assert len(response_data["data"][0]["error_ids"]) == 1, query
 
     def test_event_id_count_columns(self):
         project = self.create_project(teams=[self.team])

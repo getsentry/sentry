@@ -423,7 +423,7 @@ def _collect_new_errors():
                 ],
             ),
         ],
-        alias="new_error_ids",
+        alias="errorIds",
     )
 
 
@@ -538,10 +538,8 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
         "click.text",
         "click.title",
     ],
-    "new_error_id": ["new_error_ids"],
     "warning_id": ["warning_ids"],
     "info_id": ["info_ids"],
-    "new_error_ids": ["new_error_ids"],
     "warning_ids": ["warning_ids"],
     "info_ids": ["info_ids"],
     "count_warnings": ["count_warnings"],
@@ -568,17 +566,6 @@ QUERY_ALIAS_COLUMN_MAP = {
             ),
         ],
         alias="traceIds",
-    ),
-    "error_ids": Function(
-        "arrayMap",
-        parameters=[
-            Lambda(["id"], _strip_uuid_dashes("id", Identifier("id"))),
-            Function(
-                "groupUniqArrayArray",
-                parameters=[Column("error_ids")],
-            ),
-        ],
-        alias="errorIds",
     ),
     "started_at": Function(
         "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
@@ -683,7 +670,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
-    "new_error_ids": _collect_new_errors(),
+    "error_ids": _collect_new_errors(),
     "warning_ids": _collect_event_ids("warning_ids", ["warning_id"]),
     "info_ids": _collect_event_ids("info_ids", ["info_id", "debug_id"]),
     "count_errors": Function(
