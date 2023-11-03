@@ -53,15 +53,15 @@ export function QueryBuilder({
 
   const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
 
-  const metaArr = useMemo(
-    () =>
-      Object.values(meta).filter(metric =>
-        mriMode
-          ? true
-          : metric.mri.includes(':custom/') || metric.mri === metricsQuery.mri
-      ),
-    [meta, metricsQuery.mri, mriMode]
-  );
+  const metaArr = useMemo(() => {
+    if (mriMode) {
+      return Object.values(meta);
+    }
+
+    return Object.values(meta).filter(
+      metric => metric.mri.includes(':custom/') || metric.mri === metricsQuery.mri
+    );
+  }, [meta, metricsQuery.mri, mriMode]);
 
   if (!meta) {
     return null;
