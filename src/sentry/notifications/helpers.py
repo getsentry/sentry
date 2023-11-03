@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Subquery
 
+from sentry import features
 from sentry.hybridcloud.models.externalactorreplica import ExternalActorReplica
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
@@ -690,8 +691,7 @@ def get_providers_for_recipient(
 
 
 def should_use_notifications_v2(organization: Organization):
-    # TODO: remove function
-    return True
+    return features.has("organizations:notification-settings-v2", organization)
 
 
 def recipient_is_user(recipient: RpcActor | Team | RpcUser | User) -> bool:
