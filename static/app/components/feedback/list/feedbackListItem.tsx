@@ -1,4 +1,4 @@
-import {CSSProperties, forwardRef} from 'react';
+import {CSSProperties, forwardRef, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -73,9 +73,6 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               invertColors={isOpen}
             />
           </Flex>
-          <Flex column style={{gridArea: 'right'}}>
-            {''}
-          </Flex>
           <TextOverflow>
             <span style={{gridArea: 'user'}}>
               <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay={false} />
@@ -100,15 +97,14 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
             <Flex align="center" gap={space(0.5)}>
               <ProjectAvatar project={feedbackItem.project} size={12} />
-              {feedbackItem.project.slug}
+              <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
+              {hasReplayId ? (
+                <Fragment>
+                  <IconPlay size="xs" />
+                  {t('Replay')}
+                </Fragment>
+              ) : null}
             </Flex>
-
-            {hasReplayId ? (
-              <Flex align="center" gap={space(0.5)}>
-                <IconPlay size="xs" />
-                {t('Replay')}
-              </Flex>
-            ) : null}
           </Flex>
         </LinkedFeedbackCard>
       </CardSpacing>
@@ -140,10 +136,17 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-areas:
     'checkbox user time'
     'unread message message'
-    'right icons assigned';
+    '. icons assigned';
   gap: ${space(1)};
   place-items: stretch;
   align-items: center;
+`;
+
+const ProjectOverflow = styled('span')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 150px;
 `;
 
 export default FeedbackListItem;
