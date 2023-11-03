@@ -59,14 +59,16 @@ const LANDING_DISPLAYS = [
 const SAMPLES_COLUMN_ORDER: GridColumnOrder<
   keyof TransactionSampleRowWithScoreAndExtra
 >[] = [
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
-  {key: 'measurements.lcp', width: 60, name: 'LCP'},
-  {key: 'measurements.fcp', width: 60, name: 'FCP'},
-  {key: 'measurements.fid', width: 60, name: 'FID'},
-  {key: 'measurements.cls', width: 60, name: 'CLS'},
-  {key: 'measurements.ttfb', width: 60, name: 'TTFB'},
-  {key: 'score', width: 60, name: 'Score'},
-  {key: 'view', width: 110, name: 'View'},
+  {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
+  {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
+  {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
+  {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
+  {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
+  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
+  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
 function getCurrentTabSelection(selectedTab) {

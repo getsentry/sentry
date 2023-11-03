@@ -104,10 +104,11 @@ type GridEditableProps<DataRow, ColumnKey> = {
   height?: string | number;
 
   isLoading?: boolean;
+  minimumColWidth?: number;
+
   scrollable?: boolean;
 
   stickyHeader?: boolean;
-
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
    * parent component to tell it how/what to render and will mutate the view
@@ -282,22 +283,23 @@ class GridEditable<
       return;
     }
 
+    const minimumColWidth = this.props.minimumColWidth ?? COL_WIDTH_MINIMUM;
     const prependColumns = this.props.grid.prependColumnWidths || [];
     const prepend = prependColumns.join(' ');
     const widths = columnOrder.map((item, index) => {
       if (item.width === COL_WIDTH_UNDEFINED) {
-        return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
+        return `minmax(${minimumColWidth}px, auto)`;
       }
-      if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
+      if (typeof item.width === 'number' && item.width > minimumColWidth) {
         if (index === columnOrder.length - 1) {
           return `minmax(${item.width}px, auto)`;
         }
         return `${item.width}px`;
       }
       if (index === columnOrder.length - 1) {
-        return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
+        return `minmax(${minimumColWidth}px, auto)`;
       }
-      return `${COL_WIDTH_MINIMUM}px`;
+      return `${minimumColWidth}px`;
     });
 
     // The last column has no resizer and should always be a flexible column
