@@ -8,7 +8,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
@@ -21,6 +20,7 @@ import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -58,30 +58,21 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   return (
     <Fragment>
       <HeaderPanelItem>
-        <Flex gap={space(2)} justify="space-between">
+        <Flex gap={space(2)} justify="space-between" wrap="wrap">
           <Flex column>
             <Flex align="center" gap={space(0.5)}>
               <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
-              {feedbackItem.metadata.contact_email ? (
-                <CopyToClipboardButton
-                  size="xs"
-                  iconSize="xs"
-                  text={feedbackItem.metadata.contact_email}
-                />
-              ) : null}
             </Flex>
-            <Flex gap={space(1)}>
-              <Flex align="center" gap={space(0.5)}>
-                <ProjectAvatar
-                  project={feedbackItem.project}
-                  size={12}
-                  title={feedbackItem.project.slug}
-                />
-                {feedbackItem.project.slug}
-              </Flex>
+            <Flex gap={space(0.5)} align="center">
+              <ProjectAvatar
+                project={feedbackItem.project}
+                size={12}
+                title={feedbackItem.project.slug}
+              />
+              <TextOverflow>{feedbackItem.project.slug}</TextOverflow>
             </Flex>
           </Flex>
-          <Flex gap={space(1)} align="center">
+          <Flex gap={space(1)} align="center" wrap="wrap">
             <ErrorBoundary mini>
               <FeedbackAssignedTo
                 feedbackIssue={feedbackItem}

@@ -1515,7 +1515,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
     @patch("sentry.signals.issue_escalating.send_robust")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
-    @with_feature("organizations:issue-platform-api-crons-sd")
+    @with_feature("organizations:issue-platform-crons-sd")
     def test_invalidates_snooze_ff_on(
         self, mock_processor, mock_send_unignored_robust, mock_send_escalating_robust
     ):

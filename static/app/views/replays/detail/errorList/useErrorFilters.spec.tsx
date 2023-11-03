@@ -53,7 +53,7 @@ const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
 
 describe('useErrorFilters', () => {
   beforeEach(() => {
-    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(browserHistory.replace).mockReset();
   });
 
   it('should update the url when setters are called', () => {
@@ -85,7 +85,7 @@ describe('useErrorFilters', () => {
     });
 
     result.current.setFilters([PROJECT_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_e_project: [PROJECT_OPTION.value],
@@ -95,7 +95,7 @@ describe('useErrorFilters', () => {
     rerender();
 
     result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_e_project: [PROJECT_OPTION.value],

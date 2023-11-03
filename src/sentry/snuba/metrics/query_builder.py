@@ -76,10 +76,10 @@ from sentry.snuba.metrics.utils import (
     FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
     TS_COL_GROUP,
-    TS_COL_QUERY,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_num_intervals,
+    get_timestamp_column_name,
     require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
@@ -129,7 +129,7 @@ def parse_mri_field(field: str, allow_private: bool = False) -> MetricField:
         operation = None
         mri = field
 
-    return MetricField(operation, mri, alias=mri, allow_private=allow_private)
+    return MetricField(op=operation, metric_mri=mri, allow_private=allow_private)
 
 
 def parse_public_field(field: str) -> MetricField:
@@ -752,6 +752,7 @@ class SnubaQueryBuilder:
         "generic_metrics_counters",
         "generic_metrics_distributions",
         "generic_metrics_sets",
+        "generic_metrics_gauges",
     }
 
     def __init__(
@@ -870,10 +871,7 @@ class SnubaQueryBuilder:
             Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
         ]
 
-        if self._metrics_query.start:
-            where.append(Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start))
-        if self._metrics_query.end:
-            where.append(Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end))
+        where += self._build_timeframe()
 
         if not self._metrics_query.where:
             return where
@@ -912,6 +910,23 @@ class SnubaQueryBuilder:
         filter_ = resolve_tags(self._use_case_id, self._org_id, snuba_conditions, self._projects)
         if filter_:
             where.extend(filter_)
+
+        return where
+
+    def _build_timeframe(self) -> List[Union[BooleanCondition, Condition]]:
+        """
+        Builds the timeframe of the query, comprehending the `start` and `end` intervals.
+        """
+        where = []
+
+        if self._metrics_query.start:
+            where.append(
+                Condition(Column(get_timestamp_column_name()), Op.GTE, self._metrics_query.start)
+            )
+        if self._metrics_query.end:
+            where.append(
+                Condition(Column(get_timestamp_column_name()), Op.LT, self._metrics_query.end)
+            )
 
         return where
 
@@ -1031,7 +1046,7 @@ class SnubaQueryBuilder:
         return Function(
             function="toStartOfInterval",
             parameters=[
-                Column(name="timestamp"),
+                Column(name=get_timestamp_column_name()),
                 Function(
                     function="toIntervalSecond",
                     parameters=[interval],
