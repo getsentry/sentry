@@ -101,8 +101,6 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
             error_groups.append(g)
         elif g.issue_type.should_detect_escalation(g.organization):
             other_groups.append(g)
-        else:
-            other_groups.append(g)
 
     all_results += _process_groups(error_groups, start_date, end_date, GroupCategory.ERROR)
     all_results += _process_groups(other_groups, start_date, end_date)
