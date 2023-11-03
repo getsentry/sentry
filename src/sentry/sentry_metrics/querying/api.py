@@ -22,11 +22,6 @@ from sentry.search.utils import parse_datetime_string
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import run_query
 
-QueryValue = Optional[Union[int, float]]
-GroupKey = Tuple[Tuple[str, str], ...]
-Series = List[Tuple[str, QueryValue]]
-Totals = QueryValue
-
 # These regexes are temporary since the DSL is supposed to be parsed internally by the snuba SDK, thus this
 # is only bridging code to validate and evolve the metrics layer.
 # TODO(layer): The layer should implement a grammar which parses queries using a custom DSL.
@@ -35,6 +30,28 @@ QUERY_REGEX = re.compile(r"(\w+):([^\s]+)(?:\s|$)")
 
 class InvalidMetricsQuery(Exception):
     pass
+
+
+ResultValue = Optional[Union[int, float]]
+GroupKey = Tuple[Tuple[str, str], ...]
+Series = List[Tuple[str, ResultValue]]
+Total = ResultValue
+
+
+@dataclass
+class GroupValue:
+    series: Series
+    total: Total
+
+    @classmethod
+    def empty(cls) -> "GroupValue":
+        return GroupValue(series=[], total=None)
+
+    def add_series_entry(self, time: str, aggregate_value: ResultValue):
+        self.series.append((time, aggregate_value))
+
+    def add_total(self, total: ResultValue):
+        self.total = total
 
 
 @dataclass(frozen=True)
@@ -88,8 +105,6 @@ def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[
     """
     Builds a list of all the intervals that are queried by the metrics layer.
     """
-    # TODO(layer): The layer should not only return the intervals with data but also an array of intervals that were
-    #  considered by the query (e.g., all the intervals between start and end).
     start_seconds = start.timestamp()
     end_seconds = end.timestamp()
 
@@ -106,8 +121,8 @@ def _generate_full_series(
     start_seconds: int,
     num_intervals: int,
     interval: int,
-    series: Sequence[Tuple[str, Any]],
-    null_value: QueryValue = None,
+    series: Series,
+    null_value: ResultValue = None,
 ) -> Sequence[Optional[Union[int, float]]]:
     """
     Computes a full series over the entire requested interval with None set where there are no data points.
@@ -121,18 +136,34 @@ def _generate_full_series(
     return full_series
 
 
-def _get_identity(value: QueryValue) -> QueryValue:
+def _get_identity(value: ResultValue) -> ResultValue:
     """
     Computes the identity of a value.
 
     For nan, we want to return None instead of 0.0 but this is just a design decision that conforms
     to the previous implementation of the layer.
     """
+    if value is None:
+        return None
+
     if math.isnan(value):
         return None
 
     # We might decide in the future to have identity values specific to each aggregate.
     return type(value)()
+
+
+def _nan_to_none(value: ResultValue) -> ResultValue:
+    """
+    Converts a nan value to None or returns the original value.
+    """
+    if value is None:
+        return None
+
+    if math.isnan(value):
+        return None
+
+    return value
 
 
 def _translate_query_results(
@@ -147,7 +178,7 @@ def _translate_query_results(
     intervals: Optional[Sequence[datetime]] = None
 
     # For efficiency reasons, we translate the incoming data into our custom in-memory representations.
-    intermediate_groups: Dict[GroupKey, Dict[str, List[Union[Series, Totals]]]] = {}
+    intermediate_groups: Dict[GroupKey, Dict[str, GroupValue]] = {}
     intermediate_meta: Dict[str, str] = {}
     for query_result in query_results:
         # Very ugly way to build the intervals start and end from the run queries, since they are all using
@@ -159,34 +190,33 @@ def _translate_query_results(
         if intervals is None:
             intervals = _build_intervals(start, end, interval)
 
-        data = query_result.result["data"]
-        for data_item in data:
-            grouped_values = []
-            for group_by in query_result.grouped_by or ():
-                grouped_values.append((group_by, data_item.get(group_by)))
+        def _group(values, block):
+            for value in values:
+                # We compute a list containing all the group values.
+                grouped_values = []
+                for group_by in query_result.grouped_by or ():
+                    grouped_values.append((group_by, value.get(group_by)))
 
-            # The group key must be ordered, in order to be consistent across executions.
-            group_key = tuple(sorted(grouped_values))
-            group_metrics = intermediate_groups.setdefault(group_key, {})
-            metric_values = group_metrics.setdefault(query_result.name, [[], None])
-            # The item at position 0 is the "series".
-            metric_values[0].append((data_item.get("time"), data_item.get("aggregate_value")))
+                # We order the group values in order to be consistent across executions.
+                group_key = tuple(sorted(grouped_values))
+                group_metrics = intermediate_groups.setdefault(group_key, {})
+                # The item at position 0 is the "series".
+                group_value = group_metrics.setdefault(query_result.name, GroupValue.empty())
+                block(value, group_value)
 
-        # A totals query will always return at least one element, thus if the query has no results the totals will
-        # contain one element with the value set to the identity of the aggregate. Which will result in the algorithm
-        # computing the empty group with [] series and the identity as totals.
-        totals = query_result.result["totals"]
-        for totals_item in totals:
-            grouped_values = []
-            for group_by in query_result.grouped_by or ():
-                grouped_values.append((group_by, totals_item.get(group_by)))
+        # We group the timeseries data.
+        _group(
+            query_result.result["data"],
+            lambda value, group: group.add_series_entry(
+                value.get("time"), value.get("aggregate_value")
+            ),
+        )
 
-            # The group key must be ordered, in order to be consistent across executions.
-            group_key = tuple(sorted(grouped_values))
-            group_metrics = intermediate_groups.setdefault(group_key, {})
-            metric_values = group_metrics.setdefault(query_result.name, [[], None])
-            # The item at position 1 is the "totals".
-            metric_values[1] = totals_item.get("aggregate_value")
+        # We group the total data.
+        _group(
+            query_result.result["totals"],
+            lambda value, group: group.add_total(value.get("aggregate_value")),
+        )
 
         meta = query_result.result["meta"]
         for meta_item in meta:
@@ -208,24 +238,24 @@ def _translate_query_results(
         start_seconds = int(start.timestamp())
         num_intervals = len(intervals)
 
-        serieses: Dict[str, Sequence[Optional[Union[int, float]]]] = {}
-        totals: Dict[str, QueryValue] = {}
+        translated_serieses: Dict[str, Sequence[Optional[Union[int, float]]]] = {}
+        translated_totals: Dict[str, ResultValue] = {}
         for metric_name, metric_values in sorted(group_metrics.items(), key=lambda v: v[0]):
-            series = metric_values[0]
-            total = metric_values[1]
+            series = metric_values.series
+            total = metric_values.total
 
             # We generate the full series by passing as default value the identity of the totals, which is the default
             # value applied in the timeseries.
-            serieses[metric_name] = _generate_full_series(
+            translated_serieses[metric_name] = _generate_full_series(
                 start_seconds, num_intervals, interval, series, _get_identity(total)
             )
             # In case we get nan, we will cast it to None but this can be changed in case there is the need.
-            totals[metric_name] = None if math.isnan(total) else total
+            translated_totals[metric_name] = _nan_to_none(total)
 
         inner_group = {
             "by": {name: value for name, value in group_key},
-            "series": serieses,
-            "totals": totals,
+            "series": translated_serieses,
+            "totals": translated_totals,
         }
 
         translated_groups.append(inner_group)
