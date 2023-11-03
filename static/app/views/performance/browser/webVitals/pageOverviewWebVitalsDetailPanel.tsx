@@ -24,7 +24,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
-import {Recommendations} from 'sentry/views/performance/browser/webVitals/components/recommendations';
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {
   calculatePerformanceScore,
@@ -260,9 +259,6 @@ export function PageOverviewWebVitalsDetailPanel({
             webVital={webVital}
             score={projectScore[`${webVital}Score`]}
           />
-        )}
-        {transaction && webVital && (
-          <Recommendations transaction={transaction} webVital={webVital} />
         )}
         <GridEditable
           data={tableData}

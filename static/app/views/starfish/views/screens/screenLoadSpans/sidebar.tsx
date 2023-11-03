@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -13,7 +12,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
@@ -176,17 +174,6 @@ export function ScreenLoadSpansSidebar({transaction}: Props) {
         </ContainerItem>
       </Container>
       <SidebarSpacer />
-      <SectionHeading>{t('Aggregate Spans')}</SectionHeading>
-      <MiniAggregateWaterfallContainer>
-        <MiniAggregateWaterfall
-          transaction={transaction}
-          aggregateSpansLocation={{
-            ...location,
-            pathname: '/performance/summary/aggregateWaterfall',
-            query: omit(location.query, ['primaryRelease', 'secondaryRelease']),
-          }}
-        />
-      </MiniAggregateWaterfallContainer>
     </Fragment>
   );
 }
@@ -199,11 +186,6 @@ const SectionHeading = styled('h4')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
-`;
-
-const MiniAggregateWaterfallContainer = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
 `;
 
 const SidebarMetricsValue = styled('div')`

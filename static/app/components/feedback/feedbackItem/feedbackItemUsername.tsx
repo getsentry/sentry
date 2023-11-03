@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -19,11 +21,16 @@ export default function FeedbackItemUsername({feedbackIssue, detailDisplay}: Pro
 
   if (detailDisplay) {
     return (
-      <strong>
-        {name ?? t('No Name')}
-        <Purple>•</Purple>
-        {email ?? t('No Email')}
-      </strong>
+      <Flex wrap="wrap" align="center">
+        <strong>
+          {name ?? t('No Name')}
+          <Purple>•</Purple>
+        </strong>
+        <Flex align="center" gap={space(1)}>
+          <strong>{email ?? t('No Email')}</strong>
+          {email ? <CopyToClipboardButton size="xs" iconSize="xs" text={email} /> : null}
+        </Flex>
+      </Flex>
     );
   }
 

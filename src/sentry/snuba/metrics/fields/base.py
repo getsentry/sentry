@@ -85,7 +85,6 @@ from sentry.snuba.metrics.utils import (
     GRANULARITY,
     OP_TO_SNUBA_FUNCTION,
     OPERATIONS_PERCENTILES,
-    TS_COL_QUERY,
     UNIT_TO_TYPE,
     DerivedMetricParseException,
     MetricDoesNotExistException,
@@ -95,6 +94,7 @@ from sentry.snuba.metrics.utils import (
     NotSupportedOverCompositeEntityException,
     OrderByNotSupportedOverCompositeEntityException,
     combine_dictionary_of_list_values,
+    get_timestamp_column_name,
 )
 from sentry.utils.snuba import raw_snql_query
 
@@ -149,8 +149,8 @@ def run_metrics_query(
         where=[
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column(TS_COL_QUERY), Op.GTE, start),
-            Condition(Column(TS_COL_QUERY), Op.LT, end),
+            Condition(Column(get_timestamp_column_name()), Op.GTE, start),
+            Condition(Column(get_timestamp_column_name()), Op.LT, end),
         ]
         + where,
         granularity=Granularity(GRANULARITY),
@@ -216,7 +216,7 @@ def _get_entity_of_metric_mri(
         raise InvalidParams
 
     entity_keys_set: frozenset[EntityKey]
-    if use_case_id is UseCaseID.TRANSACTIONS:
+    if use_case_id in [UseCaseID.TRANSACTIONS]:
         entity_keys_set = frozenset(
             {
                 EntityKey.GenericMetricsCounters,
@@ -230,6 +230,15 @@ def _get_entity_of_metric_mri(
         )
     elif use_case_id is UseCaseID.ESCALATING_ISSUES:
         entity_keys_set = frozenset({EntityKey.GenericMetricsCounters})
+    elif use_case_id is UseCaseID.CUSTOM:
+        entity_keys_set = frozenset(
+            {
+                EntityKey.GenericMetricsCounters,
+                EntityKey.GenericMetricsSets,
+                EntityKey.GenericMetricsDistributions,
+                EntityKey.GenericMetricsGauges,
+            }
+        )
     else:
         raise InvalidParams
 
