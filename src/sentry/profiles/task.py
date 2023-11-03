@@ -307,7 +307,7 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 
 
 def _prepare_frames_from_profile(
-    profile: Profile, platform: Optional[str] = None
+    profile: Profile, platform: str
 ) -> Tuple[List[Any], List[Any], set[int]]:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
         modules = profile["debug_meta"]["images"]
