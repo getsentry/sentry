@@ -259,7 +259,6 @@ module = [
     "sentry.api.endpoints.shared_group_details",
     "sentry.api.endpoints.source_map_debug",
     "sentry.api.endpoints.team_details",
-    "sentry.api.endpoints.team_notification_settings_details",
     "sentry.api.endpoints.team_release_count",
     "sentry.api.endpoints.team_time_to_resolution",
     "sentry.api.endpoints.user_authenticator_enroll",

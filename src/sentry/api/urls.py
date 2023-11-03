@@ -560,7 +560,6 @@ from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
-from .endpoints.team_notification_settings_details import TeamNotificationSettingsDetailsEndpoint
 from .endpoints.team_projects import TeamProjectsEndpoint
 from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
@@ -2620,11 +2619,6 @@ TEAM_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/all-unresolved-issues/$",
         TeamAllUnresolvedIssuesEndpoint.as_view(),
         name="sentry-api-0-team-all-unresolved-issues",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",
-        TeamNotificationSettingsDetailsEndpoint.as_view(),
-        name="sentry-api-0-team-notification-settings",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/members/$",
