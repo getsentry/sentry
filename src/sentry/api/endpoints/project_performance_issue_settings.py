@@ -16,12 +16,12 @@ from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
-    PerformanceDurationRegressionGroupType,
     PerformanceFileIOMainThreadGroupType,
     PerformanceHTTPOverheadGroupType,
     PerformanceLargeHTTPPayloadGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
+    PerformanceP95EndpointRegressionGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
@@ -79,7 +79,7 @@ internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
     InternalProjectOptions.RENDER_BLOCKING_ASSET.value: PerformanceRenderBlockingAssetSpanGroupType,
     InternalProjectOptions.SLOW_DB_QUERY.value: PerformanceSlowDBQueryGroupType,
     InternalProjectOptions.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
-    InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceDurationRegressionGroupType,
+    InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
 }
 
 configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
