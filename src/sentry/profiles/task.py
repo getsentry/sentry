@@ -568,6 +568,11 @@ def _process_symbolicator_results_for_sample(
             - len(symbolicated_frames_dict)
         )
 
+        # in case we're dealing with a cocoa stack, we previously made a copy
+        # of the leaf frame with adjust_instruction_addr = False.
+        # If the original frame doesn't happen to shows up in the middle
+        # of another stack, then it'll never be used.
+        # Therefore we skip this sanity check for cocoa stacks
         if platform in SHOULD_SYMBOLICATE_JS:
             assert len(new_frames) == new_frames_count
 
