@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional, Sequence, Union
 
 from django.core.cache import cache
@@ -57,10 +57,17 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         Emit a counter metric for internal use cases only.
         """
 
-        if timestamp is not None:
+        now = datetime.now()
+
+        # perform validation checks on the timestamp
+        if (
+            (timestamp is not None)
+            and (timestamp >= (now - timedelta(days=5)).timestamp())
+            and (timestamp < (now - timedelta(hours=1)).timestamp())
+        ):
             payload_timestamp = timestamp
         else:
-            payload_timestamp = int(datetime.now().timestamp())
+            payload_timestamp = int(now.timestamp())
 
         BaseMetricsTestCase.store_metric(
             name=build_mri(metric_name, "c", use_case_id, unit),
@@ -90,10 +97,17 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         a sequence of values.
         """
 
-        if timestamp is not None:
+        now = datetime.now()
+
+        # perform validation checks on the timestamp
+        if (
+            (timestamp is not None)
+            and (timestamp >= (now - timedelta(days=5)).timestamp())
+            and (timestamp < (now - timedelta(hours=1)).timestamp())
+        ):
             payload_timestamp = timestamp
         else:
-            payload_timestamp = int(datetime.now().timestamp())
+            payload_timestamp = int(now.timestamp())
 
         for val in value:
             BaseMetricsTestCase.store_metric(
@@ -124,10 +138,17 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         support a sequence of values.
         """
 
-        if timestamp is not None:
+        now = datetime.now()
+
+        # perform validation checks on the timestamp
+        if (
+            (timestamp is not None)
+            and (timestamp >= (now - timedelta(days=5)).timestamp())
+            and (timestamp < (now - timedelta(hours=1)).timestamp())
+        ):
             payload_timestamp = timestamp
         else:
-            payload_timestamp = int(datetime.now().timestamp())
+            payload_timestamp = int(now.timestamp())
 
         for val in value:
             BaseMetricsTestCase.store_metric(
