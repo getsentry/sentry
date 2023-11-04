@@ -62,8 +62,8 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         # perform validation checks on the timestamp
         if (
             (timestamp is not None)
-            and (timestamp >= (now - timedelta(days=5)).timestamp())
-            and (timestamp < (now - timedelta(hours=1)).timestamp())
+            and (timestamp > (now - timedelta(days=5)).timestamp())
+            and (timestamp < (now + timedelta(minutes=1)).timestamp())
         ):
             payload_timestamp = timestamp
         else:
@@ -102,8 +102,8 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         # perform validation checks on the timestamp
         if (
             (timestamp is not None)
-            and (timestamp >= (now - timedelta(days=5)).timestamp())
-            and (timestamp < (now - timedelta(hours=1)).timestamp())
+            and (timestamp > (now - timedelta(days=5)).timestamp())
+            and (timestamp < (now + timedelta(minutes=1)).timestamp())
         ):
             payload_timestamp = timestamp
         else:
@@ -143,8 +143,8 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         # perform validation checks on the timestamp
         if (
             (timestamp is not None)
-            and (timestamp >= (now - timedelta(days=5)).timestamp())
-            and (timestamp < (now - timedelta(hours=1)).timestamp())
+            and (timestamp > (now - timedelta(days=5)).timestamp())
+            and (timestamp < (now + timedelta(minutes=1)).timestamp())
         ):
             payload_timestamp = timestamp
         else:
