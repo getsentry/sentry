@@ -52,12 +52,24 @@ def fix_for_issue_platform(event_data):
     ret_event["project_id"] = event_data["project_id"]
 
     ret_event["contexts"] = event_data.get("contexts", {})
+
+    # TODO: remove this once feedback_ingest API deprecated
+    # as replay context will be filled in
+    if not event_data["contexts"].get("replay") and event_data["contexts"].get("feedback", {}).get(
+        "replay_id"
+    ):
+        ret_event["contexts"]["replay"] = {
+            "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
+        }
     ret_event["event_id"] = event_data["event_id"]
     ret_event["tags"] = event_data.get("tags", [])
 
-    ret_event["platform"] = event_data["platform"]
+    ret_event["platform"] = event_data.get("platform", "other")
+    ret_event["level"] = event_data.get("level", "error")
+
     ret_event["environment"] = event_data.get("environment", "production")
-    ret_event["sdk"] = event_data["sdk"]
+    if event_data.get("sdk"):
+        ret_event["sdk"] = event_data["sdk"]
     ret_event["request"] = event_data.get("request", {})
 
     ret_event["user"] = event_data.get("user", {})
