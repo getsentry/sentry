@@ -57,8 +57,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         mock_generate_and_save_missing_forecasts: MagicMock,
     ) -> None:
         """
-        Test that when fetch is called and the issue has no forecast, the forecast for one
-        event/hr is returned, and the forecast is regenerated.
+        Test that when fetch is called and the issue does not have esalation detection enabled, the forecast is None.
         """
         with self.tasks():
             group_list = self.create_archived_until_escalating_groups(
