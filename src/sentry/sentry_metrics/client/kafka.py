@@ -78,11 +78,17 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         immediately even if the metric message has not been
         produced to the broker yet.
         """
+        now = datetime.now().timestamp()
 
-        if timestamp is not None:
+        # perform validation checks on the timestamp
+        if (
+            (timestamp is not None)
+            and (timestamp >= now - datetime.timedelta(days=5))
+            and (timestamp < now - datetime.timedelta(hours=1))
+        ):
             payload_timestamp = timestamp
         else:
-            payload_timestamp = int(datetime.now().timestamp())
+            payload_timestamp = int(now)
 
         counter_metric = {
             "org_id": org_id,
@@ -116,10 +122,17 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
-        if timestamp is not None:
+        now = datetime.now().timestamp()
+
+        # perform validation checks on the timestamp
+        if (
+            (timestamp is not None)
+            and (timestamp >= now - datetime.timedelta(days=5))
+            and (timestamp < now - datetime.timedelta(hours=1))
+        ):
             payload_timestamp = timestamp
         else:
-            payload_timestamp = int(datetime.now().timestamp())
+            payload_timestamp = int(now)
 
         set_metric = {
             "org_id": org_id,
@@ -153,10 +166,17 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
-        if timestamp is not None:
+        now = datetime.now().timestamp()
+
+        # perform validation checks on the timestamp
+        if (
+            (timestamp is not None)
+            and (timestamp >= now - datetime.timedelta(days=5))
+            and (timestamp < now - datetime.timedelta(hours=1))
+        ):
             payload_timestamp = timestamp
         else:
-            payload_timestamp = int(datetime.now().timestamp())
+            payload_timestamp = int(now)
 
         dist_metric = {
             "org_id": org_id,
