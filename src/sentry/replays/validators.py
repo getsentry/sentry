@@ -78,6 +78,10 @@ UTC ISO8601 or epoch seconds. Use along with `start` instead of `statsPeriod`.
     per_page = serializers.IntegerField(
         help_text="Limit the number of rows to return in the result.", required=False
     )
+    cursor = serializers.CharField(
+        help_text="The cursor parameter is used to paginate results. See [here](https://docs.sentry.io/api/pagination/) for how to use this query parameter",
+        required=False,
+    )
 
 
 class ReplaySelectorValidator(serializers.Serializer):
