@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+import datetime
 from typing import Any, Dict, Optional, Sequence, Union
 
 import sentry_kafka_schemas
@@ -78,7 +78,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         immediately even if the metric message has not been
         produced to the broker yet.
         """
-        now = datetime.now().timestamp()
+        now = datetime.datetime.now().timestamp()
 
         # perform validation checks on the timestamp
         if (
@@ -122,7 +122,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
-        now = datetime.now().timestamp()
+        now = datetime.datetime.now().timestamp()
 
         # perform validation checks on the timestamp
         if (
@@ -166,7 +166,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
-        now = datetime.now().timestamp()
+        now = datetime.datetime.now().timestamp()
 
         # perform validation checks on the timestamp
         if (
