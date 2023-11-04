@@ -613,15 +613,20 @@ function useTrackView({
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
     group_event_type: groupEventType,
+  });
+  // Set default values for properties that may be updated in subcomponents.
+  // Must be separate from the above values, otherwise the actual values filled in
+  // by subcomponents may be overwritten when the above values change.
+  useRouteAnalyticsParams({
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
     // Will be updated by IssueQuickTrace if there is a trace
     trace_status: 'none',
     // Will be updated in GroupDetailsHeader if there are replays
     group_has_replay: false,
-    // Will be updated in EventCause if there are suspect commits
-    num_suspect_commits: -1,
-    suspect_commit_calculation: 'none',
+    // Will be updated in SuspectCommits if there are suspect commits
+    num_suspect_commits: 0,
+    suspect_commit_calculation: 'no suspect commit',
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }
