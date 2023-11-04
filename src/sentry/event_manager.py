@@ -1832,9 +1832,8 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         metrics.incr(
             "next_short_id.timeout",
             tags={
-                "platform": event.platform or "unknown",
-                "sdk": event.data.get("sdk", {}).get("name") or "unknown",
-            },
+                "platform": event.platform or "unknown"
+            },  # TODO: remove this tag, it's nor relevant
         )
         sentry_sdk.capture_message("short_id.timeout")
         raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
