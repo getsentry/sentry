@@ -43,7 +43,7 @@ def make_evidence(feedback):
 def fix_for_issue_platform(event_data):
     # the issue platform has slightly different requirements than ingest
     # for event schema, so we need to massage the data a bit
-    ret_event = {}
+    ret_event: dict[str, Any] = {}
 
     ret_event["timestamp"] = ensure_aware(
         datetime.fromtimestamp(event_data["timestamp"])
