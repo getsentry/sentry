@@ -69,7 +69,9 @@ def generate_forecasts_for_projects(project_ids: List[int]) -> None:
                 substatus=GroupSubStatus.UNTIL_ESCALATING,
                 project_id__in=project_ids,
                 last_seen__gte=datetime.now() - timedelta(days=7),
-            ).prefetch_related("project"),
+            ).prefetch_related(
+                "project"
+            ),  # TODO: Remove this once the feature flag is removed
             step=ITERATOR_CHUNK,
         )
         if group.issue_type.should_detect_escalation(group.project.organization)

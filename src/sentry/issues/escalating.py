@@ -78,6 +78,8 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
     It optimizes the query by guaranteeing that we look at group_ids that are from the same project id.
     This is important for Snuba as the data is stored in blocks related to the project id.
 
+    If the group's issue type does not allow escalation, it will not be included in the query.
+
     We maximize the number of projects and groups to reduce the total number of Snuba queries.
     Each project may not have enough groups in order to reach the max number of returned
     elements (ELEMENTS_PER_SNUBA_PAGE), thus, projects with few groups should be grouped together until

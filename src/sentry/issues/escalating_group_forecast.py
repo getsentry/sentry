@@ -59,8 +59,11 @@ class EscalatingGroupForecast:
     def fetch(cls, project_id: int, group_id: int) -> Optional[EscalatingGroupForecast]:
         """
         Return the forecast from nodestore if it exists.
-        If it does not exist, it is because the TTL expired and the issue has not been seen in 7
-        days. Generate the forecast in a task, and return the forecast for one event.
+
+        If the group's issue type does not allow escalation, return None.
+
+        If the forecast does not exist, it is because the TTL expired and the issue has not been seen in 7 days.
+        In this case, generate the forecast in a task, and return the forecast for one event.
         """
         from sentry.issues.forecasts import generate_and_save_missing_forecasts
 
