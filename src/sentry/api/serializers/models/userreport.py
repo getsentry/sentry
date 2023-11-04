@@ -47,8 +47,8 @@ class UserReportSerializer(Serializer):
         if attrs["event_user"]:
             event_user = attrs["event_user"]
             if isinstance(event_user, EventUser):
-                name = name or event_user.get("name")
-                email = email or event_user.get("email")
+                name = name or event_user.name
+                email = email or event_user.email
                 user = event_user.serialize()
         return {
             "id": str(obj.id),
