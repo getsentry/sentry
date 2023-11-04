@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Optional, Sequence, Union
 
 import sentry_kafka_schemas
@@ -78,17 +78,17 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         immediately even if the metric message has not been
         produced to the broker yet.
         """
-        now = datetime.datetime.now().timestamp()
+        now = datetime.now()
 
         # perform validation checks on the timestamp
         if (
             (timestamp is not None)
-            and (timestamp >= now - datetime.timedelta(days=5))
-            and (timestamp < now - datetime.timedelta(hours=1))
+            and (timestamp >= (now - timedelta(days=5)).timestamp())
+            and (timestamp < (now - timedelta(hours=1)).timestamp())
         ):
             payload_timestamp = timestamp
         else:
-            payload_timestamp = int(now)
+            payload_timestamp = int(now.timestamp())
 
         counter_metric = {
             "org_id": org_id,
@@ -122,17 +122,17 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
-        now = datetime.datetime.now().timestamp()
+        now = datetime.now()
 
         # perform validation checks on the timestamp
         if (
             (timestamp is not None)
-            and (timestamp >= now - datetime.timedelta(days=5))
-            and (timestamp < now - datetime.timedelta(hours=1))
+            and (timestamp >= (now - timedelta(days=5)).timestamp())
+            and (timestamp < (now - timedelta(hours=1)).timestamp())
         ):
             payload_timestamp = timestamp
         else:
-            payload_timestamp = int(now)
+            payload_timestamp = int(now.timestamp())
 
         set_metric = {
             "org_id": org_id,
@@ -166,17 +166,17 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
-        now = datetime.datetime.now().timestamp()
+        now = datetime.now()
 
         # perform validation checks on the timestamp
         if (
             (timestamp is not None)
-            and (timestamp >= now - datetime.timedelta(days=5))
-            and (timestamp < now - datetime.timedelta(hours=1))
+            and (timestamp >= (now - timedelta(days=5)).timestamp())
+            and (timestamp < (now - timedelta(hours=1)).timestamp())
         ):
             payload_timestamp = timestamp
         else:
-            payload_timestamp = int(now)
+            payload_timestamp = int(now.timestamp())
 
         dist_metric = {
             "org_id": org_id,
