@@ -6,7 +6,8 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models import File, ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.relay import RelayStoreHelper
@@ -834,7 +835,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "    class AdditionalInnerClass {",
             "        fun whoops3() {",
         ]
-        assert frames[5].post_context == ["        }", "    }", "}", "", ""]
+        assert frames[5].post_context == ["        }", "    }", "}", ""]
 
     def test_source_lookup_with_proguard(self):
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)

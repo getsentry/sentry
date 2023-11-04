@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import datetime
 import time
 import uuid
 import zipfile
 from io import BytesIO
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -14,7 +17,11 @@ from sentry.ingest.consumer.processors import (
     process_individual_attachment,
     process_userreport,
 )
-from sentry.models import EventAttachment, EventUser, File, UserReport, create_files_from_dif_zip
+from sentry.models.debugfile import create_files_from_dif_zip
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventuser import EventUser
+from sentry.models.files.file import File
+from sentry.models.userreport import UserReport
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -41,6 +48,13 @@ def get_normalized_event(data, project):
 def save_event_transaction(monkeypatch):
     mock = Mock()
     monkeypatch.setattr("sentry.ingest.consumer.processors.save_event_transaction", mock)
+    return mock
+
+
+@pytest.fixture
+def save_event_feedback(monkeypatch):
+    mock = Mock()
+    monkeypatch.setattr("sentry.ingest.consumer.processors.save_event_feedback", mock)
     return mock
 
 
@@ -132,6 +146,52 @@ def test_transactions_spawn_save_event_transaction(
         event_id=event_id,
         project_id=project_id,
     )
+
+
+@django_db_all
+def test_feedbacks_spawn_save_event_feedback(
+    default_project, task_runner, preprocess_event, save_event_feedback, monkeypatch
+):
+    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
+
+    project_id = default_project.id
+    now = datetime.datetime.now()
+    event: dict[str, Any] = {
+        "type": "feedback",
+        "timestamp": now.isoformat(),
+        "start_timestamp": now.isoformat(),
+        "spans": [],
+        "contexts": {
+            "feedback": {
+                "contact_email": "test_test.com",
+                "message": "I really like this user-feedback feature!",
+                "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+                "url": "https://docs.sentry.io/platforms/javascript/",
+                "name": "Colton Allen",
+                "type": "feedback",
+            },
+        },
+    }
+    payload = get_normalized_event(event, default_project)
+    event_id = payload["event_id"]
+    start_time = time.time() - 3600
+    process_event(
+        {
+            "payload": json.dumps(payload),
+            "start_time": start_time,
+            "event_id": event_id,
+            "project_id": project_id,
+            "remote_addr": "127.0.0.1",
+        },
+        project=default_project,
+    )
+    assert not len(preprocess_event)
+    assert save_event_feedback.delay.call_args[0] == ()
+    assert (
+        save_event_feedback.delay.call_args[1]["data"]["contexts"]["feedback"]
+        == event["contexts"]["feedback"]
+    )
+    assert save_event_feedback.delay.call_args[1]["data"]["type"] == "feedback"
 
 
 @django_db_all

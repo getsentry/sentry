@@ -1,4 +1,4 @@
-import type {PlatformType} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 
 type SetupType = 'automatic' | 'manual';
@@ -36,7 +36,7 @@ export type EcosystemEventParameters = {
     provider: string;
     setup_type: SetupType;
     view: StackTraceView;
-    platform?: PlatformType;
+    platform?: PlatformKey;
     // BaseEventAnalyticsParams partial because it is not always present
   } & Partial<BaseEventAnalyticsParams>;
   'integrations.stacktrace_submit_config': {

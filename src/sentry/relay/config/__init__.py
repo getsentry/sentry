@@ -37,7 +37,8 @@ from sentry.ingest.transaction_clusterer.rules import (
     get_sorted_rules,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.models import Project, ProjectKey
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
@@ -54,10 +55,12 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-ga-modules",
     "projects:span-metrics-extraction-all-modules",
+    "projects:span-metrics-extraction-resource",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:user-feedback-ingest",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
     "organizations:custom-metrics",
@@ -135,7 +138,10 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
-    enable_react = project.get_option("filters:react-hydration-errors")
+    # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+    # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+    # why the value true is determined by either "1" or True.
+    enable_react = project.get_option("filters:react-hydration-errors") in ("1", True)
     if enable_react:
         # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
         # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
@@ -145,6 +151,11 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         error_messages += [
             "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
         ]
+
+    if project.get_option("filters:chunk-load-error") == "1":
+        # ChunkLoadError: Loading chunk 3662 failed.\n(error:
+        # https://xxx.com/_next/static/chunks/29107295-0151559bd23117ba.js)
+        error_messages += ["ChunkLoadError: Loading chunk *"]
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
@@ -399,6 +410,27 @@ def _get_project_config(
             ),
         }
 
+    if features.has("organizations:performance-calculate-score-relay", project.organization):
+        config["performanceScore"] = {
+            "profiles": [
+                {
+                    "name": "Desktop",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
+                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
+                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome",
+                    },
+                }
+            ]
+        }
+
     config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
@@ -436,7 +468,7 @@ class _ConfigBase:
     def __init__(self, **kwargs: Any) -> None:
         data: MutableMapping[str, Any] = {}
         object.__setattr__(self, "data", data)
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             if val is not None:
                 data[key] = val
 
@@ -581,8 +613,8 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: Version of the transaction metrics extraction.
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
-#: See https://github.com/getsentry/relay/blob/4f3e224d5eeea8922fe42163552e8f20db674e86/relay-server/src/metrics_extraction/transactions.rs#L71
-TRANSACTION_METRICS_EXTRACTION_VERSION = 2
+#: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
+TRANSACTION_METRICS_EXTRACTION_VERSION = 3
 
 
 class CustomMeasurementSettings(TypedDict):

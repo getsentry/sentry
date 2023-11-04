@@ -7,7 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, EnvironmentMixin, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import SharedGroupSerializer, serialize
-from sentry.models import Group
+from sentry.models.group import Group
 
 
 @region_silo_endpoint

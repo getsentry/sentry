@@ -20,11 +20,12 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
-from sentry.models import Organization, Project, ReleaseProject
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
-from sentry.models.release import Release
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseProject
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -235,6 +236,10 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
         kwargs["organization_context"] = organization_context
         kwargs["organization"] = organization_context.organization
+
+        # Used for API access logs
+        request._request.organization = organization_context.organization  # type: ignore
+
         return (args, kwargs)
 
 

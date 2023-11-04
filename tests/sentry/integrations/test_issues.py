@@ -1,14 +1,11 @@
 from unittest import mock
 
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
-from sentry.models import (
-    ExternalIssue,
-    Group,
-    GroupLink,
-    GroupStatus,
-    Integration,
-    OrganizationIntegration,
-)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
@@ -135,13 +132,13 @@ class IssueDefaultTest(TestCase):
         self.installation = installation
 
     def test_get_repository_choices(self):
-        default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+        default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
         assert default_repo == "user/repo"
         assert repo_choice == [("user/repo", "repo")]
 
     def test_get_repository_choices_no_repos(self):
         with mock.patch.object(self.installation, "get_repositories", return_value=[]):
-            default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+            default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
             assert default_repo == ""
             assert repo_choice == []
 
@@ -159,7 +156,7 @@ class IssueDefaultTest(TestCase):
                 {"name": "repo2", "identifier": "user/repo2"},
             ],
         ):
-            default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+            default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
             assert default_repo == "user/repo2"
             assert repo_choice == [("user/repo1", "repo1"), ("user/repo2", "repo2")]
 

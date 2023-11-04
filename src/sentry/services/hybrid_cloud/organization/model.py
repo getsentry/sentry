@@ -2,10 +2,12 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
+from datetime import datetime
 from enum import IntEnum
 from typing import Any, List, Mapping, Optional, Sequence
 
 from django.dispatch import Signal
+from django.utils import timezone
 from pydantic import Field
 from typing_extensions import TypedDict
 
@@ -28,19 +30,19 @@ class _DefaultEnumHelpers:
 
     @staticmethod
     def get_default_team_status_value() -> int:
-        from sentry.models import TeamStatus
+        from sentry.models.team import TeamStatus
 
         return TeamStatus.ACTIVE
 
     @staticmethod
     def get_default_invite_status_value() -> int:
-        from sentry.models import InviteStatus
+        from sentry.models.organizationmember import InviteStatus
 
         return InviteStatus.APPROVED.value
 
     @staticmethod
     def get_default_organization_status_value() -> int:
-        from sentry.models import OrganizationStatus
+        from sentry.models.organization import OrganizationStatus
 
         return OrganizationStatus.ACTIVE.value
 
@@ -154,16 +156,20 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
         }
 
 
-class RpcOrganizationFlags(RpcModel):
+# Add new organization flags to RpcOrganizationFlags first, only add them here after
+# they have been replicated via Organization.handle_async_replication logic
+class RpcOrganizationMappingFlags(RpcModel):
+    early_adopter: bool = False
+    require_2fa: bool = False
     allow_joinleave: bool = False
     enhanced_privacy: bool = False
     disable_shared_issues: bool = False
-    early_adopter: bool = False
-    require_2fa: bool = False
     disable_new_visibility_features: bool = False
     require_email_verification: bool = False
     codecov_access: bool = False
 
+
+class RpcOrganizationFlags(RpcOrganizationMappingFlags):
     def as_int(self):
         # Must maintain the same order as the ORM's `Organization.flags` fields
         return flags_to_bits(
@@ -230,6 +236,7 @@ class RpcOrganization(RpcOrganizationSummary):
     status: int = Field(default_factory=_DefaultEnumHelpers.get_default_organization_status_value)
 
     default_role: str = ""
+    date_added: datetime = Field(default_factory=timezone.now)
 
     def get_audit_log_data(self):
         return {

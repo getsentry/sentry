@@ -16,7 +16,7 @@ from sentry.dynamic_sampling import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
@@ -178,7 +178,8 @@ def test_project_config_uses_filter_features(
     blacklisted_ips = ["112.69.248.54"]
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
-    default_project.update_option("filters:react-hydration-errors", False)
+    default_project.update_option("filters:react-hydration-errors", "0")
+    default_project.update_option("filters:chunk-load-error", "0")
 
     if has_blacklisted_ips:
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
@@ -203,6 +204,39 @@ def test_project_config_uses_filter_features(
         assert {"blacklistedIps": ["112.69.248.54"]} == cfg_client_ips
     else:
         assert cfg_client_ips is None
+
+
+@django_db_all
+@region_silo_test(stable=True)
+def test_project_config_with_react_hydration_errors_filter(default_project):
+    default_project.update_option("filters:chunk-load-error", "0")
+
+    # We want to test both string and boolean option representations. See implementation for more details
+    # on this.
+    for value in ("1", True):
+        default_project.update_option("filters:react-hydration-errors", value)
+        project_cfg = get_project_config(default_project, full_config=True)
+
+        cfg = project_cfg.to_dict()
+        _validate_project_config(cfg["config"])
+        cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
+
+        assert len(cfg_error_messages) == 1
+
+
+@django_db_all
+@region_silo_test(stable=True)
+def test_project_config_with_chunk_load_error_filter(default_project):
+    default_project.update_option("filters:react-hydration-errors", "0")
+    default_project.update_option("filters:chunk-load-error", "1")
+
+    project_cfg = get_project_config(default_project, full_config=True)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
+
+    assert len(cfg_error_messages) == 1
 
 
 @django_db_all
@@ -717,4 +751,36 @@ def test_alert_metric_extraction_rules(default_project, factories):
                     "tags": [{"key": "query_hash", "value": ANY}],
                 }
             ],
+        }
+
+
+@django_db_all
+def test_performance_calculate_score(default_project):
+    features = {
+        "organizations:performance-calculate-score-relay": True,
+    }
+
+    with Feature(features):
+        config = get_project_config(default_project, full_config=True).to_dict()["config"]
+
+        validate_project_config(json.dumps(config), strict=True)
+        performance_score = config["performanceScore"]
+        assert performance_score == {
+            "profiles": [
+                {
+                    "name": "Desktop",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
+                        {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
+                        {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
+                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome",
+                    },
+                }
+            ]
         }

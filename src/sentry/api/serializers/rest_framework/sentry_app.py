@@ -5,7 +5,7 @@ from rest_framework.serializers import Serializer, ValidationError
 from sentry.api.fields.avatar import AvatarField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
-from sentry.models import ApiScopes
+from sentry.models.apiscopes import ApiScopes
 from sentry.models.integrations.integration_feature import Feature
 from sentry.models.integrations.sentry_app import (
     REQUIRED_EVENT_PERMISSIONS,

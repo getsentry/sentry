@@ -10,7 +10,11 @@ from django.db.models import F
 from django.utils import timezone as django_timezone
 
 from sentry.constants import DataCategory
-from sentry.models import GroupHistoryStatus, GroupStatus, OrganizationMember, Project, UserOption
+from sentry.models.group import GroupStatus
+from sentry.models.grouphistory import GroupHistoryStatus
+from sentry.models.options.user_option import UserOption
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.weekly_reports import (
@@ -162,6 +166,18 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         # disabled
         deliver_reports(ctx)
         assert mock_send_email.call_count == 0
+
+    @mock.patch("sentry.tasks.weekly_reports.send_email")
+    def test_invited_member(self, mock_send_email):
+        ctx = OrganizationReportContext(0, 0, self.organization)
+
+        # create a member without a user
+        OrganizationMember.objects.create(
+            organization=self.organization, email="different.email@example.com", token="abc"
+        )
+
+        deliver_reports(ctx, use_notifications_v2=True)
+        assert mock_send_email.call_count == 1
 
     def test_organization_project_issue_summaries(self):
         self.login_as(user=self.user)

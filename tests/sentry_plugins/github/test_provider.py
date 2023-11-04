@@ -3,7 +3,8 @@ from unittest.mock import patch
 
 import responses
 
-from sentry.models import OrganizationIntegration, Repository
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -13,7 +14,7 @@ from sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRep
 from sentry_plugins.github.testutils import (
     COMPARE_COMMITS_EXAMPLE,
     GET_LAST_COMMITS_EXAMPLE,
-    INTSTALLATION_REPOSITORIES_API_RESPONSE,
+    INSTALLATION_REPOSITORIES_API_RESPONSE,
     LIST_INSTALLATION_API_RESPONSE,
 )
 
@@ -179,7 +180,7 @@ class GitHubAppsProviderTest(TestCase):
     @patch.object(
         GithubPluginAppsClient,
         "get_repositories",
-        return_value=json.loads(INTSTALLATION_REPOSITORIES_API_RESPONSE),
+        return_value=json.loads(INSTALLATION_REPOSITORIES_API_RESPONSE),
     )
     @patch.object(
         GithubPluginClient,

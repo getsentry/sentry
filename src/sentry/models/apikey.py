@@ -1,8 +1,10 @@
 import secrets
+from typing import ClassVar
 
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -13,8 +15,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
-from sentry.models import OutboxCategory
 from sentry.models.apiscopes import HasApiScopes
+from sentry.models.outbox import OutboxCategory
 from sentry.services.hybrid_cloud.replica import region_replica_service
 
 
@@ -30,7 +32,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
     category = OutboxCategory.API_KEY_UPDATE
     replication_version = 3
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     label = models.CharField(max_length=64, blank=True, default="Default")
     key = models.CharField(max_length=32, unique=True)
     status = BoundedPositiveIntegerField(
@@ -41,7 +43,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
     date_added = models.DateTimeField(default=timezone.now)
     allowed_origins = models.TextField(blank=True, null=True)
 
-    objects = BaseManager(cache_fields=("key",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("key",))
 
     class Meta:
         app_label = "sentry"
@@ -88,8 +90,9 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
 
 def is_api_key_auth(auth: object) -> bool:
     """:returns True when an API Key is hitting the API."""
+    from sentry.hybridcloud.models.apikeyreplica import ApiKeyReplica
     from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "api_key"
-    return isinstance(auth, ApiKey)
+    return isinstance(auth, ApiKey) or isinstance(auth, ApiKeyReplica)

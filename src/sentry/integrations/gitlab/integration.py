@@ -21,9 +21,13 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import CommitContextMixin
-from sentry.models import Repository
+from sentry.integrations.mixins.commit_context import (
+    CommitContextMixin,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.models.identity import Identity
+from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.hashlib import sha1_text
@@ -206,6 +210,11 @@ class GitlabIntegration(
                 "commitAuthorName": commitInfo.get("committer_name"),
                 "commitAuthorEmail": commitInfo.get("committer_email"),
             }
+
+    def get_commit_context_all_frames(
+        self, files: Sequence[SourceLineInfo]
+    ) -> Sequence[FileBlameInfo]:
+        return self.get_blame_for_files(files)
 
 
 class InstallationForm(forms.Form):

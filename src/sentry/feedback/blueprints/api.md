@@ -56,7 +56,7 @@ Retrieve a collection of feedback items.
 | browser           | object           | -                                                   |
 | browser.name      | optional[string] | -                                                   |
 | browser.version   | optional[string] | -                                                   |
-| contact_email     | string           | The contact email of the user writing feedback.     |
+| contact_email     | optional[string] | The contact email of the user writing feedback.     |
 | device            | object           | -                                                   |
 | device.brand      | optional[string] | -                                                   |
 | device.family     | optional[string] | -                                                   |
@@ -69,6 +69,7 @@ Retrieve a collection of feedback items.
 | locale.lang       | string           | The language preference of the user's browser.      |
 | locale.timezone   | string           | The timezone the feedback was submitted from.       |
 | message           | string           | The message written by the user providing feedback. |
+| name              | optional[string] | The name of the user writing feedback.              |
 | os                | object           | -                                                   |
 | os.name           | optional[string] | -                                                   |
 | os.version        | optional[string] | -                                                   |
@@ -122,6 +123,7 @@ Retrieve a collection of feedback items.
             "timezone": "UTC+1"
           },
           "message": "I really like this feedback feature!",
+          "name": "John Doe",
           "os": {
             "name": "iOS",
             "version": "16.2"
@@ -181,6 +183,7 @@ Retrieve a collection of feedback items.
           "timezone": "UTC+1"
         },
         "message": "I really like this feedback feature!",
+        "name": "John Doe",
         "os": {
           "name": "iOS",
           "version": "16.2"
@@ -262,8 +265,9 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
 | environment                | optional[string] | -                                     |
 | event_id                   | optional[string] | Omitted IDs are internally generated. |
 | feedback                   | object           | -                                     |
-| feedback.contact_email     | string           | -                                     |
+| feedback.contact_email     | optional[string] | -                                     |
 | feedback.message           | string           | -                                     |
+| feedback.name              | optional[string] | -                                     |
 | feedback.replay_id         | optional[string] | -                                     |
 | feedback.url               | string           | -                                     |
 | platform                   | string           | -                                     |

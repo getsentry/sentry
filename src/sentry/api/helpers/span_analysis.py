@@ -35,7 +35,7 @@ def span_analysis(data: List[Row]):
 
     data_frames: List[AugmentedData] = [
         {
-            **data[i],  # type: ignore[misc]
+            **data[i],
             "relative_freq": relative_freq[i],
             "score": score_col[i],
             "span_key": span_keys[i],
@@ -57,6 +57,7 @@ def span_analysis(data: List[Row]):
         row1 = span_data_p0.get(key)
         row2 = span_data_p1.get(key)
         new_span = False
+        score_delta = 0.0
 
         if row1 and row2:
             score_delta = row2["score"] - row1["score"]

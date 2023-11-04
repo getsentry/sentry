@@ -21,17 +21,17 @@ from sentry.event_manager import (
     get_event_type,
 )
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
-from sentry.issues.grouptype import should_create_group
+from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
-from sentry.models import GroupHash, Release
-from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.models.grouphash import GroupHash
+from sentry.models.release import Release
+from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import json, metrics, redis
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
 )
-# This should probably be configurable per team
-ISSUE_QUOTA = Quota(3600, 60, 5)
+
 
 logger = logging.getLogger(__name__)
 
@@ -56,14 +56,13 @@ def save_issue_occurrence(
         release = None
     group_info = save_issue_from_occurrence(occurrence, event, release)
     if group_info:
-        send_issue_occurrence_to_eventstream(event, occurrence, group_info)
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info])
         _increment_release_associated_counts(
             group_info.group.project, environment, release, [group_info]
         )
         _get_or_create_group_release(environment, release, event, [group_info])
-
+        send_issue_occurrence_to_eventstream(event, occurrence, group_info)
     return occurrence, group_info
 
 
@@ -130,6 +129,14 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
 
+    if occurrence.type == FeedbackGroup:
+        # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
+        # could populate this instead?
+        # Or potentially, could add a method to GroupType called get_metadata
+        event_metadata["contact_email"] = occurrence.evidence_data.get("contact_email")
+        event_metadata["message"] = occurrence.evidence_data.get("message")
+        event_metadata["name"] = occurrence.evidence_data.get("name")
+
     return {
         "type": event_type.key,
         "title": occurrence.issue_title,
@@ -169,7 +176,13 @@ def save_issue_from_occurrence(
 
         with metrics.timer("issues.save_issue_from_occurrence.check_write_limits"):
             granted_quota = issue_rate_limiter.check_and_use_quotas(
-                [RequestedQuota(f"issue-platform-issues:{project.id}", 1, [ISSUE_QUOTA])]
+                [
+                    RequestedQuota(
+                        f"issue-platform-issues:{project.id}:{occurrence.type.slug}",
+                        1,
+                        [occurrence.type.creation_quota],
+                    )
+                ]
             )[0]
 
         if not granted_quota.granted:

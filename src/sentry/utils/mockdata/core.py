@@ -20,34 +20,31 @@ from sentry.constants import ObjectStatus
 from sentry.event_manager import HashDiscarded
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
 from sentry.incidents.models import AlertRuleThresholdType, IncidentType
-from sentry.models import (
-    TOMBSTONE_FIELDS_FROM_GROUP,
-    Activity,
-    Broadcast,
-    Commit,
-    CommitAuthor,
-    Deploy,
-    Environment,
-    EventAttachment,
-    File,
-    Group,
-    GroupRelease,
-    GroupTombstone,
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationMember,
-    Project,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseFile,
-    ReleaseProjectEnvironment,
-    Repository,
-    Team,
-    User,
-    UserReport,
-)
+from sentry.models.activity import Activity
+from sentry.models.broadcast import Broadcast
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
+from sentry.models.organization import Organization
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releasefile import ReleaseFile
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.models.userreport import UserReport
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -170,7 +167,7 @@ def create_system_time_series():
 
     for _ in range(60):
         count = randint(1, 10)
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             (
                 (TSDBModel.internal, "client-api.all-versions.responses.2xx"),
                 (TSDBModel.internal, "client-api.all-versions.requests"),
@@ -178,12 +175,12 @@ def create_system_time_series():
             now,
             int(count * 0.9),
         )
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             ((TSDBModel.internal, "client-api.all-versions.responses.4xx"),),
             now,
             int(count * 0.05),
         )
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             ((TSDBModel.internal, "client-api.all-versions.responses.5xx"),),
             now,
             int(count * 0.1),
@@ -192,7 +189,7 @@ def create_system_time_series():
 
     for _ in range(24 * 30):
         count = randint(100, 1000)
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             (
                 (TSDBModel.internal, "client-api.all-versions.responses.2xx"),
                 (TSDBModel.internal, "client-api.all-versions.requests"),
@@ -200,12 +197,12 @@ def create_system_time_series():
             now,
             int(count * 4.9),
         )
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             ((TSDBModel.internal, "client-api.all-versions.responses.4xx"),),
             now,
             int(count * 0.05),
         )
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             ((TSDBModel.internal, "client-api.all-versions.responses.5xx"),),
             now,
             int(count * 0.1),
@@ -238,13 +235,13 @@ def create_sample_time_series(event, release=None):
 
     for _ in range(60):
         count = randint(1, 10)
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             ((TSDBModel.project, project.id), (TSDBModel.group, group.id)),
             now,
             count,
             environment_id=environment.id,
         )
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             (
                 (TSDBModel.organization_total_received, project.organization_id),
                 (TSDBModel.project_total_received, project.id),
@@ -253,13 +250,13 @@ def create_sample_time_series(event, release=None):
             now,
             int(count * 1.1),
         )
-        tsdb.incr(  # type:ignore
+        tsdb.backend.incr(
             TSDBModel.project_total_forwarded,
             project.id,
             now,
             int(count * 1.1),
         )
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             (
                 (TSDBModel.organization_total_rejected, project.organization_id),
                 (TSDBModel.project_total_rejected, project.id),
@@ -278,19 +275,19 @@ def create_sample_time_series(event, release=None):
                 (TSDBModel.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
             )
 
-        tsdb.record_frequency_multi(frequencies, now)  # type:ignore
+        tsdb.backend.record_frequency_multi(frequencies, now)
 
         now = now - timedelta(seconds=1)
 
     for _ in range(24 * 30):
         count = randint(100, 1000)
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             ((TSDBModel.project, group.project.id), (TSDBModel.group, group.id)),
             now,
             count,
             environment_id=environment.id,
         )
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             (
                 (TSDBModel.organization_total_received, project.organization_id),
                 (TSDBModel.project_total_received, project.id),
@@ -299,7 +296,7 @@ def create_sample_time_series(event, release=None):
             now,
             int(count * 1.1),
         )
-        tsdb.incr_multi(  # type:ignore
+        tsdb.backend.incr_multi(
             (
                 (TSDBModel.organization_total_rejected, project.organization_id),
                 (TSDBModel.project_total_rejected, project.id),
@@ -318,7 +315,7 @@ def create_sample_time_series(event, release=None):
                 (TSDBModel.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
             )
 
-        tsdb.record_frequency_multi(frequencies, now)  # type:ignore
+        tsdb.backend.record_frequency_multi(frequencies, now)
 
         now = now - timedelta(hours=1)
 

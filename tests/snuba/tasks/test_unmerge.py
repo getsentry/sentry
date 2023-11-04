@@ -6,11 +6,17 @@ import itertools
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest import mock
 from unittest.mock import patch
 
 from sentry import eventstream, tagstore, tsdb
 from sentry.eventstore.models import Event
-from sentry.models import Environment, Group, GroupHash, GroupRelease, Release, UserReport
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import Release
+from sentry.models.userreport import UserReport
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import (
@@ -165,7 +171,8 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     @with_feature("projects:similarity-indexing")
-    def test_unmerge(self):
+    @mock.patch("sentry.analytics.record")
+    def test_unmerge(self, mock_record):
         now = before_now(minutes=5).replace(microsecond=0, tzinfo=timezone.utc)
 
         def time_from_now(offset=0):
@@ -458,7 +465,14 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         def collect_by_user_tag(aggregate, event):
             aggregate = aggregate if aggregate is not None else set()
-            aggregate.add(get_event_user_from_interface(event.data["user"]).tag_value)
+            aggregate.add(
+                get_event_user_from_interface(event.data["user"], event.group.project).tag_value
+            )
+            mock_record.assert_called_with(
+                "eventuser_endpoint.request",
+                project_id=event.group.project.id,
+                endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+            )
             return aggregate
 
         for series in [time_series, environment_time_series]:

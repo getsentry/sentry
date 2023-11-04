@@ -1,5 +1,6 @@
 from fnmatch import fnmatch
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse, HttpResponseRedirect
@@ -9,7 +10,7 @@ from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.api.utils import customer_domain_path, generate_organization_url
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import first_event_pending
 from sentry.utils.http import is_using_customer_domain, query_string
@@ -90,8 +91,16 @@ class ReactMixin:
                             return HttpResponseRedirect(redirect_url)
 
         response = render_to_response("sentry/base-react.html", context=context, request=request)
-        if "x-sentry-browser-profiling" in request.headers:
-            response["Document-Policy"] = "js-profiling"
+
+        try:
+            if "x-sentry-browser-profiling" in request.headers or (
+                getattr(request, "organization", None) is not None
+                and features.has("organizations:profiling-browser", request.organization)
+            ):
+                response["Document-Policy"] = "js-profiling"
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+
         return response
 
 

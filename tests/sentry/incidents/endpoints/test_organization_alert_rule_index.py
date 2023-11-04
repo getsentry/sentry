@@ -15,8 +15,10 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.models import AuditLogEntry, Integration, outbox_context
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo import SiloMode
@@ -708,6 +710,40 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert resp.status_code == 400
         # Did not increment from the last assertion because we early out on the validation error
         assert mock_get_channel_id.call_count == 3
+
+    def test_performance_dataset(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+            ]
+        ):
+            test_params = {**self.alert_rule_dict, "dataset": "generic_metrics"}
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **test_params,
+            )
+
+            assert "id" in resp.data
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
+            test_params = {**self.alert_rule_dict, "dataset": "transactions"}
+
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **test_params,
+            )
+
+            assert (
+                resp.data["dataset"][0]
+                == "Performance alerts must use the `generic_metrics` dataset"
+            )
 
 
 # TODO(Gabe): Rewrite this test to properly annotate the silo mode

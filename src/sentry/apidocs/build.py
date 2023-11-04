@@ -123,9 +123,9 @@ OPENAPI_TAGS = [
         },
     },
     {
-        "name": "Notifications",
-        "x-sidebar-name": "Notifications",
-        "description": "Endpoints for Notifications",
+        "name": "Alerts",
+        "x-sidebar-name": "Alerts & Notifications",
+        "description": "Endpoints for Alerts and Notifications",
         "x-display-description": False,
         "externalDocs": {
             "description": "Found an error? Let us know.",

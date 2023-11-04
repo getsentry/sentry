@@ -1,11 +1,15 @@
 from datetime import timedelta
 from functools import cached_property
+from unittest import mock
 
 import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
+from sentry.models.environment import Environment
+from sentry.models.eventuser import EventUser
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -690,7 +694,8 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {self.proj1group1.id: 3, self.proj1group2.id: 1}
 
-    def test_get_group_tag_values_for_users(self):
+    @mock.patch("sentry.analytics.record")
+    def test_get_group_tag_values_for_users(self, mock_record):
         result = self.ts.get_group_tag_values_for_users(
             [EventUser(project_id=self.proj1.id, ident="user1")],
             tenant_ids={"referrer": "r", "organization_id": 1234},
@@ -714,6 +719,12 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert len(result) == 1
         assert result[0].value == "user2"
         assert result[0].last_seen == self.now - timedelta(seconds=2)
+
+        mock_record.assert_called_with(
+            "eventuser_endpoint.request",
+            project_id=self.proj1.id,
+            endpoint="sentry.tagstore.snuba.backend.SnubaTagStorage.get_group_tag_values_for_users",
+        )
 
     def test_get_release_tags(self):
         tags = list(

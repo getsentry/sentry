@@ -25,6 +25,7 @@ import logoMonogorilla from 'sentry-logos/logo-monogorilla.svg';
 import logoMotorola from 'sentry-logos/logo-motorola.svg';
 import logoNetcore from 'sentry-logos/logo-netcore.svg';
 import logoNetframework from 'sentry-logos/logo-netframework.svg';
+import logoNode from 'sentry-logos/logo-node.svg';
 import logoNvidia from 'sentry-logos/logo-nvidia.svg';
 import logoOpera from 'sentry-logos/logo-opera.svg';
 import logoPhp from 'sentry-logos/logo-php.svg';
@@ -52,6 +53,7 @@ const LOGO_MAPPING = {
   'internet-explorer': logoIe,
   'legacy-edge': logoEdgeOld,
   'mac-os-x': logoApple,
+  'chrome-os': logoChrome,
   'mobile-safari': logoSafari,
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
@@ -82,6 +84,7 @@ const LOGO_MAPPING = {
   mono: logoMonogorilla,
   motorola: logoMotorola,
   net: logoDotnet,
+  node: logoNode,
   nvidia: logoNvidia,
   opera: logoOpera,
   php: logoPhp,
@@ -96,6 +99,8 @@ const LOGO_MAPPING = {
   watchos: logoApple,
   windows: logoWindows,
 };
+
+export const NAMES = Object.keys(LOGO_MAPPING);
 
 // The icons in this list will be inverted when the theme is set to dark mode
 const INVERT_IN_DARKMODE = [

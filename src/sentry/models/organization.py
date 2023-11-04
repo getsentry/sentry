@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, Collection, FrozenSet, Mapping, Optional, Sequence
+from typing import Any, ClassVar, Collection, FrozenSet, Mapping, Optional, Sequence
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -85,7 +85,7 @@ OrganizationStatus_labels = {
 }
 
 
-class OrganizationManager(BaseManager):
+class OrganizationManager(BaseManager["Organization"]):
     def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
         return self.filter(
@@ -95,7 +95,7 @@ class OrganizationManager(BaseManager):
 
     def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Teams have access to."""
-        from sentry.models import Team
+        from sentry.models.team import Team
 
         return self.filter(
             status=OrganizationStatus.ACTIVE,
@@ -106,7 +106,7 @@ class OrganizationManager(BaseManager):
         """
         Returns a set of all organizations a user has access to.
         """
-        from sentry.models import OrganizationMember
+        from sentry.models.organizationmember import OrganizationMember
 
         if not user.is_authenticated:
             return []
@@ -168,7 +168,7 @@ class Organization(
     """
 
     category = OutboxCategory.ORGANIZATION_UPDATE
-    replication_version = 2
+    replication_version = 4
 
     __relocation_scope__ = RelocationScope.Organization
     name = models.CharField(max_length=64)
@@ -209,7 +209,7 @@ class Organization(
 
         bitfield_default = 1
 
-    objects = OrganizationManager(cache_fields=("pk", "slug"))
+    objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
 
     # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
     customer_id: Optional[str] = None
@@ -376,7 +376,7 @@ class Organization(
 
     @property
     def option_manager(self) -> OptionManager:
-        from sentry.models import OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
 
         return OrganizationOption.objects
 

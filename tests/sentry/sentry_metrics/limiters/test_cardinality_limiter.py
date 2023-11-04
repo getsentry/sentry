@@ -2,6 +2,7 @@ import time
 from typing import Optional, Sequence, Tuple
 
 import pytest
+from arroyo import Partition, Topic
 
 from sentry.ratelimits.cardinality import (
     CardinalityLimiter,
@@ -10,7 +11,7 @@ from sentry.ratelimits.cardinality import (
     Timestamp,
 )
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
+from sentry.sentry_metrics.consumers.indexer.common import BrokerMeta
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
     _build_quota_key,
@@ -98,13 +99,13 @@ def test_reject_all():
         result = limiter.check_cardinality_limits(
             UseCaseKey.PERFORMANCE,
             {
-                PartitionIdxOffset(0, 0): {
+                BrokerMeta(Partition(Topic("topic"), 0), 0): {
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
                     "use_case_id": UseCaseID.TRANSACTIONS,
                 },
-                PartitionIdxOffset(0, 1): {
+                BrokerMeta(Partition(Topic("topic"), 0), 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
@@ -113,7 +114,10 @@ def test_reject_all():
             },
         )
 
-        assert result.keys_to_remove == [PartitionIdxOffset(0, 0), PartitionIdxOffset(0, 1)]
+        assert result.keys_to_remove == [
+            BrokerMeta(Partition(Topic("topic"), 0), 0),
+            BrokerMeta(Partition(Topic("topic"), 0), 1),
+        ]
 
 
 def test_reject_all_with_default():
@@ -147,19 +151,19 @@ def test_reject_all_with_default():
         result = limiter.check_cardinality_limits(
             UseCaseKey.PERFORMANCE,
             {
-                PartitionIdxOffset(0, 0): {
+                BrokerMeta(Partition(Topic("topic"), 0), 0): {
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
                     "use_case_id": UseCaseID.TRANSACTIONS,
                 },
-                PartitionIdxOffset(0, 1): {
+                BrokerMeta(Partition(Topic("topic"), 0), 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
                     "use_case_id": UseCaseID.SPANS,
                 },
-                PartitionIdxOffset(0, 2): {
+                BrokerMeta(Partition(Topic("topic"), 0), 2): {
                     "org_id": 1,
                     "name": "boo",
                     "tags": {},
@@ -169,9 +173,9 @@ def test_reject_all_with_default():
         )
 
         assert result.keys_to_remove == [
-            PartitionIdxOffset(0, 0),
-            PartitionIdxOffset(0, 1),
-            PartitionIdxOffset(0, 2),
+            BrokerMeta(Partition(Topic("topic"), 0), 0),
+            BrokerMeta(Partition(Topic("topic"), 0), 1),
+            BrokerMeta(Partition(Topic("topic"), 0), 2),
         ]
 
 
@@ -200,19 +204,19 @@ def test_reject_partial():
         result = limiter.check_cardinality_limits(
             UseCaseKey.PERFORMANCE,
             {
-                PartitionIdxOffset(0, 0): {
+                BrokerMeta(Partition(Topic("topic"), 0), 0): {
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
                     "use_case_id": UseCaseID.TRANSACTIONS,
                 },
-                PartitionIdxOffset(0, 1): {
+                BrokerMeta(Partition(Topic("topic"), 0), 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
                     "use_case_id": UseCaseID.TRANSACTIONS,
                 },
-                PartitionIdxOffset(0, 2): {
+                BrokerMeta(Partition(Topic("topic"), 0), 2): {
                     "org_id": 1,
                     "name": "baz",
                     "tags": {},
@@ -221,7 +225,7 @@ def test_reject_partial():
             },
         )
 
-        assert result.keys_to_remove == [PartitionIdxOffset(0, 2)]
+        assert result.keys_to_remove == [BrokerMeta(Partition(Topic("topic"), 0), 2)]
 
 
 def test_reject_partial_again():
@@ -249,31 +253,31 @@ def test_reject_partial_again():
         result = limiter.check_cardinality_limits(
             UseCaseKey.PERFORMANCE,
             {
-                PartitionIdxOffset(0, 0): {
+                BrokerMeta(Partition(Topic("topic"), 0), 0): {
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
                     "use_case_id": UseCaseID.TRANSACTIONS,
                 },
-                PartitionIdxOffset(0, 1): {
+                BrokerMeta(Partition(Topic("topic"), 0), 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
                     "use_case_id": UseCaseID.TRANSACTIONS,
                 },
-                PartitionIdxOffset(0, 2): {
+                BrokerMeta(Partition(Topic("topic"), 0), 2): {
                     "org_id": 1,
                     "name": "baz",
                     "tags": {},
                     "use_case_id": UseCaseID.SPANS,
                 },
-                PartitionIdxOffset(0, 3): {
+                BrokerMeta(Partition(Topic("topic"), 0), 3): {
                     "org_id": 1,
                     "name": "boo",
                     "tags": {},
                     "use_case_id": UseCaseID.CUSTOM,
                 },
-                PartitionIdxOffset(0, 4): {
+                BrokerMeta(Partition(Topic("topic"), 0), 4): {
                     "org_id": 1,
                     "name": "bye",
                     "tags": {},
@@ -282,7 +286,7 @@ def test_reject_partial_again():
             },
         )
 
-        assert result.keys_to_remove == [PartitionIdxOffset(0, 3)]
+        assert result.keys_to_remove == [BrokerMeta(Partition(Topic("topic"), 0), 3)]
 
 
 def test_accept_all():
@@ -314,31 +318,31 @@ def test_accept_all():
         result = limiter.check_cardinality_limits(
             UseCaseKey.PERFORMANCE,
             {
-                PartitionIdxOffset(0, 0): {
+                BrokerMeta(Partition(Topic("topic"), 0), 0): {
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
                     "use_case_id": UseCaseID.TRANSACTIONS,
                 },
-                PartitionIdxOffset(0, 1): {
+                BrokerMeta(Partition(Topic("topic"), 0), 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
                     "use_case_id": UseCaseID.TRANSACTIONS,
                 },
-                PartitionIdxOffset(0, 2): {
+                BrokerMeta(Partition(Topic("topic"), 0), 2): {
                     "org_id": 1,
                     "name": "baz",
                     "tags": {},
                     "use_case_id": UseCaseID.SPANS,
                 },
-                PartitionIdxOffset(0, 3): {
+                BrokerMeta(Partition(Topic("topic"), 0), 3): {
                     "org_id": 1,
                     "name": "bazz",
                     "tags": {},
                     "use_case_id": UseCaseID.ESCALATING_ISSUES,
                 },
-                PartitionIdxOffset(0, 4): {
+                BrokerMeta(Partition(Topic("topic"), 0), 4): {
                     "org_id": 1,
                     "name": "bye",
                     "tags": {},
@@ -378,19 +382,19 @@ def test_sample_rate_zero(set_sentry_option):
         result = limiter.check_cardinality_limits(
             UseCaseKey.PERFORMANCE,
             {
-                PartitionIdxOffset(0, 0): {
+                BrokerMeta(Partition(Topic("topic"), 0), 0): {
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
                     "use_case_id": UseCaseID.TRANSACTIONS,
                 },
-                PartitionIdxOffset(0, 1): {
+                BrokerMeta(Partition(Topic("topic"), 0), 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
                     "use_case_id": UseCaseID.SPANS,
                 },
-                PartitionIdxOffset(0, 2): {
+                BrokerMeta(Partition(Topic("topic"), 0), 2): {
                     "org_id": 1,
                     "name": "baz",
                     "tags": {},
@@ -433,13 +437,13 @@ def test_sample_rate_half(set_sentry_option):
         result = limiter.check_cardinality_limits(
             UseCaseKey.PERFORMANCE,
             {
-                PartitionIdxOffset(0, 0): {
+                BrokerMeta(Partition(Topic("topic"), 0), 0): {
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
                     "use_case_id": UseCaseID.TRANSACTIONS,
                 },
-                PartitionIdxOffset(0, 1): {
+                BrokerMeta(Partition(Topic("topic"), 0), 1): {
                     "org_id": 99,
                     "name": "bar",
                     "tags": {},
@@ -450,4 +454,4 @@ def test_sample_rate_half(set_sentry_option):
 
         # We are sampling org_id=1 into cardinality limiting. Because our quota is
         # zero, only that org's metrics are dropped.
-        assert result.keys_to_remove == [PartitionIdxOffset(0, 0)]
+        assert result.keys_to_remove == [BrokerMeta(Partition(Topic("topic"), 0), 0)]

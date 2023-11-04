@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set, Tuple
 
+from django.utils import timezone
+
 from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import AppPlatformEvent
@@ -10,9 +12,10 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
-from sentry.models import SentryApp, SentryAppInstallation
 from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
@@ -258,6 +261,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         if not integration_kwargs:
             return []
+        integration_kwargs["date_updated"] = timezone.now()
 
         integrations.update(**integration_kwargs)
 

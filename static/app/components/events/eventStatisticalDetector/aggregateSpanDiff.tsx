@@ -1,53 +1,51 @@
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import {DataSection} from 'sentry/components/events/styles';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconSubtract} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t} from 'sentry/locale';
+import {Event, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getDuration} from 'sentry/utils/formatters';
+import {NumericChange, renderHeadCell} from 'sentry/utils/performance/regression/table';
+import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 interface SpanDiff {
-  duration_after: number;
-  duration_before: number;
-  duration_delta: number;
-  freq_after: number;
-  freq_before: number;
-  freq_delta: number;
-  sample_event_id: string;
-  score_delta: number;
+  p95_after: number;
+  p95_before: number;
+  score: number;
   span_description: string;
   span_group: string;
   span_op: string;
-}
-
-interface DiffRowProps {
-  after: number;
-  before: number;
-  delta: number;
-  end: string;
-  group: string;
-  label: string;
-  op: string;
-  projectId: string;
-  start: string;
-  transaction: string;
+  spm_after: number;
+  spm_before: number;
 }
 
 interface UseFetchAdvancedAnalysisProps {
   breakpoint: string;
   end: string;
   projectId: string;
+  start: string;
+  transaction: string;
+}
+
+interface RenderBodyCellProps {
+  column: GridColumnOrder<string>;
+  end: string;
+  location: Location;
+  organization: Organization;
+  projectId: string;
+  row: SpanDiff;
   start: string;
   transaction: string;
 }
@@ -81,81 +79,82 @@ function useFetchAdvancedAnalysis({
   );
 }
 
-function DiffRow({
-  delta,
-  label,
-  before,
-  after,
-  op,
-  group,
-  projectId,
-  transaction,
-  start,
-  end,
-}: DiffRowProps) {
-  const theme = useTheme();
-  const organization = useOrganization();
-  const location = useLocation();
-
-  const {background, color} =
-    delta > 0
-      ? {background: theme.red100, color: theme.red300}
-      : {background: theme.green100, color: theme.green300};
-  const Icon = delta > 0 ? IconAdd : IconSubtract;
-  return (
-    <Row backgroundColor={background}>
-      <IconWrapper color={color}>
-        <Icon />
-        <span style={{paddingLeft: '8px'}}>{t('Span')}</span>
-      </IconWrapper>
-      <Label>
-        <Tooltip title={label} showOnlyOnOverflow>
-          <TextOverflow>
-            <Link
-              to={spanDetailsRouteWithQuery({
-                orgSlug: organization.slug,
-                spanSlug: {op, group},
-                transaction,
-                projectID: projectId,
-                query: {
-                  ...location.query,
-                  statsPeriod: undefined,
-                  query: undefined,
-                  start,
-                  end,
-                },
-              })}
-            >
-              {label}
-            </Link>
-          </TextOverflow>
-        </Tooltip>
-      </Label>
-      <Tooltip
-        title={tct(`From [beforeDuration] to [afterDuration]`, {
-          beforeDuration: getDuration(before / 1000, 2, undefined, true),
-          afterDuration: getDuration(after / 1000, 2, undefined, true),
-        })}
-        showUnderline
-      >
-        {delta > 0 ? '+' : ''}
-        {delta.toFixed(2)}%
-      </Tooltip>
-    </Row>
-  );
+function getColumns() {
+  return [
+    {key: 'span_op', name: t('Span Operation'), width: 200},
+    {key: 'span_description', name: t('Description'), width: COL_WIDTH_UNDEFINED},
+    {key: 'spm', name: t('Throughput'), width: COL_WIDTH_UNDEFINED},
+    {key: 'p95', name: t('P95'), width: COL_WIDTH_UNDEFINED},
+  ];
 }
 
-function AggregateSpanDiff({event, projectId}) {
-  const {transaction, requestStart, requestEnd, breakpoint} =
-    event?.occurrence?.evidenceData;
+function renderBodyCell({
+  column,
+  row,
+  organization,
+  transaction,
+  projectId,
+  location,
+  start,
+  end,
+}: RenderBodyCellProps) {
+  if (column.key === 'span_description') {
+    const label = row[column.key] || t('unnamed span');
+    return (
+      <Tooltip title={label} showOnlyOnOverflow>
+        <TextOverflow>
+          <Link
+            to={spanDetailsRouteWithQuery({
+              orgSlug: organization.slug,
+              spanSlug: {op: row.span_op, group: row.span_group},
+              transaction,
+              projectID: projectId,
+              query: {
+                ...location.query,
+                statsPeriod: undefined,
+                query: undefined,
+                start,
+                end,
+              },
+            })}
+          >
+            {label}
+          </Link>
+        </TextOverflow>
+      </Tooltip>
+    );
+  }
 
-  const start = new Date(requestStart * 1000).toISOString();
-  const end = new Date(requestEnd * 1000).toISOString();
+  if (['p95', 'spm'].includes(column.key)) {
+    const beforeRawValue = row[`${column.key}_before`];
+    const afterRawValue = row[`${column.key}_after`];
+    return (
+      <NumericChange
+        columnKey={column.key}
+        beforeRawValue={beforeRawValue}
+        afterRawValue={afterRawValue}
+      />
+    );
+  }
+
+  return row[column.key];
+}
+
+function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const {transaction, breakpoint} = event?.occurrence?.evidenceData ?? {};
   const breakpointTimestamp = new Date(breakpoint * 1000).toISOString();
+
+  const {start, end} = useRelativeDateTime({
+    anchor: breakpoint,
+    relativeDays: 7,
+    retentionDays: 30,
+  });
   const {data, isLoading, isError} = useFetchAdvancedAnalysis({
     transaction,
-    start,
-    end,
+    start: (start as Date).toISOString(),
+    end: (end as Date).toISOString(),
     breakpoint: breakpointTimestamp,
     projectId,
   });
@@ -178,56 +177,36 @@ function AggregateSpanDiff({event, projectId}) {
       </EmptyStateWarning>
     );
   } else {
-    content = data.map(diff => (
-      <DiffRow
-        key={`${diff.span_op}:${diff.span_group}`}
-        delta={diff.duration_delta * 100}
-        before={diff.duration_before}
-        after={diff.duration_after}
-        label={
-          diff.span_description
-            ? `${diff.span_op}: ${diff.span_description}`
-            : diff.span_op
-        }
-        op={diff.span_op}
-        group={diff.span_group}
-        projectId={projectId}
-        transaction={transaction}
-        start={start}
-        end={end}
+    content = (
+      <GridEditable
+        isLoading={isLoading}
+        data={data}
+        location={location}
+        columnOrder={getColumns()}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell: (column, row) =>
+            renderBodyCell({
+              column,
+              row,
+              organization,
+              transaction,
+              projectId,
+              location,
+              start: (start as Date).toISOString(),
+              end: (end as Date).toISOString(),
+            }),
+        }}
       />
-    ));
+    );
   }
 
   return (
-    <DataSection>
-      <strong>{t('Frequent Diffs:')}</strong>
+    <EventDataSection type="potential-causes" title={t('Potential Causes')}>
       {content}
-    </DataSection>
+    </EventDataSection>
   );
 }
 
 export default AggregateSpanDiff;
-
-const Label = styled('div')`
-  flex: auto;
-  margin: 0 ${space(2)};
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const IconWrapper = styled('div')<{color: string}>`
-  display: flex;
-  align-items: center;
-  color: ${p => p.color};
-`;
-
-const Row = styled('div')<{backgroundColor: string}>`
-  background: ${p => p.backgroundColor};
-  padding: ${space(2)};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;

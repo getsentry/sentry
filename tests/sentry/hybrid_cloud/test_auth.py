@@ -1,4 +1,5 @@
-from sentry.models import ApiKey, AuthProvider
+from sentry.models.apikey import ApiKey
+from sentry.models.authprovider import AuthProvider
 from sentry.services.hybrid_cloud.auth import (
     RpcAuthProvider,
     RpcAuthProviderFlags,
@@ -54,3 +55,26 @@ def test_get_org_auth_config():
             has_api_key=False,
         ),
     ]
+
+
+@django_db_all(transaction=True)
+def test_enable_sso():
+    org = Factories.create_organization()
+    provider_key = "fly"
+    provider_config = {"id": "x123x"}
+    auth_service.enable_partner_sso(
+        organization_id=org.id, provider_key=provider_key, provider_config=provider_config
+    )
+    auth_provider_query = AuthProvider.objects.filter(
+        organization_id=org.id, provider=provider_key, config=provider_config
+    )
+    assert auth_provider_query.count() == 1
+
+    # Re-enabling SSO should not create a new auth provider
+    auth_service.enable_partner_sso(
+        organization_id=org.id, provider_key=provider_key, provider_config=provider_config
+    )
+    auth_provider_query = AuthProvider.objects.filter(
+        organization_id=org.id, provider=provider_key, config=provider_config
+    )
+    assert auth_provider_query.count() == 1

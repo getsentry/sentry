@@ -93,6 +93,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode[];
   };
   location: Location;
+  emptyMessage?: React.ReactNode;
   error?: React.ReactNode | null;
   /**
    * Inject a set of buttons into the top of the grid table.
@@ -101,11 +102,13 @@ type GridEditableProps<DataRow, ColumnKey> = {
    */
   headerButtons?: () => React.ReactNode;
   height?: string | number;
+
   isLoading?: boolean;
+  minimumColWidth?: number;
 
   scrollable?: boolean;
-  stickyHeader?: boolean;
 
+  stickyHeader?: boolean;
   /**
    * GridEditable (mostly) do not maintain any internal state and relies on the
    * parent component to tell it how/what to render and will mutate the view
@@ -280,22 +283,23 @@ class GridEditable<
       return;
     }
 
+    const minimumColWidth = this.props.minimumColWidth ?? COL_WIDTH_MINIMUM;
     const prependColumns = this.props.grid.prependColumnWidths || [];
     const prepend = prependColumns.join(' ');
     const widths = columnOrder.map((item, index) => {
       if (item.width === COL_WIDTH_UNDEFINED) {
-        return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
+        return `minmax(${minimumColWidth}px, auto)`;
       }
-      if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
+      if (typeof item.width === 'number' && item.width > minimumColWidth) {
         if (index === columnOrder.length - 1) {
           return `minmax(${item.width}px, auto)`;
         }
         return `${item.width}px`;
       }
       if (index === columnOrder.length - 1) {
-        return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
+        return `minmax(${minimumColWidth}px, auto)`;
       }
-      return `${COL_WIDTH_MINIMUM}px`;
+      return `${minimumColWidth}px`;
     });
 
     // The last column has no resizer and should always be a flexible column
@@ -412,12 +416,15 @@ class GridEditable<
   }
 
   renderEmptyData() {
+    const {emptyMessage} = this.props;
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <EmptyStateWarning>
-            <p>{t('No results found for your query')}</p>
-          </EmptyStateWarning>
+          {emptyMessage ?? (
+            <EmptyStateWarning>
+              <p>{t('No results found for your query')}</p>
+            </EmptyStateWarning>
+          )}
         </GridBodyCellStatus>
       </GridRow>
     );

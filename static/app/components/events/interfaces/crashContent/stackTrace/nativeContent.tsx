@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Frame, Group, PlatformType} from 'sentry/types';
+import {Frame, Group, PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -21,7 +21,7 @@ import {
 type Props = {
   data: StacktraceType;
   event: Event;
-  platform: PlatformType;
+  platform: PlatformKey;
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hiddenFrameCount?: number;

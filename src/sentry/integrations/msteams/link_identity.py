@@ -6,7 +6,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import Identity
+from sentry.models.identity import Identity
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign

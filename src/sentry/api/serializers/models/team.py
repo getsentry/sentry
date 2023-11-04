@@ -31,18 +31,14 @@ from sentry.auth.access import (
     maybe_singular_rpc_access_org_context,
 )
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    ExternalActor,
-    InviteStatus,
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Team,
-    TeamAvatar,
-    User,
-)
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organization import Organization
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.roles import organization_roles, team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper
@@ -238,8 +234,6 @@ class BaseTeamSerializer(Serializer):
         team_memberships = _get_team_memberships(item_list, user, optimization=optimization)
         access_requests = get_access_requests(item_list, user)
 
-        avatars = {a.team_id: a for a in TeamAvatar.objects.filter(team__in=item_list)}
-
         is_superuser = request and is_active_superuser(request) and request.user == user
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
         organization = Organization.objects.get_from_cache(id=list(org_ids)[0])
@@ -279,7 +273,6 @@ class BaseTeamSerializer(Serializer):
                 "team_role": team_role_id if is_member else None,
                 "access": team_role_scopes,
                 "has_access": has_access,
-                "avatar": avatars.get(team.id),
                 "member_count": member_totals.get(team.id, 0),
             }
 
@@ -316,13 +309,6 @@ class BaseTeamSerializer(Serializer):
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> BaseTeamSerializerResponse:
-        if attrs.get("avatar"):
-            avatar: SerializedAvatarFields = {
-                "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
-            }
-        else:
-            avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
         result: BaseTeamSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
@@ -335,7 +321,8 @@ class BaseTeamSerializer(Serializer):
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
-            "avatar": avatar,
+            # Teams only have letter avatars.
+            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
         }
         if obj.org_role:
             result["orgRole"] = obj.org_role

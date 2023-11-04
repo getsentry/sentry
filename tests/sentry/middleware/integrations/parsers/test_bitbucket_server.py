@@ -6,7 +6,7 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.bitbucket_server import BitbucketServerRequestParser
-from sentry.models import OrganizationMapping
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -16,7 +16,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
-@control_silo_test()
+@control_silo_test(stable=True)
 class BitbucketServerRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
@@ -34,6 +34,7 @@ class BitbucketServerRequestParserTest(TestCase):
             provider="bitbucket_server",
         )
 
+    @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_webhook(self):
         region_route = reverse(
@@ -58,10 +59,9 @@ class BitbucketServerRequestParserTest(TestCase):
         OrganizationMapping.objects.get(organization_id=self.organization.id).update(
             region_name="us"
         )
-        with override_regions(self.region_config):
-            parser.get_response()
-            assert_webhook_outboxes(
-                factory_request=request,
-                webhook_identifier=WebhookProviderIdentifier.BITBUCKET_SERVER,
-                region_names=[self.region.name],
-            )
+        parser.get_response()
+        assert_webhook_outboxes(
+            factory_request=request,
+            webhook_identifier=WebhookProviderIdentifier.BITBUCKET_SERVER,
+            region_names=[self.region.name],
+        )

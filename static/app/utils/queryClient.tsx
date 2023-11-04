@@ -1,8 +1,11 @@
+import type {QueryClientConfig, QueryFunctionContext} from '@tanstack/react-query';
 import * as reactQuery from '@tanstack/react-query';
-import {QueryClientConfig} from '@tanstack/react-query';
+import {useInfiniteQuery} from '@tanstack/react-query';
 
-import {ApiResult, ResponseMeta} from 'sentry/api';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type {ApiResult, Client, ResponseMeta} from 'sentry/api';
+import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 // Overrides to the default react-query options.
@@ -15,13 +18,20 @@ const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   },
 };
 
-type QueryKeyEndpointOptions = {
-  query?: Record<string, any>;
+type QueryKeyEndpointOptions<
+  Headers = Record<string, string>,
+  Query = Record<string, any>,
+> = {
+  headers?: Headers;
+  query?: Query;
 };
 
 type ApiQueryKey =
   | readonly [url: string]
-  | readonly [url: string, options: QueryKeyEndpointOptions];
+  | readonly [
+      url: string,
+      options: QueryKeyEndpointOptions<Record<string, string>, Record<string, any>>,
+    ];
 
 interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   extends Omit<
@@ -106,6 +116,7 @@ function useApiQuery<TResponseData, TError = RequestError>(
     api.requestPromise(path, {
       method: 'GET',
       query: endpointOptions?.query,
+      headers: endpointOptions?.headers,
       includeAllArgs: true,
     });
 
@@ -165,6 +176,68 @@ function setApiQueryData<TResponseData>(
   return newResponse[0];
 }
 
+export function fetchInfiniteQuery<TResponseData>(api: Client) {
+  return function fetchInfiniteQueryImpl({
+    pageParam,
+    queryKey,
+  }: QueryFunctionContext<ApiQueryKey, undefined | ParsedHeader>): Promise<
+    ApiResult<TResponseData>
+  > {
+    const [url, endpointOptions] = queryKey;
+    return api.requestPromise(url, {
+      includeAllArgs: true,
+      headers: endpointOptions?.headers,
+      query: {
+        ...endpointOptions?.query,
+        cursor: pageParam?.cursor,
+      },
+    });
+  };
+}
+
+function parsePageParam(dir: 'previous' | 'next') {
+  return ([, , resp]: ApiResult<unknown>) => {
+    const parsed = parseLinkHeader(resp?.getResponseHeader('Link') ?? null);
+    return parsed[dir].results ? parsed[dir] : null;
+  };
+}
+
+function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQueryKey}) {
+  const api = useApi();
+  return useInfiniteQuery({
+    queryKey,
+    queryFn: fetchInfiniteQuery<TResponseData>(api),
+    getPreviousPageParam: parsePageParam('previous'),
+    getNextPageParam: parsePageParam('next'),
+  });
+}
+
+type ApiMutationVariables<
+  Headers = Record<string, string>,
+  Query = Record<string, any>,
+> =
+  | ['PUT' | 'POST' | 'DELETE', string]
+  | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions<Headers, Query>]
+  | [
+      'PUT' | 'POST',
+      string,
+      QueryKeyEndpointOptions<Headers, Query>,
+      Record<string, unknown>,
+    ];
+
+export function fetchMutation(api: Client) {
+  return function fetchMutationImpl(variables: ApiMutationVariables) {
+    const [method, url, opts, data] = variables;
+
+    return api.requestPromise(url, {
+      method,
+      query: opts?.query,
+      headers: opts?.headers,
+      data,
+    });
+  };
+}
+
 // eslint-disable-next-line import/export
 export * from '@tanstack/react-query';
 
@@ -173,6 +246,7 @@ export {
   DEFAULT_QUERY_CLIENT_CONFIG,
   useApiQuery,
   setApiQueryData,
+  useInfiniteApiQuery,
   UseApiQueryOptions,
   ApiQueryKey,
 };

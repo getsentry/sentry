@@ -11,9 +11,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
+    functions,
     metrics_enhanced_performance,
     metrics_performance,
     spans_indexed,
@@ -185,6 +186,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     if dataset
                     in [
                         discover,
+                        functions,
                         metrics_performance,
                         metrics_enhanced_performance,
                         spans_indexed,

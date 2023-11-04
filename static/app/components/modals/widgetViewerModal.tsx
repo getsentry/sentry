@@ -42,10 +42,8 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {
-  createOnDemandFilterWarning,
-  hasOnDemandMetricWidgetFeature,
-} from 'sentry/utils/onDemandMetrics';
+import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -64,14 +62,13 @@ import {
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
+  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
-  getWidgetIndicatorColor,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
-import ThresholdsHoverWrapper from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -94,7 +91,7 @@ import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
-import CircleIndicator from '../circleIndicator';
+import {Tooltip} from '../tooltip';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -1014,25 +1011,19 @@ function WidgetViewerModal(props: Props) {
                         <h3>{widget.title}</h3>
                         {widget.thresholds &&
                           tableData &&
-                          organization.features.includes(
-                            'dashboard-widget-indicators'
-                          ) && (
-                            <ThresholdsHoverWrapper
-                              thresholds={widget.thresholds}
-                              tableData={tableData}
-                            >
-                              <CircleIndicator
-                                color={getWidgetIndicatorColor(
-                                  widget.thresholds,
-                                  tableData
-                                )}
-                                size={12}
-                              />
-                            </ThresholdsHoverWrapper>
-                          )}
+                          organization.features.includes('dashboard-widget-indicators') &&
+                          getColoredWidgetIndicator(widget.thresholds, tableData)}
                       </WidgetTitleRow>
                       {widget.description && (
-                        <WidgetDescription>{widget.description}</WidgetDescription>
+                        <Tooltip
+                          title={widget.description}
+                          containerDisplayMode="grid"
+                          showOnlyOnOverflow
+                          isHoverable
+                          position="bottom"
+                        >
+                          <WidgetDescription>{widget.description}</WidgetDescription>
+                        </Tooltip>
                       )}
                       <DashboardsMEPConsumer>
                         {({}) => {
@@ -1173,7 +1164,7 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
     case WidgetType.DISCOVER:
       return (
         <span>
-          {tct('[description:Total Events:] [total]', {
+          {tct('[description:Sampled Events:] [total]', {
             description: <strong />,
             total: totalResults,
           })}

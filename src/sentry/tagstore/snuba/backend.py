@@ -11,16 +11,14 @@ from django.core.cache import cache
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
+from sentry import analytics
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import (
-    Group,
-    Project,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-)
+from sentry.models.group import Group
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.replays.query import query_replays_dataset_tagkey_values
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
@@ -34,8 +32,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.fields import FIELD_ALIASES
 from sentry.search.events.filter import _flip_field_sort
 from sentry.snuba.dataset import Dataset
-from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
@@ -846,6 +843,13 @@ class SnubaTagStorage(TagStorage):
                         group_id=issue, key="sentry:user", value=name, **fix_tag_value_data(data)
                     )
                 )
+        for project_id in {eu.project_id for eu in event_users}:
+            analytics.record(
+                "eventuser_endpoint.request",
+                project_id=project_id,
+                endpoint="sentry.tagstore.snuba.backend.SnubaTagStorage.get_group_tag_values_for_users",
+            )
+
         return values
 
     def __get_groups_user_counts(

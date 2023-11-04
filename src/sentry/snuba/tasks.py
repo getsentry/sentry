@@ -8,7 +8,7 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (

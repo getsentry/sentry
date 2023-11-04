@@ -7,7 +7,8 @@ from typing import Optional
 from sentry import features
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,

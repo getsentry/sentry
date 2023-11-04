@@ -46,6 +46,7 @@ export function SpanMetricsRibbon({spanMetrics}: Props) {
         <TimeSpentCell
           percentage={spanMetrics?.[`${SpanFunction.TIME_SPENT_PERCENTAGE}()`]}
           total={spanMetrics?.[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+          op={op}
         />
       </Block>
     </BlockContainer>

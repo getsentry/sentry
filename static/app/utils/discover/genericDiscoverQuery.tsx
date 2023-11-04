@@ -381,7 +381,7 @@ function getPayload<T, P>(props: Props<T, P>) {
     ? getRequestPayload(props)
     : eventView.getEventsAPIPayload(location, forceAppendRawQueryString);
 
-  if (cursor) {
+  if (cursor !== undefined) {
     payload.cursor = cursor;
   }
   if (limit) {

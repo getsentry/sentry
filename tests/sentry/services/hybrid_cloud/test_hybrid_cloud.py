@@ -1,6 +1,6 @@
 from collections import deque
 
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase

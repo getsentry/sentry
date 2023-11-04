@@ -189,6 +189,7 @@ detailed_project = {
         "sentry:reprocessing_active": False,
         "filters:blacklisted_ips": "",
         "filters:react-hydration-errors": True,
+        "filters:chunk-load-error": True,
         "filters:releases": "",
         "filters:error_messages": "",
         "feedback:branding": True,
@@ -315,7 +316,6 @@ detailed_project = {
             "discover-events-rate-limit",
             "india-promotion",
             "track-button-click-events",
-            "open-ai-suggestion",
             "performance-issues-compressed-assets-detector",
             "device-class-synthesis",
             "profiling-billing",
@@ -350,7 +350,6 @@ detailed_project = {
             "profile-image-decode-main-thread-post-process-group",
             "performance-mep-bannerless-ui",
             "performance-uncompressed-assets-visible",
-            "getting-started-doc-with-product-selection",
             "performance-large-http-payload-visible",
             "performance-view",
             "promotion-mobperf-discount20",
@@ -424,6 +423,31 @@ detailed_project = {
     "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
 }
+
+symbol_sources = [
+    {
+        "id": "honk",
+        "name": "honk source",
+        "layout": {
+            "type": "native",
+        },
+        "type": "http",
+        "url": "http://honk.beep",
+        "username": "honkhonk",
+        "password": {"hidden-secret": True},
+    },
+    {
+        "id": "beep",
+        "name": "beep source",
+        "layout": {
+            "type": "native",
+        },
+        "type": "gcs",
+        "bucket": "mybucket",
+        "client_email": "honk@beep.com",
+        "private_key": {"hidden-secret": True},
+    },
+]
 
 
 def project_with_team(extra_team: bool = False):
@@ -554,6 +578,50 @@ class ProjectExamples:
             "Revoke a Team's Access to a Project",
             value=project_with_team(),
             status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    GET_SYMBOL_SOURCES = [
+        OpenApiExample(
+            "List custom symbol sources configured for a project.",
+            value=symbol_sources,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    ADD_SYMBOL_SOURCE = [
+        OpenApiExample(
+            "List custom symbol sources configured for a project.",
+            value=symbol_sources[0],
+            status_codes=["201"],
+            response_only=True,
+        ),
+    ]
+
+    ADD_SYMBOL_SOURCE = [
+        OpenApiExample(
+            "Add a custom symbol source to a project.",
+            value=symbol_sources[0],
+            status_codes=["201"],
+            response_only=True,
+        ),
+    ]
+
+    UPDATE_SYMBOL_SOURCE = [
+        OpenApiExample(
+            "Update a custom symbol source in a project.",
+            value=symbol_sources[0],
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    DELETE_SYMBOL_SOURCE = [
+        OpenApiExample(
+            "Delete a custom symbol source from a project.",
+            status_codes=["204"],
             response_only=True,
         ),
     ]

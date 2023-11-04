@@ -4,7 +4,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -53,6 +55,7 @@ export function TimelineTableRow({
         {environments.map(({name, status}) => {
           const envStatus =
             monitor.status === MonitorStatus.DISABLED ? MonitorStatus.DISABLED : status;
+          const {label, icon} = statusIconColorMap[envStatus];
           return (
             <EnvWithStatus key={name}>
               {onDeleteEnvironment && (
@@ -71,14 +74,25 @@ export function TimelineTableRow({
                       label: t('Delete Environment'),
                       key: 'delete',
                       onAction: () => {
-                        onDeleteEnvironment(name);
+                        openConfirmModal({
+                          onConfirm: () => onDeleteEnvironment(name),
+                          header: t('Delete Environment?'),
+                          message: tct(
+                            'Are you sure you want to permanently delete the "[envName]" environment?',
+                            {envName: name}
+                          ),
+                          confirmText: t('Delete'),
+                          priority: 'danger',
+                        });
                       },
                     },
                   ]}
                 />
               )}
               <MonitorEnvLabel status={envStatus}>{name}</MonitorEnvLabel>
-              {statusIconColorMap[envStatus].icon}
+              <Tooltip title={label} skipWrapper>
+                {icon}
+              </Tooltip>
             </EnvWithStatus>
           );
         })}
@@ -166,7 +180,8 @@ const Schedule = styled('small')`
 
 const MonitorEnvContainer = styled('div')`
   display: flex;
-  padding: 0 ${space(2)};
+  padding: ${space(3)} ${space(2)};
+  gap: ${space(4)};
   flex-direction: column;
   border-right: 1px solid ${p => p.theme.innerBorder};
   text-align: right;
@@ -181,6 +196,7 @@ const EnvWithStatus = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
+  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
 
   &:hover ${EnvActionButton} {
     display: block;
@@ -193,7 +209,6 @@ const MonitorEnvLabel = styled('div')<{status: MonitorStatus}>`
   white-space: nowrap;
   flex: 1;
 
-  padding: ${space(2)} 0;
   color: ${p => p.theme[statusIconColorMap[p.status].color]};
 `;
 

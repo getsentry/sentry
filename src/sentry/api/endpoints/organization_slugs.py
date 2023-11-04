@@ -10,7 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ConflictError
 from sentry.api.helpers.slugs import validate_sentry_slug
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, TypeVar
+from typing import Any, Callable, ClassVar, Iterable, Mapping, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
@@ -48,8 +48,9 @@ class BaseModel(models.Model):
         abstract = True
 
     __relocation_scope__: RelocationScope | set[RelocationScope]
+    __relocation_dependencies__: set[str]
 
-    objects: BaseManager[Self] = BaseManager()
+    objects: ClassVar[BaseManager[Self]] = BaseManager()
 
     update = update
 
@@ -98,17 +99,17 @@ class BaseModel(models.Model):
         # In production, you should guard `model.field` with an
         # `if model.is_field_cached`.
         name = self._get_relational_field(field_name).get_cache_name()
-        return self._state.fields_cache.get(name, None)  # type: ignore[attr-defined]  # issue: typeddjango/django-stubs#1743
+        return self._state.fields_cache.get(name, None)
 
     def delete_cached_field_value(self, field_name: str) -> None:
         name = self._get_relational_field(field_name).get_cache_name()
-        if name in self._state.fields_cache:  # type: ignore[operator]  # issue: typeddjango/django-stubs#1743
-            del self._state.fields_cache[name]  # type: ignore[attr-defined]  # issue: typeddjango/django-stubs#1743
+        if name in self._state.fields_cache:
+            del self._state.fields_cache[name]
 
     def is_field_cached(self, field_name: str) -> bool:
         # Ask if a relational field has a cached value.
         name = self._get_relational_field(field_name).get_cache_name()
-        return name in self._state.fields_cache  # type: ignore[operator]  # issue: typeddjango/django-stubs#1743
+        return name in self._state.fields_cache
 
     def get_relocation_scope(self) -> RelocationScope:
         """
@@ -134,6 +135,32 @@ class BaseModel(models.Model):
             else {cls.__relocation_scope__}
         )
 
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        """ """
+
+        model_name = get_model_name(cls)
+        model_relations = dependencies()[model_name]
+
+        # Create a filter for each possible FK reference to constrain the amount of data being sent
+        # over from the database. We only want models where every FK field references into a model
+        # whose PK we've already exported (or `NULL`, if the FK field is nullable).
+        for field_name, foreign_field in model_relations.foreign_keys.items():
+            foreign_field_model_name = get_model_name(foreign_field.model)
+            matched_fks = set(pk_map.get_pks(foreign_field_model_name))
+            matched_fks_query = dict()
+            if len(matched_fks) > 0:
+                matched_fks_query[field_name + "__in"] = matched_fks
+
+            if foreign_field.nullable:
+                match_on_null_query = dict()
+                match_on_null_query[field_name + "__isnull"] = True
+                q &= models.Q(**matched_fks_query) | models.Q(**match_on_null_query)
+            else:
+                q &= models.Q(**matched_fks_query)
+
+        return q
+
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, _s: ImportScope, _f: ImportFlags
     ) -> int | None:
@@ -147,9 +174,9 @@ class BaseModel(models.Model):
         `write_relocation_import`, is that it is often useful to adjust just the normalization logic
         by itself without affecting the writing logic.
 
-        Overrides of this method should take care NOT to mutate the `pk_map`. Overrides should also
-        take care NOT to push the updated changes to the database (ie, no calls to `.save()` or
-        `.update()`), as this functionality is delegated to the `write_relocation_import()` method.
+        Overrides should take care NOT to push the updated changes to the database (ie, no calls to
+        `.save()` or `.update()`), as this functionality is delegated to the
+        `write_relocation_import()` method.
 
         The default normalization logic merely replaces foreign keys with their new values from the
         provided `pk_map`.

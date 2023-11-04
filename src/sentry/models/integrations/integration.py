@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, ClassVar, List
 
 from django.db import IntegrityError, models, router, transaction
 
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class IntegrationManager(BaseManager):
+class IntegrationManager(BaseManager["Integration"]):
     def get_active_integrations(self, organization_id: str):
         return self.filter(
             status=ObjectStatus.ACTIVE,
@@ -59,7 +59,7 @@ class Integration(DefaultFieldsModel):
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )
 
-    objects = IntegrationManager()
+    objects: ClassVar[IntegrationManager] = IntegrationManager()
 
     class Meta:
         app_label = "sentry"
@@ -85,10 +85,10 @@ class Integration(DefaultFieldsModel):
         with outbox_context(
             transaction.atomic(using=router.db_for_write(OrganizationIntegration)), flush=False
         ):
-            for organization_integration in self.organizationintegration_set.all():
-                organization_integration.delete()
             for outbox in Integration.outboxes_for_update(self.id):
                 outbox.save()
+            for organization_integration in self.organizationintegration_set.all():
+                organization_integration.delete()
             return super().delete(*args, **kwds)
 
     @staticmethod
@@ -115,7 +115,7 @@ class Integration(DefaultFieldsModel):
 
         Returns False if the OrganizationIntegration was not created
         """
-        from sentry.models import OrganizationIntegration
+        from sentry.models.integrations.organization_integration import OrganizationIntegration
 
         if not isinstance(organization_id, int):
             organization_id = organization_id.id

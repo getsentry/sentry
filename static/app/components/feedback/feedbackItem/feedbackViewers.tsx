@@ -1,31 +1,25 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
+import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types';
-import type {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {userDisplayName} from 'sentry/utils/formatters';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
+  feedbackItem: FeedbackIssue;
 }
-
-export default function FeedbackViewers({feedbackItem: _}: Props) {
-  const displayUsers = [
-    {
-      email: 'colton.allen@sentry.io',
-      id: '1',
-      ip_address: '',
-      name: 'Colton Allen',
-      username: 'cmanallen',
-    },
-  ];
+export default function FeedbackViewers({feedbackItem}: Props) {
+  const displayUsers = feedbackItem.seenBy;
 
   return (
-    <AvatarList
+    <StyledAvatarList
       users={displayUsers}
       avatarSize={28}
-      maxVisibleAvatars={13}
+      maxVisibleAvatars={5}
+      tooltipOptions={{position: 'top'}}
       renderTooltip={user => (
         <Fragment>
           {userDisplayName(user)}
@@ -36,3 +30,8 @@ export default function FeedbackViewers({feedbackItem: _}: Props) {
     />
   );
 }
+
+const StyledAvatarList = styled(AvatarList)`
+  flex-direction: end;
+  margin-left: ${space(0.75)};
+`;

@@ -5,6 +5,7 @@ from unittest.mock import ANY, patch
 import pytest
 from celery import Task
 from django.core import mail
+from django.db import router
 from django.test import override_settings
 from django.urls import reverse
 from requests.exceptions import Timeout
@@ -14,17 +15,16 @@ from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models import (
-    Activity,
-    AuditLogEntry,
-    Group,
-    Rule,
-    SentryApp,
-    SentryAppInstallation,
-    SentryFunction,
-)
+from sentry.models.activity import Activity
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.group import Group
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.utils import get_redis_key
+from sentry.models.rule import Rule
+from sentry.models.sentryfunction import SentryFunction
 from sentry.shared_integrations.exceptions import ClientError
+from sentry.silo import unguarded_write
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
     build_comment_webhook,
@@ -92,7 +92,7 @@ MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse, Non
 MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException, None)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TestSendAlertEvent(TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(organization=self.organization)
@@ -263,8 +263,9 @@ class TestProcessResourceChange(TestCase):
         assert len(safe_urlopen.mock_calls) == 0
 
     def test_does_not_process_sentry_apps_without_issue_webhooks(self, safe_urlopen):
-        SentryAppInstallation.objects.all().delete()
-        SentryApp.objects.all().delete()
+        with unguarded_write(router.db_for_write(SentryAppInstallation)):
+            SentryAppInstallation.objects.all().delete()
+            SentryApp.objects.all().delete()
 
         # DOES NOT subscribe to Issue events
         self.create_sentry_app_installation(organization=self.organization)

@@ -11,8 +11,6 @@ import type {Image} from './debugImage';
 import type {IssueAttachment, IssueCategory} from './group';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
-// TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
-export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
 
@@ -182,7 +180,7 @@ export type Frame = {
   lineNo: number | null;
   module: string | null;
   package: string | null;
-  platform: PlatformType | null;
+  platform: PlatformKey | null;
   rawFunction: string | null;
   symbol: string | null;
   symbolAddr: string | null;
@@ -197,6 +195,7 @@ export type Frame = {
   mapUrl?: string | null;
   minGroupingLevel?: number;
   origAbsPath?: string | null;
+  sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
 
@@ -772,7 +771,7 @@ interface EventBase {
   nextEventID?: string | null;
   oldestEventID?: string | null;
   packages?: Record<string, string>;
-  platform?: PlatformType;
+  platform?: PlatformKey;
   previousEventID?: string | null;
   projectSlug?: string;
   release?: EventRelease | null;
@@ -824,6 +823,9 @@ export interface AggregateEventTransaction
     | 'tags'
     | 'title'
   > {
+  count: number;
+  frequency: number;
+  total: number;
   type: EventOrGroupType.AGGREGATE_TRANSACTION;
 }
 

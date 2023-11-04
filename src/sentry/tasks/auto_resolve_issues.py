@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from time import time
@@ -5,17 +7,14 @@ from typing import Mapping
 
 from django.utils import timezone
 
-from sentry import analytics
-from sentry.models import (
-    Activity,
-    Group,
-    GroupInboxRemoveAction,
-    GroupStatus,
-    Project,
-    ProjectOption,
-    remove_group_from_inbox,
-)
+from sentry import analytics, features
+from sentry.issues import grouptype
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.silo import SiloMode
 from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
@@ -66,6 +65,8 @@ def schedule_auto_resolution():
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
     project = Project.objects.get_from_cache(id=project_id)
+    organization = project.organization
+    flag_enabled = features.has("organizations:issue-platform-crons-sd", organization)
 
     age = project.get_option("sentry:resolve_age", None)
     if not age:
@@ -78,11 +79,21 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     else:
         cutoff = timezone.now() - timedelta(hours=int(age))
 
-    queryset = list(
-        Group.objects.filter(project=project, last_seen__lte=cutoff, status=GroupStatus.UNRESOLVED)[
-            :chunk_size
+    filter_conditions = {
+        "project": project,
+        "last_seen__lte": cutoff,
+        "status": GroupStatus.UNRESOLVED,
+    }
+
+    if flag_enabled:
+        enabled_auto_resolve_types = [
+            group_type.type_id
+            for group_type in grouptype.registry.all()
+            if group_type.enable_auto_resolve
         ]
-    )
+        filter_conditions["type__in"] = enabled_auto_resolve_types
+
+    queryset = list(Group.objects.filter(**filter_conditions)[:chunk_size])
 
     might_have_more = len(queryset) == chunk_size
 

@@ -25,7 +25,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -34,27 +34,24 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import (
-    Commit,
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupEnvironment,
-    GroupLink,
-    GroupMeta,
-    GroupResolution,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    Team,
-    User,
-)
 from sentry.models.apitoken import is_api_token_auth
+from sentry.models.commit import Commit
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import is_org_auth_token_auth
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
@@ -328,8 +325,8 @@ class GroupSerializerBase(Serializer, ABC):
                 "share_id": share_ids.get(item.id),
                 "authorized": authorized,
             }
-
-            result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
+            if snuba_stats is not None:
+                result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
 
             if seen_stats:
                 result[item].update(seen_stats.get(item, {}))
@@ -457,7 +454,9 @@ class GroupSerializerBase(Serializer, ABC):
             status_label = "pending_merge"
         elif status == GroupStatus.REPROCESSING:
             status_label = "reprocessing"
-            status_details["pendingEvents"], status_details["info"] = get_progress(attrs["id"])
+            status_details["pendingEvents"], status_details["info"] = get_progress(
+                attrs["id"], obj.project.id
+            )
         else:
             status_label = "unresolved"
         return status_details, status_label
@@ -496,6 +495,14 @@ class GroupSerializerBase(Serializer, ABC):
     def _get_group_snuba_stats(
         self, item_list: Sequence[Group], seen_stats: Optional[Mapping[Group, SeenStats]]
     ):
+        if (
+            self._collapse("unhandled")
+            and len(item_list) > 0
+            and features.has(
+                "organizations:issue-stream-performance", item_list[0].project.organization
+            )
+        ):
+            return None
         start = self._get_start_from_seen_stats(seen_stats)
         unhandled = {}
 
@@ -584,9 +591,7 @@ class GroupSerializerBase(Serializer, ABC):
         project_ids = list(groups_by_project.keys())
         if should_use_notifications_v2(groups[0].project.organization):
             enabled_settings = notifications_service.get_subscriptions_for_projects(
-                user_id=user.id,
-                project_ids=project_ids,
-                type=NotificationSettingEnum.WORKFLOW,
+                user_id=user.id, project_ids=project_ids, type=NotificationSettingEnum.WORKFLOW
             )
             query_groups = {
                 group for group in groups if (not enabled_settings[group.project_id][2])
@@ -681,7 +686,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _resolve_external_issue_annotations(groups: Sequence[Group]) -> Mapping[int, Sequence[Any]]:
-        from sentry.models import PlatformExternalIssue
+        from sentry.models.platformexternalissue import PlatformExternalIssue
 
         # find the external issues for sentry apps and add them in
         return (

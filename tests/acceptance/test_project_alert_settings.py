@@ -1,4 +1,4 @@
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 

@@ -49,7 +49,7 @@ function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Prop
           avatarSize={32}
           displayName={
             <Layout.Title>
-              {replayRecord.user.display_name || t('Unknown User')}
+              {replayRecord.user.display_name || t('Anonymous User')}
             </Layout.Title>
           }
           user={{
@@ -59,8 +59,7 @@ function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Prop
             ip_address: replayRecord.user.ip || '',
             id: replayRecord.user.id || '',
           }}
-          // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-          displayEmail={<div>{undefined}</div>}
+          hideEmail
         />
       ) : (
         <HeaderPlaceholder width="100%" height="58px" />

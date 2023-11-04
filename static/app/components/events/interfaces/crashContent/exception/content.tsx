@@ -151,7 +151,11 @@ export function Content({
     const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
       excIdx
     ].frames.map(debuggerFrame =>
-      prepareSourceMapDebuggerFrameInformation(sourceMapDebuggerData, debuggerFrame)
+      prepareSourceMapDebuggerFrameInformation(
+        sourceMapDebuggerData,
+        debuggerFrame,
+        event
+      )
     );
 
     if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
@@ -204,6 +208,7 @@ export function Content({
           meta={meta?.[excIdx]?.stacktrace}
           threadId={threadId}
           frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+          stackType={type}
         />
       </div>
     );

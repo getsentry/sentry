@@ -44,14 +44,22 @@ export function SizeTooltip({children}: {children: ReactNode}) {
   );
 }
 
-export function keyValueTableOrNotFound(
-  data: undefined | Record<string, string | ReactNode>,
-  notFoundText: string
-) {
-  return data ? (
+export type KeyValueTuple = {
+  key: string;
+  value: string | ReactNode;
+  type?: 'warning' | 'error';
+};
+
+export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: string) {
+  return data.length ? (
     <StyledKeyValueTable noMargin>
-      {Object.entries(data).map(([key, value]) => (
-        <KeyValueTableRow key={key} keyName={key} value={<span>{value}</span>} />
+      {data.map(({key, value, type}) => (
+        <KeyValueTableRow
+          key={key}
+          keyName={key}
+          type={type}
+          value={<ValueContainer>{value}</ValueContainer>}
+        />
       ))}
     </StyledKeyValueTable>
   ) : (
@@ -60,6 +68,10 @@ export function keyValueTableOrNotFound(
     </Indent>
   );
 }
+
+const ValueContainer = styled('span')`
+  overflow: scroll;
+`;
 
 const SectionTitle = styled('dt')``;
 

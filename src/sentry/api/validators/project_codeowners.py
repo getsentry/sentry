@@ -4,7 +4,11 @@ from typing import Any, Collection, Mapping
 
 from django.db.models import Subquery
 
-from sentry.models import ExternalActor, OrganizationMember, OrganizationMemberTeam, Project, Team
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.ownership.grammar import parse_code_owners
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
@@ -42,7 +46,11 @@ def validate_codeowners_associations(
     external_actors = ExternalActor.objects.filter(
         external_name__in=usernames + team_names,
         organization_id=project.organization_id,
-        provider__in=[ExternalProviders.GITHUB.value, ExternalProviders.GITLAB.value],
+        provider__in=[
+            ExternalProviders.GITHUB.value,
+            ExternalProviders.GITHUB_ENTERPRISE.value,
+            ExternalProviders.GITLAB.value,
+        ],
     )
 
     # Convert CODEOWNERS into IssueOwner syntax

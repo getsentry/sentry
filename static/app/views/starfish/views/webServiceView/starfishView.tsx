@@ -1,181 +1,231 @@
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {getInterval} from 'sentry/components/charts/utils';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {Series} from 'sentry/types/echarts';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
-
-const EventsRequest = withApi(_EventsRequest);
-
-import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
-
-import {getInterval} from 'sentry/components/charts/utils';
-import {t} from 'sentry/locale';
+import {EventsStats} from 'sentry/types';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import EventView from 'sentry/utils/discover/eventView';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import withApi from 'sentry/utils/withApi';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {SpanGroupBar} from 'sentry/views/starfish/views/webServiceView/spanGroupBar';
 import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
 
 import EndpointList from './endpointList';
 
 export function StarfishView(props: BaseStarfishViewProps) {
-  const {organization, eventView} = props;
   const pageFilter = usePageFilters();
-  const theme = useTheme();
-  const [isLoading, setIsLoading] = useState(true);
+  const {selection} = pageFilter;
+  const [activeSpanGroup, setActiveSpanGroup] = useState<string | null>(null);
+  const [transactionsList, setTransactionsList] = useState<string[]>([]);
+  const [inactiveTransactions, setInactiveTransactions] = useState<string[]>([]);
 
-  function renderCharts() {
-    const query = new MutableSearch([
+  function useRenderCharts() {
+    let query = new MutableSearch([
       'event.type:transaction',
       'has:http.method',
       'transaction.op:http.server',
     ]);
+    let dataset = DiscoverDatasets.METRICS;
+    let yAxis = ['tps()', 'http_error_count()', 'avg(transaction.duration)'];
+    let titles = [DataTitles.throughput, DataTitles.errorCount, DataTitles.avg];
+    if (activeSpanGroup) {
+      query = new MutableSearch([
+        'transaction.op:http.server',
+        `span.module:${activeSpanGroup}`,
+      ]);
+      dataset = DiscoverDatasets.SPANS_METRICS;
+      yAxis = ['sps()', 'http_error_count()', 'avg(span.self_time)'];
+      titles = [
+        getThroughputTitle(activeSpanGroup),
+        activeSpanGroup === 'http' ? DataTitles.errorCount : '--',
+        `Avg Duration of ${activeSpanGroup} ${
+          activeSpanGroup === 'db' ? 'Queries' : 'Spans'
+        }`,
+      ];
+    }
+    const transactionsFilter = `"${transactionsList.join('","')}"`;
+    const queryString = query.formatString() + ` transaction:[${transactionsFilter}]`;
+
+    const {isLoading: loading, data: results} = useEventsStatsQuery({
+      eventView: EventView.fromNewQueryWithPageFilters(
+        {
+          name: '',
+          fields: ['transaction', yAxis[0]],
+          yAxis,
+          query: queryString,
+          dataset,
+          version: 2,
+          topEvents: '5',
+          interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
+        },
+        selection
+      ),
+      enabled: transactionsList.length > 0,
+      excludeOther: true,
+      referrer: 'api.starfish-web-service.homepage-charts',
+      initialData: {},
+    });
+    const {isLoading: totalLoading, data: totalResults} = useEventsStatsQuery({
+      eventView: EventView.fromNewQueryWithPageFilters(
+        {
+          name: '',
+          fields: [],
+          yAxis,
+          query: query.formatString(),
+          dataset,
+          version: 2,
+          interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
+        },
+        selection
+      ),
+      enabled: true,
+      referrer: 'api.starfish-web-service.homepage-charts',
+      initialData: {},
+    });
+    useSynchronizeCharts([!loading]);
+    if (loading || totalLoading || !totalResults || !results) {
+      return <ChartPlaceholder />;
+    }
+    const seriesByName: {[category: string]: Series[]} = {};
+    yAxis.forEach(axis => {
+      seriesByName[axis] = [];
+    });
+    if (!inactiveTransactions.includes('Overall')) {
+      Object.keys(totalResults).forEach(key => {
+        seriesByName[key].push({
+          seriesName: 'Overall',
+          color: CHART_PALETTE[transactionsList.length][5],
+          data:
+            totalResults[key]?.data.map(datum => {
+              return {name: datum[0] * 1000, value: datum[1][0].count} as SeriesDataUnit;
+            }) ?? [],
+        });
+      });
+    }
+    transactionsList.forEach((transaction, index) => {
+      const seriesData: EventsStats = results?.[transaction];
+      if (!inactiveTransactions.includes(transaction)) {
+        yAxis.forEach(key => {
+          seriesByName[key].push({
+            seriesName: transaction,
+            color: CHART_PALETTE[transactionsList.length][index],
+            data:
+              seriesData?.[key]?.data.map(datum => {
+                return {
+                  name: datum[0] * 1000,
+                  value: datum[1][0].count,
+                } as SeriesDataUnit;
+              }) ?? [],
+          });
+        });
+      }
+    });
 
     return (
-      <EventsRequest
-        query={query.formatString()}
-        includePrevious={false}
-        partial
-        interval={getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        )}
-        includeTransformedData
-        limit={1}
-        environment={eventView.environment}
-        project={eventView.project}
-        period={eventView.statsPeriod}
-        referrer="api.starfish-web-service.homepage-charts"
-        start={eventView.start}
-        end={eventView.end}
-        organization={organization}
-        yAxis={['tps()', 'http_error_count()', 'avg(transaction.duration)']}
-        dataset={DiscoverDatasets.METRICS}
-      >
-        {({loading, results}) => {
-          if (!results || !results[0] || !results[1]) {
-            return null;
-          }
+      <Fragment>
+        <ChartsContainerItem>
+          <MiniChartPanel title={titles[2]}>
+            <Chart
+              height={142}
+              data={seriesByName[yAxis[2]]}
+              loading={loading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '8px',
+                bottom: '0',
+              }}
+              aggregateOutputFormat="duration"
+              definedAxisTicks={2}
+              isLineChart
+              tooltipFormatterOptions={{
+                valueFormatter: value =>
+                  tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+              }}
+            />
+          </MiniChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <MiniChartPanel title={titles[0]}>
+            <Chart
+              height={142}
+              data={seriesByName[yAxis[0]]}
+              loading={loading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '8px',
+                bottom: '0',
+              }}
+              aggregateOutputFormat="rate"
+              rateUnit={RateUnits.PER_SECOND}
+              definedAxisTicks={2}
+              stacked
+              isLineChart
+              chartColors={[THROUGHPUT_COLOR]}
+              tooltipFormatterOptions={{
+                valueFormatter: value => formatRate(value, RateUnits.PER_SECOND),
+              }}
+            />
+          </MiniChartPanel>
+        </ChartsContainerItem>
 
-          const throughputData: Series = {
-            seriesName: t('Requests'),
-            data: results[0].data,
-          };
-
-          const errorsData: Series = {
-            seriesName: t('5XX Responses'),
-            color: CHART_PALETTE[5][3],
-            data: results[1].data,
-          };
-
-          const percentileData: Series = {
-            seriesName: t('Requests'),
-            data: results[2].data,
-          };
-
-          setIsLoading(loading);
-
-          return (
-            <Fragment>
-              <ChartsContainerItem>
-                <MiniChartPanel title={DataTitles.avg}>
-                  <Chart
-                    height={142}
-                    data={[percentileData]}
-                    loading={loading}
-                    utc={false}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '8px',
-                      bottom: '0',
-                    }}
-                    definedAxisTicks={2}
-                    isLineChart
-                    chartColors={[AVG_COLOR]}
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-                    }}
-                  />
-                </MiniChartPanel>
-              </ChartsContainerItem>
-              <ChartsContainerItem>
-                <MiniChartPanel title={DataTitles.throughput}>
-                  <Chart
-                    height={142}
-                    data={[throughputData]}
-                    loading={loading}
-                    utc={false}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '8px',
-                      bottom: '0',
-                    }}
-                    aggregateOutputFormat="rate"
-                    rateUnit={RateUnits.PER_SECOND}
-                    definedAxisTicks={2}
-                    stacked
-                    isLineChart
-                    chartColors={[THROUGHPUT_COLOR]}
-                    tooltipFormatterOptions={{
-                      valueFormatter: value => formatRate(value, RateUnits.PER_SECOND),
-                    }}
-                  />
-                </MiniChartPanel>
-              </ChartsContainerItem>
-
-              <ChartsContainerItem>
-                <MiniChartPanel title={DataTitles.errorCount}>
-                  <Chart
-                    height={142}
-                    data={[errorsData]}
-                    loading={loading}
-                    utc={false}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '8px',
-                      bottom: '0',
-                    }}
-                    definedAxisTicks={2}
-                    isLineChart
-                    chartColors={theme.charts.getColorPalette(2)}
-                  />
-                </MiniChartPanel>
-              </ChartsContainerItem>
-            </Fragment>
-          );
-        }}
-      </EventsRequest>
+        <ChartsContainerItem>
+          <MiniChartPanel title={titles[1]}>
+            <Chart
+              height={142}
+              data={seriesByName[yAxis[1]]}
+              loading={loading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '8px',
+                bottom: '0',
+              }}
+              definedAxisTicks={2}
+              isLineChart
+              chartColors={[CHART_PALETTE[5][3]]}
+            />
+          </MiniChartPanel>
+        </ChartsContainerItem>
+      </Fragment>
     );
   }
 
-  useSynchronizeCharts([isLoading]);
-
   return (
     <div data-test-id="starfish-view">
-      <SpanGroupBar />
+      <SpanGroupBar onHover={setActiveSpanGroup} />
       <StyledRow>
         <ChartsContainer>
-          <ChartsContainerItem2>{renderCharts()}</ChartsContainerItem2>
+          <ChartsContainerItem2>{useRenderCharts()}</ChartsContainerItem2>
         </ChartsContainer>
       </StyledRow>
 
-      <EndpointList {...props} setError={usePageError().setPageError} />
+      <EndpointList
+        {...props}
+        transactionsList={transactionsList}
+        setTransactionsList={setTransactionsList}
+        setError={usePageError().setPageError}
+        inactiveTransactions={inactiveTransactions}
+        setInactiveTransactions={setInactiveTransactions}
+      />
     </div>
   );
 }
@@ -200,4 +250,8 @@ const ChartsContainerItem2 = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(2)};
+`;
+
+const ChartPlaceholder = styled('div')`
+  height: 150px;
 `;

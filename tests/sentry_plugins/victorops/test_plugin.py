@@ -3,7 +3,7 @@ from functools import cached_property
 import responses
 
 from sentry.interfaces.base import Interface
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json

@@ -16,7 +16,9 @@ from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
-from sentry.models import AuthProvider, OrganizationMapping, OrganizationStatus
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
@@ -235,6 +237,8 @@ class SAML2Provider(Provider, abc.ABC):
       constants to the Identity Provider attribute keys.
     """
 
+    # SAML does nothing with refresh state -- don't waste resources calling it in check_auth job.
+    requires_refresh = False
     required_feature = "organizations:sso-saml2"
 
     def get_auth_pipeline(self):

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from snuba_sdk import Condition, Op
+from snuba_sdk import Condition
 from snuba_sdk.expressions import Expression
 
 from sentry.replays.lib.new_query.conditions import (
@@ -33,6 +33,7 @@ from sentry.replays.lib.new_query.conditions import (
     StringArray,
     StringScalar,
     UUIDArray,
+    UUIDScalar,
 )
 from sentry.replays.lib.new_query.utils import contains, does_not_contain
 
@@ -126,21 +127,18 @@ class SumOfUUIDArray(GenericBase):
 
 
 class SumOfUUIDScalar(GenericBase):
-    # NOTE: can't use toUUID here because of
-    # https://github.com/ClickHouse/ClickHouse/issues/13173
-    # but without that it seems to work.
     @staticmethod
     def visit_eq(expression: Expression, value: UUID) -> Condition:
-        return contains(Condition(expression, Op.EQ, str(value)))
+        return contains(UUIDScalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: UUID) -> Condition:
-        return does_not_contain(Condition(expression, Op.EQ, str(value)))
+        return does_not_contain(UUIDScalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_in(expression: Expression, value: list[UUID]) -> Condition:
-        return contains(Condition(expression, Op.IN, [str(v) for v in value]))
+        return contains(UUIDScalar.visit_in(expression, value))
 
     @staticmethod
     def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
-        return does_not_contain(Condition(expression, Op.IN, [str(v) for v in value]))
+        return does_not_contain(UUIDScalar.visit_in(expression, value))

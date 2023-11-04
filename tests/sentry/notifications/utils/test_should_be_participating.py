@@ -1,4 +1,4 @@
-from sentry.models import GroupSubscription
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.helpers import should_be_participating, where_should_be_participating
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
 from sentry.services.hybrid_cloud.actor import RpcActor

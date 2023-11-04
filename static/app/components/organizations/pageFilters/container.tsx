@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useRef} from 'react';
-import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -12,6 +11,7 @@ import {
 } from 'sentry/actionCreators/pageFilters';
 import * as Layout from 'sentry/components/layouts/thirds';
 import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -22,11 +22,14 @@ import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
-import {extractSelectionParameters} from './utils';
 
 type InitializeUrlStateProps = Omit<
   InitializeUrlStateParams,
-  'memberProjects' | 'queryParams' | 'router' | 'shouldEnforceSingleProject'
+  | 'memberProjects'
+  | 'nonMemberProjects'
+  | 'queryParams'
+  | 'router'
+  | 'shouldEnforceSingleProject'
 >;
 
 interface Props extends InitializeUrlStateProps {
@@ -95,6 +98,9 @@ function Container({
   const memberProjects = user.isSuperuser
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
+  const nonMemberProjects = user.isSuperuser
+    ? []
+    : specifiedProjects.filter(project => !project.isMember);
 
   const doInitialization = () => {
     initializeUrlState({
@@ -104,6 +110,7 @@ function Container({
       skipLoadLastUsed,
       skipLoadLastUsedEnvironment,
       memberProjects,
+      nonMemberProjects,
       defaultSelection,
       forceProject,
       shouldForceProject,
@@ -122,15 +129,13 @@ function Container({
   //
   // This happens when we mount the container.
   useEffect(() => {
-    // We can initialize before ProjectsStore is fully loaded if we don't need to
-    // enforce single project.
-    if (!projectsLoaded && (shouldForceProject || enforceSingleProject)) {
+    if (!projectsLoaded) {
       return;
     }
 
     doInitialization();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
+  }, [projectsLoaded]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
@@ -147,13 +152,7 @@ function Container({
     // We may need to re-initialize the URL state if we completely clear
     // out the global selection URL state, for example by navigating with
     // the sidebar on the same view.
-    const oldSelectionQuery = extractSelectionParameters(lastQuery.current);
-    const newSelectionQuery = extractSelectionParameters(location.query);
-
-    // XXX: This re-initialization is only required in new-page-filter
-    // land, since we have implicit pinning in the old land which will
-    // cause page filters to commonly reset.
-    if (isEmpty(newSelectionQuery) && !isEqual(oldSelectionQuery, newSelectionQuery)) {
+    if (location.state?.source === SIDEBAR_NAVIGATION_SOURCE) {
       doInitialization();
       lastQuery.current = location.query;
       return;

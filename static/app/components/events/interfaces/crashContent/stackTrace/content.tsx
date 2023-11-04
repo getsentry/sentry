@@ -5,7 +5,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Frame, Organization, PlatformType} from 'sentry/types';
+import {Frame, Organization, PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -31,10 +31,11 @@ type DefaultProps = {
 type Props = {
   data: StacktraceType;
   event: Event;
-  platform: PlatformType;
+  platform: PlatformKey;
   className?: string;
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   hideIcon?: boolean;
+  hideSourceMapDebugger?: boolean;
   isHoverPreviewed?: boolean;
   lockAddress?: string;
   maxDepth?: number;
@@ -61,6 +62,7 @@ function Content({
   lockAddress,
   organization,
   frameSourceMapDebuggerData,
+  hideSourceMapDebugger,
 }: Props) {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
@@ -248,6 +250,7 @@ function Content({
           hiddenFrameCount: frameCountMap[frameIndex],
           organization,
           frameSourceResolutionResults: frameSourceMapDebuggerData?.[frameIndex],
+          hideSourceMapDebugger,
         };
 
         nRepeats = 0;

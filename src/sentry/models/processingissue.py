@@ -1,4 +1,5 @@
 from hashlib import sha1
+from typing import ClassVar
 
 from django.db import models
 from django.db.models.aggregates import Count
@@ -13,7 +14,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models import Release
+from sentry.models.release import Release
 
 
 def get_processing_issue_checksum(scope, object):
@@ -23,7 +24,7 @@ def get_processing_issue_checksum(scope, object):
     return h.hexdigest()
 
 
-class ProcessingIssueManager(BaseManager):
+class ProcessingIssueManager(BaseManager["ProcessingIssue"]):
     def with_num_events(self):
         return self.annotate(num_events=Count("eventprocessingissue"))
 
@@ -50,13 +51,14 @@ class ProcessingIssueManager(BaseManager):
         Resolves all processing issues.
         """
         self.resolve_all_processing_issue(project)
-        from sentry.models import RawEvent, ReprocessingReport
+        from sentry.models.rawevent import RawEvent
+        from sentry.models.reprocessingreport import ReprocessingReport
 
         RawEvent.objects.filter(project_id=project.id).delete()
         ReprocessingReport.objects.filter(project_id=project.id).delete()
 
     def find_resolved_queryset(self, project_ids):
-        from sentry.models import RawEvent
+        from sentry.models.rawevent import RawEvent
 
         return RawEvent.objects.filter(
             project_id__in=project_ids, eventprocessingissue__isnull=True
@@ -133,7 +135,7 @@ class ProcessingIssue(Model):
     data = GzippedDictField()
     datetime = models.DateTimeField(default=timezone.now)
 
-    objects = ProcessingIssueManager()
+    objects: ClassVar[ProcessingIssueManager] = ProcessingIssueManager()
 
     class Meta:
         app_label = "sentry"

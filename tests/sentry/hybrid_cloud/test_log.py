@@ -1,4 +1,6 @@
-from sentry.models import AuditLogEntry, OutboxScope, RegionOutbox, UserIP
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.outbox import OutboxScope, RegionOutbox
+from sentry.models.userip import UserIP
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_service
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories

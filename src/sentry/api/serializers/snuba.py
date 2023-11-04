@@ -4,8 +4,11 @@ from operator import or_
 
 from django.db.models import Q
 
+from sentry import analytics
 from sentry.constants import ObjectStatus
-from sentry.models import EventUser, Project, Release
+from sentry.models.eventuser import EventUser
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.utils.dates import to_timestamp
 from sentry.utils.geo import geo_by_addr
 
@@ -192,6 +195,10 @@ class SnubaLookup:
 
     @classmethod
     def get(cls, name):
+        analytics.record(
+            "eventuser_endpoint.request",
+            endpoint="sentry.api.serializers.snuba.SnubaLookup",
+        )
         return cls.__registry[name]
 
 

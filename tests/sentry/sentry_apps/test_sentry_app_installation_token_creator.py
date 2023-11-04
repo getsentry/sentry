@@ -1,7 +1,8 @@
 from datetime import date
 from unittest.mock import patch
 
-from sentry.models import SentryAppInstallation, SentryAppInstallationToken
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,

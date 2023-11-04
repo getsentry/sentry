@@ -2,11 +2,7 @@ import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
-
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {Button} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
@@ -18,10 +14,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import MonitorCreateForm from 'sentry/views/monitors/components/monitorCreateForm';
 import MonitorForm from 'sentry/views/monitors/components/monitorForm';
 import {Monitor} from 'sentry/views/monitors/types';
 
-import {NewMonitorButton} from './newMonitorButton';
 import {
   CRON_SDK_PLATFORMS,
   PlatformPickerPanel,
@@ -30,10 +26,12 @@ import {
 import {
   CeleryBeatAutoDiscovery,
   GoUpsertPlatformGuide,
+  JavaUpsertPlatformGuide,
   LaravelUpsertPlatformGuide,
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
   QuickStartProps,
+  RubyUpsertPlatformGuide,
 } from './quickStartEntries';
 
 enum GuideKey {
@@ -85,13 +83,29 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
       key: GuideKey.UPSERT,
     },
   ],
+  java: [
+    {
+      Guide: JavaUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  'java-spring-boot': [],
+  ruby: [
+    {
+      Guide: RubyUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  'ruby-rails': [],
 };
 
-function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
+export function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
   return !!(platform && platform in platformGuides);
 }
 
-function isValidGuide(guide?: string): guide is GuideKey {
+export function isValidGuide(guide?: string): guide is GuideKey {
   return !!(guide && Object.values<string>(GuideKey).includes(guide));
 }
 
@@ -149,6 +163,8 @@ export function CronsLandingPanel() {
     browserHistory.push(url);
   }
 
+  const hasNewOnboarding = organization.features.includes('crons-new-monitor-form');
+
   return (
     <Panel>
       <BackButton
@@ -183,12 +199,16 @@ export function CronsLandingPanel() {
               )),
               <TabPanels.Item key={GuideKey.MANUAL}>
                 <GuideContainer>
-                  <MonitorForm
-                    apiMethod="POST"
-                    apiEndpoint={`/organizations/${organization.slug}/monitors/`}
-                    onSubmitSuccess={onCreateMonitor}
-                    submitLabel={t('Next')}
-                  />
+                  {hasNewOnboarding ? (
+                    <MonitorCreateForm />
+                  ) : (
+                    <MonitorForm
+                      apiMethod="POST"
+                      apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+                      onSubmitSuccess={onCreateMonitor}
+                      submitLabel={t('Next')}
+                    />
+                  )}
                 </GuideContainer>
               </TabPanels.Item>,
             ]}
@@ -212,27 +232,4 @@ const GuideContainer = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   padding-top: ${space(2)};
-`;
-
-export function OldCronsLandingPanel() {
-  return (
-    <OnboardingPanel image={<img src={onboardingImg} />}>
-      <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
-      <p>
-        {t(
-          "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
-        )}
-      </p>
-      <OnboardingActions gap={1}>
-        <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
-        <LinkButton href="https://docs.sentry.io/product/crons" external>
-          {t('Read docs')}
-        </LinkButton>
-      </OnboardingActions>
-    </OnboardingPanel>
-  );
-}
-
-const OnboardingActions = styled(ButtonBar)`
-  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;

@@ -178,6 +178,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "staff",
         "subscribe",
         "support",
+        "syntax",
+        "syntaxfm",
         "team-avatar",
         "teams",
         "terms",
@@ -290,7 +292,9 @@ MIGRATED_CONDITIONS = frozenset(
 TICKET_ACTIONS = frozenset(
     [
         "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+        "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+        "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
     ]
 )
 
@@ -500,7 +504,7 @@ class SentryAppStatus:
         )
 
     @classmethod
-    def as_str(cls, status: int) -> Optional[str]:
+    def as_str(cls, status: int) -> str:
         if status == cls.UNPUBLISHED:
             return cls.UNPUBLISHED_STR
         elif status == cls.PUBLISHED:
@@ -512,10 +516,10 @@ class SentryAppStatus:
         elif status == cls.DELETION_IN_PROGRESS:
             return cls.DELETION_IN_PROGRESS_STR
         else:
-            return None
+            raise ValueError(f"Not a SentryAppStatus int: {status!r}")
 
     @classmethod
-    def as_int(cls, status: str) -> Optional[int]:
+    def as_int(cls, status: str) -> int:
         if status == cls.UNPUBLISHED_STR:
             return cls.UNPUBLISHED
         elif status == cls.PUBLISHED_STR:
@@ -527,7 +531,7 @@ class SentryAppStatus:
         elif status == cls.DELETION_IN_PROGRESS_STR:
             return cls.DELETION_IN_PROGRESS
         else:
-            return None
+            raise ValueError(f"Not a SentryAppStatus str: {status!r}")
 
 
 class SentryAppInstallationStatus:
@@ -544,13 +548,13 @@ class SentryAppInstallationStatus:
         )
 
     @classmethod
-    def as_str(cls, status: int) -> Optional[str]:
+    def as_str(cls, status: int) -> str:
         if status == cls.PENDING:
             return cls.PENDING_STR
         elif status == cls.INSTALLED:
             return cls.INSTALLED_STR
         else:
-            return None
+            raise ValueError(f"Not a SentryAppInstallationStatus int: {status!r}")
 
 
 class ExportQueryType:
@@ -571,22 +575,22 @@ class ExportQueryType:
         )
 
     @classmethod
-    def as_str(cls, integer: int) -> Optional[str]:
+    def as_str(cls, integer: int) -> str:
         if integer == cls.ISSUES_BY_TAG:
             return cls.ISSUES_BY_TAG_STR
         elif integer == cls.DISCOVER:
             return cls.DISCOVER_STR
         else:
-            return None
+            raise ValueError(f"Not an ExportQueryType int: {integer!r}")
 
     @classmethod
-    def from_str(cls, string: str) -> Optional[int]:
+    def from_str(cls, string: str) -> int:
         if string == cls.ISSUES_BY_TAG_STR:
             return cls.ISSUES_BY_TAG
         elif string == cls.DISCOVER_STR:
             return cls.DISCOVER
         else:
-            return None
+            raise ValueError(f"Not an ExportQueryType str: {string!r}")
 
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
@@ -692,12 +696,14 @@ DS_DENYLIST = frozenset(
 # Also it covers: livez, readyz
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
-    "*healthy*",
-    "*live*",
-    "*ready*",
     "*heartbeat*",
     "*/health",
+    "*/healthy",
     "*/healthz",
+    "*/live",
+    "*/livez",
+    "*/ready",
+    "*/readyz",
     "*/ping",
 ]
 

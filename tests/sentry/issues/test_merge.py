@@ -6,7 +6,9 @@ import rest_framework
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
-from sentry.models import Activity, Group, GroupInboxReason, GroupStatus, add_group_to_inbox
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType

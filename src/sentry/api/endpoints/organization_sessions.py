@@ -7,14 +7,14 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, release_health
+from sentry import release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.snuba.sessions_v2 import SNUBA_LIMIT, InvalidField, InvalidParams, QueryDefinition
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -28,17 +28,6 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization) -> Response:
-        query_params = MultiValueDict(request.GET)
-
-        fields = set(query_params.getlist("field", []))
-        anr_fields = {"anr_rate()", "foreground_anr_rate()"}
-        if fields.intersection(anr_fields) and not features.has(
-            "organizations:anr-rate", organization, actor=request.user
-        ):
-            return Response(
-                {"detail": "This organization does not have the ANR rate feature"}, status=400
-            )
-
         def data_fn(offset: int, limit: int):
             with self.handle_query_errors():
                 with sentry_sdk.start_span(

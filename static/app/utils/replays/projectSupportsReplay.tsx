@@ -20,10 +20,14 @@ export function projectCanLinkToReplay(project: undefined | MinimalProject) {
     return false;
   }
 
-  return (
-    replayPlatforms.includes(project.platform) ||
-    backend.some(val => val === project.platform)
-  );
+  return replayPlatforms.includes(project.platform) || backend.includes(project.platform);
+}
+
+export function projectCanUpsellReplay(project: undefined | MinimalProject) {
+  if (!project || !project.platform) {
+    return false;
+  }
+  return replayPlatforms.includes(project.platform);
 }
 
 export default projectSupportsReplay;

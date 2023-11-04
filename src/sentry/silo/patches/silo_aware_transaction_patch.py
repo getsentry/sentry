@@ -47,7 +47,7 @@ def siloed_on_commit(func: Callable[..., Any], using: Optional[str] = None) -> N
 
 
 def validate_transaction_using_for_silo_mode(using: Optional[str]):
-    from sentry.models import ControlOutbox, RegionOutbox
+    from sentry.models.outbox import ControlOutbox, RegionOutbox
     from sentry.silo import SiloMode
 
     if using is None:

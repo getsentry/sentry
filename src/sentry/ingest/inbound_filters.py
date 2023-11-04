@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel
@@ -231,6 +231,7 @@ disabled. The options are:
 - `opera_pre_15` - Opera Version 14 and lower
 - `opera_mini_pre_8` - Opera Mini Version 8 and lower
 - `android_pre_4` - Android Version 3 and lower
+- 'edge_pre_79' - Edge Version 18 and lower (non Chromium based)
 """,
         choices=[
             "ie_pre_9",
@@ -241,6 +242,7 @@ disabled. The options are:
             "android_pre_4",
             "safari_pre_6",
             "opera_mini_pre_8",
+            "edge_pre_79",
         ],
         required=False,
     )

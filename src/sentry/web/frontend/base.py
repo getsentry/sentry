@@ -28,8 +28,10 @@ from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.middleware.placeholder import placeholder_get_response
-from sentry.models import Organization, OrganizationStatus, Project, Team, TeamStatus
 from sentry.models.avatars.base import AvatarBase
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
@@ -43,7 +45,7 @@ from sentry.silo.base import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import construct_link_with_query, is_valid_redirect
-from sentry.utils.http import absolute_uri, is_using_customer_domain
+from sentry.utils.http import absolute_uri, is_using_customer_domain, origin_from_request
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
@@ -755,4 +757,11 @@ class AvatarPhotoView(View):
 
         res = HttpResponse(photo_file, content_type="image/png")
         res["Cache-Control"] = FOREVER_CACHE
+
+        origin = origin_from_request(request)
+        if origin is None or origin == "null":
+            res["Access-Control-Allow-Origin"] = "*"
+        else:
+            res["Access-Control-Allow-Origin"] = origin
+
         return res

@@ -14,7 +14,8 @@ from sentry.api.helpers.source_map_helper import source_map_debug
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Project, SourceMapProcessingIssue
+from sentry.models.project import Project
+from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 
 
 class SourceMapProcessingIssueResponse(TypedDict):

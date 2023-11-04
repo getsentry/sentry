@@ -19,11 +19,14 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, OrganizationMapping, OrganizationStatus
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.signals import join_request_link_viewed, user_signup
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
     construct_link_with_query,
@@ -70,10 +73,16 @@ class AdditionalContext:
 additional_context = AdditionalContext()
 
 
-# TODO(hybridcloud) Make this view control silo only.
 @control_silo_view
 class AuthLoginView(BaseView):
     auth_required = False
+
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(20, 1),  # 20 GET requests per second per IP
+        }
+    }
 
     @method_decorator(never_cache)
     def handle(self, request: Request, *args, **kwargs) -> HttpResponse:

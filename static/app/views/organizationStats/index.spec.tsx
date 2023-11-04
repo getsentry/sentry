@@ -234,6 +234,7 @@ describe('OrganizationStats', function () {
 
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
+      organization: newOrg.organization,
     });
 
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
@@ -249,11 +250,13 @@ describe('OrganizationStats', function () {
       // TODO(Leander): Remove the following check once the project-stats flag is GA
       'project-stats',
     ];
+    OrganizationStore.onUpdate(newOrg.organization, {replace: true});
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
+      organization: newOrg.organization,
     });
 
-    expect(screen.getByText('My Projects')).toBeInTheDocument();
+    expect(screen.getByText('All Projects')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
@@ -288,7 +291,10 @@ describe('OrganizationStats', function () {
         organization={newOrg.organization}
         selection={newSelection}
       />,
-      {context: newOrg.routerContext}
+      {
+        context: newOrg.routerContext,
+        organization: newOrg.organization,
+      }
     );
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
 
@@ -330,7 +336,10 @@ describe('OrganizationStats', function () {
         organization={newOrg.organization}
         selection={newSelection}
       />,
-      {context: newOrg.routerContext}
+      {
+        context: newOrg.routerContext,
+        organization: newOrg.organization,
+      }
     );
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
@@ -363,6 +372,7 @@ describe('OrganizationStats', function () {
     ];
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
+      organization: newOrg.organization,
     });
     await userEvent.click(screen.getByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
@@ -387,7 +397,10 @@ describe('OrganizationStats', function () {
           organization={newOrg.organization}
           selection={newSelection}
         />,
-        {context: newOrg.routerContext}
+        {
+          context: newOrg.routerContext,
+          organization: newOrg.organization,
+        }
       );
       act(() => PageFiltersStore.updateProjects(selectedProject, []));
       expect(screen.queryByText('My Projects')).not.toBeInTheDocument();

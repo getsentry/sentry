@@ -11,7 +11,9 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     ProfileFileIOGroupType,
 )
-from sentry.models import Activity, Group, Project
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.rules.history.preview import (
     FREQUENCY_CONDITION_GROUP_LIMIT,
     PREVIEW_TIME_RANGE,
@@ -36,8 +38,8 @@ def get_hours(time: timedelta) -> int:
     return time.days * 24 + time.seconds // (60 * 60)
 
 
+@region_silo_test(stable=True)
 @freeze_time()
-@region_silo_test
 class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
@@ -526,8 +528,8 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert result[self.group.id] == prev_two_hour
 
 
+@region_silo_test(stable=True)
 @freeze_time()
-@region_silo_test
 class FrequencyConditionTest(
     TestCase, SnubaTestCase, OccurrenceTestMixin, PerformanceIssueTestCase
 ):
@@ -872,8 +874,8 @@ class FrequencyConditionTest(
         assert group.id not in result
 
 
+@region_silo_test(stable=True)
 @freeze_time()
-@region_silo_test
 class GetEventsTest(TestCase, SnubaTestCase):
     def test_get_first_seen(self):
         prev_hour = timezone.now() - timedelta(hours=1)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 from django.db.models import QuerySet
@@ -20,10 +20,10 @@ from sentry.db.models import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Group
+    from sentry.models.group import Group
 
 
-class GroupLinkManager(BaseManager):
+class GroupLinkManager(BaseManager["GroupLink"]):
     def get_group_issues(self, group: Group, external_issue_id: str | None = None) -> QuerySet:
         kwargs = dict(
             group=group,
@@ -74,7 +74,7 @@ class GroupLink(Model):
     data = JSONField()
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
 
-    objects = GroupLinkManager()
+    objects: ClassVar[GroupLinkManager] = GroupLinkManager()
 
     class Meta:
         app_label = "sentry"

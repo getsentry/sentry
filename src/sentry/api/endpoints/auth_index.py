@@ -19,7 +19,7 @@ from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth, json, metrics
@@ -187,7 +187,7 @@ class AuthIndexEndpoint(Endpoint):
 
         try:
             # Must use the real request object that Django knows about
-            auth.login(request._request, request.user)
+            auth.login(request._request, promote_request_rpc_user(request))
         except auth.AuthUserPasswordExpired:
             return Response(
                 {

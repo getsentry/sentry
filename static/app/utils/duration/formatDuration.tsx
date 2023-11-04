@@ -1,4 +1,4 @@
-import {Timespan, Unit} from 'sentry/utils/duration/types';
+import {Duration, Unit} from 'sentry/utils/duration/types';
 import {formatSecondsToClock} from 'sentry/utils/formatters';
 
 type Format =
@@ -17,6 +17,14 @@ type Format =
 
 type Args = {
   /**
+   * The timespan/duration to be displayed
+   * ie: "1000 miliseconds" would have the same output as "1 second"
+   *
+   * If it's coming from javascript `new Date` then 'ms'
+   * If it's from an SDK event, probably 'sec'
+   */
+  duration: Duration;
+  /**
    * The precision of the output.
    *
    * If the output precision is more granular than the input precision you might
@@ -34,14 +42,6 @@ type Args = {
    * ie: 10500 formatted as "count" + "sec" results in "10.5"
    */
   style: Format;
-  /**
-   * The timespan/duration to be displayed
-   * ie: "1000 miliseconds" would have the same output as "1 second"
-   *
-   * If it's coming from javascript `new Date` then 'ms'
-   * If it's from an SDK event, probably 'sec'
-   */
-  timespan: Timespan;
 };
 
 const PRECISION_FACTORS: Record<Unit, number> = {
@@ -61,7 +61,7 @@ const PRECISION_FACTORS: Record<Unit, number> = {
 export default function formatDuration({
   precision,
   style,
-  timespan: [value, unit],
+  duration: [value, unit],
 }: Args): string {
   const ms = normalizeTimespanToMs(value, unit);
   const valueInUnit = msToPrecision(ms, precision);

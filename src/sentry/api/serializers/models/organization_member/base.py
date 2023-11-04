@@ -6,8 +6,10 @@ from django.db.models import Prefetch, prefetch_related_objects
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.role import OrganizationRoleSerializer
-from sentry.models import ExternalActor, OrganizationMember, User
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -142,6 +144,7 @@ class OrganizationMemberSerializer(Serializer):
                 "sso:linked": bool(getattr(obj.flags, "sso:linked")),
                 "sso:invalid": bool(getattr(obj.flags, "sso:invalid")),
                 "member-limit:restricted": bool(getattr(obj.flags, "member-limit:restricted")),
+                "partnership:restricted": bool(getattr(obj.flags, "partnership:restricted")),
             },
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),

@@ -50,12 +50,15 @@ class UserIP(Model):
     ) -> Optional[int]:
         from sentry.models.user import User
 
-        # If we are merging users, ignore this import and use the merged user's data.
-        if pk_map.get_kind(get_model_name(User), self.user_id) == ImportKind.Existing:
-            return None
-
+        old_user_id = self.user_id
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
+            return None
+
+        # If we are merging users, ignore the imported IP and use the merged user's IP instead.
+        if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
+            userip = self.__class__.objects.get(user_id=self.user_id)
+            pk_map.insert(get_model_name(self), self.pk, userip.pk, ImportKind.Existing)
             return None
 
         # We'll recalculate the country codes from the IP when we call `log()` in
@@ -63,8 +66,8 @@ class UserIP(Model):
         self.country_code = None
         self.region_code = None
 
-        # Only preserve the submitted timing data in backup/restore scopes.
-        if scope not in {ImportScope.Config, ImportScope.Global}:
+        # Only preserve the submitted timing data in the backup/restore scope.
+        if scope != ImportScope.Global:
             self.first_seen = self.last_seen = timezone.now()
 
         return old_pk
@@ -84,7 +87,11 @@ class UserIP(Model):
         )
         userip.log(self.user, self.ip_address)
 
-        return (userip.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        # If we've entered this method at all, we can be sure that the `UserIP` was created as part
+        # of the import, since this is a new `User` (the "existing" `User` due to
+        # `--merge_users=true` case is handled in the `normalize_before_relocation_import()` method
+        # above).
+        return (userip.pk, ImportKind.Inserted)
 
 
 def _perform_log(user: User | RpcUser, ip_address: str):

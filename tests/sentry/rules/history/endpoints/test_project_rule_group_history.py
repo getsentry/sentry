@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from sentry.api.serializers import serialize
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.rules.history.endpoints.project_rule_group_history import RuleGroupHistorySerializer
@@ -13,7 +13,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class RuleGroupHistorySerializerTest(TestCase):
     def test(self):
         current_date = datetime.now()
@@ -29,8 +29,8 @@ class RuleGroupHistorySerializerTest(TestCase):
         ]
 
 
+@region_silo_test(stable=True)
 @freeze_time()
-@region_silo_test
 class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-group-history-index"
 

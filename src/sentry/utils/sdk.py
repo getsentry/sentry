@@ -4,11 +4,10 @@ import copy
 import inspect
 import logging
 import random
-from typing import TYPE_CHECKING, Any, List, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, List, Mapping, NamedTuple, Sequence
 
 import sentry_sdk
 from django.conf import settings
-from django.urls import resolve
 from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
@@ -20,6 +19,7 @@ from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
+from sentry.conf.types.sdk_config import SdkConfig
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
@@ -39,66 +39,6 @@ UNSAFE_FILES = (
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
-
-# URLs that should always be sampled
-SAMPLED_URL_NAMES = {
-    # codeowners
-    "sentry-api-0-project-codeowners": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-project-codeowners-details": settings.SAMPLED_DEFAULT_RATE,
-    # external teams POST, PUT, DELETE
-    "sentry-api-0-external-team": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-external-team-details": settings.SAMPLED_DEFAULT_RATE,
-    # external users POST, PUT, DELETE
-    "sentry-api-0-organization-external-user": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-external-user-details": settings.SAMPLED_DEFAULT_RATE,
-    # integration platform
-    "external-issues": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-sentry-app-installation-authorizations": settings.SAMPLED_DEFAULT_RATE,
-    # integrations
-    "sentry-extensions-jira-issue-hook": 0.05,
-    "sentry-extensions-vercel-webhook": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-extensions-vercel-generic-webhook": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-extensions-vercel-configure": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-extensions-vercel-ui-hook": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-group-integration-details": settings.SAMPLED_DEFAULT_RATE,
-    # notification platform
-    "sentry-api-0-user-notification-settings": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-team-notification-settings": settings.SAMPLED_DEFAULT_RATE,
-    # events
-    "sentry-api-0-organization-events": 1,
-    # releases
-    "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-release-details": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-project-releases": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-project-release-details": settings.SAMPLED_DEFAULT_RATE,
-    # stats
-    "sentry-api-0-organization-stats": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-stats-v2": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-project-stats": 0.05,  # lower rate because of high TPM
-    # debug files
-    "sentry-api-0-assemble-dif-files": 0.1,
-    # scim
-    "sentry-api-0-organization-scim-member-index": 0.1,
-    "sentry-api-0-organization-scim-member-details": 0.1,
-    "sentry-api-0-organization-scim-team-index": 0.1,
-    "sentry-api-0-organization-scim-team-details": 0.1,
-    # members
-    "sentry-api-0-organization-invite-request-index": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-invite-request-detail": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-join-request": settings.SAMPLED_DEFAULT_RATE,
-    # login
-    "sentry-login": 0.1,
-    "sentry-auth-organization": 0.2,
-    "sentry-auth-link-identity": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-auth-sso": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-logout": 0.1,
-    "sentry-register": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-2fa-dialog": settings.SAMPLED_DEFAULT_RATE,
-    # reprocessing
-    "sentry-api-0-issues-reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
-}
-if settings.ADDITIONAL_SAMPLED_URLS:
-    SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
 
 # Tasks not included here are not sampled
 # If a parent task schedules other tasks you should add it in here or the child
@@ -264,25 +204,8 @@ def traces_sampler(sampling_context):
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
 
-    # Resolve the url, and see if we want to set our own sampling
-    if "wsgi_environ" in sampling_context:
-        try:
-            match = resolve(sampling_context["wsgi_environ"].get("PATH_INFO"))
-            if match and match.url_name in SAMPLED_URL_NAMES:
-                return SAMPLED_URL_NAMES[match.url_name]
-        except Exception:
-            # On errors or 404, continue to default sampling decision
-            pass
-
     # Default to the sampling rate in settings
-    rate = float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
-
-    # multiply everything with the overall multiplier
-    # till we get to 100% client sampling throughout
-    if settings.SENTRY_MULTIPLIER_APM_SAMPLING:
-        rate = min(1, rate * settings.SENTRY_MULTIPLIER_APM_SAMPLING)
-
-    return rate
+    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
 def before_send_transaction(event, _):
@@ -309,13 +232,14 @@ def patch_transport_for_instrumentation(transport, transport_name):
     return transport
 
 
-def configure_sdk():
-    """
-    Setup and initialize the Sentry SDK.
-    """
-    assert sentry_sdk.Hub.main.client is None
+class Dsns(NamedTuple):
+    sentry4sentry: str | None
+    sentry_saas: str | None
+    experimental: str | None
 
-    sdk_options = dict(settings.SENTRY_SDK_CONFIG)
+
+def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
+    sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["send_client_reports"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
@@ -323,21 +247,34 @@ def configure_sdk():
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
 
+    # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
+    dsns = Dsns(
+        sentry4sentry=sdk_options.pop("dsn", None),
+        sentry_saas=sdk_options.pop("relay_dsn", None),
+        experimental=sdk_options.pop("experimental_dsn", None),
+    )
+
+    return sdk_options, dsns
+
+
+def configure_sdk():
+    """
+    Setup and initialize the Sentry SDK.
+    """
+    assert sentry_sdk.Hub.main.client is None
+
+    sdk_options, dsns = _get_sdk_options()
+
     internal_project_key = get_project_key()
 
-    # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
-    sentry4sentry_dsn = sdk_options.pop("dsn", None)
-    sentry_saas_dsn = sdk_options.pop("relay_dsn", None)
-    experimental_dsn = sdk_options.pop("experimental_dsn", None)
-
-    if sentry4sentry_dsn:
-        transport = make_transport(get_options(dsn=sentry4sentry_dsn, **sdk_options))
+    if dsns.sentry4sentry:
+        transport = make_transport(get_options(dsn=dsns.sentry4sentry, **sdk_options))
         sentry4sentry_transport = patch_transport_for_instrumentation(transport, "upstream")
     else:
         sentry4sentry_transport = None
 
-    if sentry_saas_dsn:
-        transport = make_transport(get_options(dsn=sentry_saas_dsn, **sdk_options))
+    if dsns.sentry_saas:
+        transport = make_transport(get_options(dsn=dsns.sentry_saas, **sdk_options))
         sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     elif settings.IS_DEV and not settings.SENTRY_USE_RELAY:
         sentry_saas_transport = None
@@ -347,8 +284,8 @@ def configure_sdk():
     else:
         sentry_saas_transport = None
 
-    if experimental_dsn:
-        transport = make_transport(get_options(dsn=experimental_dsn, **sdk_options))
+    if dsns.experimental:
+        transport = make_transport(get_options(dsn=dsns.experimental, **sdk_options))
         experimental_transport = patch_transport_for_instrumentation(transport, "experimental")
     else:
         experimental_transport = None
@@ -407,15 +344,20 @@ def configure_sdk():
                 # if install_id:
                 #     event.setdefault('tags', {})['install-id'] = install_id
                 s4s_args = args
-                if method_name == "capture_envelope":
+                # We want to control whether we want to send metrics at the s4s upstream.
+                if (
+                    not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
+                    and method_name == "capture_envelope"
+                ):
                     args_list = list(args)
                     envelope = args_list[0]
-                    # Do not forward metrics to s4s
+                    # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
                     safe_items = [x for x in envelope.items if x.data_category != "statsd"]
                     if len(safe_items) != len(envelope.items):
                         relay_envelope = copy.copy(envelope)
                         relay_envelope.items = safe_items
-                        s4s_args = [relay_envelope, *args_list[1:]]
+                        s4s_args = (relay_envelope, *args_list[1:])
+
                 getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
@@ -425,7 +367,7 @@ def configure_sdk():
                     envelope = args_list[0]
                     relay_envelope = copy.copy(envelope)
                     relay_envelope.items = envelope.items.copy()
-                    args = [relay_envelope, *args_list[1:]]
+                    args = (relay_envelope, *args_list[1:])
 
                 if is_current_event_safe():
                     metrics.incr("internal.captured.events.relay")
@@ -479,7 +421,9 @@ def configure_sdk():
     exclude_beat_tasks = [
         "flush-buffers",
         "sync-options",
+        "sync-options-control",
         "schedule-digests",
+        "check-symbolicator-lpq-project-eligibility",  # defined in getsentry
     ]
 
     # turn on minimetrics
@@ -491,7 +435,7 @@ def configure_sdk():
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
-        dsn=sentry4sentry_dsn,
+        dsn=dsns.sentry4sentry,
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
@@ -604,11 +548,14 @@ def get_transaction_name_from_request(request: Request) -> str:
     transaction_name = request.path_info
     try:
         # Note: In spite of the name, the legacy resolver is still what's used in the python SDK
-        transaction_name = LEGACY_RESOLVER.resolve(
+        resolved_transaction_name = LEGACY_RESOLVER.resolve(
             request.path_info, urlconf=getattr(request, "urlconf", None)
         )
     except Exception:
         pass
+    else:
+        if resolved_transaction_name is not None:
+            transaction_name = resolved_transaction_name
 
     return transaction_name
 
@@ -631,7 +578,8 @@ def check_current_scope_transaction(
         transaction_from_request = get_transaction_name_from_request(request)
 
         if (
-            scope._transaction != transaction_from_request
+            scope._transaction is not None
+            and scope._transaction != transaction_from_request
             and scope._transaction_info.get("source") != "custom"
         ):
             return {

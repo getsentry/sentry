@@ -24,8 +24,10 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.mediators import project_rules
-from sentry.models import Rule, RuleActivity, RuleActivityType, Team, User
+from sentry.mediators.project_rules.creator import Creator
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
@@ -289,20 +291,6 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
-**Create an Azure DevOps work item**
-- `integration` - The integration ID.
-- `project` - The ID of the Azure DevOps project.
-- `work_item_type` - The type of work item to create.
-- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the work item as objects.
-```json
-{
-    "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
-    "integration": 294838,
-    "project": "0389485",
-    "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
-}
-```
-
 **Create a Jira Ticket**
 - `integration` - The integration ID associated with Jira.
 - `project` - The ID of the Jira project.
@@ -314,6 +302,53 @@ A list of actions that take place when all required conditions and filters for t
     "integration": 321424,
     "project": "349719"
     "issueType": "1"
+}
+```
+
+**Create a Jira Server Ticket**
+- `integration` - The integration ID associated with Jira Server.
+- `project` - The ID of the Jira Server project.
+- `issuetype` - The ID of the type of issue that the ticket should be created as.
+- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
+```json
+{
+    "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+    "integration": 321424,
+    "project": "349719"
+    "issueType": "1"
+}
+```
+
+**Create a GitHub Issue**
+- `integration` - The integration ID associated with GitHub.
+- `repo` - The name of the repository to create the issue in.
+- `title` - The title of the issue.
+- `body` (optional) - The contents of the issue.
+- `assignee` (optional) - The GitHub user to assign the issue to.
+- `labels` (optional) - A list of labels to assign to the issue.
+```json
+{
+    "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+    "integration": 93749,
+    "repo": default,
+    "title": "My Test Issue",
+    "assignee": "Baxter the Hacker",
+    "labels": ["bug", "p1"]
+    ""
+}
+```
+
+**Create an Azure DevOps work item**
+- `integration` - The integration ID.
+- `project` - The ID of the Azure DevOps project.
+- `work_item_type` - The type of work item to create.
+- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the work item as objects.
+```json
+{
+    "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+    "integration": 294838,
+    "project": "0389485",
+    "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
 }
 ```
 """,
@@ -441,7 +476,7 @@ A list of filters that determine if a rule fires after the necessary conditions 
     )
 
 
-@extend_schema(tags=["Events"])
+@extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
     publish_status = {
@@ -616,7 +651,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
             kwargs.get("actions")
         )
-        rule = project_rules.Creator.run(request=request, **kwargs)
+        rule = Creator.run(request=request, **kwargs)
 
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value

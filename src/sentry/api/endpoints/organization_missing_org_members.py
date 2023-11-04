@@ -20,11 +20,10 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.serializers import Serializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
-from sentry.models import Repository
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
-from sentry.search.utils import tokenize_query
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 
 if TYPE_CHECKING:
@@ -71,15 +70,27 @@ def _format_external_id(external_id: str | None) -> str | None:
 
 
 def _get_missing_organization_members(
-    organization: Organization, provider: str, integration_ids: Sequence[int]
+    organization: Organization,
+    provider: str,
+    integration_ids: Sequence[int],
+    shared_domain: str | None,
 ) -> QuerySet[CommitAuthor___commit__count]:
-    member_emails = set(
+    member_emails = list(
         organization.member_set.exclude(email=None).values_list("email", flat=True)
-    ) | set(organization.member_set.exclude(user_email=None).values_list("user_email", flat=True))
+    ) + list(organization.member_set.exclude(user_email=None).values_list("user_email", flat=True))
 
     nonmember_authors = CommitAuthor.objects.filter(organization_id=organization.id).exclude(
         Q(email__in=member_emails) | Q(external_id=None)
     )
+
+    if shared_domain:
+        nonmember_authors = nonmember_authors.filter(email__endswith=shared_domain)
+    else:
+        for filtered_email in FILTERED_EMAIL_DOMAINS:
+            nonmember_authors = nonmember_authors.exclude(email__endswith=filtered_email)
+
+    for filtered_character in FILTERED_CHARACTERS:
+        nonmember_authors = nonmember_authors.exclude(email__icontains=filtered_character)
 
     org_repos = Repository.objects.filter(
         provider="integrations:" + provider,
@@ -88,7 +99,7 @@ def _get_missing_organization_members(
     ).values_list("id", flat=True)
 
     recent_commits = Commit.objects.filter(
-        repository_id__in=set(org_repos), date_added__gte=timezone.now() - timedelta(days=30)
+        repository_id__in=org_repos, date_added__gte=timezone.now() - timedelta(days=30)
     ).values_list("id", flat=True)
 
     return (
@@ -161,27 +172,8 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
                 continue
 
             queryset = _get_missing_organization_members(
-                organization, integration_provider, integration_ids
+                organization, integration_provider, integration_ids, shared_domain
             )
-
-            if shared_domain:
-                queryset = queryset.filter(email__endswith=shared_domain)
-            else:
-                for filtered_email in FILTERED_EMAIL_DOMAINS:
-                    queryset = queryset.exclude(email__endswith=filtered_email)
-
-            for filtered_character in FILTERED_CHARACTERS:
-                queryset = queryset.exclude(email__icontains=filtered_character)
-
-            if queryset.exists():
-                query = request.GET.get("query")
-                if query:
-                    tokens = tokenize_query(query)
-                    if "query" in tokens:
-                        query_value = " ".join(tokens["query"])
-                        queryset = queryset.filter(
-                            Q(email__icontains=query_value) | Q(external_id__icontains=query_value)
-                        )
 
             missing_members_for_integration = {
                 "integration": integration_provider,

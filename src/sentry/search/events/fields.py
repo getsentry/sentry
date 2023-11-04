@@ -1,7 +1,7 @@
 import re
 from collections import namedtuple
 from copy import copy, deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, List, Mapping, Match, NamedTuple, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
@@ -10,10 +10,10 @@ from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
 from sentry.search.events.constants import (
@@ -942,6 +942,27 @@ class IntervalDefault(NumberRange):
 
         interval = (params["end"] - params["start"]).total_seconds()
         return int(interval)
+
+
+class TimestampArg(FunctionArg):
+    def __init__(self, name: str):
+        super().__init__(name)
+
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+    ) -> Optional[float]:
+        if not params or not params.get("start") or not params.get("end"):
+            raise InvalidFunctionArgument("function called without date range")
+
+        try:
+            ts = datetime.fromtimestamp(int(value), tz=timezone.utc)
+        except (OverflowError, ValueError):
+            raise InvalidFunctionArgument(f"{value} is not a timestamp")
+
+        if ts < params["start"] or ts > params["end"]:
+            raise InvalidFunctionArgument("timestamp outside date range")
+
+        return ts
 
 
 class ColumnArg(FunctionArg):
@@ -2171,5 +2192,5 @@ class MetricsFunction(SnQLFunction):
 
 class FunctionDetails(NamedTuple):
     field: str
-    instance: SnQLFunction
+    instance: DiscoverFunction
     arguments: Mapping[str, NormalizedArg]

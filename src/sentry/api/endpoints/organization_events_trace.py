@@ -32,7 +32,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models import Group, Organization
+from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover

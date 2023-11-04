@@ -32,21 +32,18 @@ def merge_groups(
     **kwargs,
 ):
     # TODO(mattrobenolt): Write tests for all of this
-    from sentry.models import (
-        Activity,
-        Environment,
-        EventAttachment,
-        Group,
-        GroupAssignee,
-        GroupEnvironment,
-        GroupHash,
-        GroupMeta,
-        GroupRedirect,
-        GroupRuleStatus,
-        GroupSubscription,
-        UserReport,
-        get_group_with_redirect,
-    )
+    from sentry.models.activity import Activity
+    from sentry.models.environment import Environment
+    from sentry.models.eventattachment import EventAttachment
+    from sentry.models.group import Group, get_group_with_redirect
+    from sentry.models.groupassignee import GroupAssignee
+    from sentry.models.groupenvironment import GroupEnvironment
+    from sentry.models.grouphash import GroupHash
+    from sentry.models.groupmeta import GroupMeta
+    from sentry.models.groupredirect import GroupRedirect
+    from sentry.models.grouprulestatus import GroupRuleStatus
+    from sentry.models.groupsubscription import GroupSubscription
+    from sentry.models.userreport import UserReport
 
     if not (from_object_ids and to_object_id):
         logger.error("group.malformed.missing_params", extra={"transaction_id": transaction_id})
@@ -196,7 +193,7 @@ def merge_groups(
 
 
 def _get_event_environment(event, project, cache):
-    from sentry.models import Environment
+    from sentry.models.environment import Environment
 
     environment_name = event.get_tag("environment")
 

@@ -28,7 +28,7 @@ from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
@@ -203,11 +203,18 @@ def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List
             EntityKey.MetricsSets,
             EntityKey.MetricsDistributions,
         }
+    elif use_case_id == UseCaseID.TRANSACTIONS:
+        entity_keys = {
+            EntityKey.GenericMetricsCounters,
+            EntityKey.GenericMetricsSets,
+            EntityKey.GenericMetricsDistributions,
+        }
     else:
         entity_keys = {
             EntityKey.GenericMetricsCounters,
             EntityKey.GenericMetricsSets,
             EntityKey.GenericMetricsDistributions,
+            EntityKey.GenericMetricsGauges,
         }
 
     stored_metrics = []

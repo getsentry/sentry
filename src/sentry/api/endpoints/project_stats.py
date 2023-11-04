@@ -7,7 +7,7 @@ from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.tsdb.base import TSDBModel
 
 
@@ -67,7 +67,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             except KeyError:
                 raise ValueError("Invalid stat: %s" % stat)
 
-        data = tsdb.get_range(
+        data = tsdb.backend.get_range(
             model=stat_model,
             keys=[project.id],
             **self._parse_args(request, **query_kwargs),

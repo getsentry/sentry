@@ -46,6 +46,7 @@ export function Organization(
     avatar: {
       avatarType: 'default',
       avatarUuid: null,
+      avatarUrl: null,
     },
     codecovAccess: false,
     dataScrubber: false,

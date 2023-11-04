@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.urls import reverse
 
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 from sentry.testutils.cases import APITestCase
 
 

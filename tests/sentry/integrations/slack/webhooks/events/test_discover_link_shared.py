@@ -5,7 +5,7 @@ from urllib.parse import parse_qsl
 import responses
 
 from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coercer
-from sentry.models import Identity, IdentityProvider, IdentityStatus
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.silo import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json

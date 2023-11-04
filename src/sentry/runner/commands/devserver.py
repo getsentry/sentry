@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 import threading
 import types
@@ -56,22 +57,40 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
 
 
 @click.command()
-@click.option("--reload/--no-reload", default=True, help="Autoreloading of python files.")
 @click.option(
-    "--watchers/--no-watchers", default=True, help="Watch static files and recompile on changes."
+    "--reload/--no-reload",
+    default=True,
+    help="Autoreloading of python files.",
 )
 @click.option(
-    "--workers/--no-workers", default=False, help="Run celery workers (excluding celerybeat)."
+    "--watchers/--no-watchers",
+    default=True,
+    help="Watch static files and recompile on changes.",
 )
-@click.option("--celery-beat/--no-celery-beat", default=False, help="Run celerybeat workers.")
-@click.option("--ingest/--no-ingest", default=False, help="Run ingest services (including Relay).")
+@click.option(
+    "--workers/--no-workers",
+    default=False,
+    help="Run celery workers (excluding celerybeat).",
+)
+@click.option(
+    "--celery-beat/--no-celery-beat",
+    default=False,
+    help="Run celerybeat workers.",
+)
+@click.option(
+    "--ingest/--no-ingest",
+    default=False,
+    help="Run ingest services (including Relay).",
+)
 @click.option(
     "--occurrence-ingest/--no-occurrence-ingest",
     default=False,
     help="Run ingest services for occurrences.",
 )
 @click.option(
-    "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
+    "--prefix/--no-prefix",
+    default=True,
+    help="Show the service name prefix and timestamp",
 )
 @click.option(
     "--dev-consumer/--no-dev-consumer",
@@ -79,9 +98,15 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     help="Fold multiple kafka consumers into one process using 'sentry run dev-consumer'.",
 )
 @click.option(
-    "--pretty/--no-pretty", default=False, help="Stylize various outputs from the devserver"
+    "--pretty/--no-pretty",
+    default=False,
+    help="Stylize various outputs from the devserver",
 )
-@click.option("--environment", default="development", help="The environment name.")
+@click.option(
+    "--environment",
+    default="development",
+    help="The environment name.",
+)
 @click.option(
     "--debug-server/--no-debug-server",
     default=False,
@@ -99,7 +124,11 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     help="The hostname that clients will use. Useful for ngrok workflows eg `--client-hostname=alice.ngrok.io`",
 )
 @click.argument(
-    "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
+    "bind",
+    default=None,
+    metavar="ADDRESS",
+    envvar="SENTRY_DEVSERVER_BIND",
+    required=False,
 )
 @log_options()  # needs this decorator to be typed
 @configuration  # needs this decorator to be typed
@@ -300,6 +329,7 @@ def devserver(
             kafka_consumers.add("ingest-attachments")
             kafka_consumers.add("ingest-transactions")
             kafka_consumers.add("ingest-monitors")
+            kafka_consumers.add("ingest-spans")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
@@ -384,6 +414,18 @@ Alternatively, run without --workers.
         uwsgi_overrides["log-format"] = "%(method) %(status) %(uri) %(proto) %(size)"
     else:
         uwsgi_overrides["log-format"] = "[%(ltime)] %(method) %(status) %(uri) %(proto) %(size)"
+
+    # Prevent logging of requests to specified endpoints.
+    #
+    # TODO: According to the docs, the final `log-drain` value is evaluated as a regex (and indeed,
+    # joining the options with `|` works), but no amount of escaping, not escaping, escaping the
+    # escaping, using raw strings, or any combo thereof seems to actually work if you include a
+    # regex pattern string in the list. Docs are here:
+    # https://uwsgi-docs.readthedocs.io/en/latest/Options.html?highlight=log-format#log-drain
+    if settings.DEVSERVER_REQUEST_LOG_EXCLUDES:
+        filters = settings.DEVSERVER_REQUEST_LOG_EXCLUDES
+        filter_pattern = "|".join(map(lambda s: re.escape(s), filters))
+        uwsgi_overrides["log-drain"] = filter_pattern
 
     server_port = os.environ["SENTRY_BACKEND_PORT"]
     if settings.USE_SILOS:

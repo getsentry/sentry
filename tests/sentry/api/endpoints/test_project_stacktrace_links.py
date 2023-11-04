@@ -4,7 +4,8 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_configs
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase

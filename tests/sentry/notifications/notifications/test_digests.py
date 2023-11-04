@@ -12,8 +12,8 @@ from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
-from sentry.models import Rule
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -120,7 +120,6 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             alert_id=self.rule.id,
             project_id=self.project.id,
             organization_id=self.organization.id,
-            actor_id=ANY,
             id=ANY,
             actor_type="User",
             group_id=None,

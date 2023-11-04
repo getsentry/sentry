@@ -9,13 +9,14 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.models import Environment, NotificationSetting
+from sentry.models.environment import Environment
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.notifications.helpers import should_use_notifications_v2
-from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     NotificationSettingEnum,
     NotificationSettingTypes,
+    UnsubscribeContext,
     get_notification_setting_type_name,
 )
 from sentry.notifications.utils.actions import MessageAction
@@ -24,7 +25,8 @@ from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
 
 # TODO: add abstractmethod decorators
@@ -119,14 +121,13 @@ class BaseNotification(abc.ABC):
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
 
-    def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
+    def get_unsubscribe_key(self) -> UnsubscribeContext | None:
         return None
 
     def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
         group = getattr(self, "group", None)
         params = {
             "organization_id": self.organization.id,
-            "actor_id": recipient.actor_id,
             "id": recipient.id,
             "actor_type": recipient.actor_type,
             "group_id": group.id if group else None,
@@ -232,18 +233,19 @@ class BaseNotification(abc.ABC):
     def filter_to_accepting_recipients(
         self, recipients: Iterable[RpcActor]
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+        from sentry.notifications.utils.participants import get_notification_recipients_v2
+
         setting_type = (
             NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[self.notification_setting_type])
             if self.notification_setting_type
             else NotificationSettingEnum.ISSUE_ALERTS
         )
         if should_use_notifications_v2(self.organization):
-            controller = NotificationController(
+            return get_notification_recipients_v2(
                 recipients=recipients,
-                organization_id=self.organization.id,
                 type=setting_type,
+                organization_id=self.organization.id,
             )
-            return controller.get_notification_recipients(type=setting_type)
 
         accepting_recipients: Mapping[
             ExternalProviders, Iterable[RpcActor]

@@ -34,7 +34,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.api.event_search import SearchFilter
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.types import QueryBuilderConfig, WhereType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -76,10 +76,10 @@ from sentry.snuba.metrics.utils import (
     FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
     TS_COL_GROUP,
-    TS_COL_QUERY,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_num_intervals,
+    get_timestamp_column_name,
     require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
@@ -111,7 +111,6 @@ def _strip_project_id(condition: Condition) -> Optional[Condition]:
 
 
 def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
-
     if allow_mri:
         mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
         if mri_matches:
@@ -130,7 +129,7 @@ def parse_mri_field(field: str, allow_private: bool = False) -> MetricField:
         operation = None
         mri = field
 
-    return MetricField(operation, mri, alias=mri, allow_private=allow_private)
+    return MetricField(op=operation, metric_mri=mri, allow_private=allow_private)
 
 
 def parse_public_field(field: str) -> MetricField:
@@ -501,7 +500,7 @@ class QueryDefinition:
             parse_field(
                 key,
                 allow_mri=allow_mri,
-                allow_private=bool(query_params.get("allowPrivate", False)),
+                allow_private=query_params.get("allowPrivate") == "true",
             )
             for key in query_params.getlist("field", [])
         ]
@@ -753,6 +752,7 @@ class SnubaQueryBuilder:
         "generic_metrics_counters",
         "generic_metrics_distributions",
         "generic_metrics_sets",
+        "generic_metrics_gauges",
     }
 
     def __init__(
@@ -871,10 +871,7 @@ class SnubaQueryBuilder:
             Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
         ]
 
-        if self._metrics_query.start:
-            where.append(Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start))
-        if self._metrics_query.end:
-            where.append(Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end))
+        where += self._build_timeframe()
 
         if not self._metrics_query.where:
             return where
@@ -913,6 +910,23 @@ class SnubaQueryBuilder:
         filter_ = resolve_tags(self._use_case_id, self._org_id, snuba_conditions, self._projects)
         if filter_:
             where.extend(filter_)
+
+        return where
+
+    def _build_timeframe(self) -> List[Union[BooleanCondition, Condition]]:
+        """
+        Builds the timeframe of the query, comprehending the `start` and `end` intervals.
+        """
+        where = []
+
+        if self._metrics_query.start:
+            where.append(
+                Condition(Column(get_timestamp_column_name()), Op.GTE, self._metrics_query.start)
+            )
+        if self._metrics_query.end:
+            where.append(
+                Condition(Column(get_timestamp_column_name()), Op.LT, self._metrics_query.end)
+            )
 
         return where
 
@@ -1032,7 +1046,7 @@ class SnubaQueryBuilder:
         return Function(
             function="toStartOfInterval",
             parameters=[
-                Column(name="timestamp"),
+                Column(name=get_timestamp_column_name()),
                 Function(
                     function="toIntervalSecond",
                     parameters=[interval],

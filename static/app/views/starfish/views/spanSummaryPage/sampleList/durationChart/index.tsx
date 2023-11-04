@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
@@ -8,7 +8,10 @@ import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {isNearAverage} from 'sentry/views/starfish/components/samplesTable/common';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {
+  SpanSummaryQueryFilters,
+  useSpanMetrics,
+} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -22,14 +25,38 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  release?: string;
   spanDescription?: string;
+  transactionMethod?: string;
 };
+
+export function getSampleSymbol(
+  duration: number,
+  compareToDuration: number,
+  theme: Theme
+): {color: string; symbol: string} {
+  if (isNearAverage(duration, compareToDuration)) {
+    return {
+      symbol: crossIconPath,
+      color: theme.gray500,
+    };
+  }
+
+  return duration > compareToDuration
+    ? {
+        symbol: upwardPlayIconPath,
+        color: theme.red300,
+      }
+    : {
+        symbol: downwardPlayIconPath,
+        color: theme.green300,
+      };
+}
 
 function DurationChart({
   groupId,
@@ -39,32 +66,23 @@ function DurationChart({
   onMouseOverSample,
   highlightedSpanId,
   transactionMethod,
+  release,
 }: Props) {
   const theme = useTheme();
   const {setPageError} = usePageError();
   const pageFilter = usePageFilters();
 
-  const getSampleSymbol = (
-    duration: number,
-    compareToDuration: number
-  ): {color: string; symbol: string} => {
-    if (isNearAverage(duration, compareToDuration)) {
-      return {
-        symbol: crossIconPath,
-        color: theme.gray500,
-      };
-    }
-
-    return duration > compareToDuration
-      ? {
-          symbol: upwardPlayIconPath,
-          color: theme.red300,
-        }
-      : {
-          symbol: downwardPlayIconPath,
-          color: theme.green300,
-        };
+  const filters: SpanSummaryQueryFilters = {
+    transactionName,
   };
+
+  if (transactionMethod) {
+    filters['transaction.method'] = transactionMethod;
+  }
+
+  if (release) {
+    filters.release = release;
+  }
 
   const {
     isLoading,
@@ -72,14 +90,14 @@ function DurationChart({
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
     groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+    filters,
     [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );
 
   const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
     groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+    filters,
     [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
     'api.starfish.span-summary-panel-samples-table-avg'
   );
@@ -94,6 +112,7 @@ function DurationChart({
     groupId,
     transactionName,
     transactionMethod,
+    release,
   });
 
   const baselineAvgSeries: Series = {
@@ -108,7 +127,7 @@ function DurationChart({
       emphasis: {disabled: true},
       label: {
         position: 'insideEndBottom',
-        formatter: () => 'Average',
+        formatter: () => `Average`,
         fontSize: 14,
         color: theme.chartLabel,
         backgroundColor: theme.chartOther,
@@ -123,7 +142,7 @@ function DurationChart({
       'transaction.id': transaction_id,
       span_id,
     }) => {
-      const {symbol, color} = getSampleSymbol(duration, avg);
+      const {symbol, color} = getSampleSymbol(duration, avg, theme);
       return {
         data: [
           {

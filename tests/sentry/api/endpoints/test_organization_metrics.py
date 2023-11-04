@@ -4,7 +4,7 @@ from functools import partial
 import pytest
 from django.urls import reverse
 
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo import SiloMode
@@ -31,8 +31,8 @@ MOCKED_DERIVED_METRICS.update(
                 SessionMRI.ERRORED_SET.value,
             ],
             unit="percentage",
-            snql=lambda *args, entity, metric_ids, alias=None: complement(
-                division_float(*args, entity, metric_ids), alias="crash_free_fake"
+            snql=lambda crashed_count, errored_set, entity, metric_ids, alias=None: complement(
+                division_float(crashed_count, errored_set, alias=alias), alias="crash_free_fake"
             ),
         )
     }
@@ -44,7 +44,9 @@ def mocked_mri_resolver(metric_names, mri_func):
 
 
 def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+    ret = indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+    assert ret is not None
+    return ret
 
 
 perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
@@ -67,7 +69,6 @@ class OrganizationMetricsPermissionTest(APITestCase):
         return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
 
     def test_permissions(self):
-
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=[])
 

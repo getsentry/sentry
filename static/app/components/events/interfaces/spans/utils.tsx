@@ -244,8 +244,10 @@ export const boundsGenerator = (bounds: {
   };
 };
 
-export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
-  const rootSpan: RawSpanType = {
+export function generateRootSpan(
+  trace: ParsedTraceType
+): RawSpanType | AggregateSpanType {
+  const rootSpan = {
     trace_id: trace.traceID,
     span_id: trace.rootSpanID,
     parent_span_id: trace.parentSpanID,
@@ -257,6 +259,9 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     status: trace.rootSpanStatus,
     hash: trace.hash,
     exclusive_time: trace.exclusiveTime,
+    count: trace.count,
+    frequency: trace.frequency,
+    total: trace.total,
   };
 
   return rootSpan;
@@ -473,6 +478,9 @@ export function parseTrace(
   const rootSpanStatus = traceContext && traceContext.status;
   const hash = traceContext && traceContext.hash;
   const exclusiveTime = traceContext && traceContext.exclusive_time;
+  const count = traceContext && traceContext.count;
+  const frequency = traceContext && traceContext.frequency;
+  const total = traceContext && traceContext.total;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -488,6 +496,9 @@ export function parseTrace(
       description,
       hash,
       exclusiveTime,
+      count,
+      frequency,
+      total,
     };
   }
 
@@ -516,6 +527,9 @@ export function parseTrace(
     description,
     hash,
     exclusiveTime,
+    count,
+    frequency,
+    total,
   };
 
   const reduced: ParsedTraceType = spans.reduce((acc, inputSpan) => {
@@ -654,6 +668,7 @@ export function isEventFromBrowserJavaScriptSDK(
     'sentry.javascript.remix',
     'sentry.javascript.svelte',
     'sentry.javascript.sveltekit',
+    'sentry.javascript.astro',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -961,15 +976,24 @@ export function getSpanGroupBounds(
 }
 
 export function getCumulativeAlertLevelFromErrors(
-  errors?: Pick<TraceError, 'level'>[]
+  errors?: Pick<TraceError, 'level' | 'type'>[]
 ): keyof Theme['alert'] | undefined {
   const highestErrorLevel = maxBy(errors || [], error => ERROR_LEVEL_WEIGHTS[error.level])
     ?.level;
 
+  if (errors?.some(isErrorPerformanceError)) {
+    return 'error';
+  }
+
   if (!highestErrorLevel) {
     return undefined;
   }
+
   return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
+}
+
+export function isErrorPerformanceError(error: {type?: number}): boolean {
+  return !!error.type && error.type >= 1000 && error.type < 2000;
 }
 
 // Maps the known error levels to an Alert component types

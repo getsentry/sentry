@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.models.grouphistory import (
     GroupHistoryStatus,
     bulk_record_group_history,

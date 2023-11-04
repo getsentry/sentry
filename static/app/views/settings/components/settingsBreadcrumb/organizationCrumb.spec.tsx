@@ -172,9 +172,8 @@ describe('OrganizationCrumb', function () {
     renderComponent({routes, route});
     await switchOrganization();
 
-    // The double slug doesn't actually show up as we have more routing context present.
     expect(window.location.assign).toHaveBeenCalledWith(
-      'https://acme.sentry.io/settings/acme/api-keys/'
+      'https://acme.sentry.io/settings/api-keys/'
     );
   });
 });

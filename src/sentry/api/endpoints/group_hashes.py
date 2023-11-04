@@ -9,7 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.models import GroupHash
+from sentry.models.grouphash import GroupHash
 from sentry.tasks.unmerge import unmerge
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_query

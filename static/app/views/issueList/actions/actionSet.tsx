@@ -209,23 +209,6 @@ function ActionSet({
           {t('Unarchive')}
         </Button>
       ) : null}
-      {hasEscalatingIssuesUi ? (
-        <GuideAnchor
-          target="issue_stream_archive_button"
-          position="bottom"
-          disabled={ignoreDisabled}
-        >
-          <ArchiveActions
-            onUpdate={onUpdate}
-            shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-            confirmMessage={() =>
-              confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
-            }
-            confirmLabel={label('archive')}
-            disabled={ignoreDisabled}
-          />
-        </GuideAnchor>
-      ) : null}
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -266,7 +249,23 @@ function ActionSet({
           }}
         />
       )}
-      {hasEscalatingIssuesUi ? null : (
+      {hasEscalatingIssuesUi ? (
+        <GuideAnchor
+          target="issue_stream_archive_button"
+          position="bottom"
+          disabled={ignoreDisabled}
+        >
+          <ArchiveActions
+            onUpdate={onUpdate}
+            shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+            confirmMessage={() =>
+              confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+            }
+            confirmLabel={label('archive')}
+            disabled={ignoreDisabled}
+          />
+        </GuideAnchor>
+      ) : (
         <IgnoreActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}

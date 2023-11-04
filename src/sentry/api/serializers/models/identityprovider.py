@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import IdentityProvider
+from sentry.models.identity import IdentityProvider
 
 
 @register(IdentityProvider)

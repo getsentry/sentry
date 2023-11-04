@@ -1,4 +1,5 @@
-from sentry.models import EventError, SourceMapProcessingIssue
+from sentry.models.eventerror import EventError
+from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 
 
 class ActionPriority:
@@ -9,6 +10,7 @@ class ActionPriority:
 
 
 sourcemap_sdks = [
+    "sentry.javascript.astro",
     "sentry.javascript.browser",
     "sentry.javascript.node",
     "sentry.javascript.react",

@@ -11,7 +11,7 @@ from sentry.dynamic_sampling.rules.utils import (
     RuleType,
     apply_dynamic_factor,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 
 
 class BoostLatestReleasesBias(Bias):

@@ -6,6 +6,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IssueOwnership, Organization, Project} from 'sentry/types';
 import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
@@ -17,7 +19,6 @@ import {
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
-import {REAPPEARED_EVENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {AlertRuleComparisonType} from '../metric/types';
 
@@ -60,7 +61,7 @@ const createSelectOptions = (
   value: IssueAlertRuleActionTemplate;
 }> => {
   return actions.map(node => {
-    if (node.id.includes('NotifyEmailAction')) {
+    if (node.id === IssueAlertActionType.NOTIFY_EMAIL) {
       let label = t('Issue Owners, Team, or Member');
       if (hasStreamlineTargeting(organization)) {
         label = t('Suggested Assignees, Team, or Member');
@@ -72,7 +73,7 @@ const createSelectOptions = (
     }
 
     if (
-      node.id === REAPPEARED_EVENT_CONDITION &&
+      node.id === IssueAlertConditionType.REAPPEARED_EVENT &&
       organization.features.includes('escalating-issues')
     ) {
       const label = t('The issue changes state from archived to escalating');

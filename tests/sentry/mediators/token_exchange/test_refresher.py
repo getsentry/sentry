@@ -4,7 +4,10 @@ import pytest
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange.refresher import Refresher
-from sentry.models import ApiApplication, ApiToken, SentryApp, SentryAppInstallation
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test

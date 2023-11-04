@@ -6,7 +6,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment, Group
+from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.tsdb.base import TSDBModel
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -41,7 +42,7 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         if not group_ids:
             return Response(status=204)
 
-        data = tsdb.get_range(
+        data = tsdb.backend.get_range(
             model=TSDBModel.group,
             keys=group_ids,
             **self._parse_args(request, environment_id),

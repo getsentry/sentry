@@ -2,7 +2,9 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.issues.escalating import manage_issue_states
-from sentry.models import Group, GroupInboxReason, GroupSnooze, GroupStatus
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInboxReason
+from sentry.models.groupsnooze import GroupSnooze
 from sentry.signals import issue_unignored
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task

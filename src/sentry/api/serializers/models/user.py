@@ -27,19 +27,17 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    Authenticator,
-    AuthIdentity,
-    OrganizationStatus,
-    User,
-    UserAvatar,
-    UserEmail,
-    UserOption,
-    UserPermission,
-    UserRoleUser,
-)
+from sentry.models.authenticator import Authenticator
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRoleUser
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -167,7 +165,7 @@ class UserSerializer(Serializer):
         return data
 
     def serialize(
-        self, obj: User, attrs: MutableMapping[User, Any], user: User | AnonymousUser | RpcUser
+        self, obj: User, attrs: MutableMapping[str, Any], user: User | AnonymousUser | RpcUser
     ) -> Union[UserSerializerResponse, UserSerializerResponseSelf]:
         experiment_assignments = experiments.all(user=user)
 
@@ -216,9 +214,10 @@ class UserSerializer(Serializer):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].get_file_id() else None,
+                "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:
-            avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
+            avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
         d["avatar"] = avatar
 
         # TODO(dcramer): move this to DetailedUserSerializer

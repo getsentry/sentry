@@ -27,7 +27,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Quer
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -61,10 +61,12 @@ from sentry.snuba.metrics.fields.snql import (
     min_timestamp,
     miserable_users,
     on_demand_apdex_snql_factory,
+    on_demand_count_web_vitals_snql_factory,
     on_demand_epm_snql_factory,
     on_demand_eps_snql_factory,
     on_demand_failure_count_snql_factory,
     on_demand_failure_rate_snql_factory,
+    on_demand_user_misery_snql_factory,
     rate_snql_factory,
     satisfaction_count_transaction,
     session_duration_filters,
@@ -83,7 +85,6 @@ from sentry.snuba.metrics.utils import (
     GRANULARITY,
     OP_TO_SNUBA_FUNCTION,
     OPERATIONS_PERCENTILES,
-    TS_COL_QUERY,
     UNIT_TO_TYPE,
     DerivedMetricParseException,
     MetricDoesNotExistException,
@@ -93,6 +94,7 @@ from sentry.snuba.metrics.utils import (
     NotSupportedOverCompositeEntityException,
     OrderByNotSupportedOverCompositeEntityException,
     combine_dictionary_of_list_values,
+    get_timestamp_column_name,
 )
 from sentry.utils.snuba import raw_snql_query
 
@@ -147,8 +149,8 @@ def run_metrics_query(
         where=[
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column(TS_COL_QUERY), Op.GTE, start),
-            Condition(Column(TS_COL_QUERY), Op.LT, end),
+            Condition(Column(get_timestamp_column_name()), Op.GTE, start),
+            Condition(Column(get_timestamp_column_name()), Op.LT, end),
         ]
         + where,
         granularity=Granularity(GRANULARITY),
@@ -192,6 +194,7 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
                 "c": EntityKey.GenericMetricsCounters,
                 "d": EntityKey.GenericMetricsDistributions,
                 "s": EntityKey.GenericMetricsSets,
+                "g": EntityKey.GenericMetricsGauges,
             }[entity_prefix]
     except (ValueError, IndexError, KeyError):
         pass
@@ -214,9 +217,13 @@ def _get_entity_of_metric_mri(
         raise InvalidParams
 
     entity_keys_set: frozenset[EntityKey]
-    if use_case_id is UseCaseID.TRANSACTIONS:
+    if use_case_id in [UseCaseID.TRANSACTIONS]:
         entity_keys_set = frozenset(
-            {EntityKey.GenericMetricsSets, EntityKey.GenericMetricsDistributions}
+            {
+                EntityKey.GenericMetricsCounters,
+                EntityKey.GenericMetricsSets,
+                EntityKey.GenericMetricsDistributions,
+            }
         )
     elif use_case_id is UseCaseID.SESSIONS:
         entity_keys_set = frozenset(
@@ -224,6 +231,15 @@ def _get_entity_of_metric_mri(
         )
     elif use_case_id is UseCaseID.ESCALATING_ISSUES:
         entity_keys_set = frozenset({EntityKey.GenericMetricsCounters})
+    elif use_case_id is UseCaseID.CUSTOM:
+        entity_keys_set = frozenset(
+            {
+                EntityKey.GenericMetricsCounters,
+                EntityKey.GenericMetricsSets,
+                EntityKey.GenericMetricsDistributions,
+                EntityKey.GenericMetricsGauges,
+            }
+        )
     else:
         raise InvalidParams
 
@@ -1818,6 +1834,17 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="on_demand_failure_rate",
             can_orderby=True,
             snql_func=on_demand_failure_rate_snql_factory,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="on_demand_count_web_vitals",
+            can_orderby=True,
+            snql_func=on_demand_count_web_vitals_snql_factory,
+        ),
+        DerivedOp(
+            op="on_demand_user_misery",
+            can_orderby=True,
+            snql_func=on_demand_user_misery_snql_factory,
             default_null_value=0,
         ),
     ]

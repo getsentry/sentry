@@ -10,8 +10,8 @@ from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.expressions import Optional
-from parsimonious.grammar import Grammar, NodeVisitor
-from parsimonious.nodes import Node
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import Node, NodeVisitor
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import (
@@ -522,7 +522,7 @@ class SearchVisitor(NodeVisitor):
             self.builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=self.params,
-                config=QueryBuilderConfig(functions_acl=FUNCTIONS.keys()),
+                config=QueryBuilderConfig(functions_acl=list(FUNCTIONS)),
             )
         else:
             self.builder = builder

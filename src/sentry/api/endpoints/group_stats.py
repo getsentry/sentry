@@ -6,7 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.tsdb.base import TSDBModel
 
 
@@ -24,7 +24,7 @@ class GroupStatsEndpoint(GroupEndpoint, EnvironmentMixin, StatsMixin):
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
 
-        data = tsdb.get_range(
+        data = tsdb.backend.get_range(
             model=TSDBModel.group,
             keys=[group.id],
             **self._parse_args(request, environment_id),

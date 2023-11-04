@@ -1,14 +1,12 @@
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    ExternalIssue,
-    Identity,
-    Integration,
-    OrganizationIntegration,
-    Project,
-    ProjectCodeOwners,
-    Repository,
-    RepositoryProjectPathConfig,
-)
+from sentry.models.identity import Identity
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.repository import Repository
 from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions_control

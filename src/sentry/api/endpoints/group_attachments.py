@@ -7,7 +7,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import EventAttachmentSerializer, serialize
-from sentry.models import EventAttachment, event_attachment_screenshot_filter
+from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 
 
 @region_silo_endpoint

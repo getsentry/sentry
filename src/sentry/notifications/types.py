@@ -78,7 +78,7 @@ class NotificationSettingTypes(ValueEqualityEnum):
     REPORTS = -1
 
 
-class NotificationSettingEnum(Enum):
+class NotificationSettingEnum(ValueEqualityEnum):
     DEFAULT = "default"
     DEPLOY = "deploy"
     ISSUE_ALERTS = "alerts"
@@ -141,7 +141,7 @@ class NotificationSettingOptionValues(ValueEqualityEnum):
     COMMITTED_ONLY = 40
 
 
-class NotificationSettingsOptionEnum(Enum):
+class NotificationSettingsOptionEnum(ValueEqualityEnum):
     DEFAULT = "default"
     NEVER = "never"
     ALWAYS = "always"
@@ -167,7 +167,7 @@ NOTIFICATION_SETTING_V2_CHOICES = [
 ]
 
 
-class NotificationScopeEnum(Enum):
+class NotificationScopeEnum(ValueEqualityEnum):
     USER = "user"
     ORGANIZATION = "organization"
     PROJECT = "project"
@@ -357,3 +357,10 @@ class GroupSubscriptionStatus:
     is_disabled: bool
     is_active: bool
     has_only_inactive_subscriptions: bool
+
+
+@dataclass
+class UnsubscribeContext:
+    resource_id: int
+    key: str
+    referrer: str | None = None

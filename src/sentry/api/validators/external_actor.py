@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.validators.integrations import validate_provider
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.types.integrations import ExternalProviders
 

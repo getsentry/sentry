@@ -4,9 +4,11 @@ from django.http.response import FileResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsPermission
-from sentry.models import File
+from sentry.models.files.file import File
 
 from .base import MonitorEndpoint, ProjectMonitorPermission
 
@@ -26,7 +28,10 @@ class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
 
 @region_silo_endpoint
 class OrganizationMonitorCheckInAttachmentEndpoint(MonitorEndpoint):
-    # TODO(davidenwang): Add documentation after uploading feature is complete
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.CRONS
     permission_classes = (MonitorCheckInAttachmentPermission,)
 
     def download(self, file_id):

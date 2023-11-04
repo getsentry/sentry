@@ -9,8 +9,8 @@ from sentry.api.bases import SentryAppInstallationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
-from sentry.models import SentryAppInstallation
-from sentry.sentry_apps import SentryAppInstallationCreator
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.installations import SentryAppInstallationCreator
 
 
 class SentryAppInstallationsSerializer(serializers.Serializer):

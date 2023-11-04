@@ -1,5 +1,5 @@
 ---
-created: '2023-09-15T07:41:54.167449Z'
+created: '2023-10-31T14:18:43.292106Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -83,16 +83,19 @@ config:
     errorMessages:
       patterns:
       - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
+      - 'ChunkLoadError: Loading chunk *'
     ignoreTransactions:
       isEnabled: true
       patterns:
       - '*healthcheck*'
-      - '*healthy*'
-      - '*live*'
-      - '*ready*'
       - '*heartbeat*'
       - '*/health'
+      - '*/healthy'
       - '*/healthz'
+      - '*/live'
+      - '*/livez'
+      - '*/ready'
+      - '*/readyz'
       - '*/ping'
   groupingConfig:
     enhancements: eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeEEAHJMCAM

@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sentry.models import Release, Rule
+from sentry.models.release import Release
+from sentry.models.rule import Rule
 from sentry.rules.filters.latest_release import LatestReleaseFilter, get_project_release_cache_key
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba

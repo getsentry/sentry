@@ -2,18 +2,23 @@ import {MouseEvent, useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
 import ObjectInspector from 'sentry/components/objectInspector';
+import {Flex} from 'sentry/components/profiling/flex';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils';
 import {
   getFrameMethod,
   getFrameStatus,
+  getReqRespContentTypes,
   isRequestFrame,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import {
   Indent,
   keyValueTableOrNotFound,
+  KeyValueTuple,
   SectionItem,
   SizeTooltip,
   Warning,
@@ -37,34 +42,46 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
   // TODO[replay]: what about:
   // `requestFrame?.data?.request?.size` vs. `requestFrame?.data?.requestBodySize`
 
-  const data = {
-    [t('URL')]: item.description,
-    [t('Type')]: item.op,
-    [t('Method')]: getFrameMethod(item),
-    [t('Status Code')]: String(getFrameStatus(item) ?? UNKNOWN_STATUS),
-    [t('Request Body Size')]: (
-      <SizeTooltip>
-        {formatBytesBase10(requestFrame?.data?.request?.size ?? 0)}
-      </SizeTooltip>
-    ),
-    [t('Response Body Size')]: (
-      <SizeTooltip>
-        {formatBytesBase10(requestFrame?.data?.response?.size ?? 0)}
-      </SizeTooltip>
-    ),
-    [t('Duration')]: `${(item.endTimestampMs - item.timestampMs).toFixed(2)}ms`,
-    [t('Timestamp')]: (
-      <TimestampButton
-        format="mm:ss.SSS"
-        onClick={(event: MouseEvent) => {
-          event.stopPropagation();
-          setCurrentTime(item.offsetMs);
-        }}
-        startTimestampMs={startTimestampMs}
-        timestampMs={item.timestampMs}
-      />
-    ),
-  };
+  const data: KeyValueTuple[] = [
+    {key: t('URL'), value: item.description},
+    {key: t('Type'), value: item.op},
+    {key: t('Method'), value: getFrameMethod(item)},
+    {key: t('Status Code'), value: String(getFrameStatus(item) ?? UNKNOWN_STATUS)},
+    {
+      key: t('Request Body Size'),
+      value: (
+        <SizeTooltip>
+          {formatBytesBase10(requestFrame?.data?.request?.size ?? 0)}
+        </SizeTooltip>
+      ),
+    },
+    {
+      key: t('Response Body Size'),
+      value: (
+        <SizeTooltip>
+          {formatBytesBase10(requestFrame?.data?.response?.size ?? 0)}
+        </SizeTooltip>
+      ),
+    },
+    {
+      key: t('Duration'),
+      value: `${(item.endTimestampMs - item.timestampMs).toFixed(2)}ms`,
+    },
+    {
+      key: t('Timestamp'),
+      value: (
+        <TimestampButton
+          format="mm:ss.SSS"
+          onClick={(event: MouseEvent) => {
+            event.stopPropagation();
+            setCurrentTime(item.offsetMs);
+          }}
+          startTimestampMs={startTimestampMs}
+          timestampMs={item.timestampMs}
+        />
+      ),
+    },
+  ];
 
   return (
     <SectionItem title={t('General')}>
@@ -74,19 +91,75 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
 }
 
 export function RequestHeadersSection({item}: SectionProps) {
+  const contentTypeHeaders = getReqRespContentTypes(item);
+  const isContentTypeMismatched =
+    contentTypeHeaders.req !== undefined &&
+    contentTypeHeaders.resp !== undefined &&
+    contentTypeHeaders.req !== contentTypeHeaders.resp;
+
   const data = isRequestFrame(item) ? item.data : {};
+  const headers: KeyValueTuple[] = Object.entries(data.request?.headers || {}).map(
+    ([key, value]) => {
+      const warn = key === 'content-type' && isContentTypeMismatched;
+      return {
+        key,
+        value: warn ? (
+          <Flex align="center" gap={space(0.5)}>
+            {value}
+            <QuestionTooltip
+              size="xs"
+              title={t('The content-type of the request does not match the response.')}
+            />
+          </Flex>
+        ) : (
+          value
+        ),
+        type: warn ? 'warning' : undefined,
+        tooltip: undefined,
+      };
+    }
+  );
+
   return (
     <SectionItem title={t('Request Headers')}>
-      {keyValueTableOrNotFound(data.request?.headers, t('Headers not captured'))}
+      {keyValueTableOrNotFound(headers, t('Headers not captured'))}
     </SectionItem>
   );
 }
 
 export function ResponseHeadersSection({item}: SectionProps) {
+  const contentTypeHeaders = getReqRespContentTypes(item);
+  const isContentTypeMismatched =
+    contentTypeHeaders.req !== undefined &&
+    contentTypeHeaders.resp !== undefined &&
+    contentTypeHeaders.req !== contentTypeHeaders.resp;
+
   const data = isRequestFrame(item) ? item.data : {};
+  const headers: KeyValueTuple[] = Object.entries(data.response?.headers || {}).map(
+    ([key, value]) => {
+      const warn = key === 'content-type' && isContentTypeMismatched;
+      return {
+        key,
+        value: warn ? (
+          <Flex align="center" gap={space(0.5)}>
+            {value}
+            <QuestionTooltip
+              size="xs"
+              title={t('The content-type of the request does not match the response.')}
+            />
+          </Flex>
+        ) : (
+          value
+        ),
+        type: warn ? 'warning' : undefined,
+        tooltip: undefined,
+      };
+    }
+  );
+
   return (
     <SectionItem title={t('Response Headers')}>
-      {keyValueTableOrNotFound(data.response?.headers, t('Headers not captured'))}
+      {keyValueTableOrNotFound(headers, t('Headers not captured'))}
     </SectionItem>
   );
 }

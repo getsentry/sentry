@@ -4,15 +4,10 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import tsdb
 from sentry.issues.forecasts import generate_and_save_forecasts
-from sentry.models import (
-    GROUP_OWNER_TYPE,
-    Environment,
-    GroupInboxReason,
-    GroupOwner,
-    GroupOwnerType,
-    Release,
-)
-from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
+from sentry.models.environment import Environment
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remove_group_from_inbox
+from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
+from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -31,7 +26,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
 
         with mock.patch(
-            "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.backend.get_range
+            "sentry.api.endpoints.group_details.tsdb.backend.get_range",
+            side_effect=tsdb.backend.get_range,
         ) as get_range:
             response = self.client.get(
                 f"{url}?environment=production&environment=staging", format="json"

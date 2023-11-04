@@ -6,7 +6,8 @@ from typing import Any, Mapping, Sequence
 from django.utils.encoding import force_str
 from django.views import View
 
-from sentry.models import AuthIdentity, User
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.user import User
 from sentry.pipeline import PipelineProvider
 
 from .view import AuthView, ConfigureView
@@ -39,6 +40,7 @@ class Provider(PipelineProvider, abc.ABC):
     """
 
     is_partner = False
+    requires_refresh = True
 
     # All auth providers by default require the sso-basic feature
     required_feature = "organizations:sso-basic"

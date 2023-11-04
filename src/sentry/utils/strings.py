@@ -169,7 +169,7 @@ def codec_lookup(encoding: str, default: str = "utf-8") -> codecs.CodecInfo:
         # with this encoding value safely. This attribute was
         # introduced into 2.7.12, so versions prior to this will
         # raise, but this is the best we can do.
-        if not info._is_text_encoding:  # type: ignore[attr-defined] # python/typeshed#10354
+        if not info._is_text_encoding:
             return _get_default()
     except AttributeError:
         pass

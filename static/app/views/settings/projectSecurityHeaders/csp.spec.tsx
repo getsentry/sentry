@@ -4,10 +4,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectCspReports from 'sentry/views/settings/projectSecurityHeaders/csp';
 
 describe('ProjectCspReports', function () {
-  const {project, organization, router} = initializeOrg();
+  const {project, organization} = initializeOrg();
 
   const projectUrl = `/projects/${organization.slug}/${project.slug}/`;
-  const routeUrl = `/projects/${organization.slug}/${project.slug}/csp/`;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -25,32 +24,40 @@ describe('ProjectCspReports', function () {
     });
   });
 
-  it('renders', function () {
-    render(
-      <ProjectCspReports
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
-        location={TestStubs.location({pathname: routeUrl})}
-        organization={organization}
-        params={{projectId: project.slug}}
-      />
-    );
+  it('renders', async function () {
+    render(<ProjectCspReports />, {
+      organization,
+    });
+
+    // Renders the loading indication initially
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+    // Heading
+    expect(
+      await screen.findByText('Content Security Policy', {selector: 'h4'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders loading error', async function () {
+    MockApiClient.addMockResponse({
+      url: projectUrl,
+      method: 'GET',
+      statusCode: 400,
+      body: {},
+    });
+    render(<ProjectCspReports />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
   });
 
   it('can enable default ignored sources', async function () {
-    render(
-      <ProjectCspReports
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
-        location={TestStubs.location({pathname: routeUrl})}
-        organization={organization}
-        params={{projectId: project.slug}}
-      />
-    );
+    render(<ProjectCspReports />, {
+      organization,
+    });
 
     const mock = MockApiClient.addMockResponse({
       url: projectUrl,
@@ -61,7 +68,7 @@ describe('ProjectCspReports', function () {
 
     // Click Regenerate Token
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Use default ignored sources'})
+      await screen.findByRole('checkbox', {name: 'Use default ignored sources'})
     );
 
     expect(mock).toHaveBeenCalledWith(
@@ -78,17 +85,9 @@ describe('ProjectCspReports', function () {
   });
 
   it('can set additional ignored sources', async function () {
-    render(
-      <ProjectCspReports
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
-        location={TestStubs.location({pathname: routeUrl})}
-        organization={organization}
-        params={{projectId: project.slug}}
-      />
-    );
+    render(<ProjectCspReports />, {
+      organization,
+    });
 
     const mock = MockApiClient.addMockResponse({
       url: projectUrl,
@@ -98,7 +97,7 @@ describe('ProjectCspReports', function () {
     expect(mock).not.toHaveBeenCalled();
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Additional ignored sources'}),
+      await screen.findByRole('textbox', {name: 'Additional ignored sources'}),
       'test\ntest2'
     );
 
