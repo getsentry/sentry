@@ -114,7 +114,7 @@ export const languageDetails = {
   },
   [SupportedLanguages.DOTNET]: {
     description: t(
-      'Our Dotnet framework SDKs include all the features of our Dotnet SDK with instructions specific to that framework'
+      'Our .NET integrations include all the features of our core .NET SDK with instructions specific to that framework'
     ),
     topFrameworksImage: onboardingFrameworkSelectionDotnet,
   },
