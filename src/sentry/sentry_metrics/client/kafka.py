@@ -165,6 +165,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
 
     def close(self) -> None:
         """
-        Calling this is not required and is mostly for usage in tests
+        Calling this is not required and is mostly for usage in tests.
         """
         self.producer.close()
