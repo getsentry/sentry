@@ -108,7 +108,7 @@ def produce_msgs(messages, is_generic, host, dryrun):
     producer = KafkaProducer(conf)
     for i, message in enumerate(messages):
         print(f"{i + 1} / {len(messages)}")
-        # pprint.pprint(message)
+        pprint.pprint(message)
         if not dryrun:
             producer.produce(
                 Topic(name=("ingest-performance-metrics" if is_generic else "ingest-metrics")),

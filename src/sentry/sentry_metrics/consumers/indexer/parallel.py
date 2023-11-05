@@ -7,7 +7,6 @@ from typing import Any, Deque, Mapping, NamedTuple, Optional, Union, cast
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
-from arroyo.dlq import InvalidMessage
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
@@ -48,10 +47,6 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
         self._invalid_msg_meta: Deque[NamedTuple] = deque()
 
     def poll(self) -> None:
-        if self._invalid_msg_meta:
-            partition, offset = self._invalid_msg_meta.popleft()
-            raise InvalidMessage(partition, offset)
-
         self.__next_step.poll()
 
     def submit(self, message: Message[Union[FilteredPayload, IndexerOutputMessageBatch]]) -> None:
@@ -60,8 +55,6 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
         if isinstance(message.payload, FilteredPayload):
             self.__next_step.submit(cast(Message[KafkaPayload], message))
             return
-
-        self._invalid_msg_meta.extend(message.payload.invalid_msg_meta)
 
         _ = message.payload.cogs_data
 

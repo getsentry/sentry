@@ -1,14 +1,17 @@
 import logging
 import time
+from collections import defaultdict
 from functools import partial
 from typing import Any, Mapping, MutableMapping, Optional, Union
 
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 from confluent_kafka import Producer
 
+from sentry.sentry_metrics.consumers.indexer.common import BrokerMeta
 from sentry.utils import kafka_config, metrics
 
 logger = logging.getLogger(__name__)
@@ -37,6 +40,8 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         # poll duration metrics
         self.__poll_start_time = time.time()
         self.__poll_duration_sum = 0.0
+
+        self.__last_msg_offsets: MutableMapping[Partition, int] = defaultdict(lambda: -1)
 
     def _record_poll_duration(self, poll_duration: float) -> None:
         self.__poll_duration_sum += poll_duration
@@ -76,15 +81,39 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             # twice to snuba
             # TODO: Use the arroyo producer which handles FilteredPayload elegantly
             return
-        self.__producer.produce(
-            topic=self.__producer_topic,
-            key=None,
-            value=message.payload.value,
-            on_delivery=partial(self.callback, committable=message.committable),
-            headers=message.payload.headers,
-        )
+        if isinstance(message.payload, BrokerMeta):
+            (partition, offset) = message.payload
+            print(f"[MULTIPROC][BM] GOT partition={partition}, offset={offset}")  # noqa
+            if offset > self.__last_msg_offsets[partition]:
+                # print(
+                #     f"[MULTIPROC][BM] RIASING INVMSG WITH partition={partition}, offset={offset}"
+                # )  # noqa
+                self.__last_msg_offsets[partition] = offset
+                raise InvalidMessage(partition, offset)
+            # print(
+            #     f"[MULTIPROC][BM] REJECT INVMSG WITH partition={partition}, offset={offset}"
+            # )  # noqa
+            self.__produced_message_offsets.update(message.committable)
+            return
+
+        ((partition, offset),) = message.committable.items()
+        print(f"[MULTIPROC][MSG] GOT partition={partition}, offset={offset - 1}")  # noqa
+        if offset - 1 > self.__last_msg_offsets[partition]:
+            print(f"[MULTIPROC][MSG] PRODUCE partition={partition}, offset={offset - 1}")  # noqa
+            self.__last_msg_offsets[partition] = offset - 1
+            self.__producer.produce(
+                topic=self.__producer_topic,
+                key=None,
+                value=message.payload.value,
+                on_delivery=partial(self.callback, committable=message.committable),
+                headers=message.payload.headers,
+            )
+            return
+        print(f"[MULTIPROC][MSG] REJECT partition={partition}, offset={offset - 1}")  # noqa
 
     def callback(self, error: Any, message: Any, committable: Mapping[Partition, int]) -> None:
+        ((partition, offset),) = committable.items()
+        print(f"!!! Comitting partition={partition}, offset={offset - 1}")  # noqa
         if message and error is None:
             self.__produced_message_offsets.update(committable)
         if error is not None:

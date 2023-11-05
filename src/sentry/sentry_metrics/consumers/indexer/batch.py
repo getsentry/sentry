@@ -297,7 +297,10 @@ class IndexerBatch:
             output_message_meta: Dict[str, Dict[str, str]] = defaultdict(dict)
             assert isinstance(message.value, BrokerValue)
             broker_meta = BrokerMeta(message.value.partition, message.value.offset)
-            if broker_meta in self.invalid_msg_meta or broker_meta in self.filtered_msg_meta:
+            if broker_meta in self.invalid_msg_meta:
+                new_messages.append(Message(message.value.replace(broker_meta)))
+                continue
+            if broker_meta in self.filtered_msg_meta:
                 continue
             old_payload_value = self.parsed_payloads_by_meta.pop(broker_meta)
 
@@ -497,6 +500,11 @@ class IndexerBatch:
                 self.__message_size_max[use_case_id],
                 tags={"use_case_id": use_case_id.value},
             )
+
+        for msg in new_messages:
+            ((partition, offset),) = msg.committable.items()
+            print(f"[BATCH] processed partition={partition}, offset={offset - 1}")  # noqa
+
         return IndexerOutputMessageBatch(
             new_messages,
             deque(sorted(self.invalid_msg_meta)),
