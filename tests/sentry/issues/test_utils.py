@@ -1,7 +1,5 @@
 import uuid
-from dataclasses import replace
 from datetime import datetime, timedelta
-from hashlib import md5
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from django.utils import timezone
@@ -10,7 +8,7 @@ from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.escalating import GroupsCountResponse
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
@@ -50,6 +48,8 @@ class OccurrenceTestMixin:
             "level": "warning",
         }
         kwargs.update(overrides)  # type: ignore
+
+        process_occurrence_data(kwargs)
         return kwargs
 
     def build_occurrence(self, **overrides: Any) -> IssueOccurrence:
@@ -104,10 +104,6 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         )
         occurrence = self.build_occurrence(event_id=event.event_id, fingerprint=fingerprints)
         saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
-        occurrence = replace(
-            occurrence,
-            fingerprint=[md5(fp.encode("utf-8")).hexdigest() for fp in occurrence.fingerprint],
-        )
         self.assert_occurrences_identical(occurrence, saved_occurrence)
 
         assert Group.objects.filter(grouphash__hash=saved_occurrence.fingerprint[0]).exists()
