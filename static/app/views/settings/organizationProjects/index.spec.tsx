@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import {Project} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -58,26 +59,16 @@ describe('OrganizationProjects', function () {
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
-    MockApiClient.clearMockResponses();
-    const searchQuery = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
-
     const searchBox = await screen.findByRole('textbox');
-    await userEvent.type(searchBox, 'random');
+    await userEvent.type(searchBox, 'random', {
+      advanceTimers: jest.advanceTimersByTime,
+    });
 
     jest.runAllTimers();
 
-    expect(await screen.findByText('No projects found.')).toBeInTheDocument();
-    expect(searchQuery).toHaveBeenCalledWith(
-      `/organizations/org-slug/projects/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          query: 'random',
-        },
-      })
-    );
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
+      pathname: '/mock-pathname/',
+      query: {query: 'random'},
+    });
   });
 });
