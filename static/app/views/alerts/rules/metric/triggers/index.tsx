@@ -36,12 +36,13 @@ type Props = {
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   organization: Organization;
   projects: Project[];
-
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
 
   thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
+
   thresholdType: UnsavedMetricRule['thresholdType'];
   triggers: Trigger[];
+  isMigration?: boolean;
 };
 
 /**
@@ -104,6 +105,7 @@ class Triggers extends Component<Props> {
       thresholdPeriod,
       comparisonType,
       resolveThreshold,
+      isMigration,
       onThresholdTypeChange,
       onResolveThresholdChange,
       onThresholdPeriodChange,
@@ -133,18 +135,20 @@ class Triggers extends Component<Props> {
           </PanelBody>
         </Panel>
 
-        <ActionsPanel
-          disabled={disabled}
-          loading={availableActions === null}
-          error={false}
-          availableActions={availableActions}
-          currentProject={currentProject}
-          organization={organization}
-          projects={projects}
-          triggers={triggers}
-          onChange={this.handleChangeActions}
-          onAdd={this.handleAddAction}
-        />
+        {isMigration ? null : (
+          <ActionsPanel
+            disabled={disabled}
+            loading={availableActions === null}
+            error={false}
+            availableActions={availableActions}
+            currentProject={currentProject}
+            organization={organization}
+            projects={projects}
+            triggers={triggers}
+            onChange={this.handleChangeActions}
+            onAdd={this.handleAddAction}
+          />
+        )}
       </Fragment>
     );
   }

@@ -1,15 +1,15 @@
-import {Fragment, JSXElementConstructor, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
 
-import {CommitRowProps} from 'sentry/components/commitRow';
-import {CauseHeader, DataSection} from 'sentry/components/events/styles';
+import type {CommitRowProps} from 'sentry/components/commitRow';
+import {DataSection, SuspectCommitHeader} from 'sentry/components/events/styles';
 import Panel from 'sentry/components/panels/panel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AvatarProject, Commit, Group} from 'sentry/types';
+import type {AvatarProject, Commit, Group} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -17,13 +17,13 @@ import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  commitRow: JSXElementConstructor<CommitRowProps>;
+  commitRow: React.ComponentType<CommitRowProps>;
   eventId: string;
   project: AvatarProject;
   group?: Group;
 }
 
-export function EventCause({group, eventId, project, commitRow: CommitRow}: Props) {
+export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: Props) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
   const {data} = useCommitters({
@@ -81,8 +81,8 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
 
   return (
     <DataSection>
-      <CauseHeader>
-        <h3 data-test-id="event-cause">{commitHeading}</h3>
+      <SuspectCommitHeader>
+        <h3 data-test-id="suspect-commit">{commitHeading}</h3>
         {commits.length > 1 && (
           <ExpandButton
             onClick={() => setIsExpanded(!isExpanded)}
@@ -99,7 +99,7 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
             )}
           </ExpandButton>
         )}
-      </CauseHeader>
+      </SuspectCommitHeader>
       <StyledPanel>
         {commits.slice(0, isExpanded ? 100 : 1).map((commit, commitIndex) => (
           <CommitRow
