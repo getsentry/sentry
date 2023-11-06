@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -13,7 +14,7 @@ DEFAULT_SLUG_ERROR_MESSAGE = _(
 )
 
 
-@extend_schema_field(str)
+@extend_schema_field(field=OpenApiTypes.STR)
 class SentrySlugField(serializers.RegexField):
     """
     A regex field which validates that the input is a valid slug. Allowed
