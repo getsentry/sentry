@@ -163,6 +163,11 @@ class GroupType:
 
     @classmethod
     def should_detect_escalation(cls, organization: Organization) -> bool:
+        """
+        If the feature is enabled and enable_escalation_detection=True, then escalation detection is enabled.
+
+        When the feature flag is removed, we can remove the organization parameter from this method.
+        """
         if not features.has("organizations:issue-platform-crons-sd", organization):
             return True
         return cls.enable_escalation_detection
