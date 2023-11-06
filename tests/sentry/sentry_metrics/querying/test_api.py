@@ -93,7 +93,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["series"] == {field: [0.0, 9.0, 8.0]}
         assert groups[0]["totals"] == {field: 17.0}
 
-    @pytest.mark.skip(reason="missing: percentiles are not properly parsed")
     def test_query_with_percentile(self) -> None:
         field = f"p90({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -110,8 +109,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [0.0, 9.0, 8.0]}
-        assert groups[0]["totals"] == {field: 17.0}
+        assert groups[0]["series"] == {field: [0.0, 4.6, 3.0]}
+        assert groups[0]["totals"] == {field: 4.0}
 
     def test_query_with_group_by(self) -> None:
         # Query with one aggregation and two group by.

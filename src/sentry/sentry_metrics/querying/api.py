@@ -22,17 +22,19 @@ from sentry.search.utils import parse_datetime_string
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import run_query
 
-# These regexes are temporary since the DSL is supposed to be parsed internally by the snuba SDK, thus this
-# is only bridging code to validate and evolve the metrics layer.
-# TODO(layer): The layer should implement a grammar which parses queries using a custom DSL.
+# TODO: remove this and perform the transpilation of the grammar to MQL.
 QUERY_REGEX = re.compile(r"(\w+):([^\s]+)(?:\s|$)")
 
 
-class InvalidMetricsQuery(Exception):
+class InvalidMetricsQueryError(Exception):
     pass
 
 
-ResultValue = Optional[Union[int, float]]
+class QueryExecutionError(Exception):
+    pass
+
+
+ResultValue = Optional[Union[int, float, List[Union[int, float]]]]
 GroupKey = Tuple[Tuple[str, str], ...]
 Series = List[Tuple[str, ResultValue]]
 Total = ResultValue
@@ -48,10 +50,22 @@ class GroupValue:
         return GroupValue(series=[], total=None)
 
     def add_series_entry(self, time: str, aggregate_value: ResultValue):
-        self.series.append((time, aggregate_value))
+        self.series.append((time, self._transform_aggregate_value(aggregate_value)))
 
-    def add_total(self, total: ResultValue):
-        self.total = total
+    def add_total(self, aggregate_value: ResultValue):
+        self.total = self._transform_aggregate_value(aggregate_value)
+
+    def _transform_aggregate_value(self, aggregate_value: ResultValue):
+        # For now, we don't support the array return type, since the set of operations that the API can support
+        # won't lead to multiple values in a single aggregate value. For this reason, we extract the first value
+        # in case we get back an array of values, which can happen for multiple quantiles.
+        if isinstance(aggregate_value, list):
+            if aggregate_value:
+                return aggregate_value[0]
+
+            raise QueryExecutionError("Received an empty array as aggregate value")
+
+        return aggregate_value
 
 
 @dataclass(frozen=True)
@@ -64,7 +78,16 @@ class ExecutionResult:
     @property
     def query_name(self) -> str:
         timeseries = self.query.query
-        return f"{timeseries.aggregate}({timeseries.metric.mri or timeseries.metric.public_name})"
+
+        aggregate = timeseries.aggregate
+        # In case we have a quantile, we transform it back to the original query percentile. This has to be done, unless
+        # we want to change the API of the frontend that will send.
+        if aggregate == "quantiles":
+            aggregate = f"p{int(timeseries.aggregate_params[0] * 100)}"
+
+        metric = timeseries.metric.mri or timeseries.metric.public_name
+
+        return f"{aggregate}({metric})"
 
     @property
     def modified_start(self) -> datetime:
@@ -103,6 +126,8 @@ class ExecutionResult:
 
 
 class QueryParser:
+    PERCENTILE_REGEX = re.compile(r"^p(\d{1,3})$")
+
     def __init__(
         self,
         fields: Sequence[str],
@@ -129,7 +154,7 @@ class QueryParser:
             filters.append(Condition(lhs=Column(name=key), op=Op.EQ, rhs=value))
 
         if not self._query:
-            raise InvalidMetricsQuery("Error while parsing the query.")
+            raise InvalidMetricsQueryError("Error while parsing the query.")
 
         return filters
 
@@ -142,6 +167,19 @@ class QueryParser:
 
         return [Column(group_by) for group_by in self._group_bys]
 
+    def _transform_timeseries(self, timeseries: Timeseries) -> Timeseries:
+        # In case we have a percentile in the form `px` where `x` is in the range [0-100], we want to convert it to
+        # the quantiles operation which generalizes any percentile.
+        if (match := self.PERCENTILE_REGEX.match(timeseries.aggregate)) is not None:
+            percentile_value = float(match.group(1))
+            return timeseries.set_aggregate("quantiles", [percentile_value / 100])
+
+        return timeseries
+
+    def _parse_mql(self, field: str) -> Timeseries:
+        parsed_query = parse_mql(field)
+        return self._transform_timeseries(parsed_query.query)
+
     def parse_timeserieses(self) -> Generator[Timeseries, None, None]:
         """
         Parses the incoming fields with the MQL grammar.
@@ -150,7 +188,7 @@ class QueryParser:
         via the discover grammar.
         """
         if not self._fields:
-            raise InvalidMetricsQuery("You must query at least one field.")
+            raise InvalidMetricsQueryError("You must query at least one field.")
 
         # We first parse the filters and group bys, which are then going to be applied on each individual query
         # that is executed.
@@ -158,7 +196,9 @@ class QueryParser:
         group_bys = self._parse_group_bys()
 
         for field in self._fields:
-            timeseries = parse_mql(field).query
+            # TODO: take the filters, parse them via the discover grammar and convert them to MQL filters, so that
+            #   we can leverage the conversion performed automatically by the snuba sdk.
+            timeseries = self._parse_mql(field)
             yield timeseries.set_filters(filters).set_groupby(group_bys)
 
 
@@ -256,7 +296,7 @@ def _get_identity(value: ResultValue) -> ResultValue:
     if value is None:
         return None
 
-    if math.isnan(value):
+    if _is_nan(value):
         return None
 
     # We might decide in the future to have identity values specific to each aggregate.
@@ -270,10 +310,22 @@ def _nan_to_none(value: ResultValue) -> ResultValue:
     if value is None:
         return None
 
-    if math.isnan(value):
+    if _is_nan(value):
         return None
 
     return value
+
+
+def _is_nan(value: ResultValue) -> bool:
+    """
+    Returns whether the result of a query is nan.
+    """
+    if value is None:
+        return False
+    elif isinstance(value, list):
+        return any(map(lambda e: math.isnan(e), value))
+
+    return math.isnan(value)
 
 
 def _translate_query_results(execution_results: List[ExecutionResult]) -> Mapping[str, Any]:
