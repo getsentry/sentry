@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, Mapping, Optional
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +15,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IntegrationSerializer, serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
@@ -142,52 +143,6 @@ def set_tags(scope: Scope, result: JSONData) -> None:
     scope.set_tag("stacktrace_link.has_integration", len(result["integrations"]) > 0)
 
 
-def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConfig]:
-    """
-    Returns the code mapping config list for a project sorted based on precedence.
-    User generated code mappings are evaluated before Sentry generated code mappings.
-    Code mappings with more defined stack trace roots are evaluated before less defined stack trace
-    roots.
-
-    `project`: The project to get the list of sorted code mapping configs for
-    """
-
-    # xxx(meredith): if there are ever any changes to this query, make
-    # sure that we are still ordering by `id` because we want to make sure
-    # the ordering is deterministic
-    # codepath mappings must have an associated integration for stacktrace linking.
-    configs = RepositoryProjectPathConfig.objects.filter(
-        project=project, organization_integration_id__isnull=False
-    )
-
-    sorted_configs: list[RepositoryProjectPathConfig] = []
-
-    try:
-        for config in configs:
-            inserted = False
-            for index, sorted_config in enumerate(sorted_configs):
-                # This check will ensure that all user defined code mappings will come before Sentry generated ones
-                if (
-                    sorted_config.automatically_generated and not config.automatically_generated
-                ) or (  # Insert more defined stack roots before less defined ones
-                    (sorted_config.automatically_generated == config.automatically_generated)
-                    and config.stack_root.startswith(sorted_config.stack_root)
-                ):
-                    sorted_configs.insert(index, config)
-                    inserted = True
-                    break
-            if not inserted:
-                # Insert the code mapping at the back if it's Sentry generated or at the front if it is user defined
-                if config.automatically_generated:
-                    sorted_configs.insert(len(sorted_configs), config)
-                else:
-                    sorted_configs.insert(0, config)
-    except Exception:
-        logger.exception("There was a failure sorting the code mappings")
-
-    return sorted_configs
-
-
 @region_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     publish_status = {
@@ -227,7 +182,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
-        configs = get_code_mapping_configs(project)
+        configs = get_sorted_code_mapping_configs(project)
 
         current_config = None
         with configure_scope() as scope:
