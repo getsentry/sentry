@@ -12,30 +12,12 @@ import {
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-export enum SpringBootVersion {
-  V2 = 'v2',
-  V3 = 'v3',
-}
-
 export enum PackageManager {
   GRADLE = 'gradle',
   MAVEN = 'maven',
 }
 
 const platformOptions = {
-  springBootVersion: {
-    label: t('Spring Boot Version'),
-    items: [
-      {
-        label: t('Spring Boot 3'),
-        value: SpringBootVersion.V3,
-      },
-      {
-        label: t('Spring Boot 2'),
-        value: SpringBootVersion.V2,
-      },
-    ],
-  },
   packageManager: {
     label: t('Package Manager'),
     items: [
