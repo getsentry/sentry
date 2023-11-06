@@ -428,7 +428,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconGraph />}
-        label={t('Metrics')}
+        label={t('DDM')}
         to={`/organizations/${organization.slug}/ddm/`}
         id="ddm"
         isAlpha
