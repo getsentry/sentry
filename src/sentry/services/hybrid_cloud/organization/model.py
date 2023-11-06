@@ -353,3 +353,9 @@ class RpcAuditLogEntryActor(RpcModel):
     actor_id: int
     actor_key: Optional[str]
     ip_address: Optional[str]
+
+
+class OrganizationMemberUpdateArgs(TypedDict, total=False):
+    flags: Optional[RpcOrganizationMemberFlags]
+    role: str
+    invite_status: int
