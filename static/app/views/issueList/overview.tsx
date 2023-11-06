@@ -125,7 +125,7 @@ type State = {
   query?: string;
 };
 
-type EndpointParams = Partial<PageFilters['datetime']> & {
+interface EndpointParams extends Partial<PageFilters['datetime']> {
   environment: string[];
   project: number[];
   cursor?: string;
@@ -134,7 +134,7 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
-};
+}
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
   query: string[];
@@ -280,7 +280,12 @@ class IssueListOverview extends Component<Props, State> {
 
   componentWillUnmount() {
     const groups = GroupStore.getState() as Group[];
-    if (groups.length > 0 && !this.state.issuesLoading && !this.state.realtimeActive) {
+    if (
+      groups.length > 0 &&
+      !this.state.issuesLoading &&
+      !this.state.realtimeActive &&
+      this.props.organization.features.includes('issues-stream-performance-cache')
+    ) {
       IssueListCacheStore.save(this.getCacheEdpointParams(), {
         groups,
         queryCount: this.state.queryCount,
@@ -331,14 +336,20 @@ class IssueListOverview extends Component<Props, State> {
     return DEFAULT_ISSUE_STREAM_SORT;
   }
 
+  /**
+   * Load the previous
+   * @returns Returns true if the data was loaded from cache
+   */
   loadFromCache(): boolean {
-    const cache = IssueListCacheStore.getFromCache(this.getCacheEdpointParams());
-    if (!cache) {
-      console.log('miss', this.getCacheEdpointParams());
+    if (!this.props.organization.features.includes('issues-stream-performance-cache')) {
       return false;
     }
 
-    console.log('hit');
+    const cache = IssueListCacheStore.getFromCache(this.getCacheEdpointParams());
+    if (!cache) {
+      return false;
+    }
+
     this.setState(
       {
         issuesLoading: false,
@@ -347,9 +358,10 @@ class IssueListOverview extends Component<Props, State> {
         pageLinks: cache.pageLinks,
       },
       () => {
-        // Group details clears the GroupStore at the same time this component loads
-        GroupStore.loadInitialData(cache.groups);
-        // Clear store after loading
+        // Handle this in the next tick to avoid being overwritten by GroupStore.reset
+        // Group details clears the GroupStore at the same time this component mounts
+        GroupStore.add(cache.groups);
+        // Clear cache after loading
         IssueListCacheStore.reset();
       }
     );
