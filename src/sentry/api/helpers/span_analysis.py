@@ -35,7 +35,7 @@ def span_analysis(data: List[Row]):
 
     data_frames: List[AugmentedData] = [
         {
-            **data[i],  # type: ignore[misc]
+            **data[i],
             "relative_freq": relative_freq[i],
             "score": score_col[i],
             "span_key": span_keys[i],

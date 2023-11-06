@@ -142,6 +142,13 @@ register(
 )
 
 register(
+    "outbox_replication.sentry_externalactor.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "hybrid_cloud.authentication.use_rpc_user",
     type=Int,
     default=0,

@@ -16,6 +16,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.cases import IntegrationTestCase, TestCase
@@ -35,7 +36,6 @@ class TestCommitContextMixin(TestCase):
             organization_id=self.organization.id,
             name="example",
             integration_id=self.integration.id,
-            provider="github",
         )
         self.code_mapping = self.create_code_mapping(
             repo=self.repo,
@@ -123,6 +123,68 @@ class TestCommitContext(TestCommitContextMixin):
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         ).context == {"commitId": self.commit.id}
+
+    @patch("sentry.integrations.utils.commit_context.logger.exception")
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        side_effect=ApiError(text="integration_failed"),
+    )
+    def test_failed_to_fetch_commit_context_apierror(
+        self, mock_get_commit_context, mock_record, mock_logger_exception
+    ):
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert mock_logger_exception.call_count == 1
+        mock_record.assert_called_with(
+            "integrations.failed_to_fetch_commit_context",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            code_mapping_id=self.code_mapping.id,
+            group_id=self.event.group_id,
+            provider="github",
+            error_message="integration_failed",
+        )
+
+    @patch("sentry.integrations.utils.commit_context.logger.exception")
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        side_effect=ApiRateLimitedError("exceeded rate limit"),
+    )
+    def test_failed_to_fetch_commit_context_rate_limit(
+        self, mock_get_commit_context, mock_record, mock_logger_exception
+    ):
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert not mock_logger_exception.called
+        mock_record.assert_called_with(
+            "integrations.failed_to_fetch_commit_context",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            code_mapping_id=self.code_mapping.id,
+            group_id=self.event.group_id,
+            provider="github",
+            error_message="exceeded rate limit",
+        )
 
     @patch("sentry.analytics.record")
     @patch(
@@ -722,7 +784,12 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
                     repo=other_code_mapping.repository,
                     code_mapping=other_code_mapping,
                 )
-            ]
+            ],
+            extra={
+                "event": self.event.event_id,
+                "group": self.event.group_id,
+                "organization": self.event.project.organization_id,
+            },
         )
 
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
@@ -1141,7 +1208,12 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
                     repo=self.repo,
                     code_mapping=self.code_mapping,
                 ),
-            ]
+            ],
+            extra={
+                "event": self.event.event_id,
+                "group": self.event.group_id,
+                "organization": self.organization.id,
+            },
         )
         mock_record.assert_any_call(
             "integrations.successfully_fetched_commit_context_all_frames",

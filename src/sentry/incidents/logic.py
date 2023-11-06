@@ -1352,11 +1352,8 @@ def get_alert_rule_trigger_action_discord_channel_id(
             integration_id=integration.id,
             guild_name=integration.name,
         )
-    except ValidationError:
-        raise InvalidTriggerActionError(
-            "Could not find channel %s. Channel may not exist, may be formatted incorrectly, or Sentry may not "
-            "have been granted permission to access it" % name
-        )
+    except ValidationError as e:
+        raise InvalidTriggerActionError(e.message)
     except IntegrationError:
         raise InvalidTriggerActionError("Bad response from Discord channel lookup")
     except ApiTimeoutError:
@@ -1655,7 +1652,11 @@ def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Pro
 
     alert_snuba_query = alert_rule.snuba_query
     should_use_on_demand = should_use_on_demand_metrics(
-        alert_snuba_query.dataset, alert_snuba_query.aggregate, alert_snuba_query.query, prefilling
+        alert_snuba_query.dataset,
+        alert_snuba_query.aggregate,
+        alert_snuba_query.query,
+        None,
+        prefilling,
     )
     if should_use_on_demand:
         for project in projects:

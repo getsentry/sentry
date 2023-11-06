@@ -20,6 +20,7 @@ class OrganizationAvatarTest(OrganizationAvatarTestBase):
         assert response.data["id"] == str(self.organization.id)
         assert response.data["avatar"]["avatarType"] == "letter_avatar"
         assert response.data["avatar"]["avatarUuid"] is None
+        assert response.data["avatar"]["avatarUrl"] is None
 
 
 @region_silo_test(stable=True)

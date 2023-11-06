@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from urllib.parse import urlencode
 
 from django.core import signing
@@ -8,7 +9,7 @@ from sentry_sdk.api import capture_exception
 
 from sentry import options
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils.http import absolute_uri
+from sentry.types.region import get_local_region
 from sentry.utils.numbers import base36_decode, base36_encode
 
 
@@ -16,7 +17,13 @@ def get_signer():
     return signing.TimestampSigner(salt="sentry-link-signature")
 
 
-def generate_signed_link(user, viewname, referrer=None, args=None, kwargs=None):
+def generate_signed_link(
+    user,
+    viewname: str,
+    referrer: str | None = None,
+    args: list[Any] | None = None,
+    kwargs: dict[str, Any] | None = None,
+):
     """This returns an absolute URL where the given user is signed in for
     the given viewname with args and kwargs.  This returns a redirect link
     that if followed sends the user to another URL which carries another
@@ -33,7 +40,8 @@ def generate_signed_link(user, viewname, referrer=None, args=None, kwargs=None):
     path = reverse(viewname, args=args, kwargs=kwargs)
     item = "{}|{}|{}".format(options.get("system.url-prefix"), path, base36_encode(user_id))
     signature = ":".join(get_signer().sign(item).rsplit(":", 2)[1:])
-    signed_link = f"{absolute_uri(path)}?_={base36_encode(user_id)}:{signature}"
+    region = get_local_region()
+    signed_link = f"{region.to_url(path)}?_={base36_encode(user_id)}:{signature}"
     if referrer:
         signed_link = signed_link + "&" + urlencode({"referrer": referrer})
     return signed_link

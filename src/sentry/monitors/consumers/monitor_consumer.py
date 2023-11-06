@@ -221,6 +221,7 @@ def transform_checkin_uuid(
 
 def _process_checkin(
     params: CheckinPayload,
+    message_ts: datetime,
     start_time: datetime,
     project_id: int,
     source_sdk: str,
@@ -549,6 +550,14 @@ def _process_checkin(
             else:
                 mark_ok(check_in, ts=start_time)
 
+            # how long in wall-clock time did it take for us to process this
+            # check-in. This records from when the message was first appended
+            # into the Kafka topic until we just completed processing.
+            #
+            # XXX: We are ONLY recording this metric for completed check-ins.
+            delay = datetime.now() - message_ts
+            metrics.gauge("monitors.checkin.completion_time", delay.total_seconds())
+
             metrics.incr(
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "complete"},
@@ -603,7 +612,7 @@ def _process_message(
         project_id = int(wrapper["project_id"])
         source_sdk = wrapper["sdk"]
 
-        _process_checkin(params, start_time, project_id, source_sdk, txn)
+        _process_checkin(params, ts, start_time, project_id, source_sdk, txn)
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

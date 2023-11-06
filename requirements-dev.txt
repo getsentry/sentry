@@ -31,11 +31,11 @@ pip-tools>=6.7.0
 packaging>=21.3
 
 # for type checking
-django-stubs>=4.2.3
-djangorestframework-stubs
+sentry-forked-django-stubs>=4.2.6.post2
+sentry-forked-djangorestframework-stubs>=3.14.4.post1
 lxml-stubs
 msgpack-types>=0.2.0
-mypy>=1.4.1
+mypy>=1.6.1
 types-beautifulsoup4
 types-cachetools
 types-croniter
@@ -49,7 +49,8 @@ types-psycopg2
 types-python-dateutil
 types-pytz
 types-pyyaml
-types-redis
+# make sure to match close-enough to redis==
+types-redis<4
 types-requests
 types-setuptools
 types-simplejson>=3.17.7.2

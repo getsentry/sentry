@@ -153,19 +153,19 @@ class UUIDScalar(GenericBase):
 
     @staticmethod
     def visit_eq(expression: Expression, value: UUID) -> Condition:
-        return Condition(expression, Op.EQ, to_uuid(value))
+        return Condition(expression, Op.EQ, str(value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: UUID) -> Condition:
-        return Condition(expression, Op.NEQ, to_uuid(value))
+        return Condition(expression, Op.NEQ, str(value))
 
     @staticmethod
     def visit_in(expression: Expression, value: list[UUID]) -> Condition:
-        return Condition(expression, Op.IN, to_uuids(value))
+        return Condition(expression, Op.IN, [str(v) for v in value])
 
     @staticmethod
     def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
-        return Condition(expression, Op.NOT_IN, to_uuids(value))
+        return Condition(expression, Op.NOT_IN, [str(v) for v in value])
 
 
 class IPv4Scalar(GenericBase):

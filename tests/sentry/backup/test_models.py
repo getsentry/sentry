@@ -178,7 +178,9 @@ class ModelUnitTests(TransactionTestCase):
             app = ApiApplication.objects.create(
                 owner=user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
             )
-            ApiToken.objects.create(application=app, user=user, token=uuid4().hex, expires_at=None)
+            ApiToken.objects.create(
+                application=app, user=user, expires_at=None, name="test_api_token"
+            )
 
         return self.import_export_then_validate()
 
@@ -596,7 +598,7 @@ class DynamicRelocationScopeTests(TransactionTestCase):
                 application=app, user=self.create_user("example@example.com")
             )
             token = ApiToken.objects.create(
-                application=app, user=user, token=uuid4().hex, expires_at=None
+                application=app, user=user, expires_at=None, name="test_api_auth_application_bound"
             )
 
         # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
@@ -610,7 +612,9 @@ class DynamicRelocationScopeTests(TransactionTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             auth = ApiAuthorization.objects.create(user=self.create_user("example@example.com"))
-            token = ApiToken.objects.create(user=user, token=uuid4().hex, expires_at=None)
+            token = ApiToken.objects.create(
+                user=user, expires_at=None, name="test_api_auth_not_bound"
+            )
 
         assert auth.get_relocation_scope() == RelocationScope.Config
         assert token.get_relocation_scope() == RelocationScope.Config

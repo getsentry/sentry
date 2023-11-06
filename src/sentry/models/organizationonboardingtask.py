@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
@@ -59,7 +61,7 @@ class OnboardingTaskStatus:
 #   ISSUE_TRACKER:   Tracker added, issue not yet created
 
 
-class OrganizationOnboardingTaskManager(BaseManager):
+class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
         if cache.get(cache_key) is None:
@@ -176,7 +178,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         ]
     )
 
-    objects = OrganizationOnboardingTaskManager()
+    objects: ClassVar[OrganizationOnboardingTaskManager] = OrganizationOnboardingTaskManager()
 
     class Meta:
         app_label = "sentry"
