@@ -34,10 +34,14 @@ class QueryExecutionError(Exception):
     pass
 
 
-ResultValue = Optional[Union[int, float, List[Union[int, float]]]]
-GroupKey = Tuple[Tuple[str, str], ...]
+# Type representing the aggregate value from snuba, which can be null, int, float or list.
+ResultValue = Optional[Union[int, float, List[Optional[Union[int, float]]]]]
+# Type representing a series of values with (`time`, `value`) pairs.
 Series = List[Tuple[str, ResultValue]]
+# Type representing a single aggregate value.
 Total = ResultValue
+# Type representing the group key as a tuple of tuples ((`key_1`, `value_1`), (`key_2, `value_2), ...)
+GroupKey = Tuple[Tuple[str, str], ...]
 
 
 @dataclass
@@ -66,6 +70,19 @@ class GroupValue:
             raise QueryExecutionError("Received an empty array as aggregate value")
 
         return aggregate_value
+
+
+@dataclass
+class QueryMeta:
+    name: str
+    type: str
+
+    def __post_init__(self):
+        self._transform_meta_type()
+
+    def _transform_meta_type(self):
+        if self.type.startswith("Array("):
+            self.type = self.type[6 : len(self.type) - 1]
 
 
 @dataclass(frozen=True)
@@ -273,7 +290,7 @@ def _generate_full_series(
     interval: int,
     series: Series,
     null_value: ResultValue = None,
-) -> Sequence[Optional[Union[int, float]]]:
+) -> Sequence[ResultValue]:
     """
     Computes a full series over the entire requested interval with None set where there are no data points.
     """
@@ -338,7 +355,7 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
 
     # For efficiency reasons, we translate the incoming data into our custom in-memory representations.
     intermediate_groups: Dict[GroupKey, Dict[str, GroupValue]] = {}
-    intermediate_meta: Dict[str, str] = {}
+    intermediate_meta: List[QueryMeta] = []
     for execution_result in execution_results:
         # All queries must have the same timerange, so under this assumption we take the first occurrence of each.
         if start is None:
@@ -383,12 +400,10 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
             meta_name = meta_item["name"]
             meta_type = meta_item["type"]
 
-            # Since we have to handle multiple time series, we map the aggregate value to the actual
-            # metric name that was queried.
-            if meta_name == "aggregate_value":
-                intermediate_meta[execution_result.query_name] = meta_type
-            else:
-                intermediate_meta[meta_name] = meta_type
+            # The meta of each query, contains the metadata for each field in the result. In this case, we want to map
+            # the aggregate value type to the actual query name, which is used from the outside to recognize the query.
+            name = execution_result.query_name if meta_name == "aggregate_value" else meta_name
+            intermediate_meta.append(QueryMeta(name=name, type=meta_type))
 
     # If we don't have time bounds and an interval, we can't return anything.
     assert start is not None and end is not None and interval is not None
@@ -398,7 +413,7 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
 
     translated_groups = []
     for group_key, group_metrics in sorted(intermediate_groups.items(), key=lambda v: v[0]):
-        translated_serieses: Dict[str, Sequence[Optional[Union[int, float]]]] = {}
+        translated_serieses: Dict[str, Sequence[ResultValue]] = {}
         translated_totals: Dict[str, ResultValue] = {}
         for metric_name, metric_values in sorted(group_metrics.items(), key=lambda v: v[0]):
             series = metric_values.series
@@ -420,9 +435,7 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
 
         translated_groups.append(inner_group)
 
-    translated_meta = [
-        {"name": meta_name, "type": meta_type} for meta_name, meta_type in intermediate_meta.items()
-    ]
+    translated_meta = [{"name": meta.name, "type": meta.type} for meta in intermediate_meta]
 
     return {
         "intervals": intervals,
