@@ -46,6 +46,6 @@ class NoteActivityNotification(GroupActivityNotification):
         and want the avatar on it's own rather than bundled with the author's display name
         because the display name is already shown in the notification title."""
         fmt = '<span class="avatar-container">{}</span>'
-        author = format_html(fmt, avatar_as_html(self.user, 48))
-        context = {"author": author}
-        return context
+        if self.user:
+            return format_html(fmt, avatar_as_html(self.user, 48))
+        return format_html(description)
