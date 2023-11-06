@@ -3,14 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from click.testing import CliRunner
 from google_crc32c import value as crc32c
 
 from sentry.backup.helpers import (
     DecryptionError,
-    KeyManagementServiceClient,
     create_encrypted_export_tarball,
     decrypt_data_encryption_key_local,
     unwrap_encrypted_export_tarball,
@@ -21,7 +20,11 @@ from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.backups import clear_database, generate_rsa_key_pair
+from sentry.testutils.helpers.backups import (
+    FakeKeyManagementServiceClient,
+    clear_database,
+    generate_rsa_key_pair,
+)
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -54,20 +57,6 @@ def create_encryption_test_files(tmp_dir: str) -> tuple[Path, Path, Path]:
         i.write(create_encrypted_export_tarball(data, p).getvalue())
 
     return (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path)
-
-
-class FakeKeyManagementServiceClient:
-    """
-    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
-    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
-    endpoint.
-    """
-
-    asymmetric_decrypt = MagicMock()
-
-    @staticmethod
-    def crypto_key_version_path(**kwargs) -> str:
-        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
 
 
 class GoodCompareCommandTests(TestCase):

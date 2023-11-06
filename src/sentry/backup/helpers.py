@@ -18,6 +18,7 @@ from google_crc32c import value as crc32c
 
 from sentry.backup.scopes import RelocationScope
 from sentry.utils import json
+from sentry.utils.env import gcp_project_id
 
 # Django apps we take care to never import or export from.
 EXCLUDED_APPS = frozenset(("auth", "contenttypes", "fixtures"))
@@ -180,8 +181,32 @@ class CryptoKeyVersion(NamedTuple):
     version: str
 
 
+DEFAULT_CRYPTO_KEY_VERSION = CryptoKeyVersion(
+    project_id=gcp_project_id(),
+    location="global",
+    key_ring="relocation",
+    key="relocation",
+    # TODO(getsentry/team-ospo#190): This version should be pulled from an option, rather than hard
+    # coded.
+    version="1",
+)
+
+
 class DecryptionError(Exception):
     pass
+
+
+def get_public_key_using_gcp_kms(crypto_key_version: CryptoKeyVersion) -> bytes:
+    kms_client = KeyManagementServiceClient()
+    key_name = kms_client.crypto_key_version_path(
+        project=crypto_key_version.project_id,
+        location=crypto_key_version.location,
+        key_ring=crypto_key_version.key_ring,
+        crypto_key=crypto_key_version.key,
+        crypto_key_version=crypto_key_version.version,
+    )
+    public_key = kms_client.get_public_key(request={"name": key_name})
+    return public_key.pem.encode("utf-8")
 
 
 def decrypt_data_encryption_key_using_gcp_kms(
