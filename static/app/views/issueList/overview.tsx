@@ -24,7 +24,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
@@ -297,7 +297,7 @@ class IssueListOverview extends Component<Props, State> {
       return decodeScalar(query, '');
     }
 
-    return DEFAULT_QUERY;
+    return '';
   }
 
   getSortFromSavedSearchOrLocation({
@@ -347,9 +347,14 @@ class IssueListOverview extends Component<Props, State> {
     const params: EndpointParams = {
       project: selection.projects,
       environment: selection.environments,
-      query: this.getQuery(),
       ...selection.datetime,
     };
+
+    const query = this.getQuery();
+
+    if (query) {
+      params.query = query;
+    }
 
     if (selection.datetime.period) {
       delete params.period;
