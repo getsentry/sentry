@@ -41,6 +41,7 @@ export function useReleases(searchTerm?: string) {
   const {data: metricsResult, isLoading: isMetricsStatsLoading} = useTableQuery({
     eventView,
     limit: 250,
+    staleTime: Infinity,
   });
 
   const metricsStats: {[version: string]: {count: number}} = {};

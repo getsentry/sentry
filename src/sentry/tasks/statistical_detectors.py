@@ -28,11 +28,9 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features, options, projectoptions
-from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry import features, options
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import ObjectStatus
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
@@ -72,40 +70,6 @@ PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
 
-def get_performance_project_settings(projects: List[Project]):
-    project_settings = {}
-
-    project_option_settings = ProjectOption.objects.get_value_bulk(
-        projects, "sentry:performance_issue_settings"
-    )
-
-    for project in projects:
-        default_project_settings = projectoptions.get_well_known_default(
-            "sentry:performance_issue_settings",
-            project=project,
-        )
-
-        project_settings[project] = {
-            **default_project_settings,
-            **(project_option_settings[project] or {}),
-        }  # Merge saved project settings into default so updating the default to add new settings works in the future.
-
-    return project_settings
-
-
-def all_projects_with_settings():
-    for projects in chunked(
-        RangeQuerySetWrapper(
-            Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
-            step=100,
-        ),
-        100,
-    ):
-        project_settings = get_performance_project_settings(projects)
-        for project in projects:
-            yield project, project_settings[project]
-
-
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.run_detection",
     queue="performance.statistical_detector",
@@ -130,12 +94,14 @@ def run_detection() -> None:
     performance_projects_count = 0
     profiling_projects_count = 0
 
-    for project, project_settings in all_projects_with_settings():
+    for project in RangeQuerySetWrapper(
+        Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
+        step=100,
+    ):
         if project.flags.has_transactions and (
             features.has(
                 "organizations:performance-statistical-detectors-ema", project.organization
             )
-            and project_settings[InternalProjectOptions.TRANSACTION_DURATION_REGRESSION]
             or project.id in enabled_performance_projects
         ):
             performance_projects.append(project)
