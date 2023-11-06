@@ -81,11 +81,9 @@ type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 type RouterParams = {groupId: string; eventId?: string};
 type RouteProps = RouteComponentProps<RouterParams, {}>;
 
-type GroupDetailsProps = {
+interface GroupDetailsProps extends RouteComponentProps<{groupId: string}, {}> {
   children: React.ReactNode;
-  organization: Organization;
-  projects: Project[];
-};
+}
 
 type FetchGroupDetailsState = {
   error: boolean;
@@ -615,15 +613,20 @@ function useTrackView({
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
     group_event_type: groupEventType,
+  });
+  // Set default values for properties that may be updated in subcomponents.
+  // Must be separate from the above values, otherwise the actual values filled in
+  // by subcomponents may be overwritten when the above values change.
+  useRouteAnalyticsParams({
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
     // Will be updated by IssueQuickTrace if there is a trace
     trace_status: 'none',
     // Will be updated in GroupDetailsHeader if there are replays
     group_has_replay: false,
-    // Will be updated in EventCause if there are suspect commits
-    num_suspect_commits: -1,
-    suspect_commit_calculation: 'none',
+    // Will be updated in SuspectCommits if there are suspect commits
+    num_suspect_commits: 0,
+    suspect_commit_calculation: 'no suspect commit',
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }
@@ -769,6 +772,10 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
 
+  const isRegressionIssue =
+    props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+    props.group?.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
+
   useEffect(() => {
     if (props.group && projectsLoaded && !project) {
       Sentry.withScope(scope => {
@@ -790,10 +797,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
       );
       setInjectedEvent(event);
     };
-    if (
-      props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
-      !defined(props.event)
-    ) {
+    if (isRegressionIssue && !defined(props.event)) {
       fetchLatestEvent();
     }
   }, [
@@ -802,7 +806,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     props.event,
     props.group,
     props.group?.id,
-    props.group?.issueType,
+    isRegressionIssue,
   ]);
 
   if (props.error) {
@@ -821,8 +825,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     );
   }
 
-  const isRegressionIssue =
-    props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION;
   const regressionIssueLoaded = defined(injectedEvent ?? props.event);
   if (
     !projectsLoaded ||

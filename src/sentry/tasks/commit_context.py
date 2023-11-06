@@ -9,6 +9,7 @@ from sentry_sdk import set_tag
 from sentry import analytics, features
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.integrations.utils.commit_context import (
     find_commit_context_for_event,
     find_commit_context_for_event_all_frames,
@@ -18,7 +19,6 @@ from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
@@ -204,7 +204,7 @@ def process_commit_context(
                 )
                 return
 
-            code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
+            code_mappings = get_sorted_code_mapping_configs(project)
 
             frames = event_frames or []
             munged = munged_filename_and_frames(event_platform, frames, "munged_filename", sdk_name)

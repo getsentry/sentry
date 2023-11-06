@@ -40,7 +40,8 @@ export function useReleases(searchTerm?: string) {
   const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
   const {data: metricsResult, isLoading: isMetricsStatsLoading} = useTableQuery({
     eventView,
-    limit: 100,
+    limit: 250,
+    staleTime: Infinity,
   });
 
   const metricsStats: {[version: string]: {count: number}} = {};

@@ -4,15 +4,14 @@ import pytest
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
+from sentry.sentry_metrics.configuration import (
+    GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
+    RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
+)
 from sentry.sentry_metrics.consumers.indexer.processing import INGEST_CODEC
 from sentry.sentry_metrics.consumers.indexer.schema_validator import MetricsSchemaValidator
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
-
-__GENERIC_METRICS_OPTION_NAME = "sentry-metrics.indexer.generic-metrics.schema-validation-rules"
-__RELEASE_HEALTH_METRICS_OPTION_NAME = (
-    "sentry-metrics.indexer.release-health.schema-validation-rules"
-)
 
 good_sample_transactions_message = IngestMetric(
     org_id=1,
@@ -94,7 +93,7 @@ bad_sample_release_health_message = IngestMetric(
         ),
         pytest.param(
             INGEST_CODEC,
-            __GENERIC_METRICS_OPTION_NAME,
+            GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             {},
             good_sample_transactions_message,
             "transactions",
@@ -103,7 +102,7 @@ bad_sample_release_health_message = IngestMetric(
         ),
         pytest.param(
             INGEST_CODEC,
-            __GENERIC_METRICS_OPTION_NAME,
+            GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             {},
             bad_sample_transactions_message,
             "transactions",
@@ -112,7 +111,7 @@ bad_sample_release_health_message = IngestMetric(
         ),
         pytest.param(
             INGEST_CODEC,
-            __GENERIC_METRICS_OPTION_NAME,
+            GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             {"transactions": 0.0},
             good_sample_transactions_message,
             "transactions",
@@ -121,7 +120,7 @@ bad_sample_release_health_message = IngestMetric(
         ),
         pytest.param(
             INGEST_CODEC,
-            __GENERIC_METRICS_OPTION_NAME,
+            GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             {"transactions": 0.0},
             bad_sample_transactions_message,
             "transactions",
@@ -130,7 +129,7 @@ bad_sample_release_health_message = IngestMetric(
         ),
         pytest.param(
             INGEST_CODEC,
-            __GENERIC_METRICS_OPTION_NAME,
+            GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             {"transactions": 0.0},
             good_sample_spans_message,
             "spans",
@@ -139,7 +138,7 @@ bad_sample_release_health_message = IngestMetric(
         ),
         pytest.param(
             INGEST_CODEC,
-            __GENERIC_METRICS_OPTION_NAME,
+            GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             {"transactions": 0.0},
             bad_sample_spans_message,
             "spans",
@@ -148,7 +147,7 @@ bad_sample_release_health_message = IngestMetric(
         ),
         pytest.param(
             INGEST_CODEC,
-            __GENERIC_METRICS_OPTION_NAME,
+            GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             {"transactions": 1.0},
             good_sample_transactions_message,
             "transactions",
@@ -157,7 +156,7 @@ bad_sample_release_health_message = IngestMetric(
         ),
         pytest.param(
             INGEST_CODEC,
-            __GENERIC_METRICS_OPTION_NAME,
+            GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             {"transactions": 1.0},
             bad_sample_transactions_message,
             "transactions",
@@ -166,7 +165,7 @@ bad_sample_release_health_message = IngestMetric(
         ),
         pytest.param(
             INGEST_CODEC,
-            __RELEASE_HEALTH_METRICS_OPTION_NAME,
+            RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             {},
             good_sample_release_health_message,
             "sessions",
@@ -175,7 +174,7 @@ bad_sample_release_health_message = IngestMetric(
         ),
         pytest.param(
             INGEST_CODEC,
-            __RELEASE_HEALTH_METRICS_OPTION_NAME,
+            RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             {},
             bad_sample_release_health_message,
             "sessions",

@@ -135,7 +135,7 @@ def run_detection() -> None:
             features.has(
                 "organizations:performance-statistical-detectors-ema", project.organization
             )
-            and project_settings[InternalProjectOptions.TRANSACTION_DURATION_REGRESSION]
+            and project_settings[InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value]
             or project.id in enabled_performance_projects
         ):
             performance_projects.append(project)
