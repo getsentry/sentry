@@ -395,7 +395,7 @@ function MonitorForm({
                   DEFAULT_CHECKIN_MARGIN
                 )}
                 help={t('Number of minutes before a check-in is considered missed.')}
-                label={t('Grace Period')}
+                label={t('Check-In Margin')}
               />
               <NumberField
                 name="config.max_runtime"
