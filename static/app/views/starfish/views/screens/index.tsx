@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import Alert from 'sentry/components/alert';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
@@ -244,7 +245,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   const topTransactionsIndex = Object.fromEntries(topTransactions.map((e, i) => [e, i]));
 
-  if (defined(releaseEvents)) {
+  if (defined(releaseEvents) && defined(primaryRelease)) {
     releaseEvents.data?.forEach(row => {
       const release = row.release;
       const isPrimary = release === primaryRelease;
@@ -266,7 +267,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     });
   }
 
-  if (defined(deviceClassEvents)) {
+  if (defined(deviceClassEvents) && defined(primaryRelease)) {
     deviceClassEvents.data?.forEach(row => {
       const deviceClass = row['device.class'];
       const transaction = row.transaction;
@@ -308,6 +309,13 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   return (
     <div data-test-id="starfish-mobile-view">
+      {!defined(primaryRelease) && (
+        <Alert type="warning" showIcon>
+          {t(
+            'No screens found on most recent releases, please try selecting a single mobile project.'
+          )}
+        </Alert>
+      )}
       <ChartsContainer>
         <Fragment>
           <ChartsContainerItem key="release">
