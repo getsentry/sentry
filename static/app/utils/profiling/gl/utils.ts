@@ -128,40 +128,44 @@ export function makeProjectionMatrix(width: number, height: number): mat3 {
   return projectionMatrix;
 }
 
+export function getPhysicalWidthAndHeightFromObserverEntry(
+  entry: ResizeObserverEntry
+): [number, number] {
+  let width;
+  let height;
+  let dpr = window.devicePixelRatio;
+  if (entry.devicePixelContentBoxSize) {
+    // NOTE: Only this path gives the correct answer
+    // The other paths are imperfect fallbacks
+    // for browsers that don't provide anyway to do this
+    width = entry.devicePixelContentBoxSize[0].inlineSize;
+    height = entry.devicePixelContentBoxSize[0].blockSize;
+    dpr = 1; // it's already in width and height
+  } else if (entry.contentBoxSize) {
+    if (entry.contentBoxSize[0]) {
+      width = entry.contentBoxSize[0].inlineSize;
+      height = entry.contentBoxSize[0].blockSize;
+    } else {
+      // @ts-expect-error
+      width = entry.contentBoxSize.inlineSize;
+      // @ts-expect-error
+      height = entry.contentBoxSize.blockSize;
+    }
+  } else {
+    width = entry.contentRect.width;
+    height = entry.contentRect.height;
+  }
+  return [Math.round(width * dpr), Math.round(height * dpr)];
+}
+
 const canvasToDisplaySizeMap = new Map<HTMLCanvasElement, [number, number]>();
 
-function onResize(entries: ResizeObserverEntry[]) {
+export function onResizeCanvasToDisplaySize(entries: ResizeObserverEntry[]) {
   for (const entry of entries) {
-    let width;
-    let height;
-    let dpr = window.devicePixelRatio;
-    if (entry.devicePixelContentBoxSize) {
-      // NOTE: Only this path gives the correct answer
-      // The other paths are imperfect fallbacks
-      // for browsers that don't provide anyway to do this
-      width = entry.devicePixelContentBoxSize[0].inlineSize;
-      height = entry.devicePixelContentBoxSize[0].blockSize;
-      dpr = 1; // it's already in width and height
-    } else if (entry.contentBoxSize) {
-      if (entry.contentBoxSize[0]) {
-        width = entry.contentBoxSize[0].inlineSize;
-        height = entry.contentBoxSize[0].blockSize;
-      } else {
-        // @ts-expect-error
-        width = entry.contentBoxSize.inlineSize;
-        // @ts-expect-error
-        height = entry.contentBoxSize.blockSize;
-      }
-    } else {
-      width = entry.contentRect.width;
-      height = entry.contentRect.height;
-    }
-    const displayWidth = Math.round(width * dpr);
-    const displayHeight = Math.round(height * dpr);
-    canvasToDisplaySizeMap.set(entry.target as HTMLCanvasElement, [
-      displayWidth,
-      displayHeight,
-    ]);
+    canvasToDisplaySizeMap.set(
+      entry.target as HTMLCanvasElement,
+      getPhysicalWidthAndHeightFromObserverEntry(entry)
+    );
 
     resizeCanvasToDisplaySize(entry.target as HTMLCanvasElement);
   }
@@ -172,7 +176,7 @@ export const watchForResize = (
   callback?: (entries: ResizeObserverEntry[], observer: ResizeObserver) => void
 ): ResizeObserver => {
   const handler: ResizeObserverCallback = (entries, observer) => {
-    onResize(entries);
+    onResizeCanvasToDisplaySize(entries);
     callback?.(entries, observer);
   };
 

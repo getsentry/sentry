@@ -1,13 +1,14 @@
-import {useMemo} from 'react';
-import LazyLoad from 'react-lazyload';
+import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {t} from 'sentry/locale';
 import {Group, TimeseriesValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
+
+import {FastMiniBarChart} from '../charts/fastMiniBarChart';
 
 function asChartPoint(point: [number, number]): {name: number | string; value: number} {
   return {
@@ -30,7 +31,6 @@ function GroupChart({
   data,
   statsPeriod,
   showSecondaryPoints = false,
-  height = 24,
   showMarkLine = false,
 }: Props) {
   const stats: ReadonlyArray<TimeseriesValue> = statsPeriod
@@ -42,13 +42,9 @@ function GroupChart({
   const secondaryStats: TimeseriesValue[] | null =
     statsPeriod && data.filtered ? data.stats[statsPeriod] : null;
 
-  const [series, colors, emphasisColors]: [
-    Series[],
-    [string] | undefined,
-    [string] | undefined,
-  ] = useMemo(() => {
+  const series: Series[] = useMemo(() => {
     if (!stats || !stats.length) {
-      return [[], undefined, undefined];
+      return [];
     }
 
     let max = 0;
@@ -65,8 +61,6 @@ function GroupChart({
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
     const chartSeries: Series[] = [];
-    let chartColors: [string] | undefined = undefined;
-    let chartEmphasisColors: [string] | undefined = undefined;
 
     if (showSecondaryPoints && secondaryStats && secondaryStats.length) {
       chartSeries.push({
@@ -80,8 +74,6 @@ function GroupChart({
     } else {
       // Colors are custom to preserve historical appearance where the single series is
       // considerably darker than the two series results.
-      chartColors = [theme.gray300];
-      chartEmphasisColors = [theme.purple300];
       chartSeries.push({
         seriesName: t('Events'),
         data: stats.map(asChartPoint),
@@ -107,23 +99,25 @@ function GroupChart({
             : undefined,
       });
     }
-    return [chartSeries, chartColors, chartEmphasisColors];
+    return chartSeries;
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
 
   return (
-    <LazyLoad debounce={50} height={showMarkLine ? 30 : height}>
-      <MiniBarChart
-        height={showMarkLine ? 36 : height}
-        isGroupedByDate
-        showTimeInTooltip
-        series={series}
-        colors={colors}
-        emphasisColors={emphasisColors}
-        hideDelay={50}
-        showMarkLineLabel={showMarkLine}
-      />
-    </LazyLoad>
+    <Fragment>
+      <FastMiniBarChartContainer>
+        <FastMiniBarChart series={series} />
+      </FastMiniBarChartContainer>
+    </Fragment>
   );
 }
 
+const FastMiniBarChartContainer = styled('div')`
+  width: 200px;
+  height: 50px;
+
+  canvas {
+    width: 100%;
+    height: 100%;
+  }
+`;
 export default GroupChart;
