@@ -705,6 +705,47 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project):
 
 
 @django_db_all
+def test_get_metric_extraction_config_table_group_by_columns(default_project):
+    """Table widgets have a 'groupby' functionality if you add any columns to the table that aren't aggregates.
+    These need to correctly construct a query to on-demand extracted metrics."""
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(
+            ["count()", "epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            "Dashboard",
+            columns=["lcp.element"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": ANY},
+                    {"key": "lcp.element", "field": "event.tags.lcp.element"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": ANY},
+                    {"key": "lcp.element", "field": "event.tags.lcp.element"},
+                ],
+            },
+        ]
+
+
+@django_db_all
 @pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
 def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
