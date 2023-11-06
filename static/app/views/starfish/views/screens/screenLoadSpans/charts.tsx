@@ -225,6 +225,7 @@ export function ScreenCharts({yAxes, additionalFilters, chartHeight}: Props) {
                 xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
               };
             })}
+            chartKey="spansChart"
             chartHeight={chartHeight ?? 180}
             isLoading={isDeviceClassEventsLoading}
           />
