@@ -9,7 +9,6 @@ import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useA11yData from 'sentry/utils/replays/hooks/useA11yData';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-// import useMockA11yData from 'sentry/utils/replays/hooks/useMockA11yData';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/accessibilityFilters';
