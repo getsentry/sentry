@@ -996,7 +996,7 @@ describe('IssueList', function () {
       expect(fetchDataMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          data: 'collapse=stats&collapse=unhandled&defaultQuery=0&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
+          data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
         })
       );
     });

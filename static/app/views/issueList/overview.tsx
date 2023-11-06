@@ -552,7 +552,6 @@ class IssueListOverview extends Component<Props, State> {
           ? savedSearchLookupEnabled
           : savedSearchLookupDisabled
         : savedSearchLookupDisabled,
-      defaultQuery: this.props.location.query ? 0 : 1,
     };
 
     if (
@@ -560,6 +559,14 @@ class IssueListOverview extends Component<Props, State> {
       this.props.selectedSearchId
     ) {
       requestParams.searchId = this.props.selectedSearchId;
+    }
+
+    if (
+      this.props.organization.features.includes('issue-stream-performance') &&
+      this.props.savedSearchLoading &&
+      !this.props.location.query.query
+    ) {
+      delete requestParams.query;
     }
 
     const currentQuery = this.props.location.query || {};
