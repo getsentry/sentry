@@ -13,7 +13,7 @@ from typing import List, Optional, TypedDict, cast
 
 from sentry import nodestore
 from sentry.models.group import Group
-from sentry.models.project import Project
+from sentry.models.organization import Organization
 from sentry.utils.dates import parse_timestamp
 
 GROUP_FORECAST_TTL = 14
@@ -50,9 +50,10 @@ class EscalatingGroupForecast:
         )
 
     @classmethod
-    def _should_fetch_escalating(cls, group_id: int, project_id: int) -> bool:
+    def _should_fetch_escalating(cls, group_id: int) -> bool:
         group = Group.objects.get(id=group_id)
-        organization = Project.objects.get(id=project_id).organization
+
+        organization = Organization.objects.get(project__group__id=group_id)
         return group.issue_type.should_detect_escalation(organization)
 
     @classmethod
@@ -67,7 +68,7 @@ class EscalatingGroupForecast:
         """
         from sentry.issues.forecasts import generate_and_save_missing_forecasts
 
-        if not cls._should_fetch_escalating(group_id=group_id, project_id=project_id):
+        if not cls._should_fetch_escalating(group_id=group_id):
             return
 
         results = nodestore.get(cls.build_storage_identifier(project_id, group_id))
