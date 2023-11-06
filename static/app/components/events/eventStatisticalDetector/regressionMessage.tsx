@@ -31,7 +31,8 @@ function EventStatisticalDetectorMessage({
   group,
 }: EventStatisticalDetectorMessageProps) {
   switch (group.issueType) {
-    case IssueType.PERFORMANCE_DURATION_REGRESSION: {
+    case IssueType.PERFORMANCE_DURATION_REGRESSION:
+    case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
       return (
         <EventStatisticalDetectorRegressedPerformanceMessage
           event={event}
@@ -39,7 +40,8 @@ function EventStatisticalDetectorMessage({
         />
       );
     }
-    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL: {
+    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
+    case IssueType.PROFILE_FUNCTION_REGRESSION: {
       return (
         <EventStatisticalDetectorRegressedFunctionMessage event={event} group={group} />
       );

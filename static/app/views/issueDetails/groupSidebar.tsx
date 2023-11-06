@@ -307,7 +307,8 @@ export default function GroupSidebar({
           tagFormatter={TAGS_FORMATTER}
           project={project}
           isStatisticalDetector={
-            group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+            group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+            group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION
           }
         />
       )}

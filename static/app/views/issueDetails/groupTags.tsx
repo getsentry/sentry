@@ -65,10 +65,14 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
     relativeDays: 14,
   });
 
+  const isRegressionIssue =
+    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+    group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
+
   const shouldUseTagFacetsEndpoint =
     organization.features.includes('performance-duration-regression-visible') &&
     defined(event) &&
-    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION;
+    isRegressionIssue;
 
   const {
     data = [],
@@ -111,22 +115,20 @@ function GroupTags({group, baseUrl, environments, event}: GroupTagsProps) {
   }
 
   const getTagKeyTarget = (tag: SimpleTag) => {
-    const pathname =
-      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
-        ? generateTagsRoute({orgSlug: organization.slug})
-        : `${baseUrl}tags/${tag.key}/`;
+    const pathname = isRegressionIssue
+      ? generateTagsRoute({orgSlug: organization.slug})
+      : `${baseUrl}tags/${tag.key}/`;
 
-    const query =
-      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
-        ? {
-            ...extractSelectionParameters(location.query),
-            start: (beforeDateTime as Date).toISOString(),
-            end: (afterDateTime as Date).toISOString(),
-            statsPeriod: undefined,
-            tagKey: tag.key,
-            transaction,
-          }
-        : extractSelectionParameters(location.query);
+    const query = isRegressionIssue
+      ? {
+          ...extractSelectionParameters(location.query),
+          start: (beforeDateTime as Date).toISOString(),
+          end: (afterDateTime as Date).toISOString(),
+          statsPeriod: undefined,
+          tagKey: tag.key,
+          transaction,
+        }
+      : extractSelectionParameters(location.query);
 
     return {
       pathname,
