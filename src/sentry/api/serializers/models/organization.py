@@ -100,11 +100,12 @@ class BaseOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
 
     # The slug pattern consists of the following:
+    # (?![0-9]+$)   - Negative lookahead to ensure the slug cannot be entirely numeric
     # [a-zA-Z0-9]   - The slug must start with a letter or number
     # [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
     # (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
     slug = SentrySlugField(
-        pattern=r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$",
+        regex=r"^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$",
         max_length=50,
         error_messages={
             "invalid": _(
