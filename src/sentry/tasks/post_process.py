@@ -449,7 +449,7 @@ fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_dela
 
 def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -> bool:
     return (
-        features.has("organizations:issue-platform-crons-sd", event.project.organization)
+        features.has("organizations:escalating-metrics-backend", event.project.organization)
         and not is_transaction_event
         and event.group.issue_type.should_detect_escalation(event.project.organization)
     )
