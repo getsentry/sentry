@@ -79,7 +79,8 @@ def build_query_params_from_request(
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
     query = request.GET.get("query", "is:unresolved").strip()
-    if request.GET.get("savedSearch") == "0" and request.user:
+    default_query = request.GET.get("defaultQuery")
+    if request.GET.get("savedSearch") == "0" and request.user and default_query == "1":
         saved_searches = (
             SavedSearch.objects
             # Do not include pinned or personal searches from other users in

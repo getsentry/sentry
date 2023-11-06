@@ -227,6 +227,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :qparam bool savedSearch:  if this is set to False, then we are making the request without
                                    a saved search and will look for the default search from this endpoint.
         :qparam string searchId:   if passed in, this is the selected search
+        :qparam bool defaultQuery:  if this is set to true, then we are using the default query for search
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :auth: required
