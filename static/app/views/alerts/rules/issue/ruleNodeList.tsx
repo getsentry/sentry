@@ -8,6 +8,8 @@ import {IssueOwnership, Organization, Project} from 'sentry/types';
 import {
   IssueAlertActionType,
   IssueAlertConditionType,
+  IssueAlertConfiguration,
+  IssueAlertGenericConditionConfig,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
@@ -34,7 +36,7 @@ type Props = {
   /**
    * All available actions or conditions
    */
-  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
+  nodes: IssueAlertConfiguration[keyof IssueAlertConfiguration] | null;
   onAddRow: (
     value: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate
   ) => void;
@@ -159,14 +161,18 @@ class RuleNodeList extends Component<Props> {
   getNode = (
     template: IssueAlertRuleAction | IssueAlertRuleCondition,
     itemIdx: number
-  ): IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null => {
+  ): IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null => {
     const {nodes, items, organization, onPropertyChange} = this.props;
     const node = nodes?.find(n => {
-      return (
-        n.id === template.id &&
+      if ('sentryAppInstallationUuid' in n) {
         // Match more than just the id for sentryApp actions, they share the same id
-        n.sentryAppInstallationUuid === template.sentryAppInstallationUuid
-      );
+        return (
+          n.id === template.id &&
+          n.sentryAppInstallationUuid === template.sentryAppInstallationUuid
+        );
+      }
+
+      return n.id === template.id;
     });
 
     if (!node) {
@@ -180,13 +186,13 @@ class RuleNodeList extends Component<Props> {
       return node;
     }
 
-    const item = items[itemIdx] as IssueAlertRuleCondition;
+    const item = items[itemIdx];
 
-    let changeAlertNode: IssueAlertRuleConditionTemplate = {
-      ...node,
+    let changeAlertNode: IssueAlertGenericConditionConfig = {
+      ...(node as IssueAlertGenericConditionConfig),
       label: node.label.replace('...', ' {comparisonType}'),
       formFields: {
-        ...node.formFields,
+        ...(node.formFields as IssueAlertGenericConditionConfig['formFields']),
         comparisonType: {
           type: 'choice',
           choices: COMPARISON_TYPE_CHOICES,
