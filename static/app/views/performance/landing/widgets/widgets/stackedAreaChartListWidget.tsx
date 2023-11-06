@@ -72,10 +72,13 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
   const pageError = usePageError();
   const theme = useTheme();
-  const {data: projectData, isLoading: isProjectWebVitalDataLoading} =
-    useProjectWebVitalsQuery();
   const colors = [...theme.charts.getColorPalette(5)].reverse();
   const field = fields[0];
+
+  // TODO Abdullah Khan: Create a new widget type/file for Best Page Opportunity
+  // Web vitals widget. Code path is very different from generic stacked area chart widget.
+  const {data: projectData, isLoading: isProjectWebVitalDataLoading} =
+    useProjectWebVitalsQuery();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
