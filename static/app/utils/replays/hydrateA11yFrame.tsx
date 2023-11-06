@@ -1,3 +1,7 @@
+export interface RawA11yResponse {
+  data: RawA11yFrame[];
+}
+
 export interface RawA11yFrame {
   elements: A11yIssueElement[];
   help: string;
