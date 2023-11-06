@@ -311,7 +311,7 @@ def adjust_sample_rates_of_projects(
             if rebalanced_project.id in PROJECTS_WITH_METRICS:
                 metrics.gauge(
                     "dynamic_sampling.project_sample_rate",
-                    rebalanced_project.new_sample_rate,
+                    rebalanced_project.new_sample_rate * 100,
                     tags={"project_id": rebalanced_project.id},
                     unit="percent",
                 )
