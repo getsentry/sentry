@@ -276,6 +276,24 @@ class DatabaseBackedNotificationsService(NotificationsService):
         )
         return controller.get_users_for_weekly_reports()
 
+    def get_notification_recipients(
+        self,
+        *,
+        recipients: List[RpcActor],
+        type: NotificationSettingEnum,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        actor_type: Optional[ActorType] = None,
+    ) -> Mapping[str, set[RpcActor]]:
+        controller = NotificationController(
+            recipients=recipients,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            type=type,
+        )
+        raw_output = controller.get_notification_recipients(type=type, actor_type=actor_type)
+        return {str(provider.name): actors for provider, actors in raw_output.items()}
+
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[
             NotificationSetting, NotificationSettingFilterArgs, RpcNotificationSetting, None

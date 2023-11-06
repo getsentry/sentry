@@ -132,6 +132,7 @@ export interface Member {
     'member-limit:restricted': boolean;
     'sso:invalid': boolean;
     'sso:linked': boolean;
+    'partnership:restricted'?: boolean;
   };
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';

@@ -1,7 +1,8 @@
-from typing import Optional
+from typing import List, Optional
 
 from django.db.models import F
 
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.services.hybrid_cloud.project_key import (
     ProjectKeyRole,
     ProjectKeyService,
@@ -46,3 +47,18 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         self, *, region_name: str, project_id: str, role: ProjectKeyRole
     ) -> Optional[RpcProjectKey]:
         return self._get_project_key(project_id=project_id, role=role)
+
+    def get_project_keys_by_region(
+        self,
+        *,
+        region_name: str,
+        project_ids: List[str],
+        role: ProjectKeyRole,
+        limit: int = 100,
+    ) -> List[RpcProjectKey]:
+        project_keys = ProjectKey.objects.filter(
+            project__in=project_ids,
+            roles=F("roles").bitor(role.as_orm_role()),
+            status=ProjectKeyStatus.ACTIVE,
+        ).order_by("-date_added")[:limit]
+        return [serialize_project_key(pk) for pk in project_keys]

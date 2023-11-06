@@ -1,7 +1,7 @@
 import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import {DataSection} from 'sentry/components/events/styles';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
@@ -83,7 +83,7 @@ function getColumns() {
   return [
     {key: 'span_op', name: t('Span Operation'), width: 200},
     {key: 'span_description', name: t('Description'), width: COL_WIDTH_UNDEFINED},
-    {key: 'spm', name: t('Span Frequency'), width: COL_WIDTH_UNDEFINED},
+    {key: 'spm', name: t('Throughput'), width: COL_WIDTH_UNDEFINED},
     {key: 'p95', name: t('P95'), width: COL_WIDTH_UNDEFINED},
   ];
 }
@@ -149,6 +149,7 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
   const {start, end} = useRelativeDateTime({
     anchor: breakpoint,
     relativeDays: 7,
+    retentionDays: 30,
   });
   const {data, isLoading, isError} = useFetchAdvancedAnalysis({
     transaction,
@@ -202,10 +203,9 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
   }
 
   return (
-    <DataSection>
-      <strong>{t('Span Analysis:')}</strong>
+    <EventDataSection type="potential-causes" title={t('Potential Causes')}>
       {content}
-    </DataSection>
+    </EventDataSection>
   );
 }
 

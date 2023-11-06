@@ -7,7 +7,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
-import {EventCause} from 'sentry/components/events/eventCause';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -22,7 +21,6 @@ import {EventFunctionComparisonList} from 'sentry/components/events/eventStatist
 import {EventFunctionRegressionEvidence} from 'sentry/components/events/eventStatisticalDetector/eventFunctionRegressionEvidence';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
-import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/spanOpBreakdown';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -33,6 +31,7 @@ import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrR
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
+import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -99,7 +98,7 @@ function DefaultGroupEventDetailsContent({
       {hasActionableItems && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
-      <EventCause
+      <SuspectCommits
         project={project}
         eventId={event.id}
         group={group}
@@ -201,13 +200,10 @@ function PerformanceDurationRegressionIssueDetailsContent({
           <EventBreakpointChart event={event} />
         </ErrorBoundary>
         <ErrorBoundary mini>
-          <EventSpanOpBreakdown event={event} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
           <AggregateSpanDiff event={event} projectId={project.id} />
         </ErrorBoundary>
         <ErrorBoundary mini>
-          <EventComparison event={event} group={group} project={project} />
+          <EventComparison event={event} project={project} />
         </ErrorBoundary>
       </Fragment>
     </Feature>

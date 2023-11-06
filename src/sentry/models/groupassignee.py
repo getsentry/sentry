@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class GroupAssigneeManager(BaseManager):
+class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def get_assigned_to_data(
         self, assigned_to: Team | RpcUser, assignee_type: str, extra: Dict[str, str] | None = None
     ) -> Dict[str, Any]:
@@ -68,8 +68,14 @@ class GroupAssigneeManager(BaseManager):
         return (assignee_type, assignee_type_attr, other_type)
 
     def remove_old_assignees(
-        self, group: Group, previous_assignee: Optional[GroupAssignee]
+        self,
+        group: Group,
+        previous_assignee: Optional[GroupAssignee],
+        new_assignee_id: Optional[int] = None,
+        new_assignee_type: Optional[str] = None,
     ) -> None:
+        from sentry.models.team import Team
+
         if not features.has("organizations:participants-purge", group.organization):
             return
 
@@ -92,6 +98,13 @@ class GroupAssigneeManager(BaseManager):
             )
         elif previous_assignee.team:
             team_members = list(previous_assignee.team.member_set.values_list("user_id", flat=True))
+            if (
+                new_assignee_type
+                and new_assignee_type == "user"
+                and new_assignee_id in team_members
+            ):
+                team_members.remove(new_assignee_id)
+
             GroupSubscription.objects.filter(
                 group=group,
                 project=group.project,
@@ -103,6 +116,13 @@ class GroupAssigneeManager(BaseManager):
                 extra={"group_id": group.id, "team_id": previous_assignee.team.id},
             )
         else:
+            # if the new assignee is a team that the old assignee (a user) is in, don't remove them
+            if new_assignee_type == "team":
+                team = Team.objects.get(id=new_assignee_id)
+                team_members = list(team.member_set.values_list("user_id", flat=True))
+                if previous_assignee.user_id in team_members:
+                    return
+
             GroupSubscription.objects.filter(
                 group=group,
                 project=group.project,
@@ -178,7 +198,7 @@ class GroupAssigneeManager(BaseManager):
                 sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
             if not created:  # aka re-assignment
-                self.remove_old_assignees(group, assignee)
+                self.remove_old_assignees(group, assignee, assigned_to_id, assignee_type)
 
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
@@ -240,7 +260,7 @@ class GroupAssignee(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    objects = GroupAssigneeManager()
+    objects: ClassVar[GroupAssigneeManager] = GroupAssigneeManager()
 
     project = FlexibleForeignKey("sentry.Project", related_name="assignee_set")
     group = FlexibleForeignKey("sentry.Group", related_name="assignee_set", unique=True)

@@ -654,7 +654,7 @@ function Flamegraph(): ReactElement {
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
         {
-          width: {min: 0},
+          width: {min: 1},
         }
       );
 
@@ -698,7 +698,7 @@ function Flamegraph(): ReactElement {
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
         {
-          width: {min: 0},
+          width: {min: 1},
         }
       );
 
@@ -742,7 +742,7 @@ function Flamegraph(): ReactElement {
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
         {
-          width: {min: 0},
+          width: {min: 1},
         }
       );
 
@@ -778,8 +778,9 @@ function Flamegraph(): ReactElement {
       // Initialize configView to whatever the flamegraph configView is
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {width: {min: 0}}
+        {width: {min: 1}}
       );
+
       return newView;
     },
     [spanChart, spansCanvas, flamegraph.inverted, flamegraphView, flamegraphTheme.SIZES]
