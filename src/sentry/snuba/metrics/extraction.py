@@ -498,18 +498,13 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
 
 
 def _is_excluding_transactions(token: SearchFilter) -> bool:
-    is_not_transaction = (
-        token.key.name == "event.type"
-        and token.operator == "!="
-        and token.value.raw_value == "transaction"
-    )
-    is_error = (
-        token.key.name == "event.type"
-        and token.operator == "="
-        and token.value.raw_value == "error"
-    )
+    if token.key.name != "event.type":
+        return False
 
-    return is_not_transaction or is_error
+    is_not_transaction = token.operator == "!=" and token.value.raw_value == "transaction"
+    is_error_or_default = token.operator == "=" and token.value.raw_value in ["error", "default"]
+
+    return is_not_transaction or is_error_or_default
 
 
 def _is_standard_metrics_field(field: str) -> bool:

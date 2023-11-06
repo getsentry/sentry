@@ -44,8 +44,21 @@ from sentry.testutils.pytest.fixtures import django_db_all
             True,
         ),  # transaction.duration query is on-demand
         ("count[)", "", False),  # Malformed aggregate should return false
-        ("count()", "event.type:error", False),  # event.type:error not supported by metrics
-        ("count()", "error.handled:true", False),  # error.handled is an error search term
+        (
+            "count()",
+            "event.type:error transaction.duration:>0",
+            False,
+        ),  # event.type:error not supported by metrics
+        (
+            "count()",
+            "event.type:default transaction.duration:>0",
+            False,
+        ),  # event.type:error not supported by metrics
+        (
+            "count()",
+            "error.handled:true transaction.duration:>0",
+            False,
+        ),  # error.handled is an error search term
     ],
 )
 def test_should_use_on_demand(agg, query, result):
