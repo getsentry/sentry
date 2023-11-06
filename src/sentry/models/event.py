@@ -27,7 +27,7 @@ class EventDict(CanonicalKeyDict):
             # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we
             # should include this in the rust normalizer, since we don't want people sending us
             # these via the sdk.
-            if pre_normalize_type in ["generic", "nel"]:
+            if pre_normalize_type == "generic":
                 data["type"] = pre_normalize_type
 
         CanonicalKeyDict.__init__(self, data, **kwargs)
