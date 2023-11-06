@@ -10,13 +10,12 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.sdk import set_measurement
-
-from .project_stacktrace_link import get_code_mapping_configs
 
 MAX_CODE_MAPPINGS_USED = 3
 
@@ -64,7 +63,7 @@ class ProjectStacktraceLinksEndpoint(ProjectEndpoint):
         mappings_used = 0
         mappings_attempted = 0
 
-        configs = get_code_mapping_configs(project)
+        configs = get_sorted_code_mapping_configs(project)
 
         default_error = "stack_root_mismatch" if configs else "no_code_mappings"
 
