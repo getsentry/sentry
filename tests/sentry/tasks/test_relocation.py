@@ -20,6 +20,7 @@ from sentry.backup.helpers import (
 )
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
+from sentry.models.organization import Organization
 from sentry.models.relocation import (
     Relocation,
     RelocationFile,
@@ -43,6 +44,7 @@ from sentry.tasks.relocation import (
     ERR_VALIDATING_MAX_RUNS,
     MAX_FAST_TASK_RETRIES,
     MAX_VALIDATION_POLLS,
+    importing,
     preprocessing_baseline_config,
     preprocessing_colliding_users,
     preprocessing_complete,
@@ -52,7 +54,7 @@ from sentry.tasks.relocation import (
     validating_poll,
     validating_start,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
 from sentry.testutils.silo import region_silo_test
@@ -207,7 +209,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
 class PreprocessingScanTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
-        self.relocation.step = Relocation.Step.PREPROCESSING.value
+        self.relocation.step = Relocation.Step.UPLOADING.value
         self.relocation.latest_task = "UPLOADING_COMPLETE"
         self.relocation.save()
 
@@ -1072,3 +1074,28 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.failure_reason == ERR_VALIDATING_INTERNAL
+
+
+@patch(
+    "sentry.backup.helpers.KeyManagementServiceClient",
+    new_callable=lambda: FakeKeyManagementServiceClient,
+)
+@patch("sentry.tasks.relocation.completed.delay")
+@region_silo_test
+class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
+    def setUp(self):
+        RelocationTaskTestCase.setUp(self)
+        TransactionTestCase.setUp(self)
+        self.relocation.step = Relocation.Step.VALIDATING.value
+        self.relocation.latest_task = "VALIDATING_COMPLETE"
+        self.relocation.save()
+
+    def test_success(self, completed_mock: Mock, fake_kms_client: FakeKeyManagementServiceClient):
+        self.mock_kms_client(fake_kms_client)
+        org_count = Organization.objects.filter(slug__startswith="testing").count()
+
+        importing(self.relocation.uuid)
+
+        # TODO(getsentry/team-ospo#203): Should notify users instead.
+        assert completed_mock.call_count == 1
+        assert Organization.objects.filter(slug__startswith="testing").count() == org_count + 1
