@@ -200,6 +200,7 @@ class ErrorPageEmbedView(View):
                         "name": report.name,
                         "email": report.email,
                         "comments": report.comments,
+                        "event_id": report.event_id,
                     },
                     event,
                     project,
