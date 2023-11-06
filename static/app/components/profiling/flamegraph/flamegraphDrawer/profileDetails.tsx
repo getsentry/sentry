@@ -190,7 +190,6 @@ function TransactionDeviceDetails({
   const deviceDetails = useMemo(() => {
     const profileMetadata = profileGroup.metadata;
     const deviceContext = transaction.contexts.device;
-    const clientOsContext = transaction.contexts.client_os;
     const osContext = transaction.contexts.os;
 
     const details: {
@@ -218,15 +217,12 @@ function TransactionDeviceDetails({
       {
         key: 'name',
         label: t('OS'),
-        value: clientOsContext?.name ?? osContext?.name ?? profileMetadata.deviceOSName,
+        value: osContext?.name ?? profileMetadata.deviceOSName,
       },
       {
         key: 'version',
         label: t('OS Version'),
-        value:
-          clientOsContext?.version ??
-          osContext?.version ??
-          profileMetadata.deviceOSVersion,
+        value: osContext?.version ?? profileMetadata.deviceOSVersion,
       },
       {
         key: 'locale',
