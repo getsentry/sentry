@@ -96,8 +96,12 @@ function MockTimelineVisualization(props: ScheduleConfig) {
   return (
     <TimelineContainer>
       <TimelineWidthTracker ref={elementRef} />
-      {isLoading || !start || !end || !timeWindowConfig ? (
-        <Placeholder />
+      {isLoading || !start || !end || !timeWindowConfig || !mockTimestamps ? (
+        <Fragment>
+          {/* TODO(davidenwang): Improve loading placeholder */}
+          <Placeholder height="40px" />
+          <TimelinePlaceholder />
+        </Fragment>
       ) : (
         <Fragment>
           <StyledGridLineTimeLabels
@@ -113,17 +117,13 @@ function MockTimelineVisualization(props: ScheduleConfig) {
             end={end}
             width={timelineWidth}
           />
-          {mockTimestamps && !isLoading ? (
-            <MockCheckInTimeline
-              width={timelineWidth}
-              mockTimestamps={mockTimestamps.slice(1, mockTimestamps.length - 1)}
-              start={start}
-              end={end}
-              timeWindowConfig={timeWindowConfig}
-            />
-          ) : (
-            <TimelinePlaceholder />
-          )}
+          <MockCheckInTimeline
+            width={timelineWidth}
+            mockTimestamps={mockTimestamps.slice(1, mockTimestamps.length - 1)}
+            start={start}
+            end={end}
+            timeWindowConfig={timeWindowConfig}
+          />
         </Fragment>
       )}
     </TimelineContainer>
