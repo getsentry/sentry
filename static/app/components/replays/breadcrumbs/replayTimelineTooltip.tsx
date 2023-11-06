@@ -10,8 +10,7 @@ const TOOLTIP_OFFSET = 10;
 
 type Props = {
   /**
-   * Function used to compute the text of the cursor tooltip. Recieves the %
-   * value the cursor is within the container.
+   * Text of the cursor tooltip.
    */
   labelText: string;
   children?: React.ReactNode;
