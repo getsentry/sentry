@@ -94,8 +94,12 @@ Makefile                                                 @getsentry/owners-sentr
 /src/sentry/backup/                                      @getsentry/open-source
 /src/sentry/runner/commands/backup.py                    @getsentry/open-source
 /src/sentry/services/hybrid-cloud/import_export/         @getsentry/open-source
+/src/sentry/tasks/relocation.py                          @getsentry/open-source
 /src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
+/src/sentry/utils/relocation.py                          @getsentry/open-source
 /tests/sentry/api/endpoints/test_relocation.py           @getsentry/open-source
+/tests/sentry/tasks/test_relocation.py                   @getsentry/open-source
+/tests/sentry/utils/test_relocation.py                   @getsentry/open-source
 /tests/sentry/backup                                     @getsentry/open-source
 /tests/sentry/runner/commands/test_backup.py             @getsentry/open-source
 
