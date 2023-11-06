@@ -199,44 +199,44 @@ function PerformanceScoreRingWithTooltips({
         {!hideWebVitalLabels && (
           <Fragment>
             <WebVitalLabel
+              {...commonWebVitalLabelProps}
               webVital="lcp"
               coordinates={{
                 x: 160,
                 y: 30,
               }}
-              {...commonWebVitalLabelProps}
             />
             <WebVitalLabel
+              {...commonWebVitalLabelProps}
               webVital="fcp"
               coordinates={{
                 x: 175,
                 y: 140,
               }}
-              {...commonWebVitalLabelProps}
             />
             <WebVitalLabel
+              {...commonWebVitalLabelProps}
               webVital="fid"
               coordinates={{
                 x: 20,
                 y: 140,
               }}
-              {...commonWebVitalLabelProps}
             />
             <WebVitalLabel
+              {...commonWebVitalLabelProps}
               webVital="cls"
               coordinates={{
                 x: 10,
                 y: 60,
               }}
-              {...commonWebVitalLabelProps}
             />
             <WebVitalLabel
+              {...commonWebVitalLabelProps}
               webVital="ttfb"
               coordinates={{
                 x: 50,
                 y: 20,
               }}
-              {...commonWebVitalLabelProps}
             />
           </Fragment>
         )}
