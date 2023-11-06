@@ -744,6 +744,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.recap_servers",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
+    "sentry.tasks.relocation",
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",

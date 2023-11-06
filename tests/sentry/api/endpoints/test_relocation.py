@@ -1,6 +1,7 @@
 import tempfile
 from pathlib import Path
 from typing import Tuple
+from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -42,7 +43,8 @@ class RelocationCreateTest(APITestCase):
 
         return (tmp_priv_key_path, tmp_pub_key_path)
 
-    def test_success_simple(self):
+    @patch("sentry.tasks.relocation.uploading_complete.delay")
+    def test_success_simple(self, uploading_complete_mock):
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
@@ -69,6 +71,7 @@ class RelocationCreateTest(APITestCase):
         assert response.status_code == 201
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
+        assert uploading_complete_mock.called == 1
 
     def test_success_relocation_for_same_owner_already_completed(self):
         Relocation.objects.create(
