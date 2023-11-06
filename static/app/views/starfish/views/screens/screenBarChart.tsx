@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -14,6 +13,9 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 
@@ -26,16 +28,22 @@ export type ChartSelectOptions = {
 
 export function ScreensBarChart({
   chartHeight,
+  chartKey,
   chartOptions,
   isLoading,
   chartProps,
 }: {
+  chartKey: string;
   chartOptions: ChartSelectOptions[];
   chartHeight?: number;
   chartProps?: BaseChartProps;
   isLoading?: boolean;
 }) {
-  const [selectedDisplay, setChartSetting] = useState(0);
+  const location = useLocation();
+  const router = useRouter();
+  const yAxis = decodeScalar(location.query[chartKey]);
+  const selectedDisplay = yAxis ? chartOptions.findIndex(o => o.yAxis === yAxis) : 0;
+
   const menuOptions: SelectOption<string>[] = [];
 
   for (const option of chartOptions) {
@@ -55,9 +63,12 @@ export function ScreensBarChart({
               options={menuOptions}
               value={chartOptions[selectedDisplay].yAxis}
               onChange={option => {
-                const chartOption = chartOptions.findIndex(o => o.yAxis === option.value);
+                const chartOption = chartOptions.find(o => o.yAxis === option.value);
                 if (defined(chartOption)) {
-                  setChartSetting(chartOption);
+                  router.replace({
+                    pathname: router.location.pathname,
+                    query: {...router.location.query, [chartKey]: chartOption.yAxis},
+                  });
                 }
               }}
               triggerProps={{

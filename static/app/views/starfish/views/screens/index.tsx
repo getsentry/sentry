@@ -322,6 +322,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
               })}
               chartHeight={chartHeight ?? 180}
               isLoading={isReleaseEventsLoading}
+              chartKey="screensChart1"
             />
           </ChartsContainerItem>
 
@@ -337,6 +338,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
               })}
               chartHeight={chartHeight ?? 180}
               isLoading={isDeviceClassEventsLoading}
+              chartKey="screensChart2"
             />
           </ChartsContainerItem>
         </Fragment>
