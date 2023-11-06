@@ -25,8 +25,8 @@ import {
   ScreenCharts,
   YAxis,
 } from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
+import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
-import {ScreenLoadSpansSidebar} from 'sentry/views/starfish/views/screens/screenLoadSpans/sidebar';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
 
 type Query = {
@@ -83,7 +83,7 @@ function ScreenLoadSpans() {
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
-            <Layout.Main>
+            <Layout.Main fullWidth>
               <PageErrorAlert />
               <StarfishPageFiltersContainer>
                 <Container>
@@ -91,6 +91,7 @@ function ScreenLoadSpans() {
                     <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
+                  <ScreenMetricsRibbon />
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreenCharts
@@ -121,9 +122,6 @@ function ScreenLoadSpans() {
                 />
               )}
             </Layout.Main>
-            <Layout.Side>
-              <ScreenLoadSpansSidebar transaction={transactionName} />
-            </Layout.Side>
           </Layout.Body>
         </PageErrorProvider>
       </Layout.Page>
@@ -137,9 +135,8 @@ const Container = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
   gap: ${space(2)};
-  padding-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }
