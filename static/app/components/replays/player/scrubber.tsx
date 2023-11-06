@@ -2,9 +2,10 @@ import styled from '@emotion/styled';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/sliderAndInputWrapper';
+import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {divide} from 'sentry/components/replays/utils';
+import {divide, formatTime} from 'sentry/components/replays/utils';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -22,11 +23,14 @@ function Scrubber({className}: Props) {
     <Wrapper className={className}>
       <Meter>
         {currentHoverTime ? (
-          <MouseTrackingValue
-            style={{
-              width: hoverPlace * 100 + '%',
-            }}
-          />
+          <div>
+            <TimelineTooltip labelText={formatTime(currentHoverTime)} />
+            <MouseTrackingValue
+              style={{
+                width: hoverPlace * 100 + '%',
+              }}
+            />
+          </div>
         ) : null}
         <PlaybackTimeValue
           style={{
