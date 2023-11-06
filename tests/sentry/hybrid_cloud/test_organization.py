@@ -292,7 +292,6 @@ class RpcOrganizationMemberTest(TestCase):
 @region_silo_test(stable=True)
 def test_org_member():
     org = Factories.create_organization()
-    Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
     rpc_member = organization_service.add_organization_member(
         organization_id=org.id,
