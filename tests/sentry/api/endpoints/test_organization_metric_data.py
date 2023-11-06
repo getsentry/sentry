@@ -74,7 +74,7 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         )
         run_metrics_query.assert_called_once()
 
-    def test_query_with_transactions_metric(self):
+    def test_compare_query_with_transactions_metric(self):
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             tags={"transaction": "/hello", "platform": "ios"},
@@ -83,16 +83,15 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
 
         responses = []
         for flag_value in False, True:
-            with self.feature({"organizations:metrics-api-new-metrics-layer": flag_value}):
-                response = self.get_response(
-                    self.project.organization.slug,
-                    field=f"sum({TransactionMRI.DURATION.value})",
-                    useCase="transactions",
-                    useNewMetricsLayer="true" if flag_value else "false",
-                    statsPeriod="1h",
-                    interval="1h",
-                )
-                responses.append(response)
+            response = self.get_response(
+                self.project.organization.slug,
+                field=f"sum({TransactionMRI.DURATION.value})",
+                useCase="transactions",
+                useNewMetricsLayer="true" if flag_value else "false",
+                statsPeriod="1h",
+                interval="1h",
+            )
+            responses.append(response)
 
         response_old = responses[0].data
         response_new = responses[1].data
