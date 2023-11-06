@@ -2,8 +2,10 @@ import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import {BaseChartProps} from 'sentry/components/charts/baseChart';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -50,7 +52,7 @@ export function ScreensBarChart({
     menuOptions.push({
       value: option.yAxis,
       label: option.title,
-      disabled: chartOptions[selectedDisplay].title === option.title,
+      disabled: chartOptions[selectedDisplay]?.title === option.title,
     });
   }
 
@@ -61,7 +63,7 @@ export function ScreensBarChart({
           <ChartLabel>
             <StyledCompactSelect
               options={menuOptions}
-              value={chartOptions[selectedDisplay].yAxis}
+              value={chartOptions[selectedDisplay]?.yAxis}
               onChange={option => {
                 const chartOption = chartOptions.find(o => o.yAxis === option.value);
                 if (defined(chartOption)) {
@@ -74,7 +76,7 @@ export function ScreensBarChart({
               triggerProps={{
                 borderless: true,
                 size: 'zero',
-                'aria-label': chartOptions[selectedDisplay].title,
+                'aria-label': chartOptions[selectedDisplay]?.title,
               }}
               offset={4}
             />
@@ -87,47 +89,53 @@ export function ScreensBarChart({
         height={chartHeight ? `${chartHeight}px` : undefined}
       >
         <LoadingScreen loading={Boolean(isLoading)} />
-        <BarChart
-          {...chartProps}
-          height={chartHeight ?? 180}
-          series={chartOptions[selectedDisplay].series ?? []}
-          grid={{
-            left: '0',
-            right: '0',
-            top: '16px',
-            bottom: '0',
-            containLabel: true,
-          }}
-          xAxis={{
-            type: 'category',
-            axisTick: {show: true},
-            data: chartOptions[selectedDisplay].xAxisLabel,
-            truncate: 14,
-            axisLabel: {
-              interval: 0,
-            },
-          }}
-          yAxis={{
-            axisLabel: {
-              formatter(value: number) {
-                return axisLabelFormatter(
+        {selectedDisplay === -1 ? (
+          <ErrorPanel height={`${chartHeight ?? 180}px`}>
+            <IconWarning color="gray300" size="lg" />
+          </ErrorPanel>
+        ) : (
+          <BarChart
+            {...chartProps}
+            height={chartHeight ?? 180}
+            series={chartOptions[selectedDisplay].series ?? []}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '16px',
+              bottom: '0',
+              containLabel: true,
+            }}
+            xAxis={{
+              type: 'category',
+              axisTick: {show: true},
+              data: chartOptions[selectedDisplay].xAxisLabel,
+              truncate: 14,
+              axisLabel: {
+                interval: 0,
+              },
+            }}
+            yAxis={{
+              axisLabel: {
+                formatter(value: number) {
+                  return axisLabelFormatter(
+                    value,
+                    aggregateOutputType(chartOptions[selectedDisplay].yAxis),
+                    undefined,
+                    getDurationUnit(chartOptions[selectedDisplay].series ?? [])
+                  );
+                },
+              },
+            }}
+            tooltip={{
+              valueFormatter: (value, _seriesName) => {
+                return tooltipFormatter(
                   value,
-                  aggregateOutputType(chartOptions[selectedDisplay].yAxis),
-                  undefined,
-                  getDurationUnit(chartOptions[selectedDisplay].series ?? [])
+                  aggregateOutputType(chartOptions[selectedDisplay].yAxis)
                 );
               },
-            },
-          }}
-          tooltip={{
-            valueFormatter: (value, _seriesName) => {
-              return tooltipFormatter(
-                value,
-                aggregateOutputType(chartOptions[selectedDisplay].yAxis)
-              );
-            },
-          }}
-        />
+            }}
+          />
+        )}
       </TransitionChart>
     </MiniChartPanel>
   );
