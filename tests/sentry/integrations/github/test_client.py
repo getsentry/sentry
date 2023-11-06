@@ -13,7 +13,7 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubApproachingRateLimit, GitHubAppsClient
+from sentry.integrations.github.client import GitHubAppsClient
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.notify_disable import notify_disable
@@ -1612,7 +1612,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_rate_limit_exceeded(self, get_jwt, mock_logger_error):
-        with pytest.raises(GitHubApproachingRateLimit):
+        with pytest.raises(ApiRateLimitedError):
             self.github_client.get_blame_for_files([self.file], extra={})
         mock_logger_error.assert_called_with(
             "sentry.integrations.github.get_blame_for_files.rate_limit",
