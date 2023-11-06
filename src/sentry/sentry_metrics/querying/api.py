@@ -81,6 +81,8 @@ class QueryMeta:
         self._transform_meta_type()
 
     def _transform_meta_type(self):
+        # Since we don't support the array aggregate value, and we return the first element, we just return the type of
+        # the values of the array.
         if self.type.startswith("Array("):
             self.type = self.type[6 : len(self.type) - 1]
 
