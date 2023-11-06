@@ -23,6 +23,7 @@ export default function FeedbackWidget() {
       buttonLabel: 'Give Feedback',
       submitButtonLabel: 'Send Feedback',
       messagePlaceholder: 'What did you expect?',
+      formTitle: 'Give Feedback',
     });
     return () => {
       feedback?.removeWidget(widget);
