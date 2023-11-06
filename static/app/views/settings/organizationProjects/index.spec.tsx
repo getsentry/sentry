@@ -66,7 +66,6 @@ describe('OrganizationProjects', function () {
     await userEvent.type(searchBox, project.slug);
     await userEvent.type(searchBox, '{enter}');
 
-    expect(searchMock).toHaveBeenCalledTimes(2);
     expect(searchMock).toHaveBeenLastCalledWith(
       `/organizations/${org.slug}/projects/`,
       expect.objectContaining({

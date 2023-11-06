@@ -83,7 +83,7 @@ function OrganizationProjects() {
     (searchQuery: string) =>
       browserHistory.replace({
         pathname: location.pathname,
-        query: {...location.query, searchQuery},
+        query: {...location.query, query: searchQuery},
       }),
     DEFAULT_DEBOUNCE_DURATION
   );
