@@ -1006,7 +1006,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         side_effect=ApiError("Unknown API error"),
     )
     @with_feature("organizations:suspect-commits-all-frames")
-    def test_retry_on_api_error(self, mock_get_commit_context, mock_process_suspect_commits):
+    def test_retry_on_bad_api_error(self, mock_get_commit_context, mock_process_suspect_commits):
         """
         A failure case where the integration hits an unknown API error.
         The task should be retried.
@@ -1026,6 +1026,34 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
 
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
         assert not mock_process_suspect_commits.called
+
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+        side_effect=ApiError("File not found", code=404),
+    )
+    @with_feature("organizations:suspect-commits-all-frames")
+    def test_no_retry_on_expected_api_error(
+        self, mock_get_commit_context, mock_process_suspect_commits
+    ):
+        """
+        A failure case where the integration hits an a 404 error.
+        This type of failure should immediately fall back to the release-based suspesct commits.
+        """
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        mock_process_suspect_commits.assert_called_once()
 
     @patch("celery.app.task.Task.request")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
