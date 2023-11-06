@@ -78,20 +78,11 @@ function Checkbox({
         color={checkboxColor}
         invertColors={invertColors}
       >
-        {checked === true && !props.disabled && (
+        {checked === true && (
           <VariableWeightIcon
             viewBox="0 0 16 16"
             size={checkboxSizeMap[size].icon}
-            invertColors={invertColors}
-          >
-            <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
-          </VariableWeightIcon>
-        )}
-        {checked === true && props.disabled && (
-          <VariableWeightIcon
-            viewBox="0 0 16 16"
-            size={checkboxSizeMap[size].icon}
-            invertColors={false}
+            invertColors={props.disabled ? false : invertColors}
           >
             <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
           </VariableWeightIcon>
