@@ -73,6 +73,17 @@ def fix_for_issue_platform(event_data):
     ret_event["request"] = event_data.get("request", {})
 
     ret_event["user"] = event_data.get("user", {})
+
+    if event_data.get("dist") is not None:
+        del event_data["dist"]
+    if event_data.get("user", {}).get("name") is not None:
+        del event_data["user"]["name"]
+    if event_data.get("user", {}).get("isStaff") is not None:
+        del event_data["user"]["isStaff"]
+
+    if event_data.get("user", {}).get("id") is not None:
+        event_data["user"]["id"] = str(event_data["user"]["id"])
+
     return ret_event
 
 
