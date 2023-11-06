@@ -33,7 +33,7 @@ export default function useQueryBasedColumnResize<K extends string>({
         (column, i) =>
           (i === columnIndex ? resizedColumn.width : column.width) ?? COL_WIDTH_UNDEFINED
       );
-      browserHistory.push({
+      browserHistory.replace({
         pathname: location.pathname,
         query: {
           ...location.query,

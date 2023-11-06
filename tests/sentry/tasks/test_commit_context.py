@@ -741,14 +741,25 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         """
         Tests that the get_commit_context_all_frames function is called with the correct
         files. Code mappings should be applied properly and non-matching files thrown out.
+        Code mappings should also be checked in the correct order, with empty stack roots
+        checked last.
         """
         mock_get_commit_context.return_value = [self.blame_existing_commit]
 
-        other_code_mapping = self.create_code_mapping(
+        # Code mapping with empty stack root should not be used event though it was created earlier
+        self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+            stack_root="",
+            source_root="foo/",
+        )
+
+        # This code mapping has a defined stack root and matches the filename so should be used
+        code_mapping_defined_stack_root = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
             stack_root="other/",
-            source_root="sentry/",
+            source_root="bar/",
         )
         frames = [
             {
@@ -779,12 +790,17 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             [
                 SourceLineInfo(
                     lineno=39,
-                    path="sentry/models/release.py",
+                    path="bar/models/release.py",
                     ref="master",
-                    repo=other_code_mapping.repository,
-                    code_mapping=other_code_mapping,
+                    repo=code_mapping_defined_stack_root.repository,
+                    code_mapping=code_mapping_defined_stack_root,
                 )
-            ]
+            ],
+            extra={
+                "event": self.event.event_id,
+                "group": self.event.group_id,
+                "organization": self.event.project.organization_id,
+            },
         )
 
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
@@ -1203,7 +1219,12 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
                     repo=self.repo,
                     code_mapping=self.code_mapping,
                 ),
-            ]
+            ],
+            extra={
+                "event": self.event.event_id,
+                "group": self.event.group_id,
+                "organization": self.organization.id,
+            },
         )
         mock_record.assert_any_call(
             "integrations.successfully_fetched_commit_context_all_frames",

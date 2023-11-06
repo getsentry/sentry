@@ -373,7 +373,7 @@ class EventManager:
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
-        if pre_normalize_type == "generic":
+        if pre_normalize_type in ("generic", "feedback"):
             self._data["type"] = pre_normalize_type
 
     def get_data(self) -> CanonicalKeyDict:
@@ -423,7 +423,12 @@ class EventManager:
 
         projects = {project.id: project}
 
-        job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
+        job: dict[str, Any] = {
+            "data": self._data,
+            "project_id": project.id,
+            "raw": raw,
+            "start_time": start_time,
+        }
 
         # After calling _pull_out_data we get some keys in the job like the platform
         with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):

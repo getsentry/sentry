@@ -690,7 +690,15 @@ class GitHubClientMixin(GithubProxyClient):
 
         return response_ref.get("target", {}).get("blame", {}).get("ranges", [])
 
-    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> Sequence[FileBlameInfo]:
+    def get_blame_for_files(
+        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+    ) -> Sequence[FileBlameInfo]:
+        log_info = {
+            **extra,
+            "provider": "github",
+            "organization_integration_id": self.org_integration_id,
+        }
+        metrics.incr("sentry.integrations.github.get_blame_for_files")
         rate_limit = self.get_rate_limit(specific_resource="graphql")
         if rate_limit.remaining < MINIMUM_REQUESTS:
             metrics.incr("sentry.integrations.github.get_blame_for_files.rate_limit")
@@ -707,22 +715,26 @@ class GitHubClientMixin(GithubProxyClient):
             raise GitHubApproachingRateLimit()
 
         file_path_mapping = generate_file_path_mapping(files)
-
-        try:
-            response = self.post(
-                path="/graphql",
-                data={"query": create_blame_query(file_path_mapping)},
-                allow_text=False,
+        data = create_blame_query(file_path_mapping, extra=log_info)
+        cache_key = self.get_cache_key("/graphql", data)
+        response = self.check_cache(cache_key)
+        if response:
+            logger.info(
+                "sentry.integrations.github.get_blame_for_files.got_cached",
+                extra=log_info,
             )
-        except ValueError as e:
-            logger.exception(
-                e,
-                {
-                    "provider": "github",
-                    "organization_integration_id": self.org_integration_id,
-                },
-            )
-            return []
+        else:
+            try:
+                response = self.post(
+                    path="/graphql",
+                    data={"query": create_blame_query(file_path_mapping, extra=log_info)},
+                    allow_text=False,
+                )
+            except ValueError as e:
+                logger.exception(e, log_info)
+                return []
+            else:
+                self.set_cache(cache_key, response, 60)
 
         if not isinstance(response, MappingApiResponse):
             raise ApiError("Response is not JSON")
@@ -733,18 +745,18 @@ class GitHubClientMixin(GithubProxyClient):
             )
             logger.error(
                 "get_blame_for_files.graphql_error",
-                extra={
-                    "provider": "github",
-                    "error": err_message,
-                    "organization_integration_id": self.org_integration_id,
-                },
+                extra={**log_info, "error_message": err_message},
             )
 
         return extract_commits_from_blame_response(
             response=response,
             file_path_mapping=file_path_mapping,
             files=files,
-            extra={"provider": "github", "organization_integration_id": self.org_integration_id},
+            extra={
+                **extra,
+                "provider": "github",
+                "organization_integration_id": self.org_integration_id,
+            },
         )
 
 

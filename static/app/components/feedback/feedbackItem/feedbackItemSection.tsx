@@ -18,22 +18,34 @@ const SectionTitle = styled('h3')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
+  justify-content: space-between;
+`;
+
+const LeftAlignedContent = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 export default function Section({
   children,
   icon,
   title,
+  contentRight,
 }: {
   children: ReactNode;
   title: string;
+  contentRight?: ReactNode;
   icon?: ReactNode;
 }) {
   return (
     <SectionWrapper>
       <SectionTitle>
-        {icon}
-        <span>{title}</span>
+        <LeftAlignedContent>
+          {icon}
+          {title}
+        </LeftAlignedContent>
+        {contentRight}
       </SectionTitle>
       {children}
     </SectionWrapper>

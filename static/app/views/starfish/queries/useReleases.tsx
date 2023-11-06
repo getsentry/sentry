@@ -1,33 +1,78 @@
-import {getInterval} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Release} from 'sentry/types';
-import {defined} from 'sentry/utils';
+import {NewQuery, Release} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 export function useReleases(searchTerm?: string) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {environments, projects} = selection;
 
-  return useApiQuery<Release[]>(
+  const releaseResults = useApiQuery<Release[]>(
     [
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
-          sort: 'date',
           project: projects,
-          per_page: 50,
+          per_page: 100,
           environment: environments,
           query: searchTerm,
+          sort: 'date',
         },
       },
     ],
     {staleTime: Infinity}
   );
+
+  const newQuery: NewQuery = {
+    name: '',
+    fields: ['release', 'count()'],
+    query: `transaction.op:ui.load ${searchTerm ? `release:*${searchTerm}*` : ''}`,
+    dataset: DiscoverDatasets.METRICS,
+    version: 2,
+    projects: selection.projects,
+  };
+  const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
+  const {data: metricsResult, isLoading: isMetricsStatsLoading} = useTableQuery({
+    eventView,
+    limit: 250,
+    staleTime: Infinity,
+  });
+
+  const metricsStats: {[version: string]: {count: number}} = {};
+  metricsResult?.data?.forEach(release => {
+    metricsStats[release.release] = {count: release['count()'] as number};
+  });
+
+  const releaseStats: {
+    dateCreated: string;
+    version: string;
+    count?: number;
+  }[] =
+    releaseResults.data && releaseResults.data.length && !isMetricsStatsLoading
+      ? releaseResults.data.flatMap(release => {
+          const releaseVersion = release.version;
+          const dateCreated = release.dateCreated;
+          if (metricsStats[releaseVersion]?.count) {
+            return {
+              dateCreated,
+              version: releaseVersion,
+              count: metricsStats[releaseVersion]?.count,
+            };
+          }
+          return [];
+        })
+      : [];
+
+  return {
+    ...releaseResults,
+    data: releaseStats,
+  };
 }
 
 export function useReleaseSelection() {
@@ -42,60 +87,4 @@ export function useReleaseSelection() {
     (releases && releases.length > 1 ? releases?.[1]?.version : undefined);
 
   return {primaryRelease, secondaryRelease, isLoading};
-}
-
-export function useReleaseStats() {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-  const {environments, projects} = selection;
-
-  const {start, end, statsPeriod} = normalizeDateTimeParams(selection.datetime, {
-    allowEmptyPeriod: true,
-  });
-
-  // The sessions endpoint does not support wildcard search.
-  // So we're just getting top 250 values ordered by count.
-  // Hopefully this is enough to populate session count for
-  // any releases searched in the release selector.
-  const urlQuery = Object.fromEntries(
-    Object.entries({
-      project: projects,
-      environment: environments,
-      field: ['sum(session)'],
-      groupBy: ['release', 'project'],
-      orderBy: '-sum(session)',
-      start,
-      end,
-      statsPeriod,
-      per_page: 250,
-      interval: getInterval({start, end, period: statsPeriod}, 'low'),
-    }).filter(([, value]) => defined(value) && value !== '')
-  );
-
-  const result = useApiQuery<any>(
-    [
-      `/organizations/${organization.slug}/sessions/`,
-      {
-        query: urlQuery,
-      },
-    ],
-    {staleTime: Infinity}
-  );
-
-  const releaseStatsMap: {[release: string]: {project: number; 'sum(session)': number}} =
-    {};
-  if (result.data && result.data.groups) {
-    result.data.groups.forEach(group => {
-      const release = group.by.release;
-      const project = group.by.project;
-      const sessionCount = group.totals['sum(session)'];
-
-      releaseStatsMap[release] = {project, 'sum(session)': sessionCount};
-    });
-  }
-
-  return {
-    ...result,
-    data: releaseStatsMap,
-  };
 }

@@ -29,9 +29,9 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
             except Exception:
                 raise Http404
 
-        project_key = request.GET.get("projectKey")
-        if project_key is not None:
-            project_keys.append(project_key)
+        project_key_param = request.GET.get("projectKey")
+        if project_key_param is not None:
+            project_keys.append(project_key_param)
 
         configs = {}
         for key in project_keys:

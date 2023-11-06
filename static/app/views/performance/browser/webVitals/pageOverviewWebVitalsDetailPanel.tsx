@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -25,6 +26,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
+import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
 import {
   calculatePerformanceScore,
   PERFORMANCE_SCORE_MEDIANS,
@@ -35,6 +37,7 @@ import {
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
+import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -42,7 +45,7 @@ import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 type Column = GridColumnHeader;
 
 const columnOrder: GridColumnOrder[] = [
-  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Transaction'},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: 'Web Vital'},
@@ -135,6 +138,26 @@ export function PageOverviewWebVitalsDetailPanel({
     (a, b) => a[`${webVital}Score`] - b[`${webVital}Score`]
   );
 
+  const {data: timeseriesData, isLoading: isTimeseriesLoading} =
+    useProjectWebVitalsValuesTimeseriesQuery({transaction});
+
+  const webVitalData: LineChartSeries = {
+    data:
+      !isTimeseriesLoading && webVital
+        ? timeseriesData?.[webVital].map(({name, value}) => ({
+            name,
+            value,
+          }))
+        : [],
+    seriesName: webVital ?? '',
+  };
+
+  const getProjectSlug = (row: TransactionSampleRowWithScore): string => {
+    return project && !Array.isArray(location.query.project)
+      ? project.slug
+      : row.projectSlug;
+  };
+
   const renderHeadCell = (col: Column) => {
     if (col.key === 'transaction') {
       return <NoOverflow>{col.name}</NoOverflow>;
@@ -144,6 +167,9 @@ export function PageOverviewWebVitalsDetailPanel({
     }
     if (col.key === 'score') {
       return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+    }
+    if (col.key === 'replayId' || col.key === 'profile.id') {
+      return <AlignCenter>{col.name}</AlignCenter>;
     }
     return <NoOverflow>{col.name}</NoOverflow>;
   };
@@ -160,6 +186,7 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const renderBodyCell = (col: Column, row: TransactionSampleRowWithScore) => {
     const {key} = col;
+    const projectSlug = getProjectSlug(row);
     if (key === 'score') {
       if (row[`measurements.${webVital}`] !== null) {
         return (
@@ -180,13 +207,11 @@ export function PageOverviewWebVitalsDetailPanel({
       return <AlignRight>{formattedValue}</AlignRight>;
     }
     if (key === 'id') {
-      const eventSlug = generateEventSlug({...row, project: row.projectSlug});
+      const eventSlug = generateEventSlug({...row, project: projectSlug});
       const eventTarget = getTransactionDetailsUrl(organization.slug, eventSlug);
       return (
         <NoOverflow>
-          <Link to={eventTarget} onClick={onClose}>
-            {getShortEventId(row.id)}
-          </Link>
+          <Link to={eventTarget}>{getShortEventId(row.id)}</Link>
         </NoOverflow>
       );
     }
@@ -204,30 +229,34 @@ export function PageOverviewWebVitalsDetailPanel({
           undefined
         );
 
-      return (
-        <NoOverflow>
-          {row.replayId && replayTarget && (
-            <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
-          )}
-        </NoOverflow>
+      return row.replayId && replayTarget ? (
+        <AlignCenter>
+          <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
+        </AlignCenter>
+      ) : (
+        <AlignCenter>
+          <NoValue>{t('(no value)')}</NoValue>
+        </AlignCenter>
       );
     }
     if (key === 'profile.id') {
       if (!defined(project) || !defined(row['profile.id'])) {
-        return null;
+        return (
+          <AlignCenter>
+            <NoValue>{t('(no value)')}</NoValue>
+          </AlignCenter>
+        );
       }
       const target = generateProfileFlamechartRoute({
         orgSlug: organization.slug,
-        projectSlug: project.slug,
+        projectSlug,
         profileId: String(row['profile.id']),
       });
 
       return (
-        <NoOverflow>
-          <Link to={target} onClick={onClose}>
-            {getShortEventId(row['profile.id'])}
-          </Link>
-        </NoOverflow>
+        <AlignCenter>
+          <Link to={target}>{getShortEventId(row['profile.id'])}</Link>
+        </AlignCenter>
       );
     }
     return <AlignRight>{row[key]}</AlignRight>;
@@ -254,6 +283,9 @@ export function PageOverviewWebVitalsDetailPanel({
             score={projectScore[`${webVital}Score`]}
           />
         )}
+        <ChartContainer>
+          {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
+        </ChartContainer>
         <GridEditable
           data={tableData}
           isLoading={isTransactionWebVitalsQueryLoading}
@@ -285,6 +317,11 @@ const AlignRight = styled('span')<{color?: string}>`
 const AlignCenter = styled('span')`
   text-align: center;
   width: 100%;
+`;
+
+const ChartContainer = styled('div')`
+  position: relative;
+  flex: 1;
 `;
 
 const NoValue = styled('span')`

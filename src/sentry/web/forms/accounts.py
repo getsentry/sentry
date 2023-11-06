@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any
 
@@ -335,3 +336,25 @@ class TwoFactorForm(forms.Form):
             attrs={"placeholder": _("Authenticator or recovery code"), "autofocus": True}
         ),
     )
+
+
+class RelocationForm(forms.Form):
+    username = forms.CharField(max_length=128, required=False, widget=forms.TextInput())
+    password = forms.CharField(widget=forms.PasswordInput())
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(placeholder=self.user.username)
+
+    def clean_username(self):
+        value = self.cleaned_data.get("username") or self.user.username
+        value = re.sub(r"[ \n\t\r\0]*", "", value)
+        if not value:
+            return
+        return value.lower()
+
+    def clean_password(self):
+        password = self.cleaned_data["password"]
+        password_validation.validate_password(password, user=self.user)
+        return password

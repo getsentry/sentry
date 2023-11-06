@@ -30,6 +30,9 @@ type Props = {
   text: React.ReactNode;
   width: number;
   hideWebVitalLabels?: boolean;
+  size?: number;
+  x?: number;
+  y?: number;
 };
 
 function PerformanceScoreRingWithTooltips({
@@ -40,6 +43,9 @@ function PerformanceScoreRingWithTooltips({
   height,
   text,
   hideWebVitalLabels = false,
+  size = 140,
+  x = 40,
+  y = 20,
 }: Props) {
   const theme = useTheme();
   const [mousePosition, setMousePosition] = useState({x: 0, y: 0});
@@ -106,7 +112,7 @@ function PerformanceScoreRingWithTooltips({
           ]}
           maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
           text={text}
-          size={140}
+          size={size}
           barWidth={14}
           textCss={() => css`
             font-size: 32px;
@@ -115,8 +121,8 @@ function PerformanceScoreRingWithTooltips({
           `}
           segmentColors={ringSegmentColors}
           backgroundColors={ringBackgroundColors}
-          x={40}
-          y={20}
+          x={x}
+          y={y}
           onHoverActions={[
             () => setWebVitalTooltip('lcp'),
             () => setWebVitalTooltip('fcp'),
