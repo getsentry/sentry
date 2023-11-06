@@ -229,11 +229,11 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/components/performance/                                       @getsentry/performance
 /static/app/components/quickTrace/                                        @getsentry/performance
 
-static/app/components/events/eventStatisticalDetector/                    @sentry/performance @getsentry/profiling
-/src/sentry/statistical_detectors                                         @sentry/performance @getsentry/profiling
-/src/sentry/tasks/statistical_detectors.py                                @sentry/performance @getsentry/profiling
-/tests/sentry/statistical_detectors                                       @sentry/performance @getsentry/profiling
-/tests/sentry/tasks/test_statistical_detectors.py                         @sentry/performance @getsentry/profiling
+static/app/components/events/eventStatisticalDetector/                    @getsentry/performance @getsentry/profiling
+/src/sentry/statistical_detectors                                         @getsentry/performance @getsentry/profiling
+/src/sentry/tasks/statistical_detectors.py                                @getsentry/performance @getsentry/profiling
+/tests/sentry/statistical_detectors                                       @getsentry/performance @getsentry/profiling
+/tests/sentry/tasks/test_statistical_detectors.py                         @getsentry/performance @getsentry/profiling
 ## Endof Performance
 
 
