@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.feedback.usecases.create_feedback import fix_for_issue_platform
+from sentry.feedback.usecases.create_feedback import (
+    fix_for_issue_platform,
+    validate_issue_platform_event_schema,
+)
 
 
 def test_fix_for_issue_platform():
@@ -81,10 +84,10 @@ def test_fix_for_issue_platform():
         "platform": "javascript",
     }
 
-    fix_for_issue_platform(event)
-
-    assert event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
-    assert event["contexts"]["feedback"] == {
+    fixed_event = fix_for_issue_platform(event)
+    validate_issue_platform_event_schema(fixed_event)
+    assert fixed_event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
+    assert fixed_event["contexts"]["feedback"] == {
         "contact_email": "josh.ferge@sentry.io",
         "name": "Josh Ferge",
         "message": "josh ferge testing again!",
@@ -172,10 +175,11 @@ def test_corrected_still_works():
         "platform": "javascript",
     }
 
-    fix_for_issue_platform(event)
+    fixed_event = fix_for_issue_platform(event)
+    validate_issue_platform_event_schema(fixed_event)
 
-    assert event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
-    assert event["contexts"]["feedback"] == {
+    assert fixed_event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
+    assert fixed_event["contexts"]["feedback"] == {
         "contact_email": "josh.ferge@sentry.io",
         "name": "Josh Ferge",
         "message": "josh ferge testing again!",
