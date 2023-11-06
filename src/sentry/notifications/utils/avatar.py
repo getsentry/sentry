@@ -41,7 +41,7 @@ def get_sentry_avatar_url() -> str:
 def avatar_as_html(user: User | RpcUser, size: int = 20) -> SafeString:
     if not user:
         return format_html(
-            '<img class="avatar" src="{}" width={}"px" height="{}px" />',
+            '<img class="avatar" src="{}" width="{}px" height="{}px" />',
             get_sentry_avatar_url(),
             size,
             size,
