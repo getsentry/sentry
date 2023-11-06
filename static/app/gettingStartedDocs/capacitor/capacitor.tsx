@@ -1,7 +1,12 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+  PlatformOption,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -406,4 +411,4 @@ export function GettingStartedWithCapacitor({
   );
 }
 
-export default GettingStartedWithCapacitor;
+export default docs;

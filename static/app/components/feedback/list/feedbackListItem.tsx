@@ -1,58 +1,53 @@
-import {CSSProperties, forwardRef} from 'react';
+import {CSSProperties, forwardRef, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCircleFill, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueCategory} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
-  isChecked: boolean;
-  onChecked: (isChecked: boolean) => void;
+  feedbackItem: FeedbackIssue;
+  isSelected: 'all-selected' | boolean;
+  onSelect: (isSelected: boolean) => void;
   className?: string;
   style?: CSSProperties;
 }
 
-function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
+function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
   const [, feedbackId] = feedbackSlug.split(':') ?? [];
-  return feedbackId === feedbackItem.feedback_id;
+  return feedbackId === feedbackItem.id;
 }
 
 const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
-  ({className, feedbackItem, isChecked, onChecked, style}: Props, ref) => {
+  ({className, feedbackItem, isSelected, onSelect, style}: Props, ref) => {
     const organization = useOrganization();
-    const isSelected = useIsSelectedFeedback({feedbackItem});
-    const counts = useReplaysCount({
-      organization,
-      issueCategory: IssueCategory.PERFORMANCE, // Feedbacks are in the same dataSource as performance
-      groupIds: [feedbackItem.id],
-    });
-    const hasReplay = Boolean(counts[feedbackItem.id]);
+    const isOpen = useIsSelectedFeedback({feedbackItem});
+    const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
 
     return (
       <CardSpacing className={className} style={style} ref={ref}>
         <LinkedFeedbackCard
-          data-selected={isSelected}
+          data-selected={isOpen}
           to={() => {
             const location = browserHistory.getCurrentLocation();
             return {
@@ -60,7 +55,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               query: {
                 ...location.query,
                 referrer: 'feedback_list_page',
-                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.feedback_id}`,
+                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
               },
             };
           }}
@@ -71,48 +66,45 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <InteractionStateLayer />
           <Flex column style={{gridArea: 'checkbox'}}>
             <Checkbox
-              checked={isChecked}
-              onChange={e => onChecked(e.target.checked)}
+              disabled={isSelected === 'all-selected'}
+              checked={isSelected !== false}
+              onChange={e => onSelect(e.target.checked)}
               onClick={e => e.stopPropagation()}
+              invertColors={isOpen}
             />
-          </Flex>
-          <Flex column style={{gridArea: 'right'}}>
-            {''}
           </Flex>
           <TextOverflow>
             <span style={{gridArea: 'user'}}>
-              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay={false} />
+              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay={false} />
             </span>
           </TextOverflow>
           <span style={{gridArea: 'time'}}>
-            <TimeSince date={feedbackItem.timestamp} />
+            <TimeSince date={feedbackItem.firstSeen} />
           </span>
-          {feedbackItem.hasSeen ? null : (
-            <span
-              style={{
-                gridArea: 'unread',
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              <IconCircleFill size="xs" color="purple300" />
-            </span>
-          )}
+          <Flex justify="center" style={{gridArea: 'unread'}}>
+            {feedbackItem.hasSeen ? null : (
+              <IconCircleFill size="xs" color={isOpen ? 'white' : 'purple400'} />
+            )}
+          </Flex>
           <div style={{gridArea: 'message'}}>
             <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
+          </div>
+          <div style={{gridArea: 'assigned', display: 'flex', justifyContent: 'end'}}>
+            {feedbackItem.assignedTo ? (
+              <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
+            ) : null}
           </div>
           <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
             <Flex align="center" gap={space(0.5)}>
               <ProjectAvatar project={feedbackItem.project} size={12} />
-              {feedbackItem.project.slug}
+              <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
+              {hasReplayId ? (
+                <Fragment>
+                  <IconPlay size="xs" />
+                  {t('Replay')}
+                </Fragment>
+              ) : null}
             </Flex>
-
-            {hasReplay ? (
-              <Flex align="center" gap={space(0.5)}>
-                <IconPlay size="xs" />
-                {t('Replay')}
-              </Flex>
-            ) : null}
           </Flex>
         </LinkedFeedbackCard>
       </CardSpacing>
@@ -144,10 +136,17 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-areas:
     'checkbox user time'
     'unread message message'
-    'right icons icons';
+    '. icons assigned';
   gap: ${space(1)};
   place-items: stretch;
   align-items: center;
+`;
+
+const ProjectOverflow = styled('span')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 150px;
 `;
 
 export default FeedbackListItem;

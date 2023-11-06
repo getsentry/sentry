@@ -1,22 +1,32 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs, {CapacitorVersion} from './capacitor';
 
 import {GettingStartedWithCapacitor, SiblingOption, steps} from './capacitor';
+describe('capacitor onboarding docs', function () {
+  it('renders docs correctly', function () {
+    renderWithOnboardingLayout(docs);
 
-describe('GettingStartedWithCapacitor', function () {
-  it('renders doc correctly', function () {
-    render(<GettingStartedWithCapacitor dsn="test-dsn" projectSlug="test-project" />);
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+  });
 
-    // Steps
-    for (const step of steps({
-      siblingOption: SiblingOption.ANGULARV12,
-      errorHandlerProviders: 'test-error-handler-providers',
-      sentryInitContent: 'test-init-content',
-    })) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+  it('renders capacitor 2 docs correctly', function () {
+    renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        capacitorVersion: CapacitorVersion.V2,
+      },
+    });
+
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Capacitor 2 - Android'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 });

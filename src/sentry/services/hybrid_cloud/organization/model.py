@@ -2,10 +2,12 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
+from datetime import datetime
 from enum import IntEnum
 from typing import Any, List, Mapping, Optional, Sequence
 
 from django.dispatch import Signal
+from django.utils import timezone
 from pydantic import Field
 from typing_extensions import TypedDict
 
@@ -234,6 +236,7 @@ class RpcOrganization(RpcOrganizationSummary):
     status: int = Field(default_factory=_DefaultEnumHelpers.get_default_organization_status_value)
 
     default_role: str = ""
+    date_added: datetime = Field(default_factory=timezone.now)
 
     def get_audit_log_data(self):
         return {

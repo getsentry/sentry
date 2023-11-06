@@ -50,6 +50,7 @@ export enum PerformanceWidgetSetting {
   MOST_RELATED_ERRORS = 'most_related_errors',
   MOST_RELATED_ISSUES = 'most_related_issues',
   MOST_TIME_SPENT_DB_QUERIES = 'most_time_spent_db_queries',
+  HIGHEST_OPPORTUNITY_PAGES = 'highest_opportunity_pages',
   SLOW_HTTP_OPS = 'slow_http_ops',
   SLOW_DB_OPS = 'slow_db_ops',
   SLOW_RESOURCE_OPS = 'slow_resource_ops',
@@ -268,6 +269,13 @@ export const WIDGET_DEFINITIONS: ({
     fields: [`time_spent_percentage()`],
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
     chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES]: {
+    title: t('Highest Opportunity Pages'),
+    subTitle: t('Recommended pages to improve your performance score'),
+    titleTooltip: '',
+    fields: [`count()`],
+    dataType: GenericPerformanceWidgetDataType.STACKED_AREA,
   },
   [PerformanceWidgetSetting.SLOW_HTTP_OPS]: {
     title: t('Slow HTTP Ops'),

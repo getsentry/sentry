@@ -479,6 +479,7 @@ class Referrer(Enum):
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
+    METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
     PREVIEW_GET_EVENTS = "preview.get_events"

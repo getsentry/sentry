@@ -13,6 +13,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -24,9 +25,9 @@ import {
   ScreenCharts,
   YAxis,
 } from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
+import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
+import {ScreenLoadSpansSidebar} from 'sentry/views/starfish/views/screens/screenLoadSpans/sidebar';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
-import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenMetricsRibbon';
-import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 type Query = {
   primaryRelease: string;
@@ -54,18 +55,19 @@ function ScreenLoadSpans() {
   const crumbs: Crumb[] = [
     {
       to: screenLoadModule,
-      label: t('Module View'),
+      label: t('Screens'),
       preservePageFilters: true,
     },
     {
       to: '',
-      label: t('Screen Load'),
+      label: decodeScalar(location.query.transaction),
     },
   ];
 
   const {
     spanGroup,
     primaryRelease,
+    secondaryRelease,
     transaction: transactionName,
     spanDescription,
   } = location.query;
@@ -81,7 +83,7 @@ function ScreenLoadSpans() {
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
-            <Layout.Main fullWidth>
+            <Layout.Main>
               <PageErrorAlert />
               <StarfishPageFiltersContainer>
                 <Container>
@@ -89,22 +91,20 @@ function ScreenLoadSpans() {
                     <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
-                  <ScreenMetricsRibbon
-                    additionalFilters={[`transaction:${transactionName}`]}
-                  />
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreenCharts
-                yAxes={[YAxis.COUNT, YAxis.TTID, YAxis.TTFD]}
+                yAxes={[YAxis.TTID, YAxis.TTFD]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
               />
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
+                secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
-                <SampleList
+                <ScreenLoadSpanSamples
                   groupId={spanGroup}
                   transactionName={transactionName}
                   spanDescription={spanDescription}
@@ -121,6 +121,9 @@ function ScreenLoadSpans() {
                 />
               )}
             </Layout.Main>
+            <Layout.Side>
+              <ScreenLoadSpansSidebar transaction={transactionName} />
+            </Layout.Side>
           </Layout.Body>
         </PageErrorProvider>
       </Layout.Page>
@@ -134,6 +137,7 @@ const Container = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
   gap: ${space(2)};
+  padding-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;

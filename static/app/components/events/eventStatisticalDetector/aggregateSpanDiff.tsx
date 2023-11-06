@@ -1,8 +1,7 @@
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import {DataSection} from 'sentry/components/events/styles';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
@@ -11,14 +10,10 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Event, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {RateUnits} from 'sentry/utils/discover/fields';
-import {NumberContainer} from 'sentry/utils/discover/styles';
+import {NumericChange, renderHeadCell} from 'sentry/utils/performance/regression/table';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -86,73 +81,11 @@ function useFetchAdvancedAnalysis({
 
 function getColumns() {
   return [
-    {key: 'span_op', name: t('Operation'), width: 200},
+    {key: 'span_op', name: t('Span Operation'), width: 200},
     {key: 'span_description', name: t('Description'), width: COL_WIDTH_UNDEFINED},
-    {key: 'spm', name: t('Span Frequency'), width: COL_WIDTH_UNDEFINED},
+    {key: 'spm', name: t('Throughput'), width: COL_WIDTH_UNDEFINED},
     {key: 'p95', name: t('P95'), width: COL_WIDTH_UNDEFINED},
   ];
-}
-
-function getPercentChange(before: number, after: number) {
-  return ((after - before) / before) * 100;
-}
-
-function renderHeadCell(column: GridColumnOrder<string>) {
-  if (['spm', 'p95'].includes(column.key)) {
-    return <NumericColumnLabel>{column.name}</NumericColumnLabel>;
-  }
-  return column.name;
-}
-
-function NumericChange({
-  columnKey,
-  beforeRawValue,
-  afterRawValue,
-}: {
-  afterRawValue: number;
-  beforeRawValue: number;
-  columnKey: string;
-}) {
-  const organization = useOrganization();
-  const location = useLocation();
-  const percentChange = getPercentChange(beforeRawValue, afterRawValue);
-
-  const unit = columnKey === 'p95' ? 'millisecond' : RateUnits.PER_MINUTE;
-  const renderer = (value: number) =>
-    getFieldRenderer(
-      columnKey,
-      {
-        p95: 'duration',
-        spm: 'rate',
-      },
-      false
-    )({[columnKey]: value}, {organization, location, unit});
-
-  if (Math.round(percentChange) !== 0) {
-    let percentChangeLabel = `${percentChange > 0 ? '+' : ''}${Math.round(
-      percentChange
-    )}%`;
-    if (beforeRawValue === 0) {
-      percentChangeLabel = t('New');
-    }
-    return (
-      <Change>
-        {renderer(beforeRawValue)}
-        <IconArrow direction="right" size="xs" />
-        {renderer(afterRawValue)}
-        <ChangeLabel isPositive={percentChange > 0} isNeutral={beforeRawValue === 0}>
-          {percentChangeLabel}
-        </ChangeLabel>
-      </Change>
-    );
-  }
-
-  return (
-    <Change>
-      {renderer(afterRawValue)}
-      <ChangeDescription>{t('(No significant change)')}</ChangeDescription>
-    </Change>
-  );
 }
 
 function renderBodyCell({
@@ -216,6 +149,7 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
   const {start, end} = useRelativeDateTime({
     anchor: breakpoint,
     relativeDays: 7,
+    retentionDays: 30,
   });
   const {data, isLoading, isError} = useFetchAdvancedAnalysis({
     transaction,
@@ -268,41 +202,11 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
     );
   }
 
-  return <DataSection>{content}</DataSection>;
+  return (
+    <EventDataSection type="potential-causes" title={t('Potential Causes')}>
+      {content}
+    </EventDataSection>
+  );
 }
 
 export default AggregateSpanDiff;
-
-const ChangeLabel = styled('div')<{isNeutral: boolean; isPositive: boolean}>`
-  color: ${p => {
-    if (p.isNeutral) {
-      return p.theme.gray300;
-    }
-    if (p.isPositive) {
-      return p.theme.red300;
-    }
-    return p.theme.green300;
-  }};
-  text-align: right;
-`;
-
-const NumericColumnLabel = styled('div')`
-  text-align: right;
-  width: 100%;
-`;
-
-const Change = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  justify-content: right;
-
-  ${NumberContainer} {
-    width: unset;
-  }
-`;
-
-const ChangeDescription = styled('span')`
-  color: ${p => p.theme.gray300};
-  white-space: nowrap;
-`;

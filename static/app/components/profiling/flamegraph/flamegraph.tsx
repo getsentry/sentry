@@ -33,7 +33,6 @@ import {
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {clamp} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphSearch as FlamegraphSearchType} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -102,10 +101,7 @@ function getTransactionConfigSpace(
       formatTo(transactionDuration, 'seconds', unit),
       maxProfileDuration
     );
-    // We clamp the duration to 30 seconds which is our official "max" duration.
-    // Clamp the value here so that we dont end up showing profiles with insanely
-    // long durations - this may happen in some profiles when threads are suspended
-    return new Rect(0, 0, clamp(duration, 0, 30 * 1e9), 0);
+    return new Rect(0, 0, duration, 0);
   }
 
   // No transaction was found, so best we can do is align it to the starting
@@ -658,7 +654,7 @@ function Flamegraph(): ReactElement {
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
         {
-          width: {min: 0},
+          width: {min: 1},
         }
       );
 
@@ -702,7 +698,7 @@ function Flamegraph(): ReactElement {
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
         {
-          width: {min: 0},
+          width: {min: 1},
         }
       );
 
@@ -746,7 +742,7 @@ function Flamegraph(): ReactElement {
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
         {
-          width: {min: 0},
+          width: {min: 1},
         }
       );
 
@@ -782,8 +778,9 @@ function Flamegraph(): ReactElement {
       // Initialize configView to whatever the flamegraph configView is
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {width: {min: 0}}
+        {width: {min: 1}}
       );
+
       return newView;
     },
     [spanChart, spansCanvas, flamegraph.inverted, flamegraphView, flamegraphTheme.SIZES]

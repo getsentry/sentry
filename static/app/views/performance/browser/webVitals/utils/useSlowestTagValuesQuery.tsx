@@ -30,7 +30,8 @@ export const useSlowestTagValuesQuery = ({tag, transaction, limit}: Props) => {
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
+        `transaction.op:pageload has:${tag}` +
+        (transaction ? ` transaction:"${transaction}"` : ''),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
       // We don't have performance scores yet, so sort by lcp for now as an estimate

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import timedelta
-from typing import Collection, Optional, Tuple
+from typing import ClassVar, Collection, Optional, Tuple
 
 from django.db import models, router, transaction
 from django.utils import timezone
@@ -37,12 +37,16 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     user = FlexibleForeignKey("sentry.User")
+    name = models.CharField(max_length=255, null=True)
     token = models.CharField(max_length=64, unique=True, default=generate_token)
+    token_last_characters = models.CharField(max_length=4, null=True)
     refresh_token = models.CharField(max_length=64, unique=True, null=True, default=generate_token)
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = ControlOutboxProducingManager["ApiToken"](cache_fields=("token",))
+    objects: ClassVar[ControlOutboxProducingManager[ApiToken]] = ControlOutboxProducingManager(
+        cache_fields=("token",)
+    )
 
     class Meta:
         app_label = "sentry"
@@ -52,6 +56,16 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     def __str__(self):
         return force_str(self.token)
+
+    # TODO(mdtro): uncomment this function after 0583_apitoken_add_name_and_last_chars migration has been applied
+    # def save(self, *args: Any, **kwargs: Any) -> None:
+    #     # when a new ApiToken is created we take the last four characters of the token
+    #     # and save them in the `token_last_characters` field so users can identify
+    #     # tokens in the UI where they're mostly obfuscated
+    #     token_last_characters = self.token[-4:]
+    #     self.token_last_characters = token_last_characters
+
+    #     return super().save(**kwargs)
 
     def outbox_region_names(self) -> Collection[str]:
         return list(find_all_region_names())
