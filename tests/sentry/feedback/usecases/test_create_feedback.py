@@ -19,6 +19,7 @@ def test_fix_for_issue_platform():
         },
         "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
         "timestamp": 1698255009.574,
+        "received": "2021-10-24T22:23:29.574000+00:00",
         "environment": "prod",
         "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
         "sdk": {
@@ -107,6 +108,7 @@ def test_corrected_still_works():
         },
         "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
         "timestamp": 1698255009.574,
+        "received": "2021-10-24T22:23:29.574000+00:00",
         "environment": "prod",
         "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
         "sdk": {
@@ -186,3 +188,4 @@ def test_corrected_still_works():
         "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
         "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
     }
+    assert isinstance(fixed_event["received"], str)
