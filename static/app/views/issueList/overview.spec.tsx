@@ -457,7 +457,7 @@ describe('IssueList', function () {
           datetime: {period: '14d'},
         },
         organization: Organization({
-          features: ['issue-stream-performance', 'issues-stream-performance-cache'],
+          features: ['issue-stream-performance', 'issue-stream-performance-cache'],
           projects: [],
         }),
       };

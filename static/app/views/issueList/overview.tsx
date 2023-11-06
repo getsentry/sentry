@@ -284,7 +284,7 @@ class IssueListOverview extends Component<Props, State> {
       groups.length > 0 &&
       !this.state.issuesLoading &&
       !this.state.realtimeActive &&
-      this.props.organization.features.includes('issues-stream-performance-cache')
+      this.props.organization.features.includes('issue-stream-performance-cache')
     ) {
       IssueListCacheStore.save(this.getCacheEdpointParams(), {
         groups,
@@ -341,7 +341,7 @@ class IssueListOverview extends Component<Props, State> {
    * @returns Returns true if the data was loaded from cache
    */
   loadFromCache(): boolean {
-    if (!this.props.organization.features.includes('issues-stream-performance-cache')) {
+    if (!this.props.organization.features.includes('issue-stream-performance-cache')) {
       return false;
     }
 
