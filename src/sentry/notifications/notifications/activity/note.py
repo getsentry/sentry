@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Optional
 
+from django.utils.html import format_html
+from django.utils.safestring import SafeString
+
+from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
@@ -33,3 +37,15 @@ class NoteActivityNotification(GroupActivityNotification):
 
     def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
         return self.get_context()["text_description"]
+
+    def description_as_html(self, description: str, params: Mapping[str, Any]) -> SafeString:
+        """Note emails are formatted differently from almost all other activity emails.
+        Rather than passing the `description` as a string to be formatted into HTML with
+        `author` and `an_issue` (see base definition and resolved.py's `get_description`
+        as an example) we are simply passed the comment as a string that needs no formatting,
+        and want the avatar on it's own rather than bundled with the author's display name
+        because the display name is already shown in the notification title."""
+        fmt = '<span class="avatar-container">{}</span>'
+        if self.user:
+            return format_html(fmt, avatar_as_html(self.user, 48))
+        return format_html(description)
