@@ -305,7 +305,7 @@ def test_org_member():
     assert member_query[0].role == "member"
     assert rpc_member.id == member_query[0].id
 
-    rpc_member = organization_service.update_organization_member(
+    organization_service.update_organization_member(
         organization_id=org.id, member_id=rpc_member.id, attrs=dict(role="manager")
     )
     member_query = OrganizationMember.objects.all()
