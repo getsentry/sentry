@@ -342,7 +342,7 @@ def _is_nan(value: ResultValue) -> bool:
     if value is None:
         return False
     elif isinstance(value, list):
-        return any(map(lambda e: math.isnan(e), value))
+        return any(map(lambda e: e is not None and math.isnan(e), value))
 
     return math.isnan(value)
 
