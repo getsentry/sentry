@@ -39,7 +39,7 @@ _occurrence_producer = SingletonProducer(
 
 
 def produce_occurrence_to_kafka(
-    payload_type: PayloadType,
+    payload_type: PayloadType | None = PayloadType.OCCURRENCE,
     occurrence: IssueOccurrence | None = None,
     status_change: StatusChangeMessage | None = None,
     event_data: Optional[Dict[str, Any]] = None,
@@ -69,15 +69,18 @@ def _prepare_occurrence_message(
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
         # write to the issue platform directly
+        from sentry.issues.ingest import process_occurrence_data
         from sentry.issues.occurrence_consumer import (
             lookup_event_and_process_issue_occurrence,
             process_event_and_issue_occurrence,
         )
 
+        occurrence_dict = occurrence.to_dict()
+        process_occurrence_data(occurrence_dict)
         if event_data:
-            process_event_and_issue_occurrence(occurrence.to_dict(), event_data)
+            process_event_and_issue_occurrence(occurrence_dict, event_data)
         else:
-            lookup_event_and_process_issue_occurrence(occurrence.to_dict())
+            lookup_event_and_process_issue_occurrence(occurrence_dict)
         return None
 
     payload_data = cast(MutableMapping[str, Any], occurrence.to_dict())

@@ -1,13 +1,23 @@
-import datetime
+from __future__ import annotations
+
+import logging
+from datetime import datetime
+from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
 
+from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.models.project import Project
+from sentry.signals import first_feedback_received
 from sentry.utils.dates import ensure_aware
+from sentry.utils.safe import get_path
+
+logger = logging.getLogger(__name__)
 
 
 def make_evidence(feedback):
@@ -33,40 +43,44 @@ def make_evidence(feedback):
 def fix_for_issue_platform(event_data):
     # the issue platform has slightly different requirements than ingest
     # for event schema, so we need to massage the data a bit
-    event_data["timestamp"] = ensure_aware(
-        datetime.datetime.fromtimestamp(event_data["timestamp"])
+    ret_event: dict[str, Any] = {}
+
+    ret_event["timestamp"] = ensure_aware(
+        datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
-    if "contexts" not in event_data:
-        event_data["contexts"] = {}
 
-    if event_data.get("feedback") and not event_data.get("contexts", {}).get("feedback"):
-        event_data["contexts"]["feedback"] = event_data["feedback"]
-        del event_data["feedback"]
+    ret_event["project_id"] = event_data["project_id"]
 
-        if not event_data["contexts"].get("replay") and event_data["contexts"]["feedback"].get(
-            "replay_id"
-        ):
-            event_data["contexts"]["replay"] = {
-                "replay_id": event_data["contexts"]["feedback"].get("replay_id")
-            }
+    ret_event["contexts"] = event_data.get("contexts", {})
 
-    if event_data.get("dist") is not None:
-        del event_data["dist"]
-    if event_data.get("user", {}).get("name") is not None:
-        del event_data["user"]["name"]
-    if event_data.get("user", {}).get("isStaff") is not None:
-        del event_data["user"]["isStaff"]
+    # TODO: remove this once feedback_ingest API deprecated
+    # as replay context will be filled in
+    if not event_data["contexts"].get("replay") and event_data["contexts"].get("feedback", {}).get(
+        "replay_id"
+    ):
+        ret_event["contexts"]["replay"] = {
+            "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
+        }
+    ret_event["event_id"] = event_data["event_id"]
+    ret_event["tags"] = event_data.get("tags", [])
 
-    if event_data.get("user", {}).get("id") is not None:
-        event_data["user"]["id"] = str(event_data["user"]["id"])
+    ret_event["platform"] = event_data.get("platform", "other")
+    ret_event["level"] = event_data.get("level", "error")
+
+    ret_event["environment"] = event_data.get("environment", "production")
+    if event_data.get("sdk"):
+        ret_event["sdk"] = event_data["sdk"]
+    ret_event["request"] = event_data.get("request", {})
+
+    ret_event["user"] = event_data.get("user", {})
+    return ret_event
 
 
 def create_feedback_issue(event, project_id):
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
-
     event["event_id"] = event.get("event_id") or uuid4().hex
-    evidcence_data, evidence_display = make_evidence(event["feedback"])
+    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"])
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
@@ -75,16 +89,16 @@ def create_feedback_issue(event, project_id):
             uuid4().hex
         ],  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title="User Feedback",
-        subtitle=event["feedback"]["message"],
+        subtitle=event["contexts"]["feedback"]["message"],
         resource_id=None,
-        evidence_data=evidcence_data,
+        evidence_data=evidence_data,
         evidence_display=evidence_display,
         type=FeedbackGroup,
-        detection_time=ensure_aware(datetime.datetime.fromtimestamp(event["timestamp"])),
+        detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level="info",  # TODO: severity based on input?
     )
-    now = datetime.datetime.now()
+    now = datetime.now()
 
     event_data = {
         "project_id": project_id,
@@ -93,13 +107,18 @@ def create_feedback_issue(event, project_id):
         "tags": event.get("tags", {}),
         **event,
     }
-    fix_for_issue_platform(event_data)
+    event_fixed = fix_for_issue_platform(event_data)
 
     # make sure event data is valid for issue platform
-    validate_issue_platform_event_schema(event_data)
+    validate_issue_platform_event_schema(event_fixed)
+
+    project = Project.objects.get_from_cache(id=project_id)
+
+    if not project.flags.has_feedbacks:
+        first_feedback_received.send_robust(project=project, sender=Project)
 
     produce_occurrence_to_kafka(
-        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
+        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
 
 
@@ -112,3 +131,51 @@ def validate_issue_platform_event_schema(event_data):
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
         jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+
+
+class UserReportShimDict(TypedDict):
+    name: str
+    email: str
+    comments: str
+
+
+def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project):
+    """
+    takes user reports from the legacy user report form/endpoint and
+    user reports that come from relay envelope ingestion and
+    creates a new User Feedback from it.
+    User feedbacks are an event type, so we try and grab as much from the
+    legacy user report and event to create the new feedback.
+    """
+    try:
+        feedback_event: dict[str, Any] = {
+            "contexts": {
+                "feedback": {
+                    "name": report.get("name", ""),
+                    "contact_email": report["email"],
+                    "message": report["comments"],
+                },
+            },
+        }
+
+        if event:
+            feedback_event["contexts"]["feedback"]["crash_report_event_id"] = event.event_id
+
+            if get_path(event.data, "contexts", "replay", "replay_id"):
+                feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
+                feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"][
+                    "replay"
+                ]["replay_id"]
+            feedback_event["timestamp"] = event.datetime.timestamp()
+
+            feedback_event["platform"] = event.platform
+
+        else:
+            feedback_event["timestamp"] = datetime.utcnow().timestamp()
+            feedback_event["platform"] = "other"
+
+        create_feedback_issue(feedback_event, project.id)
+    except Exception:
+        logger.exception(
+            "Error attempting to create new User Feedback from Shiming old User Report"
+        )

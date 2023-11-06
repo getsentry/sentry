@@ -3,7 +3,7 @@ import cronstrue from 'cronstrue';
 import {Location} from 'history';
 
 import {t, tn} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, SelectValue} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {CheckInStatus, MonitorConfig, ScheduleType} from 'sentry/views/monitors/types';
 
@@ -84,3 +84,12 @@ export function getColorsFromStatus(status: CheckInStatus, theme: Theme) {
   };
   return statusToColor[status];
 }
+
+export const getScheduleIntervals = (n: number): SelectValue<string>[] => [
+  {value: 'minute', label: tn('minute', 'minutes', n)},
+  {value: 'hour', label: tn('hour', 'hours', n)},
+  {value: 'day', label: tn('day', 'days', n)},
+  {value: 'week', label: tn('week', 'weeks', n)},
+  {value: 'month', label: tn('month', 'months', n)},
+  {value: 'year', label: tn('year', 'years', n)},
+];

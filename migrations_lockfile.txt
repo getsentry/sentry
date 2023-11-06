@@ -9,5 +9,5 @@ feedback: 0003_feedback_add_env
 hybridcloud: 0008_add_externalactorreplica
 nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
-sentry: 0583_add_early_adopter_to_organization_mapping
+sentry: 0588_add_relocation_models
 social_auth: 0002_default_auto_field

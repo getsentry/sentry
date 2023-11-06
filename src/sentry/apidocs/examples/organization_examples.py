@@ -157,6 +157,7 @@ class OrganizationExamples:
                     "sso:linked": False,
                     "sso:invalid": False,
                     "member-limit:restricted": False,
+                    "partnership:restricted": False,
                 },
                 "dateCreated": "2021-07-06T21:13:01.120263Z",
                 "inviteStatus": "approved",

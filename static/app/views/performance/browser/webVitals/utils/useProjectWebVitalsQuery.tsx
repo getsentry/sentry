@@ -7,11 +7,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
+  dataset?: DiscoverDatasets;
   tag?: Tag;
   transaction?: string;
 };
 
-export const useProjectWebVitalsQuery = ({transaction, tag}: Props = {}) => {
+export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -36,7 +37,7 @@ export const useProjectWebVitalsQuery = ({transaction, tag}: Props = {}) => {
         (transaction ? ` transaction:"${transaction}"` : '') +
         (tag ? ` ${tag.key}:"${tag.name}"` : ''),
       version: 2,
-      dataset: DiscoverDatasets.METRICS,
+      dataset: dataset ?? DiscoverDatasets.METRICS,
     },
     pageFilters.selection
   );
@@ -46,6 +47,7 @@ export const useProjectWebVitalsQuery = ({transaction, tag}: Props = {}) => {
     limit: 50,
     location,
     orgSlug: organization.slug,
+    cursor: '',
     options: {
       enabled: pageFilters.isReady,
       refetchOnWindowFocus: false,

@@ -60,6 +60,7 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:user-feedback-ingest",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
     "organizations:custom-metrics",
@@ -415,11 +416,11 @@ def _get_project_config(
                 {
                     "name": "Desktop",
                     "scoreComponents": [
-                        {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
-                        {"measurement": "lcp", "weight": 0.30, "p10": 1200, "p50": 2400},
-                        {"measurement": "fid", "weight": 0.30, "p10": 100, "p50": 300},
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
+                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
                         {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                        {"measurement": "ttfb", "weight": 0.10, "p10": 200, "p50": 400},
+                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
                     ],
                     "condition": {
                         "op": "eq",
@@ -467,7 +468,7 @@ class _ConfigBase:
     def __init__(self, **kwargs: Any) -> None:
         data: MutableMapping[str, Any] = {}
         object.__setattr__(self, "data", data)
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             if val is not None:
                 data[key] = val
 

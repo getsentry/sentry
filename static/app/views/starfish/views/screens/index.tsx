@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import Alert from 'sentry/components/alert';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
@@ -244,7 +245,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   const topTransactionsIndex = Object.fromEntries(topTransactions.map((e, i) => [e, i]));
 
-  if (defined(releaseEvents)) {
+  if (defined(releaseEvents) && defined(primaryRelease)) {
     releaseEvents.data?.forEach(row => {
       const release = row.release;
       const isPrimary = release === primaryRelease;
@@ -258,7 +259,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             color: isPrimary
               ? theme.charts.getColorPalette(TOP_SCREENS - 2)[index]
               : Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-                  .lighten(0.5)
+                  .lighten(0.3)
                   .string(),
           },
         } as SeriesDataUnit;
@@ -266,7 +267,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     });
   }
 
-  if (defined(deviceClassEvents)) {
+  if (defined(deviceClassEvents) && defined(primaryRelease)) {
     deviceClassEvents.data?.forEach(row => {
       const deviceClass = row['device.class'];
       const transaction = row.transaction;
@@ -279,17 +280,17 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
           case 'medium':
             return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.2)
+              .lighten(0.1)
               .string();
 
           case 'low':
             return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.4)
+              .lighten(0.2)
               .string();
 
           default:
             return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.6)
+              .lighten(0.3)
               .string();
         }
       }
@@ -308,6 +309,13 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   return (
     <div data-test-id="starfish-mobile-view">
+      {!defined(primaryRelease) && (
+        <Alert type="warning" showIcon>
+          {t(
+            'No screens found on recent releases. Please try a single iOS or Android project or a smaller date range.'
+          )}
+        </Alert>
+      )}
       <ChartsContainer>
         <Fragment>
           <ChartsContainerItem key="release">

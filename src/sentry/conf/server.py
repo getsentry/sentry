@@ -1453,6 +1453,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-beta": False,
     # Enables production profiling in sentry browser application
     "organizations:profiling-browser": False,
+    # Enables differential flamegraph in profiling
+    "organizations:profiling-differential-flamegraph": False,
     # Enable stacktrace linking of multiple frames in profiles
     "organizations:profiling-stacktrace-links": False,
     # Enable global suspect functions in profiling
@@ -1491,6 +1493,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-platform-extra-logging": False,
     # Enable issue platform status change API for crons and SD issues
     "organizations:issue-platform-api-crons-sd": False,
+    # Enable issue platform feature changes for crons and SD issues
+    "organizations:issue-platform-crons-sd": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1505,6 +1509,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Enables the usage of the new metrics layer in the metrics API.
+    "organizations:metrics-api-new-metrics-layer": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Extract on demand metrics
@@ -1660,6 +1666,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-tracing-without-performance": False,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
+    # Enable database view percentile graphs
+    "organizations:performance-database-view-percentiles": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable performance score calculation for transactions in relay
@@ -1697,16 +1705,18 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-trace-table": False,
     # Enable the AM1 trial ended banner on sentry.io
     "organizations:session-replay-trial-ended-banner": False,
-    # Enable the Replay rage and dead click selector tables in the UI
-    "organizations:session-replay-rage-dead-selectors": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
     # Enable the Replay Details > New timeline
     "organizations:session-replay-new-timeline": False,
+    # Enable the accessibility issues endpoint
+    "organizations:session-replay-accessibility-issues": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enables the resource module ui
+    "organizations:starfish-browser-resource-module-ui": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enable starfish endpoint that's used for regressing testing purposes
@@ -1770,8 +1780,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:device-class-synthesis": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
-    # Enable OpenAI suggestions in the issue details page
-    "organizations:open-ai-suggestion": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
@@ -1818,6 +1826,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
+    # Enable metric alert rate limiting
+    "organizations:metric-alert-rate-limiting": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
     # Enable data forwarding functionality for projects.
@@ -2613,6 +2623,9 @@ SENTRY_USE_GROUP_ATTRIBUTES = False
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
+# This flag activates replay analyzer service in the development environment
+SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2868,6 +2881,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
             "ports": {"8085/tcp": 8085},
             "only_if": settings.SENTRY_USE_PROFILING,
+        }
+    ),
+    "session-replay-analyzer": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/session-replay-analyzer:latest",
+            "environment": {},
+            "ports": {"3000/tcp": 3000},
+            "only_if": settings.SENTRY_USE_REPLAY_ANALYZER_SERVICE,
         }
     ),
 }
@@ -3792,11 +3813,6 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
-
-# Settings for the SDK crash detection. These are deprecated and will be removed
-# in a subsequent PR.
-SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
-SDK_CRASH_DETECTION_SAMPLE_RATE = 0.0
 
 # The Redis cluster to use for monitoring the service / consumer health.
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"

@@ -54,7 +54,7 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
             return Response([])
 
         data = list(
-            tsdb.get_range(
+            tsdb.backend.get_range(
                 model=TSDBModel.project,
                 keys=[p.id for p in projects],
                 **self._parse_args(request, environment_id),
