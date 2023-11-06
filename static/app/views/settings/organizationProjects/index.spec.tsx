@@ -1,4 +1,3 @@
-import {Organization} from 'sentry-fixture/organization';
 import {Project} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -10,7 +9,6 @@ describe('OrganizationProjects', function () {
   let projectsGetMock: jest.Mock;
   let statsGetMock: jest.Mock;
   let projectsPutMock: jest.Mock;
-  const org = Organization();
   const project = Project();
   const {routerContext} = initializeOrg();
 
@@ -53,25 +51,31 @@ describe('OrganizationProjects', function () {
   });
 
   it('should search organization projects', async function () {
-    const searchMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/projects/`,
-      body: [],
-    });
+    jest.useFakeTimers();
     render(<OrganizationProjectsContainer />, {
       context: routerContext,
     });
 
+    expect(await screen.findByText('project-slug')).toBeInTheDocument();
+
+    MockApiClient.clearMockResponses();
+    const searchQuery = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+
     const searchBox = await screen.findByRole('textbox');
+    await userEvent.type(searchBox, 'random');
 
-    await userEvent.type(searchBox, project.slug);
-    await userEvent.type(searchBox, '{enter}');
+    jest.runAllTimers();
 
-    expect(searchMock).toHaveBeenLastCalledWith(
-      `/organizations/${org.slug}/projects/`,
+    expect(await screen.findByText('No projects found.')).toBeInTheDocument();
+    expect(searchQuery).toHaveBeenCalledWith(
+      `/organizations/org-slug/projects/`,
       expect.objectContaining({
         method: 'GET',
         query: {
-          query: project.slug,
+          query: 'random',
         },
       })
     );
