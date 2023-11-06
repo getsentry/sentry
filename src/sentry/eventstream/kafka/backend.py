@@ -1,17 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
@@ -22,7 +12,6 @@ from sentry import options
 from sentry.eventstream.base import EventStreamEventType, GroupStates
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
-from sentry.post_process_forwarder import PostProcessForwarder, PostProcessForwarderType
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -65,7 +54,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         skip_consume: bool,
         group_states: Optional[GroupStates] = None,
     ) -> MutableMapping[str, str]:
-
         # HACK: We are putting all this extra information that is required by the
         # post process forwarder into the headers so we can skip parsing entire json
         # messages. The post process forwarder is currently bound to a single core.
@@ -231,25 +219,3 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def requires_post_process_forwarder(self) -> bool:
         return True
-
-    def run_post_process_forwarder(
-        self,
-        entity: PostProcessForwarderType,
-        consumer_group: str,
-        topic: Optional[str],
-        commit_log_topic: str,
-        synchronize_commit_group: str,
-        concurrency: int,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
-        strict_offset_reset: bool,
-    ) -> None:
-        PostProcessForwarder().run(
-            entity,
-            consumer_group,
-            topic,
-            commit_log_topic,
-            synchronize_commit_group,
-            concurrency,
-            initial_offset_reset,
-            strict_offset_reset,
-        )
