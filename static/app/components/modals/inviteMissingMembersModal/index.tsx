@@ -19,13 +19,15 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
+
+const ROWS_PER_PAGE = 6;
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
   allowedRoles: OrgRole[];
@@ -42,17 +44,19 @@ export function InviteMissingMembersModal({
   const initialMemberInvites = (missingMembers.users || []).map(member => ({
     email: member.email,
     commitCount: member.commitCount,
-    role: organization.defaultRole,
+    role: organization.defaultRole ?? 'member',
     teamSlugs: new Set<string>(),
     externalId: member.externalId,
-    selected: true,
+    selected: false,
   }));
+  const pageCount = Math.floor(initialMemberInvites.length / ROWS_PER_PAGE);
   const [memberInvites, setMemberInvites] =
     useState<MissingMemberInvite[]>(initialMemberInvites);
   const referrer = missingMembers.integration + '_nudge_invite';
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({});
   const [sendingInvites, setSendingInvites] = useState(false);
   const [complete, setComplete] = useState(false);
+  const [currentPage, setCurrentPage] = useState<number>(0);
 
   const api = useApi();
 
@@ -60,10 +64,10 @@ export function InviteMissingMembersModal({
     return null;
   }
 
-  const setRole = (role: string, index: number) => {
+  const setRole = (role: string, email: string) => {
     setMemberInvites(currentMemberInvites =>
-      currentMemberInvites.map((member, i) => {
-        if (i === index) {
+      currentMemberInvites.map(member => {
+        if (member.email === email) {
           member.role = role;
         }
         return member;
@@ -71,10 +75,10 @@ export function InviteMissingMembersModal({
     );
   };
 
-  const setTeams = (teamSlugs: string[], index: number) => {
+  const setTeams = (teamSlugs: string[], email: string) => {
     setMemberInvites(currentMemberInvites =>
-      currentMemberInvites.map((member, i) => {
-        if (i === index) {
+      currentMemberInvites.map(member => {
+        if (member.email === email) {
           member.teamSlugs = new Set(teamSlugs);
         }
         return member;
@@ -82,8 +86,13 @@ export function InviteMissingMembersModal({
     );
   };
 
-  const selectAll = (checked: boolean) => {
-    const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
+  const selectAllOnPage = (checked: boolean) => {
+    const selectedMembers = memberInvites.map((m, i) => {
+      if (i >= currentPage * ROWS_PER_PAGE && i < (currentPage + 1) * ROWS_PER_PAGE) {
+        return {...m, selected: checked};
+      }
+      return m;
+    });
     setMemberInvites(selectedMembers);
   };
 
@@ -183,8 +192,13 @@ export function InviteMissingMembersModal({
     }
   };
 
+  const membersOnPage = memberInvites?.slice(
+    currentPage * ROWS_PER_PAGE,
+    (currentPage + 1) * ROWS_PER_PAGE
+  );
   const selectedCount = memberInvites.filter(i => i.selected).length;
-  const selectedAll = memberInvites.length === selectedCount;
+  const selectedAllOnPage =
+    membersOnPage.filter(i => i.selected).length === membersOnPage.length;
 
   const inviteButtonLabel = () => {
     return tct('Invite [memberCount] missing member[isPlural]', {
@@ -206,9 +220,11 @@ export function InviteMissingMembersModal({
         headers={[
           <Checkbox
             key={0}
-            aria-label={selectedAll ? t('Deselect All') : t('Select All')}
-            onChange={() => selectAll(!selectedAll)}
-            checked={selectedAll}
+            aria-label={
+              selectedAllOnPage ? t('Deselect All On Page') : t('Select All On Page')
+            }
+            onChange={() => selectAllOnPage(!selectedAllOnPage)}
+            checked={selectedAllOnPage}
           />,
           t('User Information'),
           <StyledHeader key={1}>
@@ -221,8 +237,8 @@ export function InviteMissingMembersModal({
           t('Team'),
         ]}
       >
-        {memberInvites?.map((member, i) => {
-          const checked = memberInvites[i].selected;
+        {membersOnPage.map((member, i) => {
+          const checked = membersOnPage[i].selected;
           const username = member.externalId.split(':').pop();
           return (
             <Fragment key={i}>
@@ -252,7 +268,7 @@ export function InviteMissingMembersModal({
                 disabled={false}
                 roles={allowedRoles}
                 disableUnallowed
-                onChange={value => setRole(value?.value, i)}
+                onChange={value => setRole(value?.value, member.email)}
               />
               <TeamSelector
                 organization={organization}
@@ -260,7 +276,9 @@ export function InviteMissingMembersModal({
                 data-test-id="select-teams"
                 disabled={false}
                 placeholder={t('Add to teams\u2026')}
-                onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
+                onChange={opts =>
+                  setTeams(opts ? opts.map(v => v.value) : [], member.email)
+                }
                 multiple
                 clearable
               />
@@ -269,7 +287,25 @@ export function InviteMissingMembersModal({
         })}
       </StyledPanelTable>
       <Footer>
-        <div>{renderStatusMessage()}</div>
+        <Wrapper data-test-id="pagination">
+          <ButtonBar merged>
+            <Button
+              icon={<IconChevron direction="left" size="sm" />}
+              aria-label={t('Previous')}
+              size="sm"
+              disabled={currentPage === 0}
+              onClick={() => setCurrentPage(currentPage - 1)}
+            />
+            <Button
+              icon={<IconChevron direction="right" size="sm" />}
+              aria-label={t('Next')}
+              size="sm"
+              disabled={currentPage === pageCount}
+              onClick={() => setCurrentPage(currentPage + 1)}
+            />
+          </ButtonBar>
+          {renderStatusMessage()}
+        </Wrapper>
         <ButtonBar gap={1}>
           <Button
             size="sm"
@@ -346,6 +382,13 @@ const MemberEmail = styled('div')`
   color: ${p => p.theme.gray300};
   text-overflow: ellipsis;
   overflow: hidden;
+`;
+
+const Wrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: ${space(1.5)};
 `;
 
 export const modalCss = css`
