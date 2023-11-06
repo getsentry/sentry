@@ -59,9 +59,6 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return force_str(self.token)
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        # when a new ApiToken is created we take the last four characters of the token
-        # and save them in the `token_last_characters` field so users can identify
-        # tokens in the UI where they're mostly obfuscated
         if options.get("apitoken.auto-add-last-chars"):
             token_last_characters = self.token[-4:]
             self.token_last_characters = token_last_characters
