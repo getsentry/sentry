@@ -20,6 +20,9 @@ export default function FeedbackWidget() {
     const feedback = client?.getIntegration(Feedback);
     const widget = feedback?.createWidget({
       colorScheme: widgetTheme,
+      buttonLabel: 'Give Feedback',
+      submitButtonLabel: 'Send Feedback',
+      messagePlaceholder: 'What did you expect?',
     });
     return () => {
       feedback?.removeWidget(widget);
