@@ -164,6 +164,8 @@ class _ClientConfig:
             self.last_org and features.has("organizations:customer-domains", self.last_org)
         ):
             yield "organizations:customer-domains"
+        if options.get("hybrid_cloud.multi-region-selector"):
+            yield "organizations:multi-region-selector"
 
     @property
     def needs_upgrade(self) -> bool:
