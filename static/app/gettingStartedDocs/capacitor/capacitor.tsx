@@ -1,12 +1,7 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
-  PlatformOption,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -21,7 +16,7 @@ export enum SiblingOption {
   VUE2 = 'vue2',
 }
 
-type PlaformOptionKey = 'siblinOption';
+type PlaformOptionKey = 'siblingOption';
 
 type StepProps = {
   errorHandlerProviders: string;
@@ -33,16 +28,16 @@ type StepProps = {
   projectId?: string;
 };
 
-const IsAngular = (siblingOption: SiblingOption): boolean =>
+const isAngular = (siblingOption: SiblingOption): boolean =>
   siblingOption === SiblingOption.ANGULARV10 ||
   siblingOption === SiblingOption.ANGULARV12;
 
-const IsVue = (siblingOption: SiblingOption): boolean =>
+const isVue = (siblingOption: SiblingOption): boolean =>
   siblingOption === SiblingOption.VUE2 || siblingOption === SiblingOption.VUE3;
 
 // Configuration Start
 const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
-  siblinOption: {
+  siblingOption: {
     label: t('Sibling Package'),
     items: [
       {
@@ -79,19 +74,19 @@ replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want
 replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
 `;
 
-const routingInstrumentationConfig = (siblingOption: SiblingOption): string =>
-  IsVue(siblingOption)
+const getRoutingInstrumentationConfig = (siblingOption: SiblingOption): string =>
+  isVue(siblingOption)
     ? 'routingInstrumentation: SiblingSdk.VUERouterInstrumentation(router),\n'
-    : IsAngular(siblingOption)
+    : isAngular(siblingOption)
     ? 'routingInstrumentation: SiblingSdk.routingInstrumentation,\n'
     : '';
 
-function performanceIntegration(siblingOption: SiblingOption): string {
+function getPerformanceIntegration(siblingOption: SiblingOption): string {
   let integration = `
 new SiblingSdk.BrowserTracing({
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`;
-  integration += routingInstrumentationConfig(siblingOption);
+  integration += getRoutingInstrumentationConfig(siblingOption);
   integration += `});`;
   return integration;
 }
@@ -252,7 +247,7 @@ function getSetupConfiguration(
 });`,
     },
   ];
-  if (IsAngular(siblingOption)) {
+  if (isAngular(siblingOption)) {
     configuration.push({
       description: tct(
         "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler.",
@@ -281,7 +276,7 @@ export class AppModule {}`,
   return configuration;
 }
 
-function getNpmPackage(siblinOption: SiblingOption): string {
+function getNpmPackage(siblingOption: SiblingOption): string {
   const packages: Record<SiblingOption, string> = {
     [SiblingOption.ANGULARV10]: '@sentry/angular',
     [SiblingOption.ANGULARV12]: '@sentry/angular-ivy',
@@ -289,11 +284,11 @@ function getNpmPackage(siblinOption: SiblingOption): string {
     [SiblingOption.VUE3]: '@sentry/vue',
     [SiblingOption.VUE2]: '@sentry/vue',
   };
-  return packages[siblinOption];
+  return packages[siblingOption];
 }
 
-function getSiblingName(siblinOption: SiblingOption): string {
-  switch (siblinOption) {
+function getSiblingName(siblingOption: SiblingOption): string {
+  switch (siblingOption) {
     case SiblingOption.ANGULARV10:
     case SiblingOption.ANGULARV12:
       return 'Angular';
@@ -345,7 +340,7 @@ export function GettingStartedWithCapacitor({
   ...props
 }: ModuleProps) {
   const optionValues = useUrlPlatformOptions(platformOptions);
-  const siblingOption = optionValues.siblinOption as SiblingOption;
+  const siblingOption = optionValues.siblingOption as SiblingOption;
 
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -354,7 +349,7 @@ export function GettingStartedWithCapacitor({
   const errorHandlerProviders: string[] = [];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
-    integrations.push(performanceIntegration(siblingOption).trim());
+    integrations.push(getPerformanceIntegration(siblingOption).trim());
     otherConfigs.push(performanceOtherConfig.trim());
     errorHandlerProviders.push(performanceErrorHandler.trim());
     nextStepDocs = nextStepDocs.filter(
@@ -411,4 +406,4 @@ export function GettingStartedWithCapacitor({
   );
 }
 
-export default docs;
+export default GettingStartedWithCapacitor;
