@@ -23,7 +23,7 @@ from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
 from sentry import features, onboarding_tasks, quotas, roles
-from sentry.api.base import PreventNumericSlugMixin
+from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -96,15 +96,15 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
 }
 
 
-class BaseOrganizationSerializer(serializers.Serializer, PreventNumericSlugMixin):
+class BaseOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
 
     # The slug pattern consists of the following:
     # [a-zA-Z0-9]   - The slug must start with a letter or number
     # [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
     # (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
-    slug = serializers.RegexField(
-        r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$",
+    slug = SentrySlugField(
+        pattern=r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$",
         max_length=50,
         error_messages={
             "invalid": _(
@@ -136,7 +136,6 @@ class BaseOrganizationSerializer(serializers.Serializer, PreventNumericSlugMixin
             raise serializers.ValidationError(
                 f'The slug "{value}" should not contain any whitespace.'
             )
-        value = super().validate_slug(value)
         return value
 
 

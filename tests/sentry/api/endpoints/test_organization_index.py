@@ -12,7 +12,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
@@ -180,8 +179,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="canada-", status_code=400)
             self.get_error_response(name="name", slug="-canada", status_code=400)
             self.get_error_response(name="name", slug="----", status_code=400)
-            with override_options({"api.prevent-numeric-slugs": True}):
-                self.get_error_response(name="name", slug="1234", status_code=400)
+            self.get_error_response(name="name", slug="1234", status_code=400)
 
     def test_without_slug(self):
         response = self.get_success_response(name="hello world")
@@ -190,7 +188,6 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=organization_id)
         assert org.slug == "hello-world"
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(name="1234")
 
