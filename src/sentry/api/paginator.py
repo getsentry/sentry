@@ -8,6 +8,7 @@ from urllib.parse import quote
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
 from django.db.models.functions import Lower
+from snuba_sdk import Column, Condition, Op
 
 from sentry.utils.cursors import Cursor, CursorResult, build_cursor
 from sentry.utils.pagination_factory import PaginatorLike
@@ -118,7 +119,7 @@ class BasePaginator:
     def value_from_cursor(self, cursor):
         raise NotImplementedError
 
-    def get_result(self, limit=100, cursor=None, count_hits=False, known_hits=None, max_hits=None):
+    def get_result(self, limit=1, cursor=None, count_hits=False, known_hits=None, max_hits=None):
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
         if cursor is None:
@@ -746,3 +747,17 @@ class ChainPaginator:
             results = self.on_results(results)
 
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+
+
+class SnubaRequestPaginator(Paginator):
+    def build_next_snuba_request(self, cursor_value, query):
+        #  TODO(isabella): good start but not sure where to call this
+        if cursor_value != 0:
+            where_conditions = []
+            if query.where:
+                where_conditions = query.where
+            where_conditions.append(
+                Condition(Column("id"), Op.GT if self._is_asc(False) else Op.LT, cursor_value)
+            )
+            query = query.set_where(where_conditions)
+        return query

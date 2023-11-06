@@ -37,6 +37,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             project_id=project.id,
             endpoint="sentry.api.endpoints.project_users.get",
         )
+        # TODO(isabellaenriquez): replace from here to 50 with snubaquery and Request
         queryset = EventUser.objects.filter(project_id=project.id)
         if request.GET.get("query"):
             try:
@@ -55,3 +56,46 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             paginator_cls=DateTimePaginator,
             on_results=lambda x: serialize(x, request.user),
         )
+
+
+"""
+cursor is eventuser id in set of eventusers
+assuems ascending
+
+first page:
+    query = (
+        Query("events", Entity"events"))  # idk if this is the proper dataset and entity lol
+        .set_select(<all cols>)
+        .set_limit(LIMIT)  # defaults to 100
+        .set_offset(0)
+    )
+
+anything but the first page
+    query = (
+        Query("events", Entity"events"))  # idk if this is the proper dataset and entity lol
+        .set_select(<all cols>)
+        .set_where(
+            [Condition(Column("id"), Op.GT, cursor.value)]
+        )
+        .set_limit(LIMIT)  # defaults to 100
+        .set_offset(0)
+    )
+
+
+def paginate_snuba_request(
+    self,
+    request,
+    on_results=None,
+    paginator=None,
+    paginator_cls=Paginator,
+    default_per_page=100,
+    max_per_page=100,
+    cursor_cls=Cursor,
+    response_cls=Response,
+    response_kwargs=None,
+    count_hits=None,
+    **paginator_kwargs,
+):
+
+XXX(isabella): doesn't look like making the new paginator class will work -- request nor query won't be passed into the paginator class, only exists within the call to the paginate method itself so maybe make a new paginate method specifically for snuba? or might need to make a whole new snubapaginator and snubapaginate method and class
+"""
