@@ -83,7 +83,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         # perform validation checks on the timestamp
         if (
             (timestamp is not None)
-            and (timestamp >= (now - timedelta(days=30)).timestamp())
+            and (timestamp > (now - timedelta(days=31)).timestamp())
             and (timestamp < (now + timedelta(minutes=1)).timestamp())
         ):
             payload_timestamp = timestamp
@@ -127,7 +127,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         # perform validation checks on the timestamp
         if (
             (timestamp is not None)
-            and (timestamp >= (now - timedelta(days=30)).timestamp())
+            and (timestamp > (now - timedelta(days=31)).timestamp())
             and (timestamp < (now + timedelta(minutes=1)).timestamp())
         ):
             payload_timestamp = timestamp
@@ -171,7 +171,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         # perform validation checks on the timestamp
         if (
             (timestamp is not None)
-            and (timestamp >= (now - timedelta(days=30)).timestamp())
+            and (timestamp > (now - timedelta(days=31)).timestamp())
             and (timestamp < (now + timedelta(minutes=1)).timestamp())
         ):
             payload_timestamp = timestamp
