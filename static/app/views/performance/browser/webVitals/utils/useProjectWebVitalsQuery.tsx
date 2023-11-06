@@ -50,7 +50,7 @@ export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}
     cursor: '',
     options: {
       enabled: pageFilters.isReady,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
     },
   });
 };

@@ -336,7 +336,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
         return (
           <Chart
             stacked
-            height={150}
+            height={props.chartHeight}
             data={formatTimeSeriesResultsToChartData(
               formattedWebVitalsScoreBreakdown,
               segmentColors
