@@ -2,12 +2,13 @@ import {Event as MockEvent} from 'sentry-fixture/event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
+import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
+import {IssueType} from 'sentry/types';
 import {DAY} from 'sentry/utils/formatters';
 
 const DURATION_REGRESSION_TYPE = 1017;
 
-describe('Regression breakpoint chart', () => {
+describe('Regression message', () => {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -18,7 +19,7 @@ describe('Regression breakpoint chart', () => {
     });
   });
 
-  it('does not show a Go to Transaction Summary button if the breakpoint is under 14 days old', () => {
+  it('does not show a Go to Summary button if the breakpoint is under 14 days old', () => {
     const mockEvent = MockEvent({
       occurrence: {
         evidenceData: {
@@ -43,16 +44,20 @@ describe('Regression breakpoint chart', () => {
       },
     });
 
-    render(<EventBreakpointChart event={mockEvent} />);
+    const mockGroup = TestStubs.Group({
+      issueType: IssueType.PERFORMANCE_DURATION_REGRESSION,
+    });
 
-    expect(screen.queryByText('Go to Transaction Summary')).not.toBeInTheDocument();
+    render(<RegressionMessage event={mockEvent} group={mockGroup} />);
+
+    expect(screen.queryByText('Go to Summary')).not.toBeInTheDocument();
   });
 
-  it('shows a Go to Transaction Summary button if the breakpoint is over 14 days old', async () => {
+  it('shows a Go to Summary button if the breakpoint is over 14 days old', async () => {
     const mockEvent = MockEvent({
       occurrence: {
         evidenceData: {
-          breakpoint: (Date.now() - 15 * DAY) / 1000,
+          breakpoint: (Date.now() - 20 * DAY) / 1000,
           transaction: '/api/0/transaction-test-endpoint/',
         },
         evidenceDisplay: [
@@ -73,8 +78,12 @@ describe('Regression breakpoint chart', () => {
       },
     });
 
-    render(<EventBreakpointChart event={mockEvent} />);
+    const mockGroup = TestStubs.Group({
+      issueType: IssueType.PERFORMANCE_DURATION_REGRESSION,
+    });
 
-    expect(await screen.findByText('Go to Transaction Summary')).toBeInTheDocument();
+    render(<RegressionMessage event={mockEvent} group={mockGroup} />);
+
+    expect(await screen.findByText('Go to Summary')).toBeInTheDocument();
   });
 });

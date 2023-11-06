@@ -41,21 +41,11 @@ def replace_transaction_atomic_sig_callback(ctx: FunctionSigContext) -> Callable
     return _make_using_required_str(ctx)
 
 
-def _choice_field_choices_sequence(ctx: FunctionSigContext) -> CallableType:
-    sig = ctx.default_signature
-    assert sig.arg_names[0] == "choices", sig
-    any_type = AnyType(TypeOfAny.explicit)
-    sequence_any = ctx.api.named_generic_type("typing.Sequence", [any_type])
-    return sig.copy_modified(arg_types=[sequence_any, *sig.arg_types[1:]])
-
-
 _FUNCTION_SIGNATURE_HOOKS = {
     "django.db.transaction.atomic": replace_transaction_atomic_sig_callback,
     "django.db.transaction.get_connection": _make_using_required_str,
     "django.db.transaction.on_commit": _make_using_required_str,
     "django.db.transaction.set_rollback": _make_using_required_str,
-    "rest_framework.fields.ChoiceField": _choice_field_choices_sequence,
-    "rest_framework.fields.MultipleChoiceField": _choice_field_choices_sequence,
 }
 
 
