@@ -16,7 +16,7 @@ SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p %Z"
 MAX_THRESHOLD = 720
 
 
-class AcceptedCheckInStatus(Enum):
+class PermitCheckInStatus(Enum):
     ACCEPT = 0
     """
     Check-in should be fully accepted and shall be passed through

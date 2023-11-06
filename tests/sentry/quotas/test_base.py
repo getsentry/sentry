@@ -3,7 +3,7 @@ import pytest
 from sentry.constants import DataCategory
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
-from sentry.monitors.constants import AcceptedCheckInStatus
+from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.models import Monitor, MonitorObjectStatus, MonitorType
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
 from sentry.testutils.cases import TestCase
@@ -118,7 +118,7 @@ class QuotaTest(TestCase):
             self.backend.check_accept_monitor_checkin(
                 monitor_slug=monitor.slug, project_id=monitor.project_id
             )
-            == AcceptedCheckInStatus.ACCEPT
+            == PermitCheckInStatus.ACCEPT
         )
 
     def test_remove_monitor_seat(self):

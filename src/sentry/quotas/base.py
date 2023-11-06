@@ -513,9 +513,9 @@ class Quota(Service):
         """
         Will return an `AcceptedCheckInStatus`.
         """
-        from sentry.monitors.constants import AcceptedCheckInStatus
+        from sentry.monitors.constants import PermitCheckInStatus
 
-        return AcceptedCheckInStatus.ACCEPT
+        return PermitCheckInStatus.ACCEPT
 
     def remove_monitor_seat(
         self,
