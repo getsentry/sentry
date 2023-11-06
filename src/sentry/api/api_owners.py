@@ -19,6 +19,7 @@ class ApiOwner(Enum):
     GROWTH = "growth"
     OWNERS_INGEST = "owners-ingest"
     OWNERS_NATIVE = "owners-native"
+    RELOCATION = "open-source"
     REPLAY = "replay-backend"
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
     FEEDBACK = "feedback-backend"
