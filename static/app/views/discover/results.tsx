@@ -560,6 +560,16 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
+  setTips(tips: string[]) {
+    // If there are currently no tips set and the new tips are empty, do nothing
+    // and bail out of an expensive entire table rerender
+    if (!tips.length && !this.state.tips.length) {
+      return;
+    }
+
+    this.setState({tips});
+  }
+
   render() {
     const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
       this.props;
@@ -654,7 +664,7 @@ export class Results extends Component<Props, State> {
                   confirmedQuery={confirmedQuery}
                   onCursor={this.handleCursor}
                   isHomepage={isHomepage}
-                  setTips={(tips: string[]) => this.setState({tips})}
+                  setTips={this.setTips}
                 />
               </Layout.Main>
               {showTags ? this.renderTagsTable() : null}
