@@ -137,6 +137,7 @@ class UserReportShimDict(TypedDict):
     name: str
     email: str
     comments: str
+    event_id: str
 
 
 def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project):
@@ -159,7 +160,7 @@ def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project)
         }
 
         if event:
-            feedback_event["contexts"]["feedback"]["crash_report_event_id"] = event.event_id
+            feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
             if get_path(event.data, "contexts", "replay", "replay_id"):
                 feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
@@ -169,10 +170,12 @@ def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project)
             feedback_event["timestamp"] = event.datetime.timestamp()
 
             feedback_event["platform"] = event.platform
-
         else:
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
+
+            if report.get("event_id"):
+                feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
 
         create_feedback_issue(feedback_event, project.id)
     except Exception:
