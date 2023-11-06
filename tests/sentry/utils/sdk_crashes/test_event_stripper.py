@@ -9,9 +9,9 @@ from fixtures.sdk_crash_detection.crash_event import (
 )
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import _cocoa_sdk_crash_detector_config
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
+from sentry.utils.sdk_crashes.sdk_crash_detector_configs import _cocoa_sdk_crash_detector_config
 
 
 @pytest.fixture
