@@ -50,7 +50,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
     @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")
     @patch("sentry.issues.escalating.query_groups_past_counts")
-    @with_feature("organizations:issue-platform-api-crons-sd")
+    @with_feature("organizations:issue-platform-crons-sd")
     def test_empty_sd_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -103,7 +103,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
     @patch("sentry.analytics.record")
     @patch("sentry.issues.forecasts.query_groups_past_counts")
-    @with_feature("organizations:issue-platform-api-crons-sd")
+    @with_feature("organizations:issue-platform-crons-sd")
     def test_single_sd_group_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -159,7 +159,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
     @patch("sentry.analytics.record")
     @patch("sentry.issues.forecasts.query_groups_past_counts")
-    @with_feature("organizations:issue-platform-api-crons-sd")
+    @with_feature("organizations:issue-platform-crons-sd")
     def test_multiple_sd_groups_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -214,7 +214,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
     @patch("sentry.analytics.record")
     @patch("sentry.issues.forecasts.query_groups_past_counts")
-    @with_feature("organizations:issue-platform-api-crons-sd")
+    @with_feature("organizations:issue-platform-crons-sd")
     def test_update_sd_group_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
