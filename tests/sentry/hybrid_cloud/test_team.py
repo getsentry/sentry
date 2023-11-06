@@ -10,7 +10,6 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test(stable=True)
 def test_get_or_create_team_member():
     org = Factories.create_organization()
-    Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
     member = Factories.create_member(organization=org, user_id=user.id)
     team = Factories.create_team(org)
@@ -39,7 +38,6 @@ def test_get_or_create_team_member():
 @region_silo_test(stable=True)
 def test_get_or_create_default_team():
     org = Factories.create_organization()
-    Factories.create_organization()
     team = Factories.create_team(org)
     team.update(status=TeamStatus.PENDING_DELETION)
     assert Team.objects.all().count() == 1
@@ -50,6 +48,7 @@ def test_get_or_create_default_team():
     )
     # There are two teams but only one is ACTIVE
     assert rpc_team.slug == "test-team"
+    assert rpc_team.name == "test-team"
     assert Team.objects.all().count() == 2
 
     # Creating another team to make sure the first one is always returned
