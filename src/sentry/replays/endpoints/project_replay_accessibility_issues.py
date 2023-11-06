@@ -97,7 +97,7 @@ def request_accessibility_issues(filenames: list[str]) -> Any:
         if status_code == 201:
             return response.json()
         else:
-            raise ValueError(f"An error occurred: {content}")
+            raise ValueError(f"An error occurred: {content.decode('utf-8')}")
     except Exception:
         logger.exception("replay accessibility analysis failed")
         raise ParseError("Could not analyze accessibility issues at this time.")
