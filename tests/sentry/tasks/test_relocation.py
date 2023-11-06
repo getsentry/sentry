@@ -1099,3 +1099,52 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         # TODO(getsentry/team-ospo#203): Should notify users instead.
         assert completed_mock.call_count == 1
         assert Organization.objects.filter(slug__startswith="testing").count() == org_count + 1
+
+
+@patch(
+    "sentry.backup.helpers.KeyManagementServiceClient",
+    new_callable=lambda: FakeKeyManagementServiceClient,
+)
+@patch(
+    "sentry.tasks.relocation.CloudBuildClient",
+    new_callable=lambda: FakeCloudBuildClient,
+)
+@region_silo_test
+class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
+    def setUp(self):
+        RelocationTaskTestCase.setUp(self)
+        TransactionTestCase.setUp(self)
+
+        self.storage = get_storage()
+        files = [
+            "null.json",
+            "import-baseline-config.json",
+            "import-colliding-users.json",
+            "import-raw-relocation-data.json",
+            "export-baseline-config.json",
+            "export-colliding-users.json",
+            "export-raw-relocation-data.json",
+            "compare-baseline-config.json",
+            "compare-colliding-users.json",
+        ]
+        for file in files:
+            self.storage.save(
+                f"relocations/runs/{self.relocation.uuid}/findings/{file}", BytesIO(b"[]")
+            )
+
+    def test_valid_no_retries(
+        self,
+        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.SUCCESS))
+        self.mock_kms_client(fake_kms_client)
+        org_count = Organization.objects.filter(slug__startswith="testing").count()
+
+        with self.tasks():
+            uploading_complete(self.relocation.uuid)
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.SUCCESS.value
+        assert not relocation.failure_reason
+        assert Organization.objects.filter(slug__startswith="testing").count() == org_count + 1
