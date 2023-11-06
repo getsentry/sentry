@@ -7,7 +7,6 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -172,7 +171,6 @@ export default function PageOverview() {
             <Layout.Title>
               {transaction && project && <ProjectAvatar project={project} size={24} />}
               {transaction ?? t('Page Loads')}
-              <FeatureBadge type="alpha" />
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
