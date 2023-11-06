@@ -7,13 +7,7 @@ from sentry.feedback.usecases.create_feedback import fix_for_issue_platform
 
 def test_fix_for_issue_platform():
     event: dict[str, Any] = {
-        "feedback": {
-            "contact_email": "josh.ferge@sentry.io",
-            "name": "Josh Ferge",
-            "message": "josh ferge testing again!",
-            "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
-            "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
-        },
+        "project_id": 1,
         "request": {
             "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
             "headers": {
@@ -65,6 +59,13 @@ def test_fix_for_issue_platform():
             "name": "Josh Ferge",
         },
         "contexts": {
+            "feedback": {
+                "contact_email": "josh.ferge@sentry.io",
+                "name": "Josh Ferge",
+                "message": "josh ferge testing again!",
+                "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
+                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+            },
             "trace": {
                 "op": "navigation",
                 "span_id": "9ffadde1100e4d55",
@@ -93,8 +94,8 @@ def test_fix_for_issue_platform():
 
 
 def test_corrected_still_works():
-
     event: dict[str, Any] = {
+        "project_id": 1,
         "request": {
             "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
             "headers": {
