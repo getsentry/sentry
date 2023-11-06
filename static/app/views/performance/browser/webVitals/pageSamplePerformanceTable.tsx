@@ -275,7 +275,7 @@ export function PageSamplePerformanceTable({
       return (
         <NoOverflow>
           <AlignCenter>
-            {replayTarget && (
+            {replayTarget && Object.keys(replayTarget).length > 0 && (
               <Tooltip title={t('View Replay')}>
                 <LinkButton to={replayTarget} size="xs">
                   <IconPlay size="xs" />
