@@ -6,7 +6,6 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
@@ -100,7 +99,6 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
 
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
-  const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
   return (
     <Fragment>
@@ -120,7 +118,6 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
           }
         />
       </SectionHeading>
-      <PerformanceScoreSubText>{performanceScoreSubtext}</PerformanceScoreSubText>
       <SidebarPerformanceScoreRingContainer>
         {projectScore && (
           <PerformanceScoreRingWithTooltips
@@ -237,12 +234,5 @@ const SectionHeading = styled('h4')`
 
 const MiniAggregateWaterfallContainer = styled('div')`
   margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
-const PerformanceScoreSubText = styled('div')`
-  width: 100%;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
   margin-bottom: ${space(1)};
 `;

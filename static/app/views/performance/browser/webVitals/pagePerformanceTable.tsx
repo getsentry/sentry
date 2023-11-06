@@ -132,28 +132,43 @@ export function PagePerformanceTable() {
     if (col.key === 'score') {
       return (
         <AlignCenter>
-          <span>{col.name}</span>
+          <StyledTooltip
+            isHoverable
+            title={
+              <span>
+                {t('The overall performance rating of this page.')}
+                <br />
+                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                  {t('How is this calculated?')}
+                </ExternalLink>
+              </span>
+            }
+          >
+            <TooltipHeader>{t('Perf Score')}</TooltipHeader>
+          </StyledTooltip>
         </AlignCenter>
       );
     }
     if (col.key === 'opportunity') {
       return (
-        <Tooltip
-          isHoverable
-          title={
-            <span>
-              {t(
-                "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
-              )}
-              <br />
-              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
-                {t('How is this calculated?')}
-              </ExternalLink>
-            </span>
-          }
-        >
-          <OpportunityHeader>{col.name}</OpportunityHeader>
-        </Tooltip>
+        <AlignRight>
+          <StyledTooltip
+            isHoverable
+            title={
+              <span>
+                {t(
+                  "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
+                )}
+                <br />
+                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                  {t('How is this calculated?')}
+                </ExternalLink>
+              </span>
+            }
+          >
+            <TooltipHeader>{col.name}</TooltipHeader>
+          </StyledTooltip>
+        </AlignRight>
       );
     }
     return <span>{col.name}</span>;
@@ -310,7 +325,7 @@ const GridContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const OpportunityHeader = styled('span')`
+const TooltipHeader = styled('span')`
   ${p => p.theme.tooltipUnderline()};
 `;
 
@@ -327,4 +342,9 @@ const Wrapper = styled('div')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  top: 1px;
+  position: relative;
 `;
