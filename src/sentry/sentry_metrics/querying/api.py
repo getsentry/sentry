@@ -187,6 +187,11 @@ class QueryParser:
         return [Column(group_by) for group_by in self._group_bys]
 
     def _transform_timeseries(self, timeseries: Timeseries) -> Timeseries:
+        """
+        Transforms a timeseries to a variant which is supported by the metrics layer.
+
+        For now, the only transformation that is being performed is the conversion of percentiles.
+        """
         # In case we have a percentile in the form `px` where `x` is in the range [0-100], we want to convert it to
         # the quantiles operation which generalizes any percentile.
         if (match := self.PERCENTILE_REGEX.match(timeseries.aggregate)) is not None:
@@ -196,6 +201,9 @@ class QueryParser:
         return timeseries
 
     def _parse_mql(self, field: str) -> Timeseries:
+        """
+        Parses the field with the MQL grammar.
+        """
         parsed_query = parse_mql(field)
         return self._transform_timeseries(parsed_query.query)
 
