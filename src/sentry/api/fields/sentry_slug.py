@@ -6,7 +6,7 @@ from rest_framework import serializers
 
 # (?![0-9]+$) - Negative lookahead to ensure the slug is not entirely numeric
 # [a-z0-9_\-] - Matches lowercase letters, numbers, underscores, and hyphens
-NON_NUMERIC_ONLY_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
+MIXED_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
 DEFAULT_SLUG_ERROR_MESSAGE = _(
     "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
     "It cannot be entirely numeric."
@@ -16,8 +16,9 @@ DEFAULT_SLUG_ERROR_MESSAGE = _(
 @extend_schema_field(str)
 class SentrySlugField(serializers.RegexField):
     """
-    A regex field which validates that the input is a valid slug. We default to
-    preventing entirely numeric slugs.
+    A regex field which validates that the input is a valid slug. Allowed
+    characters are lowercase letters, numbers, underscores, and hyphens. The
+    slug cannot be entirely numeric.
     """
 
     default_error_messages = {
@@ -26,7 +27,7 @@ class SentrySlugField(serializers.RegexField):
 
     def __init__(
         self,
-        pattern=NON_NUMERIC_ONLY_SLUG_PATTERN,
+        pattern=MIXED_SLUG_PATTERN,
         error_messages=None,
         *args,
         **kwargs,
