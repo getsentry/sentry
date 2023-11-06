@@ -63,7 +63,7 @@ class DiscordCommandHandler(DiscordInteractionHandler):
 
         link_url = build_linking_url(
             integration=self.request.integration,
-            discord_id=self.request.user_id,
+            external_id=self.request.guild_id,
         )
 
         return self.send_message(LINK_USER_MESSAGE.format(url=link_url))
@@ -78,7 +78,7 @@ class DiscordCommandHandler(DiscordInteractionHandler):
 
         unlink_url = build_unlinking_url(
             integration=self.request.integration,
-            discord_id=self.request.user_id,
+            external_id=self.request.guild_id,
         )
 
         return self.send_message(UNLINK_USER_MESSAGE.format(url=unlink_url))

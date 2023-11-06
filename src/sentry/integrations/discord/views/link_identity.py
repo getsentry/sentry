@@ -18,10 +18,10 @@ from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 
-def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
+def build_linking_url(integration: RpcIntegration, external_id: str) -> str:
     endpoint = "sentry-integration-discord-link-identity"
     kwargs = {
-        "discord_id": discord_id,
+        "external_id": external_id,
         "integration_id": integration.id,
     }
     return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
@@ -54,7 +54,7 @@ class DiscordLinkIdentityView(BaseView):
                 context={"organization": organization, "provider": integration.get_provider()},
             )
 
-        Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["discord_id"])  # type: ignore
+        Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["external_id"])  # type: ignore
 
         analytics.record(
             "integrations.discord.identity_linked",

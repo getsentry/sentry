@@ -21,10 +21,10 @@ from sentry.web.helpers import render_to_response
 from ..utils import logger
 
 
-def build_unlinking_url(integration: RpcIntegration, discord_id: str) -> str:
+def build_unlinking_url(integration: RpcIntegration, external_id: str) -> str:
     endpoint = "sentry-integration-discord-unlink-identity"
     kwargs = {
-        "discord_id": discord_id,
+        "external_id": external_id,
         "integration_id": integration.id,
     }
     return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
@@ -58,7 +58,7 @@ class DiscordUnlinkIdentityView(BaseView):
             )
 
         try:
-            Identity.objects.filter(idp_id=idp.id, external_id=params["discord_id"]).delete()
+            Identity.objects.filter(idp_id=idp.id, external_id=params["external_id"]).delete()
         except IntegrityError:
             logger.exception("discord.unlink.integrity-error")
             raise Http404
