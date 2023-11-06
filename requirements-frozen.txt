@@ -31,7 +31,7 @@ cssselect==1.0.3
 cssutils==2.4.0
 datadog==0.29.3
 decorator==5.1.1
-django==3.2.20
+django==3.2.23
 django-crispy-forms==1.14.0
 django-csp==3.7
 django-pg-zero-downtime-migrations==0.13

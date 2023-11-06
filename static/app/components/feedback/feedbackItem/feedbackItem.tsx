@@ -20,6 +20,7 @@ import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -68,7 +69,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                 size={12}
                 title={feedbackItem.project.slug}
               />
-              {feedbackItem.project.slug}
+              <TextOverflow>{feedbackItem.project.slug}</TextOverflow>
             </Flex>
           </Flex>
           <Flex gap={space(1)} align="center" wrap="wrap">
