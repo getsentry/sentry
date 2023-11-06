@@ -1,5 +1,4 @@
 from datetime import datetime
-from hashlib import md5
 
 from sentry.monitors.models import (
     CheckInStatus,
@@ -51,7 +50,6 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         if incident_recovering:
             params["last_state_change"] = ts
             grouphash = monitor_env.incident_grouphash
-            actual_grouphash = md5(grouphash.encode("utf-8")).hexdigest()
 
             # Only send an occurrence if we have an active incident
             affected = MonitorIncident.objects.filter(
@@ -62,7 +60,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
                 resolving_timestamp=checkin.date_added,
             )
             if affected:
-                resolve_incident_group(actual_grouphash, checkin.monitor.project_id)
+                resolve_incident_group(grouphash, checkin.monitor.project_id)
         else:
             # Don't update status if incident isn't recovered
             params.pop("status", None)
