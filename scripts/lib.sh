@@ -18,6 +18,17 @@ fi
 
 venv_name=".venv"
 
+# XDG paths' standardized defaults:
+# (see https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables )
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}"
+export XDG_CONFIG_DIRS="${XDG_CONFIG_DIRS:/etc/xdg}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:/var/run}"
+
+
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
@@ -172,10 +183,10 @@ run-dependent-services() {
 create-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Creating 'sentry' database"
-    docker exec ${container_name} createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
     echo "--> Creating 'control' and 'region' database"
-    docker exec ${container_name} createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
-    docker exec ${container_name} createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
 }
 
 apply-migrations() {
@@ -228,10 +239,10 @@ clean() {
 drop-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Dropping existing 'sentry' database"
-    docker exec ${container_name} dropdb --if-exists -h 127.0.0.1 -U postgres sentry
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres sentry
     echo "--> Dropping 'control' and 'region' database"
-    docker exec ${container_name} dropdb --if-exists -h 127.0.0.1 -U postgres control
-    docker exec ${container_name} dropdb --if-exists -h 127.0.0.1 -U postgres region
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres control
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres region
 }
 
 reset-db() {
@@ -239,7 +250,7 @@ reset-db() {
     create-db
     apply-migrations
     create-superuser
-    echo "Finished resetting database. To load mock data, run `./bin/load-mocks`"
+    echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
 }
 
 prerequisites() {
