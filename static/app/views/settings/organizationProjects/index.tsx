@@ -16,7 +16,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -33,12 +33,19 @@ const ITEMS_PER_PAGE = 50;
 
 type ProjectStats = Record<string, Required<Project['stats']>>;
 
-function useFetchProjectList(query: string, organization: Organization) {
-  return useApiQuery<Project[]>(
+function OrganizationProjects() {
+  const organization = useOrganization();
+
+  const location = useLocation();
+  const query = decodeScalar(location.query.query, '');
+
+  const time = useRef(new Date().getTime());
+  const {data: projectList, getResponseHeader} = useApiQuery<Project[]>(
     [
       `/organizations/${organization.slug}/projects/`,
       {
         query: {
+          ...location.query,
           query,
           per_page: ITEMS_PER_PAGE,
         },
@@ -46,15 +53,13 @@ function useFetchProjectList(query: string, organization: Organization) {
     ],
     {staleTime: Infinity}
   );
-}
 
-function useFetchProjectStats(organization: Organization, initialTime: number) {
-  return useApiQuery<ProjectStats>(
+  const {data: projectStats} = useApiQuery<ProjectStats>(
     [
       `/organizations/${organization.slug}/stats/`,
       {
         query: {
-          since: initialTime / 1000 - 3600 * 24,
+          since: time.current / 1000 - 3600 * 24,
           stat: 'generated',
           group: 'project',
           per_page: ITEMS_PER_PAGE,
@@ -63,17 +68,6 @@ function useFetchProjectStats(organization: Organization, initialTime: number) {
     ],
     {staleTime: Infinity}
   );
-}
-
-function OrganizationProjects() {
-  const organization = useOrganization();
-
-  const location = useLocation();
-  const query = decodeScalar(location.query.query, '');
-
-  const time = useRef(new Date().getTime());
-  const {data: projectList, getResponseHeader} = useFetchProjectList(query, organization);
-  const {data: projectStats} = useFetchProjectStats(organization, time.current);
 
   const projectListPageLinks = getResponseHeader?.('Link');
 
