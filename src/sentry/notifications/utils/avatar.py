@@ -38,15 +38,18 @@ def get_sentry_avatar_url() -> str:
     return str(absolute_uri(get_asset_url("sentry", url)))
 
 
-def avatar_as_html(user: User | RpcUser) -> SafeString:
+def avatar_as_html(user: User | RpcUser, size: int = 20) -> SafeString:
     if not user:
         return format_html(
-            '<img class="avatar" src="{}" width="20px" height="20px" />', get_sentry_avatar_url()
+            '<img class="avatar" src="{}" width={}"px" height="{}px" />',
+            get_sentry_avatar_url(),
+            size,
+            size,
         )
     avatar_type = user.get_avatar_type()
     if avatar_type == "upload":
         return format_html('<img class="avatar" src="{}" />', get_user_avatar_url(user))
     elif avatar_type == "letter_avatar":
-        return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
+        return get_email_avatar(user.get_display_name(), user.get_label(), size, False)
     else:
-        return get_email_avatar(user.get_display_name(), user.get_label(), 20, True)
+        return get_email_avatar(user.get_display_name(), user.get_label(), size, True)
