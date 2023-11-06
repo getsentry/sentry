@@ -43,6 +43,8 @@
   // Avoid relative imports
   "typescript.preferences.importModuleSpecifier": "non-relative",
 
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+  
   "[typescriptreact]": {
     "editor.formatOnSave": true,
     "editor.tabSize": 2
