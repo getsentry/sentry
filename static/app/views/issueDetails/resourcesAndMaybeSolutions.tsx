@@ -20,9 +20,7 @@ type Props = {
 export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group);
-  const displayAiSuggestedSolution =
-    organization.aiSuggestedSolution &&
-    organization.features.includes('open-ai-suggestion');
+  const displayAiSuggestedSolution = organization.aiSuggestedSolution;
 
   if (!config.resources && !displayAiSuggestedSolution) {
     return null;

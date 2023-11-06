@@ -21,7 +21,11 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.escalating import manage_issue_states
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import (
+    PerformanceDurationRegressionGroupType,
+    PerformanceNPlusOneGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import Group, GroupStatus
@@ -41,9 +45,11 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.replays.lib import kafka as replays_kafka
+from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
+from sentry.rules.actions.base import EventAction
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import unguarded_write
+from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
@@ -55,13 +61,15 @@ from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, Snuba
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.cache import cache
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -396,8 +404,8 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             "sentry.rules.processor.rules", init_registry()
         ) as rules:
             MockAction = mock.Mock()
-            MockAction.rule_type = "action/event"
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
+            MockAction.return_value = mock.Mock(spec=EventAction)
             MockAction.return_value.after.return_value = []
             rules.add(MockAction)
 
@@ -1383,7 +1391,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             name="example", integration_id=self.integration.id, provider="github"
         )
         self.code_mapping = self.create_code_mapping(
-            repo=self.repo, project=self.project, stack_root="src/"
+            repo=self.repo, project=self.project, stack_root="sentry/", source_root="sentry/"
         )
         self.commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
@@ -1438,10 +1446,11 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
-        with unguarded_write(using=router.db_for_write(Integration)):
-            Integration.objects.all().delete()
-        integration = Integration.objects.create(provider="bitbucket")
-        integration.add_organization(self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            with unguarded_write(using=router.db_for_write(Integration)):
+                Integration.objects.all().delete()
+            integration = Integration.objects.create(provider="bitbucket")
+            integration.add_organization(self.organization)
         with self.tasks():
             self.call_post_process_group(
                 is_new=True,
@@ -1501,6 +1510,87 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         )
 
 
+class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
+    @with_feature("organizations:escalating-issues")
+    @patch("sentry.signals.issue_escalating.send_robust")
+    @patch("sentry.signals.issue_unignored.send_robust")
+    @patch("sentry.rules.processor.RuleProcessor")
+    @with_feature("organizations:issue-platform-crons-sd")
+    def test_invalidates_snooze_ff_on(
+        self, mock_processor, mock_send_unignored_robust, mock_send_escalating_robust
+    ):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group = event.group
+        should_detect_escalation = group.issue_type.should_detect_escalation(
+            self.project.organization
+        )
+
+        # Check for has_reappeared=False if is_new=True
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
+        GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
+        Activity.objects.filter(group=group).delete()
+        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
+
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
+        group.save(update_fields=["status", "substatus"])
+        snooze = GroupSnooze.objects.create(
+            group=group, until=django_timezone.now() - timedelta(hours=1)
+        )
+
+        # Check for has_reappeared=True if is_new=False
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
+
+        if should_detect_escalation:
+            mock_send_escalating_robust.assert_called_once_with(
+                project=group.project,
+                group=group,
+                event=EventMatcher(event),
+                sender=manage_issue_states,
+                was_until_escalating=False,
+            )
+            assert not GroupSnooze.objects.filter(id=snooze.id).exists()
+        else:
+            mock_send_escalating_robust.assert_not_called()
+            assert GroupSnooze.objects.filter(id=snooze.id).exists()
+
+        group.refresh_from_db()
+        if should_detect_escalation:
+            assert group.status == GroupStatus.UNRESOLVED
+            assert group.substatus == GroupSubStatus.ESCALATING
+            assert GroupInbox.objects.filter(
+                group=group, reason=GroupInboxReason.ESCALATING.value
+            ).exists()
+            assert Activity.objects.filter(
+                group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
+            ).exists()
+            assert mock_send_unignored_robust.called
+        else:
+            assert group.status == GroupStatus.IGNORED
+            assert group.substatus == GroupSubStatus.UNTIL_CONDITION_MET
+            assert not GroupInbox.objects.filter(
+                group=group, reason=GroupInboxReason.ESCALATING.value
+            ).exists()
+            assert not Activity.objects.filter(
+                group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
+            ).exists()
+            assert not mock_send_unignored_robust.called
+
+
 class SnoozeTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_escalating.send_robust")
@@ -1552,7 +1642,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
-        group = Group.objects.get(id=group.id)
+        group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ESCALATING
         assert GroupInbox.objects.filter(
@@ -1655,8 +1745,12 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:sdk-crash-detection")
-    @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234)
-    @override_settings(SDK_CRASH_DETECTION_SAMPLE_RATE=0.1234)
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": 1234,
+            "issues.sdk_crash_detection.cocoa.sample_rate": 1.0,
+        }
+    )
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
         event = self.create_event(
             data={"message": "testing"},
@@ -1674,8 +1768,31 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
-        assert args["event_project_id"] == 1234
-        assert args["sample_rate"] == 0.1234
+        assert args["configs"] == [
+            {"sdk_name": SdkName.Cocoa, "project_id": 1234, "sample_rate": 1.0}
+        ]
+
+    @with_feature("organizations:sdk-crash-detection")
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": 1234,
+            "issues.sdk_crash_detection.cocoa.sample_rate": 0.0,
+        }
+    )
+    def test_sdk_crash_monitoring_not_called_without_sample_rate(self, mock_sdk_crash_detection):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
     def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
         self, mock_sdk_crash_detection
@@ -1694,6 +1811,11 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
+    @override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": None,
+        }
+    )
     @with_feature("organizations:sdk-crash-detection")
     def test_sdk_crash_monitoring_is_not_called_without_project_id(self, mock_sdk_crash_detection):
         event = self.create_event(
@@ -1755,6 +1877,61 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             incr.assert_any_call("post_process.process_replay_link.id_sampled")
             incr.assert_any_call("post_process.process_replay_link.id_exists")
 
+    def test_replay_linkage_with_tag(self, incr, kafka_producer, kafka_publisher):
+        replay_id = uuid.uuid4().hex
+        event = self.create_event(
+            data={"message": "testing", "tags": {"replayId": replay_id}},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            assert kafka_producer.return_value.publish.call_count == 1
+            assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
+
+            ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+
+            assert ret_value["type"] == "replay_event"
+            assert ret_value["start_time"]
+            assert ret_value["replay_id"] == replay_id
+            assert ret_value["project_id"] == self.project.id
+            assert ret_value["segment_id"] is None
+            assert ret_value["retention_days"] == 90
+
+            # convert ret_value_payload which is a list of bytes to a string
+            ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
+
+            assert ret_value_payload == {
+                "type": "event_link",
+                "replay_id": replay_id,
+                "error_id": event.event_id,
+                "timestamp": int(event.datetime.timestamp()),
+                "event_hash": str(uuid.UUID(md5((event.event_id).encode("utf-8")).hexdigest())),
+            }
+
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_exists")
+
+    def test_replay_linkage_with_tag_pii_scrubbed(self, incr, kafka_producer, kafka_publisher):
+        event = self.create_event(
+            data={"message": "testing", "tags": {"replayId": "***"}},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            assert kafka_producer.return_value.publish.call_count == 0
+
     def test_no_replay(self, incr, kafka_producer, kafka_publisher):
         event = self.create_event(
             data={"message": "testing"},
@@ -1772,7 +1949,6 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             incr.assert_any_call("post_process.process_replay_link.id_sampled")
 
     def test_0_sample_rate_replays(self, incr, kafka_producer, kafka_publisher):
-
         event = self.create_event(
             data={"message": "testing"},
             project_id=self.project.id,
@@ -1790,7 +1966,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -1802,9 +1978,14 @@ class PostProcessGroupErrorTest(
     RuleProcessorTestMixin,
     ServiceHooksTestMixin,
     SnoozeTestMixin,
+    SnoozeTestSkipSnoozeMixin,
     SDKCrashMonitoringTestMixin,
     ReplayLinkageTestMixin,
 ):
+    def setUp(self):
+        super().setUp()
+        clear_replay_publisher()
+
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
@@ -1855,7 +2036,7 @@ class PostProcessGroupErrorTest(
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
@@ -1864,6 +2045,7 @@ class PostProcessGroupPerformanceTest(
     InboxTestMixin,
     RuleProcessorTestMixin,
     SnoozeTestMixin,
+    SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
@@ -1991,6 +2173,57 @@ class PostProcessGroupPerformanceTest(
         ]
 
 
+@region_silo_test
+class PostProcessGroupAggregateEventTest(
+    TestCase,
+    SnubaTestCase,
+    PerfIssueTransactionTestMixin,
+    CorePostProcessGroupTestMixin,
+    SnoozeTestSkipSnoozeMixin,
+    PerformanceIssueTestCase,
+):
+    def create_event(self, data, project_id):
+        group = self.create_group(
+            type=PerformanceDurationRegressionGroupType.type_id,
+        )
+
+        event = self.store_event(data=data, project_id=project_id)
+        event.group = group
+        event = event.for_group(group)
+
+        return event
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+    ):
+        group_states = (
+            [
+                {
+                    "id": event.group_id,
+                    "is_new": is_new,
+                    "is_regression": is_regression,
+                    "is_new_group_environment": is_new_group_environment,
+                }
+            ]
+            if event.group_id
+            else None
+        )
+        if cache_key is None:
+            cache_key = write_event_to_cache(event)
+        with self.feature(
+            PerformanceDurationRegressionGroupType.build_post_process_group_feature_name()
+        ):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=cache_key,
+                group_states=group_states,
+                project_id=event.project_id,
+            )
+        return cache_key
+
+
 class TransactionClustererTestCase(TestCase, SnubaTestCase):
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_process_transaction_event_clusterer(
@@ -2028,7 +2261,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         ]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PostProcessGroupGenericTest(
     TestCase,
     SnubaTestCase,

@@ -27,9 +27,11 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
@@ -52,7 +54,7 @@ class GithubRateLimitInfo:
         return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"GithubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
+        return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
 class GithubProxyClient(IntegrationProxyClient):
@@ -599,6 +601,12 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/users/{gh_username}")
 
+    def get_labels(self, repo: str) -> Sequence[JSONData]:
+        """
+        https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
+        """
+        return self.get(f"/repos/{repo}/labels")
+
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
@@ -654,58 +662,102 @@ class GitHubClientMixin(GithubProxyClient):
             sentry_sdk.capture_exception(e)
             return []
 
-        if contents.get("errors"):
-            err_message = ", ".join(
-                [error.get("message", "") for error in contents.get("errors", [])]
-            )
-            raise ApiError(err_message)
+        errors = contents.get("errors", [])
+        if len(errors) > 0:
+            if any([error for error in errors if error.get("type") == "RATE_LIMITED"]):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
 
-        ref = contents.get("data", {}).get("repository", {}).get("ref")
-        if ref is None:
-            raise ApiError("Branch does not exist in GitHub.")
+            # When data is present, it means that the query was at least partially successful,
+            # usually a missing repo/branch/file which is expected with wrong configurations.
+            # If data is not present, the query may be formed incorrectly, so raise an error.
+            if not contents.get("data"):
+                err_message = ", ".join([error.get("message", "") for error in errors])
+                raise ApiError(err_message)
 
-        return ref.get("target", {}).get("blame", {}).get("ranges", [])
+        response_data = contents.get("data")
+        if not isinstance(response_data, dict):
+            raise ApiError("GitHub returned no data.", 404)
+        response_repo = response_data.get("repository")
+        if not isinstance(response_repo, dict):
+            raise ApiError("Repository does not exist in GitHub.", 404)
+        response_ref = response_repo.get("ref")
+        if not isinstance(response_ref, dict):
+            raise ApiError("Branch does not exist in GitHub.", 404)
 
-    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> Sequence[FileBlameInfo]:
-        file_path_mapping = generate_file_path_mapping(files)
+        return response_ref.get("target", {}).get("blame", {}).get("ranges", [])
 
-        try:
-            response = self.post(
-                path="/graphql",
-                data={"query": create_blame_query(file_path_mapping)},
-                allow_text=False,
-            )
-        except ValueError as e:
-            logger.exception(
-                e,
-                {
+    def get_blame_for_files(
+        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+    ) -> Sequence[FileBlameInfo]:
+        log_info = {
+            **extra,
+            "provider": "github",
+            "organization_integration_id": self.org_integration_id,
+        }
+        metrics.incr("sentry.integrations.github.get_blame_for_files")
+        rate_limit = self.get_rate_limit(specific_resource="graphql")
+        if rate_limit.remaining < MINIMUM_REQUESTS:
+            metrics.incr("integrations.github.get_blame_for_files.not_enough_requests_remaining")
+            logger.error(
+                "sentry.integrations.github.get_blame_for_files.rate_limit",
+                extra={
                     "provider": "github",
+                    "specific_resource": "graphql",
+                    "remaining": rate_limit.remaining,
+                    "next_window": rate_limit.next_window(),
                     "organization_integration_id": self.org_integration_id,
                 },
             )
-            return []
+            raise ApiRateLimitedError("Not enough requests remaining for GitHub")
+
+        file_path_mapping = generate_file_path_mapping(files)
+        data = create_blame_query(file_path_mapping, extra=log_info)
+        cache_key = self.get_cache_key("/graphql", data)
+        response = self.check_cache(cache_key)
+        if response:
+            logger.info(
+                "sentry.integrations.github.get_blame_for_files.got_cached",
+                extra=log_info,
+            )
+        else:
+            try:
+                response = self.post(
+                    path="/graphql",
+                    data={"query": create_blame_query(file_path_mapping, extra=log_info)},
+                    allow_text=False,
+                )
+            except ValueError as e:
+                logger.exception(e, log_info)
+                return []
+            else:
+                self.set_cache(cache_key, response, 60)
 
         if not isinstance(response, MappingApiResponse):
             raise ApiError("Response is not JSON")
 
-        if response.get("errors"):
-            err_message = ", ".join(
-                [error.get("message", "") for error in response.get("errors", [])]
-            )
-            logger.error(
-                "get_blame_for_files.graphql_error",
-                extra={
-                    "provider": "github",
-                    "error": err_message,
-                    "organization_integration_id": self.org_integration_id,
-                },
-            )
+        errors = response.get("errors", [])
+        if len(errors) > 0:
+            if any([error for error in errors if error.get("type") == "RATE_LIMITED"]):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+
+            # When data is present, it means that the query was at least partially successful,
+            # usually a missing repo/branch/file which is expected with wrong configurations.
+            # If data is not present, the query may be formed incorrectly, so raise an error.
+            if not response.get("data"):
+                err_message = ", ".join(
+                    [error.get("message", "") for error in response.get("errors", [])]
+                )
+                raise ApiError(err_message)
 
         return extract_commits_from_blame_response(
             response=response,
             file_path_mapping=file_path_mapping,
             files=files,
-            extra={"provider": "github", "organization_integration_id": self.org_integration_id},
+            extra={
+                **extra,
+                "provider": "github",
+                "organization_integration_id": self.org_integration_id,
+            },
         )
 
 

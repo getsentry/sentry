@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
+from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -61,7 +61,6 @@ __all__ = [
 ]
 
 from ..services.hybrid_cloud import rpcmetrics
-from ..services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
@@ -167,33 +166,6 @@ class Endpoint(APIView):
         str, dict[RateLimitCategory, RateLimit]
     ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
-
-    def get_authenticators(self) -> List[BaseAuthentication]:
-        """
-        Instantiates and returns the list of authenticators that this view can use.
-        Aggregates together authenticators that should be called cross silo, while
-        leaving methods that should be run locally.
-        """
-
-        # TODO: Increase test coverage and get this working for monolith mode.
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return super().get_authenticators()
-
-        last_api_authenticator = RpcAuthentication([])
-        result: List[BaseAuthentication] = []
-        for authenticator_cls in self.authentication_classes:
-            auth_type = RpcAuthenticatorType.from_authenticator(authenticator_cls)
-            if auth_type is not None:
-                last_api_authenticator.types.append(auth_type)
-            else:
-                if last_api_authenticator.types:
-                    result.append(last_api_authenticator)
-                    last_api_authenticator = RpcAuthentication([])
-                result.append(authenticator_cls())
-
-        if last_api_authenticator.types:
-            result.append(last_api_authenticator)
-        return result
 
     def build_link_header(self, request: Request, path: str, rel: str):
         # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`

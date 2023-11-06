@@ -135,11 +135,11 @@ export function useMetricsData({
   query,
   groupBy,
 }: MetricsQuery) {
-  const {slug} = useOrganization();
+  const {slug, features} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
 
-  const interval = getMetricsInterval(datetime);
+  const interval = getMetricsInterval(datetime, mri);
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
@@ -153,7 +153,12 @@ export function useMetricsData({
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // max result groups
     per_page: 20,
+    useNewMetricsLayer: false,
   };
+
+  if (features.includes('metrics-api-new-metrics-layer')) {
+    queryToSend.useNewMetricsLayer = true;
+  }
 
   return useApiQuery<MetricsData>(
     [`/organizations/${slug}/metrics/data/`, {query: queryToSend}],
@@ -234,8 +239,8 @@ export function useMetricsDataZoom(props: MetricsQuery) {
   };
 }
 
-// Wraps getInterval since other users of this function do not have support for 10s granularity
-function getMetricsInterval(dateTimeObj: DateTimeObject) {
+// Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
+function getMetricsInterval(dateTimeObj: DateTimeObject, mri: string) {
   const interval = getInterval(dateTimeObj, 'metrics');
 
   if (interval !== '1m') {
@@ -244,7 +249,7 @@ function getMetricsInterval(dateTimeObj: DateTimeObject) {
 
   const diffInMinutes = getDiffInMinutes(dateTimeObj);
 
-  if (diffInMinutes <= 60) {
+  if (diffInMinutes <= 60 && getUseCaseFromMri(mri) === 'custom') {
     return '10s';
   }
 

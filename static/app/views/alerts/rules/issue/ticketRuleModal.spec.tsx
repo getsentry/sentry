@@ -6,6 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
+import {IssueConfigField} from 'sentry/types';
 import {IssueAlertRuleAction} from 'sentry/types/alerts';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 
@@ -41,7 +42,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     expect(closeModal).toHaveBeenCalledTimes(0);
   };
 
-  const addMockConfigsAPICall = (otherFields = {}) => {
+  const addMockConfigsAPICall = (otherField = {}) => {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/1/?ignored=Sprint',
       method: 'GET',
@@ -71,21 +72,24 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
             updatesForm: true,
             required: true,
           },
-          otherFields,
+          otherField,
         ],
       },
     });
   };
 
-  const renderComponent = (props: Partial<IssueAlertRuleAction> = {}) => {
-    const {organization, routerContext} = initializeOrg();
-    addMockConfigsAPICall({
+  const renderComponent = (
+    props: Partial<IssueAlertRuleAction> = {},
+    otherField: IssueConfigField = {
       label: 'Reporter',
       required: true,
       choices: [['a', 'a']],
       type: 'select',
       name: 'reporter',
-    });
+    }
+  ) => {
+    const {organization, routerContext} = initializeOrg();
+    addMockConfigsAPICall(otherField);
 
     const body = styled(c => c.children);
     return render(
@@ -146,8 +150,69 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should persist values when the modal is reopened', async function () {
+    it('should ignore error checking when default is empty array', async function () {
+      renderComponent(undefined, {
+        label: 'Labels',
+        required: false,
+        choices: [['bug', `bug`]],
+        default: undefined,
+        type: 'select',
+        multiple: true,
+        name: 'labels',
+      });
+      expect(
+        screen.queryAllByText(`Could not fetch saved option for Labels. Please reselect.`)
+      ).toHaveLength(0);
+
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'bug');
+      await submitSuccess();
+    });
+
+    it('should persist single select values when the modal is reopened', async function () {
       renderComponent({data: {reporter: 'a'}});
+      await submitSuccess();
+    });
+
+    it('should persist multi select values when the modal is reopened', async function () {
+      renderComponent(
+        {data: {components: ['a', 'c']}},
+        {
+          name: 'components',
+          label: 'Components',
+          default: undefined,
+          type: 'select',
+          multiple: true,
+          required: true,
+          choices: [
+            ['a', 'a'],
+            ['b', 'b'],
+            ['c', 'c'],
+          ],
+        }
+      );
+      await submitSuccess();
+    });
+
+    it('should not persist value when unavailable in new choices', async function () {
+      renderComponent({data: {reporter: 'a'}});
+
+      addMockConfigsAPICall({
+        label: 'Reporter',
+        required: true,
+        choices: [['b', 'b']],
+        type: 'select',
+        name: 'reporter',
+        ignorePriorChoices: true,
+      });
+
+      // Switch Issue Type so we refetch the config and update Reporter choices
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      await expect(
+        selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a')
+      ).rejects.toThrow();
+
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'b');
       await submitSuccess();
     });
 

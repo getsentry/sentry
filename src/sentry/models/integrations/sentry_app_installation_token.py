@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, ClassVar, List
 
 from django.db.models import QuerySet
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
 
-class SentryAppInstallationTokenManager(BaseManager):
+class SentryAppInstallationTokenManager(BaseManager["SentryAppInstallationToken"]):
     def get_token(self, organization_id: int, provider: str) -> str | None:
         """Find a token associated with the installation so we can use it for authentication."""
         sentry_app_installation_tokens = self.select_related("api_token").filter(
@@ -68,7 +68,7 @@ class SentryAppInstallationToken(ControlOutboxProducingModel):
     api_token = FlexibleForeignKey("sentry.ApiToken")
     sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")
 
-    objects = SentryAppInstallationTokenManager()
+    objects: ClassVar[SentryAppInstallationTokenManager] = SentryAppInstallationTokenManager()
 
     class Meta:
         app_label = "sentry"

@@ -159,21 +159,27 @@ def _strip_frames(
     frames: Sequence[MutableMapping[str, Any]], sdk_crash_detector: SDKCrashDetector
 ) -> Sequence[Mapping[str, Any]]:
     """
-    Only keep SDK frames or Apple system libraries.
-    We need to adapt this logic once we support other platforms.
+    Only keep SDK and system libraries frames.
+
+    This method sets in_app to True for SDK frames for grouping. The grouping config
+    will set in_app false for all SDK frames. To not change the grouping logic, we must
+    add a stacktrace rule for each path_replacement_name configured in
+    `SDKCrashDetectorConfig.sdk_frame_path_replacement_names` and
+    `SDKCrashDetectorConfig.sdk_frame_path_default_replacement_name` like
+    `stack.abs_path:{{abs_path_replacement}} +app` to the project configured for the
+    platform in the options.
+
+    For example, Cocoa only uses `Sentry.framework` as a replacement path, so we must add the rule `stack.abs_path:Sentry.framework +app` to it's project in Sentry.
     """
 
     def strip_frame(frame: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-        # Set in_app to True for SDK frames for grouping. Anyways the grouping config will set in_app false
-        # for all Cocoa SDK frames. To not change the grouping logic, we must add the following stacktrace
-        # rule  `stack.abs_path:Sentry.framework +app` to the project with the ID SDK_CRASH_DETECTION_PROJECT_ID.
         if sdk_crash_detector.is_sdk_frame(frame):
             frame["in_app"] = True
 
             # The path field usually contains the name of the application, which we can't keep.
             for field in sdk_crash_detector.fields_containing_paths:
                 if frame.get(field):
-                    frame[field] = "Sentry.framework"
+                    frame[field] = sdk_crash_detector.replace_sdk_frame_path(field)
         else:
             frame["in_app"] = False
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional, Tuple
@@ -9,6 +11,7 @@ from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 from sentry import analytics, eventstore, features
 from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
+from sentry.feedback.usecases.create_feedback import shim_to_feedback
 from sentry.models.eventuser import EventUser
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
@@ -98,6 +101,9 @@ def save_userreport(project, report, start_time=None):
                 report_instance.notify()
 
         user_feedback_received.send(project=project, sender=save_userreport)
+
+        if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+            shim_to_feedback(report, event, project)
 
         return report_instance
 
@@ -265,7 +271,6 @@ def _generate_entity_dataset_query(
     start_date: datetime,
     end_date: datetime,
 ) -> Query:
-
     """This simply generates a query based on the passed parameters"""
     where_conditions = [
         Condition(Column("event_id"), Op.EQ, event_id),

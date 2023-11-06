@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 from django.db.models.query import QuerySet
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from sentry.models.release import Release
 
 
-class CommitManager(BaseManager):
+class CommitManager(BaseManager["Commit"]):
     def get_for_release(self, release: Release) -> QuerySet[Commit]:
         return (
             self.filter(releasecommit__release=release)
@@ -45,7 +45,7 @@ class Commit(Model):
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     message = models.TextField(null=True)
 
-    objects = CommitManager()
+    objects: ClassVar[CommitManager] = CommitManager()
 
     class Meta:
         app_label = "sentry"

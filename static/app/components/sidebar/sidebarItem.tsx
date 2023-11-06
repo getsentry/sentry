@@ -18,6 +18,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {SidebarOrientation} from './types';
+import {SIDEBAR_NAVIGATION_SOURCE} from './utils';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
@@ -76,7 +77,7 @@ export type SidebarItemProps = {
    */
   isBeta?: boolean;
   /**
-   * Additional badge letting users know a tab is new.
+   * Specify the variant for the badge.
    */
   isNew?: boolean;
   /**
@@ -88,17 +89,23 @@ export type SidebarItemProps = {
    * The current organization. Useful for analytics.
    */
   organization?: Organization;
+  search?: string;
   to?: string;
   /**
    * Content to render at the end of the item.
    */
   trailingItems?: React.ReactNode;
+  /**
+   * Content to render at the end of the item.
+   */
+  variant?: 'badge' | 'indicator' | 'short' | undefined;
 };
 
 function SidebarItem({
   id,
   href,
   to,
+  search,
   icon,
   label,
   badge,
@@ -115,6 +122,7 @@ function SidebarItem({
   organization,
   onClick,
   trailingItems,
+  variant,
   ...props
 }: SidebarItemProps) {
   const router = useRouter();
@@ -144,9 +152,9 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" />}
-      {isBeta && <FeatureBadge type="beta" />}
-      {isAlpha && <FeatureBadge type="alpha" />}
+      {showIsNew && <FeatureBadge type="new" variant={variant} />}
+      {isBeta && <FeatureBadge type="beta" variant={variant} />}
+      {isAlpha && <FeatureBadge type="alpha" variant={variant} />}
     </Fragment>
   );
 
@@ -162,7 +170,11 @@ function SidebarItem({
         {...props}
         id={`sidebar-item-${id}`}
         active={isActive ? 'true' : undefined}
-        to={(to ? to : href) || '#'}
+        to={{
+          pathname: to ? to : href ?? '#',
+          search,
+          state: {source: SIDEBAR_NAVIGATION_SOURCE},
+        }}
         className={className}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
           !(to || href) && event.preventDefault();

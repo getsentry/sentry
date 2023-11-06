@@ -32,6 +32,7 @@ from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
 from sentry.testutils.abstract import Abstract
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -1178,6 +1179,31 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             # We also confirm that the incident is automatically resolved.
             assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
 
+    @with_feature("organizations:notification-settings-v2")
+    def test_snapshot_and_create_new_with_same_name_v2(self):
+        with self.tasks():
+            self.create_member(
+                user=self.user, organization=self.organization, role="owner", teams=[self.team]
+            )
+            self.login_as(self.user)
+
+            # We attach the rule to an incident so the rule is snapshotted instead of deleted.
+            incident = self.create_incident(alert_rule=self.alert_rule)
+
+            with self.feature("organizations:incidents"):
+                self.get_success_response(
+                    self.organization.slug, self.alert_rule.id, status_code=204
+                )
+
+            alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
+
+            assert not AlertRule.objects.filter(id=alert_rule.id).exists()
+            assert AlertRule.objects_with_snapshots.filter(id=alert_rule.id).exists()
+            assert alert_rule.status == AlertRuleStatus.SNAPSHOT.value
+
+            # We also confirm that the incident is automatically resolved.
+            assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
+
     def test_team_permission(self):
         # Test ensures you can only delete alerts owned by your team or no one.
         om = self.create_member(
@@ -1212,6 +1238,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         project = self.create_project(name="boo", organization=self.organization, teams=[team])
         alert_rule = self.create_alert_rule(projects=[project])
         alert_rule.owner = team.actor
+        alert_rule.team_id = team.id
         alert_rule.save()
 
         other_user = self.create_user()
@@ -1222,6 +1249,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         )
         other_alert_rule = self.create_alert_rule(projects=[other_project])
         other_alert_rule.owner = other_team.actor
+        other_alert_rule.team_id = other_team.id
         other_alert_rule.save()
 
         with self.feature("organizations:incidents"):

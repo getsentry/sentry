@@ -1,11 +1,4 @@
-import {
-  CSSProperties,
-  isValidElement,
-  memo,
-  MouseEvent,
-  useCallback,
-  useMemo,
-} from 'react';
+import {CSSProperties, isValidElement, memo, MouseEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -21,40 +14,30 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
 import useProjects from 'sentry/utils/useProjects';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
+import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
+import {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
 
-interface BaseProps {
+interface Props {
   extraction: Extraction | undefined;
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onMouseEnter: MouseCallback;
-  onMouseLeave: MouseCallback;
-  startTimestampMs: number;
-  className?: string;
-  expandPaths?: string[];
-  style?: CSSProperties;
-}
-interface NoDimensionChangeProps extends BaseProps {
-  index?: undefined;
-  onDimensionChange?: undefined;
-}
-
-interface WithDimensionChangeProps extends BaseProps {
-  /**
-   * Only required if onDimensionChange is used
-   */
-  index: number;
-  onDimensionChange: (
-    index: number,
+  onDimensionChange: () => void;
+  onInspectorExpanded: (
     path: string,
     expandedState: Record<string, boolean>,
     event: MouseEvent<HTMLDivElement>
   ) => void;
+  onMouseEnter: MouseCallback;
+  onMouseLeave: MouseCallback;
+  startTimestampMs: number;
+  traces: ReplayTraceRow | undefined;
+  className?: string;
+  expandPaths?: string[];
+  style?: CSSProperties;
 }
-
-type Props = NoDimensionChangeProps | WithDimensionChangeProps;
 
 function getCrumbOrFrameData(frame: ReplayFrame) {
   return {
@@ -69,22 +52,17 @@ function BreadcrumbItem({
   extraction,
   frame,
   expandPaths,
-  index,
   onClick,
   onDimensionChange,
+  onInspectorExpanded,
   onMouseEnter,
   onMouseLeave,
   startTimestampMs,
   style,
+  traces,
 }: Props) {
   const {color, description, projectSlug, title, icon, timestampMs} =
     getCrumbOrFrameData(frame);
-
-  const handleDimensionChange = useCallback(
-    (path, expandedState, e) =>
-      onDimensionChange && onDimensionChange(index, path, expandedState, e),
-    [index, onDimensionChange]
-  );
 
   return (
     <CrumbItem
@@ -110,7 +88,7 @@ function BreadcrumbItem({
         </TitleContainer>
 
         {typeof description === 'string' || isValidElement(description) ? (
-          <Description title={description} showOnlyOnOverflow>
+          <Description title={description} showOnlyOnOverflow isHoverable>
             {description}
           </Description>
         ) : (
@@ -118,7 +96,7 @@ function BreadcrumbItem({
             <ObjectInspector
               data={description}
               expandPaths={expandPaths}
-              onExpand={handleDimensionChange}
+              onExpand={onInspectorExpanded}
               theme={{
                 TREENODE_FONT_SIZE: '0.7rem',
                 ARROW_FONT_SIZE: '0.5rem',
@@ -134,6 +112,14 @@ function BreadcrumbItem({
             </CodeSnippet>
           </CodeContainer>
         ) : null}
+
+        {traces?.flattenedTraces.map((flatTrace, i) => (
+          <TraceGrid
+            key={i}
+            flattenedTrace={flatTrace}
+            onDimensionChange={onDimensionChange}
+          />
+        ))}
 
         {projectSlug ? <CrumbProject projectSlug={projectSlug} /> : null}
       </CrumbDetails>
