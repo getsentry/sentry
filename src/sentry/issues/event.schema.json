@@ -1481,7 +1481,7 @@
       ]
     },
     "EventType": {
-      "description": "The type of an event.\n\nThe event type determines how Sentry handles the event and has an impact on processing, rate limiting, and quotas. There are three fundamental classes of event types:\n\n- **Error monitoring events** (`default`, `error`): Processed and grouped into unique issues based on their exception stack traces and error messages. - **Security events** (`csp`, `hpkp`, `expectct`, `expectstaple`): Derived from Browser security violation reports and grouped into unique issues based on the endpoint and violation. SDKs do not send such events. - **Transaction events** (`transaction`): Contain operation spans and collected into traces for performance monitoring.",
+      "description": "The type of an event.\n\nThe event type determines how Sentry handles the event and has an impact on processing, rate limiting, and quotas. There are three fundamental classes of event types:\n\n- **Error monitoring events** (`default`, `error`): Processed and grouped into unique issues based on their exception stack traces and error messages. - **Security events** (`csp`, `hpkp`, `expectct`, `expectstaple`): Derived from Browser security violation reports and grouped into unique issues based on the endpoint and violation. SDKs do not send such events. - **Transaction events** (`transaction`): Contain operation spans and collected into traces for performance monitoring. - **Feedback events** (`feedback`): Contains user feedbacks",
       "type": "string",
       "enum": [
         "error",
@@ -1490,6 +1490,7 @@
         "expectct",
         "expectstaple",
         "transaction",
+        "feedback",
         "default"
       ]
     },
