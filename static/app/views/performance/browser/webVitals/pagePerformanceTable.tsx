@@ -206,7 +206,7 @@ export function PagePerformanceTable() {
               )
                 ? {pathname: `${location.pathname}overview/`}
                 : {}),
-              query: {...location.query, transaction: row.transaction},
+              query: {...location.query, transaction: row.transaction, query: undefined},
             }}
           >
             {row.transaction}
