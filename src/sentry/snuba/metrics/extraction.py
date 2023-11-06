@@ -558,6 +558,7 @@ def to_standard_metrics_query(query: str) -> str:
         tokens = event_search.parse_search_query(query)
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
+        raise
 
     cleaned_query = to_standard_metrics_tokens(tokens)
     return query_tokens_to_string(cleaned_query)
