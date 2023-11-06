@@ -11,6 +11,7 @@ import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {TabList, Tabs} from 'sentry/components/tabs';
@@ -210,6 +211,7 @@ export default function PageOverview() {
                 )}
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
               </TopMenuContainer>
