@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Mapping, Optional, cast
 
 import sentry_sdk
@@ -39,7 +39,7 @@ def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> SpanEvent:
         organization_id=relay_span["organization_id"],
         parent_span_id=relay_span.get("parent_span_id", "0"),
         project_id=relay_span["project_id"],
-        received=relay_span["received"],
+        received=relay_span.get("received", datetime.now(tz=timezone.utc).timestamp()),
         retention_days=relay_span["retention_days"],
         segment_id=relay_span.get("segment_id", "0"),
         span_id=relay_span.get("span_id", "0"),
