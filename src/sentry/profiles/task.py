@@ -13,6 +13,7 @@ from symbolic.proguard import ProguardMapper
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
+from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
 from sentry.lang.native.utils import native_images_from_data
 from sentry.models.debugfile import ProjectDebugFile
@@ -173,6 +174,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 return True
 
             platforms = get_profile_platforms(profile)
+            original_images = profile["debug_meta"]["images"]
             images = dict()
             for platform in platforms:
                 images[platform] = get_debug_images_for_platform(profile, platform)
@@ -195,6 +197,10 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                     platform=platform,
                 )
 
+                assert len(images[platform]) == len(modules)
+                for raw_image, complete_image in zip(images[platform], modules):
+                    _merge_image(raw_image, complete_image, None, profile)
+
                 if success:
                     _process_symbolicator_results(
                         profile=profile,
@@ -214,9 +220,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 reason="profiling_failed_symbolication",
             )
             return False
-        profile["debug_meta"]["images"] = []
-        for imgs in images.values():
-            profile["debug_meta"]["images"].extend(imgs)
+        profile["debug_meta"]["images"] = original_images
         profile["processed_by_symbolicator"] = True
         return True
 
