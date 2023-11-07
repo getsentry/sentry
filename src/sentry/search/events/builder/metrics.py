@@ -46,7 +46,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.snuba.metrics.extraction import (
@@ -801,6 +801,33 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return metric_layer_result
 
+    def use_case_id_from_select(self) -> UseCaseID:
+        """
+        Extracts the use case from the selected columns.
+
+        This function uses the columns that have been already resolved by the `resolve_select` method, thus it assumes
+        the values to be already in a queriable form.
+        """
+        use_case_ids = set()
+
+        for column in self.columns:
+            if isinstance(column, Function) and column.parameters:
+                first_param = column.parameters[0]
+                if isinstance(first_param, Column):
+                    mri = first_param.name
+                    use_case_ids.add(extract_use_case_id(mri=mri))
+
+        if len(use_case_ids) == 0:
+            raise IncompatibleMetricsQuery(
+                "Unable to infer the use case id from the supplied metrics."
+            )
+        elif len(use_case_ids) > 1:
+            raise IncompatibleMetricsQuery(
+                "You can only query metrics belonging to the same use case id."
+            )
+
+        return use_case_ids.pop()
+
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         groupby_aliases = [
             groupby.alias
@@ -884,9 +911,7 @@ class MetricsQueryBuilder(QueryBuilder):
                         metrics_data = get_series(
                             projects=self.params.projects,
                             metrics_query=metrics_query,
-                            use_case_id=UseCaseID.TRANSACTIONS
-                            if self.is_performance
-                            else UseCaseID.SESSIONS,
+                            use_case_id=self.use_case_id_from_select(),
                             include_meta=True,
                             tenant_ids=self.tenant_ids,
                         )
@@ -1066,7 +1091,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             snuba_queries, _ = SnubaQueryBuilder(
                 projects=self.params.projects,
                 metrics_query=metrics_query,
-                use_case_id=UseCaseID.TRANSACTIONS if self.is_performance else UseCaseID.SESSIONS,
+                use_case_id=self.use_case_id_from_select(),
             ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
@@ -1318,9 +1343,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metrics_query,
-                        use_case_id=UseCaseID.TRANSACTIONS
-                        if self.is_performance
-                        else UseCaseID.SESSIONS,
+                        use_case_id=self.use_case_id_from_select(),
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )

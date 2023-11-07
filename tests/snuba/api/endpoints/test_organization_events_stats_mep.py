@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -690,3 +691,35 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
     def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
+        self.custom_mri = "c:custom/sentry.process_profile.track_outcome@second"
+
+    # Add tests for:
+    # Metrics query
+    # Timeseries query
+
+    def test_counter_custom_metric(self):
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            self.store_transaction_metric(
+                value,
+                metric=self.custom_mri,
+                internal_metric=self.custom_mri,
+                entity="metrics_counters",
+                timestamp=self.day_ago + timedelta(hours=index),
+                use_case_id=UseCaseID.CUSTOM,
+            )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": [f"sum({self.custom_mri})"],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        for (_, value), expected_value in zip(data, [10, 20, 30, 40, 50, 60]):
+            assert value[0]["count"] == expected_value

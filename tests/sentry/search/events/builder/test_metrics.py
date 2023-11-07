@@ -2884,3 +2884,42 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert start_time_clause in snql_query.where
         assert end_time_clause in snql_query.where
         assert query_hash_clause in snql_query.where
+
+
+class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
+    def setUp(self):
+        super().setUp()
+        self.custom_mri = "d:custom/sentry.process_profile.track_outcome@second"
+
+    # Add tests for:
+    # Metrics query
+    # Timeseries query
+    # SNQL generation via alertquerybuilder
+    # Test all queries with environment
+
+    def test_run_query_simple(self):
+        self.store_transaction_metric(
+            value=10,
+            metric=self.custom_mri,
+            internal_metric=self.custom_mri,
+            entity="metrics_distributions",
+            tags={},
+            timestamp=self.start,
+        )
+
+        query = MetricsQueryBuilder(
+            self.params,
+            granularity=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[f"sum({self.custom_mri})"],
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+
+        result = query.run_query("test_query")
+
+        assert result["data"] == [{"d:transactions/on_demand@none": 200.0}]
+        meta = result["meta"]
+        assert len(meta) == 1
+        assert meta[0]["name"] == "d:transactions/on_demand@none"
