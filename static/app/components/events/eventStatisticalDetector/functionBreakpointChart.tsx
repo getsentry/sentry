@@ -81,7 +81,7 @@ function EventFunctionBreakpointChartInner({
     }
     return transformEventStats(
       timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i]}]]),
-      'p95()'
+      'p95(function.duration)'
     );
   }, [functionStats]);
 
@@ -132,8 +132,7 @@ function EventFunctionBreakpointChartInner({
         percentileSeries={p95Series}
         throughputSeries={throughputSeries}
         evidenceData={normalizedOccurrenceEvent}
-        start={(datetime.start as Date).toISOString()}
-        end={(datetime.end as Date).toISOString()}
+        datetime={datetime}
       />
     </DataSection>
   );

@@ -41,10 +41,11 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   eventView.query = `event.type:transaction transaction:"${transaction}"`;
   eventView.dataset = DiscoverDatasets.METRICS;
 
-  const {start: beforeDateTime, end: afterDateTime} = useRelativeDateTime({
+  const datetime = useRelativeDateTime({
     anchor: breakpoint,
     relativeDays: 14,
   });
+  const {start: beforeDateTime, end: afterDateTime} = datetime;
 
   eventView.start = (beforeDateTime as Date).toISOString();
   eventView.end = (afterDateTime as Date).toISOString();
@@ -129,8 +130,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
           percentileSeries={p95Series}
           throughputSeries={throughputSeries}
           evidenceData={normalizedOccurrenceEvent}
-          start={eventView.start}
-          end={eventView.end}
+          datetime={datetime}
         />
       </TransitionChart>
     </DataSection>
