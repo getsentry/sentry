@@ -8,6 +8,7 @@ import {LinkButton} from 'sentry/components/button';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {IconChevron} from 'sentry/icons';
@@ -101,6 +102,7 @@ export default function WebVitalsLandingPage() {
             )}
             <PageFilterBar condensed>
               <ProjectPageFilter />
+              <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
           </TopMenuContainer>
