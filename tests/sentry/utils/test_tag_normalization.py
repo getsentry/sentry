@@ -40,6 +40,7 @@ def test_shortens_non_js(tag, expected):
         ("sentry.javascript.angular.ivy", "sentry.javascript.angular"),
         ("sentry.symfony", "sentry.php"),
         ("sentry.unity", "sentry.native.unity"),
+        ("sentry.javascript.react.native.expo", "sentry.javascript.react.native"),
     ),
 )
 def test_uses_synonyms(tag, expected):
