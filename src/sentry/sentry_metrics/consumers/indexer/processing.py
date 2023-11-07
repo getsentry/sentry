@@ -158,9 +158,4 @@ class MessageProcessor:
             # TODO: move to separate thread
             cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
 
-        print(f"++++ [PROCESS] ++++")  # noqa
-        for d in results.data:
-            print(d.committable)  # noqa
-        print(f"---- [PROCESS] ----")  # noqa
-
         return results

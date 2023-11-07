@@ -1,10 +1,12 @@
 import logging
 import time
+from collections import defaultdict
 from functools import partial
 from typing import Any, Mapping, MutableMapping, Optional, Union
 
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 from confluent_kafka import Producer
@@ -37,6 +39,8 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         # poll duration metrics
         self.__poll_start_time = time.time()
         self.__poll_duration_sum = 0.0
+
+        self.__last_offsets: MutableMapping[Partition, int] = defaultdict(lambda: -1)
 
     def _record_poll_duration(self, poll_duration: float) -> None:
         self.__poll_duration_sum += poll_duration
@@ -76,6 +80,15 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             # twice to snuba
             # TODO: Use the arroyo producer which handles FilteredPayload elegantly
             return
+
+        ((partition, offset),) = message.committable.items()
+
+        if offset <= self.__last_offsets[partition]:
+            return
+        self.__last_offsets[partition] = offset
+
+        if message.payload is None:
+            raise InvalidMessage(partition, offset - 1)
 
         self.__producer.produce(
             topic=self.__producer_topic,
