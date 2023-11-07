@@ -212,6 +212,7 @@ def test_strip_event_data_keeps_exception_stacktrace(store_and_strip_event):
         "raw_function": "raw_function",
         "module": "module",
         "abs_path": "abs_path",
+        "filename": "EventStripperTestFrame.swift",
         "in_app": False,
         "instruction_addr": "0x1a4e8f000",
         "addr_mode": "0x1a4e8f000",
@@ -297,6 +298,7 @@ def test_strip_frames_sdk_frames(store_and_strip_event):
         "package": "Sentry.framework",
         "abs_path": "Sentry.framework",
         "module": "Sentry.framework",
+        "filename": "Sentry.framework",
         "in_app": True,
         "image_addr": "0x100304000",
     }
@@ -331,6 +333,7 @@ def test_strip_frames_sdk_frames_multiple_replacement_names(store_and_strip_even
         "package": "SentryPackage",
         "abs_path": "Sentry.framework",
         "module": "SentryModule",
+        "filename": "Sentry.framework",
         "in_app": True,
         "image_addr": "0x100304000",
     }
