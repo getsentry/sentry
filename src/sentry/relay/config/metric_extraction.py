@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 # GENERIC METRIC EXTRACTION
 
 # Version of the metric extraction config.
-_METRIC_EXTRACTION_VERSION = 1
+_METRIC_EXTRACTION_VERSION = 2
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.

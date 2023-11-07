@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
-@extend_schema_field(str)
+@extend_schema_field(field=OpenApiTypes.STR)
 class ActorField(serializers.Field):
     def __init__(self, *args, **kwds):
         self.as_actor = kwds.pop("as_actor", False)

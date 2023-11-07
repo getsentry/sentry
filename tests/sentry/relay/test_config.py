@@ -741,7 +741,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
         config = get_project_config(default_project).to_dict()["config"]
         validate_project_config(json.dumps(config), strict=False)
         assert config["metricExtraction"] == {
-            "version": 1,
+            "version": 2,
             "metrics": [
                 {
                     "category": "transaction",

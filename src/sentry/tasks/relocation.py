@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 import logging
+import re
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from string import Template
 from typing import Optional
+from zipfile import ZipFile
 
+import yaml
 from cryptography.fernet import Fernet
+from django.db import router
+from google.cloud.devtools.cloudbuild_v1 import Build
+from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
 
+from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.backup.dependencies import NormalizedModelName, get_model
 from sentry.backup.exports import export_in_config_scope, export_in_user_scope
 from sentry.backup.helpers import (
@@ -19,16 +27,26 @@ from sentry.filestore.gcs import GoogleCloudStorage
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
 from sentry.models.organization import Organization
-from sentry.models.relocation import Relocation, RelocationFile
+from sentry.models.relocation import (
+    Relocation,
+    RelocationFile,
+    RelocationValidation,
+    RelocationValidationAttempt,
+    ValidationStatus,
+)
 from sentry.models.user import User
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
+from sentry.utils.db import atomic_transaction
+from sentry.utils.env import gcp_project_id
 from sentry.utils.relocation import (
     RELOCATION_BLOB_SIZE,
     RELOCATION_FILE_TYPE,
     OrderedTask,
+    create_cloudbuild_yaml,
     fail_relocation,
+    get_bucket_name,
     retry_task_or_fail_relocation,
     start_relocation_task,
 )
@@ -36,13 +54,18 @@ from sentry.utils.relocation import (
 logger = logging.getLogger(__name__)
 
 # Time limits for various steps in the process.
-RETRY_BACKOFF = 60  # So the 1st retry is after ~1 min, 2nd after ~2 min, 3rd after ~4 min.
-UPLOADING_TIME_LIMIT = 60  # This should be quick - we're just pinging the DB, then GCS.
-PREPROCESSING_TIME_LIMIT = 60 * 5  # 5 minutes is plenty for all preprocessing task attempts.
+RETRY_BACKOFF = 60  # So the 1st retry is after ~1 min, 2nd after ~2 min, 3rd after ~4 min, etc.
+FAST_TIME_LIMIT = 60
+MEDIUM_TIME_LIMIT = 60 * 5
+SLOW_TIME_LIMIT = 60 * 30
+DEFAULT_VALIDATION_TIMEOUT = timedelta(minutes=60)
 
 # All pre and post processing tasks have the same number of retries.
 MAX_FAST_TASK_RETRIES = 2
 MAX_FAST_TASK_ATTEMPTS = MAX_FAST_TASK_RETRIES + 1
+MAX_VALIDATION_POLLS = 60
+MAX_VALIDATION_POLL_ATTEMPTS = MAX_VALIDATION_POLLS + 1
+MAX_VALIDATION_RUNS = 3
 
 # Some reasonable limits on the amount of data we import - we can adjust these as needed.
 MAX_ORGS_PER_RELOCATION = 20
@@ -74,6 +97,11 @@ ERR_PREPROCESSING_MISSING_ORGS = Template(
     "The following organization slug imports were requested, but could not be found in your submitted JSON: $orgs."
 )
 
+ERR_VALIDATING_ATTEMPT_MISSING = "Internal error during validating - validation attempt missing."
+ERR_VALIDATING_INSTANCE_MISSING = "Internal error during validating - validation instance missing."
+ERR_VALIDATING_INTERNAL = "Internal error during validating."
+ERR_VALIDATING_MAX_RUNS = "All validation attempts timed out."
+
 
 # TODO(getsentry/team-ospo#203): We should split this task in two, one for "small" imports of say
 # <=10MB, and one for large imports >10MB. Then we should limit the number of daily executions of
@@ -84,7 +112,7 @@ ERR_PREPROCESSING_MISSING_ORGS = Template(
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
-    soft_time_limit=UPLOADING_TIME_LIMIT,
+    soft_time_limit=FAST_TIME_LIMIT,
 )
 def uploading_complete(uuid: str) -> None:
     """
@@ -133,7 +161,7 @@ def uploading_complete(uuid: str) -> None:
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
-    soft_time_limit=PREPROCESSING_TIME_LIMIT,
+    soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
 def preprocessing_scan(uuid: str) -> None:
@@ -281,7 +309,7 @@ def preprocessing_scan(uuid: str) -> None:
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
-    soft_time_limit=PREPROCESSING_TIME_LIMIT,
+    soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
 def preprocessing_baseline_config(uuid: str) -> None:
@@ -335,7 +363,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
-    soft_time_limit=PREPROCESSING_TIME_LIMIT,
+    soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
 def preprocessing_colliding_users(uuid: str) -> None:
@@ -388,7 +416,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
-    soft_time_limit=PREPROCESSING_TIME_LIMIT,
+    soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
 def preprocessing_complete(uuid: str) -> None:
@@ -418,6 +446,26 @@ def preprocessing_complete(uuid: str) -> None:
         ERR_PREPROCESSING_INTERNAL,
     ):
         storage = get_storage()
+
+        # Build the `cloudbuild.yaml` file we'll use for validation. CloudBuild requires the storage
+        # source to be zipped, even if it is only a single yaml file.
+        cloudbuild_yaml = BytesIO(create_cloudbuild_yaml(relocation))
+        cloudbuild_zip = BytesIO()
+        with ZipFile(cloudbuild_zip, "w") as zf:
+            zf.writestr("cloudbuild.yaml", cloudbuild_yaml.read())
+
+        # Save the ZIP archive to remote storage, so that we may build from it.
+        cloudbuild_yaml.seek(0)
+        cloudbuild_zip.seek(0)
+        storage.save(f"relocations/runs/{uuid}/conf/cloudbuild.yaml", cloudbuild_yaml)
+        storage.save(f"relocations/runs/{uuid}/conf/cloudbuild.zip", cloudbuild_zip)
+
+        # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
+        # during validation.
+        kms_config_bytes = json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8")
+        storage.save(f"relocations/runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes))
+
+        # Upload the exports we'll be validating.
         for kind in RELOCATION_FILES_TO_BE_VALIDATED:
             raw_relocation_file = (
                 RelocationFile.objects.filter(
@@ -444,9 +492,134 @@ def preprocessing_complete(uuid: str) -> None:
                 fp.seek(0)
                 storage.save(path, fp)
 
-        relocation.step = Relocation.Step.VALIDATING.value
-        relocation.save()
+        with atomic_transaction(
+            using=(router.db_for_write(Relocation), router.db_for_write(RelocationValidation))
+        ):
+            relocation.step = Relocation.Step.VALIDATING.value
+            relocation.save()
+            RelocationValidation.objects.create(relocation=relocation)
+
         validating_start.delay(uuid)
+
+
+def _get_relocation_validation(
+    relocation: Relocation, task: OrderedTask
+) -> RelocationValidation | None:
+    try:
+        return RelocationValidation.objects.get(relocation=relocation)
+    except RelocationValidation.DoesNotExist:
+        fail_relocation(
+            relocation,
+            task,
+            ERR_VALIDATING_INSTANCE_MISSING,
+        )
+        return None
+
+
+def _get_relocation_validation_attempt(
+    relocation: Relocation,
+    relocation_validation: RelocationValidation,
+    build_id: str,
+    task: OrderedTask,
+) -> RelocationValidationAttempt | None:
+    try:
+        return RelocationValidationAttempt.objects.get(
+            relocation=relocation, relocation_validation=relocation_validation, build_id=build_id
+        )
+    except RelocationValidationAttempt.DoesNotExist:
+        fail_relocation(
+            relocation,
+            task,
+            ERR_VALIDATING_ATTEMPT_MISSING,
+        )
+        return None
+
+
+def _update_relocation_validation_attempt(
+    task: OrderedTask,
+    relocation: Relocation,
+    relocation_validation: RelocationValidation,
+    relocation_validation_attempt: RelocationValidationAttempt,
+    status: ValidationStatus,
+) -> None:
+    """
+    After a `RelocationValidationAttempt` resolves, make sure to update the owning
+    `RelocationValidation` and `Relocation` as well.
+    """
+
+    with atomic_transaction(
+        using=(
+            router.db_for_write(Relocation),
+            router.db_for_write(RelocationValidation),
+            router.db_for_write(RelocationValidationAttempt),
+        )
+    ):
+        # If no interesting status updates occurred, check again in a minute.
+        if status == ValidationStatus.IN_PROGRESS:
+            logger.info(
+                "Validation polling: scheduled",
+                extra={"uuid": relocation.uuid, "task": task.name},
+            )
+            validating_poll.apply_async(
+                args=[relocation.uuid, str(relocation_validation_attempt.build_id)], countdown=60
+            )
+            return
+
+        relocation_validation_attempt.status = status.value
+
+        # These statuses merit failing this attempt and kicking off a new
+        # `RelocationValidationAttempt`, if possible.
+        if status in {ValidationStatus.TIMEOUT, ValidationStatus.FAILURE}:
+            if relocation_validation.attempts < MAX_VALIDATION_POLL_ATTEMPTS:
+                relocation_validation_attempt.status = status.value
+                relocation_validation_attempt.save()
+
+                relocation.latest_task = OrderedTask.VALIDATING_START.name
+                relocation.save()
+
+                logger.info(
+                    "Validation timed out",
+                    extra={"uuid": relocation.uuid, "task": task.name},
+                )
+                validating_start.delay(relocation.uuid)
+                return
+
+            # Always accept the numerically higher `ValidationStatus`, since that is a more definite
+            # result.
+            if relocation_validation.status < status.value:
+                relocation_validation.status = status.value
+                relocation_validation_attempt.save()
+            return fail_relocation(
+                relocation, task, "Validation could not be completed. Please contact support."
+            )
+
+        # All remaining statuses are final, so we can update the owning `RelocationValidation` now.
+        assert status in {ValidationStatus.INVALID, ValidationStatus.VALID}
+        relocation_validation_attempt.status = status.value
+        relocation_validation_attempt.save()
+        relocation_validation.status = status.value
+        relocation_validation.save()
+
+        # If we've reached a definite status, resolve both the `RelocationValidation` and this
+        # constituent `RelocationValidationAttempt`.
+        if status == ValidationStatus.INVALID:
+            logger.info(
+                "Validation result: invalid",
+                extra={"uuid": relocation.uuid, "task": task.name},
+            )
+            return fail_relocation(
+                relocation, task, "The data you provided failed validation. Please contact support."
+            )
+
+        assert status == ValidationStatus.VALID
+        relocation.step = Relocation.Step.IMPORTING.value
+        relocation.save()
+
+        logger.info(
+            "Validation result: valid",
+            extra={"uuid": relocation.uuid, "task": task.name},
+        )
+        importing.delay(relocation.uuid)
 
 
 @instrumented_task(
@@ -455,7 +628,7 @@ def preprocessing_complete(uuid: str) -> None:
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
-    soft_time_limit=PREPROCESSING_TIME_LIMIT,
+    soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
 def validating_start(uuid: str) -> None:
@@ -463,6 +636,245 @@ def validating_start(uuid: str) -> None:
     Calls into Google CloudBuild and kicks off a validation run.
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
+    """
+
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        step=Relocation.Step.VALIDATING,
+        task=OrderedTask.VALIDATING_START,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    relocation_validation = _get_relocation_validation(relocation, OrderedTask.VALIDATING_START)
+    if relocation_validation is None:
+        return
+    if relocation_validation.attempts >= MAX_VALIDATION_RUNS:
+        fail_relocation(relocation, OrderedTask.VALIDATING_START, ERR_VALIDATING_MAX_RUNS)
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation, OrderedTask.VALIDATING_START, attempts_left, ERR_VALIDATING_INTERNAL
+    ):
+        cb_client = CloudBuildClient()
+
+        def camel_to_snake_keep_underscores(value):
+            match = re.search(r"(_+)$", value)
+            converted = camel_to_snake_case(value)
+            return converted + (match.group(0) if match else "")
+
+        cb_yaml = create_cloudbuild_yaml(relocation)
+        cb_conf = yaml.safe_load(cb_yaml)
+        build = Build(
+            source={
+                "storage_source": {
+                    "bucket": get_bucket_name(),
+                    "object_": f"relocations/runs/{uuid}/conf/cloudbuild.zip",
+                }
+            },
+            steps=convert_dict_key_case(cb_conf["steps"], camel_to_snake_keep_underscores),
+            artifacts=convert_dict_key_case(cb_conf["artifacts"], camel_to_snake_keep_underscores),
+            timeout=convert_dict_key_case(cb_conf["timeout"], camel_to_snake_keep_underscores),
+            options=convert_dict_key_case(cb_conf["options"], camel_to_snake_keep_underscores),
+        )
+        response = cb_client.create_build(project_id=gcp_project_id(), build=build)
+
+        with atomic_transaction(
+            using=(
+                router.db_for_write(RelocationValidation),
+                router.db_for_write(RelocationValidationAttempt),
+            )
+        ):
+            relocation_validation.attempts += 1
+            relocation_validation.save()
+            RelocationValidationAttempt.objects.create(
+                relocation=relocation,
+                relocation_validation=relocation_validation,
+                build_id=response.metadata.build.id,
+            )
+
+        validating_poll.delay(uuid, response.metadata.build.id)
+
+
+@instrumented_task(
+    name="sentry.relocation.validating_poll",
+    queue="relocation",
+    max_retries=MAX_VALIDATION_POLLS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def validating_poll(uuid: str, build_id: str) -> None:
+    """
+    Checks the progress of a Google CloudBuild validation run.
+
+    This function is meant to be idempotent, and should be retried with an exponential backoff.
+    """
+
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        step=Relocation.Step.VALIDATING,
+        task=OrderedTask.VALIDATING_POLL,
+        allowed_task_attempts=MAX_VALIDATION_POLL_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    relocation_validation = _get_relocation_validation(relocation, OrderedTask.VALIDATING_POLL)
+    if relocation_validation is None:
+        return
+
+    relocation_validation_attempt = _get_relocation_validation_attempt(
+        relocation, relocation_validation, build_id, OrderedTask.VALIDATING_POLL
+    )
+    if relocation_validation_attempt is None:
+        return
+
+    logger.info(
+        "Validation polling: active",
+        extra={
+            "uuid": relocation.uuid,
+            "task": OrderedTask.VALIDATING_POLL.name,
+            "build_id": build_id,
+        },
+    )
+    with retry_task_or_fail_relocation(
+        relocation, OrderedTask.VALIDATING_POLL, attempts_left, ERR_VALIDATING_INTERNAL
+    ):
+        cb_client = CloudBuildClient()
+        build = cb_client.get_build(project_id=gcp_project_id(), id=str(build_id))
+        if build.status == Build.Status.SUCCESS:
+            validating_complete.delay(uuid, str(build_id))
+            return
+
+        if build.status in {
+            Build.Status.FAILURE,
+            Build.Status.INTERNAL_ERROR,
+            Build.Status.CANCELLED,
+        }:
+            return _update_relocation_validation_attempt(
+                OrderedTask.VALIDATING_POLL,
+                relocation,
+                relocation_validation,
+                relocation_validation_attempt,
+                ValidationStatus.FAILURE,
+            )
+
+        date_added = (
+            relocation_validation_attempt.date_added
+            if relocation_validation_attempt.date_added is not None
+            else datetime.fromtimestamp(0)
+        )
+        timeout_limit = datetime.now(tz=timezone.utc) - DEFAULT_VALIDATION_TIMEOUT
+        if (
+            build.status in {Build.Status.TIMEOUT, Build.Status.EXPIRED}
+            or date_added < timeout_limit
+        ):
+            return _update_relocation_validation_attempt(
+                OrderedTask.VALIDATING_POLL,
+                relocation,
+                relocation_validation,
+                relocation_validation_attempt,
+                ValidationStatus.TIMEOUT,
+            )
+
+        return _update_relocation_validation_attempt(
+            OrderedTask.VALIDATING_POLL,
+            relocation,
+            relocation_validation,
+            relocation_validation_attempt,
+            ValidationStatus.IN_PROGRESS,
+        )
+
+
+@instrumented_task(
+    name="sentry.relocation.validating_complete",
+    queue="relocation",
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def validating_complete(uuid: str, build_id: str) -> None:
+    """
+    Wraps up a validation run, and reports on what we found. If this task is being called, the
+    CloudBuild run as completed successfully, so we just need to figure out if there were any
+    findings (failure) or not (success).
+
+    This function is meant to be idempotent, and should be retried with an exponential backoff.
+    """
+
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        step=Relocation.Step.VALIDATING,
+        task=OrderedTask.VALIDATING_COMPLETE,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    relocation_validation = _get_relocation_validation(relocation, OrderedTask.VALIDATING_COMPLETE)
+    if relocation_validation is None:
+        return
+
+    relocation_validation_attempt = _get_relocation_validation_attempt(
+        relocation, relocation_validation, build_id, OrderedTask.VALIDATING_COMPLETE
+    )
+    if relocation_validation_attempt is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.VALIDATING_COMPLETE,
+        attempts_left,
+        ERR_VALIDATING_INTERNAL,
+    ):
+        storage = get_storage()
+        final_status = ValidationStatus.VALID
+        (_, findings_files) = storage.listdir(f"relocations/runs/{uuid}/findings")
+        for file in sorted(findings_files, reverse=True):
+            # Ignore files prefixed with `artifacts-`, as these are generated by CloudBuild.
+            if file.startswith("artifacts-"):
+                continue
+
+            findings_file = storage.open(f"relocations/runs/{uuid}/findings/{file}")
+            with findings_file:
+                findings = json.load(findings_file)
+                if len(findings) > 0:
+                    final_status = ValidationStatus.INVALID
+                    break
+
+        return _update_relocation_validation_attempt(
+            OrderedTask.VALIDATING_COMPLETE,
+            relocation,
+            relocation_validation,
+            relocation_validation_attempt,
+            final_status,
+        )
+
+
+@instrumented_task(
+    name="sentry.relocation.importing",
+    queue="relocation",
+    max_retries=0,
+    soft_time_limit=SLOW_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def importing(uuid: str) -> None:
+    """
+    Perform the import on the actual live instance we are targeting.
+
+    This function is NOT idempotent - if an import breaks, we should just abandon it rather than
+    trying it again!
     """
 
     # TODO(getsentry/team-ospo#203): Implement this.
