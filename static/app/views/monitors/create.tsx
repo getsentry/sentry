@@ -6,18 +6,21 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import MonitorCreateForm from 'sentry/views/monitors/components/monitorCreateForm';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
 import MonitorForm from './components/monitorForm';
 import {Monitor} from './types';
 
 function CreateMonitor() {
-  const {slug: orgSlug} = useOrganization();
+  const {slug: orgSlug, features} = useOrganization();
 
   function onSubmitSuccess(data: Monitor) {
     const url = normalizeUrl(`/organizations/${orgSlug}/crons/${data.slug}/`);
     browserHistory.push(url);
   }
+
+  const hasNewOnboarding = features.includes('crons-new-monitor-form');
 
   return (
     <Fragment>
@@ -42,12 +45,16 @@ function CreateMonitor() {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <MonitorForm
-            apiMethod="POST"
-            apiEndpoint={`/organizations/${orgSlug}/monitors/`}
-            onSubmitSuccess={onSubmitSuccess}
-            submitLabel={t('Next')}
-          />
+          {hasNewOnboarding ? (
+            <MonitorCreateForm />
+          ) : (
+            <MonitorForm
+              apiMethod="POST"
+              apiEndpoint={`/organizations/${orgSlug}/monitors/`}
+              onSubmitSuccess={onSubmitSuccess}
+              submitLabel={t('Next')}
+            />
+          )}
         </Layout.Main>
       </Layout.Body>
     </Fragment>
