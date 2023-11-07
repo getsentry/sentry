@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+import yaml
 from google_crc32c import value as crc32c
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
@@ -587,11 +588,39 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation.refresh_from_db()
         assert validating_start_mock.call_count == 1
 
+        (_, files) = self.storage.listdir(f"relocations/runs/{self.relocation.uuid}/conf")
+        assert len(files) == 1
+        assert "cloudbuild.yaml" in files
+
+        cb_yaml_file = self.storage.open(
+            f"relocations/runs/{self.relocation.uuid}/conf/cloudbuild.yaml"
+        )
+        with cb_yaml_file:
+            cb_conf = yaml.safe_load(cb_yaml_file)
+            assert cb_conf is not None
+
+        # These entries in the generated `cloudbuild.yaml` depend on the UUID, so check them
+        # separately then replace them for snapshotting.
+        in_path = cb_conf["steps"][0]["args"][2]
+        findings_path = cb_conf["artifacts"]["objects"]["location"]
+        assert in_path == f"gs://default/relocations/runs/{self.relocation.uuid}/in"
+        assert findings_path == f"gs://default/relocations/runs/{self.relocation.uuid}/findings/"
+
+        # Do a snapshot test of the cloudbuild config.
+        cb_conf["steps"][0]["args"][2] = "gs://<BUCKET>/runs/<UUID>/in"
+        cb_conf["artifacts"]["objects"]["location"] = "gs://<BUCKET>/runs/<UUID>/findings/"
+        self.insta_snapshot(cb_conf)
+
         (_, files) = self.storage.listdir(f"relocations/runs/{self.relocation.uuid}/in")
-        assert len(files) == 3
+        assert len(files) == 4
+        assert "kms-config.json" in files
         assert "raw-relocation-data.tar" in files
         assert "baseline-config.tar" in files
         assert "colliding-users.tar" in files
+
+        kms_file = self.storage.open(f"relocations/runs/{self.relocation.uuid}/in/kms-config.json")
+        with kms_file:
+            json.load(kms_file)
 
     def test_retry_if_attempts_left(self, validating_start_mock: Mock):
         RelocationFile.objects.filter(relocation=self.relocation).delete()

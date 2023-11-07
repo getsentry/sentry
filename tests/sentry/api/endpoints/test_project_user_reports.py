@@ -428,6 +428,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             mock_event_data["contexts"]["feedback"]["associated_event_id"]
             == event_with_replay.event_id
         )
+        assert mock_event_data["level"] == "error"
 
     @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_simple_shim_to_feedback_no_event(self, mock_produce_occurrence_to_kafka):
@@ -462,3 +463,4 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
         assert mock_event_data["platform"] == "other"
         assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event_id
+        assert mock_event_data["level"] == "info"
