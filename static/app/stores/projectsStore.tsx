@@ -19,15 +19,14 @@ type StatsData = Record<string, Project['stats']>;
  */
 type InternalDefinition = {
   api: Client;
-  itemsById: Record<string, Project>;
   loading: boolean;
+  projects: Project[];
   removeTeamFromProject(teamSlug: string, project: Project): void;
 };
 
 interface ProjectsStoreDefinition
   extends InternalDefinition,
     CommonStoreDefinition<State> {
-  getAll(): Project[];
   getById(id?: string): Project | undefined;
   getBySlug(slug?: string): Project | undefined;
   init(): void;
@@ -46,7 +45,7 @@ interface ProjectsStoreDefinition
 const storeConfig: ProjectsStoreDefinition = {
   api: new Client(),
 
-  itemsById: {},
+  projects: [],
   loading: true,
 
   init() {
@@ -57,17 +56,16 @@ const storeConfig: ProjectsStoreDefinition = {
   },
 
   reset() {
+    this.projects = [];
     this.itemsById = {};
     this.loading = true;
   },
 
   loadInitialData(items: Project[]) {
-    const mapping = items.map(project => [project.id, project] as const);
-
-    this.itemsById = Object.fromEntries(mapping);
+    this.projects = items.sort((a, b) => a.slug.localeCompare(b.slug));
     this.loading = false;
 
-    this.trigger(new Set(Object.keys(this.itemsById)));
+    this.trigger(new Set(items.map(x => x.id)));
   },
 
   onChangeSlug(prevSlug: string, newSlug: string) {
@@ -78,13 +76,17 @@ const storeConfig: ProjectsStoreDefinition = {
     }
 
     const newProject = {...prevProject, slug: newSlug};
+    this.projects = this.projects
+      .map(project => (project.slug === prevSlug ? newProject : project))
+      .sort((a, b) => a.slug.localeCompare(b.slug));
 
-    this.itemsById = {...this.itemsById, [newProject.id]: newProject};
     this.trigger(new Set([prevProject.id]));
   },
 
   onCreateSuccess(project: Project, orgSlug: string) {
-    this.itemsById = {...this.itemsById, [project.id]: project};
+    this.projects = [...this.projects, project].sort((a, b) =>
+      a.slug.localeCompare(b.slug)
+    );
 
     // Reload organization details since we've created a new project
     fetchOrganizationDetails(this.api, orgSlug, true, false);
@@ -100,25 +102,22 @@ const storeConfig: ProjectsStoreDefinition = {
     }
 
     const newProject = {...project, ...data};
+    this.projects = this.projects.map(p => (p.id === project.id ? newProject : p));
 
-    this.itemsById = {...this.itemsById, [project.id]: newProject};
     this.trigger(new Set([data.id]));
 
     LatestContextStore.onUpdateProject(newProject);
   },
 
   onStatsLoadSuccess(data) {
-    const entries = Object.entries(data || {}).filter(
-      ([projectId]) => projectId in this.itemsById
-    );
+    const statsData = data || {};
 
     // Assign stats into projects
-    entries.forEach(([projectId, stats]) => {
-      this.itemsById[projectId].stats = stats;
-    });
+    this.projects = this.projects.map(project =>
+      statsData[project.id] ? {...project, stats: data[project.id]} : project
+    );
 
-    const touchedIds = entries.map(([projectId]) => projectId);
-    this.trigger(new Set(touchedIds));
+    this.trigger(new Set(Object.keys(data)));
   },
 
   /**
@@ -128,7 +127,7 @@ const storeConfig: ProjectsStoreDefinition = {
    */
   onDeleteTeam(teamSlug: string) {
     // Look for team in all projects
-    const projects = this.getAll().filter(({teams}) =>
+    const projects = this.projects.filter(({teams}) =>
       teams.find(({slug}) => slug === teamSlug)
     );
 
@@ -158,8 +157,8 @@ const storeConfig: ProjectsStoreDefinition = {
     }
 
     const newProject = {...project, teams: [...project.teams, team]};
+    this.projects = this.projects.map(p => (p.id === project.id ? newProject : p));
 
-    this.itemsById = {...this.itemsById, [project.id]: newProject};
     this.trigger(new Set([project.id]));
   },
 
@@ -167,29 +166,24 @@ const storeConfig: ProjectsStoreDefinition = {
   removeTeamFromProject(teamSlug: string, project: Project) {
     const newTeams = project.teams.filter(({slug}) => slug !== teamSlug);
     const newProject = {...project, teams: newTeams};
-
-    this.itemsById = {...this.itemsById, [project.id]: newProject};
+    this.projects = this.projects.map(p => (p.id === project.id ? newProject : p));
   },
 
   isLoading() {
     return this.loading;
   },
 
-  getAll() {
-    return Object.values(this.itemsById).sort((a, b) => a.slug.localeCompare(b.slug));
-  },
-
   getById(id) {
-    return this.getAll().find(project => project.id === id);
+    return this.projects.find(project => project.id === id);
   },
 
   getBySlug(slug) {
-    return this.getAll().find(project => project.slug === slug);
+    return this.projects.find(project => project.slug === slug);
   },
 
   getState() {
     return {
-      projects: this.getAll(),
+      projects: this.projects,
       loading: this.loading,
     };
   },
