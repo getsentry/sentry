@@ -5,16 +5,17 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+DEFAULT_SLUG_ERROR_MESSAGE = _(
+    "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
+    "It cannot be entirely numeric."
+)
+
 r"""
 Standard slug pattern:
     (?![0-9]+$) - Negative lookahead to ensure the slug is not entirely numeric
     [a-z0-9_\-] - Matches lowercase letters, numbers, underscores, and hyphens
 """
 MIXED_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
-DEFAULT_SLUG_ERROR_MESSAGE = _(
-    "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
-    "It cannot be entirely numeric."
-)
 
 """
 Organization slug pattern:
