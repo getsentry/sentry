@@ -36,5 +36,5 @@ class SentrySlugField(serializers.RegexField):
         # Avoid using mutable dict for error_messages defaults b/c all calls to
         # the function reuse this one instance, persisting changes between them.
         if error_messages is None:
-            error_messages = self.default_error_messages
+            error_messages = self.default_error_messages.copy()
         super().__init__(regex=regex, error_messages=error_messages, *args, **kwargs)
