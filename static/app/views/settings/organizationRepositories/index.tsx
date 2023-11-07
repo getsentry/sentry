@@ -35,7 +35,7 @@ function OrganizationRepositoriesContainer() {
     if (itemList) {
       setItemList(
         itemList.map(item =>
-          item.id === data.id ? {...item, status: data.status} : {...item}
+          item.id === data.id ? {...item, status: data.status} : item
         )
       );
     }
