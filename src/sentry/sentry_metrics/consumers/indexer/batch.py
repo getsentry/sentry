@@ -1,6 +1,6 @@
 import logging
 import random
-from collections import defaultdict, deque
+from collections import defaultdict
 from typing import (
     Any,
     Callable,
@@ -110,8 +110,9 @@ class IndexerBatch:
         """
         skipped_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
 
-        for msg in self.outer_message.payload:
+        logger.info(f"got {len(self.outer_message.payload)} messages")  # noqa
 
+        for msg in self.outer_message.payload:
             assert isinstance(msg.value, BrokerValue)
             broker_meta = BrokerMeta(msg.value.partition, msg.value.offset)
 
@@ -292,7 +293,7 @@ class IndexerBatch:
         mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]],
         bulk_record_meta: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]],
     ) -> IndexerOutputMessageBatch:
-        new_messages: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]] = []
+        new_messages: MutableSequence[Message[Union[RoutingPayload, KafkaPayload, None]]] = []
         cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         for message in self.outer_message.payload:
@@ -300,7 +301,10 @@ class IndexerBatch:
             output_message_meta: Dict[str, Dict[str, str]] = defaultdict(dict)
             assert isinstance(message.value, BrokerValue)
             broker_meta = BrokerMeta(message.value.partition, message.value.offset)
-            if broker_meta in self.invalid_msg_meta or broker_meta in self.filtered_msg_meta:
+            if broker_meta in self.filtered_msg_meta:
+                continue
+            if broker_meta in self.invalid_msg_meta:
+                new_messages.append(Message(message.value.replace(None)))
                 continue
             old_payload_value = self.parsed_payloads_by_meta.pop(broker_meta)
 
@@ -502,6 +506,5 @@ class IndexerBatch:
             )
         return IndexerOutputMessageBatch(
             new_messages,
-            deque(sorted(self.invalid_msg_meta)),
             cogs_usage,
         )
