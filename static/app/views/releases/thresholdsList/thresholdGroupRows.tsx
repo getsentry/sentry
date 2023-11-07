@@ -6,7 +6,6 @@ import moment from 'moment';
 import {APIRequestMethod} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Input from 'sentry/components/input';
 import {IconAdd, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,12 +13,12 @@ import {space} from 'sentry/styles/space';
 import {Environment, Project} from 'sentry/types';
 import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {NEW_GROUP_PREFIX, NEW_THRESHOLD_PREFIX} from '../utils/constants';
 import {EditingThreshold, NewThresholdGroup, Threshold} from '../utils/types';
 
 type Props = {
-  orgSlug: string;
   refetch: () => void;
   setError: (msg: string) => void;
   newGroup?: NewThresholdGroup;
@@ -29,7 +28,6 @@ type Props = {
 
 export function ThresholdGroupRows({
   thresholds = [],
-  orgSlug,
   refetch,
   setError,
   newGroup,
@@ -57,6 +55,7 @@ export function ThresholdGroupRows({
   });
   const [newThresholdIterator, setNewThresholdIterator] = useState<number>(0); // used simply to initialize new threshold
   const api = useApi();
+  const organization = useOrganization();
   const initialProject =
     (thresholds[0] && thresholds[0].project) || (newGroup && newGroup.project);
   const initialEnv: Environment = thresholds[0] && thresholds[0].environment;
@@ -133,10 +132,10 @@ export function ThresholdGroupRows({
         ...thresholdData,
         window_in_seconds: seconds,
       };
-      let path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/${id}/`;
+      let path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/${id}/`;
       let method: APIRequestMethod = 'PUT';
       if (id.includes(NEW_THRESHOLD_PREFIX) || id.includes(NEW_GROUP_PREFIX)) {
-        path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/`;
+        path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/`;
         method = 'POST';
       }
       const request = api.requestPromise(path, {
@@ -169,7 +168,7 @@ export function ThresholdGroupRows({
   const deleteThreshold = thresholdId => {
     const updatedEditingThresholds = {...editingThresholds};
     const thresholdData = editingThresholds[thresholdId];
-    const path = `/projects/${orgSlug}/${thresholdData.project.slug}/release-thresholds/${thresholdId}/`;
+    const path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/${thresholdId}/`;
     const method = 'DELETE';
     if (!thresholdId.includes(NEW_THRESHOLD_PREFIX)) {
       const request = api.requestPromise(path, {
@@ -230,19 +229,6 @@ export function ThresholdGroupRows({
             lastRow={idx === thresholdIdSet.size - 1}
             hasError={threshold.hasError}
           >
-            <FlexCenter style={{borderBottom: 0}}>
-              {idx === 0 ? (
-                <ProjectBadge
-                  project={threshold.project}
-                  avatarSize={16}
-                  hideOverflow
-                  disableLink
-                />
-              ) : (
-                ''
-              )}
-            </FlexCenter>
-            {/* TODO: IF this is a new threshold - allow environment select */}
             {newGroup ? (
               <CompactSelect
                 style={{width: '100%'}}
@@ -441,7 +427,6 @@ const StyledRow = styled('div')<StyledThresholdRowProps>`
   display: contents;
   > * {
     padding: ${space(2)};
-    border-bottom: ${p => (p.lastRow ? 0 : '1px solid ' + p.theme.border)};
     background-color: ${p =>
       p.hasError ? 'rgba(255, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0)'};
   }
@@ -449,10 +434,10 @@ const StyledRow = styled('div')<StyledThresholdRowProps>`
 
 const NewRowBtn = styled(Button)`
   display: flex;
-  grid-column-start: 3;
+  grid-column-start: 1;
   grid-column-end: -1;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: 0;
 `;
