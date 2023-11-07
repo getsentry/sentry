@@ -474,7 +474,6 @@ module = [
     "sentry.middleware.auth",
     "sentry.middleware.health",
     "sentry.middleware.integrations.parsers.base",
-    "sentry.middleware.integrations.parsers.slack",
     "sentry.middleware.ratelimit",
     "sentry.middleware.subdomain",
     "sentry.middleware.superuser",
