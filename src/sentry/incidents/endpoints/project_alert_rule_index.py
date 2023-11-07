@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,6 +9,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import CombinedQuerysetIntermediary, CombinedQuerysetPaginator
 from sentry.api.serializers import CombinedRuleSerializer, serialize
 from sentry.constants import ObjectStatus
@@ -18,10 +21,12 @@ from sentry.snuba.dataset import Dataset
 
 @region_silo_endpoint
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
+    DEPRECATION_DATE = datetime.fromisoformat("2024-02-07T00:00:00+00:00:00")
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
+    @deprecated(DEPRECATION_DATE, "sentry-api-0-organization-combined-rules")
     def get(self, request: Request, project) -> Response:
         """
         Fetches alert rules and legacy rules for a project. @deprecated. Use OrganizationCombinedRuleIndexEndpoint instead.
