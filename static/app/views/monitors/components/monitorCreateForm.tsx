@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -14,6 +14,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {timezoneOptions} from 'sentry/data/timezones';
+import {IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -64,8 +65,13 @@ const DEFAULT_SCHEDULE_CONFIG = {
   intervalUnit: 'day',
 };
 
-function MockTimelineVisualization(props: ScheduleConfig) {
-  const {scheduleType, cronSchedule, intervalFrequency, intervalUnit} = props;
+interface Props {
+  onError: (RequestError) => void;
+  schedule: ScheduleConfig;
+}
+
+function MockTimelineVisualization({schedule, onError}: Props) {
+  const {scheduleType, cronSchedule, intervalFrequency, intervalUnit} = schedule;
   const organization = useOrganization();
 
   const query = {
@@ -82,10 +88,20 @@ function MockTimelineVisualization(props: ScheduleConfig) {
     `/organizations/${organization.slug}/monitors-schedule-data/`,
     {query},
   ] as const;
-  const {data, isLoading} = useApiQuery<number[]>(sampleDataQueryKey, {
+  const {data, isLoading, isError, error} = useApiQuery<number[]>(sampleDataQueryKey, {
     staleTime: 0,
-    enabled: isValidConfig(props),
+    enabled: isValidConfig(schedule),
+    retry: false,
   });
+
+  const errorMessage =
+    isError || !isValidConfig(schedule)
+      ? error?.responseJSON?.schedule ?? t('Invalid Schedule')
+      : null;
+
+  useEffect(() => {
+    onError(errorMessage);
+  }, [errorMessage, onError]);
 
   const mockTimestamps = data?.map(ts => new Date(ts * 1000));
   const start = mockTimestamps?.[0];
@@ -100,7 +116,7 @@ function MockTimelineVisualization(props: ScheduleConfig) {
         <Fragment>
           {/* TODO(davidenwang): Improve loading placeholder */}
           <Placeholder height="40px" />
-          <TimelinePlaceholder />
+          {errorMessage ? <Placeholder height="100px" /> : <TimelinePlaceholder />}
         </Fragment>
       ) : (
         <Fragment>
@@ -157,6 +173,7 @@ export default function MonitorCreateForm() {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const form = useRef(
     new FormModel({
       transformData: transformMonitorFormData,
@@ -224,11 +241,12 @@ export default function MonitorCreateForm() {
               const parsedSchedule = crontabAsText(
                 form.current.getValue('config.schedule')?.toString() ?? ''
               );
+              const selectedCrontab = currScheduleType === ScheduleType.CRONTAB;
 
               return (
                 <Fragment>
                   <SchedulePanel
-                    highlighted={currScheduleType === ScheduleType.CRONTAB}
+                    highlighted={selectedCrontab}
                     onClick={() => changeScheduleType(ScheduleType.CRONTAB)}
                   >
                     <PanelBody withPadding>
@@ -251,7 +269,14 @@ export default function MonitorCreateForm() {
                           stacked
                           inline={false}
                         />
-                        <CronstrueText>{parsedSchedule}</CronstrueText>
+                        {currScheduleType === ScheduleType.CRONTAB && scheduleError ? (
+                          <ErrorText>
+                            <IconNot />
+                            {scheduleError}
+                          </ErrorText>
+                        ) : (
+                          <ScheduleDetailText>{parsedSchedule}</ScheduleDetailText>
+                        )}
                       </MultiColumnInput>
                     </PanelBody>
                   </SchedulePanel>
@@ -283,6 +308,12 @@ export default function MonitorCreateForm() {
                           stacked
                           inline={false}
                         />
+                        {currScheduleType === ScheduleType.INTERVAL && scheduleError && (
+                          <ErrorText>
+                            <IconNot />
+                            {scheduleError}
+                          </ErrorText>
+                        )}
                       </MultiColumnInput>
                     </PanelBody>
                   </SchedulePanel>
@@ -298,13 +329,15 @@ export default function MonitorCreateForm() {
             const intervalFrequency = form.current.getValue('config.schedule.frequency');
             const intervalUnit = form.current.getValue('config.schedule.interval');
 
+            const schedule = {
+              scheduleType,
+              cronSchedule,
+              intervalFrequency,
+              intervalUnit,
+            };
+
             return (
-              <MockTimelineVisualization
-                scheduleType={scheduleType}
-                cronSchedule={cronSchedule}
-                intervalFrequency={intervalFrequency}
-                intervalUnit={intervalUnit}
-              />
+              <MockTimelineVisualization schedule={schedule} onError={setScheduleError} />
             );
           }}
         </Observer>
@@ -358,11 +391,18 @@ const MultiColumnInput = styled('div')<{columns?: string}>`
   grid-template-columns: ${p => p.columns};
 `;
 
-const CronstrueText = styled(LabelText)`
+const ScheduleDetailText = styled(LabelText)`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-family: ${p => p.theme.text.familyMono};
-  grid-column: auto / span 2;
+  grid-column: 1 / -1;
+`;
+
+const ErrorText = styled(ScheduleDetailText)`
+  color: ${p => p.theme.error};
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const StyledNumberField = styled(NumberField)`
