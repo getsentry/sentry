@@ -4,6 +4,7 @@ import re
 from typing import Any
 from unittest.mock import patch
 
+from sentry.api.serializers.models.organization import ORG_SLUG_PATTERN
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authenticator import Authenticator
 from sentry.models.organization import Organization, OrganizationStatus
@@ -163,7 +164,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         OrganizationMemberTeam.objects.get(organizationmember_id=org_member.id, team_id=team.id)
 
     def test_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "1234", "CaNaDa"]
+        valid_slugs = ["santry", "downtown-canada", "1234-foo", "CaNaDa"]
         for input_slug in valid_slugs:
             self.organization.refresh_from_db()
             response = self.get_success_response(name=input_slug, slug=input_slug)
@@ -205,7 +206,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=response.data["id"])
         assert org.slug == "foo"
 
-        org_slug_pattern = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$")
+        org_slug_pattern = re.compile(ORG_SLUG_PATTERN)
 
         response = self.get_success_response(name="---foo---")
         org = Organization.objects.get(id=response.data["id"])
@@ -233,9 +234,9 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.slug == "canada"
         assert org_slug_pattern.match(org.slug)
 
-        response = self.get_success_response(name="1234")
+        response = self.get_success_response(name="1234-foo")
         org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "1234"
+        assert org.slug == "1234-foo"
         assert org_slug_pattern.match(org.slug)
 
     def test_required_terms_with_terms_url(self):

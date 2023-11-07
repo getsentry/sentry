@@ -95,6 +95,8 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
     ],
 }
 
+ORG_SLUG_PATTERN = r"^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
+
 
 class BaseOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
@@ -105,7 +107,7 @@ class BaseOrganizationSerializer(serializers.Serializer):
     # [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
     # (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
     slug = SentrySlugField(
-        regex=r"^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$",
+        regex=ORG_SLUG_PATTERN,
         max_length=50,
         error_messages={
             "invalid": _(
