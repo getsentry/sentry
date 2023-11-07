@@ -18,6 +18,10 @@ def test_normalizes_to_dots(tag, expected):
     ("tag", "expected"),
     (
         ("sentry.javascript.angular", "sentry.javascript.angular"),
+        (
+            "sentry.javascript.react.native",
+            "sentry.javascript.react.native",
+        ),
         ("sentry.python.django", "sentry.python"),
         (
             "sentry.native.android.flutter",
@@ -52,7 +56,7 @@ def test_non_sentry_to_other(tag, expected):
 
 @pytest.mark.parametrize(
     ("tag", "expected"),
-    (("sentry.sparql", "other"), ("sentry.terraform.hcl", "other")),
+    (("sentry.sparql", "other"), ("sentry.terraform.hcl", "other"), ("sentry-native", "other")),
 )
 def test_unknown_sentry_to_other(tag, expected):
     assert normalize_sdk_tag(tag) == expected
