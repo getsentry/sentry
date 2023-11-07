@@ -688,22 +688,22 @@ urlpatterns += [
     ),
     re_path(
         r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
-        react_page_view,
+        GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-unsubscribe-project",
     ),
     re_path(
         r"^unsubscribe/project/(?P<project_id>\d+)/$",
-        react_page_view,
+        GenericReactPageView.as_view(auth_required=False),
         name="sentry-customer-domain-unsubscribe-project",
     ),
     re_path(
         r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
-        react_page_view,
+        GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-unsubscribe-issue",
     ),
     re_path(
         r"^unsubscribe/issue/(?P<issue_id>\d+)/$",
-        react_page_view,
+        GenericReactPageView.as_view(auth_required=False),
         name="sentry-customer-domain-unsubscribe-issue",
     ),
     # Issues

@@ -78,10 +78,11 @@ def generate_signed_unsubscribe_link(
     item = "{}|{}|{}".format(options.get("system.url-prefix"), apipath, base36_encode(user_id))
     signature = ":".join(get_signer().sign(item).rsplit(":", 2)[1:])
 
-    query = {"_": f"{base36_encode(user_id)}:{signature}"}
+    path_with_sig = f"{htmlpath}?_={base36_encode(user_id)}:{signature}"
+    query = ""
     if referrer:
-        query["referrer"] = referrer
-    return organization.absolute_url(path=htmlpath, query=urlencode(query))
+        query = urlencode({"referrer": referrer})
+    return organization.absolute_url(path=path_with_sig, query=query)
 
 
 def find_signature(request) -> str | None:
