@@ -14,7 +14,7 @@ def test_create_internal_integration_for_channel_request():
         integration_name="Test Integration",
         integration_scopes=["prject:read"],
         integration_creator_id=integration_creator.id,
-        # metadata={"partnership_restricted": True},
+        metadata={"partnership_restricted": True},
     )
     assert first_app.sentry_app.metadata["partnership_restricted"]
 
