@@ -7,6 +7,7 @@ import time
 import traceback
 import uuid
 from datetime import datetime, timedelta
+from hashlib import md5
 from random import Random
 from typing import Any, MutableMapping
 from unittest import mock
@@ -225,6 +226,9 @@ def make_generic_event(project):
     event_id = uuid.uuid4().hex
     occurrence_data = TEST_ISSUE_OCCURRENCE.to_dict()
     occurrence_data["event_id"] = event_id
+    occurrence_data["fingerprint"] = [
+        md5(part.encode("utf-8")).hexdigest() for part in occurrence_data["fingerprint"]
+    ]
     occurrence, group_info = process_event_and_issue_occurrence(
         occurrence_data,
         {

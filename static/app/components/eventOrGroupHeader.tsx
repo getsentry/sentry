@@ -222,6 +222,7 @@ const GroupLevel = styled(ErrorLevel)<{level: Level}>`
 
 const TitleWithLink = styled(GlobalSelectionLink)`
   display: inline-flex;
+  align-items: center;
 `;
 const TitleWithoutLink = styled('span')`
   display: inline-flex;
