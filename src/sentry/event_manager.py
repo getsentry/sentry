@@ -131,6 +131,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+from sentry.utils.tag_normalization import normalize_sdk_tag
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -176,6 +177,10 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
 
 def is_sample_event(job):
     return get_tag(job["data"], "sample_event") == "yes"
+
+
+def normalized_sdk_tag_from_event(event: Event) -> str:
+    return normalize_sdk_tag(event.data.get("sdk", {}).get("name", ""))
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
@@ -453,7 +458,7 @@ class EventManager:
         else:
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
-                "sdk": job["event"].data.get("sdk", {}).get("name") or "unknown",
+                "sdk": normalized_sdk_tag_from_event(job["event"]),
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
@@ -795,7 +800,7 @@ def _calculate_background_grouping(
     metric_tags: MutableTags = {
         "grouping_config": config["id"],
         "platform": event.platform or "unknown",
-        "sdk": event.data.get("sdk", {}).get("name") or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
     }
     with metrics.timer("event_manager.background_grouping", tags=metric_tags):
         return _calculate_event_grouping(project, event, config)
@@ -1662,7 +1667,7 @@ def _save_aggregate(
                     skip_internal=True,
                     tags={
                         "platform": event.platform or "unknown",
-                        "sdk": event.data.get("sdk", {}).get("name") or "unknown",
+                        "sdk": normalized_sdk_tag_from_event(event),
                     },
                 )
 
@@ -1674,7 +1679,7 @@ def _save_aggregate(
                         sample_rate=1.0,
                         tags={
                             "platform": event.platform or "unknown",
-                            "sdk": event.data.get("sdk", {}).get("name") or "unknown",
+                            "sdk": normalized_sdk_tag_from_event(event),
                             "frame_mix": frame_mix,
                         },
                     )
