@@ -44,7 +44,7 @@ export function InviteMissingMembersModal({
   const initialMemberInvites = (missingMembers.users || []).map(member => ({
     email: member.email,
     commitCount: member.commitCount,
-    role: organization.defaultRole ?? 'member',
+    role: organization.defaultRole,
     teamSlugs: new Set<string>(),
     externalId: member.externalId,
     selected: false,
