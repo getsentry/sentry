@@ -82,7 +82,7 @@ function ResourceInfo(props: Props) {
             <ResourceSize bytes={avgDecodedContentLength} />
           </Tooltip>
         </Block>
-        <Block title={DataTitles['avg(http.transfer_size)']}>
+        <Block title={DataTitles['avg(http.response_transfer_size)']}>
           <Tooltip
             isHoverable
             title={tooltips.avgTransferSize}
