@@ -93,7 +93,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
   );
 }
 
-const getFormattedDuration = (value: number) => {
+export const getFormattedDuration = (value: number) => {
   return getDuration(value, value < 1 ? 0 : 2, true);
 };
 
