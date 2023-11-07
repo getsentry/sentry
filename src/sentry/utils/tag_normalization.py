@@ -54,6 +54,10 @@ _SYNONYMOUS_TAGS = {
     "sentry.unity": "sentry.native.unity",
 }
 
+# TODO: Should we be grouping by origin SDK instead? (For example, should we be
+#       combining all flutter events rather than all native events?)
+#       See https://github.com/getsentry/sentry/pull/59504#discussion_r1385483963
+
 
 @functools.lru_cache(maxsize=300)
 def normalize_sdk_tag(tag: str) -> str:
