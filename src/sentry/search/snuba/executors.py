@@ -424,6 +424,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }
+            # if we're not searching for feedbacks, then hide them by default
+            group_categories.discard(GroupCategory.FEEDBACK.value)
 
         if not features.has("organizations:performance-issues-search", organization):
             group_categories.discard(GroupCategory.PERFORMANCE.value)
@@ -1228,7 +1230,6 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         actor: Optional[Any] = None,
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
-
         if not validate_cdc_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
 

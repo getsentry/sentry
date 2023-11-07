@@ -14,6 +14,7 @@ from sentry.api.issue_search import convert_query_values, issue_search_config, p
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import (
     ErrorGroupType,
+    FeedbackGroup,
     NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
@@ -1965,7 +1966,6 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert set(results) == {group_2}
 
     def test_first_release(self):
-
         # expect no groups within the results since there are no releases
 
         results = self.make_query(search_filter_query="first_release:%s" % "fake")
@@ -3683,6 +3683,96 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 == list(results6)
                 == []
             )
+
+    def test_feedback_category_hidden_default(self):
+        with self.feature(
+            ["organizations:issue-platform", FeedbackGroup.build_visible_feature_name()]
+        ):
+            event_id_1 = uuid.uuid4().hex
+            _, group_info = process_event_and_issue_occurrence(
+                self.build_occurrence_data(
+                    **{
+                        "id": uuid.uuid4().hex,
+                        "project_id": 1,
+                        "event_id": event_id_1,
+                        "fingerprint": ["c" * 32],
+                        "issue_title": "User Feedback",
+                        "subtitle": "it was bad",
+                        "culprit": "api/123",
+                        "resource_id": "1234",
+                        "evidence_data": {"Test": 123},
+                        "evidence_display": [
+                            {"name": "hi", "value": "bye", "important": True},
+                            {"name": "what", "value": "where", "important": False},
+                        ],
+                        "type": FeedbackGroup.type_id,
+                        "detection_time": datetime.now().timestamp(),
+                        "level": "info",
+                    }
+                ),
+                {
+                    "event_id": event_id_1,
+                    "project_id": self.project.id,
+                    "title": "some problem",
+                    "platform": "python",
+                    "tags": {"my_tag": "1"},
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "received": before_now(minutes=1).isoformat(),
+                },
+            )
+            results = self.make_query(
+                date_from=self.base_datetime,
+                date_to=self.base_datetime + timedelta(days=10),
+            )
+            assert set(results) == set()
+
+    def test_feedback_category_show_when_filtered_on(self):
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                FeedbackGroup.build_visible_feature_name(),
+                FeedbackGroup.build_ingest_feature_name(),
+            ]
+        ):
+            event_id_1 = uuid.uuid4().hex
+            _, group_info = process_event_and_issue_occurrence(
+                self.build_occurrence_data(
+                    **{
+                        "id": uuid.uuid4().hex,
+                        "project_id": 1,
+                        "event_id": event_id_1,
+                        "fingerprint": ["c" * 32],
+                        "issue_title": "User Feedback",
+                        "subtitle": "it was bad",
+                        "culprit": "api/123",
+                        "resource_id": "1234",
+                        "evidence_data": {"Test": 123},
+                        "evidence_display": [
+                            {"name": "hi", "value": "bye", "important": True},
+                            {"name": "what", "value": "where", "important": False},
+                        ],
+                        "type": FeedbackGroup.type_id,
+                        "detection_time": datetime.now().timestamp(),
+                        "level": "info",
+                    }
+                ),
+                {
+                    "event_id": event_id_1,
+                    "project_id": self.project.id,
+                    "title": "some problem",
+                    "platform": "python",
+                    "tags": {"my_tag": "1"},
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "received": before_now(minutes=1).isoformat(),
+                },
+            )
+            results = self.make_query(
+                search_filter_query="issue.category:feedback",
+                date_from=self.base_datetime,
+                date_to=self.base_datetime + timedelta(days=10),
+            )
+            assert group_info is not None
+            assert list(results) == [group_info.group]
 
 
 class CdcEventsSnubaSearchTest(TestCase, SharedSnubaMixin):
