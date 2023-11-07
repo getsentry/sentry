@@ -27,7 +27,7 @@ export default function LinkedIssue({groupID, organization}: Props) {
   return (
     <Section icon={<IconIssues size="xs" />} title={t('Linked Issue')}>
       {isFetching || isLoading ? (
-        <Placeholder />
+        <Placeholder height="92px" />
       ) : groupData ? (
         <ErrorBoundary mini>
           <IssueDetailsContainer>
@@ -49,4 +49,5 @@ const IssueDetailsContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
   padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
+  overflow: auto;
 `;
