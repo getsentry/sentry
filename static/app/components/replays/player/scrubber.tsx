@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
@@ -44,18 +45,18 @@ function Scrubber({className}: Props) {
   return (
     <Wrapper className={className}>
       {className?.includes('PlayerScrubber') && hasNewTimeline ? (
-        <ZoomIndicatorContainer style={{left: toPercent(translate()), top: '-10px'}}>
-          <ZoomTriangleDown />
-          <ZoomIndicator />
-        </ZoomIndicatorContainer>
-      ) : null}
-      {className?.includes('PlayerScrubber') && hasNewTimeline ? (
-        <ZoomIndicatorContainer
-          style={{left: toPercent(translate() + 2 * initialTranslate), top: '-2px'}}
-        >
-          <ZoomIndicator />
-          <ZoomTriangleUp />
-        </ZoomIndicatorContainer>
+        <Fragment>
+          <ZoomIndicatorContainer style={{left: toPercent(translate()), top: '-10px'}}>
+            <ZoomTriangleDown />
+            <ZoomIndicator />
+          </ZoomIndicatorContainer>
+          <ZoomIndicatorContainer
+            style={{left: toPercent(translate() + 2 * initialTranslate), top: '-2px'}}
+          >
+            <ZoomIndicator />
+            <ZoomTriangleUp />
+          </ZoomIndicatorContainer>
+        </Fragment>
       ) : null}
       <Meter>
         {currentHoverTime ? (
