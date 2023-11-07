@@ -9,6 +9,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.api.permissions import SuperuserPermission
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
@@ -19,7 +20,6 @@ from sentry.utils.db import atomic_transaction
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 
 ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this owner"
-ERR_FEATURE_DISABLED = "This feature is not yet enabled"
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +33,13 @@ class RelocationPostSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class RelocationEndpoint(Endpoint):
+class RelocationIndexEndpoint(Endpoint):
     owner = ApiOwner.RELOCATION
     publish_status = {
+        # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
+    # TODO(getsentry/team-ospo#214): Open up permissions before GA.
     permission_classes = (SuperuserPermission,)
 
     def post(self, request: Request) -> Response:
@@ -58,9 +60,9 @@ class RelocationEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("relocation.start")
+        logger.info("post.start", extra={"caller": request.user.id})
         if not features.has("relocation:enabled"):
-            return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=400)
+            return Response({"detail": ERR_FEATURE_DISABLED}, status=400)
 
         serializer = RelocationPostSerializer(data=request.data)
         if not serializer.is_valid():
@@ -81,7 +83,7 @@ class RelocationEndpoint(Endpoint):
         ).exists():
             return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=409)
 
-        # TODO(getsentry/team-ospo#203): check import size, and maybe do throttle based on that
+        # TODO(getsentry/team-ospo#203): check import size, and maybe throttle based on that
         # information.
 
         file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
