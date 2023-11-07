@@ -38,8 +38,8 @@ EVENT_DATA_ALLOWLIST = {
         "values": {
             "stacktrace": {
                 "frames": {
-                    "filename": Allow.NEVER.with_explanation(
-                        "The filename path could contain the app name."
+                    "filename": Allow.SIMPLE_TYPE.with_explanation(
+                        "We overwrite the filename for SDK frames and it's acceptable to keep it for system library frames."
                     ),
                     "function": Allow.SIMPLE_TYPE,
                     "raw_function": Allow.SIMPLE_TYPE,

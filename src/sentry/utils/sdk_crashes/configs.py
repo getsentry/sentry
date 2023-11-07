@@ -1,6 +1,6 @@
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetectorConfig
 
-_cocoa_sdk_crash_detector_config = SDKCrashDetectorConfig(
+cocoa_sdk_crash_detector_config = SDKCrashDetectorConfig(
     # Explicitly use an allow list to avoid detecting SDK crashes for SDK names we don't know.
     sdk_names=[
         "sentry.cocoa",
