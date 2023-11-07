@@ -7,7 +7,6 @@ import moment from 'moment';
 
 import {DateRangePicker} from 'sentry/components/calendar';
 import Checkbox from 'sentry/components/checkbox';
-import TimePicker from 'sentry/components/organizations/timeRangeSelector/timePicker';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,6 +22,8 @@ import domId from 'sentry/utils/domId';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+
+import TimePicker from './timePicker';
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
