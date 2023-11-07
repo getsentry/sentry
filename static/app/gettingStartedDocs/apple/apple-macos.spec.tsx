@@ -1,18 +1,31 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './apple-macos';
 
-import {GettingStartedWithMacos, steps} from './apple-macos';
+describe('apple-macos onboarding docs', function () {
+  it('renders docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.cocoa': {
+          version: '1.99.9',
+        },
+      },
+    });
 
-describe('GettingStartedWithMacos', function () {
-  it('renders doc correctly', function () {
-    render(<GettingStartedWithMacos dsn="test-dsn" projectSlug="test-project" />);
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders SDK version from registry
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /\.package\(url: "https:\/\/github.com\/getsentry\/sentry-cocoa", from: "1\.99\.9"\),/
+        )
+      )
+    ).toBeInTheDocument();
   });
 });
