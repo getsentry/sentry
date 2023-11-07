@@ -88,6 +88,7 @@ def test_v1_span():
                 "is_segment": False,
                 "op": "http",
                 "parent_span_id": "aaaaaaaaaaaaaaaa",
+                "received": 123456789.0,
                 "segment_id": "968cff94913ebb07",
                 "sentry_tags": {
                     "category": "http",
@@ -118,6 +119,7 @@ def test_v1_span():
         "organization_id": 1,
         "parent_span_id": "aaaaaaaaaaaaaaaa",
         "project_id": 42,
+        "received": 123456789.0,
         "retention_days": 90,
         "segment_id": "968cff94913ebb07",
         "sentry_tags": {

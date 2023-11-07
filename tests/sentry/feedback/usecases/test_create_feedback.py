@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.feedback.usecases.create_feedback import fix_for_issue_platform
+from sentry.feedback.usecases.create_feedback import (
+    fix_for_issue_platform,
+    validate_issue_platform_event_schema,
+)
 
 
 def test_fix_for_issue_platform():
@@ -16,6 +19,7 @@ def test_fix_for_issue_platform():
         },
         "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
         "timestamp": 1698255009.574,
+        "received": "2021-10-24T22:23:29.574000+00:00",
         "environment": "prod",
         "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
         "sdk": {
@@ -81,10 +85,10 @@ def test_fix_for_issue_platform():
         "platform": "javascript",
     }
 
-    fix_for_issue_platform(event)
-
-    assert event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
-    assert event["contexts"]["feedback"] == {
+    fixed_event = fix_for_issue_platform(event)
+    validate_issue_platform_event_schema(fixed_event)
+    assert fixed_event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
+    assert fixed_event["contexts"]["feedback"] == {
         "contact_email": "josh.ferge@sentry.io",
         "name": "Josh Ferge",
         "message": "josh ferge testing again!",
@@ -104,6 +108,7 @@ def test_corrected_still_works():
         },
         "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
         "timestamp": 1698255009.574,
+        "received": "2021-10-24T22:23:29.574000+00:00",
         "environment": "prod",
         "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
         "sdk": {
@@ -172,13 +177,15 @@ def test_corrected_still_works():
         "platform": "javascript",
     }
 
-    fix_for_issue_platform(event)
+    fixed_event = fix_for_issue_platform(event)
+    validate_issue_platform_event_schema(fixed_event)
 
-    assert event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
-    assert event["contexts"]["feedback"] == {
+    assert fixed_event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
+    assert fixed_event["contexts"]["feedback"] == {
         "contact_email": "josh.ferge@sentry.io",
         "name": "Josh Ferge",
         "message": "josh ferge testing again!",
         "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
         "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
     }
+    assert isinstance(fixed_event["received"], str)

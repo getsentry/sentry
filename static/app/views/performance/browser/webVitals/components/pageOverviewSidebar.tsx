@@ -4,10 +4,13 @@ import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
+import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {PageFilters} from 'sentry/types';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {getPeriod} from 'sentry/utils/getPeriod';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
@@ -29,13 +32,21 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
   const router = useRouter();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
+  const doubledPeriod = getPeriod({period, start, end}, {shouldDoublePeriod: true});
+  const doubledDatetime: PageFilters['datetime'] = {
+    period: doubledPeriod.statsPeriod ?? null,
+    start: doubledPeriod.start ?? null,
+    end: doubledPeriod.end ?? null,
+    utc,
+  };
 
   const {data, isLoading: isLoading} = useProjectWebVitalsValuesTimeseriesQuery({
     transaction,
+    datetime: doubledDatetime,
   });
 
   let seriesData = !isLoading
-    ? data?.eps.map(({name, value}) => ({
+    ? data?.count.map(({name, value}) => ({
         name,
         value,
       }))
@@ -45,23 +56,27 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
   if (seriesData.length > 0 && period && !start && !end) {
     seriesData = seriesData.slice(0, -1);
   }
+  const dataMiddleIndex = Math.floor(seriesData.length / 2);
+  const currentSeries = seriesData.slice(dataMiddleIndex);
+  const previousSeries = seriesData.slice(0, dataMiddleIndex);
+
+  const initialCount = !isLoading
+    ? previousSeries.reduce((acc, {value}) => acc + value, 0)
+    : undefined;
+  const currentCount = !isLoading
+    ? currentSeries.reduce((acc, {value}) => acc + value, 0)
+    : undefined;
+  const countDiff =
+    !isLoading && currentCount !== undefined && initialCount !== undefined
+      ? currentCount / initialCount
+      : undefined;
 
   const throughtputData: LineChartSeries[] = [
     {
-      data: seriesData,
+      data: currentSeries,
       seriesName: t('Page Loads'),
     },
   ];
-
-  const epsDiff = !isLoading
-    ? seriesData[seriesData.length - 1].value / seriesData[0].value
-    : undefined;
-  const initialEps = !isLoading
-    ? `${Math.round(seriesData[0].value * 100) / 100}/s`
-    : undefined;
-  const currentEps = !isLoading
-    ? `${Math.round(seriesData[seriesData.length - 1].value * 100) / 100}/s`
-    : undefined;
 
   const diffToColor = (diff?: number, reverse?: boolean) => {
     if (diff === undefined) {
@@ -84,18 +99,25 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
 
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
-  const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
   return (
     <Fragment>
       <SectionHeading>
         {t('Performance Score')}
         <QuestionTooltip
+          isHoverable
           size="sm"
-          title={t('Overall performance rating of your application')}
+          title={
+            <span>
+              {t('The overall performance rating of this page.')}
+              <br />
+              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                {t('How is this calculated?')}
+              </ExternalLink>
+            </span>
+          }
         />
       </SectionHeading>
-      <PerformanceScoreSubText>{performanceScoreSubtext}</PerformanceScoreSubText>
       <SidebarPerformanceScoreRingContainer>
         {projectScore && (
           <PerformanceScoreRingWithTooltips
@@ -113,13 +135,21 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
         {t('Page Loads')}
         <QuestionTooltip
           size="sm"
-          title={t('The number of transactions per unit time')}
+          title={t('The total number of times that users have loaded this page.')}
         />
       </SectionHeading>
-      <ChartValue>{currentEps}</ChartValue>
-      <ChartSubText color={diffToColor(epsDiff)}>
-        {getChartSubText(epsDiff, initialEps, currentEps)}
-      </ChartSubText>
+      <ChartValue>
+        {currentCount ? formatAbbreviatedNumber(currentCount) : null}
+      </ChartValue>
+      {initialCount && currentCount && countDiff && (
+        <ChartSubText color={diffToColor(countDiff)}>
+          {getChartSubText(
+            countDiff,
+            formatAbbreviatedNumber(initialCount),
+            formatAbbreviatedNumber(currentCount)
+          )}
+        </ChartSubText>
+      )}
       <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => (
           <LineChart
@@ -133,8 +163,8 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
               top: 10,
               bottom: -10,
             }}
-            yAxis={{axisLabel: {formatter: value => `${value}/s`}}}
-            tooltip={{valueFormatter: value => `${Math.round(value * 100) / 100}/s`}}
+            yAxis={{axisLabel: {formatter: number => formatAbbreviatedNumber(number)}}}
+            tooltip={{valueFormatter: number => formatAbbreviatedNumber(number)}}
           />
         )}
       </ChartZoom>
@@ -143,7 +173,7 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
         {t('Aggregate Spans')}
         <QuestionTooltip
           size="sm"
-          title={t('Waterfall view displaying common span paths that the page may take')}
+          title={t('A synthesized span waterfall for this page.')}
         />
       </SectionHeading>
       <MiniAggregateWaterfallContainer>
@@ -204,12 +234,5 @@ const SectionHeading = styled('h4')`
 
 const MiniAggregateWaterfallContainer = styled('div')`
   margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
-const PerformanceScoreSubText = styled('div')`
-  width: 100%;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
   margin-bottom: ${space(1)};
 `;
