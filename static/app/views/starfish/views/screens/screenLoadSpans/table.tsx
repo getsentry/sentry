@@ -29,6 +29,7 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/cons
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
@@ -50,11 +51,17 @@ export function ScreenLoadSpansTable({
   const organization = useOrganization();
   const routingContext = useRoutingContext();
 
+  const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
+
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
     `transaction:${transaction}`,
-    'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
     'has:span.description',
+    ...(spanOp
+      ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
+      : [
+          'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
+        ]),
   ]);
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
@@ -189,6 +196,11 @@ export function ScreenLoadSpansTable({
 
   return (
     <Fragment>
+      <SpanOpSelector
+        primaryRelease={primaryRelease}
+        transaction={transaction}
+        secondaryRelease={secondaryRelease}
+      />
       <GridEditable
         isLoading={isLoading}
         data={data?.data as TableDataRow[]}
