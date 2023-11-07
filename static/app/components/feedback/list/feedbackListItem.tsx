@@ -116,13 +116,13 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 );
 
 const CardSpacing = styled('div')`
-  padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
+  padding: ${space(0.25)} ${space(1)} ${space(0.25)} 10px;
 `;
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1)};
+  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(0.75)};
 
   color: ${p => p.theme.textColor};
   &:hover {
@@ -154,7 +154,7 @@ const ProjectOverflow = styled('span')`
 
 const GroupLevel = styled(ErrorLevel)<{level: Level}>`
   position: absolute;
-  left: -1px;
+  left: -2px;
   top: 13px;
   width: 9px;
   height: 15px;
