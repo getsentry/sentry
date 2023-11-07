@@ -1,5 +1,6 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -26,7 +27,15 @@ function OrganizationRepositoriesContainer() {
   const itemListPageLinks = getResponseHeader?.('Link');
   const [itemList, setItemList] = useState<Repository[] | null>(null);
 
-  if (!isLoading && itemData && !itemList) {
+  useEffect(() => {
+    setItemList(null);
+  }, [location.query]);
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (itemData && !itemList) {
     setItemList(itemData);
   }
 
