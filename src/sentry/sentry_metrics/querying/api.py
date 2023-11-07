@@ -163,7 +163,7 @@ class QueryParser:
         key:value (_ key:value)?
         in which the only supported operator is AND until this logic is switched to the metrics layer.
         """
-        if self._query is None:
+        if not self._query:
             return None
 
         # TODO: implement parsing via the discover grammar.
@@ -172,16 +172,13 @@ class QueryParser:
         for key, value in matches:
             filters.append(Condition(lhs=Column(name=key), op=Op.EQ, rhs=value))
 
-        if not self._query:
-            raise InvalidMetricsQueryError("Error while parsing the query.")
-
         return filters
 
     def _parse_group_bys(self) -> Optional[Sequence[Column]]:
         """
         Parses the group bys by converting them into a list of snuba columns.
         """
-        if self._group_bys is None:
+        if not self._group_bys:
             return None
 
         return [Column(group_by) for group_by in self._group_bys]
