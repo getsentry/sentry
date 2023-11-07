@@ -20,7 +20,6 @@ interface ChartProps {
   datetime: PageFilters['datetime'];
   evidenceData: NormalizedTrendsTransaction;
   percentileSeries: Series[];
-  throughputSeries: Series;
 }
 
 function LineChart({datetime, percentileSeries, evidenceData}: ChartProps) {
