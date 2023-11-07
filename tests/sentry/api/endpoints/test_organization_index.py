@@ -4,7 +4,7 @@ import re
 from typing import Any
 from unittest.mock import patch
 
-from sentry.api.serializers.models.organization import ORG_SLUG_PATTERN
+from sentry.api.fields.sentry_slug import ORG_SLUG_PATTERN
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authenticator import Authenticator
 from sentry.models.organization import Organization, OrganizationStatus
