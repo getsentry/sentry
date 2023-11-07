@@ -57,7 +57,7 @@ describe('inviteBanner', function () {
       })
     ).toBeInTheDocument();
     expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
-    expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
+    expect(screen.getByText('See all 7 missing members')).toBeInTheDocument();
   });
 
   it('does not render banner if no feature flag', function () {
