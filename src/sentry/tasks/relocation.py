@@ -19,10 +19,12 @@ from sentry.backup.dependencies import NormalizedModelName, get_model
 from sentry.backup.exports import export_in_config_scope, export_in_user_scope
 from sentry.backup.helpers import (
     DEFAULT_CRYPTO_KEY_VERSION,
+    ImportFlags,
     decrypt_data_encryption_key_using_gcp_kms,
     get_public_key_using_gcp_kms,
     unwrap_encrypted_export_tarball,
 )
+from sentry.backup.imports import import_in_organization_scope
 from sentry.filestore.gcs import GoogleCloudStorage
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
@@ -101,6 +103,10 @@ ERR_VALIDATING_ATTEMPT_MISSING = "Internal error during validating - validation 
 ERR_VALIDATING_INSTANCE_MISSING = "Internal error during validating - validation instance missing."
 ERR_VALIDATING_INTERNAL = "Internal error during validating."
 ERR_VALIDATING_MAX_RUNS = "All validation attempts timed out."
+
+ERR_IMPORTING_INTERNAL = "Internal error during importing."
+
+ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
 
 
 # TODO(getsentry/team-ospo#203): We should split this task in two, one for "small" imports of say
@@ -877,5 +883,131 @@ def importing(uuid: str) -> None:
     trying it again!
     """
 
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        step=Relocation.Step.IMPORTING,
+        task=OrderedTask.IMPORTING,
+        allowed_task_attempts=1,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.IMPORTING,
+        attempts_left,
+        ERR_IMPORTING_INTERNAL,
+    ):
+        # A custom logger that roughly matches the parts of the `click.echo` interface that the
+        # `import_*` methods rely on.
+        def printer(text: str, *, err: bool = False, **kwargs) -> None:
+            nonlocal uuid
+            if err:
+                logger.error(
+                    "Import failed",
+                    extra={"uuid": uuid, "task": OrderedTask.IMPORTING.name},
+                )
+            else:
+                logger.info(
+                    "Import info",
+                    extra={"uuid": uuid, "task": OrderedTask.IMPORTING.name},
+                )
+
+        # The `uploading_complete` task above should have verified that this is ready for use.
+        raw_relocation_file = (
+            RelocationFile.objects.filter(
+                relocation=relocation,
+                kind=RelocationFile.Kind.RAW_USER_DATA.value,
+            )
+            .select_related("file")
+            .first()
+        )
+        relocation_data_fp = raw_relocation_file.file.getfile()
+        kms_config_fp = BytesIO(json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8"))
+
+        with relocation_data_fp, kms_config_fp:
+            import_in_organization_scope(
+                relocation_data_fp,
+                decrypt_with=kms_config_fp,
+                flags=ImportFlags(
+                    decrypt_using_gcp_kms=True, merge_users=False, overwrite_configs=False
+                ),
+                org_filter=set(relocation.want_org_slugs),
+                printer=printer,
+            )
+
+            # TODO(getsentry/team-ospo#203): Add post-processing, notifying tasks here.
+            completed.delay(uuid)
+
+
+@instrumented_task(
+    name="sentry.relocation.notifying_users",
+    queue="relocation",
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def notifying_users(uuid: str) -> None:
+    """
+    Send an email to all users that have been imported, telling them to claim their accounts.
+    """
+
     # TODO(getsentry/team-ospo#203): Implement this.
     pass
+
+
+@instrumented_task(
+    name="sentry.relocation.notifying_owners",
+    queue="relocation",
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def notifying_owners(uuid: str) -> None:
+    """
+    Send an email to the creator and owner, telling them that their relocation was successful.
+    """
+
+    # TODO(getsentry/team-ospo#203): Implement this.
+    pass
+
+
+@instrumented_task(
+    name="sentry.relocation.completed",
+    queue="relocation",
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def completed(uuid: str) -> None:
+    """
+    Finish up a relocation by marking it a success.
+    """
+
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        step=Relocation.Step.COMPLETED,
+        task=OrderedTask.COMPLETED,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.COMPLETED,
+        attempts_left,
+        ERR_COMPLETED_INTERNAL,
+    ):
+        relocation.status = Relocation.Status.SUCCESS.value
+        relocation.save()
