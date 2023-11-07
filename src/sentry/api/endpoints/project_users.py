@@ -1,13 +1,14 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Column, Condition, Entity, Op, Query
 
 from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.paginator import DateTimePaginator
+from sentry.api.paginator import SnubaRequestPaginator
 from sentry.api.serializers import serialize
-from sentry.models.eventuser import EventUser
+from sentry.snuba.dataset import Dataset, EntityKey
 
 
 @region_silo_endpoint
@@ -38,22 +39,39 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             endpoint="sentry.api.endpoints.project_users.get",
         )
         # TODO(isabellaenriquez): replace from here to 50 with snubaquery and Request
-        queryset = EventUser.objects.filter(project_id=project.id)
+        # queryset = EventUser.objects.filter(project_id=project.id)
+        where_conditions = [Condition(Column("project_id"), Op.EQ, project.id)]
         if request.GET.get("query"):
             try:
                 field, identifier = request.GET["query"].strip().split(":", 1)
-                queryset = queryset.filter(
-                    project_id=project.id,
-                    **{EventUser.attr_from_keyword(field): identifier},
-                )
+                # queryset = queryset.filter(
+                #     project_id=project.id,
+                #     **{EventUser.attr_from_keyword(field): identifier},
+                # )
+                where_conditions.append(Condition(Column(field), Op.EQ, identifier))
             except (ValueError, KeyError):
                 return Response([])
-
+        query = Query(
+            match=Entity(EntityKey.Events.value),
+            select=[
+                Column("project_id"),
+                Column("hash"),
+                Column("ident"),
+                Column("email"),
+                Column("username"),
+                Column("name"),
+                Column("ip_address"),
+                Column("date_added"),
+            ],
+            where=where_conditions,
+        )
         return self.paginate(
             request=request,
-            queryset=queryset,
+            query=query,
+            dataset=Dataset.Events.value,
+            app_id="sentry.api.endpoints.project_users",
             order_by="-date_added",
-            paginator_cls=DateTimePaginator,
+            paginator_cls=SnubaRequestPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
 
