@@ -890,7 +890,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Highest opportunity pages widget', async function () {
+  it('Best Page Opportunities widget', async function () {
     const data = initializeData();
 
     wrapper = render(
@@ -903,7 +903,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Highest Opportunity Pages'
+      'Best Page Opportunities'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(

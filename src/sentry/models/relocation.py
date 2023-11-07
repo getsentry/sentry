@@ -161,6 +161,21 @@ class RelocationFile(DefaultFieldsModel):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
+        def __str__(self):
+            if self.name == "RAW_USER_DATA":
+                return "raw-relocation-data"
+            elif self.name == "NORMALIZED_USER_DATA":
+                return "normalized-relocation-data"
+            elif self.name == "BASELINE_CONFIG_VALIDATION_DATA":
+                return "baseline-config"
+            elif self.name == "COLLIDING_USERS_VALIDATION_DATA":
+                return "colliding-users"
+            else:
+                raise ValueError("Cannot extract a filename from `RelocationFile.Kind.UNKNOWN`.")
+
+        def to_filename(self, ext: str):
+            return str(self) + "." + ext
+
     relocation = FlexibleForeignKey("sentry.Relocation")
     file = FlexibleForeignKey("sentry.File")
     kind = models.SmallIntegerField(choices=Kind.get_choices())

@@ -25,6 +25,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
@@ -52,6 +53,8 @@ export function ScreenLoadSpansTable({
   const routingContext = useRoutingContext();
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
+  const truncatedPrimary = centerTruncate(primaryRelease ?? '', 15);
+  const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 15);
 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
@@ -111,8 +114,14 @@ export function ScreenLoadSpansTable({
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
     'time_spent_percentage()': t('Total Time Spent'),
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t('Duration (Release 1)'),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t('Duration  (Release 2)'),
+    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
+      'Duration (%s)',
+      truncatedPrimary
+    ),
+    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
+      'Duration (%s)',
+      truncatedSecondary
+    ),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
