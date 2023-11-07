@@ -43,22 +43,38 @@ def make_evidence(feedback):
 def fix_for_issue_platform(event_data):
     # the issue platform has slightly different requirements than ingest
     # for event schema, so we need to massage the data a bit
-    event_data["timestamp"] = ensure_aware(
+    ret_event: dict[str, Any] = {}
+
+    ret_event["timestamp"] = ensure_aware(
         datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
-    if "contexts" not in event_data:
-        event_data["contexts"] = {}
 
-    if event_data.get("feedback") and not event_data.get("contexts", {}).get("feedback"):
-        event_data["contexts"]["feedback"] = event_data["feedback"]
-        del event_data["feedback"]
+    ret_event["received"] = event_data["received"]
 
-        if not event_data["contexts"].get("replay") and event_data["contexts"]["feedback"].get(
-            "replay_id"
-        ):
-            event_data["contexts"]["replay"] = {
-                "replay_id": event_data["contexts"]["feedback"].get("replay_id")
-            }
+    ret_event["project_id"] = event_data["project_id"]
+
+    ret_event["contexts"] = event_data.get("contexts", {})
+
+    # TODO: remove this once feedback_ingest API deprecated
+    # as replay context will be filled in
+    if not event_data["contexts"].get("replay") and event_data["contexts"].get("feedback", {}).get(
+        "replay_id"
+    ):
+        ret_event["contexts"]["replay"] = {
+            "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
+        }
+    ret_event["event_id"] = event_data["event_id"]
+    ret_event["tags"] = event_data.get("tags", [])
+
+    ret_event["platform"] = event_data.get("platform", "other")
+    ret_event["level"] = event_data.get("level", "info")
+
+    ret_event["environment"] = event_data.get("environment", "production")
+    if event_data.get("sdk"):
+        ret_event["sdk"] = event_data["sdk"]
+    ret_event["request"] = event_data.get("request", {})
+
+    ret_event["user"] = event_data.get("user", {})
 
     if event_data.get("dist") is not None:
         del event_data["dist"]
@@ -70,13 +86,14 @@ def fix_for_issue_platform(event_data):
     if event_data.get("user", {}).get("id") is not None:
         event_data["user"]["id"] = str(event_data["user"]["id"])
 
+    return ret_event
+
 
 def create_feedback_issue(event, project_id):
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
-
     event["event_id"] = event.get("event_id") or uuid4().hex
-    evidence_data, evidence_display = make_evidence(event["feedback"])
+    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"])
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
@@ -85,28 +102,27 @@ def create_feedback_issue(event, project_id):
             uuid4().hex
         ],  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title="User Feedback",
-        subtitle=event["feedback"]["message"],
+        subtitle=event["contexts"]["feedback"]["message"],
         resource_id=None,
         evidence_data=evidence_data,
         evidence_display=evidence_display,
         type=FeedbackGroup,
         detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
-        level="info",  # TODO: severity based on input?
+        level=event.get("level", "info"),
     )
     now = datetime.now()
 
     event_data = {
         "project_id": project_id,
         "received": now.isoformat(),
-        "level": "info",
         "tags": event.get("tags", {}),
         **event,
     }
-    fix_for_issue_platform(event_data)
+    event_fixed = fix_for_issue_platform(event_data)
 
     # make sure event data is valid for issue platform
-    validate_issue_platform_event_schema(event_data)
+    validate_issue_platform_event_schema(event_fixed)
 
     project = Project.objects.get_from_cache(id=project_id)
 
@@ -114,7 +130,7 @@ def create_feedback_issue(event, project_id):
         first_feedback_received.send_robust(project=project, sender=Project)
 
     produce_occurrence_to_kafka(
-        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
+        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
 
 
@@ -133,6 +149,8 @@ class UserReportShimDict(TypedDict):
     name: str
     email: str
     comments: str
+    event_id: str
+    level: str
 
 
 def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project):
@@ -145,29 +163,34 @@ def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project)
     """
     try:
         feedback_event: dict[str, Any] = {
-            "feedback": {
-                "name": report.get("name", ""),
-                "contact_email": report["email"],
-                "message": report["comments"],
+            "contexts": {
+                "feedback": {
+                    "name": report.get("name", ""),
+                    "contact_email": report["email"],
+                    "message": report["comments"],
+                },
             },
-            "contexts": {},
         }
 
         if event:
-            feedback_event["feedback"]["crash_report_event_id"] = event.event_id
+            feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
             if get_path(event.data, "contexts", "replay", "replay_id"):
                 feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
-                feedback_event["feedback"]["replay_id"] = event.data["contexts"]["replay"][
-                    "replay_id"
-                ]
+                feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"][
+                    "replay"
+                ]["replay_id"]
             feedback_event["timestamp"] = event.datetime.timestamp()
-
+            feedback_event["level"] = event.data["level"]
             feedback_event["platform"] = event.platform
-
+            feedback_event["level"] = event.data["level"]
         else:
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
+            feedback_event["level"] = report.get("level", "info")
+
+            if report.get("event_id"):
+                feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
 
         create_feedback_issue(feedback_event, project.id)
     except Exception:

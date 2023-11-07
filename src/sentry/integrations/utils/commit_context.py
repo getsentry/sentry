@@ -10,7 +10,6 @@ from django.utils.datastructures import OrderedSet
 
 from sentry import analytics
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.github.client import GitHubApproachingRateLimit
 from sentry.integrations.mixins.commit_context import (
     CommitContextMixin,
     FileBlameInfo,
@@ -381,30 +380,43 @@ def _get_blames_from_all_integrations(
             install,
             integration.provider,
         )
+        log_info = {
+            **extra,
+            "project_id": project_id,
+            "provider": integration.provider,
+            "integration_id": integration.id,
+        }
         try:
             blames = install.get_commit_context_all_frames(files, extra=extra)
             file_blames.extend(blames)
-        except Exception as e:
-            log_info = {
-                **extra,
-                "project_id": project_id,
-                "provider": integration.provider,
-                "integration_id": integration.id,
-            }
-            if isinstance(e, GitHubApproachingRateLimit):
-                logger.exception(
-                    "process_commit_context.get_commit_context_all_frames.rate_limit",
-                    extra=log_info,
-                )
-            elif isinstance(e, ApiError):
-                logger.exception(
-                    "process_commit_context.get_commit_context_all_frames.api_error", extra=log_info
+        except ApiError as e:
+            metrics.incr(
+                "integrations.github.get_blame_for_files.api_error", tags={"status": e.code}
+            )
+            if e.code in (401, 403, 404):
+                # Expected errors statuses should not be retried
+                logger.warning(
+                    "process_commit_context.failed_to_fetch_commit_context_all_frames.api_error",
+                    extra={**log_info, "code": e.code, "error_message": e.text},
                 )
             else:
-                logger.exception(
-                    "process_commit_context.get_commit_context_all_frames.unknown_error",
-                    extra=log_info,
-                )
+                if e.code == 429:
+                    logger.exception(
+                        "process_commit_context.get_commit_context_all_frames.rate_limit",
+                        extra={**log_info, "error_message": e.text},
+                    )
+                else:
+                    logger.exception(
+                        "process_commit_context.get_commit_context_all_frames.api_error",
+                        extra={**log_info, "code": e.code, "error_message": e.text},
+                    )
+                # Rate limit and other API errors should be raised to the task to trigger a retry
+                raise e
+        except Exception:
+            logger.exception(
+                "process_commit_context.get_commit_context_all_frames.unknown_error",
+                extra=log_info,
+            )
 
     return file_blames, integration_to_install_mapping
 

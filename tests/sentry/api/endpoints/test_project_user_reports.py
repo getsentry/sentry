@@ -424,19 +424,23 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert mock_event_data["contexts"]["feedback"]["replay_id"] == replay_id
         assert mock_event_data["contexts"]["replay"]["replay_id"] == replay_id
         assert mock_event_data["platform"] == "other"
-        assert mock_event_data["contexts"]["feedback"]["crash_report_event_id"]
+        assert (
+            mock_event_data["contexts"]["feedback"]["associated_event_id"]
+            == event_with_replay.event_id
+        )
+        assert mock_event_data["level"] == "error"
 
     @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_simple_shim_to_feedback_no_event(self, mock_produce_occurrence_to_kafka):
         self.login_as(user=self.user)
 
         url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
-
+        event_id = uuid4().hex
         with self.feature("organizations:user-feedback-ingest"):
             response = self.client.post(
                 url,
                 data={
-                    "event_id": uuid4().hex,
+                    "event_id": event_id,
                     "email": "foo@example.com",
                     "name": "Foo Bar",
                     "comments": "It broke!",
@@ -458,4 +462,5 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert mock_event_data["contexts"]["feedback"]["message"] == "It broke!"
         assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
         assert mock_event_data["platform"] == "other"
-        assert not mock_event_data["contexts"]["feedback"].get("crash_report_event_id")
+        assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event_id
+        assert mock_event_data["level"] == "info"
