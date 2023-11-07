@@ -107,7 +107,7 @@ class BaseOrganizationSerializer(serializers.Serializer):
     # [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
     # (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
     slug = SentrySlugField(
-        regex=ORG_SLUG_PATTERN,
+        pattern=ORG_SLUG_PATTERN,
         max_length=50,
         error_messages={
             "invalid": _(

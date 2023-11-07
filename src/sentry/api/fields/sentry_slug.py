@@ -28,7 +28,7 @@ class SentrySlugField(serializers.RegexField):
 
     def __init__(
         self,
-        regex=MIXED_SLUG_PATTERN,
+        pattern=MIXED_SLUG_PATTERN,
         error_messages=None,
         *args,
         **kwargs,
@@ -37,4 +37,4 @@ class SentrySlugField(serializers.RegexField):
         # the function reuse this one instance, persisting changes between them.
         if error_messages is None:
             error_messages = self.default_error_messages.copy()
-        super().__init__(regex=regex, error_messages=error_messages, *args, **kwargs)
+        super().__init__(pattern, error_messages=error_messages, *args, **kwargs)
