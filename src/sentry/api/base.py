@@ -116,41 +116,50 @@ def allow_cors_options(func):
         else:
             response = func(self, request, *args, **kwargs)
 
-        allow = ", ".join(self._allowed_methods())
-        response["Allow"] = allow
-        response["Access-Control-Allow-Methods"] = allow
-        response["Access-Control-Allow-Headers"] = (
-            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
-            "Content-Type, Authentication, Authorization, Content-Encoding, "
-            "sentry-trace, baggage, X-CSRFToken"
+        return apply_cors_headers(
+            request=request, response=response, allowed_methods=self._allowed_methods()
         )
-        response["Access-Control-Expose-Headers"] = (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
-            "Endpoint, Retry-After, Link"
-        )
-
-        if request.META.get("HTTP_ORIGIN") == "null":
-            # if ORIGIN header is explicitly specified as 'null' leave it alone
-            origin: str | None = "null"
-        else:
-            origin = origin_from_request(request)
-
-        if origin is None or origin == "null":
-            response["Access-Control-Allow-Origin"] = "*"
-        else:
-            response["Access-Control-Allow-Origin"] = origin
-
-        # If the requesting origin is a subdomain of
-        # the application's base-hostname we should allow cookies
-        # to be sent.
-        basehost = options.get("system.base-hostname")
-        if basehost and origin:
-            if origin.endswith(("://" + basehost, "." + basehost)):
-                response["Access-Control-Allow-Credentials"] = "true"
-
-        return response
 
     return allow_cors_options_wrapper
+
+
+def apply_cors_headers(
+    request: HttpRequest, response: HttpResponse, allowed_methods: list[str] | None = None
+) -> HttpResponse:
+    if allowed_methods is None:
+        allowed_methods = []
+    allow = ", ".join(allowed_methods)
+    response["Allow"] = allow
+    response["Access-Control-Allow-Methods"] = allow
+    response["Access-Control-Allow-Headers"] = (
+        "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+        "Content-Type, Authentication, Authorization, Content-Encoding, "
+        "sentry-trace, baggage, X-CSRFToken"
+    )
+    response["Access-Control-Expose-Headers"] = (
+        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, " "Endpoint, Retry-After, Link"
+    )
+
+    if request.META.get("HTTP_ORIGIN") == "null":
+        # if ORIGIN header is explicitly specified as 'null' leave it alone
+        origin: str | None = "null"
+    else:
+        origin = origin_from_request(request)
+
+    if origin is None or origin == "null":
+        response["Access-Control-Allow-Origin"] = "*"
+    else:
+        response["Access-Control-Allow-Origin"] = origin
+
+    # If the requesting origin is a subdomain of
+    # the application's base-hostname we should allow cookies
+    # to be sent.
+    basehost = options.get("system.base-hostname")
+    if basehost and origin:
+        if origin.endswith(("://" + basehost, "." + basehost)):
+            response["Access-Control-Allow-Credentials"] = "true"
+
+    return response
 
 
 class Endpoint(APIView):
