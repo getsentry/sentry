@@ -19,7 +19,7 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
         self.project.update(first_event=timezone.now())
 
     def test(self):
-        self.create_userreport(date_added=timezone.now(), group=self.group, project=self.project)
+        self.create_userreport(date_added=timezone.now(), project=self.project)
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until('[data-test-id="user-feedback-list"]')

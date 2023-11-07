@@ -114,6 +114,7 @@ from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -1057,7 +1058,6 @@ class Factories:
             if not prevent_token_exchange and (
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
-
                 GrantExchanger.run(
                     install=rpc_install,
                     code=install.api_grant.code,
@@ -1250,11 +1250,20 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_userreport(group, project=None, event_id=None, **kwargs):
+    def create_userreport(project, event_id=None, **kwargs):
+        event = Factories.store_event(
+            data={
+                "timestamp": iso_format(datetime.utcnow()),
+                "event_id": event_id or "a" * 32,
+                "message": "testing",
+            },
+            project_id=project.id,
+        )
+
         return UserReport.objects.create(
-            group_id=group.id,
-            event_id=event_id or "a" * 32,
-            project_id=project.id if project is not None else group.project.id,
+            group_id=event.group.id,
+            event_id=event.event_id,
+            project_id=project.id,
             name="Jane Bloggs",
             email="jane@example.com",
             comments="the application crashed",

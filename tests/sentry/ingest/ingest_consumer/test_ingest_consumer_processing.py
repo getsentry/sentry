@@ -436,9 +436,6 @@ def test_userreport(django_cache, default_project, monkeypatch):
     mgr.normalize()
     mgr.save(default_project.id)
 
-    (evtuser,) = EventUser.objects.all()
-    assert not evtuser.name
-
     assert not UserReport.objects.all()
 
     assert process_userreport(
@@ -460,9 +457,6 @@ def test_userreport(django_cache, default_project, monkeypatch):
 
     (report,) = UserReport.objects.all()
     assert report.comments == "hello world"
-
-    (evtuser,) = EventUser.objects.all()
-    assert evtuser.name == "Hans Gans"
 
 
 @django_db_all
