@@ -270,6 +270,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
             assert mock_event_data["contexts"]["feedback"]["name"] == "Jane Bloggs"
             assert mock_event_data["platform"] == "other"
             assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == self.event_id
+            assert mock_event_data["level"] == "error"
 
     @mock.patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_calls_feedback_shim_no_event_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
@@ -291,3 +292,4 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
             assert mock_event_data["contexts"]["feedback"]["name"] == "Jane Bloggs"
             assert mock_event_data["platform"] == "other"
             assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == self.event_id
+            assert mock_event_data["level"] == "error"
