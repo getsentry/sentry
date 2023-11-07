@@ -666,9 +666,7 @@ def get_default_comparators():
     default_comparators: ComparatorMap = defaultdict(
         list,
         {
-            "sentry.apitoken": [
-                HashObfuscatingComparator("refresh_token", "token", "token_last_characters")
-            ],
+            "sentry.apitoken": [HashObfuscatingComparator("refresh_token", "token")],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
             "sentry.alertrule": [DateUpdatedComparator("date_modified")],
