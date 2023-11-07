@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 from django.db.models import QuerySet
 
@@ -235,6 +235,7 @@ class DatabaseBackedAppService(AppService):
         integration_name: str,
         integration_scopes: List[str],
         integration_creator_id,
+        metadata: Dict[str, Any] | None = None,
     ) -> RpcSentryAppInstallation:
         admin_user = User.objects.get(id=integration_creator_id)
 
@@ -256,6 +257,7 @@ class DatabaseBackedAppService(AppService):
                 is_internal=True,
                 scopes=integration_scopes,
                 verify_install=False,
+                metadata=metadata,
             ).run(user=admin_user)
             installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
 
