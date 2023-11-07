@@ -200,6 +200,8 @@ class ErrorPageEmbedView(View):
                         "name": report.name,
                         "email": report.email,
                         "comments": report.comments,
+                        "event_id": report.event_id,
+                        "level": "error",  # assume error level from error page embed
                     },
                     event,
                     project,
