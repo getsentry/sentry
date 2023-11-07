@@ -58,10 +58,9 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
     },
   };
 
-  // const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
-  const endpoint = `/organizations/${organization.slug}/issues/${feedbackItem.id}/events/${eventData?.id}/`; // replace with crashReportId
+  const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
+  const endpoint = `/projects/${organization.slug}/${feedbackItem.project.slug}/events/${crashReportId}/`;
   const {data: crashReportData} = useApiQuery<Event>([endpoint], {staleTime: 0});
-  // console.log(crashReportData);
 
   return (
     <Fragment>
@@ -135,7 +134,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </ErrorBoundary>
         </Section>
 
-        {crashReportData && (
+        {feedbackItem.level === 'error' && crashReportData && (
           <Section icon={<IconIssues size="xs" />} title={t('Linked Issue')}>
             <ErrorBoundary mini>
               <IssueDetailsContainer>
