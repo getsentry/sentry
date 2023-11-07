@@ -78,7 +78,11 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             query=query,
             dataset=Dataset.Events.value,
             app_id="sentry.api.endpoints.project_users",
-            order_by="-date_added",
+            tenant_ids={
+                "referrer": "sentry.api.endpoints.project_users",
+                "organization_id": project.organization.id,
+            },
+            order_by="-timestamp",
             paginator_cls=SnubaRequestPaginator,
             on_results=lambda x: serialize(x, request.user),
         )

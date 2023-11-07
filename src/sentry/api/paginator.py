@@ -751,10 +751,13 @@ class ChainPaginator:
 
 
 class SnubaRequestPaginator:
-    def __init__(self, query, dataset, app_id, order_by, max_limit=MAX_LIMIT, on_results=None):
+    def __init__(
+        self, query, dataset, app_id, tenant_ids, order_by, max_limit=MAX_LIMIT, on_results=None
+    ):
         self.query = query
         self.dataset = dataset
         self.app_id = app_id
+        self.tenant_ids = tenant_ids
         if order_by:
             if order_by.startswith("-"):
                 self.desc = True
@@ -792,11 +795,11 @@ class SnubaRequestPaginator:
             dataset=self.dataset,
             app_id=self.app_id,
             query=self.build_next_snuba_request(cursor.value, self.query),
-            tenant_ids={"referrer": self.app_id},
+            tenant_ids=self.tenant_ids,
         )
 
         results = raw_snql_query(request, referrer=self.app_id)["data"]
-        assert results <= limit + 1
+        assert len(results) <= limit + 1
 
         next_cursor = Cursor(limit, cursor.offset + 1, False, len(results) > limit)
         prev_cursor = Cursor(limit, cursor.offset - 1, True, cursor.offset > 0)
