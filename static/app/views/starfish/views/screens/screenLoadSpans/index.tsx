@@ -87,10 +87,12 @@ function ScreenLoadSpans() {
               <PageErrorAlert />
               <StarfishPageFiltersContainer>
                 <Container>
-                  <PageFilterBar condensed>
-                    <DatePageFilter />
-                  </PageFilterBar>
-                  <ReleaseComparisonSelector />
+                  <FilterContainer>
+                    <PageFilterBar condensed>
+                      <DatePageFilter />
+                    </PageFilterBar>
+                    <ReleaseComparisonSelector />
+                  </FilterContainer>
                   <ScreenMetricsRibbon />
                 </Container>
               </StarfishPageFiltersContainer>
@@ -133,11 +135,19 @@ export default ScreenLoadSpans;
 
 const Container = styled('div')`
   display: grid;
-  grid-template-rows: auto auto auto;
-  gap: ${space(2)};
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr;
+  column-gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(100px, max-content);
   }
+`;
+
+const FilterContainer = styled('div')`
+  display: grid;
+  column-gap: ${space(1)};
+  grid-template-rows: auto;
+  grid-template-columns: auto 1fr;
 `;

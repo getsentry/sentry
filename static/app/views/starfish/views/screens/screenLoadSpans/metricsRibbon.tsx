@@ -34,7 +34,11 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
   const truncatedPrimary = centerTruncate(primaryRelease ?? '', 10);
   const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 10);
 
-  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease, undefined);
+  const queryStringPrimary = appendReleaseFilters(
+    searchQuery,
+    primaryRelease,
+    secondaryRelease
+  );
   const newQuery: NewQuery = {
     name: 'ScreenMetricsRibbon',
     fields: [
@@ -123,7 +127,7 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
 }
 
 const BlockContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(40px, max-content));
   gap: ${space(2)};
 `;
