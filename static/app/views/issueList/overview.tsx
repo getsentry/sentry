@@ -286,7 +286,7 @@ class IssueListOverview extends Component<Props, State> {
       !this.state.realtimeActive &&
       this.props.organization.features.includes('issue-stream-performance-cache')
     ) {
-      IssueListCacheStore.save(this.getCacheEdpointParams(), {
+      IssueListCacheStore.save(this.getCacheEndpointParams(), {
         groups,
         queryCount: this.state.queryCount,
         queryMaxCount: this.state.queryMaxCount,
@@ -345,7 +345,7 @@ class IssueListOverview extends Component<Props, State> {
       return false;
     }
 
-    const cache = IssueListCacheStore.getFromCache(this.getCacheEdpointParams());
+    const cache = IssueListCacheStore.getFromCache(this.getCacheEndpointParams());
     if (!cache) {
       return false;
     }
@@ -431,7 +431,7 @@ class IssueListOverview extends Component<Props, State> {
     return pickBy(params, v => defined(v)) as EndpointParams;
   };
 
-  getCacheEdpointParams = (): EndpointParams => {
+  getCacheEndpointParams = (): EndpointParams => {
     const cursor = this.props.location.query.cursor;
     return {
       ...this.getEndpointParams(),
