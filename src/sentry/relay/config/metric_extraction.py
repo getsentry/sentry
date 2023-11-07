@@ -351,6 +351,8 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
                 if count > max_cardinality_allowed:
                     cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
                     scope.set_tag("column_name", column)
+                    scope.set_tag("widget_id", widget_query.id)
+                    scope.set_tag("org_id", project.organization_id)
                     raise HighCardinalityWidgetException(
                         f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
                     )
