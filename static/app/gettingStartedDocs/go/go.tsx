@@ -1,37 +1,14 @@
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-// Configuration Start
-export const steps = ({
-  dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct('Install our Go SDK using [code:go get]:', {
-          code: <code />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: 'go get github.com/getsentry/sentry-go',
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: t(
-      "Import and initialize the Sentry SDK early in your application's setup:"
-    ),
-    configurations: [
-      {
-        language: 'go',
-        code: `
+type Params = DocsParams;
+
+const getConfigureSnippet = (params: Params) => `
 package main
 
 import (
@@ -42,7 +19,7 @@ import (
 
 func main() {
   err := sentry.Init(sentry.ClientOptions{
-    Dsn: "${dsn}",
+    Dsn: "${params.dsn}",
     // Set TracesSampleRate to 1.0 to capture 100%
     // of transactions for performance monitoring.
     // We recommend adjusting this value in production,
@@ -51,20 +28,9 @@ func main() {
   if err != nil {
     log.Fatalf("sentry.Init: %s", err)
   }
-}
-        `,
-      },
-    ],
-  },
-  {
-    type: StepType.VERIFY,
-    description: t(
-      'The quickest way to verify Sentry in your Go program is to capture a message:'
-    ),
-    configurations: [
-      {
-        language: 'go',
-        code: `
+}`;
+
+const getVerifySnippet = () => `
 package main
 
 import (
@@ -89,16 +55,55 @@ func main() {
   defer sentry.Flush(2 * time.Second)
 
   sentry.CaptureMessage("It works!")
-}
-        `,
-      },
-    ],
-  },
-];
-// Configuration End
+}`;
 
-export function GettingStartedWithGo({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
-}
+const onboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct('Install our Go SDK using [code:go get]:', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'bash',
+          code: 'go get github.com/getsentry/sentry-go',
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Import and initialize the Sentry SDK early in your application's setup:"
+      ),
+      configurations: [
+        {
+          language: 'go',
+          code: getConfigureSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'The quickest way to verify Sentry in your Go program is to capture a message:'
+      ),
+      configurations: [
+        {
+          language: 'go',
+          code: getVerifySnippet(),
+        },
+      ],
+    },
+  ],
+};
 
-export default GettingStartedWithGo;
+const docs: Docs = {
+  onboarding,
+};
+
+export default docs;
