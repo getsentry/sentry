@@ -4,7 +4,6 @@ import logging
 from typing import Iterable, List, Mapping
 
 from sentry.models.project import Project
-from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 
@@ -28,18 +27,26 @@ def get_email_addresses(
         options = user_option_service.get_many(
             filter={"user_ids": pending, "project_id": project.id, "keys": ["mail:email"]}
         )
+
+        user_id_emails = []
         for option in (o for o in options if o.value and not is_fake_email(o.value)):
-            if UserEmail.objects.filter(user_id=option.user_id, email=option.value).exists():
-                results[option.user_id] = option.value
-                pending.discard(option.user_id)
+            user_id_emails.append((int(option.user_id), option.value))
+
+        user_id_emails_exists = user_service.verify_user_emails(user_id_emails=user_id_emails)
+
+        for user_id_key in user_id_emails_exists.keys():
+            user_id = int(user_id_key)
+            if user_id_emails_exists[user_id_key]["exists"]:
+                results[user_id] = user_id_emails_exists[user_id_key]["email"]
+                pending.discard(user_id)
             else:
-                pending.discard(option.user_id)
+                pending.discard(user_id)
                 to_delete.append(option)
         user_option_service.delete_options(option_ids=[o.id for o in to_delete])
 
     if pending:
         users = user_service.get_many(filter={"user_ids": list(pending)})
-        for (user_id, email) in [(user.id, user.email) for user in users]:
+        for user_id, email in [(user.id, user.email) for user in users]:
             if email and not is_fake_email(email):
                 results[user_id] = email
                 pending.discard(user_id)
