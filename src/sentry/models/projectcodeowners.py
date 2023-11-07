@@ -117,6 +117,8 @@ class ProjectCodeOwners(Model):
             code_mapping=self.repository_project_path_config,
         )
 
+        self.date_updated = timezone.now()
+
         # Convert IssueOwner syntax into schema syntax
         try:
             schema = create_schema_from_issue_owners(
