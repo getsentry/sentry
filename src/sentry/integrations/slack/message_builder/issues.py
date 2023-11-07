@@ -151,51 +151,58 @@ def build_actions(
         text = get_action_text(text, actions, identity, has_escalating)
         return [], text, "_actioned_issue"
 
-    ignore_button = MessageAction(
-        name="status",
-        label="Archive" if has_escalating else "Ignore",
-        value="ignored:until_escalating" if has_escalating else "ignored:forever",
-    )
-
-    resolve_button = MessageAction(
-        name="resolve_dialog",
-        label="Resolve...",
-        value="resolve_dialog",
-    )
-
     status = group.get_status()
 
-    if not project.flags.has_releases:
-        resolve_button = MessageAction(
+    def _ignore_button() -> MessageAction:
+        if status == GroupStatus.IGNORED:
+            return MessageAction(
+                name="status",
+                label="Mark as Ongoing" if has_escalating else "Stop Ignoring",
+                value="unresolved:ongoing",
+            )
+
+        return MessageAction(
             name="status",
-            label="Resolve",
-            value="resolved",
+            label="Archive" if has_escalating else "Ignore",
+            value="ignored:until_escalating" if has_escalating else "ignored:forever",
         )
 
-    if status == GroupStatus.RESOLVED:
-        resolve_button = MessageAction(
-            name="status",
-            label="Unresolve",
-            value="unresolved:ongoing",
+    def _resolve_button() -> MessageAction:
+        if status == GroupStatus.RESOLVED:
+            return MessageAction(
+                name="status",
+                label="Unresolve",
+                value="unresolved:ongoing",
+            )
+
+        if not project.flags.has_releases:
+            return MessageAction(
+                name="status",
+                label="Resolve",
+                value="resolved",
+            )
+        return MessageAction(
+            name="resolve_dialog",
+            label="Resolve...",
+            value="resolve_dialog",
         )
 
-    if status == GroupStatus.IGNORED:
-        ignore_button = MessageAction(
-            name="status",
-            label="Mark as Ongoing" if has_escalating else "Stop Ignoring",
-            value="unresolved:ongoing",
+    def _assign_button() -> MessageAction:
+        assignee = group.get_assignee()
+        assign_button = MessageAction(
+            name="assign",
+            label="Select Assignee...",
+            type="select",
+            selected_options=format_actor_options([assignee]) if assignee else [],
+            option_groups=get_option_groups(group),
         )
+        return assign_button
 
-    assignee = group.get_assignee()
-    assign_button = MessageAction(
-        name="assign",
-        label="Select Assignee...",
-        type="select",
-        selected_options=format_actor_options([assignee]) if assignee else [],
-        option_groups=get_option_groups(group),
-    )
+    action_list = [
+        a for a in [_resolve_button(), _ignore_button(), _assign_button()] if a is not None
+    ]
 
-    return [resolve_button, ignore_button, assign_button], text, color
+    return action_list, text, color
 
 
 class SlackIssuesMessageBuilder(SlackMessageBuilder):
