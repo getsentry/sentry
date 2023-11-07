@@ -18,7 +18,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from django.utils import timezone
 
 from sentry.backup.dependencies import NormalizedModelName
-from sentry.backup.helpers import ImportFlags
+from sentry.backup.helpers import ImportFlags, LocalFileDecryptor
 from sentry.backup.imports import (
     ImportingError,
     import_in_config_scope,
@@ -658,7 +658,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_user_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -673,7 +675,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_organization_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             assert Organization.objects.count() > 0
@@ -688,7 +692,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_config_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -707,7 +713,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_global_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             assert Organization.objects.count() > 0
