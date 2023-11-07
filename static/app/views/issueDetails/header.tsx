@@ -162,6 +162,11 @@ function GroupHeaderTabs({
   );
 }
 
+function sanitizeIssueBreadcrumbQuery(query: string): string {
+  const sanitizedQuery = query.replace('&sort=timestamp', '');
+  return sanitizedQuery.replace('&sort=-timestamp', '');
+}
+
 function GroupHeader({
   baseUrl,
   group,
@@ -245,7 +250,9 @@ function GroupHeader({
             crumbs={[
               {
                 label: 'Issues',
-                to: `/organizations/${organization.slug}/issues/${location.search}`,
+                to: `/organizations/${
+                  organization.slug
+                }/issues/${sanitizeIssueBreadcrumbQuery(location.search)}`,
               },
               {label: shortIdBreadcrumb},
             ]}
