@@ -884,6 +884,20 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             {"nonFieldErrors": ["User does not belong to this organization"]},
         )
 
+    def test_discord(self):
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.DISCORD
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "targetIdentifier": "123",
+            },
+            {"integration": ["Integration must be provided for discord"]},
+        )
+
     def test_slack(self):
         self.run_fail_validation_test(
             {

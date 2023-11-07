@@ -60,14 +60,13 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
             },
         )
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            action = create_alert_rule_trigger_action(
-                trigger,
-                AlertRuleTriggerAction.Type.DISCORD,
-                AlertRuleTriggerAction.TargetType.SPECIFIC,
-                target_identifier="channel-id",
-                integration_id=integration.id,
-            )
+        action = create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.DISCORD,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="channel-id",
+            integration_id=integration.id,
+        )
 
         result = serialize(action)
         self.assert_action_serialized(action, result)
@@ -97,14 +96,13 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
             },
         )
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            action = create_alert_rule_trigger_action(
-                trigger,
-                AlertRuleTriggerAction.Type.DISCORD,
-                AlertRuleTriggerAction.TargetType.SPECIFIC,
-                target_identifier=None,
-                integration_id=integration.id,
-            )
+        action = create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.DISCORD,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier=None,
+            integration_id=integration.id,
+        )
 
         result = serialize(action)
         self.assert_action_serialized(action, result)

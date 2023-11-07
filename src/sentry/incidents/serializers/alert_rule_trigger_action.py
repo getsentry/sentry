@@ -1,7 +1,7 @@
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.incidents.logic import (
     InvalidTriggerActionError,
@@ -118,9 +118,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     {"integration": "Integration must be provided for slack"}
                 )
         elif attrs.get("type") == AlertRuleTriggerAction.Type.DISCORD:
-            if not attrs.get("integration_id") or not features.has(
-                "organizations:integrations-discord-metric-alerts", self.context["organization"]
-            ):
+            if not attrs.get("integration_id"):
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for discord"}
                 )
