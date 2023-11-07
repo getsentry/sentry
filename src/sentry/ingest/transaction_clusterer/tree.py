@@ -68,6 +68,10 @@ MERGED = Merged()
 #: Separator by which we build the tree
 SEP = "/"
 
+#: Maximum tree depth. URLs with more than 200 segments do not seem useful,
+#: and we occasionally run into `RecursionError`s.
+MAX_DEPTH = 200
+
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +84,7 @@ class TreeClusterer(Clusterer):
 
     def add_input(self, strings: Iterable[str]) -> None:
         for string in strings:
-            parts = string.split(SEP)
+            parts = string.split(SEP, maxsplit=MAX_DEPTH)
             node = self._tree
             for part in parts:
                 node = node.setdefault(part, Node())

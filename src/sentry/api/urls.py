@@ -37,6 +37,7 @@ from sentry.api.endpoints.release_thresholds.release_threshold_index import (
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
+from sentry.api.endpoints.relocation import RelocationEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -560,7 +561,6 @@ from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
-from .endpoints.team_notification_settings_details import TeamNotificationSettingsDetailsEndpoint
 from .endpoints.team_projects import TeamProjectsEndpoint
 from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
@@ -2622,11 +2622,6 @@ TEAM_URLS = [
         name="sentry-api-0-team-all-unresolved-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",
-        TeamNotificationSettingsDetailsEndpoint.as_view(),
-        name="sentry-api-0-team-notification-settings",
-    ),
-    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/members/$",
         TeamMembersEndpoint.as_view(),
         name="sentry-api-0-team-members",
@@ -3032,6 +3027,13 @@ urlpatterns = [
     re_path(
         r"^internal/",
         include(INTERNAL_URLS),
+    ),
+    # Relocation
+    # TODO(getsentry/team-ospo#169): Add URL endpoint to pull encryption public key.
+    re_path(
+        r"^relocation/$",
+        RelocationEndpoint.as_view(),
+        name="sentry-api-0-relocation",
     ),
     # Catch all
     re_path(

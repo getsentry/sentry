@@ -112,17 +112,12 @@ class MetricsQueryBuilder(QueryBuilder):
     def are_columns_resolved(self) -> bool:
         # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
         # `resolve_query` method.
-        if self._on_demand_metric_spec:
+        if self._has_on_demand_specs:
             return True
 
         return super().are_columns_resolved()
 
-    @cached_property
-    def _on_demand_metric_spec(self) -> Optional[OnDemandMetricSpec]:
-        if not self.builder_config.on_demand_metrics_enabled:
-            return None
-
-        field = self.selected_columns[0] if self.selected_columns else None
+    def _get_on_demand_metric_spec(self, field: str) -> Optional[OnDemandMetricSpec]:
         if not field:
             return None
 
@@ -139,6 +134,22 @@ class MetricsQueryBuilder(QueryBuilder):
             sentry_sdk.capture_exception(e)
             return None
 
+    @cached_property
+    def _has_on_demand_specs(self) -> bool:
+        return self._on_demand_metric_spec_map
+
+    @cached_property
+    def _on_demand_metric_spec_map(self) -> Optional[Dict[str, OnDemandMetricSpec]]:
+        if not self.builder_config.on_demand_metrics_enabled:
+            return None
+
+        aggregate_columns = self.selected_columns
+        return {
+            col: self._get_on_demand_metric_spec(col)
+            for col in aggregate_columns
+            if self._get_on_demand_metric_spec(col)
+        }
+
     def _get_metrics_query_from_on_demand_spec(
         self, spec: OnDemandMetricSpec, require_time_range: bool = True
     ) -> MetricsQuery:
@@ -152,7 +163,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         if isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)
-            alias = get_function_alias(self.selected_columns[0]) or "count"
+            alias = get_function_alias(spec.field) or "count"
             include_series = True
             interval = self.interval
         else:
@@ -238,7 +249,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # Resolutions that we will perform only in case the query is not on demand. The reasoning for this is that
         # for building an on demand query we only require a time interval and granularity. All the other fields are
         # automatically computed given the OnDemandMetricSpec.
-        if not self._on_demand_metric_spec:
+        if not self._has_on_demand_specs:
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
                 self.where, self.having = self.resolve_conditions(query)
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
@@ -264,7 +275,7 @@ class MetricsQueryBuilder(QueryBuilder):
             col = tag_match.group("tag") if tag_match else col
 
         # on-demand metrics require metrics layer behavior
-        if self.builder_config.use_metrics_layer or self._on_demand_metric_spec:
+        if self.builder_config.use_metrics_layer or self._has_on_demand_specs:
             if col in ["project_id", "timestamp"]:
                 return col
             # TODO: update resolve params so this isn't needed
@@ -821,7 +832,7 @@ class MetricsQueryBuilder(QueryBuilder):
         }
 
         # Check if we need to make multiple queries
-        if not self._on_demand_metric_spec:
+        if not self._has_on_demand_specs:
             primary, query_framework = self._create_query_framework()
         else:
             primary = "metrics_layer"
@@ -837,14 +848,14 @@ class MetricsQueryBuilder(QueryBuilder):
         self.tenant_ids = self.tenant_ids or dict()
         self.tenant_ids["use_case_id"] = self.use_case_id.value
 
-        if self.builder_config.use_metrics_layer or self._on_demand_metric_spec:
+        if self.builder_config.use_metrics_layer or self._has_on_demand_specs:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
             )
 
             for query_details in [query_framework.pop(primary), *query_framework.values()]:
-                if len(query_details.functions) == 0 and not self._on_demand_metric_spec:
+                if len(query_details.functions) == 0 and not self._has_on_demand_specs:
                     continue
                 if groupby_values:
                     extra_conditions = [
@@ -871,9 +882,11 @@ class MetricsQueryBuilder(QueryBuilder):
                     extra_conditions = None
                 try:
                     with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                        if self._on_demand_metric_spec:
+                        if self._has_on_demand_specs:
+                            # TODO: Build queries for each column that has a spec, then merge the data back together.
+                            spec = self._on_demand_metric_spec_map[self.selected_columns[0]]
                             metrics_query = self._get_metrics_query_from_on_demand_spec(
-                                spec=self._on_demand_metric_spec, require_time_range=True
+                                spec=spec, require_time_range=True
                             )
                         else:
                             metrics_query = transform_mqb_query_to_metrics_query(
@@ -1047,15 +1060,16 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         we are going to import the purposfully hidden SnubaQueryBuilder which is a component that takes a MetricsQuery
         and returns one or more equivalent snql query(ies).
         """
-        if self.builder_config.use_metrics_layer or self._on_demand_metric_spec:
+        if self.builder_config.use_metrics_layer or self._has_on_demand_specs:
             from sentry.snuba.metrics import SnubaQueryBuilder
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
             )
 
-            if self._on_demand_metric_spec:
+            if self._has_on_demand_specs:
+                spec = self._on_demand_metric_spec_map[self.selected_columns[0]]
                 metrics_query = self._get_metrics_query_from_on_demand_spec(
-                    spec=self._on_demand_metric_spec, require_time_range=False
+                    spec=spec, require_time_range=False
                 )
             else:
                 intermediate_query = self.get_metrics_layer_snql_query()
@@ -1297,7 +1311,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         return queries
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.builder_config.use_metrics_layer or self._on_demand_metric_spec:
+        if self.builder_config.use_metrics_layer or self._has_on_demand_specs:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -1305,9 +1319,10 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    if self._on_demand_metric_spec:
+                    if self._has_on_demand_specs:
+                        spec = self._on_demand_metric_spec_map[self.selected_columns[0]]
                         metrics_query = self._get_metrics_query_from_on_demand_spec(
-                            spec=self._on_demand_metric_spec, require_time_range=True
+                            spec=spec, require_time_range=True
                         )
                     elif self.builder_config.use_metrics_layer:
                         snuba_query = self.get_snql_query()[0].query

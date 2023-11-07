@@ -744,6 +744,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.recap_servers",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
+    "sentry.tasks.relocation",
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
@@ -895,6 +896,7 @@ CELERY_QUEUES_REGION = [
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
+    Queue("relocation", routing_key="relocation"),
     Queue("recap_servers", routing_key="recap_servers"),
     Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
@@ -1493,6 +1495,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-platform-extra-logging": False,
     # Enable issue platform status change API for crons and SD issues
     "organizations:issue-platform-api-crons-sd": False,
+    # Enable issue platform feature changes for crons and SD issues
+    "organizations:issue-platform-crons-sd": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1503,6 +1507,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-group-attributes-side-query": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
+    # Enable issue stream performance improvements (cache)
+    "organizations:issue-stream-performance-cache": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1824,6 +1830,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
+    # Enable metric alert rate limiting
+    "organizations:metric-alert-rate-limiting": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
     # Enable data forwarding functionality for projects.
@@ -1859,6 +1867,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
     # temporary boost the sample rate of particular transactions)
     "organizations:investigation-bias": False,
+    # Controls whether or not the relocation endpoints can be used.
+    "relocation:enabled": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

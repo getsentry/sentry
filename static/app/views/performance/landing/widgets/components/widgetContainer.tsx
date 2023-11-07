@@ -31,6 +31,7 @@ import {
 } from '../widgetDefinitions';
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
+import {PerformanceScoreWidget} from '../widgets/performanceScoreWidget';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
 import {StackedAreaChartListWidget} from '../widgets/stackedAreaChartListWidget';
 import {TrendsWidget} from '../widgets/trendsWidget';
@@ -199,6 +200,8 @@ function _WidgetContainer(props: Props) {
       );
     case GenericPerformanceWidgetDataType.STACKED_AREA:
       return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
+    case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE:
+      return <PerformanceScoreWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
