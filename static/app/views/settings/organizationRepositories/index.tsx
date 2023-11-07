@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -19,6 +20,7 @@ function OrganizationRepositoriesContainer() {
   const {
     data: itemData,
     isLoading,
+    isError,
     getResponseHeader,
   } = useApiQuery<Repository[]>(
     [`/organizations/${organization.slug}/repos/`, {query: location.query}],
@@ -33,6 +35,10 @@ function OrganizationRepositoriesContainer() {
 
   if (isLoading) {
     return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError />;
   }
 
   if (itemData && !itemList) {
