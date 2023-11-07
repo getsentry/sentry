@@ -16,9 +16,9 @@ import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseCompariso
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 type Props = {
-  primaryRelease: string;
-  secondaryRelease: string;
-  transaction: string;
+  primaryRelease?: string;
+  secondaryRelease?: string;
+  transaction?: string;
 };
 
 export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: Props) {
