@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -52,6 +53,10 @@ export function MetricChart({
 }: ChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const router = useRouter();
+
+  const {hoverProps, isHovered} = useHover({
+    isDisabled: false,
+  });
 
   // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {
@@ -111,7 +116,7 @@ export function MetricChart({
   };
 
   return (
-    <ChartWrapper>
+    <ChartWrapper {...hoverProps}>
       <ChartZoom
         router={router}
         period={period}
@@ -151,9 +156,13 @@ export function MetricChart({
                   })
                 : undefined;
 
+              // Zoom render props are slowing down the chart rendering,
+              // so we only pass them when the chart is hovered over
+              const zoomProps = isHovered ? zoomRenderProps : {};
+
               const allProps = {
                 ...chartProps,
-                ...zoomRenderProps,
+                ...zoomProps,
                 series: [...seriesToShow, ...releaseSeries],
                 legend,
               };
