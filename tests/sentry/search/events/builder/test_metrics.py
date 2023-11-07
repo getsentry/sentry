@@ -2283,10 +2283,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ),
         )
 
-        assert query._on_demand_metric_spec
-
+        assert query._on_demand_metric_spec_map
+        selected_spec = query._on_demand_metric_spec_map[field]
         metrics_query = query._get_metrics_query_from_on_demand_spec(
-            spec=query._on_demand_metric_spec, require_time_range=True
+            spec=selected_spec, require_time_range=True
         )
 
         assert len(metrics_query.select) == 1
@@ -2386,6 +2386,21 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "eps", "type": "Float64"},
         ]
 
+    def test_on_demand_map_with_multiple_selected(self):
+        query_str = "transaction.duration:>=100"
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query_str,
+            selected_columns=["eps()", "epm()", "not_on_demand"],
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+        )
+        assert query._on_demand_metric_spec_map
+        assert query._on_demand_metric_spec_map["eps()"]
+        assert query._on_demand_metric_spec_map["epm()"]
+        assert "not_on_demand" not in query._on_demand_metric_spec_map
+
     def _test_user_misery(
         self, user_to_frustration: list[Tuple[str, bool]], expected_user_misery: float
     ) -> None:
@@ -2419,9 +2434,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=[field],
             config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
-        assert query._on_demand_metric_spec
+        assert query._on_demand_metric_spec_map
+        selected_spec = query._on_demand_metric_spec_map[field]
         metrics_query = query._get_metrics_query_from_on_demand_spec(
-            spec=query._on_demand_metric_spec, require_time_range=True
+            spec=selected_spec, require_time_range=True
         )
 
         assert len(metrics_query.select) == 1
