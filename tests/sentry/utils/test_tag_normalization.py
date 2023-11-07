@@ -19,6 +19,10 @@ def test_normalizes_to_dots(tag, expected):
     (
         ("sentry.javascript.angular", "sentry.javascript.angular"),
         ("sentry.python.django", "sentry.python"),
+        (
+            "sentry.native.android.flutter",
+            "sentry.native.android",
+        ),
     ),
 )
 def test_shortens_non_js(tag, expected):
@@ -31,6 +35,7 @@ def test_shortens_non_js(tag, expected):
         ("sentry.javascript.angular", "sentry.javascript.angular"),
         ("sentry.javascript.angular.ivy", "sentry.javascript.angular"),
         ("sentry.symfony", "sentry.php"),
+        ("sentry.unity", "sentry.native.unity"),
     ),
 )
 def test_uses_synonyms(tag, expected):

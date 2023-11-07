@@ -2,23 +2,11 @@ import functools
 import re
 
 _KNOWN_TAGS = {
-    "sentry.android",
-    "sentry.apex",
-    "sentry.brightscript",
-    "sentry.cfml",
-    "sentry.cli",
     "sentry.cocoa",
-    "sentry.cordova",
-    "sentry.curl",
     "sentry.dart",
-    "sentry.defold",
-    "sentry.delphi",
-    "sentry.delta",
     "sentry.dotnet",
-    "sentry.electron",
     "sentry.elixir",
     "sentry.go",
-    "sentry.haxe",
     "sentry.java",
     "sentry.javascript.angular",
     "sentry.javascript.browser",
@@ -45,33 +33,31 @@ _KNOWN_TAGS = {
     "sentry.javascript.sveltekit",
     "sentry.javascript.vue",
     "sentry.kubernetes",
-    "sentry.last",
-    "sentry.light",
     "sentry.lua",
-    "sentry.native",
-    "sentry.nativescript",
-    "sentry.net",
+    "sentry.native.android",
+    "sentry.native.dotnet",
+    "sentry.native.unity",
+    "sentry.native.unreal",
     "sentry.objc",
-    "sentry.ocaml",
-    "sentry.opentelemetry",
     "sentry.perl",
     "sentry.php",
     "sentry.python",
-    "sentry.radar",
     "sentry.ruby",
     "sentry.rust",
-    "sentry.sdk",
     "sentry.swift",
-    "sentry.tray",
-    "sentry.unity",
-    "sentry.unsquared",
 }
 
+
 _SYNONYMOUS_TAGS = {
+    "sentry.android": "sentry.native.android",
+    "sentry.cordova": "sentery.javascript.cordova",
+    "sentry.electron": "sentry.javascript.electron",
     "sentry.javascript.angular.ivy": "sentry.javascript.angular",
     "sentry.laravel": "sentry.php.laravel",
     "sentry.react": "sentry.javascript.react",
     "sentry.symfony": "sentry.php.symfony",
+    "sentry.unity": "sentry.native.unity",
+    "sentrydotnet": "sentry.dotnet",
 }
 
 
@@ -90,8 +76,12 @@ def normalize_sdk_tag(tag: str) -> str:
     tag = _SYNONYMOUS_TAGS.get(tag, tag)
 
     # collapse tags other than JavaScript to their top-level SDK
-    if not tag.startswith("sentry.javascript"):
+
+    if not tag.split(".")[1] in {"javascript", "native"}:
         tag = ".".join(tag.split(".", 2)[0:2])
+
+    if tag.split(".")[1] == "native":
+        tag = ".".join(tag.split(".", 3)[0:3])
 
     if tag not in _KNOWN_TAGS:
         tag = "other"
