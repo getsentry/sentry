@@ -343,7 +343,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         sentry_sdk.capture_exception(error)
         cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
         return False
-    
+
     with sentry_sdk.push_scope() as scope:
         try:
             for index, column in enumerate(widget_query.columns):
