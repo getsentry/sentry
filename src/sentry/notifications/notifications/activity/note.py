@@ -5,7 +5,7 @@ from typing import Any, Mapping, Optional
 from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
-from sentry.notifications.utils.avatar import avatar_as_html
+from sentry.notifications.utils.avatar import avatar_as_html, get_user_avatar_url
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
@@ -46,6 +46,11 @@ class NoteActivityNotification(GroupActivityNotification):
         and want the avatar on it's own rather than bundled with the author's display name
         because the display name is already shown in the notification title."""
         fmt = '<span class="avatar-container">{}</span>'
+
         if self.user:
+            if self.user.get_avatar_type() == "upload":
+                return format_html(
+                    '<img class="avatar" src="{}">', get_user_avatar_url(self.user, 48)
+                )
             return format_html(fmt, avatar_as_html(self.user, 48))
         return format_html(description)
