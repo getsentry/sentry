@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Mapping
-
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
@@ -42,7 +40,7 @@ class SentrySlugField(serializers.RegexField):
 
     def __init__(
         self,
-        error_messages: Mapping[str, str] = None,
+        error_messages=None,
         org_slug: bool = False,
         *args,
         **kwargs,
@@ -56,4 +54,4 @@ class SentrySlugField(serializers.RegexField):
         if org_slug:
             pattern = ORG_SLUG_PATTERN
 
-        super().__init__(regex=pattern, error_messages=error_messages, *args, **kwargs)
+        super().__init__(pattern, error_messages=error_messages, *args, **kwargs)
