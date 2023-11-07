@@ -7,18 +7,15 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Collection,
-    Literal,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
     TypedDict,
-    Union,
     cast,
 )
 
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.post_process_forwarder import PostProcessForwarderType
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
@@ -72,7 +69,6 @@ class EventStream(Service):
         "replace_group_unsafe",
         "exclude_groups",
         "requires_post_process_forwarder",
-        "run_post_process_forwarder",
         "_get_event_type",
     )
 
@@ -203,20 +199,6 @@ class EventStream(Service):
 
     def requires_post_process_forwarder(self) -> bool:
         return False
-
-    def run_post_process_forwarder(
-        self,
-        entity: PostProcessForwarderType,
-        consumer_group: str,
-        topic: Optional[str],
-        commit_log_topic: str,
-        synchronize_commit_group: str,
-        concurrency: int,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
-        strict_offset_reset: bool,
-    ) -> None:
-        assert not self.requires_post_process_forwarder()
-        raise ForwarderNotRequired
 
     @staticmethod
     def _get_event_type(event: Event | GroupEvent) -> EventStreamEventType:

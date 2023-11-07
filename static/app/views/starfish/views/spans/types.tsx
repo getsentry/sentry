@@ -14,7 +14,10 @@ export type DataKey =
   | 'slowFrames'
   | 'ttid'
   | 'ttfd'
-  | 'count';
+  | 'count'
+  | 'avg(http.response_content_length)'
+  | 'avg(http.decoded_response_content_length)'
+  | 'avg(http.response_transfer_size)';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -30,6 +33,9 @@ export const DataTitles: Record<DataKey, string> = {
   slowFrames: t('Slow Frames %'),
   ttid: t('Time To Initial Display'),
   ttfd: t('Time To Full Display'),
+  'avg(http.response_content_length)': t('Avg Encoded Size'),
+  'avg(http.decoded_response_content_length)': t('Avg Decoded Size'),
+  'avg(http.response_transfer_size)': t('Avg Transfer Size'),
 };
 
 export const getThroughputTitle = (spanOp?: string) => {

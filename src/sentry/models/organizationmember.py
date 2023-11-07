@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, FrozenSet, List, Mapping, MutableMapping, Set, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, List, Mapping, MutableMapping, Set, TypedDict
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -60,6 +60,7 @@ _OrganizationMemberFlags = TypedDict(
         "member-limit:restricted": bool,
         "idp:provisioned": bool,
         "idp:role-restricted": bool,
+        "partnership:restricted": bool,
     },
 )
 
@@ -95,7 +96,7 @@ ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
 ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join."
 
 
-class OrganizationMemberManager(BaseManager):
+class OrganizationMemberManager(BaseManager["OrganizationMember"]):
     def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
         """Get a list of members we can contact for an organization through email."""
         # TODO(Steve): check member-limit:restricted
@@ -205,7 +206,7 @@ class OrganizationMember(ReplicatedRegionModel):
     __relocation_scope__ = RelocationScope.Organization
     category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
 
-    objects = OrganizationMemberManager()
+    objects: ClassVar[OrganizationMemberManager] = OrganizationMemberManager()
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="member_set")
 
@@ -513,7 +514,7 @@ class OrganizationMember(ReplicatedRegionModel):
             ).values("team"),
         )
 
-    def get_scopes(self) -> FrozenSet[str]:
+    def get_scopes(self) -> frozenset[str]:
         # include org roles from team membership
         all_org_roles = self.get_all_org_roles()
         scopes = set()

@@ -2,6 +2,7 @@ type JsonObject = Record<string, unknown>;
 type JsonArray = unknown[];
 
 export type NetworkMetaWarning =
+  | 'MAYBE_JSON_TRUNCATED'
   | 'JSON_TRUNCATED'
   | 'TEXT_TRUNCATED'
   | 'INVALID_JSON'

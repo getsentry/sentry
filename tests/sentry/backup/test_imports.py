@@ -30,6 +30,7 @@ from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
+from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -113,6 +114,7 @@ class SanitizationTests(ImportTestCase):
             )
 
             assert User.objects.filter(is_unclaimed=True).count() == 4
+            assert LostPasswordHash.objects.count() == 4
             assert User.objects.filter(is_managed=True).count() == 0
             assert User.objects.filter(is_staff=True).count() == 0
             assert User.objects.filter(is_superuser=True).count() == 0
@@ -151,6 +153,7 @@ class SanitizationTests(ImportTestCase):
             )
 
             assert User.objects.filter(is_unclaimed=True).count() == 4
+            assert LostPasswordHash.objects.count() == 4
             assert User.objects.filter(is_managed=True).count() == 0
             assert User.objects.filter(is_staff=True).count() == 0
             assert User.objects.filter(is_superuser=True).count() == 0
@@ -169,6 +172,7 @@ class SanitizationTests(ImportTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert User.objects.count() == 4
             assert User.objects.filter(is_unclaimed=True).count() == 4
+            assert LostPasswordHash.objects.count() == 4
             assert User.objects.filter(is_managed=True).count() == 1
             assert User.objects.filter(is_staff=True).count() == 2
             assert User.objects.filter(is_superuser=True).count() == 2
@@ -215,6 +219,7 @@ class SanitizationTests(ImportTestCase):
             assert User.objects.count() == 4
             # We don't mark `Global`ly imported `User`s unclaimed.
             assert User.objects.filter(is_unclaimed=True).count() == 0
+            assert LostPasswordHash.objects.count() == 0
             assert User.objects.filter(is_managed=True).count() == 1
             assert User.objects.filter(is_staff=True).count() == 2
             assert User.objects.filter(is_superuser=True).count() == 2
@@ -1451,6 +1456,7 @@ class CollisionTests(ImportTestCase):
                 assert not User.objects.filter(username__iexact="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 0
+                assert LostPasswordHash.objects.count() == 0
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1484,6 +1490,7 @@ class CollisionTests(ImportTestCase):
                 assert User.objects.filter(username__icontains="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 1
+                assert LostPasswordHash.objects.count() == 1
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1523,6 +1530,7 @@ class CollisionTests(ImportTestCase):
                 assert not User.objects.filter(username__icontains="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 0
+                assert LostPasswordHash.objects.count() == 0
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1587,6 +1595,7 @@ class CollisionTests(ImportTestCase):
                 assert User.objects.filter(username__icontains="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 1
+                assert LostPasswordHash.objects.count() == 1
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1651,6 +1660,7 @@ class CollisionTests(ImportTestCase):
                 assert not User.objects.filter(username__iexact="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 0
+                assert LostPasswordHash.objects.count() == 0
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1687,6 +1697,7 @@ class CollisionTests(ImportTestCase):
                 assert User.objects.filter(username__icontains="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 1
+                assert LostPasswordHash.objects.count() == 1
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()

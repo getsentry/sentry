@@ -63,6 +63,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "environment": "environment",
     "transaction": "transaction",
     "platform": "platform",
+    "platform.name": "platform",
     # Top-level structures ("interfaces")
     "user.email": "user.email",
     "user.id": "user.id",
@@ -74,33 +75,38 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "geo.region": "user.geo.region",
     "geo.subdivision": "user.geo.subdivision",
     "http.method": "request.method",
+    "http.url": "request.url",
+    # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
+    "url": "request.url",
+    "sdk.name": "sdk.name",
+    "sdk.version": "sdk.version",
     # Subset of context fields
+    "app.in_foreground": "contexts.app.in_foreground",
+    "device": "contexts.device.model",
     "device.arch": "contexts.device.arch",
     "device.battery_level": "contexts.device.battery_level",
     "device.brand": "contexts.device.brand",
     "device.charging": "contexts.device.charging",
     "device.family": "contexts.device.family",
     "device.locale": "contexts.device.locale",
-    "device.name": "contexts.device.name",
     "device.online": "contexts.device.online",
     "device.orientation": "contexts.device.orientation",
+    "device.name": "contexts.device.name",
     "device.screen_density": "contexts.device.screen_density",
     "device.screen_dpi": "contexts.device.screen_dpi",
-    "device.screen_height_pixels": "contexts.device.screen_height_pixels",
     "device.screen_width_pixels": "contexts.device.screen_width_pixels",
+    "device.screen_height_pixels": "contexts.device.screen_height_pixels",
     "device.simulator": "contexts.device.simulator",
-    "device.uuid": "contexts.device.uuid",
-    "os.name": "contexts.os.name",
     "os.build": "contexts.os.build",
     "os.kernel_version": "contexts.os.kernel_version",
+    "os.name": "contexts.os.name",
     "os.version": "contexts.os.version",
-    "platform.name": "contexts.platform.name",
     "browser.name": "contexts.browser.name",
-    "transaction.op": "contexts.trace.op",
+    "device.uuid": "contexts.device.uuid",
     "transaction.status": "contexts.trace.status",
+    "transaction.op": "contexts.trace.op",
     "http.status_code": "contexts.response.status_code",
-    "sdk.name": "sdk.name",
-    "sdk.version": "sdk.version",
+    "unreal.crash_type": "contexts.unreal.crash_type",
     # Computed fields
     "transaction.duration": "duration",
     "release.build": "release.build",
@@ -479,8 +485,10 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
         if not _SEARCH_TO_RELAY_OPERATORS.get(token.operator):
             return False
 
-        return not _is_excluding_transactions(token) and _is_on_demand_supported_field(
-            token.key.name
+        return (
+            not _is_excluding_transactions(token)
+            and not _is_error_field(token.key.name)
+            and _is_on_demand_supported_field(token.key.name)
         )
 
     if isinstance(token, ParenExpression):
@@ -490,11 +498,13 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
 
 
 def _is_excluding_transactions(token: SearchFilter) -> bool:
-    return (
-        token.key.name == "event.type"
-        and token.operator == "!="
-        and token.value.raw_value == "transaction"
-    )
+    if token.key.name != "event.type":
+        return False
+
+    is_not_transaction = token.operator == "!=" and token.value.raw_value == "transaction"
+    is_error_or_default = token.operator == "=" and token.value.raw_value in ["error", "default"]
+
+    return is_not_transaction or is_error_or_default
 
 
 def _is_standard_metrics_field(field: str) -> bool:
@@ -504,6 +514,10 @@ def _is_standard_metrics_field(field: str) -> bool:
         or is_span_op_breakdown(field)
         or field == "transaction.duration"
     )
+
+
+def _is_error_field(token: str) -> bool:
+    return token.startswith("error.")
 
 
 def _is_standard_metrics_search_term(field: str) -> bool:
@@ -668,11 +682,11 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
-def _get_threshold(arguments: Optional[Sequence[str]]) -> int:
+def _get_threshold(arguments: Optional[Sequence[str]]) -> float:
     if not arguments:
         raise Exception("Threshold parameter required.")
 
-    return int(arguments[0])
+    return float(arguments[0])
 
 
 def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
@@ -815,6 +829,9 @@ class FieldParsingResult:
 class QueryParsingResult:
     conditions: Sequence[QueryToken]
 
+    def is_empty(self) -> bool:
+        return len(self.conditions) == 0
+
 
 @dataclass
 class OnDemandMetricSpec:
@@ -917,10 +934,12 @@ class OnDemandMetricSpec:
 
         return self._arguments[0]
 
-    def _query_for_hash(self):
+    def _query_for_hash(self) -> str:
         # In order to reduce the amount of metric being extracted, we perform a sort of the conditions tree. This
         # heuristic allows us to perform some de-duplication to minimize the number of metrics extracted for
         # semantically identical queries.
+        #
+        # In case we have `None` condition, we will use `None` string for hashing, so it's a sentinel value.
         return str(_deep_sorted(self.condition))
 
     def _groupbys_for_hash(self):
@@ -978,41 +997,36 @@ class OnDemandMetricSpec:
 
     def _process_field(self) -> Tuple[MetricOperationType, str, Optional[Sequence[str]]]:
         parsed_field = self._parse_field(self.field)
-        if parsed_field is None:
-            raise Exception(f"Unable to parse the field {self.field}")
-
         op = self._get_op(parsed_field.function, parsed_field.arguments)
         metric_type = self._get_metric_type(parsed_field.function)
 
         return op, metric_type, self._parse_arguments(op, metric_type, parsed_field)
 
     def _process_query(self) -> Optional[RuleCondition]:
-        parsed_field = self._parse_field(self.field)
-        if parsed_field is None:
-            raise Exception(f"Unable to parse the field {self.field}")
-
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
-        # Second step is to extract the conditions that might be present in the aggregate function.
-        aggregate_conditions = self._aggregate_conditions(parsed_field)
-
-        # An on demand metric must have at least a condition, otherwise we can just use a classic metric.
-        if parsed_query is None or len(parsed_query.conditions) == 0:
-            if aggregate_conditions is None:
-                # derived metrics have their conditions injected in the tags
-                if self._get_op(parsed_field.function, parsed_field.arguments) in _DERIVED_METRICS:
-                    return None
-
-                raise Exception("This query should not use on demand metrics")
-
-            return aggregate_conditions
-
-        # We extend the parsed query with other conditions that we want to inject externally from the query. For now
-        # we support only the environment.
+        # We extend the parsed query with other conditions that we want to inject externally from the query.
         parsed_query = self._extend_parsed_query(parsed_query)
 
-        # Third step is to generate the actual Relay rule that contains all rules nested.
-        rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
+        # Second step is to extract the conditions that might be present in the aggregate function (e.g. count_if).
+        parsed_field = self._parse_field(self.field)
+        aggregate_conditions = self._aggregate_conditions(parsed_field)
+
+        # In case we have an empty query, but we have some conditions from the aggregate, we can just return them.
+        if parsed_query.is_empty() and aggregate_conditions:
+            return aggregate_conditions
+
+        try:
+            # Third step is to generate the actual Relay rule that contains all rules nested. We assume that the query
+            # being passed here, can be satisfied ONLY by on demand metrics.
+            rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
+        except Exception as exc:
+            if not parsed_query.is_empty():
+                logger.error(f"Error while converting search query '{self.query}'", exc_info=exc)
+
+            return None
+
+        # If we don't have to merge the aggregate, we can just return the parsed rules.
         if not aggregate_conditions:
             return rule_condition
 
@@ -1036,7 +1050,6 @@ class OnDemandMetricSpec:
                     value=SearchValue(raw_value=self.environment),
                 )
             )
-            new_conditions.append("AND")
 
         extended_conditions = new_conditions + conditions
         return QueryParsingResult(
@@ -1097,7 +1110,7 @@ class OnDemandMetricSpec:
         raise Exception(f"Unsupported aggregate function {function}")
 
     @staticmethod
-    def _parse_field(value: str) -> Optional[FieldParsingResult]:
+    def _parse_field(value: str) -> FieldParsingResult:
         try:
             match = fields.is_function(value)
             if not match:
@@ -1108,19 +1121,18 @@ class OnDemandMetricSpec:
                 return FieldParsingResult(function=function, arguments=arguments, alias=alias)
             column = query_builder.resolve_column(value)
             return column
-
-        except InvalidSearchQuery:
-            return None
+        except InvalidSearchQuery as e:
+            raise Exception(f"Unable to parse the field '{value}' in on demand spec: {e}")
 
     @staticmethod
-    def _parse_query(value: str) -> Optional[QueryParsingResult]:
+    def _parse_query(value: str) -> QueryParsingResult:
         """Parse query string into our internal AST format."""
         try:
             conditions = event_search.parse_search_query(value)
             clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
             return QueryParsingResult(conditions=clean_conditions)
-        except InvalidSearchQuery:
-            return None
+        except InvalidSearchQuery as e:
+            raise Exception(f"Invalid search query '{value}' in on demand spec: {e}")
 
 
 def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:

@@ -407,6 +407,7 @@ class WebhookProviderIdentifier(IntEnum):
     BITBUCKET_SERVER = 9
     LEGACY_PLUGIN = 10
     GETSENTRY = 11
+    DISCORD = 12
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:

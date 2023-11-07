@@ -3,9 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import Alert from 'sentry/components/alert';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
@@ -17,8 +20,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import useRouter from 'sentry/utils/useRouter';
+import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
+import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -97,6 +103,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const {selection} = pageFilter;
   const location = useLocation();
   const theme = useTheme();
+  const organization = useOrganization();
   const {query: locationQuery} = location;
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
@@ -107,11 +114,19 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
+  const router = useRouter();
+
   const query = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
     ...(additionalFilters ?? []),
   ]);
+
+  const searchQuery = decodeScalar(locationQuery.query, '');
+  if (searchQuery) {
+    query.addStringFilter(prepareQueryForLandingPage(searchQuery, false));
+  }
+
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
   const orderby = decodeScalar(locationQuery.sort, `-count`);
@@ -134,7 +149,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   newQuery.orderby = orderby;
   const tableEventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  useSynchronizeCharts();
   const {
     data: topTransactionsData,
     isLoading: topTransactionsLoading,
@@ -145,7 +159,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   });
 
   const topTransactions =
-    topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction) ?? [];
+    topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction as string) ??
+    [];
 
   const topEventsQuery = new MutableSearch([
     'event.type:transaction',
@@ -170,10 +185,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
         query: topEventsQueryString,
         dataset: DiscoverDatasets.METRICS,
         version: 2,
-        interval: getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        ),
       },
       location
     ),
@@ -201,7 +212,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   });
 
   if (isReleasesLoading) {
-    return <LoadingContainer />;
+    return (
+      <LoadingContainer>
+        <LoadingIndicator />
+      </LoadingContainer>
+    );
   }
 
   const transformedReleaseEvents: {
@@ -244,7 +259,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   const topTransactionsIndex = Object.fromEntries(topTransactions.map((e, i) => [e, i]));
 
-  if (defined(releaseEvents)) {
+  if (defined(releaseEvents) && defined(primaryRelease)) {
     releaseEvents.data?.forEach(row => {
       const release = row.release;
       const isPrimary = release === primaryRelease;
@@ -258,7 +273,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             color: isPrimary
               ? theme.charts.getColorPalette(TOP_SCREENS - 2)[index]
               : Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-                  .lighten(0.5)
+                  .lighten(0.3)
                   .string(),
           },
         } as SeriesDataUnit;
@@ -266,7 +281,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     });
   }
 
-  if (defined(deviceClassEvents)) {
+  if (defined(deviceClassEvents) && defined(primaryRelease)) {
     deviceClassEvents.data?.forEach(row => {
       const deviceClass = row['device.class'];
       const transaction = row.transaction;
@@ -279,17 +294,17 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
           case 'medium':
             return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.2)
+              .lighten(0.1)
               .string();
 
           case 'low':
             return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.4)
+              .lighten(0.2)
               .string();
 
           default:
             return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.6)
+              .lighten(0.3)
               .string();
         }
       }
@@ -306,8 +321,21 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     });
   }
 
+  const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
+
+  const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
+
   return (
     <div data-test-id="starfish-mobile-view">
+      {!defined(primaryRelease) &&
+        !isReleaseEventsLoading &&
+        !isDeviceClassEventsLoading && (
+          <Alert type="warning" showIcon>
+            {t(
+              'No screens found on recent releases. Please try a single iOS or Android project or a smaller date range.'
+            )}
+          </Alert>
+        )}
       <ChartsContainer>
         <Fragment>
           <ChartsContainerItem key="release">
@@ -316,11 +344,13 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                 return {
                   title: t('%s by Release', CHART_TITLES[yAxis]),
                   yAxis: YAXIS_COLUMNS[yAxis],
+                  xAxisLabel: topTransactions,
                   series: Object.values(transformedReleaseEvents[YAXIS_COLUMNS[yAxis]]),
                 };
               })}
               chartHeight={chartHeight ?? 180}
               isLoading={isReleaseEventsLoading}
+              chartKey="screensChart1"
             />
           </ChartsContainerItem>
 
@@ -330,15 +360,38 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                 return {
                   title: t('%s by Device Class', CHART_TITLES[yAxis]),
                   yAxis: YAXIS_COLUMNS[yAxis],
+                  xAxisLabel: topTransactions,
                   series: Object.values(transformedDeviceEvents[YAXIS_COLUMNS[yAxis]]),
                 };
               })}
               chartHeight={chartHeight ?? 180}
               isLoading={isDeviceClassEventsLoading}
+              chartKey="screensChart2"
             />
           </ChartsContainerItem>
         </Fragment>
       </ChartsContainer>
+      <StyledSearchBar
+        eventView={tableEventView}
+        onSearch={search => {
+          router.push({
+            pathname: router.location.pathname,
+            query: {
+              ...location.query,
+              cursor: undefined,
+              query: String(search).trim() || undefined,
+            },
+          });
+        }}
+        organization={organization}
+        query={getFreeTextFromQuery(derivedQuery)}
+        placeholder={t('Search for Screens')}
+        additionalConditions={
+          new MutableSearch(
+            appendReleaseFilters(tableSearchFilters, primaryRelease, secondaryRelease)
+          )
+        }
+      />
       <ScreensTable
         eventView={tableEventView}
         data={topTransactionsData}
@@ -347,6 +400,20 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
       />
     </div>
   );
+}
+
+function getFreeTextFromQuery(query: string) {
+  const conditions = new MutableSearch(query);
+  const transactionValues = conditions.getFilterValues('transaction');
+  if (transactionValues.length) {
+    return transactionValues[0];
+  }
+  if (conditions.freeText.length > 0) {
+    // raw text query will be wrapped in wildcards in generatePerformanceEventView
+    // so no need to wrap it here
+    return conditions.freeText.join(' ');
+  }
+  return '';
 }
 
 const ChartsContainer = styled('div')`
@@ -362,4 +429,8 @@ const ChartsContainerItem = styled('div')`
 
 export const Spacer = styled('div')`
   margin-top: ${space(3)};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  margin-bottom: ${space(1)};
 `;

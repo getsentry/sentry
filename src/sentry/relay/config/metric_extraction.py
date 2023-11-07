@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 # GENERIC METRIC EXTRACTION
 
 # Version of the metric extraction config.
-_METRIC_EXTRACTION_VERSION = 1
+_METRIC_EXTRACTION_VERSION = 2
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
@@ -60,6 +60,7 @@ class MetricExtractionConfig(TypedDict):
     metrics: List[MetricSpec]
 
 
+@metrics.wraps("on_demand_metrics.get_metric_extraction_config")
 def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
     """
     Returns generic metric extraction config for the given project.
@@ -103,6 +104,7 @@ def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
     return enabled_features
 
 
+@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
 def _get_alert_metric_specs(
     project: Project, enabled_features: Set[str], prefilling: bool
 ) -> List[HashedMetricSpec]:
@@ -129,27 +131,29 @@ def _get_alert_metric_specs(
     )
 
     specs = []
-    for alert in alert_rules:
-        alert_snuba_query = alert.snuba_query
-        metrics.incr(
-            "on_demand_metrics.before_alert_spec_generation",
-            tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
-        )
-        if result := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
-            _log_on_demand_metric_spec(
-                project_id=project.id,
-                spec_for="alert",
-                spec=result,
-                id=alert.id,
-                field=alert_snuba_query.aggregate,
-                query=alert_snuba_query.query,
-                prefilling=prefilling,
-            )
+    with metrics.timer("on_demand_metrics.alert_spec_convert"):
+        for alert in alert_rules:
+            alert_snuba_query = alert.snuba_query
             metrics.incr(
-                "on_demand_metrics.on_demand_spec.for_alert",
-                tags={"prefilling": prefilling},
+                "on_demand_metrics.before_alert_spec_generation",
+                tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
             )
-            specs.append(result)
+
+            if result := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
+                _log_on_demand_metric_spec(
+                    project_id=project.id,
+                    spec_for="alert",
+                    spec=result,
+                    id=alert.id,
+                    field=alert_snuba_query.aggregate,
+                    query=alert_snuba_query.query,
+                    prefilling=prefilling,
+                )
+                metrics.incr(
+                    "on_demand_metrics.on_demand_spec.for_alert",
+                    tags={"prefilling": prefilling},
+                )
+                specs.append(result)
 
     max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
     if len(specs) > max_alert_specs:
@@ -161,13 +165,11 @@ def _get_alert_metric_specs(
     return specs
 
 
+@metrics.wraps("on_demand_metrics._get_widget_metric_specs")
 def _get_widget_metric_specs(
     project: Project, enabled_features: Set[str], prefilling: bool
 ) -> List[HashedMetricSpec]:
-    if not (
-        "organizations:on-demand-metrics-extraction" in enabled_features
-        and "organizations:on-demand-metrics-extraction-widgets" in enabled_features
-    ):
+    if "organizations:on-demand-metrics-extraction-widgets" not in enabled_features:
         return []
 
     metrics.incr(
@@ -182,9 +184,10 @@ def _get_widget_metric_specs(
     )
 
     specs = []
-    for widget in widget_queries:
-        for result in _convert_widget_query_to_metric(project, widget, prefilling):
-            specs.append(result)
+    with metrics.timer("on_demand_metrics.widget_spec_convert"):
+        for widget in widget_queries:
+            for result in _convert_widget_query_to_metric(project, widget, prefilling):
+                specs.append(result)
 
     max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
     if len(specs) > max_widget_specs:
@@ -196,6 +199,7 @@ def _get_widget_metric_specs(
     return specs
 
 
+@metrics.wraps("on_demand_metrics._merge_metric_specs")
 def _merge_metric_specs(
     alert_specs: List[HashedMetricSpec], widget_specs: List[HashedMetricSpec]
 ) -> List[MetricSpec]:
@@ -287,7 +291,7 @@ def _convert_widget_query_to_metric(
 
 def _get_widget_cardinality_query_ttl():
     # Add ttl + 25% jitter to query so queries aren't all made at once.
-    return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.25))
+    return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.5))
 
 
 def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project):
@@ -297,7 +301,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
     New queries will be checked upon creation and not allowed at that time.
     """
-    params: dict[str, Any] = {
+    params: Dict[str, Any] = {
         "statsPeriod": "1d",
         "project_objects": [project],
         "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
@@ -310,7 +314,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     if query_killswitch:
         return False
 
-    if len(widget_query.columns) == 0:
+    if not widget_query.columns:
         # No columns means no high-cardinality tags.
         return True
 
@@ -332,20 +336,29 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         ),
     )
 
-    results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
-    processed_results = query_builder.process_results(results)
-
     try:
-        for index, column in enumerate(widget_query.columns):
-            count = processed_results["data"][0][unique_columns[index]]
-            if count > max_cardinality_allowed:
-                cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
-                raise HighCardinalityWidgetException(
-                    f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
-                )
-    except HighCardinalityWidgetException as error:
+        results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
+        processed_results = query_builder.process_results(results)
+    except Exception as error:
         sentry_sdk.capture_exception(error)
+        cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
         return False
+
+    with sentry_sdk.push_scope() as scope:
+        try:
+            for index, column in enumerate(widget_query.columns):
+                count = processed_results["data"][0][unique_columns[index]]
+                if count > max_cardinality_allowed:
+                    cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
+                    scope.set_tag("column_name", column)
+                    scope.set_tag("widget_id", widget_query.id)
+                    scope.set_tag("org_id", project.organization_id)
+                    raise HighCardinalityWidgetException(
+                        f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
+                    )
+        except HighCardinalityWidgetException as error:
+            sentry_sdk.capture_exception(error)
+            return False
 
     cache.set(cache_key, True)
     return True

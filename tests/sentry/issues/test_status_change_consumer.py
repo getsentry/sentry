@@ -1,19 +1,16 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, Dict
 
 from sentry.issues.occurrence_consumer import _process_message
-from sentry.models.group import GroupStatus
-from sentry.models.grouphash import GroupHash
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.models.group import Group, GroupStatus
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
-from tests.sentry.issues.test_occurrence_consumer import IssueOccurrenceTestBase
+from tests.sentry.issues.test_occurrence_consumer import IssueOccurrenceTestBase, get_test_message
 
 
-def get_test_message(
+def get_test_message_status_change(
     project_id: int,
     fingerprint: list[str] | None = None,
     new_status: int = GroupStatus.RESOLVED,
@@ -32,24 +29,22 @@ def get_test_message(
 
 @apply_feature_flag_on_cls("organizations:issue-platform-api-crons-sd")
 class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
+    @django_db_all
     def setUp(self):
         super().setUp()
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "oh no",
-                "timestamp": iso_format(datetime.now()),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
-        group = event.group
-        assert group
-        self.group_hash = GroupHash.objects.filter(group=group, project=self.project).first()
+        message = get_test_message(self.project.id)
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+
+        occurrence = result[0]
+        assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
+
+        self.fingerprint = ["touch-id"]
 
     @django_db_all
-    def test_valid_payloa_resolved(self) -> None:
-        message = get_test_message(self.project.id, fingerprint=[self.group_hash.hash])
+    def test_valid_payload_resolved(self) -> None:
+        message = get_test_message_status_change(self.project.id, fingerprint=["touch-id"])
         result = _process_message(message)
         assert result is not None
         group_info = result[1]
@@ -61,9 +56,9 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         assert group.substatus is None
 
     def test_valid_payload_archived_forever(self) -> None:
-        message = get_test_message(
+        message = get_test_message_status_change(
             self.project.id,
-            fingerprint=[self.group_hash.hash],
+            fingerprint=self.fingerprint,
             new_status=GroupStatus.IGNORED,
             new_substatus=GroupSubStatus.FOREVER,
         )
@@ -76,3 +71,20 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
 
         assert group.status == GroupStatus.IGNORED
         assert group.substatus == GroupSubStatus.FOREVER
+
+    def test_valid_payload_unresolved_escalating(self) -> None:
+        message = get_test_message_status_change(
+            self.project.id,
+            fingerprint=self.fingerprint,
+            new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.ESCALATING,
+        )
+        result = _process_message(message)
+        assert result is not None
+        group_info = result[1]
+        assert group_info is not None
+        group = group_info.group
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ESCALATING

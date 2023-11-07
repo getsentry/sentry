@@ -1,9 +1,11 @@
-import {CSSProperties, forwardRef} from 'react';
+import {CSSProperties, forwardRef, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
+import ErrorLevel from 'sentry/components/events/errorLevel';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -14,6 +16,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCircleFill, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Level} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -23,8 +26,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   feedbackItem: FeedbackIssue;
-  isChecked: boolean;
-  onChecked: (isChecked: boolean) => void;
+  isSelected: 'all-selected' | boolean;
+  onSelect: (isSelected: boolean) => void;
   className?: string;
   style?: CSSProperties;
 }
@@ -38,15 +41,16 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 }
 
 const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
-  ({className, feedbackItem, isChecked, onChecked, style}: Props, ref) => {
+  ({className, feedbackItem, isSelected, onSelect, style}: Props, ref) => {
     const organization = useOrganization();
-    const isSelected = useIsSelectedFeedback({feedbackItem});
+    const isOpen = useIsSelectedFeedback({feedbackItem});
     const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
 
     return (
       <CardSpacing className={className} style={style} ref={ref}>
+        <GroupLevel level={feedbackItem.level} />
         <LinkedFeedbackCard
-          data-selected={isSelected}
+          data-selected={isOpen}
           to={() => {
             const location = browserHistory.getCurrentLocation();
             return {
@@ -65,48 +69,45 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <InteractionStateLayer />
           <Flex column style={{gridArea: 'checkbox'}}>
             <Checkbox
-              checked={isChecked}
-              onChange={e => onChecked(e.target.checked)}
+              disabled={isSelected === 'all-selected'}
+              checked={isSelected !== false}
+              onChange={e => onSelect(e.target.checked)}
               onClick={e => e.stopPropagation()}
+              invertColors={isOpen}
             />
-          </Flex>
-          <Flex column style={{gridArea: 'right'}}>
-            {''}
           </Flex>
           <TextOverflow>
             <span style={{gridArea: 'user'}}>
-              <FeedbackItemUsername feedbackItem={feedbackItem} detailDisplay={false} />
+              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay={false} />
             </span>
           </TextOverflow>
           <span style={{gridArea: 'time'}}>
             <TimeSince date={feedbackItem.firstSeen} />
           </span>
-          {feedbackItem.hasSeen ? null : (
-            <span
-              style={{
-                gridArea: 'unread',
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              <IconCircleFill size="xs" color="purple300" />
-            </span>
-          )}
+          <Flex justify="center" style={{gridArea: 'unread'}}>
+            {feedbackItem.hasSeen ? null : (
+              <IconCircleFill size="xs" color={isOpen ? 'white' : 'purple400'} />
+            )}
+          </Flex>
           <div style={{gridArea: 'message'}}>
             <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
+          </div>
+          <div style={{gridArea: 'assigned', display: 'flex', justifyContent: 'end'}}>
+            {feedbackItem.assignedTo ? (
+              <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
+            ) : null}
           </div>
           <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
             <Flex align="center" gap={space(0.5)}>
               <ProjectAvatar project={feedbackItem.project} size={12} />
-              {feedbackItem.project.slug}
+              <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
+              {hasReplayId ? (
+                <Fragment>
+                  <IconPlay size="xs" />
+                  {t('Replay')}
+                </Fragment>
+              ) : null}
             </Flex>
-
-            {hasReplayId ? (
-              <Flex align="center" gap={space(0.5)}>
-                <IconPlay size="xs" />
-                {t('Replay')}
-              </Flex>
-            ) : null}
           </Flex>
         </LinkedFeedbackCard>
       </CardSpacing>
@@ -115,13 +116,13 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 );
 
 const CardSpacing = styled('div')`
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${space(0.25)} ${space(1)} ${space(0.25)} 10px;
 `;
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1.5)};
+  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(0.75)};
 
   color: ${p => p.theme.textColor};
   &:hover {
@@ -138,10 +139,26 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-areas:
     'checkbox user time'
     'unread message message'
-    'right icons icons';
+    '. icons assigned';
   gap: ${space(1)};
   place-items: stretch;
   align-items: center;
+`;
+
+const ProjectOverflow = styled('span')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 150px;
+`;
+
+const GroupLevel = styled(ErrorLevel)<{level: Level}>`
+  position: absolute;
+  left: -2px;
+  top: 13px;
+  width: 9px;
+  height: 15px;
+  border-radius: 0 3px 3px 0;
 `;
 
 export default FeedbackListItem;

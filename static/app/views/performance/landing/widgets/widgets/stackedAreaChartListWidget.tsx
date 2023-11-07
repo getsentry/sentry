@@ -1,12 +1,16 @@
 import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import Accordion from 'sentry/components/accordion/accordion';
+import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {
@@ -16,6 +20,7 @@ import {
 } from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   canUseMetricsData,
   useMEPSettingContext,
@@ -24,11 +29,19 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
+import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
+import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
+import {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsTimeseriesQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
+import Chart from 'sentry/views/starfish/components/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {
@@ -45,6 +58,7 @@ import {
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
 } from '../utils';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
@@ -58,41 +72,79 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
   const pageError = usePageError();
   const theme = useTheme();
-
   const colors = [...theme.charts.getColorPalette(5)].reverse();
+  const field = fields[0];
+
+  // TODO Abdullah Khan: Create a new widget type/file for Best Page Opportunity
+  // Web vitals widget. Code path is very different from generic stacked area chart widget.
+  const {data: projectData, isLoading: isProjectWebVitalDataLoading} =
+    useProjectWebVitalsQuery();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
       fields,
       component: provided => {
         const eventView = provided.eventView.clone();
+        let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
 
-        eventView.fields = [
-          {field: 'transaction'},
-          {field: 'team_key_transaction'},
-          {field: 'count()'},
-          {field: 'project.id'},
-          ...fields.map(f => ({field: f})),
-        ];
+        if (props.chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES) {
+          // Set fields
+          eventView.fields = [
+            {field: 'transaction'},
+            {field: 'transaction.op'},
+            {field: 'project.id'},
+            {field: 'p75(measurements.lcp)'},
+            {field: 'p75(measurements.fcp)'},
+            {field: 'p75(measurements.cls)'},
+            {field: 'p75(measurements.ttfb)'},
+            {field: 'p75(measurements.fid)'},
+            {field},
+          ];
 
-        eventView.sorts = [
-          {kind: 'desc', field: 'team_key_transaction'},
-          {kind: 'desc', field: 'count()'},
-        ];
+          // Set Metrics
+          eventView.dataset = DiscoverDatasets.METRICS;
+          extraQueryParams = {
+            ...extraQueryParams,
+            dataset: DiscoverDatasets.METRICS,
+          };
 
-        if (canUseMetricsData(organization)) {
-          eventView.additionalConditions.setFilterValues('!transaction', [
-            UNPARAMETERIZED_TRANSACTION,
-          ]);
+          eventView.sorts = [{kind: 'desc', field}];
+
+          // Update query
+          const mutableSearch = new MutableSearch(eventView.query);
+          mutableSearch.removeFilter('event.type');
+          eventView.additionalConditions.removeFilter('event.type');
+          mutableSearch.addFilterValue('transaction.op', 'pageload');
+          eventView.query = mutableSearch.formatString();
+        } else {
+          eventView.fields = [
+            {field: 'transaction'},
+            {field: 'team_key_transaction'},
+            {field: 'count()'},
+            {field: 'project.id'},
+            ...fields.map(f => ({field: f})),
+          ];
+
+          eventView.sorts = [
+            {kind: 'desc', field: 'team_key_transaction'},
+            {kind: 'desc', field: 'count()'},
+          ];
+
+          if (canUseMetricsData(organization)) {
+            eventView.additionalConditions.setFilterValues('!transaction', [
+              UNPARAMETERIZED_TRANSACTION,
+            ]);
+          }
+          const mutableSearch = new MutableSearch(eventView.query);
+          mutableSearch.removeFilter('transaction.duration');
+
+          eventView.query = mutableSearch.formatString();
+
+          // Don't retrieve list items with 0 in the field.
+          eventView.additionalConditions.setFilterValues('count()', ['>0']);
+          eventView.additionalConditions.setFilterValues('!transaction.op', ['']);
         }
-        const mutableSearch = new MutableSearch(eventView.query);
-        mutableSearch.removeFilter('transaction.duration');
 
-        eventView.query = mutableSearch.formatString();
-
-        // Don't retrieve list items with 0 in the field.
-        eventView.additionalConditions.setFilterValues('count()', ['>0']);
-        eventView.additionalConditions.setFilterValues('!transaction.op', ['']);
         return (
           <DiscoverQuery
             {...provided}
@@ -101,7 +153,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             limit={QUERY_LIMIT_PARAM}
             cursor="0:0:1"
             noPagination
-            queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
+            queryExtras={extraQueryParams}
           />
         );
       },
@@ -120,49 +172,88 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
         fields,
         component: provided => {
           const eventView = props.eventView.clone();
+          let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+          const pageFilterDatetime = {
+            start: provided.start,
+            end: provided.end,
+            period: provided.period,
+          };
+
+          // Chart options
+          let currentSeriesNames = [field];
+          let yAxis = provided.yAxis;
+          const interval = getInterval(pageFilterDatetime, 'low');
+
           if (!provided.widgetData.list.data[selectedListIndex]?.transaction) {
             return null;
           }
 
-          // Skip character escaping because generating the query for EventsRequest
-          // downstream will already handle escaping
-          eventView.additionalConditions.setFilterValues(
-            'transaction',
-            [provided.widgetData.list.data[selectedListIndex].transaction as string],
-            false
-          );
+          if (props.chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES) {
+            // Update request params
+            eventView.dataset = DiscoverDatasets.METRICS;
+            extraQueryParams = {
+              ...extraQueryParams,
+              dataset: DiscoverDatasets.METRICS,
+              excludeOther: false,
+              per_page: 50,
+            };
+            eventView.fields = [];
 
-          if (canUseMetricsData(organization)) {
-            eventView.additionalConditions.setFilterValues('!transaction', [
-              UNPARAMETERIZED_TRANSACTION,
-            ]);
+            // Update chart options
+            yAxis = [
+              'p75(measurements.lcp)',
+              'p75(measurements.fcp)',
+              'p75(measurements.cls)',
+              'p75(measurements.ttfb)',
+              'p75(measurements.fid)',
+              'count()',
+            ];
+
+            // Update search query
+            eventView.additionalConditions.removeFilter('event.type');
+            eventView.additionalConditions.addFilterValue('transaction.op', 'pageload');
+            const mutableSearch = new MutableSearch(eventView.query);
+            mutableSearch.addFilterValue(
+              'transaction',
+              provided.widgetData.list.data[selectedListIndex].transaction.toString()
+            );
+            eventView.query = mutableSearch.formatString();
+          } else {
+            // Skip character escaping because generating the query for EventsRequest
+            // downstream will already handle escaping
+            eventView.additionalConditions.setFilterValues(
+              'transaction',
+              [provided.widgetData.list.data[selectedListIndex].transaction as string],
+              false
+            );
+
+            if (canUseMetricsData(organization)) {
+              eventView.additionalConditions.setFilterValues('!transaction', [
+                UNPARAMETERIZED_TRANSACTION,
+              ]);
+            }
+            const listResult = provided.widgetData.list.data[selectedListIndex];
+            const nonEmptySpanOpFields = Object.entries(listResult)
+              .filter(result => fields.includes(result[0]) && result[1] !== 0)
+              .map(result => result[0]);
+            currentSeriesNames = nonEmptySpanOpFields;
+            yAxis = nonEmptySpanOpFields;
           }
-          const listResult = provided.widgetData.list.data[selectedListIndex];
-          const nonEmptySpanOpFields = Object.entries(listResult)
-            .filter(result => fields.includes(result[0]) && result[1] !== 0)
-            .map(result => result[0]);
-          const prunedProvided = {...provided, yAxis: nonEmptySpanOpFields};
 
           return (
             <EventsRequest
-              {...pick(prunedProvided, eventsRequestQueryProps)}
+              {...pick(provided, eventsRequestQueryProps)}
               limit={5}
+              yAxis={yAxis}
               includePrevious={false}
               includeTransformedData
               partial
-              currentSeriesNames={nonEmptySpanOpFields}
+              currentSeriesNames={currentSeriesNames}
               query={eventView.getQueryWithAdditionalConditions()}
-              interval={getInterval(
-                {
-                  start: prunedProvided.start,
-                  end: prunedProvided.end,
-                  period: prunedProvided.period,
-                },
-                'low'
-              )}
+              interval={interval}
               hideError
               onError={pageError.setPageError}
-              queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
+              queryExtras={extraQueryParams}
             />
           );
         },
@@ -183,6 +274,91 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
 
   const getAreaChart = provided =>
     function () {
+      if (props.chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES) {
+        const segmentColors = theme.charts.getColorPalette(3);
+
+        const formattedWebVitalsScoreBreakdown: WebVitalsScoreBreakdown = {
+          lcp: [],
+          fcp: [],
+          cls: [],
+          ttfb: [],
+          fid: [],
+          total: [],
+        };
+
+        const getWebVitalValue = (webVital: WebVitals, rowIndex: number): number =>
+          provided.widgetData.chart.data?.find(
+            series => series.seriesName === `p75(measurements.${webVital})`
+          ).data[rowIndex].value;
+
+        provided.widgetData.chart.data
+          ?.find(series => series.seriesName === 'p75(measurements.lcp)')
+          ?.data.forEach((dataRow, index) => {
+            const lcp: number = getWebVitalValue('lcp', index);
+            const fcp: number = getWebVitalValue('fcp', index);
+            const cls: number = getWebVitalValue('cls', index);
+            const ttfb: number = getWebVitalValue('ttfb', index);
+            const fid: number = getWebVitalValue('fid', index);
+
+            // // This is kinda jank, but since events-stats zero fills, we need to assume that 0 values mean no data.
+            // // 0 value for a webvital is low frequency, but not impossible. We may need to figure out a better way to handle this in the future.
+            const {totalScore, lcpScore, fcpScore, fidScore, clsScore, ttfbScore} =
+              calculatePerformanceScore({
+                lcp: lcp === 0 ? Infinity : lcp,
+                fcp: fcp === 0 ? Infinity : fcp,
+                cls: cls === 0 ? Infinity : cls,
+                ttfb: ttfb === 0 ? Infinity : ttfb,
+                fid: fid === 0 ? Infinity : fid,
+              });
+
+            formattedWebVitalsScoreBreakdown.total.push({
+              value: totalScore,
+              name: dataRow.name,
+            });
+            formattedWebVitalsScoreBreakdown.cls.push({
+              value: clsScore,
+              name: dataRow.name,
+            });
+            formattedWebVitalsScoreBreakdown.lcp.push({
+              value: lcpScore,
+              name: dataRow.name,
+            });
+            formattedWebVitalsScoreBreakdown.fcp.push({
+              value: fcpScore,
+              name: dataRow.name,
+            });
+            formattedWebVitalsScoreBreakdown.ttfb.push({
+              value: ttfbScore,
+              name: dataRow.name,
+            });
+            formattedWebVitalsScoreBreakdown.fid.push({
+              value: fidScore,
+              name: dataRow.name,
+            });
+          });
+        return (
+          <Chart
+            stacked
+            height={props.chartHeight}
+            data={formatTimeSeriesResultsToChartData(
+              formattedWebVitalsScoreBreakdown,
+              segmentColors
+            )}
+            disableXAxis
+            loading={false}
+            utc={false}
+            grid={{
+              left: 5,
+              right: 5,
+              top: 5,
+              bottom: 0,
+            }}
+            dataMax={100}
+            chartColors={segmentColors}
+          />
+        );
+      }
+
       const durationUnit = getDurationUnit(provided.widgetData.chart.data);
       return (
         <StackedAreaChart
@@ -223,6 +399,58 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
       listItem =>
         function () {
           const transaction = (listItem.transaction as string | undefined) ?? '';
+          const count = projectData?.data[0]['count()'] as number;
+          if (props.chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES) {
+            const projectScore = calculatePerformanceScore({
+              lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
+              fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
+              cls: projectData?.data[0]['p75(measurements.cls)'] as number,
+              ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
+              fid: projectData?.data[0]['p75(measurements.fid)'] as number,
+            });
+            const rowScore = calculatePerformanceScore({
+              lcp: listItem['p75(measurements.lcp)'] as number,
+              fcp: listItem['p75(measurements.fcp)'] as number,
+              cls: listItem['p75(measurements.cls)'] as number,
+              ttfb: listItem['p75(measurements.ttfb)'] as number,
+              fid: listItem['p75(measurements.fid)'] as number,
+            });
+            const opportunity = calculateOpportunity(
+              projectScore.totalScore,
+              count,
+              rowScore.totalScore,
+              listItem['count()']
+            );
+            return (
+              <Fragment>
+                <GrowLink
+                  to={{
+                    pathname: '/performance/browser/pageloads/overview/',
+                    query: {...location.query, transaction},
+                  }}
+                >
+                  <Truncate value={transaction} maxLength={40} />
+                </GrowLink>
+                <StyledRightAlignedCell>
+                  <PerformanceBadge score={rowScore.totalScore} />
+                  {isProjectWebVitalDataLoading ? (
+                    <StyledLoadingIndicator size={20} />
+                  ) : (
+                    <Tooltip
+                      title={t(
+                        'The opportunity to improve your cumulative performance score.'
+                      )}
+                      isHoverable
+                      showUnderline
+                      skipWrapper
+                    >
+                      {opportunity}
+                    </Tooltip>
+                  )}
+                </StyledRightAlignedCell>
+              </Fragment>
+            );
+          }
 
           const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
           const transactionTarget = isUnparameterizedRow
@@ -254,16 +482,36 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
         }
     );
 
+  const getContainerActions = provided => {
+    return props.chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES ? (
+      <Fragment>
+        <div>
+          <LinkButton
+            to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
+            size="sm"
+          >
+            {t('View All')}
+          </LinkButton>
+        </div>
+        {ContainerActions && (
+          <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
+        )}
+      </Fragment>
+    ) : (
+      ContainerActions && (
+        <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
+      )
+    );
+  };
+
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
       location={location}
-      Subtitle={() => <Subtitle>{t('P75 in Top Transactions')}</Subtitle>}
-      HeaderActions={provided =>
-        ContainerActions && (
-          <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
-        )
-      }
+      Subtitle={() => (
+        <Subtitle>{props.subTitle ?? t('P75 in Top Transactions')}</Subtitle>
+      )}
+      HeaderActions={provided => getContainerActions(provided)}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />
@@ -288,4 +536,15 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   );
 }
 
+const StyledRightAlignedCell = styled(RightAlignedCell)`
+  justify-content: space-between;
+  width: 115px;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  &,
+  .loading-message {
+    margin: 0;
+  }
+`;
 const EventsRequest = withApi(_EventsRequest);
