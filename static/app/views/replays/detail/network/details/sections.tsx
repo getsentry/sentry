@@ -9,6 +9,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils';
 import {
+  NetworkMetaWarning,
+  ReplayNetworkRequestOrResponse,
+} from 'sentry/utils/replays/replay';
+import {
   getFrameMethod,
   getFrameStatus,
   getReqRespContentTypes,
@@ -24,6 +28,7 @@ import {
   Warning,
 } from 'sentry/views/replays/detail/network/details/components';
 import {useDismissReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
+import {fixJson} from 'sentry/views/replays/detail/network/truncateJson/fixJson';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 export type SectionProps = {
@@ -38,9 +43,6 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
   const {setCurrentTime} = useReplayContext();
 
   const requestFrame = isRequestFrame(item) ? item : null;
-
-  // TODO[replay]: what about:
-  // `requestFrame?.data?.request?.size` vs. `requestFrame?.data?.requestBodySize`
 
   const data: KeyValueTuple[] = [
     {key: t('URL'), value: item.description},
@@ -179,6 +181,8 @@ export function RequestPayloadSection({item}: SectionProps) {
   const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
   const data = useMemo(() => (isRequestFrame(item) ? item.data : {}), [item]);
+  const {warnings, body} = getBodyAndWarnings(data.request);
+
   useEffect(() => {
     if (!isDismissed && 'request' in data) {
       dismiss();
@@ -195,9 +199,9 @@ export function RequestPayloadSection({item}: SectionProps) {
       }
     >
       <Indent>
-        <Warning warnings={data.request?._meta?.warnings} />
+        <Warning warnings={warnings} />
         {'request' in data ? (
-          <ObjectInspector data={data.request?.body} expandLevel={2} showCopyButton />
+          <ObjectInspector data={body} expandLevel={2} showCopyButton />
         ) : (
           t('Request body not found.')
         )}
@@ -210,6 +214,8 @@ export function ResponsePayloadSection({item}: SectionProps) {
   const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
   const data = useMemo(() => (isRequestFrame(item) ? item.data : {}), [item]);
+  const {warnings, body} = getBodyAndWarnings(data.response);
+
   useEffect(() => {
     if (!isDismissed && 'response' in data) {
       dismiss();
@@ -226,13 +232,39 @@ export function ResponsePayloadSection({item}: SectionProps) {
       }
     >
       <Indent>
-        <Warning warnings={data?.response?._meta?.warnings} />
+        <Warning warnings={warnings} />
         {'response' in data ? (
-          <ObjectInspector data={data.response?.body} expandLevel={2} showCopyButton />
+          <ObjectInspector data={body} expandLevel={2} showCopyButton />
         ) : (
           t('Response body not found.')
         )}
       </Indent>
     </SectionItem>
   );
+}
+
+function getBodyAndWarnings(reqOrRes?: ReplayNetworkRequestOrResponse): {
+  body: ReplayNetworkRequestOrResponse['body'];
+  warnings: NetworkMetaWarning[];
+} {
+  if (!reqOrRes) {
+    return {body: undefined, warnings: []};
+  }
+
+  const warnings = reqOrRes._meta?.warnings ?? [];
+  let body = reqOrRes.body;
+
+  if (typeof body === 'string' && warnings.includes('MAYBE_JSON_TRUNCATED')) {
+    try {
+      const json = fixJson(body);
+      body = JSON.parse(json);
+      warnings.push('JSON_TRUNCATED');
+    } catch {
+      // this can fail, in which case we just use the body string
+      warnings.push('INVALID_JSON');
+      warnings.push('TEXT_TRUNCATED');
+    }
+  }
+
+  return {body, warnings};
 }
