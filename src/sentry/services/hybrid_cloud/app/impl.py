@@ -251,7 +251,7 @@ class DatabaseBackedAppService(AppService):
         else:
             sentry_app = SentryAppCreator(
                 name=integration_name,
-                author="test",
+                author=admin_user.username,
                 organization_id=organization_id,
                 is_internal=True,
                 scopes=integration_scopes,

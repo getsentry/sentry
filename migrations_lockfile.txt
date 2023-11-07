@@ -10,4 +10,5 @@ hybridcloud: 0008_add_externalactorreplica
 nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
 sentry: 0589_add_commit_date_added_indices
+sentry: 0589_add_metadata_to_sentry_app
 social_auth: 0002_default_auto_field
