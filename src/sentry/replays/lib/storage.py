@@ -177,7 +177,7 @@ def make_filename(segment: RecordingSegmentStorageMeta) -> str:
     return "{}/{}/{}/{}".format(
         retention_days,
         segment.project_id,
-        segment.replay_id.replace("-", ""),
+        segment.replay_id,
         segment.segment_id,
     )
 
