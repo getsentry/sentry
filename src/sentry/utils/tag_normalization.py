@@ -47,7 +47,6 @@ _KNOWN_TAGS = {
 
 
 _SYNONYMOUS_TAGS = {
-    "sentry.android": "sentry.native.android",
     "sentry.cordova": "sentery.javascript.cordova",
     "sentry.electron": "sentry.javascript.electron",
     "sentry.javascript.angular.ivy": "sentry.javascript.angular",
@@ -57,7 +56,6 @@ _SYNONYMOUS_TAGS = {
     "sentry.react": "sentry.javascript.react",
     "sentry.symfony": "sentry.php.symfony",
     "sentry.unity": "sentry.native.unity",
-    "sentrydotnet": "sentry.dotnet",
 }
 
 
@@ -73,16 +71,13 @@ def normalize_sdk_tag(tag: str) -> str:
     Note: Some platforms may keep their framework-specific values, as needed for analytics.
     """
 
-    # ignore non-sentry SDK tags
-    if not tag.startswith("sentry"):
-        return "other"
-
     # replace non-word characters with dots (normalize sentry-foo to sentry.foo)
     tag = re.sub(r"[\W_]+", ".", tag)
 
     # collapse known synonymous tags
     tag = _SYNONYMOUS_TAGS.get(tag, tag)
 
+    # ignore non-sentry SDK tags
     if not tag.startswith("sentry."):
         return "other"
 
