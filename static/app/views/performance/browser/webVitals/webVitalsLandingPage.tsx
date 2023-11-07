@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
-import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -82,7 +81,6 @@ export default function WebVitalsLandingPage() {
           <Layout.Title>
             {transaction && project && <ProjectAvatar project={project} size={24} />}
             {transaction ?? t('Web Vitals')}
-            <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>

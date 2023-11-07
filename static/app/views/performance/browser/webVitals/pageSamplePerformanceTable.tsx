@@ -12,6 +12,7 @@ import GridEditable, {
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
@@ -156,7 +157,20 @@ export function PageSamplePerformanceTable({
     if (col.key === 'score') {
       return (
         <AlignCenter>
-          <span>{t('Perf Score')}</span>
+          <StyledTooltip
+            isHoverable
+            title={
+              <span>
+                {t('The overall performance rating of this page.')}
+                <br />
+                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                  {t('How is this calculated?')}
+                </ExternalLink>
+              </span>
+            }
+          >
+            <TooltipHeader>{t('Perf Score')}</TooltipHeader>
+          </StyledTooltip>
         </AlignCenter>
       );
     }
@@ -261,7 +275,7 @@ export function PageSamplePerformanceTable({
       return (
         <NoOverflow>
           <AlignCenter>
-            {replayTarget && (
+            {replayTarget && Object.keys(replayTarget).length > 0 && (
               <Tooltip title={t('View Replay')}>
                 <LinkButton to={replayTarget} size="xs">
                   <IconPlay size="xs" />
@@ -410,4 +424,13 @@ const Wrapper = styled('div')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
+`;
+
+const TooltipHeader = styled('span')`
+  ${p => p.theme.tooltipUnderline()};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  top: 1px;
+  position: relative;
 `;

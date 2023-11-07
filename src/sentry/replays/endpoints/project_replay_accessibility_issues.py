@@ -78,7 +78,7 @@ class ReplayAccessibilityPaginator:
 
         return CursorResult(
             data,
-            hits=data["meta"]["total"],
+            hits=data.pop("meta")["total"],
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, False),
         )
@@ -86,10 +86,18 @@ class ReplayAccessibilityPaginator:
 
 def request_accessibility_issues(filenames: list[str]) -> Any:
     try:
-        return requests.post(
+        response = requests.post(
             f"{options.get('replay.analyzer_service_url')}/api/0/analyze/accessibility",
             json={"data": {"filenames": filenames}},
-        ).json()
+        )
+
+        content = response.content
+        status_code = response.status_code
+
+        if status_code == 201:
+            return response.json()
+        else:
+            raise ValueError(f"An error occurred: {content.decode('utf-8')}")
     except Exception:
         logger.exception("replay accessibility analysis failed")
         raise ParseError("Could not analyze accessibility issues at this time.")
