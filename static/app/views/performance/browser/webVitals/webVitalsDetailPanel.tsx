@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import toUpper from 'lodash/toUpper';
 
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import GridEditable, {
@@ -9,8 +10,9 @@ import GridEditable, {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
@@ -126,9 +128,19 @@ export function WebVitalsDetailPanel({
     if (col.key === 'opportunity') {
       return (
         <Tooltip
-          title={t(
-            'The biggest opportunities to improve your cumulative performance score.'
-          )}
+          isHoverable
+          title={
+            <span>
+              {tct(
+                "A number rating how impactful a performance improvement on this page would be to your application's [webVital] Performance Score.",
+                {webVital: webVital ? toUpper(webVital) : ''}
+              )}
+              <br />
+              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                {t('How is this calculated?')}
+              </ExternalLink>
+            </span>
+          }
         >
           <OpportunityHeader>{col.name}</OpportunityHeader>
         </Tooltip>
@@ -179,7 +191,6 @@ export function WebVitalsDetailPanel({
                 webVital,
               },
             }}
-            onClick={onClose}
           >
             {row.transaction}
           </Link>

@@ -694,6 +694,20 @@
     "sentry.environment",
     "sentry.project"
   ],
+  "sentry.relocation": [
+    "sentry.user"
+  ],
+  "sentry.relocationfile": [
+    "sentry.file",
+    "sentry.relocation"
+  ],
+  "sentry.relocationvalidation": [
+    "sentry.relocation"
+  ],
+  "sentry.relocationvalidationattempt": [
+    "sentry.relocation",
+    "sentry.relocationvalidation"
+  ],
   "sentry.repository": [
     "sentry.integration",
     "sentry.organization"

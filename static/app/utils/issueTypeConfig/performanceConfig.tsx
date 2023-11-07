@@ -193,6 +193,12 @@ const performanceConfig: IssueCategoryConfigMapping = {
     replays: {enabled: false},
     discover: {enabled: false},
   },
+  [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: {
+    stats: {enabled: false},
+    tags: {enabled: false},
+    replays: {enabled: false},
+    discover: {enabled: false},
+  },
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
     resources: {
       description: t(
@@ -278,6 +284,13 @@ const performanceConfig: IssueCategoryConfigMapping = {
     },
   },
   [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: {
+    events: {enabled: false},
+    replays: {enabled: false},
+    stats: {enabled: false},
+    tags: {enabled: false},
+    discover: {enabled: false},
+  },
+  [IssueType.PROFILE_FUNCTION_REGRESSION]: {
     events: {enabled: false},
     replays: {enabled: false},
     stats: {enabled: false},
