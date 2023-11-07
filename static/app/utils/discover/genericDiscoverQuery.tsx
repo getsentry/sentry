@@ -414,7 +414,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
 
   const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>(
     [route, apiPayload],
-    () =>
+    ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,
         skipAbort: props.skipAbort,
