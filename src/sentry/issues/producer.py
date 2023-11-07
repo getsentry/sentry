@@ -105,6 +105,9 @@ def _prepare_status_change_message(
         # Do the change
         # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
         # write to the issue platform directly
+        from sentry.issues.ingest import process_occurrence_data
+
+        process_occurrence_data(status_change.to_dict())
         group = get_group_from_fingerprint(status_change.to_dict())
         if not group:
             return None
