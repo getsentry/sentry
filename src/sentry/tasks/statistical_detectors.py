@@ -306,10 +306,7 @@ def _detect_transaction_change_points(
             yield from detect_breakpoints(request)["data"]
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            metrics.incr(
-                "statistical_detectors.breakpoint.errors",
-                tags={"type": "transactions", "error": str(e)},
-            )
+            metrics.incr("statistical_detectors.breakpoint.errors", tags={"type": "transactions"})
             continue
 
 
@@ -787,10 +784,7 @@ def _detect_function_change_points(
         try:
             yield from detect_breakpoints(request)["data"]
         except Exception as e:
-            metrics.incr(
-                "statistical_detectors.breakpoint.errors",
-                tags={"type": "functions", "error": str(e)},
-            )
+            metrics.incr("statistical_detectors.breakpoint.errors", tags={"type": "functions"})
             sentry_sdk.capture_exception(e)
             continue
 
