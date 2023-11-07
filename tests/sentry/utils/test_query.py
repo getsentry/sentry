@@ -67,14 +67,13 @@ class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
 class BulkDeleteObjectsTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.group = self.create_group(project=self.project, message="Foo bar")
         UserReport.objects.all().delete()
 
     def test_basic(self):
         total = 10
         records = []
         for i in range(total):
-            records.append(self.create_userreport(group=self.group, event_id=i))
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records])
         assert result, "Could be more work to do"
@@ -84,7 +83,7 @@ class BulkDeleteObjectsTest(TestCase):
         total = 10
         records = []
         for i in range(total):
-            records.append(self.create_userreport(group=self.group, event_id=i))
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records], limit=5)
         assert result, "Still more work to do"

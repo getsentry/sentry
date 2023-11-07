@@ -219,9 +219,9 @@ class Quota(Service):
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
         "assign_monitor_seat",
-        "unassign_monitor_seat",
-        "enable_seat_recreate",
-        "disable_seat_recreate",
+        "check_accept_monitor_checkin",
+        "remove_monitor_seat",
+        "update_monitor_slug",
     )
 
     def __init__(self, **options):
@@ -503,28 +503,29 @@ class Quota(Service):
         monitor: Monitor,
     ) -> int:
         """
-        Determines if a monitor seat assignment is accepted or rate limited. The Monitor status
-        will be updated from ACTIVE to OK if the seat assignment is accepted.
+        Determines if a monitor seat assignment is accepted or rate limited.
         """
-        from sentry.monitors.models import MonitorStatus
         from sentry.utils.outcomes import Outcome
 
-        monitor.update(status=MonitorStatus.OK)
         return Outcome.ACCEPTED
 
-    def unassign_monitor_seat(
+    def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
+        """
+        Will return an `AcceptedCheckInStatus`.
+        """
+        from sentry.monitors.constants import PermitCheckInStatus
+
+        return PermitCheckInStatus.ACCEPT
+
+    def remove_monitor_seat(
         self,
         monitor: Monitor,
     ):
         """
-        Disables a monitor seat assignment and sets the Monitor status to DISABLED
+        Removes a monitor seat assignment when a Monitor is deleted.
         """
-        from sentry.monitors.models import MonitorStatus
 
-        monitor.update(status=MonitorStatus.DISABLED)
-
-    def enable_seat_recreate(self, monitor: Monitor):
-        """Sets the monitor's seat assignment to automatically be recreated at renewal."""
-
-    def disable_seat_recreate(self, monitor: Monitor):
-        """Removes the monitor's seat assignment so it is NOT automatically be recreated at renewal."""
+    def update_monitor_slug(self, previous_slug: str, new_slug: str, project_id: int):
+        """
+        Updates a monitor seat assignment's slug.
+        """

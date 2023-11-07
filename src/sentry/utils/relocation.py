@@ -27,6 +27,10 @@ class OrderedTask(Enum):
     PREPROCESSING_COLLIDING_USERS = 4
     PREPROCESSING_COMPLETE = 5
     VALIDATING_START = 6
+    VALIDATING_POLL = 7
+    VALIDATING_COMPLETE = 8
+    IMPORTING = 9
+    COMPLETED = 10
 
 
 # The file type for a relocation export tarball of any kind.
@@ -387,6 +391,17 @@ def get_docker_compose_run():
     )
 
 
+@lru_cache(maxsize=1)
+def get_bucket_name():
+    """
+    When using the local FileSystemStorage (ie, in tests), we use a contrived bucket name, since
+    this is really just an alias for a bespoke local directory in that case.
+    """
+
+    storage = get_storage()
+    return "default" if getattr(storage, "bucket_name", None) is None else storage.bucket_name
+
+
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
     # Only test existing users for collision and mutation.
     existing_usernames = User.objects.filter(username__in=relocation.want_usernames).values_list(
@@ -397,12 +412,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
         ",".join(existing_usernames) if existing_usernames else ",",
     ]
     filter_org_slugs_args = ["--filter-org-slugs", ",".join(relocation.want_org_slugs)]
-    storage = get_storage()
-    bucket_root = (
-        "gs://default"
-        if getattr(storage, "bucket_name", None) is None
-        else (f"gs://{storage.bucket_name}")
-    )
+    bucket_root = f"gs://{get_bucket_name()}"
 
     validation_steps = [
         create_cloudbuild_validation_step(

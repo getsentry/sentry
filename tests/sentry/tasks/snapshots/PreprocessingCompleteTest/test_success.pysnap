@@ -5,7 +5,7 @@ source: tests/sentry/tasks/test_relocation.py
 ---
 artifacts:
   objects:
-    location: gs://<BUCKET>/runs/<UUID>/findings/
+    location: gs://<BUCKET>/relocations/runs/<UUID>/findings/
     paths:
     - /workspace/findings/**
 options:
@@ -16,7 +16,7 @@ steps:
 - args:
   - cp
   - -r
-  - gs://<BUCKET>/runs/<UUID>/in
+  - gs://<BUCKET>/relocations/runs/<UUID>/in
   - .
   id: copy-inputs-being-validated
   name: gcr.io/cloud-builders/gsutil

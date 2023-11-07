@@ -52,5 +52,6 @@ export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}
       enabled: pageFilters.isReady,
       refetchOnWindowFocus: false,
     },
+    skipAbort: true,
   });
 };

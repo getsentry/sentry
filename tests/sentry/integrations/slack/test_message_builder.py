@@ -577,7 +577,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
 
-# @region_silo_test(stable=True)
+@region_silo_test(stable=True)
 class ActionsTest(TestCase):
     def test_identity_and_action(self):
         group = self.create_group(project=self.project)
