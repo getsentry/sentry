@@ -1,9 +1,10 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
@@ -40,7 +41,12 @@ function OrganizationProjects() {
   const query = decodeScalar(location.query.query, '');
 
   const time = useRef(new Date().getTime());
-  const {data: projectList, getResponseHeader} = useApiQuery<Project[]>(
+  const {
+    data: projectList,
+    getResponseHeader,
+    isLoading,
+    isError,
+  } = useApiQuery<Project[]>(
     [
       `/organizations/${organization.slug}/projects/`,
       {
@@ -51,10 +57,10 @@ function OrganizationProjects() {
         },
       },
     ],
-    {staleTime: Infinity}
+    {staleTime: 0}
   );
 
-  const {data: projectStats} = useApiQuery<ProjectStats>(
+  const {data: projectStats, isLoading: isLoadingStats} = useApiQuery<ProjectStats>(
     [
       `/organizations/${organization.slug}/stats/`,
       {
@@ -66,20 +72,23 @@ function OrganizationProjects() {
         },
       },
     ],
-    {staleTime: Infinity}
+    {staleTime: 0}
   );
 
   const projectListPageLinks = getResponseHeader?.('Link');
-
   const action = <CreateProjectButton />;
 
-  const debouncedSearch = debounce(
-    (searchQuery: string) =>
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {...location.query, query: searchQuery},
-      }),
-    DEFAULT_DEBOUNCE_DURATION
+  const debouncedSearch = useMemo(
+    () =>
+      debounce(
+        (searchQuery: string) =>
+          browserHistory.replace({
+            pathname: location.pathname,
+            query: {...location.query, query: searchQuery},
+          }),
+        DEFAULT_DEBOUNCE_DURATION
+      ),
+    [location.pathname, location.query]
   );
 
   return (
@@ -98,28 +107,26 @@ function OrganizationProjects() {
       <Panel>
         <PanelHeader>{t('Projects')}</PanelHeader>
         <PanelBody>
-          {projectList ? (
+          {isLoading && <LoadingIndicator />}
+          {isError && <LoadingError />}
+          {projectList &&
             sortProjects(projectList).map(project => (
               <GridPanelItem key={project.id}>
                 <ProjectListItemWrapper>
                   <ProjectListItem project={project} organization={organization} />
                 </ProjectListItemWrapper>
                 <ProjectStatsGraphWrapper>
-                  {projectStats ? (
+                  {isLoadingStats && <Placeholder height="25px" />}
+                  {projectStats && (
                     <ProjectStatsGraph
                       key={project.id}
                       project={project}
                       stats={projectStats[project.id]}
                     />
-                  ) : (
-                    <Placeholder height="25px" />
                   )}
                 </ProjectStatsGraphWrapper>
               </GridPanelItem>
-            ))
-          ) : (
-            <LoadingIndicator />
-          )}
+            ))}
           {projectList && projectList.length === 0 && (
             <EmptyMessage>{t('No projects found.')}</EmptyMessage>
           )}
