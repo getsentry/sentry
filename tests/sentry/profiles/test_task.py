@@ -351,7 +351,7 @@ def test_process_symbolicator_results_for_sample():
     ]
 
     _process_symbolicator_results_for_sample(
-        profile, stacktraces, set(range(len(profile["profile"]["frames"])))
+        profile, stacktraces, set(range(len(profile["profile"]["frames"]))), profile["platform"]
     )
 
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
@@ -421,7 +421,9 @@ def test_process_symbolicator_results_for_sample_js():
         if is_valid_javascript_frame(frame, profile)
     ]
 
-    _process_symbolicator_results_for_sample(profile, stacktraces, set(frames_sent))
+    _process_symbolicator_results_for_sample(
+        profile, stacktraces, set(frames_sent), profile["platform"]
+    )
 
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3]]
 
