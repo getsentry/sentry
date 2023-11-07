@@ -28,6 +28,7 @@ from sentry.utils.relocation import (
     RELOCATION_BLOB_SIZE,
     RELOCATION_FILE_TYPE,
     OrderedTask,
+    create_cloudbuild_yaml,
     fail_relocation,
     retry_task_or_fail_relocation,
     start_relocation_task,
@@ -418,6 +419,17 @@ def preprocessing_complete(uuid: str) -> None:
         ERR_PREPROCESSING_INTERNAL,
     ):
         storage = get_storage()
+
+        # Build the `cloudbuild.yaml` file we'll use for validation.
+        cloudbuild_yaml = create_cloudbuild_yaml(relocation)
+        storage.save(f"relocations/runs/{uuid}/conf/cloudbuild.yaml", BytesIO(cloudbuild_yaml))
+
+        # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
+        # during validation.
+        kms_config_bytes = json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8")
+        storage.save(f"relocations/runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes))
+
+        # Upload the exports we'll be validating.
         for kind in RELOCATION_FILES_TO_BE_VALIDATED:
             raw_relocation_file = (
                 RelocationFile.objects.filter(
