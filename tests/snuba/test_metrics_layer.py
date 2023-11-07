@@ -31,20 +31,25 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         return int(dt.timestamp())
 
     def setUp(self) -> None:
+        # TODO (evanh): Figure out how to get this to run once per class instead of for every test
+        # Every attempt I've made has caused failures because some other part of the test initialization
+        # doesn't work properly.
+
         super().setUp()
 
         self.metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
             TransactionMRI.DURATION.value: "distribution",
-            TransactionMRI.USER.value: "set",
-            TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
             "g:transactions/test_gauge@none": "gauge",
+            # Can be added when a test actually needs it
+            # TransactionMRI.USER.value: "set", # Can be added when a test actually needs it
+            # TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
         }
         self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
         self.hour_ago = self.now - timedelta(hours=1)
         self.org_id = self.project.organization_id
         for mri, metric_type in self.metrics.items():
             assert metric_type in {"counter", "distribution", "set", "gauge"}
-            for i in range(360):
+            for i in range(60):
                 value: int | dict[str, int]
                 if metric_type == "gauge":
                     value = {
@@ -97,10 +102,48 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
         result = run_query(request)
-        assert len(result["data"]) == 61
+        assert len(result["data"]) == 60
         rows = result["data"]
-        for i in range(61):
+        for i in range(60):
             assert rows[i]["aggregate_value"] == i
+            assert (
+                rows[i]["time"]
+                == (
+                    self.hour_ago.replace(second=0, microsecond=0) + timedelta(minutes=1 * i)
+                ).isoformat()
+            )
+
+    def test_basic_quantile(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    "transaction.duration",
+                    TransactionMRI.DURATION.value,
+                ),
+                aggregate="quantiles",
+                aggregate_params=[0.9],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 60
+        rows = result["data"]
+        for i in range(60):
+            assert rows[i]["aggregate_value"] == [i]
             assert (
                 rows[i]["time"]
                 == (
@@ -136,9 +179,9 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
         result = run_query(request)
-        assert len(result["data"]) == 61
+        assert len(result["data"]) == 60
         rows = result["data"]
-        for i in range(61):
+        for i in range(60):
             assert rows[i]["aggregate_value"] == [i, i]
             assert rows[i]["transaction"] == f"transaction_{i % 2}"
             assert (
@@ -179,9 +222,9 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
         result = run_query(request)
-        assert len(result["data"]) == 3
+        assert len(result["data"]) == 2
         rows = result["data"]
-        for i in range(3):  # 500 status codes on Blackberry are sparse
+        for i in range(2):  # 500 status codes on Blackberry are sparse
             assert rows[i]["aggregate_value"] == [i * 30]
             assert (
                 rows[i]["time"]
@@ -222,9 +265,9 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
         result = run_query(request)
-        assert len(result["data"]) == 3
+        assert len(result["data"]) == 2
         rows = result["data"]
-        for i in range(3):  # 500 status codes on BB are sparse
+        for i in range(2):  # 500 status codes on BB are sparse
             assert rows[i]["aggregate_value"] == [i * 30]
             assert rows[i]["transaction"] == "transaction_0"
             assert (
@@ -448,5 +491,5 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         )
         result = run_query(request)
 
-        assert len(result["data"]) == 61
-        assert result["totals"]["aggregate_value"] == 60
+        assert len(result["data"]) == 60
+        assert result["totals"]["aggregate_value"] == 59
