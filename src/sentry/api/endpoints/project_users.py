@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Entity, Op, Query
@@ -38,9 +41,13 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             project_id=project.id,
             endpoint="sentry.api.endpoints.project_users.get",
         )
-        # TODO(isabellaenriquez): replace from here to 50 with snubaquery and Request
         # queryset = EventUser.objects.filter(project_id=project.id)
-        where_conditions = [Condition(Column("project_id"), Op.EQ, project.id)]
+        now = timezone.now()
+        where_conditions = [
+            Condition(Column("project_id"), Op.EQ, project.id),
+            Condition(Column("timestamp"), Op.GTE, now - timedelta(days=90)),  # required apparently
+            Condition(Column("timestamp"), Op.LT, now),
+        ]
         if request.GET.get("query"):
             try:
                 field, identifier = request.GET["query"].strip().split(":", 1)
@@ -55,13 +62,14 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             match=Entity(EntityKey.Events.value),
             select=[
                 Column("project_id"),
-                Column("hash"),
-                Column("ident"),
-                Column("email"),
-                Column("username"),
-                Column("name"),
-                Column("ip_address"),
-                Column("date_added"),
+                Column("group_id"),
+                Column("ip_address_v6"),
+                Column("ip_address_v4"),
+                Column("event_id"),
+                Column("user_id"),
+                Column("user"),
+                Column("user_name"),
+                Column("user_email"),
             ],
             where=where_conditions,
         )
@@ -74,46 +82,3 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             paginator_cls=SnubaRequestPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
-
-
-"""
-cursor is eventuser id in set of eventusers
-assuems ascending
-
-first page:
-    query = (
-        Query("events", Entity"events"))  # idk if this is the proper dataset and entity lol
-        .set_select(<all cols>)
-        .set_limit(LIMIT)  # defaults to 100
-        .set_offset(0)
-    )
-
-anything but the first page
-    query = (
-        Query("events", Entity"events"))  # idk if this is the proper dataset and entity lol
-        .set_select(<all cols>)
-        .set_where(
-            [Condition(Column("id"), Op.GT, cursor.value)]
-        )
-        .set_limit(LIMIT)  # defaults to 100
-        .set_offset(0)
-    )
-
-
-def paginate_snuba_request(
-    self,
-    request,
-    on_results=None,
-    paginator=None,
-    paginator_cls=Paginator,
-    default_per_page=100,
-    max_per_page=100,
-    cursor_cls=Cursor,
-    response_cls=Response,
-    response_kwargs=None,
-    count_hits=None,
-    **paginator_kwargs,
-):
-
-XXX(isabella): doesn't look like making the new paginator class will work -- request nor query won't be passed into the paginator class, only exists within the call to the paginate method itself so maybe make a new paginate method specifically for snuba? or might need to make a whole new snubapaginator and snubapaginate method and class
-"""
