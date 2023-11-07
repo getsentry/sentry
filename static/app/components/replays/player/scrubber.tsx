@@ -9,18 +9,15 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide, formatTime} from 'sentry/components/replays/utils';
 import {space} from 'sentry/styles/space';
 import toPercent from 'sentry/utils/number/toPercent';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   className?: string;
+  showZoomIndicators?: boolean;
 };
 
-function Scrubber({className}: Props) {
+function Scrubber({className, showZoomIndicators = false}: Props) {
   const {currentHoverTime, currentTime, replay, setCurrentTime, timelineScale} =
     useReplayContext();
-
-  const organization = useOrganization();
-  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
 
   const durationMs = replay?.getDurationMs() ?? 0;
 
@@ -44,7 +41,7 @@ function Scrubber({className}: Props) {
 
   return (
     <Wrapper className={className}>
-      {className?.includes('PlayerScrubber') && hasNewTimeline ? (
+      {showZoomIndicators ? (
         <Fragment>
           <ZoomIndicatorContainer style={{left: toPercent(translate()), top: '-10px'}}>
             <ZoomTriangleDown />
@@ -142,7 +139,7 @@ const ZoomIndicatorContainer = styled('div')`
   flex-direction: column;
   align-items: center;
   gap: ${space(0.5)};
-  translate: -4px;
+  translate: -6px;
 `;
 
 const ZoomIndicator = styled('div')`
@@ -219,7 +216,6 @@ export const CompactTimelineScrubber = styled(Scrubber)`
    */
   ${PlaybackTimeValue},
   ${MouseTrackingValue} {
-    translate: 1px;
     border-right: ${space(0.25)} solid ${p => p.theme.purple300};
   }
 `;
@@ -247,7 +243,7 @@ export const PlayerScrubber = styled(Scrubber)`
   ${PlaybackTimeValue} {
     background: ${p => p.theme.purple200};
     border-radius: ${p => p.theme.borderRadius};
-    translate: -2px;
+    translate: -3px;
 
     /**
      * Draw the circle (appears on hover) to mark the currentTime of the video
@@ -263,7 +259,7 @@ export const PlayerScrubber = styled(Scrubber)`
   ${MouseTrackingValue} {
     background: ${p => p.theme.translucentBorder};
     border-radius: ${p => p.theme.borderRadius};
-    translate: -2px;
+    translate: -3px;
 
     /**
      * Draw a square so users can see their mouse position when it is left or right of the currentTime
