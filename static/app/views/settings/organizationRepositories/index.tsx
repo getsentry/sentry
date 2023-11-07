@@ -21,10 +21,9 @@ function OrganizationRepositoriesContainer() {
     getResponseHeader,
   } = useApiQuery<Repository[]>(
     [`/organizations/${organization.slug}/repos/`, {query: location.query}],
-    {staleTime: Infinity}
+    {staleTime: 0}
   );
   const itemListPageLinks = getResponseHeader?.('Link');
-
   const [itemList, setItemList] = useState<Repository[] | null>(null);
 
   if (!isLoading && itemData && !itemList) {
@@ -33,13 +32,13 @@ function OrganizationRepositoriesContainer() {
 
   // Callback used by child component to signal state change
   function onRepositoryChange(data: Pick<Repository, 'id' | 'status'>) {
-    const updatedItemList = itemList;
-    updatedItemList?.forEach(item => {
-      if (item.id === data.id) {
-        item.status = data.status;
-      }
-    });
-    setItemList(updatedItemList);
+    if (itemList) {
+      setItemList(
+        itemList.map(item =>
+          item.id === data.id ? {...item, status: data.status} : {...item}
+        )
+      );
+    }
   }
 
   return (
@@ -47,7 +46,6 @@ function OrganizationRepositoriesContainer() {
       <SentryDocumentTitle
         title={routeTitleGen(t('Repositories'), organization.slug, false)}
       />
-
       <OrganizationRepositories
         organization={organization}
         itemList={itemList!}
