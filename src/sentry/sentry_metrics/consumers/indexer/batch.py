@@ -19,6 +19,7 @@ from typing import (
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
 from sentry_kafka_schemas.codecs import ValidationError
@@ -304,7 +305,13 @@ class IndexerBatch:
             if broker_meta in self.filtered_msg_meta:
                 continue
             if broker_meta in self.invalid_msg_meta:
-                new_messages.append(Message(message.value.replace(None)))
+                new_messages.append(
+                    Message(
+                        message.value.replace(
+                            InvalidMessage(broker_meta.partition, broker_meta.offset)
+                        )
+                    )
+                )
                 continue
             old_payload_value = self.parsed_payloads_by_meta.pop(broker_meta)
 
