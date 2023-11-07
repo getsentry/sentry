@@ -37,6 +37,13 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
     @catch_raised_errors
     def put(self, request: Request, sentry_app) -> Response:
+        if sentry_app.metadata.get("partnership_restricted", False):
+            return Response(
+                {
+                    "detail": "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+                status=403,
+            )
         owner_context = organization_service.get_organization_by_id(
             id=sentry_app.owner_id, user_id=None
         )
@@ -104,6 +111,13 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         return Response(serializer.errors, status=400)
 
     def delete(self, request: Request, sentry_app) -> Response:
+        if sentry_app.metadata.get("partnership_restricted", False):
+            return Response(
+                {
+                    "detail": "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+                status=403,
+            )
         if sentry_app.is_unpublished or sentry_app.is_internal:
             if not sentry_app.is_internal:
                 for install in sentry_app.installations.all():

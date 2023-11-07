@@ -41,6 +41,14 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        if sentry_app.metadata.get("partnership_restricted", False):
+            return Response(
+                {
+                    "detail": "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+                status=403,
+            )
+
         with transaction.atomic(using=router.db_for_write(SentryAppInstallationToken)):
             try:
                 install_token = SentryAppInstallationToken.objects.get(api_token=api_token)
