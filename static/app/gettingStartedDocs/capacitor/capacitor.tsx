@@ -319,7 +319,7 @@ function getSetupConfiguration(params: Params) {
       ),
       language: 'javascript',
       code: `${getSiblingImportsSetupConfiguration(siblingOption)}
-          import * ass Sentry from '@sentry/capacitor';
+          import * as Sentry from '@sentry/capacitor';
           import * as SiblingSdk from '${getNpmPackage(siblingOption)}';
           ${getVueConstSetup(siblingOption)}
           Sentry.init({
