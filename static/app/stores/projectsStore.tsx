@@ -62,7 +62,7 @@ const storeConfig: ProjectsStoreDefinition = {
   },
 
   loadInitialData(items: Project[]) {
-    this.projects = items.sort((a, b) => a.slug.localeCompare(b.slug));
+    this.projects = items.toSorted((a, b) => a.slug.localeCompare(b.slug));
     this.loading = false;
 
     this.trigger(new Set(items.map(x => x.id)));
@@ -84,9 +84,9 @@ const storeConfig: ProjectsStoreDefinition = {
   },
 
   onCreateSuccess(project: Project, orgSlug: string) {
-    this.projects = [...this.projects, project].sort((a, b) =>
-      a.slug.localeCompare(b.slug)
-    );
+    this.projects = this.projects
+      .concat([project])
+      .sort((a, b) => a.slug.localeCompare(b.slug));
 
     // Reload organization details since we've created a new project
     fetchOrganizationDetails(this.api, orgSlug, true, false);
