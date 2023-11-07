@@ -64,9 +64,10 @@ flags:
 flag_management:
   individual_flags:
     - name: smart-tests
-      carryforward: true
+      # Prevents the upload with this flag from being copied accross commits
+      carryforward: false
       # https://docs.codecov.com/docs/getting-started-with-ats#step-2-configure-the-codecovyml-for-automated-test-selection
-      carryforward_mode: "labels"
+      # carryforward_mode: "labels"
       statuses:
         # https://github.com/codecov/shared/blob/main/shared/validation/user_schema.py#L310
         - type: "patch"
