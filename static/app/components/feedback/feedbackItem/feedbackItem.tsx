@@ -9,8 +9,7 @@ import {
 import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
@@ -23,13 +22,12 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconIssues, IconLink} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import {GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -59,8 +57,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   };
 
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
-  const endpoint = `/projects/${organization.slug}/${feedbackItem.project.slug}/events/${crashReportId}/`;
-  const {data: crashReportData} = useApiQuery<Event>([endpoint], {staleTime: 0});
 
   return (
     <Fragment>
@@ -133,40 +129,25 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </TextCopyInput>
           </ErrorBoundary>
         </Section>
-
-        {feedbackItem.level === 'error' && crashReportData && (
-          <Section icon={<IconIssues size="xs" />} title={t('Linked Issue')}>
-            <ErrorBoundary mini>
-              <IssueDetailsContainer>
-                <EventOrGroupHeader
-                  organization={organization}
-                  data={crashReportData}
-                  size="normal"
-                />
-                <EventOrGroupExtraDetails data={crashReportData} showInboxTime />
-              </IssueDetailsContainer>
-            </ErrorBoundary>
-          </Section>
+        {feedbackItem.level === 'error' && crashReportId && (
+          <CrashReportSection
+            organization={organization}
+            crashReportId={crashReportId}
+            projSlug={feedbackItem.project.slug}
+          />
         )}
-        {hasReplayId && replayId ? (
+        {hasReplayId && replayId && (
           <ReplaySection
             eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
             organization={organization}
             replayId={replayId}
           />
-        ) : null}
+        )}
         <TagsSection tags={tags} />
       </OverflowPanelItem>
     </Fragment>
   );
 }
-
-const IssueDetailsContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  position: relative;
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
-`;
 
 const HeaderPanelItem = styled(PanelItem)`
   display: grid;
