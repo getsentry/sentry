@@ -356,8 +356,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert is_escalating(archived_group) == (True, 1)
             logger.error.assert_called_once()
 
-    @pytest.mark.skip(reason="flaky: returning (False, None) instead of (True, 5)")
-    @freeze_time(datetime(2023, 10, 5, hour=6, minute=6, second=0, microsecond=0))
+    @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_two_weeks(self) -> None:
         """
         Test when an archived until escalating issue starts escalating after exactly 2 weeks.
@@ -375,7 +374,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             self.save_mock_escalating_group_forecast(
                 group=archived_group,
                 forecast_values=forecast_values,
-                date_added=datetime(2023, 9, 21),
+                date_added=TIME_YESTERDAY - timedelta(days=14),
             )
             assert is_escalating(archived_group) == (True, 5)
 
