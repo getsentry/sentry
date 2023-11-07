@@ -49,6 +49,8 @@ def fix_for_issue_platform(event_data):
         datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
 
+    ret_event["received"] = event_data["received"]
+
     ret_event["project_id"] = event_data["project_id"]
 
     ret_event["contexts"] = event_data.get("contexts", {})

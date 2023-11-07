@@ -14,19 +14,9 @@ from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import MAX_USERNAME_LENGTH
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.tasks.relocation import uploading_complete
 from sentry.utils.db import atomic_transaction
-
-# Relocation input files are uploaded as tarballs, and chunked and stored using the normal
-# `File`/`AbstractFile` mechanism, which has a hard limit of 2GiB, because we need to represent the
-# offset into it as a 32-bit int. This means that the largest tarball we are able to import at this
-# time is 2GiB. When validating this tarball, we will need to make a "composite object" from the
-# uploaded blobs in Google Cloud Storage, which has a limit of 32 components. Thus, we get our blob
-# size of the maximum overall file size (2GiB) divided by the maximum number of blobs (32): 64MiB
-# per blob.
-#
-# Note that the actual production file size limit, set by uwsgi, is currently 209715200 bytes, or
-# ~200MB, so we should never see more than ~4 blobs in
-RELOCATION_BLOB_SIZE = int((2**31) / 32)
+from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 
 ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this owner"
 ERR_FEATURE_DISABLED = "This feature is not yet enabled"
@@ -94,7 +84,7 @@ class RelocationEndpoint(Endpoint):
         # TODO(getsentry/team-ospo#203): check import size, and maybe do throttle based on that
         # information.
 
-        file = File.objects.create(name="raw-relocation-data.tar", type="relocation.file")
+        file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
         file.putfile(fileobj, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
 
         with atomic_transaction(
@@ -112,4 +102,5 @@ class RelocationEndpoint(Endpoint):
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
             )
 
+        uploading_complete.delay(relocation.uuid)
         return Response(status=201)
