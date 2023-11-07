@@ -283,12 +283,12 @@
 
     {% if not has_integrations %}
         <div class="logo-container">
-            <img src="{% static 'sentry/images/logos/logo-slack.svg' %}" class="logo" alt="Slack"/>
-            <img src="{% static 'sentry/images/logos/logo-pagerduty.svg' %}" class="logo" alt="PagerDuty"/>
-            <img src="{% static 'sentry/images/logos/logo-msteams.svg' %}" class="logo" alt="MS Teams"/>
-            <img src="{% static 'sentry/images/logos/logo-opsgenie.svg' %}" class="logo" alt="OpsGenie"/>
-            <img src="{% static 'sentry/images/logos/logo-twilio.svg' %}" class="logo" alt="Twilio"/>
-            <img src="{% static 'sentry/images/logos/logo-victorops.svg' %}" class="logo" alt="VictorOps"/>
+            <img src="{% static 'sentry/images/email/slack-logo.png' %}" class="logo" alt="Slack"/>
+            <img src="{% static 'sentry/images/logos/logo-discord.png' %}" class="logo" alt="Discord"/>
+            <img src="{% static 'sentry/images/logos/logo-pagerduty.png' %}" class="logo" alt="PagerDuty"/>
+            <img src="{% static 'sentry/images/logos/logo-msteams.png' %}" class="logo" alt="MS Teams"/>
+            <img src="{% static 'sentry/images/logos/logo-opsgenie.png' %}" class="logo" alt="OpsGenie"/>
+            <img src="{% static 'sentry/images/logos/logo-twilio.png' %}" class="logo" alt="Twilio"/>
         </div>
         <p class="align-center">
             <a href="{% absolute_uri 'settings/{}/integrations/?referrer=alert_email' group.project.organization.slug %}">{{ "Get this alert wherever you work" }}</a>
