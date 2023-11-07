@@ -64,6 +64,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     ],
                     "popularity": SentryApp._meta.get_field("popularity").default,
                     "avatars": [],
+                    "metadata": {},
                 }
             ],
         )

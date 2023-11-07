@@ -96,6 +96,7 @@ class SentryAppsTest(APITestCase):
             "uuid": sentry_app.uuid,
             "verifyInstall": sentry_app.verify_install,
             "webhookUrl": sentry_app.webhook_url,
+            "metadata": {},
         }
 
         if mask_secret:
