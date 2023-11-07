@@ -27,19 +27,19 @@ function OrganizationRepositoriesContainer() {
 
   const [itemList, setItemList] = useState<Repository[] | null>(null);
 
-  if (!isLoading && itemData) {
+  if (!isLoading && itemData && !itemList) {
     setItemList(itemData);
   }
 
   // Callback used by child component to signal state change
   function onRepositoryChange(data: Pick<Repository, 'id' | 'status'>) {
-    const tempItemList = itemList;
-    tempItemList?.forEach(item => {
+    const updatedItemList = itemList;
+    updatedItemList?.forEach(item => {
       if (item.id === data.id) {
         item.status = data.status;
       }
     });
-    setItemList(tempItemList);
+    setItemList(updatedItemList);
   }
 
   return (
