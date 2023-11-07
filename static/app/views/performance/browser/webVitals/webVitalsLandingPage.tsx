@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -7,6 +8,7 @@ import {LinkButton} from 'sentry/components/button';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {IconChevron} from 'sentry/icons';
@@ -15,6 +17,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
@@ -30,6 +33,7 @@ export default function WebVitalsLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
+  const router = useRouter();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -42,7 +46,7 @@ export default function WebVitalsLandingPage() {
   );
 
   const [state, setState] = useState<{webVital: WebVitals | null}>({
-    webVital: null,
+    webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
   const {data: projectData, isLoading} = useProjectWebVitalsQuery({transaction});
@@ -98,6 +102,7 @@ export default function WebVitalsLandingPage() {
             )}
             <PageFilterBar condensed>
               <ProjectPageFilter />
+              <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
           </TopMenuContainer>
@@ -122,6 +127,10 @@ export default function WebVitalsLandingPage() {
       <WebVitalsDetailPanel
         webVital={state.webVital}
         onClose={() => {
+          router.replace({
+            pathname: router.location.pathname,
+            query: omit(router.location.query, 'webVital'),
+          });
           setState({...state, webVital: null});
         }}
       />

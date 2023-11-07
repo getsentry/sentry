@@ -239,7 +239,7 @@ function ReplayControls({
               ref={elem}
               {...mouseTrackingProps}
             >
-              <PlayerScrubber />
+              <PlayerScrubber showZoomIndicators />
             </StyledScrubber>
             <Time style={{gridArea: 'duration'}}>
               {durationMs ? formatTime(durationMs) : '--:--'}

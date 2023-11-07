@@ -11,6 +11,7 @@ describe('isValidOrgSlug', function () {
     expect(isValidOrgSlug('albertos_apples')).toBe(false);
     expect(isValidOrgSlug('sentry-')).toBe(false);
     expect(isValidOrgSlug('-sentry')).toBe(false);
+    expect(isValidOrgSlug('1234')).toBe(false);
     expect(isValidOrgSlug('-')).toBe(false);
     expect(isValidOrgSlug('_')).toBe(false);
     expect(isValidOrgSlug('')).toBe(false);
