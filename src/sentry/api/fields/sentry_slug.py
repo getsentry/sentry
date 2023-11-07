@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from typing import Mapping
+
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+# Standard slug pattern:
 # (?![0-9]+$) - Negative lookahead to ensure the slug is not entirely numeric
 # [a-z0-9_\-] - Matches lowercase letters, numbers, underscores, and hyphens
 MIXED_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
@@ -13,13 +16,20 @@ DEFAULT_SLUG_ERROR_MESSAGE = _(
     "It cannot be entirely numeric."
 )
 
+# Organization slug pattern:
+# (?![0-9]+$)   - Negative lookahead to ensure the slug cannot be entirely numeric
+# [a-zA-Z0-9]   - The slug must start with a letter or number
+# [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
+# (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
+ORG_SLUG_PATTERN = r"^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
+
 
 @extend_schema_field(field=OpenApiTypes.STR)
 class SentrySlugField(serializers.RegexField):
     """
-    A regex field which validates that the input is a valid slug. Allowed
-    characters are lowercase letters, numbers, underscores, and hyphens. The
-    slug cannot be entirely numeric.
+    A regex field which validates that the input is a valid slug. Default
+    allowed characters are lowercase letters, numbers, underscores, and hyphens.
+    The slug cannot be entirely numeric.
     """
 
     default_error_messages = {
@@ -28,8 +38,8 @@ class SentrySlugField(serializers.RegexField):
 
     def __init__(
         self,
-        pattern=MIXED_SLUG_PATTERN,
-        error_messages=None,
+        error_messages: Mapping[str, str] = None,
+        org_slug: bool = False,
         *args,
         **kwargs,
     ):
@@ -37,4 +47,9 @@ class SentrySlugField(serializers.RegexField):
         # the function reuse this one instance, persisting changes between them.
         if error_messages is None:
             error_messages = self.default_error_messages.copy()
-        super().__init__(pattern, error_messages=error_messages, *args, **kwargs)
+
+        pattern = MIXED_SLUG_PATTERN
+        if org_slug:
+            pattern = ORG_SLUG_PATTERN
+
+        super().__init__(regex=pattern, error_messages=error_messages, *args, **kwargs)

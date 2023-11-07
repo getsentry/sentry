@@ -95,19 +95,17 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
     ],
 }
 
-ORG_SLUG_PATTERN = r"^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
-
 
 class BaseOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
 
-    # The slug pattern consists of the following:
-    # (?![0-9]+$)   - Negative lookahead to ensure the slug cannot be entirely numeric
-    # [a-zA-Z0-9]   - The slug must start with a letter or number
-    # [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
-    # (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
+    # XXX: Sentry org slugs are different from other resource slugs. See
+    # SentrySlugField for the full regex pattern. In short, they differ b/c
+    # 1. cannot contain hyphens
+    # 2. must start with a number or letter
+    # 3. cannot end with a dash
     slug = SentrySlugField(
-        pattern=ORG_SLUG_PATTERN,
+        org_slug=True,
         max_length=50,
         error_messages={
             "invalid": _(
