@@ -56,15 +56,15 @@ export function EventRegressionTable<K extends string>(
     if (props.causeType === 'throughput') {
       return [
         ...props.columns,
-        {key: 'throughputBefore', name: t('Before'), width: 150},
-        {key: 'throughputAfter', name: t('After'), width: 150},
+        {key: 'throughputBefore', name: t('Baseline'), width: 150},
+        {key: 'throughputAfter', name: t('Regressed'), width: 150},
         {key: 'percentageChange', name: t('Change'), width: 150},
       ];
     }
     return [
       ...props.columns,
-      {key: 'durationBefore', name: t('Before'), width: 150},
-      {key: 'durationAfter', name: t('After'), width: 150},
+      {key: 'durationBefore', name: t('Baseline'), width: 150},
+      {key: 'durationAfter', name: t('Regressed'), width: 150},
       {key: 'percentageChange', name: t('Change'), width: 150},
     ];
   }, [props.causeType, props.columns]);
