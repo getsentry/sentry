@@ -59,7 +59,7 @@ class SDKCrashDetector:
 
     @property
     def fields_containing_paths(self) -> Set[str]:
-        return {"package", "module", "abs_path"}
+        return {"package", "module", "abs_path", "filename"}
 
     def replace_sdk_frame_path(self, field: str) -> str:
         for matcher, replacement_name in self.config.sdk_frame_path_replacement_names.items():
