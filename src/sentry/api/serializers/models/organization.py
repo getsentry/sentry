@@ -101,7 +101,7 @@ class BaseOrganizationSerializer(serializers.Serializer):
 
     # XXX: Sentry org slugs are different from other resource slugs. See
     # SentrySlugField for the full regex pattern. In short, they differ b/c
-    # 1. cannot contain hyphens
+    # 1. cannot contain underscores
     # 2. must start with a number or letter
     # 3. cannot end with a dash
     slug = SentrySlugField(
