@@ -1962,7 +1962,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query="is:unresolved",
             collapse=["unhandled"],
             savedSearch=0,
             searchId=saved_search.id,
@@ -1971,7 +1970,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
-    def test_default_saved_search(self):
+    def test_pinned_saved_search(self):
         SavedSearch.objects.create(
             name="Saved Search",
             query="ZeroDivisionError",
@@ -2001,8 +2000,45 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query="is:unresolved",
             collapse=["unhandled"],
+            savedSearch=0,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+    def test_pinned_saved_search_with_query(self):
+        SavedSearch.objects.create(
+            name="Saved Search",
+            query="TypeError",
+            organization=self.organization,
+            owner_id=self.user.id,
+            visibility=Visibility.OWNER_PINNED,
+        )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-2"],
+                "message": "TypeError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            query="ZeroDivisionError",
             savedSearch=0,
         )
         assert response.status_code == 200
