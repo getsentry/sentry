@@ -189,12 +189,21 @@ declare const __LOADER__IS_LAZY__: any;
 
   function setupSDK(SDK) {
     try {
+      // If defined, we call window.sentryOnLoad first
+      if (typeof _window.sentryOnLoad === 'function') {
+        _window.sentryOnLoad();
+        // Cleanup to allow garbage collection
+        _window.sentryOnLoad = undefined;
+      }
+
       // We have to make sure to call all callbacks first
       for (let i = 0; i < onLoadCallbacks.length; i++) {
         if (typeof onLoadCallbacks[i] === 'function') {
           onLoadCallbacks[i]();
         }
       }
+      // Cleanup to allow garbage collection
+      onLoadCallbacks.splice(0);
 
       // First call all inits from the queue
       for (let i = 0; i < queue.length; i++) {
@@ -284,7 +293,12 @@ declare const __LOADER__IS_LAZY__: any;
   }
 })(
   window as Window &
-    typeof globalThis & {SENTRY_SDK_SOURCE?: string; Sentry?: any; __SENTRY__?: any},
+    typeof globalThis & {
+      SENTRY_SDK_SOURCE?: string;
+      Sentry?: any;
+      __SENTRY__?: any;
+      sentryOnLoad?: () => void;
+    },
   document,
   'error' as const,
   'unhandledrejection' as const,
