@@ -315,7 +315,6 @@ module = [
     "sentry.api.serializers.rest_framework.doc_integration",
     "sentry.api.serializers.rest_framework.mentions",
     "sentry.api.serializers.rest_framework.notification_action",
-    "sentry.api.serializers.rest_framework.project",
     "sentry.api.serializers.rest_framework.release",
     "sentry.api.serializers.rest_framework.rule",
     "sentry.api.serializers.rest_framework.sentry_app_request",
