@@ -24,7 +24,9 @@ export type SearchBarProps = {
   onSearch: (query: string) => void;
   organization: Organization;
   query: string;
+  additionalConditions?: MutableSearch;
   className?: string;
+  placeholder?: string;
 };
 
 function SearchBar(props: SearchBarProps) {
@@ -34,6 +36,8 @@ function SearchBar(props: SearchBarProps) {
     onSearch,
     query: searchQuery,
     className,
+    placeholder,
+    additionalConditions,
   } = props;
 
   const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
@@ -134,7 +138,7 @@ function SearchBar(props: SearchBarProps) {
       async query => {
         try {
           setLoading(true);
-          const conditions = new MutableSearch('');
+          const conditions = additionalConditions ?? new MutableSearch('');
           conditions.addFilterValues('transaction', [wrapQueryInWildcards(query)], false);
           conditions.addFilterValues('event.type', ['transaction']);
 
@@ -230,7 +234,7 @@ function SearchBar(props: SearchBarProps) {
       ref={containerRef}
     >
       <BaseSearchBar
-        placeholder={t('Search Transactions')}
+        placeholder={placeholder ?? t('Search Transactions')}
         onChange={handleSearchChange}
         onKeyDown={handleKeyDown}
         query={searchString}

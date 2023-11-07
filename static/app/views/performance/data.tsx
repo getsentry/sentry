@@ -403,7 +403,7 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
+export function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
   const conditions = new MutableSearch(searchQuery);
 
   // If there is a bare text search, we want to treat it as a search
