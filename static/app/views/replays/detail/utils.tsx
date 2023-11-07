@@ -33,7 +33,8 @@ export function getAriaLabel(str: string) {
     return '';
   }
   const pre = matches[0];
-  return matches[0].substring(pre.indexOf('aria="') + 6, pre.lastIndexOf('"]'));
+  const start = pre.indexOf('aria="') + 6;
+  return pre.substring(start, pre.indexOf('"]', start));
 }
 
 function trimAttribute(elementAttribute, fullAlltribute) {

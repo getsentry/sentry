@@ -19,13 +19,23 @@ describe('getAriaLabel', () => {
     },
     {
       element:
-        'button#ID1.classA[role="button"][aria=""[blah]""][data-test-id="button-test"][alt="view more"][title="cool title"]',
-      ariaLabel: '"[blah]"',
+        'button#ID1.classA[role="button"][aria="[]"][data-test-id="button-test"][alt="view more"][title="cool title"]',
+      ariaLabel: '[]',
     },
     {
       element:
-        'button#ID1.classA[role="button"][aria=""blah""][data-test-id="button-test"][alt="view more"][title="cool title"]',
-      ariaLabel: '"blah"',
+        'button#ID1.classA[role="button"][aria=""][data-test-id="button-test"][alt="view more"][title="cool title"]',
+      ariaLabel: '',
+    },
+    {
+      element:
+        'button#ID1.classA[role="button"][aria="["][data-test-id="button-test"][alt="view more"][title="cool title"]',
+      ariaLabel: '[',
+    },
+    {
+      element:
+        'button#ID1.classA[role="button"][aria="]blah"][data-test-id="button-test"][alt="view more"][title="cool title"]',
+      ariaLabel: ']blah',
     },
   ])(
     'should construct the correct aria label for each element in the list',
