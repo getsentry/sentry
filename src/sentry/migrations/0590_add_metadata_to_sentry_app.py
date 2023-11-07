@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0588_add_relocation_models"),
+        ("sentry", "0589_add_commit_date_added_indices"),
     ]
 
     operations = [
