@@ -179,7 +179,7 @@ def _strip_frames(
             # The path field usually contains the name of the application, which we can't keep.
             for field in sdk_crash_detector.fields_containing_paths:
                 if frame.get(field):
-                    frame[field] = sdk_crash_detector.replace_sdk_frame_path(field)
+                    frame[field] = sdk_crash_detector.replace_sdk_frame_path(frame.get(field))
         else:
             frame["in_app"] = False
 
