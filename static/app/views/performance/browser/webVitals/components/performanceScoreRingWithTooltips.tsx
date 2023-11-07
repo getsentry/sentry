@@ -98,14 +98,14 @@ function WebVitalLabel({
           webVital,
         },
       }}
+      onMouseEnter={() => onHover(webVital)}
+      onMouseLeave={() => onUnHover()}
       disabled={!inPerformanceWidget}
     >
       <ProgressRingText
         isLink={inPerformanceWidget}
         x={coordinates.x + xOffset}
         y={coordinates.y + yOffset}
-        onMouseEnter={() => onHover(webVital)}
-        onMouseLeave={() => onUnHover()}
       >
         {webVital}
       </ProgressRingText>

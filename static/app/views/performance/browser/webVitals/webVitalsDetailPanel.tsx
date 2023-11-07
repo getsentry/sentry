@@ -179,7 +179,6 @@ export function WebVitalsDetailPanel({
                 webVital,
               },
             }}
-            onClick={onClose}
           >
             {row.transaction}
           </Link>
