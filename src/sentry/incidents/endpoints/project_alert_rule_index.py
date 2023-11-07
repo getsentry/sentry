@@ -24,7 +24,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project) -> Response:
         """
-        Fetches alert rules and legacy rules for a project
+        Fetches alert rules and legacy rules for a project. @deprecated. Use OrganizationCombinedRuleIndexEndpoint instead.
         """
         alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:performance-view", project.organization):
