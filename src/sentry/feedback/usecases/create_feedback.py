@@ -49,6 +49,8 @@ def fix_for_issue_platform(event_data):
         datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
 
+    ret_event["received"] = event_data["received"]
+
     ret_event["project_id"] = event_data["project_id"]
 
     ret_event["contexts"] = event_data.get("contexts", {})
@@ -65,7 +67,7 @@ def fix_for_issue_platform(event_data):
     ret_event["tags"] = event_data.get("tags", [])
 
     ret_event["platform"] = event_data.get("platform", "other")
-    ret_event["level"] = event_data.get("level", "error")
+    ret_event["level"] = event_data.get("level", "info")
 
     ret_event["environment"] = event_data.get("environment", "production")
     if event_data.get("sdk"):
@@ -73,6 +75,17 @@ def fix_for_issue_platform(event_data):
     ret_event["request"] = event_data.get("request", {})
 
     ret_event["user"] = event_data.get("user", {})
+
+    if event_data.get("dist") is not None:
+        del event_data["dist"]
+    if event_data.get("user", {}).get("name") is not None:
+        del event_data["user"]["name"]
+    if event_data.get("user", {}).get("isStaff") is not None:
+        del event_data["user"]["isStaff"]
+
+    if event_data.get("user", {}).get("id") is not None:
+        event_data["user"]["id"] = str(event_data["user"]["id"])
+
     return ret_event
 
 
@@ -96,14 +109,13 @@ def create_feedback_issue(event, project_id):
         type=FeedbackGroup,
         detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
-        level="info",  # TODO: severity based on input?
+        level=event.get("level", "info"),
     )
     now = datetime.now()
 
     event_data = {
         "project_id": project_id,
         "received": now.isoformat(),
-        "level": "info",
         "tags": event.get("tags", {}),
         **event,
     }
@@ -137,6 +149,8 @@ class UserReportShimDict(TypedDict):
     name: str
     email: str
     comments: str
+    event_id: str
+    level: str
 
 
 def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project):
@@ -159,7 +173,7 @@ def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project)
         }
 
         if event:
-            feedback_event["contexts"]["feedback"]["crash_report_event_id"] = event.event_id
+            feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
             if get_path(event.data, "contexts", "replay", "replay_id"):
                 feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
@@ -167,12 +181,16 @@ def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project)
                     "replay"
                 ]["replay_id"]
             feedback_event["timestamp"] = event.datetime.timestamp()
-
+            feedback_event["level"] = event.data["level"]
             feedback_event["platform"] = event.platform
-
+            feedback_event["level"] = event.data["level"]
         else:
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
+            feedback_event["level"] = report.get("level", "info")
+
+            if report.get("event_id"):
+                feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
 
         create_feedback_issue(feedback_event, project.id)
     except Exception:
