@@ -90,10 +90,18 @@ Makefile                                                 @getsentry/owners-sentr
 /static/app/components/sidebar/index.tsx                 @getsentry/open-source
 
 ## Relocation - getsentry/team-ospo#153
+/src/sentry/api/endpoints/relocation.py                  @getsentry/open-source
 /src/sentry/backup/                                      @getsentry/open-source
-/src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
 /src/sentry/runner/commands/backup.py                    @getsentry/open-source
+/src/sentry/services/hybrid-cloud/import_export/         @getsentry/open-source
+/src/sentry/tasks/relocation.py                          @getsentry/open-source
 /src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
+/src/sentry/utils/relocation.py                          @getsentry/open-source
+/tests/sentry/api/endpoints/test_relocation.py           @getsentry/open-source
+/tests/sentry/tasks/test_relocation.py                   @getsentry/open-source
+/tests/sentry/utils/test_relocation.py                   @getsentry/open-source
+/tests/sentry/backup                                     @getsentry/open-source
+/tests/sentry/runner/commands/test_backup.py             @getsentry/open-source
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
@@ -154,6 +162,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/projectDetail/                          @getsentry/issues
 /static/app/views/releases/                               @getsentry/issues
 /static/app/views/organizationStats/teamInsights/         @getsentry/issues
+/static/app/views/settings/account/notifications/         @getsentry/issues
 
 /src/sentry/templates/sentry/emails/incidents/            @getsentry/issues
 /src/sentry/incidents/                                    @getsentry/issues
@@ -224,10 +233,15 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /static/app/views/performance/                                            @getsentry/performance
 /static/app/utils/performance/                                            @getsentry/performance
-/static/app/components/events/eventStatisticalDetector/                   @getsentry/performance
 /static/app/components/events/interfaces/spans/                           @getsentry/performance
 /static/app/components/performance/                                       @getsentry/performance
 /static/app/components/quickTrace/                                        @getsentry/performance
+
+static/app/components/events/eventStatisticalDetector/                    @getsentry/performance @getsentry/profiling
+/src/sentry/statistical_detectors                                         @getsentry/performance @getsentry/profiling
+/src/sentry/tasks/statistical_detectors.py                                @getsentry/performance @getsentry/profiling
+/tests/sentry/statistical_detectors                                       @getsentry/performance @getsentry/profiling
+/tests/sentry/tasks/test_statistical_detectors.py                         @getsentry/performance @getsentry/profiling
 ## Endof Performance
 
 

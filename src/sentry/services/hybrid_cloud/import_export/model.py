@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 from enum import Enum, unique
-from typing import Dict, Literal, Optional, Set, Tuple, Union
+from typing import Any, Dict, Literal, Optional, Set, Tuple, Union
 
 from pydantic import Field, StrictInt, StrictStr
 from typing_extensions import Annotated
@@ -119,7 +119,6 @@ class RpcImportErrorKind(str, Enum):
     DeserializationFailed = "DeserializationFailed"
     IncorrectSiloModeForModel = "IncorrectSiloModeForModel"
     IntegrityError = "IntegrityError"
-    InvalidJSON = "InvalidJSON"
     UnknownModel = "UnknownModel"
     UnexpectedModel = "UnexpectedModel"
     UnspecifiedScope = "UnspecifiedScope"
@@ -144,7 +143,12 @@ class RpcImportError(RpcModel, Finding):
         return RpcImportErrorKind(self.kind)
 
     def pretty(self) -> str:
-        return f"RpcImportError(\n\tkind: {self.get_kind()},{self._pretty_inner()}\n)"
+        return f"RpcImportError(\n    kind: {self.get_kind()},{self._pretty_inner()}\n)"
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = dict(self)
+        del d["is_err"]
+        return d
 
 
 class RpcImportOk(RpcModel):
@@ -222,7 +226,12 @@ class RpcExportError(RpcModel, Finding):
         return RpcExportErrorKind(self.kind)
 
     def pretty(self) -> str:
-        return f"RpcExportError(\n\tkind: {self.get_kind()},{self._pretty_inner()}\n)"
+        return f"RpcExportError(\n    kind: {self.get_kind()},{self._pretty_inner()}\n)"
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = dict(self)
+        del d["is_err"]
+        return d
 
 
 RpcExportResult = Annotated[Union[RpcExportOk, RpcExportError], Field(discriminator="is_err")]

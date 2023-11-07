@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
@@ -47,7 +48,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
-import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -192,7 +192,8 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconIssues />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
-      to={`/organizations/${organization.slug}/issues/?referrer=sidebar`}
+      to={`/organizations/${organization.slug}/issues/`}
+      search="?referrer=sidebar"
       id="issues"
     />
   );
@@ -239,9 +240,6 @@ function Sidebar({location, organization}: Props) {
               >
                 <SidebarItem
                   {...sidebarItemProps}
-                  isAlpha={RELEASE_LEVEL === 'alpha'}
-                  isBeta={RELEASE_LEVEL === 'beta'}
-                  isNew={RELEASE_LEVEL === 'new'}
                   label={
                     <GuideAnchor target="performance-database">
                       {t('Queries')}
@@ -269,6 +267,15 @@ function Sidebar({location, organization}: Props) {
                   to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
                   id="performance-webvitals"
                   icon={<SubitemDot collapsed={collapsed} />}
+                />
+              </Feature>
+              <Feature features={['starfish-browser-resource-module-ui']}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
+                  to={`/organizations/${organization.slug}/performance/browser/resources`}
+                  id="performance-browser-resources"
+                  icon={<IconFile />}
                 />
               </Feature>
             </SidebarAccordion>
@@ -320,14 +327,7 @@ function Sidebar({location, organization}: Props) {
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/browser/resources`}
-          id="performance-browser-resources"
-          icon={<IconFile />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Screen Load')}</GuideAnchor>}
+          label={<GuideAnchor target="starfish">{t('Screens')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/starfish/pageload/`}
           id="starfish-mobile-screen-loads"
           icon={<SubitemDot collapsed={collapsed} />}
@@ -347,13 +347,15 @@ function Sidebar({location, organization}: Props) {
   );
 
   const userFeedback = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconSupport />}
-      label={t('User Feedback')}
-      to={`/organizations/${organization.slug}/user-feedback/`}
-      id="user-feedback"
-    />
+    <Feature features={['old-user-feedback']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconSupport />}
+        label={t('User Feedback')}
+        to={`/organizations/${organization.slug}/user-feedback/`}
+        id="user-feedback"
+      />
+    </Feature>
   );
 
   const feedback = hasOrganization && (
@@ -361,10 +363,18 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
-        label={t('Bug Reports')}
+        label={
+          <Fragment>
+            {t('User Feedback')}{' '}
+            <FeatureBadge
+              title={t('This feature is available for early adopters and may change')}
+              type="alpha"
+              variant="short"
+            />
+          </Fragment>
+        }
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
-        isAlpha
       />
     </Feature>
   );

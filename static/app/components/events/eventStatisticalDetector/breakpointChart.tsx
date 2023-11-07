@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {Event, EventsStatsData} from 'sentry/types';
@@ -10,6 +12,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {transformEventStats} from 'sentry/views/performance/trends/chart';
 import {
   NormalizedTrendsTransaction,
   TrendFunctionField,
@@ -71,23 +74,63 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
       // Manually inject y-axis for events-stats because
       // getEventsAPIPayload doesn't pass it along
       ...eventView.getEventsAPIPayload(location),
-      yAxis: 'p95(transaction.duration)',
+      yAxis: ['p95(transaction.duration)', 'count()'],
     }),
   });
+
+  const p95Series = useMemo(
+    () =>
+      transformEventStats(
+        data?.['p95(transaction.duration)']?.data ?? [],
+        generateTrendFunctionAsString(TrendFunctionField.P95, 'transaction.duration')
+      ),
+    [data]
+  );
+
+  const throughputSeries = useMemo(() => {
+    const bucketSize = 12 * 60 * 60;
+
+    const bucketedData = (data?.['count()']?.data ?? []).reduce((acc, curr) => {
+      const timestamp = curr[0];
+      const bucket = Math.floor(timestamp / bucketSize) * bucketSize;
+      const prev = acc[acc.length - 1];
+      const value = curr[1][0].count;
+
+      if (prev?.bucket === bucket) {
+        prev.value += value;
+        prev.end = timestamp;
+        prev.count += 1;
+      } else {
+        acc.push({bucket, value, start: timestamp, end: timestamp, count: 1});
+      }
+
+      return acc;
+    }, []);
+
+    return transformEventStats(
+      bucketedData.map(item => [
+        item.bucket,
+        [
+          {
+            count:
+              item.value / (((item.end - item.start) / (item.count - 1)) * item.count),
+          },
+        ],
+      ]),
+      'throughput()'
+    )[0];
+  }, [data]);
 
   return (
     <DataSection>
       <TransitionChart loading={isLoading} reloading>
         <TransparentLoadingMask visible={isLoading} />
         <Chart
-          statsData={data?.data ?? []}
+          percentileSeries={p95Series}
+          throughputSeries={throughputSeries}
           evidenceData={normalizedOccurrenceEvent}
           start={eventView.start}
           end={eventView.end}
-          chartLabel={generateTrendFunctionAsString(
-            TrendFunctionField.P95,
-            'transaction.duration'
-          )}
         />
       </TransitionChart>
     </DataSection>

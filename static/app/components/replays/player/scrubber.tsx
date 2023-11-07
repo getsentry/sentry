@@ -2,9 +2,10 @@ import styled from '@emotion/styled';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/sliderAndInputWrapper';
+import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {divide} from 'sentry/components/replays/utils';
+import {divide, formatTime} from 'sentry/components/replays/utils';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -22,11 +23,14 @@ function Scrubber({className}: Props) {
     <Wrapper className={className}>
       <Meter>
         {currentHoverTime ? (
-          <MouseTrackingValue
-            style={{
-              width: hoverPlace * 100 + '%',
-            }}
-          />
+          <div>
+            <TimelineTooltip labelText={formatTime(currentHoverTime)} />
+            <MouseTrackingValue
+              style={{
+                width: hoverPlace * 100 + '%',
+              }}
+            />
+          </div>
         ) : null}
         <PlaybackTimeValue
           style={{
@@ -122,6 +126,33 @@ export const TimelineScrubber = styled(Scrubber)`
    */
   ${PlaybackTimeValue},
   ${MouseTrackingValue} {
+    border-right: ${space(0.25)} solid ${p => p.theme.purple300};
+  }
+`;
+
+export const CompactTimelineScrubber = styled(Scrubber)`
+  height: 100%;
+
+  ${Meter} {
+    background: transparent;
+  }
+
+  ${RangeWrapper},
+  ${Range},
+  ${SliderAndInputWrapper} {
+    height: 100%;
+  }
+
+  /**
+   * Draw lines so users can see the currenTime & their mouse position
+   * "----|----|--------------------- duration = 1:00"
+   *      ^    ^
+   *      |    PlaybackTimeValue @ 20s
+   *      MouseTrackingValue @ 10s
+   */
+  ${PlaybackTimeValue},
+  ${MouseTrackingValue} {
+    translate: 3px;
     border-right: ${space(0.25)} solid ${p => p.theme.purple300};
   }
 `;

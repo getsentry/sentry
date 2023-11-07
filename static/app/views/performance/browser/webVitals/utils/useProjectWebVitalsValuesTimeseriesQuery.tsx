@@ -1,4 +1,5 @@
 import {getInterval} from 'sentry/components/charts/utils';
+import {PageFilters} from 'sentry/types';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -11,10 +12,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
+  datetime?: PageFilters['datetime'];
   transaction?: string | null;
 };
 
-export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) => {
+export const useProjectWebVitalsValuesTimeseriesQuery = ({
+  transaction,
+  datetime,
+}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -27,7 +32,7 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
         'count()',
-        'p95(transaction.duration)',
+        'p75(transaction.duration)',
         'failure_count()',
         'eps()',
       ],
@@ -39,7 +44,10 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
       interval: getInterval(pageFilters.selection.datetime, 'low'),
       dataset: DiscoverDatasets.METRICS,
     },
-    pageFilters.selection
+    {
+      ...pageFilters.selection,
+      datetime: datetime ?? pageFilters.selection.datetime,
+    }
   );
 
   const result = useGenericDiscoverQuery<
@@ -98,7 +106,7 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
       {key: 'p75(measurements.ttfb)', series: data.ttfb},
       {key: 'p75(measurements.fid)', series: data.fid},
       {key: 'count()', series: data.count},
-      {key: 'p95(transaction.duration)', series: data.duration},
+      {key: 'p75(transaction.duration)', series: data.duration},
       {key: 'failure_count()', series: data.errors},
       {key: 'eps()', series: data.eps},
     ];

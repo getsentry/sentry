@@ -52,6 +52,10 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
             id=organization_id, name=organization_name, slug=slug, is_test=is_test
         )
 
+        # Slug changes mean there was either a collision with the organization slug
+        # or a bug in the slugify implementation, so we reject the organization creation
+        assert org.slug == slug, "Organization slug should not have been modified on save"
+
         om = OrganizationMember.objects.create(
             user_id=user_id, organization=org, role=roles.get_top_dog().id
         )
@@ -140,6 +144,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
                 organization_name=provision_options.name,
                 create_default_team=provision_options.create_default_team,
                 organization_id=organization_id,
+                is_test=provision_options.is_test,
             )
 
             create_post_provision_outbox(
@@ -162,9 +167,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         try:
             with enforce_constraints(transaction.atomic(using=router.db_for_write(Organization))):
                 org = Organization.objects.get(id=org_slug_temporary_alias_res.organization_id)
-
-                if org.slug != org_slug_temporary_alias_res.slug:
-                    org.update(slug=org_slug_temporary_alias_res.slug)
+                org.update(slug=org_slug_temporary_alias_res.slug)
 
             return True
         except (IntegrityError, Organization.DoesNotExist) as e:

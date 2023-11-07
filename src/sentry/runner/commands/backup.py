@@ -1,19 +1,50 @@
 from __future__ import annotations
 
+from io import BytesIO
+from typing import Callable, Sequence, TextIO
+
 import click
 
 from sentry.backup.comparators import get_default_comparators
-from sentry.backup.findings import FindingJSONEncoder
-from sentry.backup.helpers import ImportFlags
+from sentry.backup.findings import Finding, FindingJSONEncoder
+from sentry.backup.helpers import DecryptionError, ImportFlags, Side, decrypt_encrypted_tarball
 from sentry.backup.validate import validate
 from sentry.runner.decorators import configuration
 from sentry.utils import json
+
+DEFAULT_INDENT = 2
 
 DECRYPT_WITH_HELP = """A path to a file containing a private key with which to decrypt a tarball
                     previously encrypted using an `export ... --encrypt_with=<PUBLIC_KEY>` command.
                     The private key provided via this flag should be the complement of the public
                     key used to encrypt the tarball (this public key is included in the tarball
-                    itself)."""
+                    itself).
+
+                    This flag is mutually exclusive with the `--decrypt-with-gcp-kms` flag."""
+
+DECRYPT_WITH_GCP_KMS_HELP = """For users that want to avoid storing their own private keys, this
+                            flag can be used in lieu of `--decrypt-with` to retrieve keys from
+                            Google Cloud's Key Management Service directly, avoiding ever storing
+                            them on the machine doing the decryption.
+
+                            This flag should point to a JSON file containing a single top-level
+                            object storing the `project-id`, `location`, `keyring`, `key`, and
+                            `version` of the desired asymmetric private key that pairs with the
+                            public key included in the tarball being imported (for more information
+                            on these resource identifiers and how to set up KMS to use the, see:
+                            https://cloud.google.com/kms/docs/getting-resource-ids). An example
+                            version of this file might look like:
+
+                            ``` {
+                                "project_id": "my-google-cloud-project",
+                                "location": "global",
+                                "key_ring": "my-key-ring-name",
+                                "key": "my-key-name",
+                                "version": "1"
+                            }
+                            ```
+
+                            Property names must be spelled exactly as above, and the `version` field in particular must be a string, not an integer."""
 
 ENCRYPT_WITH_HELP = """A path to the a public key with which to encrypt this export. If this flag is
                        enabled and points to a valid key, the output file will be a tarball
@@ -28,6 +59,8 @@ ENCRYPT_WITH_HELP = """A path to the a public key with which to encrypt this exp
 FINDINGS_FILE_HELP = """Optional file that records comparator findings, saved in the JSON format.
                      If left unset, no such file is written."""
 
+INDENT_HELP = "Number of spaces to indent for the JSON output. (default: 2)"
+
 MERGE_USERS_HELP = """If this flag is set and users in the import JSON have matching usernames to
                    those already in the database, the existing users are used instead and their
                    associated user scope models are not updated. If this flag is not set, new users
@@ -41,6 +74,13 @@ OVERWRITE_CONFIGS_HELP = """Imports are generally non-destructive of old data. H
                          retained in the event of a collision."""
 
 
+def get_printer(silent: bool) -> Callable:
+    if silent:
+        return lambda *args, **kwargs: None
+    else:
+        return click.echo
+
+
 def parse_filter_arg(filter_arg: str) -> set[str] | None:
     filter_by = None
     if filter_arg:
@@ -49,50 +89,116 @@ def parse_filter_arg(filter_arg: str) -> set[str] | None:
     return filter_by
 
 
-findings_encoder = FindingJSONEncoder(
-    sort_keys=True,
-    ensure_ascii=True,
-    check_circular=True,
-    allow_nan=True,
-    indent=2,
-    encoding="utf-8",
-)
+def get_decryptor_io_from_flags(
+    decrypt_with: BytesIO | None, decrypt_with_gcp_kms: BytesIO | None
+) -> BytesIO | None:
+    if decrypt_with is not None and decrypt_with_gcp_kms is not None:
+        raise click.UsageError(
+            """`--decrypt-with` and `--decrypt-with-gcp-kms` are mutually exclusive options - you may use one or the other, but not both."""
+        )
+    return decrypt_with if decrypt_with is not None else decrypt_with_gcp_kms
+
+
+def write_findings(
+    findings_file: TextIO | None, findings: Sequence[Finding], indent: int, printer: Callable
+):
+    for f in findings:
+        printer(f.pretty(), err=True)
+
+    if findings_file:
+        findings_encoder = FindingJSONEncoder(
+            sort_keys=True,
+            ensure_ascii=True,
+            check_circular=True,
+            allow_nan=True,
+            indent=indent,
+            encoding="utf-8",
+        )
+
+        with findings_file as file:
+            encoded = findings_encoder.encode(findings)
+            file.write(encoded)
 
 
 @click.command(name="compare")
 @click.argument("left", type=click.File("rb"))
 @click.argument("right", type=click.File("rb"))
 @click.option(
-    "--findings_file",
+    "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,
 )
+@click.option(
+    "--decrypt-left-with",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-left-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--decrypt-right-with",
+    type=click.File("rb"),
+    help="Identical to `--decrypt-left-with`, but for the 2nd input argument.",
+)
+@click.option(
+    "--decrypt-right-with-gcp-kms",
+    type=click.File("rb"),
+    help="Identical to `--decrypt-left-with-gcp-kms`, but for the 2nd input argument.",
+)
 @configuration
-def compare(left, right, findings_file):
+def compare(
+    left,
+    right,
+    decrypt_left_with,
+    decrypt_left_with_gcp_kms,
+    decrypt_right_with,
+    decrypt_right_with_gcp_kms,
+    findings_file,
+):
     """
-    Compare two exports generated by the `export` command for equality, modulo certain necessary changed like `date_updated` timestamps, unique tokens, and the like.
+    Compare two exports generated by the `export` command for equality, modulo certain necessary
+    expected differences like `date_updated` timestamps, unique tokens, and the like.
     """
+
+    # Helper function that loads data from one of the two sides, decrypting it if necessary along
+    # the way.
+    def load_data(
+        side: Side, src: BytesIO, decrypt_with: BytesIO, decrypt_with_gcp_kms: BytesIO
+    ) -> json.JSONData:
+        decrypt_io = get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms)
+
+        # Decrypt the tarball, if the user has indicated that this is one by using either of the
+        # `--decrypt...` flags.
+        if decrypt_io is not None:
+            try:
+                input = BytesIO(
+                    decrypt_encrypted_tarball(src, decrypt_with_gcp_kms is not None, decrypt_io)
+                )
+            except DecryptionError as e:
+                click.echo(f"Invalid {side.name} side tarball: {str(e)}", err=True)
+        else:
+            input = src
+
+        # Now read the input string into memory as JSONData.
+        try:
+            data = json.load(input)
+        except json.JSONDecodeError:
+            click.echo(f"Invalid {side.name} JSON", err=True)
+
+        return data
 
     with left:
-        try:
-            left_data = json.load(left)
-        except json.JSONDecodeError:
-            click.echo("Invalid left JSON", err=True)
-
+        left_data = load_data(Side.left, left, decrypt_left_with, decrypt_left_with_gcp_kms)
     with right:
-        try:
-            right_data = json.load(right)
-        except json.JSONDecodeError:
-            click.echo("Invalid right JSON", err=True)
+        right_data = load_data(Side.right, right, decrypt_right_with, decrypt_right_with_gcp_kms)
 
     res = validate(left_data, right_data, get_default_comparators())
     if res:
-        if findings_file:
-            with findings_file as f:
-                encoded = findings_encoder.encode(res.findings)
-                f.write(encoded)
-
+        write_findings(findings_file, res.findings, DEFAULT_INDENT, click.echo)
         click.echo(f"Done, found {len(res.findings)} differences:\n\n{res.pretty()}")
     else:
         click.echo("Done, found 0 differences!")
@@ -106,50 +212,88 @@ def import_():
 @import_.command(name="users")
 @click.argument("src", type=click.File("rb"))
 @click.option(
-    "--decrypt_with",
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
 @click.option(
-    "--filter_usernames",
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--filter-usernames",
+    "--filter_usernames",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of users to include. "
     "If this option is not set, all encountered users are imported.",
 )
 @click.option(
-    "--merge_users",
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--merge-users",
+    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=MERGE_USERS_HELP,
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_users(src, decrypt_with, filter_usernames, merge_users, silent):
+def import_users(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    filter_usernames,
+    findings_file,
+    merge_users,
+    silent,
+):
     """
     Import the Sentry users from an exported JSON file.
     """
 
-    from sentry.backup.imports import import_in_user_scope
+    from sentry.backup.imports import ImportingError, import_in_user_scope
 
-    import_in_user_scope(
-        src,
-        decrypt_with=decrypt_with,
-        flags=ImportFlags(merge_users=merge_users),
-        user_filter=parse_filter_arg(filter_usernames),
-        printer=(lambda *args, **kwargs: None) if silent else click.echo,
-    )
+    printer = get_printer(silent)
+    try:
+        import_in_user_scope(
+            src,
+            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                merge_users=merge_users,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
+            user_filter=parse_filter_arg(filter_usernames),
+            printer=printer,
+        )
+    except ImportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
 
 
 @import_.command(name="organizations")
 @click.argument("src", type=click.File("rb"))
 @click.option(
-    "--decrypt_with",
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
 @click.option(
-    "--filter_org_slugs",
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--filter-org-slugs",
+    "--filter_org_slugs",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of organization slugs to include. "
@@ -157,93 +301,178 @@ def import_users(src, decrypt_with, filter_usernames, merge_users, silent):
     "Users not members of at least one organization in this set will not be imported.",
 )
 @click.option(
-    "--merge_users",
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--merge-users",
+    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=MERGE_USERS_HELP,
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_organizations(src, decrypt_with, filter_org_slugs, merge_users, silent):
+def import_organizations(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    filter_org_slugs,
+    findings_file,
+    merge_users,
+    silent,
+):
     """
     Import the Sentry organizations, and all constituent Sentry users, from an exported JSON file.
     """
 
-    from sentry.backup.imports import import_in_organization_scope
+    from sentry.backup.imports import ImportingError, import_in_organization_scope
 
-    import_in_organization_scope(
-        src,
-        decrypt_with=decrypt_with,
-        flags=ImportFlags(merge_users=merge_users),
-        org_filter=parse_filter_arg(filter_org_slugs),
-        printer=(lambda *args, **kwargs: None) if silent else click.echo,
-    )
+    printer = get_printer(silent)
+    try:
+        import_in_organization_scope(
+            src,
+            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                merge_users=merge_users,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
+            org_filter=parse_filter_arg(filter_org_slugs),
+            printer=printer,
+        )
+    except ImportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
 
 
 @import_.command(name="config")
 @click.argument("src", type=click.File("rb"))
 @click.option(
-    "--decrypt_with",
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @click.option(
-    "--merge_users",
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--merge-users",
+    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=MERGE_USERS_HELP,
 )
 @click.option(
-    "--overwrite_configs",
-    default=False,
-    is_flag=True,
-    help=OVERWRITE_CONFIGS_HELP,
-)
-@configuration
-def import_config(src, decrypt_with, merge_users, overwrite_configs, silent):
-    """
-    Import all configuration and administrator accounts needed to set up this Sentry instance.
-    """
-
-    from sentry.backup.imports import import_in_config_scope
-
-    import_in_config_scope(
-        src,
-        decrypt_with=decrypt_with,
-        flags=ImportFlags(merge_users=merge_users, overwrite_configs=overwrite_configs),
-        printer=(lambda *args, **kwargs: None) if silent else click.echo,
-    )
-
-
-@import_.command(name="global")
-@click.argument("src", type=click.File("rb"))
-@click.option(
-    "--decrypt_with",
-    type=click.File("rb"),
-    help=DECRYPT_WITH_HELP,
-)
-@click.option(
-    "--overwrite_configs",
+    "--overwrite-configs",
+    "--overwrite_configs",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=OVERWRITE_CONFIGS_HELP,
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_global(src, decrypt_with, silent, overwrite_configs):
+def import_config(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    findings_file,
+    merge_users,
+    overwrite_configs,
+    silent,
+):
+    """
+    Import all configuration and administrator accounts needed to set up this Sentry instance.
+    """
+
+    from sentry.backup.imports import ImportingError, import_in_config_scope
+
+    printer = get_printer(silent)
+    try:
+        import_in_config_scope(
+            src,
+            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                merge_users=merge_users,
+                overwrite_configs=overwrite_configs,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
+            printer=printer,
+        )
+    except ImportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
+
+
+@import_.command(name="global")
+@click.argument("src", type=click.File("rb"))
+@click.option(
+    "--decrypt-with",
+    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
+    "--overwrite-configs",
+    "--overwrite_configs",  # For backwards compatibility with self-hosted@23.10.0
+    default=False,
+    is_flag=True,
+    help=OVERWRITE_CONFIGS_HELP,
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def import_global(
+    src,
+    decrypt_with,
+    decrypt_with_gcp_kms,
+    findings_file,
+    overwrite_configs,
+    silent,
+):
     """
     Import all Sentry data from an exported JSON file.
     """
 
-    from sentry.backup.imports import import_in_global_scope
+    from sentry.backup.imports import ImportingError, import_in_global_scope
 
-    import_in_global_scope(
-        src,
-        decrypt_with=decrypt_with,
-        flags=ImportFlags(overwrite_configs=overwrite_configs),
-        printer=(lambda *args, **kwargs: None) if silent else click.echo,
-    )
+    printer = get_printer(silent)
+    try:
+        import_in_global_scope(
+            src,
+            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(
+                overwrite_configs=overwrite_configs,
+                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
+            ),
+            printer=printer,
+        )
+    except ImportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
 
 
 @click.group(name="export")
@@ -254,50 +483,66 @@ def export():
 @export.command(name="users")
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
-    "--encrypt_with",
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
 )
 @click.option(
-    "--filter_usernames",
+    "--filter-usernames",
+    "--filter_usernames",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of users to include. "
     "If this option is not set, all encountered users are imported.",
 )
 @click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
     "--indent",
     default=2,
     type=int,
-    help="Number of spaces to indent for the JSON output. (default: 2)",
+    help=INDENT_HELP,
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_users(dest, encrypt_with, filter_usernames, indent, silent):
+def export_users(dest, encrypt_with, filter_usernames, findings_file, indent, silent):
     """
     Export all Sentry users in the JSON format.
     """
 
-    from sentry.backup.exports import export_in_user_scope
+    from sentry.backup.exports import ExportingError, export_in_user_scope
 
-    export_in_user_scope(
-        dest,
-        encrypt_with=encrypt_with,
-        indent=indent,
-        user_filter=parse_filter_arg(filter_usernames),
-        printer=(lambda *args, **kwargs: None) if silent else click.echo,
-    )
+    printer = get_printer(silent)
+    try:
+        export_in_user_scope(
+            dest,
+            encrypt_with=encrypt_with,
+            indent=indent,
+            user_filter=parse_filter_arg(filter_usernames),
+            printer=printer,
+        )
+    except ExportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
 
 
 @export.command(name="organizations")
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
-    "--encrypt_with",
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
 )
 @click.option(
-    "--filter_org_slugs",
+    "--filter-org-slugs",
+    "--filter_org_slugs",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of organization slugs to include. "
@@ -305,84 +550,122 @@ def export_users(dest, encrypt_with, filter_usernames, indent, silent):
     "Users not members of at least one organization in this set will not be exported.",
 )
 @click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
+)
+@click.option(
     "--indent",
     default=2,
     type=int,
-    help="Number of spaces to indent for the JSON output. (default: 2)",
+    help=INDENT_HELP,
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_organizations(dest, encrypt_with, filter_org_slugs, indent, silent):
+def export_organizations(dest, encrypt_with, filter_org_slugs, findings_file, indent, silent):
     """
     Export all Sentry organizations, and their constituent users, in the JSON format.
     """
 
-    from sentry.backup.exports import export_in_organization_scope
+    from sentry.backup.exports import ExportingError, export_in_organization_scope
 
-    export_in_organization_scope(
-        dest,
-        encrypt_with=encrypt_with,
-        indent=indent,
-        org_filter=parse_filter_arg(filter_org_slugs),
-        printer=(lambda *args, **kwargs: None) if silent else click.echo,
-    )
+    printer = get_printer(silent)
+    try:
+        export_in_organization_scope(
+            dest,
+            encrypt_with=encrypt_with,
+            indent=indent,
+            org_filter=parse_filter_arg(filter_org_slugs),
+            printer=printer,
+        )
+    except ExportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
 
 
 @export.command(name="config")
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
-    "--encrypt_with",
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
 )
 @click.option(
     "--indent",
     default=2,
     type=int,
-    help="Number of spaces to indent for the JSON output. (default: 2)",
+    help=INDENT_HELP,
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_config(dest, encrypt_with, indent, silent):
+def export_config(dest, encrypt_with, findings_file, indent, silent):
     """
     Export all configuration and administrator accounts needed to set up this Sentry instance.
     """
 
-    from sentry.backup.exports import export_in_config_scope
+    from sentry.backup.exports import ExportingError, export_in_config_scope
 
-    export_in_config_scope(
-        dest,
-        encrypt_with=encrypt_with,
-        indent=indent,
-        printer=(lambda *args, **kwargs: None) if silent else click.echo,
-    )
+    printer = get_printer(silent)
+    try:
+        export_in_config_scope(
+            dest,
+            encrypt_with=encrypt_with,
+            indent=indent,
+            printer=printer,
+        )
+    except ExportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e
 
 
 @export.command(name="global")
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
-    "--encrypt_with",
+    "--encrypt-with",
+    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
+)
+@click.option(
+    "--findings-file",
+    type=click.File("w"),
+    required=False,
+    help=FINDINGS_FILE_HELP,
 )
 @click.option(
     "--indent",
     default=2,
     type=int,
-    help="Number of spaces to indent for the JSON output. (default: 2)",
+    help=INDENT_HELP,
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_global(dest, encrypt_with, indent, silent):
+def export_global(dest, encrypt_with, findings_file, indent, silent):
     """
     Export all Sentry data in the JSON format.
     """
 
-    from sentry.backup.exports import export_in_global_scope
+    from sentry.backup.exports import ExportingError, export_in_global_scope
 
-    export_in_global_scope(
-        dest,
-        encrypt_with=encrypt_with,
-        indent=indent,
-        printer=(lambda *args, **kwargs: None) if silent else click.echo,
-    )
+    printer = get_printer(silent)
+    try:
+        export_in_global_scope(
+            dest,
+            encrypt_with=encrypt_with,
+            indent=indent,
+            printer=printer,
+        )
+    except ExportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
+        raise e

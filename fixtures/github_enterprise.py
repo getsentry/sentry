@@ -527,7 +527,7 @@ INSTALLATION_REPO_EVENT = """{
   }
 }"""
 
-INTSTALLATION_REPOSITORIES_API_RESPONSE = """{
+INSTALLATION_REPOSITORIES_API_RESPONSE = """{
   "total_count": 1,
   "repositories": [
     {

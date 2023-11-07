@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from functools import cached_property, lru_cache
 from pathlib import Path
 from typing import Tuple
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 from cryptography.hazmat.backends import default_backend
@@ -26,7 +27,7 @@ from sentry.backup.exports import (
     export_in_user_scope,
 )
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.helpers import decrypt_encrypted_tarball
+from sentry.backup.helpers import KeyManagementServiceClient, decrypt_encrypted_tarball
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
@@ -96,6 +97,21 @@ __all__ = [
 ]
 
 NOOP_PRINTER = lambda *args, **kwargs: None
+
+
+class FakeKeyManagementServiceClient:
+    """
+    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
+    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
+    endpoint.
+    """
+
+    asymmetric_decrypt = MagicMock()
+    get_public_key = MagicMock()
+
+    @staticmethod
+    def crypto_key_version_path(**kwargs) -> str:
+        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
 
 
 class ValidationError(Exception):
@@ -183,7 +199,7 @@ def export_to_encrypted_tarball(
     # part of the encrypt/decrypt tar-ing API, so we need to ensure that these exact names are
     # present and contain the data we expect.
     with open(tar_file_path, "rb") as f:
-        return json.loads(decrypt_encrypted_tarball(f, io.BytesIO(private_key_pem)))
+        return json.loads(decrypt_encrypted_tarball(f, False, io.BytesIO(private_key_pem)))
 
 
 # No arguments, so we lazily cache the result after the first calculation.
@@ -384,7 +400,8 @@ class BackupTestCase(TransactionTestCase):
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
-        # Note: this model is deprecated, and can safely be removed from this test when it is finally removed. Until then, it is included for completeness.
+        # Note: this model is deprecated, and can safely be removed from this test when it is
+        # finally removed. Until then, it is included for completeness.
         ProjectIntegration.objects.create(
             project=project, integration_id=integration_id, config='{"hello":"hello"}'
         )
@@ -549,7 +566,10 @@ class BackupTestCase(TransactionTestCase):
         # Api*
         ApiAuthorization.objects.create(application=app.application, user=owner)
         ApiToken.objects.create(
-            application=app.application, user=owner, token=uuid4().hex, expires_at=None
+            application=app.application,
+            user=owner,
+            expires_at=None,
+            name="create_exhaustive_sentry_app",
         )
         ApiGrant.objects.create(
             user=owner,
@@ -582,7 +602,9 @@ class BackupTestCase(TransactionTestCase):
         self.create_exhaustive_global_configs_regional()
         ControlOption.objects.create(key="bar", value="b")
         ApiAuthorization.objects.create(user=owner)
-        ApiToken.objects.create(user=owner, token=uuid4().hex, expires_at=None)
+        ApiToken.objects.create(
+            user=owner, expires_at=None, name="create_exhaustive_global_configs"
+        )
 
     @assume_test_silo_mode(SiloMode.REGION)
     def create_exhaustive_global_configs_regional(self):
@@ -594,7 +616,9 @@ class BackupTestCase(TransactionTestCase):
 
     def create_exhaustive_instance(self, *, is_superadmin: bool = False):
         """
-        Takes an empty Sentry instance's database, and populates it with an "exhaustive" version of every model. The end result is two users, in one organization, with one full set of extensions, and all global flags set.
+        Takes an empty Sentry instance's database, and populates it with an "exhaustive" version of
+        every model. The end result is two users, in one organization, with one full set of
+        extensions, and all global flags set.
         """
 
         owner = self.create_exhaustive_user(

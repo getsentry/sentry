@@ -1,49 +1,28 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 from urllib.parse import quote
 
 from django.urls import reverse
 from requests import PreparedRequest
 
+from sentry.integrations.gitlab.blame import fetch_file_blames
+from sentry.integrations.gitlab.utils import GitLabApiClientPath
+from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
-API_VERSION = "/api/v4"
 if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration
 
-
-class GitLabApiClientPath:
-    oauth_token = "/oauth/token"
-    blame = "/projects/{project}/repository/files/{path}/blame"
-    commit = "/projects/{project}/repository/commits/{sha}"
-    commits = "/projects/{project}/repository/commits"
-    compare = "/projects/{project}/repository/compare"
-    diff = "/projects/{project}/repository/commits/{sha}/diff"
-    file = "/projects/{project}/repository/files/{path}"
-    group = "/groups/{group}"
-    group_projects = "/groups/{group}/projects"
-    hooks = "/hooks"
-    issue = "/projects/{project}/issues/{issue}"
-    issues = "/projects/{project}/issues"
-    notes = "/projects/{project}/issues/{issue_id}/notes"
-    project = "/projects/{project}"
-    project_issues = "/projects/{project}/issues"
-    project_hooks = "/projects/{project}/hooks"
-    project_hook = "/projects/{project}/hooks/{hook_id}"
-    project_search = "/projects/{project}/search"
-    projects = "/projects"
-    user = "/user"
-
-    @staticmethod
-    def build_api_url(base_url, path):
-        return f"{base_url.rstrip('/')}{API_VERSION}{path}"
+logger = logging.getLogger("sentry.integrations.gitlab")
 
 
 class GitlabProxySetupClient(IntegrationProxyClient):
@@ -354,3 +333,9 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         )
 
         return contents or []
+
+    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> list[FileBlameInfo]:
+        metrics.incr("sentry.integrations.gitlab.get_blame_for_files")
+        return fetch_file_blames(
+            self, files, extra={"provider": "gitlab", "org_integration_id": self.org_integration_id}
+        )

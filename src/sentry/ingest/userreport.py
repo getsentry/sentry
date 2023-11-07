@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional, Tuple
@@ -9,6 +11,7 @@ from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 from sentry import analytics, eventstore, features
 from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
+from sentry.feedback.usecases.create_feedback import shim_to_feedback
 from sentry.models.eventuser import EventUser
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
@@ -98,6 +101,9 @@ def save_userreport(project, report, start_time=None):
                 report_instance.notify()
 
         user_feedback_received.send(project=project, sender=save_userreport)
+
+        if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+            shim_to_feedback(report, event, project)
 
         return report_instance
 
@@ -207,10 +213,10 @@ def _is_snuba_result_equal_to_eventuser(snuba_result: Mapping[str, Any], eventus
         "username": ["user_name"],
         "ip_address": ["ip_address_v6", "ip_address_v4"],
     }
+
     for eventuser_key, snuba_result_keys in EVENTUSER_TO_SNUBA_KEY_MAP.items():
-        if getattr(eventuser, eventuser_key) not in [
-            snuba_result[key] for key in snuba_result_keys
-        ]:
+        value = getattr(eventuser, eventuser_key) if eventuser is not None else None
+        if value not in [snuba_result[key] for key in snuba_result_keys]:
             return False
 
     return True
@@ -234,9 +240,8 @@ def _is_event_data_equal_to_eventuser(event: Event, eventuser: EventUser):
         "ip_address": ["user.ip_address"],
     }
     for eventuser_key, event_data_keys in EVENTUSER_TO_EVENT_DATA_KEY_MAP.items():
-        if getattr(eventuser, eventuser_key) not in [
-            get_nested_value(event.data, key) for key in event_data_keys
-        ]:
+        value = getattr(eventuser, eventuser_key) if eventuser is not None else None
+        if value not in [get_nested_value(event.data, key) for key in event_data_keys]:
             return False
 
     return True
@@ -266,7 +271,6 @@ def _generate_entity_dataset_query(
     start_date: datetime,
     end_date: datetime,
 ) -> Query:
-
     """This simply generates a query based on the passed parameters"""
     where_conditions = [
         Condition(Column("event_id"), Op.EQ, event_id),

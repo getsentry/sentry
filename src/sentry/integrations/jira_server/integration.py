@@ -28,10 +28,10 @@ from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -366,7 +366,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
 
-        organization = Organization.objects.get(id=self.organization_id)
+        context = organization_service.get_organization_by_id(id=self.organization_id)
+        organization = context.organization
+
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
         if not has_issue_sync:
             for field in configuration:
@@ -621,7 +623,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             organization = (
                 group.organization
                 if group
-                else Organization.objects.get_from_cache(id=self.organization_id)
+                else organization_service.get_organization_by_id(
+                    id=self.organization_id
+                ).organization
             )
             fkwargs["url"] = self.search_url(organization.slug)
             fkwargs["choices"] = []
@@ -977,7 +981,20 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             # above clean method.)
             cleaned_data["issuetype"] = {"id": issue_type}
 
+        # sometimes the project is missing as well and we need to add it
+        if "project" not in cleaned_data:
+            cleaned_data["project"] = {"id": jira_project}
+
         try:
+            logger.info(
+                "jira_server.create_issue",
+                extra={
+                    "organization_id": self.organization_id,
+                    "integration_id": self.model.id,
+                    "jira_project": jira_project,
+                    "cleaned_data": cleaned_data,
+                },
+            )
             response = client.create_issue(cleaned_data)
         except Exception as e:
             self.raise_error(e)

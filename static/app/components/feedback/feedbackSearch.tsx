@@ -2,6 +2,7 @@ import {CSSProperties} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -13,7 +14,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function ReplaysSearch({className, style}: Props) {
+export default function FeedbackSearch({className, style}: Props) {
   const {selection} = usePageFilters();
   const {pathname, query} = useLocation();
   const organization = useOrganization();
@@ -21,6 +22,7 @@ export default function ReplaysSearch({className, style}: Props) {
   return (
     <SearchContainer className={className} style={style}>
       <ReplaySearchBar
+        placeholder={t('Search Feedback')}
         disabled
         organization={organization}
         pageFilters={selection}

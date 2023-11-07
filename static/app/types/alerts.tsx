@@ -6,13 +6,29 @@ export const enum IssueAlertActionType {
   SLACK = 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
   NOTIFY_EMAIL = 'sentry.mail.actions.NotifyEmailAction',
   DISCORD = 'sentry.integrations.discord.notify_action.DiscordNotifyServiceAction',
-  JIRA_CREATE_TICKET = 'sentry.integrations.jira.notify_action.JiraCreateTicketAction',
-  JIRA_SERVER_CREATE_TICKET = 'sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction',
-  AZURE_DEVOPS_CREATE_TICKET = 'sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction',
   SENTRY_APP = 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
   MS_TEAMS = 'sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction',
   PAGER_DUTY = 'sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction',
   OPSGENIE = 'sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction',
+
+  /**
+   * Legacy integrations
+   */
+  NOTIFY_EVENT_ACTION = 'sentry.rules.actions.notify_event.NotifyEventAction',
+
+  /**
+   * Webhooks
+   */
+  NOTIFY_EVENT_SERVICE_ACTION = 'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+
+  /**
+   * Ticket integrations
+   */
+  JIRA_CREATE_TICKET = 'sentry.integrations.jira.notify_action.JiraCreateTicketAction',
+  JIRA_SERVER_CREATE_TICKET = 'sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction',
+  GITHUB_CREATE_TICKET = 'sentry.integrations.github.notify_action.GitHubCreateTicketAction',
+  GITHUB_ENTERPRISE_CREATE_TICKET = 'sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction',
+  AZURE_DEVOPS_CREATE_TICKET = 'sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction',
 }
 
 export const enum IssueAlertConditionType {
@@ -36,23 +52,122 @@ export const enum IssueAlertFilterType {
   LEVEL = 'sentry.rules.filters.level.LevelFilter',
 }
 
+interface IssueAlertFormFieldChoice {
+  type: 'choice';
+  choices?: Array<[key: string | number, name: string]>;
+  initial?: string;
+  placeholder?: string;
+}
+
+interface IssueAlertFormFieldString {
+  type: 'string';
+  initial?: string;
+  placeholder?: string;
+}
+
+interface IssueAlertFormFieldNumber {
+  type: 'number';
+  initial?: string;
+  placeholder?: number | string;
+}
+
+/**
+ * The fields that are used to render the form for an action or condition.
+ */
 type IssueAlertRuleFormField =
-  | {
-      type: 'choice';
-      choices?: [string, string][];
-      initial?: string;
-      placeholder?: string;
-    }
-  | {
-      type: 'string';
-      initial?: string;
-      placeholder?: string;
-    }
-  | {
-      type: 'number';
-      initial?: string;
-      placeholder?: number | string;
-    };
+  | IssueAlertFormFieldChoice
+  | IssueAlertFormFieldString
+  | IssueAlertFormFieldNumber;
+
+/**
+ * All issue alert configuration objects have these properties.
+ */
+interface IssueAlertConfigBase {
+  enabled: boolean;
+  label: string;
+  /**
+   * "Send a Slack notification"
+   */
+  prompt?: string;
+}
+
+/**
+ * Generic alert configuration. Do not add properties unless they are used by all filters.
+ */
+interface IssueAlertGenericActionConfig extends IssueAlertConfigBase {
+  id:
+    | `${IssueAlertActionType.SLACK}`
+    | `${IssueAlertActionType.NOTIFY_EMAIL}`
+    | `${IssueAlertActionType.DISCORD}`
+    | `${IssueAlertActionType.SENTRY_APP}`
+    | `${IssueAlertActionType.MS_TEAMS}`
+    | `${IssueAlertActionType.PAGER_DUTY}`
+    | `${IssueAlertActionType.OPSGENIE}`
+    | `${IssueAlertActionType.NOTIFY_EVENT_ACTION}`
+    | `${IssueAlertActionType.NOTIFY_EVENT_SERVICE_ACTION}`;
+  formFields?: Record<string, IssueAlertRuleFormField>;
+}
+
+/**
+ * Currently filters and conditions are basically the same, just with different IDs.
+ * Do not add properties unless they are used by all filters.
+ */
+export interface IssueAlertGenericConditionConfig extends IssueAlertConfigBase {
+  id: `${IssueAlertConditionType}` | `${IssueAlertFilterType}`;
+  formFields?: Record<string, IssueAlertRuleFormField>;
+}
+
+/**
+ * The object describing the options the slack action can use.
+ */
+interface IssueAlertSlackConfig extends IssueAlertConfigBase {
+  formFields: {
+    channel: IssueAlertFormFieldString;
+    channel_id: IssueAlertFormFieldString;
+    tags: IssueAlertFormFieldString;
+    workspace: IssueAlertFormFieldChoice;
+  };
+  id: `${IssueAlertActionType.SLACK}`;
+}
+
+interface IssueAlertTicketIntegrationConfig extends IssueAlertConfigBase {
+  actionType: 'ticket';
+  formFields: SchemaFormConfig;
+  id:
+    | `${IssueAlertActionType.JIRA_CREATE_TICKET}`
+    | `${IssueAlertActionType.JIRA_SERVER_CREATE_TICKET}`
+    | `${IssueAlertActionType.GITHUB_CREATE_TICKET}`
+    | `${IssueAlertActionType.GITHUB_ENTERPRISE_CREATE_TICKET}`
+    | `${IssueAlertActionType.AZURE_DEVOPS_CREATE_TICKET}`;
+  link: string;
+  ticketType: string;
+}
+
+interface IssueAlertSentryAppIntegrationConfig extends IssueAlertConfigBase {
+  actionType: 'sentryapp';
+  formFields: SchemaFormConfig;
+  id: `${IssueAlertActionType.SENTRY_APP}`;
+  sentryAppInstallationUuid: string;
+}
+
+/**
+ * The actions that an organization has enabled and can be used to create an issue alert.
+ */
+export type IssueAlertConfigurationAction =
+  | IssueAlertGenericActionConfig
+  | IssueAlertTicketIntegrationConfig
+  | IssueAlertSentryAppIntegrationConfig
+  | IssueAlertSlackConfig;
+
+/**
+ * Describes the actions, filters, and conditions that can be used
+ * to create an issue alert.
+ */
+export interface IssueAlertConfiguration {
+  actions: IssueAlertConfigurationAction[];
+  conditions: IssueAlertGenericConditionConfig[];
+  filters: IssueAlertGenericConditionConfig[];
+}
 
 /**
  * These templates that tell the UI how to render the action or condition

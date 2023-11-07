@@ -93,6 +93,7 @@ type Props = {
   savedSearch: SavedSearch;
   savedSearchLoading: boolean;
   savedSearches: SavedSearch[];
+  selectedSearchId: string;
   selection: PageFilters;
   tags: TagCollection;
 } & RouteComponentProps<{searchId?: string}, {}> &
@@ -180,7 +181,10 @@ class IssueListOverview extends Component<Props, State> {
     // Wait for saved searches to load so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
     // But if searches are already there, we can go right to fetching issues
-    if (!this.props.savedSearchLoading) {
+    if (
+      !this.props.savedSearchLoading ||
+      this.props.organization.features.includes('issue-stream-performance')
+    ) {
       this.fetchData();
     }
     this.fetchTags();
@@ -210,7 +214,19 @@ class IssueListOverview extends Component<Props, State> {
     if (this.props.savedSearchLoading) {
       return;
     }
-    if (prevProps.savedSearchLoading) {
+
+    if (
+      prevProps.savedSearchLoading &&
+      !this.props.savedSearchLoading &&
+      this.props.organization.features.includes('issue-stream-performance')
+    ) {
+      return;
+    }
+
+    if (
+      prevProps.savedSearchLoading &&
+      !this.props.organization.features.includes('issue-stream-performance')
+    ) {
       this.fetchData();
       return;
     }
@@ -523,11 +539,27 @@ class IssueListOverview extends Component<Props, State> {
       error: null,
     });
 
+    // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend
+    const savedSearchLookupEnabled = 0;
+    const savedSearchLookupDisabled = 1;
+
     const requestParams: any = {
       ...this.getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
+      savedSearch: this.props.organization.features.includes('issue-stream-performance')
+        ? this.props.savedSearchLoading
+          ? savedSearchLookupEnabled
+          : savedSearchLookupDisabled
+        : savedSearchLookupDisabled,
     };
+
+    if (
+      this.props.organization.features.includes('issue-stream-performance') &&
+      this.props.selectedSearchId
+    ) {
+      requestParams.searchId = this.props.selectedSearchId;
+    }
 
     const currentQuery = this.props.location.query || {};
     if ('cursor' in currentQuery) {
@@ -540,7 +572,7 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     requestParams.expand = ['owners', 'inbox'];
-    requestParams.collapse = 'stats';
+    requestParams.collapse = ['stats', 'unhandled'];
 
     if (this._lastRequest) {
       this._lastRequest.cancel();
@@ -1113,7 +1145,10 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   render() {
-    if (this.props.savedSearchLoading) {
+    if (
+      this.props.savedSearchLoading &&
+      !this.props.organization.features.includes('issue-stream-performance')
+    ) {
       return this.renderLoading();
     }
 

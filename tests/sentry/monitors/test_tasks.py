@@ -1,21 +1,22 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import MutableMapping
 from unittest import mock
 
 import msgpack
 import pytest
+import pytz
 from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
 from confluent_kafka.admin import PartitionMetadata
 from django.test import override_settings
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -36,7 +37,10 @@ def make_ref_time(**kwargs):
     To accurately reflect the real usage of this task, we want the ref time
     to be truncated down to a minute for our tests.
     """
-    ts = timezone.now().replace(**kwargs)
+    tz_name = kwargs.pop("timezone", "UTC")
+
+    ts = timezone.now().replace(**kwargs, tzinfo=None)
+    ts = pytz.timezone(tz_name).localize(ts)
 
     # Typically the task will not run exactly on the minute, but it will
     # run very close, let's say for our test that it runs 12 seconds after
@@ -45,10 +49,8 @@ def make_ref_time(**kwargs):
     # This is testing that the task correctly clamps its reference time
     # down to the minute.
     #
-    # NOTE: We also remove the timezone info from the task run timestamp, since
-    # it receives a date time object from the kafka producer. This helps test
-    # for bad timezone
-    task_run_ts = ts.replace(second=12, microsecond=0, tzinfo=None)
+    # Task timestamps are in UTC, convert our reference time to UTC for this
+    task_run_ts = ts.astimezone(timezone.utc).replace(second=12, microsecond=0)
 
     # Fan-out tasks recieve a floored version of the timestamp
     sub_task_run_ts = task_run_ts.replace(second=0)
@@ -58,6 +60,16 @@ def make_ref_time(**kwargs):
     trimmed_ts = ts.replace(second=0, microsecond=0)
 
     return task_run_ts, sub_task_run_ts, trimmed_ts
+
+
+def get_checkin_timeout_kwargs(checkin: MonitorCheckIn):
+    return {
+        "monitor_id": checkin.monitor.id,
+        "monitor_environment_id": checkin.monitor_environment.id,
+        "status": checkin.status,
+        "date_added": checkin.date_added,
+        "timeout_at": checkin.timeout_at,
+    }
 
 
 class MonitorTaskCheckMissingTest(TestCase):
@@ -123,6 +135,67 @@ class MonitorTaskCheckMissingTest(TestCase):
         assert missed_checkin.date_added == next_checkin
         assert missed_checkin.expected_time == next_checkin
         assert missed_checkin.monitor_config == monitor.config
+
+    @mock.patch("sentry.monitors.tasks.mark_environment_missing")
+    def test_missing_checkin_with_timezone(self, mark_environment_missing_mock):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        # 1st of Febuary midnight Arizona time
+        task_run_ts, sub_task_run_ts, ts = make_ref_time(
+            month=2, day=1, hour=0, minute=0, timezone="US/Arizona"
+        )
+
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": "0 0 * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "timezone": "US/Arizona",
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+        )
+
+        # Last check-in was yesterday
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            last_checkin=ts - timedelta(days=1),
+            next_checkin=ts,
+            next_checkin_latest=ts + timedelta(minutes=1),
+            status=MonitorStatus.OK,
+        )
+
+        # No missed check-ins generated any hour between the last check-in and
+        # the upcoming checkin. Testing like this to validate any kind of
+        # strange timezone related issues.
+        for hour in range(24):
+            check_missing(task_run_ts - timedelta(days=1) + timedelta(hours=hour + 1))
+
+        assert mark_environment_missing_mock.delay.call_count == 0
+
+        # Mark check in missed a minute later
+        check_missing(task_run_ts + timedelta(minutes=1))
+        assert mark_environment_missing_mock.delay.call_count == 1
+
+        # Missed check-in correctly updates
+        mark_environment_missing(monitor_environment.id, sub_task_run_ts + timedelta(minutes=1))
+        monitor_environment.refresh_from_db()
+
+        assert MonitorCheckIn.objects.filter(
+            monitor_environment=monitor_environment.id,
+            status=CheckInStatus.MISSED,
+        ).exists()
+
+        # Use UTC timezone for comparison so failed asserts are easier to read,
+        # since next_checkin will bome back as UTC. This does NOT affect the assert
+        utc_ts = ts.astimezone(timezone.utc)
+
+        assert monitor_environment.next_checkin == utc_ts + timedelta(days=1)
+        assert monitor_environment.next_checkin_latest == utc_ts + timedelta(days=1, minutes=1)
 
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
     def test_missing_checkin_with_margin(self, mark_environment_missing_mock):
@@ -413,13 +486,13 @@ class MonitorTaskCheckMissingTest(TestCase):
         assert mark_environment_missing_mock.delay.call_count == 0
 
     def test_missing_checkin_but_disabled(self):
-        self.assert_state_does_not_change_for_status(ObjectStatus.DISABLED)
+        self.assert_state_does_not_change_for_status(MonitorObjectStatus.DISABLED)
 
     def test_missing_checkin_but_pending_deletion(self):
-        self.assert_state_does_not_change_for_status(ObjectStatus.PENDING_DELETION)
+        self.assert_state_does_not_change_for_status(MonitorObjectStatus.PENDING_DELETION)
 
     def test_missing_checkin_but_deletion_in_progress(self):
-        self.assert_state_does_not_change_for_status(ObjectStatus.DELETION_IN_PROGRESS)
+        self.assert_state_does_not_change_for_status(MonitorObjectStatus.DELETION_IN_PROGRESS)
 
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
     def test_not_missing_checkin(self, mark_environment_missing_mock):
@@ -589,15 +662,18 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         assert mark_checkin_timeout_mock.delay.call_count == 0
 
         # Timout at 12:30
+        checkin_kwargs = get_checkin_timeout_kwargs(checkin)
         check_timeout(task_run_ts + timedelta(minutes=30))
         assert mark_checkin_timeout_mock.delay.call_count == 1
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin.id,
             sub_task_run_ts + timedelta(minutes=30),
+            **checkin_kwargs,
         )
         mark_checkin_timeout(
             checkin.id,
             sub_task_run_ts + timedelta(minutes=30),
+            **checkin_kwargs,
         )
 
         # Check in is marked as timed out
@@ -681,16 +757,19 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         assert mark_checkin_timeout_mock.delay.call_count == 0
 
         # First checkin timed out
+        checkin_kwargs = get_checkin_timeout_kwargs(checkin1)
         check_timeout(task_run_ts + timedelta(minutes=30))
         assert mark_checkin_timeout_mock.delay.call_count == 1
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin1.id,
             sub_task_run_ts + timedelta(minutes=30),
+            **checkin_kwargs,
         )
 
         mark_checkin_timeout(
             checkin1.id,
             sub_task_run_ts + timedelta(minutes=30),
+            **checkin_kwargs,
         )
 
         # First checkin is marked as timed out
@@ -756,13 +835,15 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         )
 
         # Check in was marked as timed out
+        checkin_kwargs = get_checkin_timeout_kwargs(checkin)
         check_timeout(task_run_ts)
         assert mark_checkin_timeout_mock.delay.call_count == 1
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin.id,
             sub_task_run_ts,
+            **checkin_kwargs,
         )
-        mark_checkin_timeout(checkin.id, sub_task_run_ts)
+        mark_checkin_timeout(checkin.id, sub_task_run_ts, **checkin_kwargs)
 
         # First checkin is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
@@ -816,15 +897,18 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         )
 
         # Timout at 12:05
+        checkin_kwargs = get_checkin_timeout_kwargs(checkin)
         check_timeout(task_run_ts + timedelta(minutes=5))
         assert mark_checkin_timeout_mock.delay.call_count == 1
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin.id,
             sub_task_run_ts + timedelta(minutes=5),
+            **checkin_kwargs,
         )
         mark_checkin_timeout(
             checkin.id,
             sub_task_run_ts + timedelta(minutes=5),
+            **checkin_kwargs,
         )
 
         # Check in is marked as timed out
@@ -895,6 +979,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
 
         # Running check monitor will mark the first checkin as timed out. The
         # second checkin was already marked as OK.
+        checkin_kwargs = get_checkin_timeout_kwargs(checkin1)
         check_timeout(task_run_ts)
 
         # assert that task is called for the specific checkin
@@ -902,9 +987,10 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         assert mark_checkin_timeout_mock.delay.mock_calls[0] == mock.call(
             checkin1.id,
             sub_task_run_ts,
+            **checkin_kwargs,
         )
 
-        mark_checkin_timeout(checkin1.id, sub_task_run_ts)
+        mark_checkin_timeout(checkin1.id, sub_task_run_ts, **checkin_kwargs)
 
         # The first checkin is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin1.id, status=CheckInStatus.TIMEOUT).exists()
@@ -947,7 +1033,7 @@ def test_clock_pulse(checkin_producer_mock):
 
 @mock.patch("sentry.monitors.tasks._dispatch_tasks")
 def test_monitor_task_trigger(dispatch_tasks):
-    now = datetime.now().replace(second=0, microsecond=0)
+    now = timezone.now().replace(second=0, microsecond=0)
 
     # Assumes a single partition for simplicitly. Multi-partition cases are
     # covered in further test cases.
@@ -983,7 +1069,7 @@ def test_monitor_task_trigger_partition_desync(dispatch_tasks):
     timestamps in a non-monotonic order. In this scenario we want to make
     sure we still only trigger once
     """
-    now = datetime.now().replace(second=0, microsecond=0)
+    now = timezone.now().replace(second=0, microsecond=0)
 
     # First message in partition 0 with timestamp just after the minute
     # boundary triggers the task
@@ -1013,7 +1099,7 @@ def test_monitor_task_trigger_partition_sync(dispatch_tasks):
     When the kafka topic has multiple partitions we want to only tick our clock
     forward once all partitions have caught up. This test simulates that
     """
-    now = datetime.now().replace(second=0, microsecond=0)
+    now = timezone.now().replace(second=0, microsecond=0)
 
     # Tick for 4 partitions
     try_monitor_tasks_trigger(ts=now, partition=0)
@@ -1041,7 +1127,7 @@ def test_monitor_task_trigger_partition_tick_skip(dispatch_tasks):
     In a scenario where all partitions move multiple ticks past the slowest
     partition we may end up skipping a tick.
     """
-    now = datetime.now().replace(second=0, microsecond=0)
+    now = timezone.now().replace(second=0, microsecond=0)
 
     # Tick for 4 partitions
     try_monitor_tasks_trigger(ts=now, partition=0)
