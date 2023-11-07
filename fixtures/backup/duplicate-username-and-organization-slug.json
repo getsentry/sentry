@@ -1,26 +1,6 @@
 [
 {
   "model": "sentry.option",
-  "pk": 1,
-  "fields": {
-    "key": "sentry:last_worker_ping",
-    "last_updated": "2023-06-27T21:40:01.305Z",
-    "last_updated_by": "unknown",
-    "value": 1687902001.2623305
-  }
-},
-{
-  "model": "sentry.option",
-  "pk": 2,
-  "fields": {
-    "key": "sentry:last_worker_version",
-    "last_updated": "2023-06-27T21:40:01.312Z",
-    "last_updated_by": "unknown",
-    "value": "\"23.7.0.dev0\""
-  }
-},
-{
-  "model": "sentry.option",
   "pk": 3,
   "fields": {
     "key": "sentry:install-id",
