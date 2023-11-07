@@ -485,8 +485,10 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
         if not _SEARCH_TO_RELAY_OPERATORS.get(token.operator):
             return False
 
-        return not _is_excluding_transactions(token) and _is_on_demand_supported_field(
-            token.key.name
+        return (
+            not _is_excluding_transactions(token)
+            and not _is_error_field(token.key.name)
+            and _is_on_demand_supported_field(token.key.name)
         )
 
     if isinstance(token, ParenExpression):
@@ -496,11 +498,13 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
 
 
 def _is_excluding_transactions(token: SearchFilter) -> bool:
-    return (
-        token.key.name == "event.type"
-        and token.operator == "!="
-        and token.value.raw_value == "transaction"
-    )
+    if token.key.name != "event.type":
+        return False
+
+    is_not_transaction = token.operator == "!=" and token.value.raw_value == "transaction"
+    is_error_or_default = token.operator == "=" and token.value.raw_value in ["error", "default"]
+
+    return is_not_transaction or is_error_or_default
 
 
 def _is_standard_metrics_field(field: str) -> bool:
@@ -510,6 +514,10 @@ def _is_standard_metrics_field(field: str) -> bool:
         or is_span_op_breakdown(field)
         or field == "transaction.duration"
     )
+
+
+def _is_error_field(token: str) -> bool:
+    return token.startswith("error.")
 
 
 def _is_standard_metrics_search_term(field: str) -> bool:
