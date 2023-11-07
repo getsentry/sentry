@@ -173,7 +173,7 @@ sentry-forked-django-stubs==4.2.6.post2
 sentry-forked-djangorestframework-stubs==3.14.4.post1
 sentry-kafka-schemas==0.1.33
 sentry-redis-tools==0.1.7
-sentry-relay==0.8.33
+sentry-relay==0.8.35
 sentry-sdk==1.31.0
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
