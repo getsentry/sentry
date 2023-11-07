@@ -75,15 +75,15 @@ class RelocationCreateTest(APITestCase):
 
     def test_success_relocation_for_same_owner_already_completed(self):
         Relocation.objects.create(
-            creator=self.superuser.id,
-            owner=self.owner.id,
+            creator_id=self.superuser.id,
+            owner_id=self.owner.id,
             want_org_slugs=["not-relevant-to-this-test"],
             step=Relocation.Step.COMPLETED.value,
             status=Relocation.Status.FAILURE.value,
         )
         Relocation.objects.create(
-            creator=self.superuser.id,
-            owner=self.owner.id,
+            creator_id=self.superuser.id,
+            owner_id=self.owner.id,
             want_org_slugs=["not-relevant-to-this-test"],
             step=Relocation.Step.COMPLETED.value,
             status=Relocation.Status.SUCCESS.value,
@@ -231,8 +231,8 @@ class RelocationCreateTest(APITestCase):
 
     def test_fail_relocation_for_same_owner_already_in_progress(self):
         Relocation.objects.create(
-            creator=self.superuser.id,
-            owner=self.owner.id,
+            creator_id=self.superuser.id,
+            owner_id=self.owner.id,
             want_org_slugs=["not-relevant-to-this-test"],
             step=Relocation.Step.UPLOADING.value,
         )

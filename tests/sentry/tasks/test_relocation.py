@@ -82,8 +82,8 @@ class RelocationTaskTestCase(TestCase):
         )
         self.login_as(user=self.superuser, superuser=True)
         self.relocation: Relocation = Relocation.objects.create(
-            creator=self.superuser.id,
-            owner=self.owner.id,
+            creator_id=self.superuser.id,
+            owner_id=self.owner.id,
             want_org_slugs=["testing"],
             step=Relocation.Step.UPLOADING.value,
         )
