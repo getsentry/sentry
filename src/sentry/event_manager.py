@@ -2226,7 +2226,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
         skip_internal=True,
         tags={
             "platform": job["platform"],
-            "sdk": job["event"].data.get("sdk", {}).get("name") or "unknown",
+            "sdk": normalized_sdk_tag_from_event(job["event"]),
         },
     )
 
@@ -2485,7 +2485,7 @@ def _calculate_event_grouping(
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
-        "sdk": event.data.get("sdk", {}).get("name") or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
     }
 
     with metrics.timer("save_event.calculate_event_grouping", tags=metric_tags):
@@ -2541,7 +2541,7 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 amount=len(unique_default_hashes),
                 tags={
                     "platform": job["platform"] or "unknown",
-                    "sdk": event.data.get("sdk", {}).get("name") or "unknown",
+                    "sdk": normalized_sdk_tag_from_event(event),
                 },
             )
         except Exception:
