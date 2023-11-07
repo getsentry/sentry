@@ -344,17 +344,21 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
         return False
 
-    try:
-        for index, column in enumerate(widget_query.columns):
-            count = processed_results["data"][0][unique_columns[index]]
-            if count > max_cardinality_allowed:
-                cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
-                raise HighCardinalityWidgetException(
-                    f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
-                )
-    except HighCardinalityWidgetException as error:
-        sentry_sdk.capture_exception(error)
-        return False
+    with sentry_sdk.push_scope() as scope:
+        try:
+            for index, column in enumerate(widget_query.columns):
+                count = processed_results["data"][0][unique_columns[index]]
+                if count > max_cardinality_allowed:
+                    cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
+                    scope.set_tag("column_name", column)
+                    scope.set_tag("widget_id", widget_query.id)
+                    scope.set_tag("org_id", project.organization_id)
+                    raise HighCardinalityWidgetException(
+                        f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
+                    )
+        except HighCardinalityWidgetException as error:
+            sentry_sdk.capture_exception(error)
+            return False
 
     cache.set(cache_key, True)
     return True
