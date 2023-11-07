@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import {LinkButton} from 'sentry/components/button';
-import {useHasOrganizationSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
 import PageBanner from 'sentry/components/replays/pageBanner';
 import {IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -18,7 +17,6 @@ const LOCAL_STORAGE_KEY = 'feedback-set-up-alert-dismissed';
 
 export default function FeedbackSetupBanner({style}: Props) {
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
-  const {hasOrgSetupFeedback} = useHasOrganizationSetupFeedback();
 
   const docsButton = (
     <LinkButton
@@ -30,7 +28,7 @@ export default function FeedbackSetupBanner({style}: Props) {
     </LinkButton>
   );
 
-  return isDismissed || hasOrgSetupFeedback ? null : (
+  return isDismissed ? null : (
     <PageBanner
       style={style}
       button={docsButton}
