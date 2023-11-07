@@ -5,7 +5,7 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {
   _timeRangeAutoCompleteFilter,
   makeItem,
-} from 'sentry/components/organizations/timeRangeSelector/utils';
+} from 'sentry/components/timeRangeSelector/utils';
 import {t, tn} from 'sentry/locale';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
