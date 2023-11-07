@@ -64,13 +64,13 @@ _SYNONYMOUS_TAGS = {
 @functools.lru_cache(maxsize=300)
 def normalize_sdk_tag(tag: str) -> str:
     """
-    Normalize tags coming from SDKs to more manageable canonical form, by: 
-    
-    - combining synonymous tags (`sentry.react` -> `sentry.javascript.react`), 
-    - ignoring framework differences (`sentry.python.flask` and `sentry.python.django` -> `sentry.python`)
-    - collapsing all community/third-party SDKs into a single `other` category
-    
-   Note: Some platforms may keep their framework-specific values, as needed for analytics. 
+     Normalize tags coming from SDKs to more manageable canonical form, by:
+
+     - combining synonymous tags (`sentry.react` -> `sentry.javascript.react`),
+     - ignoring framework differences (`sentry.python.flask` and `sentry.python.django` -> `sentry.python`)
+     - collapsing all community/third-party SDKs into a single `other` category
+
+    Note: Some platforms may keep their framework-specific values, as needed for analytics.
     """
 
     # ignore non-sentry SDK tags
