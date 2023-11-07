@@ -98,6 +98,7 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
+
 const docs: Docs = {
   onboarding,
 };
