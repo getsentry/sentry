@@ -273,7 +273,7 @@ class SentryAppCreator:
     overview: str | None = None
     allowed_origins: List[str] = dataclasses.field(default_factory=list)
     popularity: int | None = None
-    metadata: dict = field(default_factory=dict)
+    metadata: dict | None = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.is_internal:
