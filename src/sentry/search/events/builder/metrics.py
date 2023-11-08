@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
@@ -121,13 +123,11 @@ class MetricsQueryBuilder(QueryBuilder):
         if not field:
             return None
 
-        # XXX: We can make the first non-function column to be the field
-        # XXX: What would be the right way of handling this?
-        for agg in self.selected_columns:
-            if fields.is_function(agg):
-                field = agg
+        # for agg in self.selected_columns:
+        #     if fields.is_function(agg):
+        #         field = agg
 
-        groupby_columns = [c for c in self.selected_columns if not fields.is_function(c)]
+        groupby_columns = self._get_group_bys()
 
         if not should_use_on_demand_metrics(self.dataset, field, self.query, groupby_columns):
             return None
@@ -142,6 +142,12 @@ class MetricsQueryBuilder(QueryBuilder):
             sentry_sdk.capture_exception(e)
             return None
 
+    def _get_group_bys(self) -> list[str]:
+        return [c for c in self.selected_columns if not fields.is_function(c)]
+
+    def _get_aggregates(self) -> list[str]:
+        return [c for c in self.selected_columns if fields.is_function(c)]
+
     @cached_property
     def _has_on_demand_specs(self) -> bool:
         return self._on_demand_metric_spec_map
@@ -151,10 +157,9 @@ class MetricsQueryBuilder(QueryBuilder):
         if not self.builder_config.on_demand_metrics_enabled:
             return None
 
-        aggregate_columns = self.selected_columns
         return {
             col: self._get_on_demand_metric_spec(col)
-            for col in aggregate_columns
+            for col in self.selected_columns
             if self._get_on_demand_metric_spec(col)
         }
 
@@ -896,13 +901,11 @@ class MetricsQueryBuilder(QueryBuilder):
                     metrics_queries = []
                     with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                         if self._has_on_demand_specs:
-                            # e.g. OnDemandMetricSpec(field='epm()', query='', groupbys=['runtime'], op='on_demand_epm', _metric_type='c', _arguments=[])
                             # We need to build a query for each column which has a spec and then merge the data back together.
-                            group_bys = [
-                                c for c in self.selected_columns if not fields.is_function(c)
-                            ]
-                            for column in group_bys:
-                                spec = self._on_demand_metric_spec_map[column]
+                            aggregates = self._get_aggregates()
+                            group_bys = self._get_group_bys()
+                            for agg in aggregates:
+                                spec = self._on_demand_metric_spec_map[agg]
                                 metrics_queries.append(
                                     self._get_metrics_query_from_on_demand_spec(
                                         spec=spec,
