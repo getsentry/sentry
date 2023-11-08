@@ -679,7 +679,6 @@ module = [
     "sentry.web.frontend.debug.debug_password_changed_email",
     "sentry.web.frontend.debug.debug_recovery_codes_regenerated_email",
     "sentry.web.frontend.debug.debug_trigger_error",
-    "sentry.web.frontend.debug.mail",
     "sentry.web.frontend.disabled_member_view",
     "sentry.web.frontend.error_404",
     "sentry.web.frontend.error_500",
