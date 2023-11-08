@@ -1,18 +1,22 @@
+from datetime import timedelta
+
 from django.test.client import RequestFactory
 from django.urls import reverse
 from django.utils import timezone
 
 from fixtures.apidocs_test_case import APIDocsTestCase
+from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
 
 @region_silo_test(stable=True)
-class ProjectUsersDocs(APIDocsTestCase):
+class ProjectUsersDocs(APIDocsTestCase, SnubaTestCase):
     def setUp(self):
-        timestamp = iso_format(timezone.now())
-        self.project = self.create_project()
+        super().setUp()
+        self.project = self.create_project(date_added=(timezone.now() - timedelta(hours=2)))
+        timestamp = iso_format(timezone.now() - timedelta(hours=1))
         self.url = reverse(
             "sentry-api-0-project-users",
             kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},

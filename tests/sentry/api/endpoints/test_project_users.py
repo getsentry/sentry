@@ -1,21 +1,22 @@
+from datetime import timedelta
 from unittest import mock
 
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
 
 @region_silo_test(stable=True)
-class ProjectUsersTest(APITestCase):
+class ProjectUsersTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
 
-        self.project = self.create_project()
-        timestamp = iso_format(timezone.now())
+        self.project = self.create_project(date_added=(timezone.now() - timedelta(hours=2)))
+        timestamp = iso_format(timezone.now() - timedelta(hours=1))
         self.path = reverse(
             "sentry-api-0-project-users",
             kwargs={
