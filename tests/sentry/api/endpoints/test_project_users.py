@@ -24,7 +24,7 @@ class ProjectUsersTest(APITestCase):
             username="foobar",
             name="Foo Bar",
             ip_address="127.0.0.1",
-            id="1",
+            id=1,
         )
 
         self.euser2 = EventUser(
@@ -33,7 +33,7 @@ class ProjectUsersTest(APITestCase):
             username="baz",
             name="Baz",
             ip_address="192.168.0.1",
-            id="2",
+            id=2,
         )
 
         self.path = reverse(
@@ -71,13 +71,6 @@ class ProjectUsersTest(APITestCase):
                 "timestamp": iso_format(timezone.now() - timedelta(days=1)),
             },
         )
-
-    # def tearDown(self):
-    #     super().tearDown()
-    #     del self.euser1
-    #     del self.euser2
-    #     del self.event1
-    #     del self.event2
 
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
