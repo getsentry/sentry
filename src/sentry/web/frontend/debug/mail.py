@@ -55,6 +55,7 @@ from sentry.notifications.utils import (
 from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
 from sentry.testutils.helpers.notifications import (  # NOQA:S007
     SAMPLE_TO_OCCURRENCE_MAP,
+    TEST_FEEDBACK_ISSUE_OCCURENCE,
     TEST_ISSUE_OCCURRENCE,
 )
 from sentry.types.group import GroupSubStatus
@@ -239,6 +240,25 @@ def make_generic_event(project):
     )
     generic_group = group_info.group
     return generic_group.get_latest_event()
+
+
+def make_feedback_issue(project):
+    event_id = uuid.uuid4().hex
+    occurrence_data = TEST_FEEDBACK_ISSUE_OCCURENCE.to_dict()
+    occurrence_data["event_id"] = event_id
+    occurrence_data["fingerprint"] = [
+        md5(part.encode("utf-8")).hexdigest() for part in occurrence_data["fingerprint"]
+    ]
+    occurrence, group_info = process_event_and_issue_occurrence(
+        occurrence_data,
+        {
+            "event_id": event_id,
+            "project_id": project.id,
+            "timestamp": before_now(minutes=1).isoformat(),
+        },
+    )
+    feedback_issue = group_info.group
+    return feedback_issue.get_latest_event()
 
 
 def get_shared_context(rule, org, project, group, event):

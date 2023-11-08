@@ -28,7 +28,11 @@ class GroupCategory(Enum):
     FEEDBACK = 6
 
 
-GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+GROUP_CATEGORIES_CUSTOM_EMAIL = (
+    GroupCategory.ERROR,
+    GroupCategory.PERFORMANCE,
+    GroupCategory.FEEDBACK,
+)
 # GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 
 DEFAULT_IGNORE_LIMIT: int = 3
