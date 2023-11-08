@@ -106,6 +106,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
                 Column("user"),
                 Column("user_name"),
                 Column("user_email"),
+                Column("timestamp"),
             ],
             where=where_conditions,
         )
@@ -137,6 +138,7 @@ def convert_to_event_user(snuba_results):
                 username=result["user_name"],
                 name=name,
                 ip_address=ip_address,
+                date_created=result["timestamp"],
                 id=int(result["user_id"]),
             ).serialize()
         )

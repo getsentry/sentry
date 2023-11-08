@@ -41,7 +41,7 @@ class EventUser:
     @staticmethod
     def from_event(event: Event) -> EventUser:
         return EventUser(
-            id=None,
+            id=event.data.get("user", {}).get("id") if event else None,
             project_id=event.project_id if event else None,
             email=event.data.get("user", {}).get("email") if event else None,
             username=event.data.get("user", {}).get("username") if event else None,
@@ -155,6 +155,7 @@ class EventUser:
             "name": self.get_display_name(),
             "ipAddress": self.ip_address,
             "avatarUrl": get_gravatar_url(self.email, size=32),
+            "dateCreated": self.date_created,
         }
 
 
@@ -220,6 +221,7 @@ def _generate_entity_dataset_query(
             Column("user"),
             Column("user_name"),
             Column("user_email"),
+            Column("timestamp"),
         ],
         where=where_conditions,
     )
