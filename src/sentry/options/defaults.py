@@ -270,13 +270,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "api.prevent-numeric-slugs",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 

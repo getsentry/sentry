@@ -8,7 +8,6 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
-from sentry import options
 from sentry.api.fields.avatar import AvatarField
 from sentry.api.serializers.rest_framework.sentry_app import URLField
 from sentry.api.validators.doc_integration import validate_metadata_schema
@@ -69,7 +68,7 @@ class DocIntegrationSerializer(Serializer):
 
         # If option is set, add random 3 lowercase letter suffix to prevent numeric slug
         # eg: 123 -> 123-abc
-        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
+        if slug.isdecimal():
             slug = f"{slug}-{''.join(random.choice(string.ascii_lowercase) for _ in range(3))}"
 
         features = validated_data.pop("features") if validated_data.get("features") else []

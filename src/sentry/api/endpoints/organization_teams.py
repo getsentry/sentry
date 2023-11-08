@@ -10,13 +10,9 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import (
-    DEFAULT_SLUG_ERROR_MESSAGE,
-    DEFAULT_SLUG_PATTERN,
-    PreventNumericSlugMixin,
-    region_silo_endpoint,
-)
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
@@ -46,15 +42,13 @@ class OrganizationTeamsPermission(OrganizationPermission):
 
 
 @extend_schema_serializer(exclude_fields=["idp_provisioned"], deprecate_fields=["name"])
-class TeamPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
-    slug = serializers.RegexField(
-        DEFAULT_SLUG_PATTERN,
+class TeamPostSerializer(serializers.Serializer):
+    slug = SentrySlugField(
         help_text="""Uniquely identifies a team and is used for the interface. If not
         provided, it is automatically generated from the name.""",
         max_length=50,
         required=False,
         allow_null=True,
-        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
     )
     name = serializers.CharField(
         help_text="""**`[DEPRECATED]`** The name for the team. If not provided, it is

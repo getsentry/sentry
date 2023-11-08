@@ -8,7 +8,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (

@@ -7,12 +7,8 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
-from sentry.api.base import (
-    DEFAULT_SLUG_ERROR_MESSAGE,
-    DEFAULT_SLUG_PATTERN,
-    PreventNumericSlugMixin,
-)
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.db.models import BoundedPositiveIntegerField
@@ -233,19 +229,15 @@ class ConfigValidator(serializers.Serializer):
 
 
 @extend_schema_serializer(exclude_fields=["project", "config", "alert_rule"])
-class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
+class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(scope="project:read")
     name = serializers.CharField(
         max_length=128,
         help_text="Name of the monitor. Used for notifications.",
     )
-    slug = serializers.RegexField(
-        DEFAULT_SLUG_PATTERN,
+    slug = SentrySlugField(
         max_length=MAX_SLUG_LENGTH,
         required=False,
-        error_messages={
-            "invalid": DEFAULT_SLUG_ERROR_MESSAGE,
-        },
         help_text="Uniquely identifies your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.",
     )
     status = serializers.ChoiceField(
@@ -272,7 +264,6 @@ class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
             slug=value, organization_id=self.context["organization"].id
         ).exists():
             raise ValidationError(f'The slug "{value}" is already in use.')
-        value = super().validate_slug(value)
         return value
 
     def update(self, instance, validated_data):

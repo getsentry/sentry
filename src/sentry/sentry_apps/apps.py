@@ -14,7 +14,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from sentry_sdk.api import push_scope
 
-from sentry import analytics, audit_log, options
+from sentry import analytics, audit_log
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -301,7 +301,7 @@ class SentryAppCreator:
 
         # If option is set, add random 3 lowercase letter suffix to prevent numeric slug
         # eg: 123 -> 123-abc
-        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
+        if slug.isdecimal():
             slug = f"{slug}-{''.join(random.choice(string.ascii_lowercase) for _ in range(3))}"
 
         # validate globally unique slug

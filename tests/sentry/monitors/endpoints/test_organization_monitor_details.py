@@ -1,12 +1,11 @@
 import pytest
 
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorObjectStatus, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
@@ -99,7 +98,6 @@ class UpdateMonitorTest(MonitorTestCase):
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         monitor = self._create_monitor()
         resp = self.get_error_response(
