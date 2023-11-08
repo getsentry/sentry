@@ -113,7 +113,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = DiscordIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
-    requires_feature_flag = True  # remove this when we remove the discord feature flag
 
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
     oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
