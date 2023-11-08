@@ -128,7 +128,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
             },
         )
 
-        resp = provider._get_guild_name(guild_id)
+        resp = provider.client.get_guild_name(guild_id)
         assert resp == "asdf"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
@@ -144,7 +144,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
             status=500,
         )
 
-        resp = provider._get_guild_name(guild_id)
+        resp = provider.client.get_guild_name(guild_id)
         assert resp == "1234"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
