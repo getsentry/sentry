@@ -64,15 +64,26 @@ class ProjectUsersEndpoint(ProjectEndpoint):
                             Function(
                                 "or",
                                 parameters=[
-                                    Function("equals", parameters=["ip_address_v4", identifier]),
-                                    Function("equals", parameters=["ip_address_v6", identifier]),
+                                    Function(
+                                        "equals",
+                                        parameters=[
+                                            Column("ip_address_v4"),
+                                            Function("IPv4StringToNum", parameters=[identifier]),
+                                        ],
+                                    ),
+                                    Function(
+                                        "equals",
+                                        parameters=[
+                                            Column("ip_address_v6"),
+                                            Function("IPv6StringToNum", parameters=[identifier]),
+                                        ],
+                                    ),
                                 ],
                             ),
                             Op.EQ,
                             1,
                         )
                     )
-                    pass
                 else:
                     where_conditions.append(
                         Condition(
@@ -126,7 +137,7 @@ def convert_to_event_user(snuba_results):
                 username=result["user_name"],
                 name=name,
                 ip_address=ip_address,
-                id=result["user_id"],
+                id=int(result["user_id"]),
             ).serialize()
         )
     return eventusers
