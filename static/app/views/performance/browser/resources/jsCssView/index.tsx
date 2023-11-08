@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import ResourceTable from 'sentry/views/performance/browser/resources/jsCssView/resourceTable';
 import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
 import {
@@ -60,7 +60,7 @@ function JSCSSView() {
       <SpanTimeCharts
         moduleName={ModuleName.OTHER}
         appliedFilters={spanTimeChartsFilters}
-        throughputUnit={RateUnits.PER_SECOND}
+        throughputUnit={RESOURCE_THROUGHPUT_UNIT}
       />
 
       <FilterOptionsContainer>

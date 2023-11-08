@@ -8,6 +8,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ImageView from 'sentry/views/performance/browser/resources/imageView';
@@ -23,6 +24,8 @@ import {
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
+
+export const RESOURCE_THROUGHPUT_UNIT = RateUnits.PER_MINUTE;
 
 function ResourcesLandingPage() {
   const organization = useOrganization();

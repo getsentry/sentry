@@ -126,9 +126,9 @@ function ThroughputChart({
 
     let throughputMultiplier = 1; // We're fetching per minute, so default is 1
     if (throughtputUnit === RateUnits.PER_SECOND) {
-      throughputMultiplier = 60;
-    } else if (throughtputUnit === RateUnits.PER_HOUR) {
       throughputMultiplier = 1 / 60;
+    } else if (throughtputUnit === RateUnits.PER_HOUR) {
+      throughputMultiplier = 60;
     }
 
     return {
