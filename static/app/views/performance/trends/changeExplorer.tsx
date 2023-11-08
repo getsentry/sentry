@@ -4,7 +4,7 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
-import {getArbitraryRelativePeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';

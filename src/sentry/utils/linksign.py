@@ -7,7 +7,8 @@ from django.core import signing
 from django.urls import reverse
 from sentry_sdk.api import capture_exception
 
-from sentry import options
+from sentry import features, options
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.region import get_local_region
 from sentry.utils.numbers import base36_decode, base36_encode
@@ -45,6 +46,42 @@ def generate_signed_link(
     if referrer:
         signed_link = signed_link + "&" + urlencode({"referrer": referrer})
     return signed_link
+
+
+def generate_signed_unsubscribe_link(
+    organization: Organization,
+    user_id: int,
+    resource: str,
+    resource_id: str | int,
+    referrer: str | None = None,
+):
+    """
+    Generate an absolute URL to the react rendered unsubscribe views
+
+    The URL will include a signature for the API endpoint that does read/writes.
+    The signature encodes the specific API path and userid that the action
+    is valid for.
+
+    The generated link will honour the customer-domain option for
+    the organization.
+    """
+    html_viewname = f"sentry-organization-unsubscribe-{resource}"
+    api_endpointname = f"sentry-api-0-organization-unsubscribe-{resource}"
+    url_args = [organization.slug, resource_id]
+    if features.has("organizations:customer-domains", organization):
+        url_args = [resource_id]
+        html_viewname = f"sentry-customer-domain-unsubscribe-{resource}"
+
+    htmlpath = reverse(html_viewname, args=url_args)
+    apipath = reverse(api_endpointname, args=[organization.slug, resource_id])
+
+    item = "{}|{}|{}".format(options.get("system.url-prefix"), apipath, base36_encode(user_id))
+    signature = ":".join(get_signer().sign(item).rsplit(":", 2)[1:])
+
+    query = f"_={base36_encode(user_id)}:{signature}"
+    if referrer:
+        query = query + "&" + urlencode({"referrer": referrer})
+    return organization.absolute_url(path=htmlpath, query=query)
 
 
 def find_signature(request) -> str | None:
