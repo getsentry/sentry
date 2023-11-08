@@ -28,7 +28,6 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -49,7 +48,6 @@ export function ScreenLoadSpansTable({
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  const routingContext = useRoutingContext();
 
   const truncatedPrimary = centerTruncate(primaryRelease ?? '', 15);
   const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 15);
@@ -126,7 +124,7 @@ export function ScreenLoadSpansTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = `${routingContext.baseURL}/pageload/spans/`;
+      const pathname = `/organizations/${organization.slug}/performance/mobile/screens/spans/`;
       const query = {
         ...location.query,
         transaction,
