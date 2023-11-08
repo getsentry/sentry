@@ -60,7 +60,6 @@ class SentryAppSerializer(Serializer):
             "events": consolidate_events(obj.events),
             "featureData": [],
             "isAlertable": obj.is_alertable,
-            "metadata": obj.metadata,
             "name": obj.name,
             "overview": obj.overview,
             "popularity": obj.popularity,
