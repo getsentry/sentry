@@ -131,6 +131,12 @@ export const RATE_UNIT_MULTIPLIERS = {
   [RateUnits.PER_HOUR]: 1 / (60 * 60),
 };
 
+export const RATE_UNIT_TITLE = {
+  [RateUnits.PER_SECOND]: 'Per Second',
+  [RateUnits.PER_MINUTE]: 'Per Minute',
+  [RateUnits.PER_HOUR]: 'Per Hour',
+};
+
 export const RATE_UNIT_LABELS = {
   [RateUnits.PER_SECOND]: '/s',
   [RateUnits.PER_MINUTE]: '/min',
