@@ -72,12 +72,12 @@ class ProjectUsersTest(APITestCase):
             },
         )
 
-    def tearDown(self):
-        super().tearDown()
-        del self.euser1
-        del self.euser2
-        del self.event1
-        del self.event2
+    # def tearDown(self):
+    #     super().tearDown()
+    #     del self.euser1
+    #     del self.euser2
+    #     del self.event1
+    #     del self.event2
 
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
