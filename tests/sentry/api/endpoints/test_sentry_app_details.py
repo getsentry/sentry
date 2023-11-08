@@ -434,6 +434,22 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             ]
         }
 
+    def test_cannot_update_partner_apps(self):
+        self.login_as(user=self.user)
+        self.published_app.update(metadata={"partnership_restricted": True})
+        response = self.client.put(
+            self.url,
+            data={
+                "name": self.published_app.name,
+                "author": "A Company",
+                "webhookUrl": "https://newurl.com",
+                "redirectUrl": "https://newredirecturl.com",
+                "isAlertable": True,
+            },
+            format="json",
+        )
+        assert response.status_code == 403
+
 
 @control_silo_test(stable=True)
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
@@ -459,3 +475,9 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         response = self.client.delete(url)
         assert response.status_code == 403
         assert response.data == {"detail": ["Published apps cannot be removed."]}
+
+    def test_cannot_delete_partner_apps(self):
+        self.login_as(user=self.user)
+        self.published_app.update(metadata={"partnership_restricted": True})
+        response = self.client.delete(self.url)
+        assert response.status_code == 403
