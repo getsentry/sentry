@@ -52,6 +52,9 @@ describe('UnsubscribeProject', function () {
     const button = screen.getByRole('button', {name: 'Unsubscribe'});
     await userEvent.click(button);
 
-    expect(mockUpdate).toHaveBeenCalled();
+    expect(mockUpdate).toHaveBeenCalledWith(
+      '/organizations/acme/unsubscribe/project/9876/?_=signature-value',
+      expect.objectContaining({data: {cancel: 1}})
+    );
   });
 });
