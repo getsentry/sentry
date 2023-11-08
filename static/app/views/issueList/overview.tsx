@@ -624,6 +624,14 @@ class IssueListOverview extends Component<Props, State> {
       requestParams.searchId = this.props.selectedSearchId;
     }
 
+    if (
+      this.props.organization.features.includes('issue-stream-performance') &&
+      this.props.savedSearchLoading &&
+      !this.props.location.query.query
+    ) {
+      delete requestParams.query;
+    }
+
     const currentQuery = this.props.location.query || {};
     if ('cursor' in currentQuery) {
       requestParams.cursor = currentQuery.cursor;

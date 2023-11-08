@@ -98,6 +98,7 @@ class RpcOrganizationMemberFlags(RpcModel):
     member_limit__restricted: bool = False
     idp__provisioned: bool = False
     idp__role_restricted: bool = False
+    partnership__restricted: bool = False
 
     def __getattr__(self, item: str) -> bool:
         from sentry.services.hybrid_cloud.organization.serial import escape_flag_name
@@ -353,3 +354,9 @@ class RpcAuditLogEntryActor(RpcModel):
     actor_id: int
     actor_key: Optional[str]
     ip_address: Optional[str]
+
+
+class OrganizationMemberUpdateArgs(TypedDict, total=False):
+    flags: Optional[RpcOrganizationMemberFlags]
+    role: str
+    invite_status: int

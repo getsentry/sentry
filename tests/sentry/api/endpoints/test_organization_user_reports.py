@@ -1,12 +1,9 @@
 from datetime import datetime, timedelta
-from unittest import mock
 
-from sentry.api.serializers import serialize
-from sentry.ingest.userreport import find_event_user, save_userreport
+from sentry.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -117,10 +114,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 400
 
-    @with_feature("organizations:eventuser-from-snuba")
-    @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.ingest.userreport.logger")
-    def test_with_event_user(self, mock_logger, mock_record):
+    def test_with_event_user(self):
         event = self.store_event(
             data={
                 "event_id": "d" * 32,
@@ -145,44 +139,8 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             "comments": "It broke",
         }
         save_userreport(self.project_1, report_data)
-        eventuser = find_event_user(report_data, event)
         response = self.get_response(self.project_1.organization.slug, project=[self.project_1.id])
         assert response.status_code == 200
         assert response.data[0]["comments"] == "It broke"
         assert response.data[0]["user"]["name"] == "Alice"
         assert response.data[0]["user"]["email"] == "alice@example.com"
-        assert mock_logger.info.call_count == 1
-        mock_logger.info.assert_called_once_with(
-            "EventUser equality checks with Snuba and Event.",
-            extra={
-                "event_id": event.event_id,
-                "project_id": event.project_id,
-                "group_id": event.group_id,
-                "eventuser": serialize(eventuser),
-                "dataset_results": {
-                    "project_id": event.project_id,
-                    "group_id": event.group_id,
-                    "ip_address_v6": None,
-                    "ip_address_v4": "8.8.8.8",
-                    "event_id": event.event_id,
-                    "user_id": "123",
-                    "user": "id:123",
-                    "user_name": "haveibeenpwned",
-                    "user_email": "alice@example.com",
-                },
-                "event.data.user": event.data.get("user", {}),
-                "snuba_eventuser_equality": True,
-                "event_eventuser_equality": True,
-                "snuba_event_equality": True,
-            },
-        )
-
-        mock_record.assert_called_with(
-            "eventuser_equality.check",
-            event_id=event.event_id,
-            project_id=event.project_id,
-            group_id=event.group_id,
-            snuba_eventuser_equality=True,
-            event_eventuser_equality=True,
-            snuba_event_equality=True,
-        )

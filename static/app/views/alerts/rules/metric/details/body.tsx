@@ -9,11 +9,11 @@ import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
+import type {ChangeData} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -192,15 +192,15 @@ export default function MetricDetailsBody({
                   )}
             </Alert>
           )}
-          <StyledPageTimeRangeSelector
+          <StyledTimeRangeSelector
             relative={timePeriod.period ?? ''}
             start={(timePeriod.custom && timePeriod.start) || null}
             end={(timePeriod.custom && timePeriod.end) || null}
-            utc={null}
             onChange={handleTimePeriodChange}
             relativeOptions={relativeOptions}
             showAbsolute={false}
             disallowArbitraryRelativeRanges
+            triggerLabel={relativeOptions[timePeriod.period ?? '']}
           />
 
           {showMigrationWarning ? (
@@ -309,6 +309,6 @@ const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
 `;
 
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   margin-bottom: ${space(2)};
 `;

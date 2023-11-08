@@ -744,6 +744,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.recap_servers",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
+    "sentry.tasks.relocation",
     "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
@@ -895,6 +896,7 @@ CELERY_QUEUES_REGION = [
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
+    Queue("relocation", routing_key="relocation"),
     Queue("recap_servers", routing_key="recap_servers"),
     Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
@@ -1505,6 +1507,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-group-attributes-side-query": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
+    # Enable issue stream performance improvements (cache)
+    "organizations:issue-stream-performance-cache": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1672,6 +1676,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable performance score calculation for transactions in relay
     "organizations:performance-calculate-score-relay": False,
+    # Enable screens view powered by span metrics
+    "organizations:performance-screens-view": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1863,6 +1869,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
     # temporary boost the sample rate of particular transactions)
     "organizations:investigation-bias": False,
+    # Controls whether or not the relocation endpoints can be used.
+    "relocation:enabled": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
