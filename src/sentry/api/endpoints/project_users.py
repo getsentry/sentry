@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -55,7 +53,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
         now = timezone.now()
         where_conditions = [
             Condition(Column("project_id"), Op.EQ, project.id),
-            Condition(Column("timestamp"), Op.GTE, now - timedelta(days=90)),  # required apparently
+            Condition(Column("timestamp"), Op.GTE, project.date_added),
             Condition(Column("timestamp"), Op.LT, now),
         ]
         if request.GET.get("query"):

@@ -13,9 +13,9 @@ from sentry.utils.eventuser import EventUser
 class ProjectUsersTest(APITestCase):
     def setUp(self):
         super().setUp()
-        timestamp = iso_format(timezone.now())
 
         self.project = self.create_project()
+        timestamp = iso_format(timezone.now())
         self.path = reverse(
             "sentry-api-0-project-users",
             kwargs={
