@@ -365,8 +365,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
           </ChartsContainerItem>
 
           <ChartsContainerItem key="ttfd">
-            {defined(hasTTFD) && !hasTTFD ? (
-              <ChartPanel title={CHART_TITLES[yAxes[0]]}>
+            {defined(hasTTFD) && !hasTTFD && yAxes[1] === YAxis.TTFD ? (
+              <ChartPanel title={CHART_TITLES[yAxes[1]]}>
                 <TabbedCodeSnippet tabs={getSetupContent()} />
                 <TabbedCodeSnippet tabs={getReportFullyDrawnContent()} />
               </ChartPanel>
