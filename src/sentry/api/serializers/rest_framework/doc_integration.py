@@ -1,14 +1,12 @@
-import random
-import string
 from typing import Any, MutableMapping
 
 from django.db import router, transaction
-from django.utils.text import slugify
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.api.fields.avatar import AvatarField
+from sentry.api.helpers.slugs import sentry_slugify
 from sentry.api.serializers.rest_framework.sentry_app import URLField
 from sentry.api.validators.doc_integration import validate_metadata_schema
 from sentry.models.integrations.doc_integration import DocIntegration
@@ -48,7 +46,8 @@ class DocIntegrationSerializer(Serializer):
     )
 
     def _generate_slug(self, name: str) -> str:
-        return slugify(name)
+        # sentry_slugify ensures the slug is not entirely numeric
+        return sentry_slugify(name)
 
     def validate_name(self, value: str) -> str:
         slug = self._generate_slug(value)
@@ -65,11 +64,6 @@ class DocIntegrationSerializer(Serializer):
 
     def create(self, validated_data: MutableMapping[str, Any]) -> DocIntegration:
         slug = self._generate_slug(validated_data["name"])
-
-        # If option is set, add random 3 lowercase letter suffix to prevent numeric slug
-        # eg: 123 -> 123-abc
-        if slug.isdecimal():
-            slug = f"{slug}-{''.join(random.choice(string.ascii_lowercase) for _ in range(3))}"
 
         features = validated_data.pop("features") if validated_data.get("features") else []
         with transaction.atomic(router.db_for_write(DocIntegration)):

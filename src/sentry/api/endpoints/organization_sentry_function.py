@@ -1,6 +1,5 @@
 from uuid import uuid4
 
-from django.utils.text import slugify
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -8,6 +7,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.helpers.slugs import sentry_slugify
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.sentryfunction import SentryFunction
@@ -53,7 +53,8 @@ class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-        data["slug"] = slugify(data["name"])
+        # sentry_slugify ensures the slug is not entirely numeric
+        data["slug"] = sentry_slugify(data["name"])
         # TODO: Make sure the slug is unique
         # Currently slug unique within organization
         # In future, may add "global_slug" so users can publish their functions
