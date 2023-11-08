@@ -2890,12 +2890,6 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
     def setUp(self):
         super().setUp()
 
-    # Add tests for:
-    # Metrics query
-    # Timeseries query
-    # SNQL generation via alertquerybuilder
-    # Test all queries with environment
-
     def test_distribution_metrics_query(self):
         mri = "d:custom/sentry.process_profile.track_outcome@second"
         for value in (10, 20, 30):
@@ -2925,6 +2919,7 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             {"sum_d_custom_sentry_process_profile_track_outcome_second": 60.0}
         ]
         meta = result["meta"]
+
         assert len(meta) == 1
         assert meta[0]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"
 
@@ -2980,6 +2975,58 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
                 "time": (self.start + datetime.timedelta(hours=5)).isoformat(),
             },
         ]
+
         meta = result["meta"]
         assert len(meta) == 2
         assert meta[1]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"
+
+    def test_distribution_query_generation(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+
+        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string=mri)
+        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string="my_tag")
+
+        query = AlertMetricsQueryBuilder(
+            {**self.params, "environment": self.environment.name},
+            granularity=3600,
+            query="my_tag:my_value",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[f"max({mri})"],
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "generic_metrics"
+
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            [
+                Function(
+                    "maxIf",
+                    [
+                        Column("value"),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                indexer.resolve(
+                                    UseCaseID.CUSTOM,
+                                    self.organization.id,
+                                    mri,
+                                ),
+                            ],
+                        ),
+                    ],
+                    "max_d_custom_sentry_process_profile_track_outcome_second",
+                )
+            ],
+            snql_query.select,
+        )
+
+        environment_id = indexer.resolve(UseCaseID.CUSTOM, self.organization.id, "environment")
+        environment_condition = Condition(
+            lhs=Column(name=f"tags_raw[{environment_id}]"), op=Op.EQ, rhs="development"
+        )
+        assert environment_condition in snql_query.where
