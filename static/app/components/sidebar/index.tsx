@@ -271,7 +271,10 @@ function Sidebar({location, organization}: Props) {
                   icon={<SubitemDot collapsed={collapsed} />}
                 />
               </Feature>
-              <Feature features={['starfish-view']} organization={organization}>
+              <Feature
+                features={['performance-screens-view']}
+                organization={organization}
+              >
                 <SidebarItem
                   {...sidebarItemProps}
                   isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
