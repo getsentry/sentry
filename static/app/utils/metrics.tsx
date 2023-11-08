@@ -68,7 +68,7 @@ type MetricTag = {
 
 export function useMetricsTags(mri: string, projects: PageFilters['projects']) {
   const {slug} = useOrganization();
-  const useCase = getUseCaseFromMri(mri);
+  const {useCase} = parseMRI(mri);
   return useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/`,
@@ -86,7 +86,7 @@ export function useMetricsTagValues(
   projects: PageFilters['projects']
 ) {
   const {slug} = useOrganization();
-  const useCase = getUseCaseFromMri(mri);
+  const {useCase} = parseMRI(mri);
   return useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/${tag}/`,
@@ -136,7 +136,7 @@ export function useMetricsData({
   groupBy,
 }: MetricsQuery) {
   const {slug, features} = useOrganization();
-  const useCase = getUseCaseFromMri(mri);
+  const {useCase} = parseMRI(mri);
   const field = op ? `${op}(${mri})` : mri;
 
   const interval = getMetricsInterval(datetime, mri);
@@ -248,8 +248,9 @@ function getMetricsInterval(dateTimeObj: DateTimeObject, mri: string) {
   }
 
   const diffInMinutes = getDiffInMinutes(dateTimeObj);
+  const {useCase} = parseMRI(mri);
 
-  if (diffInMinutes <= 60 && getUseCaseFromMri(mri) === 'custom') {
+  if (diffInMinutes <= 60 && useCase === 'custom') {
     return '10s';
   }
 
@@ -263,16 +264,6 @@ function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
 }
 
 type UseCase = 'sessions' | 'transactions' | 'custom';
-
-export function getUseCaseFromMri(mri?: string): UseCase {
-  if (mri?.includes('custom/')) {
-    return 'custom';
-  }
-  if (mri?.includes('transactions/')) {
-    return 'transactions';
-  }
-  return 'sessions';
-}
 
 const metricTypeToReadable = {
   c: t('counter'),
@@ -289,16 +280,30 @@ export function getReadableMetricType(type) {
 
 const noUnit = 'none';
 
-export function getUnitFromMRI(mri?: string) {
-  if (!mri) {
-    return noUnit;
-  }
+export function parseMRI(mri: string) {
+  const cleanMRI = mri.match(/d:[\w/.@]+/)?.[0] ?? mri;
 
-  return mri.split('@').pop() ?? noUnit;
+  const name = cleanMRI.match(/^[a-z]:\w+\/(.+)(?:@\w+)$/)?.[1] ?? mri;
+  const unit = cleanMRI.split('@').pop() ?? noUnit;
+
+  const useCase = getUseCaseFromMRI(cleanMRI);
+
+  return {
+    name,
+    unit,
+    mri: cleanMRI,
+    useCase,
+  };
 }
 
-export function getNameFromMRI(mri: string) {
-  return mri.match(/^[a-z]:\w+\/(.+)(?:@\w+)$/)?.[1] ?? mri;
+function getUseCaseFromMRI(mri?: string): UseCase {
+  if (mri?.includes('custom/')) {
+    return 'custom';
+  }
+  if (mri?.includes('transactions/')) {
+    return 'transactions';
+  }
+  return 'sessions';
 }
 
 export function formatMetricUsingUnit(value: number | null, unit: string) {
