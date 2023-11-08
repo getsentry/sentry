@@ -447,7 +447,7 @@ class EntitySubscriptionTestCase(TestCase):
         aggregate = "percentile(transaction.duration,.95)"
         entity_subscription = get_entity_subscription(
             query_type=SnubaQuery.Type.PERFORMANCE,
-            dataset=Dataset.Metrics,
+            dataset=Dataset.PerformanceMetrics,
             aggregate=aggregate,
             time_window=3600,
             extra_fields={"org_id": self.organization.id},
@@ -504,7 +504,7 @@ class EntitySubscriptionTestCase(TestCase):
             aggregate = "percentile(transaction.duration,.95)"
             entity_subscription = get_entity_subscription(
                 query_type=SnubaQuery.Type.PERFORMANCE,
-                dataset=Dataset.Metrics,
+                dataset=Dataset.PerformanceMetrics,
                 aggregate=aggregate,
                 time_window=3600,
                 extra_fields={"org_id": self.organization.id},
@@ -554,6 +554,64 @@ class EntitySubscriptionTestCase(TestCase):
                 Condition(Column("metric_id"), Op.IN, [metric_id]),
             ]
 
+    def test_get_entity_subscription_for_performance_metrics_dataset_with_custom_metric_and_metrics_layer(
+        self,
+    ) -> None:
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string=mri)
+
+        with Feature("organizations:use-metrics-layer"):
+            aggregate = f"max({mri})"
+            entity_subscription = get_entity_subscription(
+                query_type=SnubaQuery.Type.PERFORMANCE,
+                dataset=Dataset.PerformanceMetrics,
+                aggregate=aggregate,
+                time_window=3600,
+                extra_fields={"org_id": self.organization.id},
+            )
+            assert isinstance(entity_subscription, PerformanceMetricsEntitySubscription)
+            assert entity_subscription.aggregate == aggregate
+            assert entity_subscription.get_entity_extra_params() == {
+                "organization": self.organization.id,
+                "granularity": 60,
+            }
+            assert entity_subscription.dataset == Dataset.PerformanceMetrics
+            snql_query = entity_subscription.build_query_builder(
+                "",
+                [self.project.id],
+                None,
+                {
+                    "organization_id": self.organization.id,
+                },
+            ).get_snql_query()
+
+            metric_id = resolve(UseCaseID.CUSTOM, self.organization.id, mri)
+
+            assert snql_query.query.select == [
+                Function(
+                    "maxIf",
+                    parameters=[
+                        Column(
+                            "value",
+                        ),
+                        Function(
+                            "equals",
+                            parameters=[
+                                Column("metric_id"),
+                                10000,
+                            ],
+                            alias=None,
+                        ),
+                    ],
+                    alias="max_d_custom_sentry_process_profile_track_outcome_second",
+                )
+            ]
+            assert snql_query.query.where == [
+                Condition(Column("org_id"), Op.EQ, self.organization.id),
+                Condition(Column("project_id"), Op.IN, [self.project.id]),
+                Condition(Column("metric_id"), Op.IN, [metric_id]),
+            ]
+
     def test_get_entity_subscription_with_multiple_entities_with_metrics_layer(
         self,
     ) -> None:
@@ -561,7 +619,7 @@ class EntitySubscriptionTestCase(TestCase):
             aggregate = "percentile(transaction.duration,.95)"
             entity_subscription = get_entity_subscription(
                 query_type=SnubaQuery.Type.PERFORMANCE,
-                dataset=Dataset.Metrics,
+                dataset=Dataset.PerformanceMetrics,
                 aggregate=aggregate,
                 time_window=3600,
                 extra_fields={"org_id": self.organization.id},
