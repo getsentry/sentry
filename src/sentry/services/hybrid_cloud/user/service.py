@@ -164,7 +164,7 @@ class UserService(RpcService):
     @abstractmethod
     def verify_user_emails(
         self, *, user_id_emails: List[Tuple[int, str]]
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> Dict[int, Dict[str, Any]]:
         pass
 
 

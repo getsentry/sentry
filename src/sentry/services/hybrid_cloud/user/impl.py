@@ -229,7 +229,7 @@ class DatabaseBackedUserService(UserService):
 
     def verify_user_emails(
         self, *, user_id_emails: List[Tuple[int, str]]
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> Dict[int, Dict[str, Any]]:
         results = {}
         for user_id, email in user_id_emails:
             exists = UserEmail.objects.filter(user_id=user_id, email__iexact=email).exists()
