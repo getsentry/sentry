@@ -701,7 +701,6 @@ module = [
     "sentry.web.frontend.setup_wizard",
     "sentry.web.frontend.shared_group_details",
     "sentry.web.frontend.twofactor",
-    "sentry.web.frontend.unsubscribe_notifications",
     "sentry_plugins.asana.plugin",
     "sentry_plugins.base",
     "sentry_plugins.bitbucket.client",
