@@ -48,7 +48,7 @@
     "@react-stately/slider": "^3.3.2",
     "@react-stately/tabs": "^3.4.1",
     "@react-stately/tree": "^3.6.1",
-    "@react-types/shared": "^3.18.1",
+    "@react-types/shared": "^3.21.0",
     "@sentry-internal/feedback": "0.0.1-alpha.10",
     "@sentry-internal/global-search": "^0.5.7",
     "@sentry-internal/react-inspector": "6.0.1-4",
