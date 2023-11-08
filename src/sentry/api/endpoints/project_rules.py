@@ -200,52 +200,6 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
-**Send a Discord notification**
-- `server` - The integration ID associated with the Discord server.
-- `channel_id` - The ID of the channel to send the notification to.
-- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
-```json
-{
-    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
-    "server": 63408298,
-    "channel_id": 94732897,
-    "tags": "browser,user"
-}
-```
-
-**Send a Microsoft Teams notification**
-- `team` - The integration ID associated with the Microsoft Teams team.
-- `channel` - The name of the channel to send the notification to.
-```json
-{
-    "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
-    "team": 23465424,
-    "channel": "General"
-}
-```
-
-**Send an Opsgenie notification**
-- `account` - The integration ID associated with the Opsgenie account.
-- `team` - The ID of the Opsgenie team to send the notification to.
-```json
-{
-    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-    "account": 8723897589,
-    "team": "9438930258-fairy"
-}
-```
-
-**Send a PagerDuty notification**
-- `account` - The integration ID associated with the PagerDuty account.
-- `service` - The ID of the service to send the notification to.
-```json
-{
-    "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
-    "account": 92385907,
-    "service": 9823924
-}
-```
-
 **Send a Slack notification**
 - `workspace` - The integration ID associated with the Slack workspace.
 - `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
@@ -260,34 +214,27 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
-**Send a notification to a service**
-- `service` - The plugin slug.
+**Send a Microsoft Teams notification**
+- `team` - The integration ID associated with the Microsoft Teams team.
+- `channel` - The name of the channel to send the notification to.
 ```json
 {
-    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-    "service": "mail"
+    "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+    "team": 23465424,
+    "channel": "General"
 }
 ```
 
-**Send a notification to a Sentry app with a custom webhook payload**
-- `settings` - A list of objects denoting the settings each action will be created with. All required fields must be included.
-- `sentryAppInstallationUuid` - The ID for the Sentry app
+**Send a Discord notification**
+- `server` - The integration ID associated with the Discord server.
+- `channel_id` - The ID of the channel to send the notification to.
+- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
 ```json
 {
-    "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-    "settings": [
-        {"name": "title", "value": "Team Rocket"},
-        {"name": "summary", "value": "We're blasting off again."},
-    ],
-    "sentryAppInstallationUuid": 643522
-    "hasSchemaFormConfig": true
-}
-```
-
-**Send a notification (for all legacy integrations)**
-```json
-{
-    "id": "sentry.rules.actions.notify_event.NotifyEventAction"
+    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+    "server": 63408298,
+    "channel_id": 94732897,
+    "tags": "browser,user"
 }
 ```
 
@@ -349,6 +296,59 @@ A list of actions that take place when all required conditions and filters for t
     "integration": 294838,
     "project": "0389485",
     "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
+}
+```
+
+**Send a PagerDuty notification**
+- `account` - The integration ID associated with the PagerDuty account.
+- `service` - The ID of the service to send the notification to.
+```json
+{
+    "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+    "account": 92385907,
+    "service": 9823924
+}
+```
+
+**Send an Opsgenie notification**
+- `account` - The integration ID associated with the Opsgenie account.
+- `team` - The ID of the Opsgenie team to send the notification to.
+```json
+{
+    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+    "account": 8723897589,
+    "team": "9438930258-fairy"
+}
+```
+
+**Send a notification to a service**
+- `service` - The plugin slug.
+```json
+{
+    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+    "service": "mail"
+}
+```
+
+**Send a notification to a Sentry app with a custom webhook payload**
+- `settings` - A list of objects denoting the settings each action will be created with. All required fields must be included.
+- `sentryAppInstallationUuid` - The ID for the Sentry app
+```json
+{
+    "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+    "settings": [
+        {"name": "title", "value": "Team Rocket"},
+        {"name": "summary", "value": "We're blasting off again."},
+    ],
+    "sentryAppInstallationUuid": 643522
+    "hasSchemaFormConfig": true
+}
+```
+
+**Send a notification (for all legacy integrations)**
+```json
+{
+    "id": "sentry.rules.actions.notify_event.NotifyEventAction"
 }
 ```
 """,
