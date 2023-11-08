@@ -145,7 +145,7 @@ pytest-fail-slow==0.3.0
 pytest-rerunfailures==11.0
 pytest-sentry==0.1.11
 pytest-xdist==3.0.2
-python-dateutil==2.8.1
+python-dateutil==2.8.2
 python-memcached==1.59
 python-rapidjson==1.8
 python-u2flib-server==5.0.0
