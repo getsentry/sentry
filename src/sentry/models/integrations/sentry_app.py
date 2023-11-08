@@ -162,7 +162,6 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     creator_label = models.TextField(null=True)
 
     popularity = models.PositiveSmallIntegerField(null=True, default=1)
-    metadata = JSONField(default=dict)
 
     objects: ClassVar[SentryAppManager] = SentryAppManager()
 
