@@ -29,7 +29,7 @@ import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/invi
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
   allowedRoles: OrgRole[];
-  missingMembers: {integration: string; users: MissingMember[]};
+  missingMembers: MissingMember[];
   organization: Organization;
 }
 
@@ -39,7 +39,7 @@ export function InviteMissingMembersModal({
   allowedRoles,
   closeModal,
 }: InviteMissingMembersModalProps) {
-  const initialMemberInvites = (missingMembers.users || []).map(member => ({
+  const initialMemberInvites = (missingMembers || []).map(member => ({
     email: member.email,
     commitCount: member.commitCount,
     role: organization.defaultRole,
@@ -49,7 +49,7 @@ export function InviteMissingMembersModal({
   }));
   const [memberInvites, setMemberInvites] =
     useState<MissingMemberInvite[]>(initialMemberInvites);
-  const referrer = missingMembers.integration + '_nudge_invite';
+  const referrer = 'github_nudge_invite';
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({});
   const [sendingInvites, setSendingInvites] = useState(false);
   const [complete, setComplete] = useState(false);
