@@ -46,7 +46,6 @@ class DocIntegrationSerializer(Serializer):
     )
 
     def validate_name(self, value: str) -> str:
-        # sentry_slugify ensures the slug is not entirely numeric
         slug = sentry_slugify(value)
         if len(slug) > DocIntegration._meta.get_field("slug").max_length:
             raise ValidationError(
@@ -60,7 +59,8 @@ class DocIntegrationSerializer(Serializer):
         return value
 
     def create(self, validated_data: MutableMapping[str, Any]) -> DocIntegration:
-        slug = self._generate_slug(validated_data["name"])
+        # sentry_slugify ensures the slug is not entirely numeric
+        slug = sentry_slugify(validated_data["name"])
 
         features = validated_data.pop("features") if validated_data.get("features") else []
         with transaction.atomic(router.db_for_write(DocIntegration)):
