@@ -9,9 +9,9 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePageQuery';
 import {useResourceSummarySort} from 'sentry/views/performance/browser/resources/utils/useResourceSummarySort';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -66,7 +66,7 @@ function ResourceSummaryTable() {
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
     if (key === 'spm()') {
-      return <ThroughputCell rate={row[key] * 60} unit={RateUnits.PER_SECOND} />;
+      return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(span.self_time)') {
       return <DurationCell milliseconds={row[key]} />;

@@ -10,6 +10,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -22,6 +23,7 @@ import {
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 const {SPAN_OP} = BrowserStarfishFields;
+export const RESOURCE_THROUGHPUT_UNIT = RateUnits.PER_MINUTE;
 
 function ResourcesLandingPage() {
   const organization = useOrganization();
