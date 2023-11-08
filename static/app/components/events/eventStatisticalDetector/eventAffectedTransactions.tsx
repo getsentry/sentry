@@ -18,6 +18,7 @@ import {
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {RELATIVE_DAYS_WINDOW} from './consts';
 import {EventRegressionTable} from './eventRegressionTable';
 
 interface EventAffectedTransactionsProps {
@@ -97,7 +98,7 @@ function EventAffectedTransactionsInner({
 
   const datetime = useRelativeDateTime({
     anchor: breakpoint,
-    relativeDays: 14,
+    relativeDays: RELATIVE_DAYS_WINDOW,
   });
 
   const percentileBefore = `percentile_before(function.duration, 0.95, ${breakpoint})`;

@@ -45,6 +45,10 @@ export type IssueTypeConfig = {
    */
   mergedIssues: DisabledWithReasonConfig;
   /**
+   * Enables various regression related supporting data for an issue type.
+   */
+  regression: DisabledWithReasonConfig;
+  /**
    * Is the Replays tab shown for this issue
    */
   replays: DisabledWithReasonConfig;
