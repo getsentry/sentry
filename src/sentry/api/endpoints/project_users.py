@@ -22,6 +22,8 @@ QUERY_TO_SNUBA_FIELD_MAPPING = {
     "date_created": "timestamp",
 }
 
+REFERRER = "sentry.api.endpoints.project_users"
+
 
 @region_silo_endpoint
 class ProjectUsersEndpoint(ProjectEndpoint):
@@ -115,9 +117,9 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             request=request,
             query=query,
             dataset=Dataset.Events.value,
-            app_id="sentry.api.endpoints.project_users",
+            app_id=REFERRER,
             tenant_ids={
-                "referrer": "sentry.api.endpoints.project_users",
+                "referrer": REFERRER,
                 "organization_id": project.organization.id,
             },
             order_by="-timestamp",
