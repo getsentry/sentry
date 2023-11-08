@@ -658,6 +658,47 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(default_proje
 
 
 @django_db_all
+def test_get_metric_extraction_config_table_group_by_columns(default_project):
+    """Table widgets have a 'groupby' functionality if you add any columns to the table that aren't aggregates.
+    These need to correctly construct a query to on-demand extracted metrics."""
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(
+            ["count()", "epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            "Dashboard",
+            columns=["runtime"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": ANY},
+                    {"key": "runtime", "field": "event.tags.runtime"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": ANY},
+                    {"key": "runtime", "field": "event.tags.runtime"},
+                ],
+            },
+        ]
+
+
+@django_db_all
 def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):

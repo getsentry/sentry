@@ -2760,6 +2760,45 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "c:transactions/on_demand@none"
 
+    def test_run_metrics_query_builder_with_groupbys(self):
+        selected_columns = ["count()", "epm()"]
+        query_s = "transaction.duration:>=100"
+        # XXX: Test with multiple group bys
+        groupbys = ["runtime"]
+        for field in selected_columns:
+            spec = OnDemandMetricSpec(field=field, query=query_s, groupbys=groupbys)
+
+            self.store_transaction_metric(
+                value=1,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                # XXX: Should this have the fields in the tags?
+                tags={"query_hash": spec.query_hash},
+                timestamp=self.start,
+            )
+
+            self.store_transaction_metric(
+                value=1,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash},
+                timestamp=self.start,
+            )
+
+        query = MetricsQueryBuilder(
+            self.params,
+            query=query_s,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=selected_columns,
+            groupby_columns=groupbys,
+        )
+
+        result = query.run_query("test_query")
+
+        assert result == {}
+
     def test_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self):
         params = {
             "organization_id": self.organization.id,

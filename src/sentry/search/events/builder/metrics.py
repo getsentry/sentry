@@ -118,12 +118,14 @@ class MetricsQueryBuilder(QueryBuilder):
         return super().are_columns_resolved()
 
     def _get_on_demand_metric_spec(self, field: str) -> Optional[OnDemandMetricSpec]:
+        if not field:
+            return None
+
+        # XXX: We can make the first non-function column to be the field
+        # XXX: What would be the right way of handling this?
         for agg in self.selected_columns:
             if fields.is_function(agg):
                 field = agg
-
-        if not field:
-            return None
 
         groupby_columns = [c for c in self.selected_columns if not fields.is_function(c)]
 
@@ -891,34 +893,47 @@ class MetricsQueryBuilder(QueryBuilder):
                 else:
                     extra_conditions = None
                 try:
+                    metrics_queries = []
                     with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                         if self._has_on_demand_specs:
-                            # TODO: Build queries for each column that has a spec, then merge the data back together.
-                            spec = self._on_demand_metric_spec_map[self.selected_columns[0]]
-                            metrics_query = self._get_metrics_query_from_on_demand_spec(
-                                spec=spec,
-                                require_time_range=True,
-                                groupby=[
-                                    MetricGroupByField(field=c)
-                                    for c in self.selected_columns
-                                    if not fields.is_function(c)
-                                ],
-                            )
+                            # e.g. OnDemandMetricSpec(field='epm()', query='', groupbys=['runtime'], op='on_demand_epm', _metric_type='c', _arguments=[])
+                            # We need to build a query for each column which has a spec and then merge the data back together.
+                            group_bys = [
+                                c for c in self.selected_columns if not fields.is_function(c)
+                            ]
+                            for column in group_bys:
+                                spec = self._on_demand_metric_spec_map[column]
+                                metrics_queries.append(
+                                    self._get_metrics_query_from_on_demand_spec(
+                                        spec=spec,
+                                        require_time_range=True,
+                                        groupby=[MetricGroupByField(field=c) for c in group_bys],
+                                    )
+                                )
                         else:
-                            metrics_query = transform_mqb_query_to_metrics_query(
-                                self.get_metrics_layer_snql_query(query_details, extra_conditions),
-                                self.is_alerts_query,
+                            metrics_queries.append(
+                                transform_mqb_query_to_metrics_query(
+                                    self.get_metrics_layer_snql_query(
+                                        query_details, extra_conditions
+                                    ),
+                                    self.is_alerts_query,
+                                )
                             )
-                    with sentry_sdk.start_span(op="metric_layer", description="run_query"):
-                        metrics_data = get_series(
-                            projects=self.params.projects,
-                            metrics_query=metrics_query,
-                            use_case_id=UseCaseID.TRANSACTIONS
-                            if self.is_performance
-                            else UseCaseID.SESSIONS,
-                            include_meta=True,
-                            tenant_ids=self.tenant_ids,
-                        )
+                    metrics_data = []
+                    # XXX: Now metrics_data is a list
+                    for metrics_query in metrics_queries:
+                        with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                            metrics_data.append(
+                                get_series(
+                                    projects=self.params.projects,
+                                    metrics_query=metrics_query,
+                                    use_case_id=UseCaseID.TRANSACTIONS
+                                    if self.is_performance
+                                    else UseCaseID.SESSIONS,
+                                    include_meta=True,
+                                    tenant_ids=self.tenant_ids,
+                                )
+                            )
                 except Exception as err:
                     import traceback
 
@@ -926,7 +941,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
                     raise IncompatibleMetricsQuery(err)
                 with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
-                    metric_layer_result = self.convert_metric_layer_result(metrics_data)
+                    # XXX: Until we can figure out how to handle a list
+                    metric_layer_result = self.convert_metric_layer_result(metrics_data[0])
                     for row in metric_layer_result["data"]:
                         # Arrays in clickhouse cannot contain multiple types, and since groupby values
                         # can contain any type, we must use tuples instead
