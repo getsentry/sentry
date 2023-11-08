@@ -76,7 +76,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_transaction_metric(
+                self.store_span_metric(
                     1,
                     internal_metric=constants.SELF_TIME_LIGHT,
                     timestamp=self.day_ago + timedelta(hours=hour, minutes=minute),
@@ -105,7 +105,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_transaction_metric(
+                self.store_span_metric(
                     1,
                     internal_metric=constants.SELF_TIME_LIGHT,
                     timestamp=self.day_ago + timedelta(hours=hour, minutes=minute + 30),
@@ -220,6 +220,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert data[1][1][0]["count"] == 4.0
 
     def test_resource_decoded_length(self):
+        self.features["organizations:use-metrics-layer"] = True
         self.store_span_metric(
             4,
             metric="http.decoded_response_content_length",
