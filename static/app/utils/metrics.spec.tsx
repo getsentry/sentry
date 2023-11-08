@@ -1,6 +1,11 @@
 import {formatMetricsUsingUnitAndOp, parseMRI} from 'sentry/utils/metrics';
 
 describe('parseMRI', () => {
+  it('should handle falsy values', () => {
+    expect(parseMRI('')).toEqual(null);
+    expect(parseMRI(undefined)).toEqual(null);
+  });
+
   it('should parse MRI with name, unit, and mri (custom use case)', () => {
     const mri = 'd:custom/sentry.events.symbolicator.query_task@second';
     const expectedResult = {
@@ -13,11 +18,11 @@ describe('parseMRI', () => {
   });
 
   it('should parse MRI with name, unit, and cleanMRI (transactions use case)', () => {
-    const mri = 'd:transactions/sentry.events.symbolicator.query_task@milisecond';
+    const mri = 'g:transactions/gauge@milisecond';
     const expectedResult = {
-      name: 'sentry.events.symbolicator.query_task',
+      name: 'gauge',
       unit: 'milisecond',
-      mri: 'd:transactions/sentry.events.symbolicator.query_task@milisecond',
+      mri: 'g:transactions/gauge@milisecond',
       useCase: 'transactions',
     };
     expect(parseMRI(mri)).toEqual(expectedResult);
@@ -35,15 +40,27 @@ describe('parseMRI', () => {
   });
 
   it('should extract MRI from nested operations', () => {
-    const mri = 'd:custom/sentry.events.symbolicator.query_task@second';
+    const mri = 'd:custom/foobar@none';
 
     const expectedResult = {
-      name: 'sentry.events.symbolicator.query_task',
-      unit: 'second',
-      mri: 'd:custom/sentry.events.symbolicator.query_task@second',
+      name: 'foobar',
+      unit: 'none',
+      mri: 'd:custom/foobar@none',
       useCase: 'custom',
     };
     expect(parseMRI(`sum(avg(${mri}))`)).toEqual(expectedResult);
+  });
+
+  it('should extract MRI from nested operations (set)', () => {
+    const mri = 's:custom/foobar@none';
+
+    const expectedResult = {
+      name: 'foobar',
+      unit: 'none',
+      mri: 's:custom/foobar@none',
+      useCase: 'custom',
+    };
+    expect(parseMRI(`count_unique(${mri})`)).toEqual(expectedResult);
   });
 });
 

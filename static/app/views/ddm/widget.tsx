@@ -250,7 +250,8 @@ function MetricWidgetBody({
 
 function getChartSeries(data: MetricsData, {focusedSeries, groupBy, hoveredLegend}) {
   // this assumes that all series have the same unit
-  const {unit} = parseMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
+  const parsed = parseMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
+  const unit = parsed?.unit ?? '';
 
   const series = data.groups.map(g => {
     return {
@@ -290,9 +291,10 @@ function getSeriesName(
   groupBy: MetricsQuery['groupBy']
 ) {
   if (isOnlyGroup && !groupBy?.length) {
-    const mri = Object.keys(group.series)?.[0] ?? '(none)';
-    const {name} = parseMRI(mri);
-    return name;
+    const mri = Object.keys(group.series)?.[0];
+    const parsed = parseMRI(mri);
+
+    return parsed?.name ?? '(none)';
   }
 
   return Object.entries(group.by)

@@ -68,7 +68,7 @@ type MetricTag = {
 
 export function useMetricsTags(mri: string, projects: PageFilters['projects']) {
   const {slug} = useOrganization();
-  const {useCase} = parseMRI(mri);
+  const useCase = getUseCaseFromMRI(mri);
   return useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/`,
@@ -86,7 +86,7 @@ export function useMetricsTagValues(
   projects: PageFilters['projects']
 ) {
   const {slug} = useOrganization();
-  const {useCase} = parseMRI(mri);
+  const useCase = getUseCaseFromMRI(mri);
   return useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/${tag}/`,
@@ -136,7 +136,7 @@ export function useMetricsData({
   groupBy,
 }: MetricsQuery) {
   const {slug, features} = useOrganization();
-  const {useCase} = parseMRI(mri);
+  const useCase = getUseCaseFromMRI(mri);
   const field = op ? `${op}(${mri})` : mri;
 
   const interval = getMetricsInterval(datetime, mri);
@@ -248,7 +248,7 @@ function getMetricsInterval(dateTimeObj: DateTimeObject, mri: string) {
   }
 
   const diffInMinutes = getDiffInMinutes(dateTimeObj);
-  const {useCase} = parseMRI(mri);
+  const useCase = getUseCaseFromMRI(mri);
 
   if (diffInMinutes <= 60 && useCase === 'custom') {
     return '10s';
@@ -280,8 +280,12 @@ export function getReadableMetricType(type) {
 
 const noUnit = 'none';
 
-export function parseMRI(mri: string) {
-  const cleanMRI = mri.match(/d:[\w/.@]+/)?.[0] ?? mri;
+export function parseMRI(mri?: string) {
+  if (!mri) {
+    return null;
+  }
+
+  const cleanMRI = mri.match(/[cdegs]:[\w/.@]+/)?.[0] ?? mri;
 
   const name = cleanMRI.match(/^[a-z]:\w+\/(.+)(?:@\w+)$/)?.[1] ?? mri;
   const unit = cleanMRI.split('@').pop() ?? noUnit;
@@ -296,7 +300,7 @@ export function parseMRI(mri: string) {
   };
 }
 
-function getUseCaseFromMRI(mri?: string): UseCase {
+export function getUseCaseFromMRI(mri?: string): UseCase {
   if (mri?.includes('custom/')) {
     return 'custom';
   }
