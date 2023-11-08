@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime, timedelta
-from itertools import filterfalse
 from typing import Dict, List, TypedDict
 
 from sentry_sdk.crons.decorator import monitor
@@ -61,17 +60,20 @@ def run_escalating_forecast() -> None:
 )
 @retry
 def generate_forecasts_for_projects(project_ids: List[int]) -> None:
-    query_until_escalating_groups = filterfalse(
-        lambda group: not group.issue_type.should_detect_escalation(group.project.organization),
-        RangeQuerySetWrapper(
+    query_until_escalating_groups = (
+        group
+        for group in RangeQuerySetWrapper(
             Group.objects.filter(
                 status=GroupStatus.IGNORED,
                 substatus=GroupSubStatus.UNTIL_ESCALATING,
                 project_id__in=project_ids,
                 last_seen__gte=datetime.now() - timedelta(days=7),
-            ),
+            ).select_related(
+                "project", "project__organization"
+            ),  # TODO: Remove this once the feature flag is removed
             step=ITERATOR_CHUNK,
-        ),
+        )
+        if group.issue_type.should_detect_escalation(group.project.organization)
     )
 
     for until_escalating_groups in chunked(
