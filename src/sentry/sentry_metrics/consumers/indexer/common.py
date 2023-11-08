@@ -6,6 +6,7 @@ from typing import Any, List, Mapping, MutableMapping, MutableSequence, NamedTup
 from arroyo import Partition
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
@@ -31,7 +32,7 @@ DEFAULT_QUEUED_MIN_MESSAGES = 100000
 
 @dataclass(frozen=True)
 class IndexerOutputMessageBatch:
-    data: MutableSequence[Message[Union[RoutingPayload, KafkaPayload, None]]]
+    data: MutableSequence[Message[Union[KafkaPayload, RoutingPayload, InvalidMessage]]]
     cogs_data: Mapping[UseCaseID, int]
 
 

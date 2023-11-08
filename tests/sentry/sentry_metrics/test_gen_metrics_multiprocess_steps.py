@@ -11,6 +11,7 @@ from unittest.mock import Mock, call
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
@@ -55,7 +56,8 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
     actual_payload = actual.payload
     expected_payload = expected.payload
 
-    if actual_payload is None and expected_payload is None:
+    if isinstance(actual_payload, InvalidMessage):
+        assert actual_payload == expected_payload
         return
 
     assert actual_payload.key == expected_payload.key
@@ -504,7 +506,7 @@ def test_process_messages_invalid_messages(
         ),
         Message(
             Value(
-                None,
+                InvalidMessage(Partition(Topic("topic"), 0), 1),
                 message_batch[1].committable,
             )
         ),

@@ -19,6 +19,7 @@ from typing import (
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
 from sentry_kafka_schemas.codecs import ValidationError
@@ -109,8 +110,6 @@ class IndexerBatch:
         (extract_strings and reconstruct_messages)
         """
         skipped_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
-
-        logger.info(f"got {len(self.outer_message.payload)} messages")  # noqa
 
         for msg in self.outer_message.payload:
             assert isinstance(msg.value, BrokerValue)
@@ -293,7 +292,9 @@ class IndexerBatch:
         mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]],
         bulk_record_meta: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]],
     ) -> IndexerOutputMessageBatch:
-        new_messages: MutableSequence[Message[Union[RoutingPayload, KafkaPayload, None]]] = []
+        new_messages: MutableSequence[
+            Message[Union[RoutingPayload, KafkaPayload, InvalidMessage]]
+        ] = []
         cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         for message in self.outer_message.payload:
@@ -304,7 +305,13 @@ class IndexerBatch:
             if broker_meta in self.filtered_msg_meta:
                 continue
             if broker_meta in self.invalid_msg_meta:
-                new_messages.append(Message(message.value.replace(None)))
+                new_messages.append(
+                    Message(
+                        message.value.replace(
+                            InvalidMessage(broker_meta.partition, broker_meta.offset)
+                        )
+                    )
+                )
                 continue
             old_payload_value = self.parsed_payloads_by_meta.pop(broker_meta)
 
