@@ -3,13 +3,14 @@ from __future__ import annotations
 import datetime
 import math
 from datetime import timezone
-from typing import List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from unittest import mock
 
 import pytest
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
+from sentry.models.project import Project
 from sentry.search.events import constants
 from sentry.search.events.builder import (
     AlertMetricsQueryBuilder,
@@ -169,6 +170,22 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
+    ON_DEMAND_KEY_MAP = {
+        "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
+        "d": TransactionMetricKey.DIST_ON_DEMAND.value,
+        "s": TransactionMetricKey.SET_ON_DEMAND.value,
+    }
+    ON_DEMAND_MRI_MAP = {
+        "c": TransactionMRI.COUNT_ON_DEMAND.value,
+        "d": TransactionMRI.DIST_ON_DEMAND.value,
+        "s": TransactionMRI.SET_ON_DEMAND.value,
+    }
+    ON_DEMAND_ENTITY_MAP = {
+        "c": EntityKey.MetricsCounters.value,
+        "d": EntityKey.MetricsDistributions.value,
+        "s": EntityKey.MetricsSets.value,
+    }
+
     def test_default_conditions(self):
         query = MetricsQueryBuilder(
             self.params, query="", dataset=Dataset.PerformanceMetrics, selected_columns=[]
@@ -1601,6 +1618,102 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 selected_columns=[],
             )
 
+    def store_on_demand_metric(
+        self,
+        value: list[Any] | Any,
+        spec: OnDemandMetricSpec,
+        additional_tags: Optional[Dict[str, str]] = None,
+        timestamp: Optional[datetime.datetime] = None,
+    ):
+        project: Project = self.project
+        metric_spec = spec.to_metric_spec(project)
+        metric_spec_tags = metric_spec["tags"] or [] if metric_spec else []
+        spec_tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
+
+        metric_type = spec._metric_type
+
+        self.store_transaction_metric(
+            value=value,
+            metric=self.ON_DEMAND_KEY_MAP[metric_type],
+            internal_metric=self.ON_DEMAND_MRI_MAP[metric_type],
+            entity=self.ON_DEMAND_ENTITY_MAP[metric_type],
+            tags={
+                **spec_tags,
+                **additional_tags,  # Additional tags might be needed to override field values from the spec.
+            },
+            timestamp=timestamp,
+        )
+
+        return spec
+
+    def test_run_metrics_query_builder_with_groupbys(self):
+        selected_columns = ["count()", "epm()"]
+        query_s = "transaction.duration:>=100"
+        groupbys = ["customtag1"]
+        for field in selected_columns:
+            spec = OnDemandMetricSpec(field=field, query=query_s, groupbys=groupbys)
+            # assert (
+            #     spec._query_str_for_hash
+            #     == f"on_demand_{field};{'name': 'event.duration', 'op': 'gte', 'value': 100.0};['customtag1']"
+            # )
+
+            for hour in range(0, 5):
+                self.store_on_demand_metric(
+                    value=hour * 10,
+                    spec=spec,
+                    # Spec tags for fields need to be overriden since the stored value is dynamic
+                    additional_tags={"customtag1": "div > text"},
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
+                self.store_transaction_metric(
+                    value=hour * 10,
+                    tags={"customtag1": "div > text"},
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
+
+        query = MetricsQueryBuilder(
+            self.params,
+            query=query_s,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=selected_columns + groupbys,
+            # groupby_columns=groupbys,
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,  # XXX Why?
+                on_demand_metrics_enabled=True,
+            ),
+        )
+        # ["count()", "epm()"]
+        assert query._on_demand_metric_spec_map == {
+            "count()": OnDemandMetricSpec(
+                field="epm()",
+                query="transaction.duration:>=100",
+                groupbys=["customtag1"],
+                op="on_demand_epm",
+                _metric_type="c",
+                _arguments=[],
+            ),
+            "customtag1": OnDemandMetricSpec(
+                field="epm()",
+                query="transaction.duration:>=100",
+                groupbys=["customtag1"],
+                op="on_demand_epm",
+                _metric_type="c",
+                _arguments=[],
+            ),
+            "epm()": OnDemandMetricSpec(
+                field="epm()",
+                query="transaction.duration:>=100",
+                groupbys=["customtag1"],
+                op="on_demand_epm",
+                _metric_type="c",
+                _arguments=[],
+            ),
+        }
+
+        result = query.run_query("test_query")
+
+        assert result == {}
+
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):
@@ -2759,45 +2872,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         meta = result["meta"]
         assert len(meta) == 1
         assert meta[0]["name"] == "c:transactions/on_demand@none"
-
-    def test_run_metrics_query_builder_with_groupbys(self):
-        selected_columns = ["count()", "epm()"]
-        query_s = "transaction.duration:>=100"
-        # XXX: Test with multiple group bys
-        groupbys = ["runtime"]
-        for field in selected_columns:
-            spec = OnDemandMetricSpec(field=field, query=query_s, groupbys=groupbys)
-
-            self.store_transaction_metric(
-                value=1,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-                entity="metrics_counters",
-                # XXX: Should this have the fields in the tags?
-                tags={"query_hash": spec.query_hash},
-                timestamp=self.start,
-            )
-
-            self.store_transaction_metric(
-                value=1,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-                entity="metrics_counters",
-                tags={"query_hash": spec.query_hash},
-                timestamp=self.start,
-            )
-
-        query = MetricsQueryBuilder(
-            self.params,
-            query=query_s,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=selected_columns,
-            groupby_columns=groupbys,
-        )
-
-        result = query.run_query("test_query")
-
-        assert result == {}
 
     def test_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self):
         params = {

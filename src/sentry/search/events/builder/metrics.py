@@ -110,8 +110,8 @@ class MetricsQueryBuilder(QueryBuilder):
         self.organization_id: int = org_id
 
     def are_columns_resolved(self) -> bool:
-        # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
-        # `resolve_query` method.
+        # If we have an on demand spec, we want to mark the columns as resolved, since we are not
+        # running the `resolve_query` method.
         if self._has_on_demand_specs:
             return True
 
@@ -1103,6 +1103,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             )
 
             if self._has_on_demand_specs:
+                # XXX: I think this need to change
                 spec = self._on_demand_metric_spec_map[self.selected_columns[0]]
                 metrics_query = self._get_metrics_query_from_on_demand_spec(
                     spec=spec, require_time_range=False
@@ -1356,6 +1357,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                     if self._has_on_demand_specs:
+                        # XXX: Is this to change?
                         spec = self._on_demand_metric_spec_map[self.selected_columns[0]]
                         metrics_query = self._get_metrics_query_from_on_demand_spec(
                             spec=spec, require_time_range=True
