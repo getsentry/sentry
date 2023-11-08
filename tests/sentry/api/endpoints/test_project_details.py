@@ -827,13 +827,19 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["allowedDomains"] == ["*"]
 
     def test_safe_fields(self):
-        value = ["foobar.com", "https://example.com"]
+        value = ["foobar", "extra.fields.**"]
         resp = self.get_success_response(self.org_slug, self.proj_slug, safeFields=value)
         assert self.project.get_option("sentry:safe_fields") == [
-            "foobar.com",
-            "https://example.com",
+            "foobar",
+            "extra.fields.**",
         ]
-        assert resp.data["safeFields"] == ["foobar.com", "https://example.com"]
+        assert resp.data["safeFields"] == ["foobar", "extra.fields.**"]
+
+        value = ["er ror", "double.**.wildcard.**"]
+        resp = self.get_error_response(self.org_slug, self.proj_slug, safeFields=value)
+        assert resp.data["safeFields"] == [
+            'Invalid syntax near "er ror" (line 1),\nDeep wildcard used more than once (line 2)',
+        ]
 
     def test_store_crash_reports(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)
