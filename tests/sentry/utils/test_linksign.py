@@ -1,4 +1,7 @@
+from urllib.parse import urlparse
+
 from django.test.client import RequestFactory
+from django.urls import reverse
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -60,3 +63,47 @@ class LinkSignTestCase(TestCase):
         req = rf.get("/" + url.split("/", 3)[-1] + "garbage")
         signed_user = linksign.process_signature(req)
         assert signed_user is None
+
+    def test_generate_signed_unsubscribe_link_path_based(self):
+        rf = RequestFactory()
+        org = self.organization
+        user = self.user
+        url = linksign.generate_signed_unsubscribe_link(
+            org, user_id=user.id, resource="project", resource_id=1, referrer="alert_notification"
+        )
+
+        assert f"http://testserver/unsubscribe/{org.slug}/project/1/" in url
+        assert "referrer=alert_notification" in url
+        assert "_=" in url
+
+        # signature should be valid for the API endpoint
+        parsed = urlparse(url)
+        api_path = reverse("sentry-api-0-organization-unsubscribe-project", args=[org.slug, 1])
+        req = rf.get(f"{api_path}?{parsed.query}")
+        signed_user = linksign.process_signature(req)
+        assert signed_user
+
+    def test_generate_signed_unsubscribe_link_domain_based(self):
+        rf = RequestFactory()
+        org = self.organization
+        user = self.user
+
+        with self.feature("organizations:customer-domains"):
+            url = linksign.generate_signed_unsubscribe_link(
+                org,
+                user_id=user.id,
+                resource="project",
+                resource_id=1,
+                referrer="alert_notification",
+            )
+
+        assert f"http://{org.slug}.testserver/unsubscribe/project/1/" in url
+        assert "referrer=alert_notification" in url
+        assert "_=" in url
+
+        # signature should be valid for the API endpoint
+        parsed = urlparse(url)
+        api_path = reverse("sentry-api-0-organization-unsubscribe-project", args=[org.slug, 1])
+        req = rf.get(f"{api_path}?{parsed.query}")
+        signed_user = linksign.process_signature(req)
+        assert signed_user

@@ -63,7 +63,10 @@ class DigestNotification(ProjectNotification):
 
     def get_unsubscribe_key(self) -> UnsubscribeContext | None:
         return UnsubscribeContext(
-            key="project", resource_id=self.project.id, referrer="alert_digest"
+            organization=self.project.organization,
+            key="project",
+            resource_id=self.project.id,
+            referrer="alert_digest",
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:

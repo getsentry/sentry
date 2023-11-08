@@ -119,6 +119,7 @@ const ALLOWED_ANON_PAGES = [
   /^\/share\//,
   /^\/auth\/login\//,
   /^\/join-request\//,
+  /^\/unsubscribe\//,
 ];
 
 /**
