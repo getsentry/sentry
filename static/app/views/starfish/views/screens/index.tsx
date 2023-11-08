@@ -25,7 +25,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {useTTFDConfigured} from 'sentry/views/starfish/queries/useTTFDConfigured';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
@@ -34,6 +36,10 @@ import {
   ScreensTable,
   useTableQuery,
 } from 'sentry/views/starfish/views/screens/screensTable';
+import {
+  CodeSnippetTab,
+  TabbedCodeSnippet,
+} from 'sentry/views/starfish/views/screens/tabbedCodeSnippets';
 
 export enum YAxis {
   WARM_START,
@@ -115,6 +121,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   } = useReleaseSelection();
 
   const router = useRouter();
+
+  const {hasTTFD} = useTTFDConfigured(additionalFilters);
 
   const query = new MutableSearch([
     'event.type:transaction',
@@ -338,36 +346,56 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
         )}
       <ChartsContainer>
         <Fragment>
-          <ChartsContainerItem key="release">
+          <ChartsContainerItem key="ttid">
             <ScreensBarChart
-              chartOptions={yAxes.map(yAxis => {
-                return {
-                  title: t('%s by Release', CHART_TITLES[yAxis]),
-                  yAxis: YAXIS_COLUMNS[yAxis],
+              chartOptions={[
+                {
+                  title: t('Comparing Release %s', CHART_TITLES[yAxes[0]]),
+                  yAxis: YAXIS_COLUMNS[yAxes[0]],
                   xAxisLabel: topTransactions,
-                  series: Object.values(transformedReleaseEvents[YAXIS_COLUMNS[yAxis]]),
-                };
-              })}
+                  series: Object.values(
+                    transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]]]
+                  ),
+                },
+              ]}
               chartHeight={chartHeight ?? 180}
               isLoading={isReleaseEventsLoading}
               chartKey="screensChart1"
             />
           </ChartsContainerItem>
 
-          <ChartsContainerItem key="deviceClass">
-            <ScreensBarChart
-              chartOptions={yAxes.map(yAxis => {
-                return {
-                  title: t('%s by Device Class', CHART_TITLES[yAxis]),
-                  yAxis: YAXIS_COLUMNS[yAxis],
-                  xAxisLabel: topTransactions,
-                  series: Object.values(transformedDeviceEvents[YAXIS_COLUMNS[yAxis]]),
-                };
-              })}
-              chartHeight={chartHeight ?? 180}
-              isLoading={isDeviceClassEventsLoading}
-              chartKey="screensChart2"
-            />
+          <ChartsContainerItem key="ttfd">
+            {defined(hasTTFD) && !hasTTFD ? (
+              <ChartPanel title={CHART_TITLES[yAxes[0]]}>
+                <div>
+                  {t(
+                    'Time to full display is disabled by default, but you can enable it by setting:'
+                  )}
+                </div>
+                <TabbedCodeSnippet tabs={getTabContent()} />
+                <div>
+                  {t(
+                    'You need to manually call the API when your screen is fully loaded'
+                  )}
+                </div>
+              </ChartPanel>
+            ) : (
+              <ScreensBarChart
+                chartOptions={[
+                  {
+                    title: t('Comparing Release %s', CHART_TITLES[yAxes[1]]),
+                    yAxis: YAXIS_COLUMNS[yAxes[1]],
+                    xAxisLabel: topTransactions,
+                    series: Object.values(
+                      transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]]]
+                    ),
+                  },
+                ]}
+                chartHeight={chartHeight ?? 180}
+                isLoading={isReleaseEventsLoading}
+                chartKey="screensChart1"
+              />
+            )}
           </ChartsContainerItem>
         </Fragment>
       </ChartsContainer>
@@ -434,3 +462,43 @@ export const Spacer = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};
 `;
+
+export function getTabContent(): CodeSnippetTab[] {
+  const codeSnippet1 = `import Sentry
+
+SentrySDK.start { options in
+  options.dsn = "<my-dsn-key>"
+  options.enableTimeToFullDisplayTracing = true
+}`;
+  const codeSnippet2 = `@import Sentry;
+
+[SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
+  options.dsn = @"<my-dsn-key>";
+  options.enableTimeToFullDisplayTracing = YES;
+}];`;
+
+  const codeSnippet3 = `<application>
+    <meta-data android:name="io.sentry.traces.time-to-full-display.enable" android:value="true" />
+</application>`;
+  return [
+    {
+      code: codeSnippet1,
+      label: 'Swift',
+      language: 'swift',
+      value: 'swift',
+    },
+    {
+      code: codeSnippet2,
+      label: 'Objective-C',
+      language: 'objectivec',
+      value: 'objective-c',
+    },
+    {
+      code: codeSnippet3,
+      label: 'Xml',
+      language: 'xml',
+      value: 'xml',
+      filename: 'AndroidManifest.xml',
+    },
+  ];
+}
