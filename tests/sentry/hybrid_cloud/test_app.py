@@ -25,3 +25,20 @@ def test_create_internal_integration_for_channel_request():
         integration_scopes=["prject:read"],
     )
     assert first_app.id == second_app.id
+
+
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
+def test_find_alertable_services():
+    org = Factories.create_organization()
+    app1 = Factories.create_internal_integration(organization_id=org.id, is_alertable=True)
+    app2 = Factories.create_internal_integration(organization_id=org.id, is_alertable=True)
+    Factories.create_internal_integration(
+        organization_id=org.id,
+        is_alertable=False,
+    )
+
+    services = app_service.find_alertable_services(organization_id=org.id)
+    assert len(services) == 2
+    assert services[0].title in [app1.name, app2.name]
+    assert services[1].title in [app1.name, app2.name]
