@@ -6,8 +6,8 @@ import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import ResourceTable from 'sentry/views/performance/browser/resources/jsCssView/resourceTable';
-import DomainSelector from 'sentry/views/performance/browser/resources/shared/domainSelector';
 import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
 import {
   BrowserStarfishFields,
@@ -15,6 +15,9 @@ import {
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
+import {ModuleName} from 'sentry/views/starfish/types';
+import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
+import {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 
 const {
   SPAN_OP: RESOURCE_TYPE,
@@ -23,7 +26,7 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
 } = BrowserStarfishFields;
 
-const DEFAULT_RESOURCE_TYPES = ['resource.script', 'resource.css'];
+export const DEFAULT_RESOURCE_TYPES = ['resource.script', 'resource.css'];
 
 type Option = {
   label: string;
@@ -34,6 +37,11 @@ function JSCSSView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
   const location = useLocation();
+
+  const spanTimeChartsFilters: ModuleFilters = {
+    'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+    ...(filters[SPAN_DOMAIN] ? {[SPAN_DOMAIN]: filters[SPAN_DOMAIN]} : {}),
+  };
 
   const handleBlockingToggle: MouseEventHandler = () => {
     const hasBlocking = filters[RESOURCE_RENDER_BLOCKING_STATUS] === 'blocking';
@@ -49,11 +57,13 @@ function JSCSSView() {
 
   return (
     <Fragment>
+      <SpanTimeCharts
+        moduleName={ModuleName.OTHER}
+        appliedFilters={spanTimeChartsFilters}
+        throughputUnit={RESOURCE_THROUGHPUT_UNIT}
+      />
+
       <FilterOptionsContainer>
-        <DomainSelector
-          value={filters[SPAN_DOMAIN] || ''}
-          defaultResourceTypes={DEFAULT_RESOURCE_TYPES}
-        />
         <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
         <PageSelector
           value={filters[TRANSACTION] || ''}
