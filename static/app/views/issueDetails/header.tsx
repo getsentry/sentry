@@ -162,11 +162,6 @@ function GroupHeaderTabs({
   );
 }
 
-function sanitizeIssueBreadcrumbQuery(query: string): string {
-  const sanitizedQuery = query.replace('&sort=timestamp', '');
-  return sanitizedQuery.replace('&sort=-timestamp', '');
-}
-
 function GroupHeader({
   baseUrl,
   group,
@@ -250,9 +245,15 @@ function GroupHeader({
             crumbs={[
               {
                 label: 'Issues',
-                to: `/organizations/${
-                  organization.slug
-                }/issues/${sanitizeIssueBreadcrumbQuery(location.search)}`,
+                to: {
+                  pathname: `/organizations/${organization.slug}/issues/`,
+                  // Sanitize sort queries from query
+                  query: {
+                    project: location.query.project,
+                    referrer: location.query.referrer,
+                    stream_index: location.query.referrer,
+                  },
+                },
               },
               {label: shortIdBreadcrumb},
             ]}
