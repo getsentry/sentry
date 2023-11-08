@@ -31,6 +31,16 @@ function renderedComponent(
 }
 
 describe('StackTrace', function () {
+  beforeEach(() => {
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
+  });
   it('renders', function () {
     renderedComponent({});
 

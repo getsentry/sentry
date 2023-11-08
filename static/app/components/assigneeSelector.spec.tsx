@@ -84,7 +84,6 @@ describe('AssigneeSelector', () => {
     GroupStore.loadInitialData([GROUP_1, GROUP_2]);
 
     jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => []);
-    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
     assignMock = MockApiClient.addMockResponse({
@@ -113,7 +112,12 @@ describe('AssigneeSelector', () => {
     await userEvent.click(await screen.findByTestId('assignee-selector'), undefined);
   };
 
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([PROJECT_1]);
+  });
+
   afterEach(() => {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

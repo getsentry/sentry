@@ -100,8 +100,27 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
       'throughput()'
     )[0];
 
+    result.markLine = {
+      data: [
+        {
+          xAxis: breakpoint * 1000,
+        },
+      ],
+      label: {show: false},
+      lineStyle: {
+        color: theme.red300,
+        type: 'solid',
+        width: 2,
+      },
+      symbol: ['none', 'none'],
+      tooltip: {
+        show: false,
+      },
+      silent: true,
+    };
+
     return [result];
-  }, [stats.series]);
+  }, [breakpoint, stats.series, theme]);
 
   const chartOptions: Omit<
     React.ComponentProps<typeof LineChart>,
@@ -132,13 +151,17 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
   return (
     <SidebarSection.Wrap data-test-id="throughput">
       <SidebarSection.Title>{t('Change in Throughput')}</SidebarSection.Title>
-      <CurrentLabel>{formatRate(throughputBefore, RateUnits.PER_SECOND)}</CurrentLabel>
+      {stats.series.length > 0 ? (
+        <CurrentLabel>{formatRate(throughputAfter, RateUnits.PER_SECOND)}</CurrentLabel>
+      ) : (
+        <CurrentLabel>{'\u2014'}</CurrentLabel>
+      )}
       {throughputDelta && throughputDelta > 0 ? (
         <CompareLabel change="increase">
           {t(
             'Up %s from %s',
             `+${formatPercentage(throughputDelta)}`,
-            formatRate(throughputAfter, RateUnits.PER_SECOND)
+            formatRate(throughputBefore, RateUnits.PER_SECOND)
           )}
         </CompareLabel>
       ) : throughputDelta && throughputDelta < 0 ? (
@@ -146,13 +169,15 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
           {t(
             'Down %s from %s',
             formatPercentage(throughputDelta),
-            formatRate(throughputAfter, RateUnits.PER_SECOND)
+            formatRate(throughputBefore, RateUnits.PER_SECOND)
           )}
         </CompareLabel>
-      ) : (
+      ) : stats.series.length > 0 ? (
         <CompareLabel>
-          {t('Unchanged from', formatRate(throughputAfter, RateUnits.PER_SECOND))}
+          {t('Unchanged from', formatRate(throughputBefore, RateUnits.PER_SECOND))}
         </CompareLabel>
+      ) : (
+        <CompareLabel>{'\u2014'}</CompareLabel>
       )}
       <ChartZoom router={router} {...datetime}>
         {zoomRenderProps => (
@@ -353,8 +378,8 @@ const CurrentLabel = styled('div')`
 const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`
   color: ${p =>
     p.change === 'increase'
-      ? p.theme.green300
-      : p.change === 'decrease'
       ? p.theme.red300
+      : p.change === 'decrease'
+      ? p.theme.green300
       : p.theme.gray300};
 `;

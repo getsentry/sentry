@@ -143,6 +143,12 @@ export const RATE_UNIT_LABELS = {
   [RateUnits.PER_HOUR]: '/hr',
 };
 
+export const RATE_UNIT_TITLE = {
+  [RateUnits.PER_SECOND]: 'Per Second',
+  [RateUnits.PER_MINUTE]: 'Per Minute',
+  [RateUnits.PER_HOUR]: 'Per Hour',
+};
+
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
   {
     label: 'is equal to',
