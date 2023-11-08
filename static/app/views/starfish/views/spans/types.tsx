@@ -43,7 +43,7 @@ export const getThroughputTitle = (spanOp?: string) => {
     return t('Queries Per Min');
   }
   if (defined(spanOp)) {
-    return t('Requests');
+    return t('Requests Per Sec');
   }
   return '--';
 };
