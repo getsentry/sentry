@@ -9,7 +9,10 @@ from fixtures.sdk_crash_detection.crash_event import (
 )
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.sdk_crashes.configs import cocoa_sdk_crash_detector_config
+from sentry.utils.sdk_crashes.configs import (
+    cocoa_sdk_crash_detector_config,
+    react_native_sdk_crash_detector_config,
+)
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
@@ -306,21 +309,24 @@ def test_strip_frames_sdk_frames(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_frames_sdk_frames_multiple_replacement_names(store_and_strip_event):
+def test_strip_frames_sdk_frames_keep_after_matcher(store_and_strip_event):
     frames = get_frames("SentryCrashMonitor_CPPException.cpp", sentry_frame_in_app=False)
 
     sentry_sdk_frame = frames[-1]
-    sentry_sdk_frame["package"] = "abs/Package/SomeApp"
-    sentry_sdk_frame["module"] = "abs/Module/SomeApp"
-    sentry_sdk_frame["abs_path"] = "SomeApp/SentryDispatchQueueWrapper.m"
+
+    sentry_sdk_frame[
+        "module"
+    ] = "Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative"
+    sentry_sdk_frame[
+        "filename"
+    ] = "/Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative.js"
+    sentry_sdk_frame[
+        "abs_path"
+    ] = "app:///Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative.js"
 
     event_data = get_crash_event_with_frames(frames)
 
-    config = copy.deepcopy(cocoa_sdk_crash_detector_config)
-    config.sdk_frame_path_replacement_names = {
-        r"*Package*": "SentryPackage",
-        r"*Module*": "SentryModule",
-    }
+    config = copy.deepcopy(react_native_sdk_crash_detector_config)
     stripped_event_data = store_and_strip_event(data=event_data, config=config)
 
     stripped_frames = get_path(
@@ -330,10 +336,10 @@ def test_strip_frames_sdk_frames_multiple_replacement_names(store_and_strip_even
     cocoa_sdk_frame = stripped_frames[-1]
     assert cocoa_sdk_frame == {
         "function": "SentryCrashMonitor_CPPException.cpp",
-        "package": "SentryPackage",
-        "abs_path": "Sentry.framework",
-        "module": "SentryModule",
-        "filename": "Sentry.framework",
+        "module": "/sentry-react-native/dist/js/integrations/reactnative",
+        "filename": "/sentry-react-native/dist/js/integrations/reactnative.js",
+        "abs_path": "/sentry-react-native/dist/js/integrations/reactnative.js",
+        "package": "sentry-react-native",
         "in_app": True,
         "image_addr": "0x100304000",
     }

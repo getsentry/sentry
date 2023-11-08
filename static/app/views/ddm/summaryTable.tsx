@@ -9,7 +9,7 @@ import {IconArrow, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {formatMetricsUsingUnitAndOp, getNameFromMRI} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp, parseMRI} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -103,10 +103,13 @@ export function SummaryTable({
 
   const rows = series
     .map(s => {
+      const parsed = parseMRI(s.seriesName);
+      const name = parsed?.name ?? s.seriesName;
+
       return {
         ...s,
         ...getValues(s.data),
-        name: getNameFromMRI(s.seriesName),
+        name,
       };
     })
     .sort((a, b) => {

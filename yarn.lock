@@ -2422,10 +2422,10 @@
   dependencies:
     "@react-types/shared" "^3.18.1"
 
-"@sentry-internal/feedback@0.0.1-alpha.6":
-  version "0.0.1-alpha.6"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-0.0.1-alpha.6.tgz#0f7f5c00b97ef9d8f1b6efcf8f81841a4386ec06"
-  integrity sha512-9CVAmS82M6iZzgo5DFDpSIcKqGbveHrqG9bMvdH1mlx1wvKHtHH/iHSvsF9xKY/Czc4UdJShF+7wKuZ2yrxJ5w==
+"@sentry-internal/feedback@0.0.1-alpha.10":
+  version "0.0.1-alpha.10"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-0.0.1-alpha.10.tgz#69511ebceebf0691852b64337cfd585b0eb478c4"
+  integrity sha512-ZXowCk+VTYi2HgkKyuiuD4v2hp5BbYvZaNF4+/7kYupwh96Dctp/w2kBVgzVEX4vdIFComTdKb/28cDPWzG3yg==
   dependencies:
     "@sentry/browser" "7.77.0"
     "@sentry/core" "7.77.0"
@@ -9205,10 +9205,10 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@^5.7.8:
-  version "5.7.8"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.7.8.tgz#35022adf6b41341baa2634afb221abb088b05e63"
-  integrity sha512-5K5JZN8OumYThc2LSHstqUfW3n3jFA1jq5bvRVLR8dkUr2rY3IocEtAYClCFIidXXEG2XJYuzxCYG9TErXO47A==
+platformicons@^5.7.9:
+  version "5.7.9"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.7.9.tgz#1dc620cbe127af6ab644469f99e5b395fcc98bf1"
+  integrity sha512-prtE5HHmFIK2nMPi4VvqLPBu6maf0GAv/Fjd6schV2WeuuudRKci1T35nOmb4qoSyTMtegh/0CjY1zAv97ydVA==
   dependencies:
     "@types/node" "*"
     "@types/react" "*"

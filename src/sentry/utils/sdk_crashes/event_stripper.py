@@ -163,11 +163,9 @@ def _strip_frames(
 
     This method sets in_app to True for SDK frames for grouping. The grouping config
     will set in_app false for all SDK frames. To not change the grouping logic, we must
-    add a stacktrace rule for each path_replacement_name configured in
-    `SDKCrashDetectorConfig.sdk_frame_path_replacement_names` and
-    `SDKCrashDetectorConfig.sdk_frame_path_default_replacement_name` like
-    `stack.abs_path:{{abs_path_replacement}} +app` to the project configured for the
-    platform in the options.
+    add a stacktrace rule for each path configured in
+    `SDKCrashDetectorConfig.sdk_frame_config.path_replacer` and
+    `SDKCrashDetectorConfig.sdk_frame_path_default_replacement_name`.
 
     For example, Cocoa only uses `Sentry.framework` as a replacement path, so we must add the rule `stack.abs_path:Sentry.framework +app` to it's project in Sentry.
     """
@@ -177,9 +175,12 @@ def _strip_frames(
             frame["in_app"] = True
 
             # The path field usually contains the name of the application, which we can't keep.
-            for field in sdk_crash_detector.fields_containing_paths:
-                if frame.get(field):
-                    frame[field] = sdk_crash_detector.replace_sdk_frame_path(field)
+            for path_field_key in sdk_crash_detector.fields_containing_paths:
+                path_field_value: str = frame.get(path_field_key, "")
+                if path_field_value:
+                    frame[path_field_key] = sdk_crash_detector.replace_sdk_frame_path(
+                        path_field_value
+                    )
         else:
             frame["in_app"] = False
 
