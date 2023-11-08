@@ -15,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.client import DiscordClient, DiscordNonProxyClient
 from sentry.integrations.discord.commands import DiscordCommandManager
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -134,7 +134,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.public_key = options.get("discord.public-key")
         self.bot_token = options.get("discord.bot-token")
         self.client_secret = options.get("discord.client-secret")
-        self.client = DiscordClient()
+        self.client = DiscordNonProxyClient()
         self.setup_url = absolute_uri("extensions/discord/setup/")
         super().__init__()
 
@@ -143,7 +143,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
         guild_id = str(state.get("guild_id"))
-        guild_name = self._get_guild_name(guild_id)
+        guild_name = self.client.get_guild_name(guild_id=guild_id)
         discord_user_id = self._get_discord_user_id(str(state.get("code")))
 
         return {
@@ -160,15 +160,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
     def setup(self) -> None:
         if self._credentials_exist():
             DiscordCommandManager().register_commands()
-
-    def _get_guild_name(self, guild_id: str) -> str:
-        url = self.client.GUILD_URL.format(guild_id=guild_id)
-        headers = {"Authorization": f"Bot {self.bot_token}"}
-        try:
-            response = self.client.get(url, headers=headers)
-            return response["name"]  # type: ignore
-        except (ApiError, AttributeError):
-            return guild_id
 
     def _get_discord_user_id(self, auth_code: str) -> str:
         """
