@@ -69,6 +69,7 @@ class TestCommitContextMixin(TestCase):
                             "lineno": 30,
                             "filename": "sentry/tasks.py",
                         },
+                        None,
                         {
                             "function": "set_commits",
                             "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
