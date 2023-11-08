@@ -801,21 +801,19 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return metric_layer_result
 
-    def use_case_id_from_select(self) -> UseCaseID:
+    def use_case_id_from_metrics_query(self, metrics_query: MetricsQuery) -> UseCaseID:
         """
-        Extracts the use case from the selected columns.
+        Extracts the use case from the `MetricsQuery` which has to be executed in the metrics layer.
 
-        This function uses the columns that have been already resolved by the `resolve_select` method, thus it assumes
-        the values to be already in a queriable form.
+        This function might be moved entirely to the `MetricsQuery` object but this is something that can be done
+        at a later point.
         """
         use_case_ids = set()
 
-        for column in self.columns:
-            if isinstance(column, Function) and column.parameters:
-                first_param = column.parameters[0]
-                if isinstance(first_param, Column):
-                    mri = first_param.name
-                    use_case_ids.add(extract_use_case_id(mri=mri))
+        for field in metrics_query.select:
+            mri = field.metric_mri
+            if mri:
+                use_case_ids.add(extract_use_case_id(mri=mri))
 
         if len(use_case_ids) == 0:
             raise IncompatibleMetricsQuery(
@@ -911,7 +909,7 @@ class MetricsQueryBuilder(QueryBuilder):
                         metrics_data = get_series(
                             projects=self.params.projects,
                             metrics_query=metrics_query,
-                            use_case_id=self.use_case_id_from_select(),
+                            use_case_id=self.use_case_id_from_metrics_query(metrics_query),
                             include_meta=True,
                             tenant_ids=self.tenant_ids,
                         )
@@ -1091,7 +1089,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             snuba_queries, _ = SnubaQueryBuilder(
                 projects=self.params.projects,
                 metrics_query=metrics_query,
-                use_case_id=self.use_case_id_from_select(),
+                use_case_id=self.use_case_id_from_metrics_query(metrics_query),
             ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
@@ -1343,7 +1341,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metrics_query,
-                        use_case_id=self.use_case_id_from_select(),
+                        use_case_id=self.use_case_id_from_metrics_query(metrics_query),
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )

@@ -2140,7 +2140,7 @@ class MetricArg(FunctionArg):
 
         if self.allowed_columns is not None and len(self.allowed_columns) > 0:
             allowed_value = (
-                self.allowed_columns
+                value in self.allowed_columns
                 or (self.allow_custom_measurements and CUSTOM_MEASUREMENT_PATTERN.match(value))
                 or (self.allow_mri and is_mri(value))
             )
