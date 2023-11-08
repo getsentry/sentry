@@ -9,6 +9,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
@@ -29,7 +30,10 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {
+  Badge,
+  PerformanceBadge,
+} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
@@ -436,15 +440,38 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
                 </GrowLink>
                 <StyledRightAlignedCell>
                   {rowScore.totalScore !== null && (
-                    <PerformanceBadge score={rowScore.totalScore} />
+                    <Tooltip
+                      title={
+                        <span>
+                          {t('The overall performance rating of this page.')}
+                          <br />
+                          <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                            {t('How is this calculated?')}
+                          </ExternalLink>
+                        </span>
+                      }
+                      isHoverable
+                    >
+                      <PerformanceBadgeWrapper>
+                        <PerformanceBadge score={rowScore.totalScore} />
+                      </PerformanceBadgeWrapper>
+                    </Tooltip>
                   )}
                   {isProjectWebVitalDataLoading ? (
                     <StyledLoadingIndicator size={20} />
                   ) : (
                     <Tooltip
-                      title={t(
-                        'The opportunity to improve your cumulative performance score.'
-                      )}
+                      title={
+                        <span>
+                          {t(
+                            "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
+                          )}
+                          <br />
+                          <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                            {t('How is this calculated?')}
+                          </ExternalLink>
+                        </span>
+                      }
                       isHoverable
                       showUnderline
                       skipWrapper
@@ -552,4 +579,11 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
     margin: 0;
   }
 `;
+
+const PerformanceBadgeWrapper = styled('span')`
+  ${Badge} {
+    text-decoration: underline dotted;
+  }
+`;
+
 const EventsRequest = withApi(_EventsRequest);

@@ -239,6 +239,7 @@ export default function PageOverview() {
               <PageOverviewSidebar
                 projectScore={projectScore}
                 transaction={transaction}
+                projectScoreIsLoading={isLoading}
               />
             </Layout.Side>
           </Layout.Body>
