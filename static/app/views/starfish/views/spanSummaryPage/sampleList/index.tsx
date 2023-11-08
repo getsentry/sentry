@@ -90,7 +90,7 @@ export function SampleList({
   function defaultOnClose() {
     router.replace({
       pathname: router.location.pathname,
-      query: omit(router.location.query, 'transaction', 'transactionMethod'),
+      query: omit(router.location.query, 'transaction', 'transactionMethod', 'query'),
     });
   }
 
