@@ -2138,17 +2138,16 @@ class MetricArg(FunctionArg):
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         from sentry.snuba.metrics.naming_layer.mapping import is_mri
 
+        allowed_column = True
         if self.allowed_columns is not None and len(self.allowed_columns) > 0:
-            allowed_value = (
-                value in self.allowed_columns
-                or (self.allow_custom_measurements and CUSTOM_MEASUREMENT_PATTERN.match(value))
-                or (self.allow_mri and is_mri(value))
+            allowed_column = value in self.allowed_columns or (
+                self.allow_custom_measurements and CUSTOM_MEASUREMENT_PATTERN.match(value)
             )
 
-            if allowed_value:
-                return value
-            else:
-                raise IncompatibleMetricsQuery(f"{value} is not an allowed column")
+        allowed_mri = self.allow_mri and is_mri(value)
+
+        if not allowed_column and not allowed_mri:
+            raise IncompatibleMetricsQuery(f"{value} is not an allowed column")
 
         return value
 

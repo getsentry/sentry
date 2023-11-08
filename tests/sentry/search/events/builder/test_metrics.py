@@ -2889,7 +2889,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
     def setUp(self):
         super().setUp()
-        self.custom_mri = "d:custom/sentry.process_profile.track_outcome@second"
 
     # Add tests for:
     # Metrics query
@@ -2897,21 +2896,24 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
     # SNQL generation via alertquerybuilder
     # Test all queries with environment
 
-    def test_run_query_simple(self):
-        self.store_transaction_metric(
-            value=10,
-            metric=self.custom_mri,
-            internal_metric=self.custom_mri,
-            entity="metrics_distributions",
-            tags={},
-            timestamp=self.start,
-        )
+    def test_distribution_metrics_query(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+        for value in (10, 20, 30):
+            self.store_transaction_metric(
+                value=value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_distributions",
+                tags={},
+                timestamp=self.start,
+                use_case_id=UseCaseID.CUSTOM,
+            )
 
         query = MetricsQueryBuilder(
             self.params,
             granularity=3600,
             dataset=Dataset.PerformanceMetrics,
-            selected_columns=[f"sum({self.custom_mri})"],
+            selected_columns=[f"sum({mri})"],
             config=QueryBuilderConfig(
                 use_metrics_layer=True,
             ),
@@ -2919,7 +2921,65 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
 
         result = query.run_query("test_query")
 
-        assert result["data"] == [{"d:transactions/on_demand@none": 200.0}]
+        assert result["data"] == [
+            {"sum_d_custom_sentry_process_profile_track_outcome_second": 60.0}
+        ]
         meta = result["meta"]
         assert len(meta) == 1
-        assert meta[0]["name"] == "d:transactions/on_demand@none"
+        assert meta[0]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"
+
+    def test_distribution_timeseries_metrics_query(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            for multiplier in (1, 2, 3):
+                self.store_transaction_metric(
+                    value=value * multiplier,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_distributions",
+                    tags={},
+                    timestamp=self.start + datetime.timedelta(hours=index),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            interval=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[f"sum({mri})"],
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+
+        result = query.run_query("test_query")
+
+        assert result["data"][:6] == [
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 60.0,
+                "time": (self.start + datetime.timedelta(hours=0)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 120.0,
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 180.0,
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 240.0,
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 300.0,
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 360.0,
+                "time": (self.start + datetime.timedelta(hours=5)).isoformat(),
+            },
+        ]
+        meta = result["meta"]
+        assert len(meta) == 2
+        assert meta[1]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"

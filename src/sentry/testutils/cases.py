@@ -1782,6 +1782,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "metrics_distributions": "distribution",
         "metrics_sets": "set",
         "metrics_counters": "counter",
+        "metrics_gauges": "gauge",
     }
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
