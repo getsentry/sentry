@@ -6,6 +6,7 @@ from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Va
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.timezone import make_aware
+from snuba_sdk import Column, Condition, Entity, Op, Query
 
 from sentry.api.paginator import (
     BadPaginationError,
@@ -17,12 +18,14 @@ from sentry.api.paginator import (
     OffsetPaginator,
     Paginator,
     SequencePaginator,
+    SnubaRequestPaginator,
     reverse_bisect_left,
 )
 from sentry.incidents.models import AlertRule, Incident
 from sentry.models.rule import Rule
 from sentry.models.user import User
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cursors import Cursor
 
@@ -873,3 +876,46 @@ class TestChainPaginator(SimpleTestCase):
         assert len(third.results) == 2
         assert third.results == [7, 8]
         assert third.next.has_results is False
+
+
+class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
+    cls = SnubaRequestPaginator
+
+    def test_simple(self):
+        now = timezone.now()
+        self.project.date_added = now - timedelta(minutes=5)
+        for i in range(9):
+            self.store_event(
+                project_id=self.project.id,
+                data={"event_id": str(i) * 32, "timestamp": iso_format(now - timedelta(minutes=2))},
+            )
+        query = Query(
+            match=Entity("events"),
+            select=[Column("event_id")],
+            where=[
+                Condition(Column("project_id"), Op.EQ, self.project.id),
+                Condition(Column("timestamp"), Op.GTE, now - timedelta(days=1)),
+                Condition(Column("timestamp"), Op.LT, now + timedelta(days=1)),
+            ],
+        )
+
+        referrer = "tests.sentry.api.test_paginator"
+        paginator = self.cls(
+            query=query,
+            dataset="events",
+            app_id=referrer,
+            tenant_ids={"referrer": referrer, "organization_id": self.organization.id},
+            order_by="event_id",
+        )
+
+        first_page = paginator.get_result(limit=5)
+        assert len(first_page.results) == 5
+        assert first_page.results == [{"event_id": str(i) * 32} for i in range(5)]
+        assert first_page.next.has_results
+        assert first_page.prev.has_results is False
+
+        second_page = paginator.get_result(limit=5, cursor=first_page.next)
+        assert len(second_page.results) == 4
+        assert second_page.results == [{"event_id": str(i) * 32} for i in range(5, 9)]
+        assert second_page.next.has_results is False
+        assert second_page.prev.has_results
