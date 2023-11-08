@@ -14,13 +14,6 @@ Details
 
 {{ link }}
 
-{% if commits %}
-Suspect Commits
----------------
-{% for commit in commits %}
-* {{ commit.subject }}
-  {{ commit.shortId }} - {% if commit.author %}{{ commit.author.name }}{% else %}Unknown Author{% endif %}
-{% endfor %}{% endif %}
 
 {% if generic_issue_data %}
 Issue Data

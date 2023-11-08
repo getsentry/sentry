@@ -79,17 +79,12 @@
     {% else %}
       <table class="event-list">
         <tr>
-            <th colspan="2">Issue</th>
+            <th colspan="2">Feedback</th>
         </tr>
         <tr>
-          {% if not has_issue_states %}
-          <td class="error-level">
-              <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
-          </td>
-          {% endif %}
           <td class="event-detail">
             <div class="issue">
-              {% with type=event.get_event_type metadata=event.get_event_metadata transaction=event.transaction %}
+              {% with type=event.get_event_type metadata=group.get_event_metadata transaction=event.transaction %}
                   <div class="event-type default">
                     <h3>
                       {% if issue_title %}
@@ -103,8 +98,12 @@
                         <span class="event-subtitle">{{ transaction }}</span>
                       {% endif %}
                       <br />
+                      <br />
+                      {% if metadata.contact_email %}
+                      <p>{{ metadata.contact_email }}</p>
+                      {% endif %}
                       {% if subtitle %}
-                      <small>{{ subtitle|truncatechars:40|soft_break:40 }}</small>
+                        <div class="inner"><div class="note-body"><p>{{ subtitle }}</p></div></div>
                       {% endif %}
                     </h3>
                   </div>
