@@ -752,7 +752,15 @@ class ChainPaginator:
 
 class SnubaRequestPaginator:
     def __init__(
-        self, query, dataset, app_id, tenant_ids, order_by, max_limit=MAX_LIMIT, on_results=None
+        self,
+        query,
+        dataset,
+        app_id,
+        tenant_ids,
+        order_by,
+        max_limit=MAX_LIMIT,
+        converter=None,
+        on_results=None,
     ):
         self.query = query
         self.dataset = dataset
@@ -769,6 +777,7 @@ class SnubaRequestPaginator:
             self.key = None
             self.desc = False
         self.max_limit = max_limit
+        self.converter = converter
         self.on_results = on_results
 
     def build_next_snuba_request(self, cursor_value, query):
@@ -787,7 +796,7 @@ class SnubaRequestPaginator:
             cursor = Cursor(0, 0, 0)
 
         limit = min(limit, self.max_limit)
-        self.query.set_limit(
+        self.query = self.query.set_limit(
             limit + 1
         )  # +1 to limit so that we can tell if there are more results left after the current page
 
@@ -806,6 +815,9 @@ class SnubaRequestPaginator:
 
         if next_cursor.has_results:
             results.pop()  # pop the last result bc we have more results than the limit by 1 on this page
+
+        if self.converter:
+            results = self.converter(results)
 
         if self.on_results:
             results = self.on_results(results)

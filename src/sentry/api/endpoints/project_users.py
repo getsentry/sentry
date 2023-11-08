@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Entity, Op, Query
+from snuba_sdk import Column, Condition, Entity, Function, Op, Query
 
 from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -12,6 +12,14 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import SnubaRequestPaginator
 from sentry.api.serializers import serialize
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.utils.eventuser import EventUser
+
+QUERY_TO_SNUBA_FIELD_MAPPING = {
+    "id": "user_id",
+    "username": "user_name",
+    "email": "user_email",
+    "ip": ["ip_address_v4", "ip_address_v6"],
+}
 
 
 @region_silo_endpoint
@@ -41,7 +49,6 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             project_id=project.id,
             endpoint="sentry.api.endpoints.project_users.get",
         )
-        # queryset = EventUser.objects.filter(project_id=project.id)
         now = timezone.now()
         where_conditions = [
             Condition(Column("project_id"), Op.EQ, project.id),
@@ -51,11 +58,29 @@ class ProjectUsersEndpoint(ProjectEndpoint):
         if request.GET.get("query"):
             try:
                 field, identifier = request.GET["query"].strip().split(":", 1)
-                # queryset = queryset.filter(
-                #     project_id=project.id,
-                #     **{EventUser.attr_from_keyword(field): identifier},
-                # )
-                where_conditions.append(Condition(Column(field), Op.EQ, identifier))
+                if field == "ip":
+                    where_conditions.append(
+                        Condition(
+                            Function(
+                                "or",
+                                parameters=[
+                                    Function("equals", parameters=["ip_address_v4", identifier]),
+                                    Function("equals", parameters=["ip_address_v6", identifier]),
+                                ],
+                            ),
+                            Op.EQ,
+                            1,
+                        )
+                    )
+                    pass
+                else:
+                    where_conditions.append(
+                        Condition(
+                            Column(QUERY_TO_SNUBA_FIELD_MAPPING.get(field, field)),
+                            Op.EQ,
+                            identifier,
+                        )
+                    )
             except (ValueError, KeyError):
                 return Response([])
         query = Query(
@@ -84,5 +109,24 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             },
             order_by="-timestamp",
             paginator_cls=SnubaRequestPaginator,
+            converter=convert_to_event_user,
             on_results=lambda x: serialize(x, request.user),
         )
+
+
+def convert_to_event_user(snuba_results):
+    eventusers = []
+    for result in snuba_results:
+        name = result.get("name", "user_name")
+        ip_address = result.get("ip_address_v4", result.get("ip_address_v6"))
+        eventusers.append(
+            EventUser(
+                project_id=result["project_id"],
+                email=result["user_email"],
+                username=result["user_name"],
+                name=name,
+                ip_address=ip_address,
+                id=result["user_id"],
+            ).serialize()
+        )
+    return eventusers

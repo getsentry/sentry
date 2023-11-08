@@ -1,10 +1,15 @@
+from datetime import timedelta
 from unittest import mock
 
 from django.urls import reverse
+from django.utils import timezone
 
-from sentry.models.eventuser import EventUser
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
+
+# from sentry.models.eventuser import EventUser
+from sentry.utils.eventuser import EventUser
 
 
 @region_silo_test(stable=True)
@@ -13,20 +18,22 @@ class ProjectUsersTest(APITestCase):
         super().setUp()
 
         self.project = self.create_project()
-        self.euser1 = EventUser.objects.create(
+        self.euser1 = EventUser(
             project_id=self.project.id,
-            ident="1",
             email="foo@example.com",
             username="foobar",
+            name="Foo Bar",
             ip_address="127.0.0.1",
+            id="1",
         )
 
-        self.euser2 = EventUser.objects.create(
+        self.euser2 = EventUser(
             project_id=self.project.id,
-            ident="2",
             email="bar@example.com",
             username="baz",
+            name="Baz",
             ip_address="192.168.0.1",
+            id="2",
         )
 
         self.path = reverse(
@@ -36,6 +43,41 @@ class ProjectUsersTest(APITestCase):
                 "project_slug": self.project.slug,
             },
         )
+
+        self.event1 = self.store_event(
+            project_id=self.project.id,
+            data={
+                "user": {
+                    "id": self.euser1.id,
+                    "email": self.euser1.email,
+                    "username": self.euser1.username,
+                    "ip_address": self.euser1.ip_address,
+                },
+                "event_id": "b" * 32,
+                "timestamp": iso_format(timezone.now() - timedelta(days=1)),
+            },
+        )
+
+        self.event2 = self.store_event(
+            project_id=self.project.id,
+            data={
+                "user": {
+                    "id": self.euser2.id,
+                    "email": self.euser2.email,
+                    "username": self.euser2.username,
+                    "ip_address": self.euser2.ip_address,
+                },
+                "event_id": "c" * 32,
+                "timestamp": iso_format(timezone.now() - timedelta(days=1)),
+            },
+        )
+
+    def tearDown(self):
+        super().tearDown()
+        del self.euser1
+        del self.euser2
+        del self.event1
+        del self.event2
 
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
