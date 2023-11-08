@@ -38,9 +38,102 @@ class DatetimeSafeDjangoJSONEncoder(DjangoJSONEncoder):
         return super().default(obj)
 
 
-def create_encrypted_export_tarball(
-    json_export: json.JSONData, encrypt_with: BinaryIO
-) -> io.BytesIO:
+class CryptoKeyVersion(NamedTuple):
+    """
+    A structured version of a Google Cloud KMS CryptoKeyVersion, as described here:
+    https://cloud.google.com/kms/docs/resource-hierarchy#retrieve_resource_id
+    """
+
+    project_id: str
+    location: str
+    key_ring: str
+    key: str
+    version: str
+
+
+# TODO(getsentry/team-ospo#215): These should be options, instead of hard coding.
+DEFAULT_CRYPTO_KEY_VERSION = CryptoKeyVersion(
+    project_id=gcp_project_id(),
+    location="global",
+    key_ring="relocation",
+    key="relocation",
+    # TODO(getsentry/team-ospo#190): This version should be pulled from an option, rather than hard
+    # coded.
+    version="1",
+)
+
+
+class EncryptionError(Exception):
+    pass
+
+
+class Encryptor(ABC):
+    """
+    A `BinaryIO`-wrapper that contains relevant information and methods to encrypt some an in-memory JSON-ifiable dict.
+    """
+
+    __fp: BinaryIO
+
+    @abstractmethod
+    def get_public_key_pem(self) -> bytes:
+        pass
+
+
+class LocalFileEncryptor(Encryptor):
+    """
+    Encrypt using a public key stored on the local machine.
+    """
+
+    def __init__(self, fp: BinaryIO):
+        self.__fp = fp
+
+    def get_public_key_pem(self) -> bytes:
+        return self.__fp.read()
+
+
+class GCPKMSEncryptor(Encryptor):
+    """
+    Encrypt using a config JSON file tha pulls the public key from Google Cloud Platform's Key
+    Management Service.
+    """
+
+    crypto_key_version: CryptoKeyVersion | None = None
+
+    def __init__(self, fp: BinaryIO):
+        self.__fp = fp
+
+    @classmethod
+    def from_crypto_key_version(cls, crypto_key_version: CryptoKeyVersion) -> GCPKMSEncryptor:
+        instance = cls(io.BytesIO(b""))
+        instance.crypto_key_version = crypto_key_version
+        return instance
+
+    def get_public_key_pem(self) -> bytes:
+        if self.crypto_key_version is None:
+            # Read the user supplied configuration into the proper format.
+            gcp_kms_config_json = json.load(self.__fp)
+            try:
+                self.crypto_key_version = CryptoKeyVersion(**gcp_kms_config_json)
+            except TypeError:
+                raise EncryptionError(
+                    """Your supplied KMS configuration did not have the correct fields - please
+                    ensure that it is a single, top-level object with the fields `project_id`
+                    `location`, `key_ring`, `key`, and `version`, with all values as strings."""
+                )
+
+        kms_client = KeyManagementServiceClient()
+        key_name = kms_client.crypto_key_version_path(
+            project=self.crypto_key_version.project_id,
+            location=self.crypto_key_version.location,
+            key_ring=self.crypto_key_version.key_ring,
+            crypto_key=self.crypto_key_version.key,
+            crypto_key_version=self.crypto_key_version.version,
+        )
+        public_key = kms_client.get_public_key(request={"name": key_name})
+        return public_key.pem.encode("utf-8")
+
+
+def create_encrypted_export_tarball(json_export: json.JSONData, encryptor: Encryptor) -> io.BytesIO:
     """
     Generate a tarball with 3 files:
 
@@ -57,7 +150,7 @@ def create_encrypted_export_tarball(
     """
 
     # Generate a new DEK (data encryption key), and use that DEK to encrypt the JSON being exported.
-    pem = encrypt_with.read()
+    pem = encryptor.get_public_key_pem()
     data_encryption_key = Fernet.generate_key()
     backup_encryptor = Fernet(data_encryption_key)
     encrypted_json_export = backup_encryptor.encrypt(json.dumps(json_export).encode("utf-8"))
@@ -130,44 +223,6 @@ def unwrap_encrypted_export_tarball(tarball: BinaryIO) -> UnwrappedEncryptedExpo
         encrypted_data_encryption_key=encrypted_dek,
         encrypted_json_blob=export,
     )
-
-
-class CryptoKeyVersion(NamedTuple):
-    """
-    A structured version of a Google Cloud KMS CryptoKeyVersion, as described here:
-    https://cloud.google.com/kms/docs/resource-hierarchy#retrieve_resource_id
-    """
-
-    project_id: str
-    location: str
-    key_ring: str
-    key: str
-    version: str
-
-
-# TODO(getsentry/team-ospo#215): These should be options, instead of hard coding.
-DEFAULT_CRYPTO_KEY_VERSION = CryptoKeyVersion(
-    project_id=gcp_project_id(),
-    location="global",
-    key_ring="relocation",
-    key="relocation",
-    # TODO(getsentry/team-ospo#190): This version should be pulled from an option, rather than hard
-    # coded.
-    version="1",
-)
-
-
-def get_public_key_using_gcp_kms(crypto_key_version: CryptoKeyVersion) -> bytes:
-    kms_client = KeyManagementServiceClient()
-    key_name = kms_client.crypto_key_version_path(
-        project=crypto_key_version.project_id,
-        location=crypto_key_version.location,
-        key_ring=crypto_key_version.key_ring,
-        crypto_key=crypto_key_version.key,
-        crypto_key_version=crypto_key_version.version,
-    )
-    public_key = kms_client.get_public_key(request={"name": key_name})
-    return public_key.pem.encode("utf-8")
 
 
 class DecryptionError(Exception):

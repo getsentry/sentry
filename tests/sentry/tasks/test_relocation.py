@@ -15,6 +15,7 @@ from google_crc32c import value as crc32c
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import (
     LocalFileDecryptor,
+    LocalFileEncryptor,
     create_encrypted_export_tarball,
     decrypt_encrypted_tarball,
     unwrap_encrypted_export_tarball,
@@ -113,7 +114,9 @@ class RelocationTaskTestCase(TestCase):
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
                     file = File.objects.create(name="export.tar", type=RELOCATION_FILE_TYPE)
-                    self.tarball = create_encrypted_export_tarball(data, p).getvalue()
+                    self.tarball = create_encrypted_export_tarball(
+                        data, LocalFileEncryptor(p)
+                    ).getvalue()
                     file.putfile(BytesIO(self.tarball))
 
             return file
@@ -131,7 +134,9 @@ class RelocationTaskTestCase(TestCase):
             with open(get_fixture_path("backup", fixture_name)) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    self.tarball = create_encrypted_export_tarball(data, p).getvalue()
+                    self.tarball = create_encrypted_export_tarball(
+                        data, LocalFileEncryptor(p)
+                    ).getvalue()
                     file.putfile(BytesIO(self.tarball), blob_size=blob_size)
 
     def mock_kms_client(self, fake_kms_client: FakeKeyManagementServiceClient):
@@ -450,10 +455,6 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
             if NormalizedModelName(json_model["model"]) == get_model_name(User):
                 assert json_model["fields"]["username"] in "superuser"
 
-    @patch(
-        "sentry.tasks.relocation.get_public_key_using_gcp_kms",
-        MagicMock(side_effect=Exception("Test")),
-    )
     def test_retry_if_attempts_left(
         self,
         preprocessing_colliding_users_mock: Mock,
@@ -464,19 +465,17 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         # An exception being raised will trigger a retry in celery.
         with pytest.raises(Exception):
             self.mock_kms_client(fake_kms_client)
+            fake_kms_client.get_public_key.side_effect = Exception("Test")
+
             preprocessing_baseline_config(self.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
         assert not relocation.failure_reason
         assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 1
         assert preprocessing_colliding_users_mock.call_count == 0
 
-    @patch(
-        "sentry.tasks.relocation.get_public_key_using_gcp_kms",
-        MagicMock(side_effect=Exception("Test")),
-    )
     def test_fail_if_no_attempts_left(
         self,
         preprocessing_colliding_users_mock: Mock,
@@ -487,6 +486,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         self.relocation.save()
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_kms_client(fake_kms_client)
+        fake_kms_client.get_public_key.side_effect = Exception("Test")
 
         with pytest.raises(Exception):
             preprocessing_baseline_config(self.uuid)
@@ -495,7 +495,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
         assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 1
         assert preprocessing_colliding_users_mock.call_count == 0
 
 
@@ -550,10 +550,6 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
             if NormalizedModelName(json_model["model"]) == get_model_name(User):
                 assert json_model["fields"]["username"] == "c"
 
-    @patch(
-        "sentry.tasks.relocation.get_public_key_using_gcp_kms",
-        MagicMock(side_effect=Exception("Test")),
-    )
     def test_retry_if_attempts_left(
         self,
         preprocessing_complete_mock: Mock,
@@ -564,19 +560,17 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         # An exception being raised will trigger a retry in celery.
         with pytest.raises(Exception):
             self.mock_kms_client(fake_kms_client)
+            fake_kms_client.get_public_key.side_effect = Exception("Test")
+
             preprocessing_colliding_users(self.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
         assert not relocation.failure_reason
         assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 1
         assert preprocessing_complete_mock.call_count == 0
 
-    @patch(
-        "sentry.tasks.relocation.get_public_key_using_gcp_kms",
-        MagicMock(side_effect=Exception("Test")),
-    )
     def test_fail_if_no_attempts_left(
         self,
         preprocessing_complete_mock: Mock,
@@ -587,6 +581,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         self.relocation.save()
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_kms_client(fake_kms_client)
+        fake_kms_client.get_public_key.side_effect = Exception("Test")
 
         with pytest.raises(Exception):
             preprocessing_colliding_users(self.uuid)
@@ -595,7 +590,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
         assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 1
         assert preprocessing_complete_mock.call_count == 0
 
 
