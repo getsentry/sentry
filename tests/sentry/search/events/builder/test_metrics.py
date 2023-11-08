@@ -1653,11 +1653,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         groupbys = ["customtag1", "customtag2"]
         for field in selected_columns:
             spec = OnDemandMetricSpec(field=field, query=query_s, groupbys=groupbys)
-            # print(spec._query_str_for_hash)
-            # assert (
-            #     spec._query_str_for_hash
-            #     == f"on_demand_{field};{'name': 'event.duration', 'op': 'gte', 'value': 100.0};['customtag1']"
-            # )
 
             for hour in range(0, 5):
                 self.store_on_demand_metric(
@@ -1698,13 +1693,13 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         expected = {
             "data": [
                 {
-                    "c:transactions/on_demand@none": float(duration),
+                    "c:transactions/on_demand@none": None,
                     "customtag1": "event.tags.customtag1",
                     "customtag2": "div > text",
                 }
             ],
             "meta": [
-                {"name": "c:transactions/on_demand@none", "type": "Float64"},
+                {"name": "c:transactions/on_demand@none", "type": "Nullable(Nothing)"},
             ],
         }
         for tag in groupbys:

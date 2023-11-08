@@ -123,10 +123,6 @@ class MetricsQueryBuilder(QueryBuilder):
         if not field:
             return None
 
-        # for agg in self.selected_columns:
-        #     if fields.is_function(agg):
-        #         field = agg
-
         groupby_columns = self._get_group_bys()
 
         if not should_use_on_demand_metrics(self.dataset, field, self.query, groupby_columns):
@@ -157,11 +153,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if not self.builder_config.on_demand_metrics_enabled:
             return None
 
-        return {
-            col: self._get_on_demand_metric_spec(col)
-            for col in self.selected_columns
-            if self._get_on_demand_metric_spec(col)
-        }
+        return {col: self._get_on_demand_metric_spec(col) for col in self._get_aggregates()}
 
     def _get_metrics_query_from_on_demand_spec(
         self,
@@ -938,25 +930,22 @@ class MetricsQueryBuilder(QueryBuilder):
                                 )
                             )
                 except Exception as err:
-                    import traceback
-
-                    traceback.print_exc()
-
                     raise IncompatibleMetricsQuery(err)
                 with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
-                    # XXX: Until we can figure out how to handle a list
-                    metric_layer_result = self.convert_metric_layer_result(metrics_data[0])
-                    for row in metric_layer_result["data"]:
-                        # Arrays in clickhouse cannot contain multiple types, and since groupby values
-                        # can contain any type, we must use tuples instead
-                        groupby_key = tuple(row[key] for key in groupby_aliases)
-                        value_map_key = ",".join(str(value) for value in groupby_key)
-                        # First time we're seeing this value, add it to the values we're going to filter by
-                        if value_map_key not in value_map and groupby_key:
-                            groupby_values.append(groupby_key)
-                        value_map[value_map_key].update(row)
-                    for meta in metric_layer_result["meta"]:
-                        meta_dict[meta["name"]] = meta["type"]
+                    for datum in metrics_data:
+                        metric_layer_result = self.convert_metric_layer_result(datum)
+                        for row in metric_layer_result["data"]:
+                            # Arrays in clickhouse cannot contain multiple types, and since groupby values
+                            # can contain any type, we must use tuples instead
+                            groupby_key = tuple(row[key] for key in groupby_aliases)
+                            value_map_key = ",".join(str(value) for value in groupby_key)
+                            # First time we're seeing this value, add it to the values we're going to filter by
+                            if value_map_key not in value_map and groupby_key:
+                                groupby_values.append(groupby_key)
+                            # print(row)
+                            value_map[value_map_key].update(row)
+                        for meta in metric_layer_result["meta"]:
+                            meta_dict[meta["name"]] = meta["type"]
         else:
             self.validate_having_clause()
 
@@ -1106,7 +1095,6 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             )
 
             if self._has_on_demand_specs:
-                # XXX: I think this need to change
                 spec = self._on_demand_metric_spec_map[self.selected_columns[0]]
                 metrics_query = self._get_metrics_query_from_on_demand_spec(
                     spec=spec, require_time_range=False
@@ -1360,7 +1348,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                     if self._has_on_demand_specs:
-                        # XXX: Is this to change?
                         spec = self._on_demand_metric_spec_map[self.selected_columns[0]]
                         metrics_query = self._get_metrics_query_from_on_demand_spec(
                             spec=spec, require_time_range=True
