@@ -245,8 +245,6 @@ const StyledRow = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-column-gap: ${space(2)};
-
-  margin-bottom: ${space(2)};
 `;
 
 const ChartsContainerItem = styled('div')`
