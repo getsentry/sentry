@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
@@ -26,32 +27,30 @@ const MAX_MEMBERS_TO_SHOW = 5;
 
 type Props = {
   allowedRoles: OrgRole[];
-  missingMembers: {integration: string; users: MissingMember[]};
   onModalClose: () => void;
-  onSendInvite: (email: string) => void;
+  onSendInvite: () => void;
   organization: Organization;
 };
 
 export function InviteBanner({
-  missingMembers,
-  onSendInvite,
   organization,
   allowedRoles,
+  onSendInvite,
   onModalClose,
 }: Props) {
-  // NOTE: this is currently used for Github only
-
   const isEligibleForBanner =
     organization.features.includes('integrations-gh-invite') &&
     organization.access.includes('org:write') &&
-    organization.githubNudgeInvite &&
-    missingMembers?.users?.length > 0;
+    organization.githubNudgeInvite;
   const [sendingInvite, setSendingInvite] = useState<boolean>(false);
   const [showBanner, setShowBanner] = useState<boolean>(false);
+  const [missingMembers, setMissingMembers] = useState<MissingMember[]>(
+    [] as MissingMember[]
+  );
 
   const api = useApi();
-  const integrationName = missingMembers?.integration;
-  const promptsFeature = `${integrationName}_missing_members`;
+  // NOTE: this is currently used for Github only
+  const promptsFeature = `github_missing_members`;
   const location = useLocation();
 
   const snoozePrompt = useCallback(async () => {
@@ -79,6 +78,25 @@ export function InviteBanner({
     if (!isEligibleForBanner) {
       return;
     }
+    async function fetchMissingMembers() {
+      try {
+        const data = await api.requestPromise(
+          `/organizations/${organization.slug}/missing-members/`,
+          {
+            method: 'GET',
+          }
+        );
+        const githubMissingMembers = data?.filter(
+          integrationMissingMembers => integrationMissingMembers.integration === 'github'
+        )[0];
+        setMissingMembers(githubMissingMembers?.users);
+      } catch (err) {
+        if (err.status !== 403) {
+          addErrorMessage(t('Unable to fetching missing commit authors'));
+        }
+      }
+    }
+    fetchMissingMembers();
     promptsCheck(api, {
       organizationId: organization.id,
       feature: promptsFeature,
@@ -95,13 +113,13 @@ export function InviteBanner({
     }
   }, [openInviteModal, location, isEligibleForBanner]);
 
-  if (isEligibleForBanner && showBanner) {
+  if (isEligibleForBanner && showBanner && missingMembers) {
     trackAnalytics('github_invite_banner.viewed', {
       organization,
-      members_shown: missingMembers.users.slice(0, MAX_MEMBERS_TO_SHOW).length,
+      members_shown: missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).length,
     });
   }
-  if (!isEligibleForBanner || !showBanner) {
+  if (!isEligibleForBanner || !showBanner || missingMembers.length === 0) {
     return null;
   }
 
@@ -124,13 +142,27 @@ export function InviteBanner({
       return;
     }
     setSendingInvite(true);
-    await onSendInvite(email);
+    try {
+      await api.requestPromise(
+        `/organizations/${organization.slug}/members/?referrer=github_nudge_invite`,
+        {
+          method: 'POST',
+          data: {email},
+        }
+      );
+      addSuccessMessage(tct('Sent invite to [email]', {email}));
+      onSendInvite();
+      const updatedMissingMembers = missingMembers.filter(
+        member => member.email !== email
+      );
+      setMissingMembers(updatedMissingMembers);
+    } catch {
+      addErrorMessage(t('Error sending invite'));
+    }
     setSendingInvite(false);
   };
 
-  const users = missingMembers.users;
-
-  const cards = users.slice(0, MAX_MEMBERS_TO_SHOW).map(member => {
+  const cards = missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).map(member => {
     const username = member.externalId.split(':').pop();
     return (
       <MemberCard
@@ -180,7 +212,7 @@ export function InviteBanner({
           <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
           <Subtitle>
             {tct('[missingMemberCount] missing members', {
-              missingMemberCount: users.length,
+              missingMemberCount: missingMembers.length,
             })}
             <QuestionTooltip
               title={t(
@@ -219,26 +251,24 @@ export function InviteBanner({
 export default withOrganization(InviteBanner);
 
 type SeeMoreCardProps = {
-  missingMembers: {integration: string; users: MissingMember[]};
+  missingMembers: MissingMember[];
   openInviteModal: () => void;
 };
 
 function SeeMoreCard({missingMembers, openInviteModal}: SeeMoreCardProps) {
-  const {users} = missingMembers;
-
   return (
     <MemberCard data-test-id="see-more-card">
       <MemberCardContent>
         <MemberCardContentRow>
           <SeeMore>
             {tct('See all [missingMembersCount] missing members', {
-              missingMembersCount: users.length,
+              missingMembersCount: missingMembers.length,
             })}
           </SeeMore>
         </MemberCardContentRow>
         <Subtitle>
           {tct('Accounting for [totalCommits] recent commits', {
-            totalCommits: users.reduce((acc, curr) => acc + curr.commitCount, 0),
+            totalCommits: missingMembers.reduce((acc, curr) => acc + curr.commitCount, 0),
           })}
         </Subtitle>
       </MemberCardContent>
