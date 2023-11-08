@@ -284,10 +284,8 @@ const buildDiscoverQueryConditions = (
     .filter(key => Boolean(appliedFilters[key]))
     .map(key => {
       const value = appliedFilters[key];
-      if (key === SPAN_DOMAIN) {
-        if (value === EMPTY_OPTION_VALUE) {
-          return [`!has:${SPAN_DOMAIN}`];
-        }
+      if (key === SPAN_DOMAIN && value === EMPTY_OPTION_VALUE) {
+        return [`!has:${SPAN_DOMAIN}`];
       }
       return `${key}:${value}`;
     });
