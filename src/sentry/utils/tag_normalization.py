@@ -26,7 +26,6 @@ _KNOWN_TAGS = {
     "sentry.javascript.sveltekit",
     "sentry.javascript.vue",
     "sentry.kubernetes",
-    "sentry.lua",
     "sentry.native.android",
     "sentry.native.dotnet",
     "sentry.native.unity",
