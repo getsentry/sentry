@@ -220,7 +220,6 @@ class Quota(Service):
         "get_transaction_sampling_tier_for_volume",
         "assign_monitor_seat",
         "check_accept_monitor_checkin",
-        "remove_monitor_seat",
         "update_monitor_slug",
     )
 
@@ -511,19 +510,11 @@ class Quota(Service):
 
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
         """
-        Will return an `AcceptedCheckInStatus`.
+        Will return a `PermitCheckInStatus`.
         """
         from sentry.monitors.constants import PermitCheckInStatus
 
         return PermitCheckInStatus.ACCEPT
-
-    def remove_monitor_seat(
-        self,
-        monitor: Monitor,
-    ):
-        """
-        Removes a monitor seat assignment when a Monitor is deleted.
-        """
 
     def update_monitor_slug(self, previous_slug: str, new_slug: str, project_id: int):
         """
