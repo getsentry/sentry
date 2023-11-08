@@ -30,10 +30,16 @@ function renderedComponent(
   );
 }
 describe('Native StackTrace', function () {
-  const promptResponse = {
-    dismissed_ts: undefined,
-    snoozed_ts: undefined,
-  };
+  beforeEach(() => {
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
+  });
   it('does not render non in app tags', function () {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: false};
@@ -51,10 +57,6 @@ describe('Native StackTrace', function () {
   });
 
   it('displays a toggle button when there is more than one non-inapp frame', function () {
-    MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
-      body: promptResponse,
-    });
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: true};
 
@@ -72,10 +74,6 @@ describe('Native StackTrace', function () {
   });
 
   it('shows/hides frames when toggle button clicked', async function () {
-    MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
-      body: promptResponse,
-    });
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: true};
     dataFrames[1] = {...dataFrames[1], function: 'non-in-app-frame'};
@@ -99,10 +97,6 @@ describe('Native StackTrace', function () {
   });
 
   it('does not display a toggle button when there is only one non-inapp frame', function () {
-    MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
-      body: promptResponse,
-    });
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: true};
     dataFrames[2] = {...dataFrames[2], inApp: true};

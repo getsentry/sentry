@@ -31,10 +31,16 @@ function renderedComponent(
 }
 
 describe('StackTrace', function () {
-  const promptResponse = {
-    dismissed_ts: undefined,
-    snoozed_ts: undefined,
-  };
+  beforeEach(() => {
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
+  });
   it('renders', function () {
     renderedComponent({});
 
@@ -176,10 +182,6 @@ describe('StackTrace', function () {
   });
 
   it('displays a toggle button when there is more than one non-inapp frame', function () {
-    MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
-      body: promptResponse,
-    });
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: true};
 
@@ -197,10 +199,6 @@ describe('StackTrace', function () {
   });
 
   it('shows/hides frames when toggle button clicked', async function () {
-    MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
-      body: promptResponse,
-    });
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: true};
     dataFrames[1] = {...dataFrames[1], function: 'non-in-app-frame'};
@@ -224,10 +222,6 @@ describe('StackTrace', function () {
   });
 
   it('does not display a toggle button when there is only one non-inapp frame', function () {
-    MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
-      body: promptResponse,
-    });
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: true};
     dataFrames[2] = {...dataFrames[2], inApp: true};
@@ -248,10 +242,6 @@ describe('StackTrace', function () {
 
   describe('if there is a frame with in_app equal to true, display only in_app frames', function () {
     it('displays crashed from only', function () {
-      MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
-        body: promptResponse,
-      });
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -282,10 +272,6 @@ describe('StackTrace', function () {
     });
 
     it('displays called from only', function () {
-      MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
-        body: promptResponse,
-      });
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -319,10 +305,6 @@ describe('StackTrace', function () {
     });
 
     it('displays crashed from and called from', function () {
-      MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
-        body: promptResponse,
-      });
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -357,11 +339,6 @@ describe('StackTrace', function () {
     });
 
     it('displays "occurred in" when event is not an error', function () {
-      MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
-        body: promptResponse,
-      });
-
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -396,10 +373,6 @@ describe('StackTrace', function () {
     });
 
     it('displays "occurred in" when event is an ANR error', function () {
-      MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
-        body: promptResponse,
-      });
       const dataFrames = [...data.frames];
 
       const newData = {

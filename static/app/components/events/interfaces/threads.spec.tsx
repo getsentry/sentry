@@ -9,10 +9,16 @@ import {EventOrGroupType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 
 describe('Threads', function () {
-  const promptResponse = {
-    dismissed_ts: undefined,
-    snoozed_ts: undefined,
-  };
+  beforeEach(() => {
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
+  });
   const {project, organization} = initializeOrg();
 
   describe('non native platform', function () {
@@ -210,10 +216,6 @@ describe('Threads', function () {
       };
 
       it('renders', function () {
-        MockApiClient.addMockResponse({
-          url: '/prompts-activity/',
-          body: promptResponse,
-        });
         render(<Threads {...props} />, {
           organization,
         });
@@ -237,10 +239,6 @@ describe('Threads', function () {
       });
 
       it('toggle full stack trace button', async function () {
-        MockApiClient.addMockResponse({
-          url: '/prompts-activity/',
-          body: promptResponse,
-        });
         render(<Threads {...props} />, {organization});
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
@@ -255,10 +253,6 @@ describe('Threads', function () {
       });
 
       it('toggle sort by display option', async function () {
-        MockApiClient.addMockResponse({
-          url: '/prompts-activity/',
-          body: promptResponse,
-        });
         render(<Threads {...props} />, {organization});
 
         expect(
@@ -299,10 +293,6 @@ describe('Threads', function () {
       });
 
       it('check display options', async function () {
-        MockApiClient.addMockResponse({
-          url: '/prompts-activity/',
-          body: promptResponse,
-        });
         render(<Threads {...props} />, {organization});
 
         await userEvent.click(screen.getByRole('button', {name: 'Options'}));
@@ -1071,10 +1061,6 @@ describe('Threads', function () {
       });
 
       it('toggle full stack trace button', async function () {
-        MockApiClient.addMockResponse({
-          url: '/prompts-activity/',
-          body: promptResponse,
-        });
         render(<Threads {...props} />, {organization});
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);

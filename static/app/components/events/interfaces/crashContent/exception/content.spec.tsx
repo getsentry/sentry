@@ -154,10 +154,16 @@ describe('Exception Content', function () {
   describe('exception groups', function () {
     const event = TestStubs.Event({entries: [TestStubs.EventEntryExceptionGroup()]});
     const project = TestStubs.Project();
-    const promptResponse = {
-      dismissed_ts: undefined,
-      snoozed_ts: undefined,
-    };
+    beforeEach(() => {
+      const promptResponse = {
+        dismissed_ts: undefined,
+        snoozed_ts: undefined,
+      };
+      MockApiClient.addMockResponse({
+        url: '/prompts-activity/',
+        body: promptResponse,
+      });
+    });
 
     const defaultProps = {
       type: StackType.ORIGINAL,
@@ -171,11 +177,6 @@ describe('Exception Content', function () {
     };
 
     it('displays exception group tree under first exception', function () {
-      MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
-        body: promptResponse,
-      });
-
       render(<Content {...defaultProps} />);
 
       const exceptions = screen.getAllByTestId('exception-value');
@@ -188,11 +189,6 @@ describe('Exception Content', function () {
     });
 
     it('displays exception group tree in first frame when there is no other context', function () {
-      MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
-        body: promptResponse,
-      });
-
       render(<Content {...defaultProps} />);
 
       const exceptions = screen.getAllByTestId('exception-value');
@@ -204,10 +200,6 @@ describe('Exception Content', function () {
     });
 
     it('collapses sub-groups by default', async function () {
-      MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
-        body: promptResponse,
-      });
       render(<Content {...defaultProps} />);
 
       // There are 4 values, but 1 should be hidden
@@ -232,10 +224,6 @@ describe('Exception Content', function () {
     });
 
     it('auto-opens sub-groups when clicking link in tree', async function () {
-      MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
-        body: promptResponse,
-      });
       render(<Content {...defaultProps} />);
 
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
