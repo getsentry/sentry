@@ -22,6 +22,7 @@ from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger(__name__)
+PARTNERSHIP_RESTRICTED_ERROR_MESSAGE = "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
 
 
 @control_silo_endpoint
@@ -39,9 +40,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     def put(self, request: Request, sentry_app) -> Response:
         if sentry_app.metadata.get("partnership_restricted", False):
             return Response(
-                {
-                    "detail": "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
-                },
+                {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},
                 status=403,
             )
         owner_context = organization_service.get_organization_by_id(
@@ -113,9 +112,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     def delete(self, request: Request, sentry_app) -> Response:
         if sentry_app.metadata.get("partnership_restricted", False):
             return Response(
-                {
-                    "detail": "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
-                },
+                {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},
                 status=403,
             )
         if sentry_app.is_unpublished or sentry_app.is_internal:

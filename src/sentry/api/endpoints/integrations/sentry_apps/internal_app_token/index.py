@@ -5,6 +5,9 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
+from sentry.api.endpoints.integrations.sentry_apps.details import (
+    PARTNERSHIP_RESTRICTED_ERROR_MESSAGE,
+)
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
 from sentry.models.apitoken import ApiToken
@@ -48,9 +51,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
 
         if sentry_app.metadata.get("partnership_restricted", False):
             return Response(
-                {
-                    "detail": "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
-                },
+                {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},
                 status=403,
             )
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app_id=sentry_app.id)
