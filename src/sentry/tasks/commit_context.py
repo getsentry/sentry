@@ -213,7 +213,7 @@ def process_commit_context(
             if munged:
                 frames = munged[1]
 
-            in_app_frames = [f for f in frames if f.get("in_app", False)][::-1]
+            in_app_frames = [f for f in frames if f and f.get("in_app", False)][::-1]
             # First frame in the stacktrace that is "in_app"
             frame = next(iter(in_app_frames), None)
 
