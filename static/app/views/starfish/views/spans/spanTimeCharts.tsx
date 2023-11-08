@@ -16,6 +16,7 @@ import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
+import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -282,7 +283,13 @@ const buildDiscoverQueryConditions = (
     .filter(key => SPAN_FILTER_KEYS.includes(key))
     .filter(key => Boolean(appliedFilters[key]))
     .map(key => {
-      return `${key}:${appliedFilters[key]}`;
+      const value = appliedFilters[key];
+      if (key === SPAN_DOMAIN) {
+        if (value === EMPTY_OPTION_VALUE) {
+          return [`!has:${SPAN_DOMAIN}`];
+        }
+      }
+      return `${key}:${value}`;
     });
 
   result.push(`has:${SPAN_DESCRIPTION}`);
