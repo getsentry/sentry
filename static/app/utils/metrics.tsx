@@ -280,8 +280,12 @@ export function getReadableMetricType(type) {
 
 const noUnit = 'none';
 
-export function parseMRI(mri: string) {
-  const cleanMRI = mri.match(/d:[\w/.@]+/)?.[0] ?? mri;
+export function parseMRI(mri?: string) {
+  if (!mri) {
+    return null;
+  }
+
+  const cleanMRI = mri.match(/[cdegs]:[\w/.@]+/)?.[0] ?? mri;
 
   const name = cleanMRI.match(/^[a-z]:\w+\/(.+)(?:@\w+)$/)?.[1] ?? mri;
   const unit = cleanMRI.split('@').pop() ?? noUnit;
