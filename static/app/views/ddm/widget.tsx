@@ -17,10 +17,10 @@ import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {
   defaultMetricDisplayType,
-  getUnitFromMRI,
   MetricDisplayType,
   MetricsData,
   MetricsQuery,
+  parseMRI,
   updateQuery,
   useMetricsDataZoom,
 } from 'sentry/utils/metrics';
@@ -249,7 +249,8 @@ function MetricWidgetBody({
 }
 
 function getChartSeries(data: MetricsData, {focusedSeries, groupBy, hoveredLegend}) {
-  const unit = getUnitFromMRI(Object.keys(data.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
+  // this assumes that all series have the same unit
+  const {unit} = parseMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
 
   const series = data.groups.map(g => {
     return {
@@ -289,7 +290,9 @@ function getSeriesName(
   groupBy: MetricsQuery['groupBy']
 ) {
   if (isOnlyGroup && !groupBy?.length) {
-    return Object.keys(group.series)?.[0] ?? '(none)';
+    const mri = Object.keys(group.series)?.[0] ?? '(none)';
+    const {name} = parseMRI(mri);
+    return name;
   }
 
   return Object.entries(group.by)
