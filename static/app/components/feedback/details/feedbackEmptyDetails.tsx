@@ -7,11 +7,15 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 const FeedbackEmptyDetails = styled(props => (
   <FluidHeight {...props}>
-    <EmptyMessage icon={<IconMail />} description={t('No feedback selected')} />
+    <StyledEmptyMessage icon={<IconMail />} description={t('No feedback selected')} />
   </FluidHeight>
 ))`
   display: grid;
   place-items: center;
+`;
+
+const StyledEmptyMessage = styled(EmptyMessage)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 export default FeedbackEmptyDetails;

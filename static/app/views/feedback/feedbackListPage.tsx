@@ -1,11 +1,13 @@
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
-import FeedbackSetupBanner from 'sentry/components/feedback/feedbackSetupBanner';
+import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
+import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -20,6 +22,7 @@ interface Props extends RouteComponentProps<{}, {}, {}> {}
 
 export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
+  const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
 
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
@@ -33,14 +36,22 @@ export default function FeedbackListPage({}: Props) {
           <PageFiltersContainer>
             <ErrorBoundary>
               <LayoutGrid>
-                <FeedbackSetupBanner style={{gridArea: 'banner', marginTop: '16px'}} />
                 <FeedbackFilters style={{gridArea: 'filters'}} />
-                <Container style={{gridArea: 'list'}}>
-                  <FeedbackList />
-                </Container>
-                <Container style={{gridArea: 'details'}}>
-                  <FeedbackItemLoader />
-                </Container>
+                {hasSetupOneFeedback ? (
+                  <Fragment>
+                    <Container style={{gridArea: 'list'}}>
+                      <FeedbackList />
+                    </Container>
+                    <Container style={{gridArea: 'details'}}>
+                      <FeedbackItemLoader />
+                    </Container>
+                  </Fragment>
+                ) : null}
+                {!hasSetupOneFeedback && (
+                  <SetupContainer>
+                    <FeedbackSetupPanel />
+                  </SetupContainer>
+                )}
               </LayoutGrid>
             </ErrorBoundary>
           </PageFiltersContainer>
@@ -55,14 +66,13 @@ const LayoutGrid = styled('div')`
 
   height: 100%;
   width: 100%;
-  padding: 0 ${space(4)} ${space(2)} ${space(4)};
+  padding: ${space(2)} ${space(4)} ${space(2)} ${space(4)};
   overflow: hidden;
 
   display: grid;
   grid-template-columns: minmax(390px, 1fr) 2fr;
-  grid-template-rows: max-content max-content 1fr;
+  grid-template-rows: max-content 1fr;
   grid-template-areas:
-    'banner banner'
     'filters details'
     'list details';
   gap: ${space(2)};
@@ -72,4 +82,8 @@ const LayoutGrid = styled('div')`
 const Container = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+`;
+
+const SetupContainer = styled('div')`
+  grid-column: 1 / 3;
 `;
