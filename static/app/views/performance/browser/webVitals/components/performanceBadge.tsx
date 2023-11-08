@@ -29,5 +29,5 @@ const Badge = styled('div')<{status: string}>`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: 0 ${space(1)};
   display: inline-block;
-  height: 18px;
+  height: 17px;
 `;
