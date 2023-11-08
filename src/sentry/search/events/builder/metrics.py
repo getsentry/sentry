@@ -805,8 +805,8 @@ class MetricsQueryBuilder(QueryBuilder):
         """
         Extracts the use case from the `MetricsQuery` which has to be executed in the metrics layer.
 
-        This function might be moved entirely to the `MetricsQuery` object but this is something that can be done
-        at a later point.
+        This function could be moved entirely in the `MetricsQuery` object but the metrics layer wasn't designed to
+        infer the use case id but rather it expects to have it specified from the outside.
         """
         use_case_ids = set()
 
@@ -824,7 +824,14 @@ class MetricsQueryBuilder(QueryBuilder):
                 "You can only query metrics belonging to the same use case id."
             )
 
-        return use_case_ids.pop()
+        use_case_id = use_case_ids.pop()
+        # TODO: remove this hack, since it's just there to avoid touching spans tests which are right now using the
+        #  transactions use case id. From what I have been able to see, the spans have not been properly implemented
+        #  in the metrics layer, thus right now we case to TRANSACTIONS but this HAS to change.
+        if use_case_id == UseCaseID.SPANS:
+            use_case_id = UseCaseID.TRANSACTIONS
+
+        return use_case_id
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         groupby_aliases = [
