@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -6,7 +6,7 @@ import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Repository} from 'sentry/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,9 +16,10 @@ import OrganizationRepositories from './organizationRepositories';
 function OrganizationRepositoriesContainer() {
   const organization = useOrganization();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const {
-    data: itemData,
+    data: itemList,
     isLoading,
     isError,
     getResponseHeader,
@@ -27,11 +28,6 @@ function OrganizationRepositoriesContainer() {
     {staleTime: 0}
   );
   const itemListPageLinks = getResponseHeader?.('Link');
-  const [itemList, setItemList] = useState<Repository[] | null>(null);
-
-  useEffect(() => {
-    setItemList(null);
-  }, [location.query]);
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -41,19 +37,16 @@ function OrganizationRepositoriesContainer() {
     return <LoadingError />;
   }
 
-  if (itemData && !itemList) {
-    setItemList(itemData);
-  }
-
   // Callback used by child component to signal state change
   function onRepositoryChange(data: Pick<Repository, 'id' | 'status'>) {
-    if (itemList) {
-      setItemList(
-        itemList.map(item =>
+    setApiQueryData<Repository[]>(
+      queryClient,
+      [`/organizations/${organization.slug}/repos/`, {query: location.query}],
+      oldItemList =>
+        oldItemList.map(item =>
           item.id === data.id ? {...item, status: data.status} : item
         )
-      );
-    }
+    );
   }
 
   return (
