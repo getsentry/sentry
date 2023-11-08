@@ -154,26 +154,6 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
   });
 
-  it('renders frontend pageload view', function () {
-    const data = initializeData({
-      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
-    });
-
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-
-    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
-    expect(screen.getByTestId('performance-table')).toBeInTheDocument();
-
-    const titles = screen.getAllByTestId('performance-widget-title');
-    expect(titles).toHaveLength(5);
-
-    expect(titles[0]).toHaveTextContent('Worst LCP Web Vitals');
-    expect(titles[1]).toHaveTextContent('Worst FCP Web Vitals');
-    expect(titles[2]).toHaveTextContent('p75 LCP');
-    expect(titles[3]).toHaveTextContent('LCP Distribution');
-    expect(titles[4]).toHaveTextContent('FCP Distribution');
-  });
-
   it('renders frontend other view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
@@ -264,11 +244,11 @@ describe('Performance > Landing > Index', function () {
 
   it('Can switch between landing displays', async function () {
     const data = initializeData({
-      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD, abc: '123'},
+      query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER, abc: '123'},
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
+    expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
     expect(browserHistory.push).toHaveBeenNthCalledWith(
@@ -282,12 +262,12 @@ describe('Performance > Landing > Index', function () {
 
   it('Updating projects switches performance view', function () {
     const data = initializeData({
-      query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
+      query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
-    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
+    expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
 
     const updatedData = initializeData({
       projects: [TestStubs.Project({id: 123, platform: 'unknown'})],
@@ -306,7 +286,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
+    expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
   });
 
   describe('With transaction search feature', function () {

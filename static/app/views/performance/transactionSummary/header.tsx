@@ -90,7 +90,7 @@ function TransactionHeader({
           // frontend projects should always show the web vitals tab
           if (
             getCurrentLandingDisplay(location, projects, eventView).field ===
-            LandingDisplayField.FRONTEND_PAGELOAD
+            LandingDisplayField.FRONTEND_OTHER
           ) {
             return true;
           }

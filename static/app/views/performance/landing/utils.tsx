@@ -36,14 +36,12 @@ export enum LandingDisplayField {
   MOBILE = 'mobile',
 }
 
+// TODO Abdullah Khan: Remove code for Web Vitals tab in performance landing
+// page when new starfish web vitals module is mature.
 export const LANDING_DISPLAYS = [
   {
     label: t('All Transactions'),
     field: LandingDisplayField.ALL,
-  },
-  {
-    label: t('Web Vitals'),
-    field: LandingDisplayField.FRONTEND_PAGELOAD,
   },
   {
     label: t('Frontend'),
@@ -169,7 +167,7 @@ export function getDefaultDisplayFieldForPlatform(
 
   const performanceTypeToDisplay = {
     [ProjectPerformanceType.ANY]: LandingDisplayField.ALL,
-    [ProjectPerformanceType.FRONTEND]: LandingDisplayField.FRONTEND_PAGELOAD,
+    [ProjectPerformanceType.FRONTEND]: LandingDisplayField.FRONTEND_OTHER,
     [ProjectPerformanceType.BACKEND]: LandingDisplayField.BACKEND,
     [ProjectPerformanceType.MOBILE]: LandingDisplayField.MOBILE,
   };

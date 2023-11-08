@@ -48,7 +48,7 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
     <PerformanceDisplayProvider
       value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
     >
-      <div>
+      <div data-test-id="frontend-other-view">
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow
           {...props}
