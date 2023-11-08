@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {RateUnits} from 'sentry/utils/discover/fields';
 
 export type DataKey =
   | 'change'
@@ -56,12 +57,20 @@ export const getDurationChartTitle = (spanOp?: string) => {
   return '--';
 };
 
-export const getThroughputChartTitle = (spanOp?: string) => {
+export const getThroughputChartTitle = (spanOp?: string, throughputUnit?: RateUnits) => {
+  let unitLabel = 'Per Minute';
+  if (throughputUnit === RateUnits.PER_SECOND) {
+    unitLabel = 'Per Second';
+  }
+  if (throughputUnit === RateUnits.PER_HOUR) {
+    unitLabel = 'Per Hour';
+  }
+
   if (spanOp?.startsWith('db')) {
-    return t('Queries Per Minute');
+    return `${t('Queries')} ${unitLabel}`;
   }
   if (spanOp) {
-    return t('Requests Per Minute');
+    return `${t('Requests')} ${unitLabel}`;
   }
   return '--';
 };

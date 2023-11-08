@@ -69,7 +69,7 @@ export function SpanTimeCharts({
     {Comp: (props: ChartProps) => JSX.Element; title: string}[]
   > = {
     [ModuleName.ALL]: [
-      {title: getThroughputChartTitle(moduleName), Comp: ThroughputChart},
+      {title: getThroughputChartTitle(moduleName, throughputUnit), Comp: ThroughputChart},
       {title: getDurationChartTitle(moduleName), Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
