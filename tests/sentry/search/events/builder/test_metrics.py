@@ -2907,7 +2907,7 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             self.params,
             granularity=3600,
             dataset=Dataset.PerformanceMetrics,
-            selected_columns=[f"sum({mri})"],
+            selected_columns=[f"count({mri})"],
             config=QueryBuilderConfig(
                 use_metrics_layer=True,
             ),
@@ -2915,13 +2915,11 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
 
         result = query.run_query("test_query")
 
-        assert result["data"] == [
-            {"sum_d_custom_sentry_process_profile_track_outcome_second": 60.0}
-        ]
+        assert result["data"] == [{"count_d_custom_sentry_process_profile_track_outcome_second": 3}]
         meta = result["meta"]
 
         assert len(meta) == 1
-        assert meta[0]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"
+        assert meta[0]["name"] == "count_d_custom_sentry_process_profile_track_outcome_second"
 
     def test_distribution_timeseries_metrics_query(self):
         mri = "d:custom/sentry.process_profile.track_outcome@second"

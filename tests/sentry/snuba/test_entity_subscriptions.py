@@ -655,6 +655,12 @@ class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
                 "count_unique(user)",
             ),
             (
+                PerformanceMetricsEntitySubscription,
+                SnubaQuery.Type.PERFORMANCE,
+                Dataset.PerformanceMetrics,
+                "max(d:custom/sentry.process_profile.track_outcome@second)",
+            ),
+            (
                 MetricsCountersEntitySubscription,
                 SnubaQuery.Type.CRASH_RATE,
                 Dataset.Metrics,
@@ -685,13 +691,15 @@ class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
 class GetEntityKeyFromSnubaQueryTest(TestCase):
     def test(self):
         cases = [
-            (EntityKey.Events, SnubaQuery.Type.ERROR, Dataset.Events, "count()", ""),
+            (EntityKey.Events, SnubaQuery.Type.ERROR, Dataset.Events, "count()", "", True, True),
             (
                 EntityKey.Transactions,
                 SnubaQuery.Type.PERFORMANCE,
                 Dataset.Transactions,
                 "count()",
                 "",
+                True,
+                True,
             ),
             (
                 EntityKey.GenericMetricsDistributions,
@@ -699,6 +707,8 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 Dataset.Metrics,
                 "count()",
                 "",
+                True,
+                True,
             ),
             (
                 EntityKey.GenericMetricsSets,
@@ -706,6 +716,8 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 Dataset.Metrics,
                 "count_unique(user)",
                 "",
+                True,
+                True,
             ),
             (
                 EntityKey.GenericMetricsDistributions,
@@ -713,6 +725,8 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 Dataset.PerformanceMetrics,
                 "count()",
                 "",
+                True,
+                True,
             ),
             (
                 EntityKey.GenericMetricsSets,
@@ -720,6 +734,48 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 Dataset.PerformanceMetrics,
                 "count_unique(user)",
                 "",
+                True,
+                True,
+            ),
+            (
+                EntityKey.GenericMetricsCounters,
+                SnubaQuery.Type.PERFORMANCE,
+                Dataset.PerformanceMetrics,
+                "sum(c:custom/sentry.process_profile.track_outcome@second)",
+                "",
+                # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
+                False,
+                True,
+            ),
+            (
+                EntityKey.GenericMetricsDistributions,
+                SnubaQuery.Type.PERFORMANCE,
+                Dataset.PerformanceMetrics,
+                "max(d:custom/sentry.process_profile.track_outcome@second)",
+                "",
+                # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
+                False,
+                True,
+            ),
+            (
+                EntityKey.GenericMetricsSets,
+                SnubaQuery.Type.PERFORMANCE,
+                Dataset.PerformanceMetrics,
+                "count_unique(s:custom/sentry.process_profile.track_outcome@second)",
+                "",
+                # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
+                False,
+                True,
+            ),
+            (
+                EntityKey.GenericMetricsGauges,
+                SnubaQuery.Type.PERFORMANCE,
+                Dataset.PerformanceMetrics,
+                "last(g:custom/sentry.process_profile.track_outcome@second)",
+                "",
+                # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
+                False,
+                True,
             ),
             (
                 EntityKey.MetricsCounters,
@@ -727,6 +783,8 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 Dataset.Metrics,
                 "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
                 "",
+                True,
+                True,
             ),
             (
                 EntityKey.MetricsSets,
@@ -734,10 +792,20 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 Dataset.Metrics,
                 "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
                 "",
+                True,
+                True,
             ),
         ]
 
-        for expected_entity_key, query_type, dataset, aggregate, query in cases:
+        for (
+            expected_entity_key,
+            query_type,
+            dataset,
+            aggregate,
+            query,
+            supported_with_no_metrics_layer,
+            supported_with_metrics_layer,
+        ) in cases:
             snuba_query = SnubaQuery.objects.create(
                 time_window=60,
                 type=query_type.value,
@@ -746,6 +814,14 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 query=query,
                 resolution=5,
             )
-            assert expected_entity_key == get_entity_key_from_snuba_query(
-                snuba_query, self.organization.id, self.project.id
-            )
+
+            if supported_with_no_metrics_layer:
+                assert expected_entity_key == get_entity_key_from_snuba_query(
+                    snuba_query, self.organization.id, self.project.id
+                )
+
+            if supported_with_metrics_layer:
+                with Feature("organizations:use-metrics-layer"):
+                    assert expected_entity_key == get_entity_key_from_snuba_query(
+                        snuba_query, self.organization.id, self.project.id
+                    )
