@@ -69,11 +69,12 @@ export const supportedPlatformExpectedDocKeys: Record<
     '2-configure-performance',
     '3-configure-profiling',
   ],
-  flutter: [
-    // @todo
-  ],
+  flutter: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
   'dart-flutter': [
-    // @todo
+    '0-alert',
+    '1-install',
+    '2-configure-performance',
+    '3-configure-profiling',
   ],
 };
 
