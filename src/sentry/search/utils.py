@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
 
 from sentry.models.environment import Environment
-from sentry.models.eventuser import KEYWORD_MAP, EventUser
+from sentry.models.eventuser import KEYWORD_MAP
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -38,6 +38,7 @@ from sentry.models.user import User
 from sentry.search.base import ANY
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+from sentry.utils.eventuser import EventUser
 
 
 class InvalidQuery(Exception):
@@ -47,14 +48,12 @@ class InvalidQuery(Exception):
 def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
     # TODO(dcramer): do something with case of multiple matches
     try:
-        lookup = EventUser.attr_from_keyword(key)
-        euser = EventUser.objects.filter(
-            project_id__in=[p.id for p in projects], **{lookup: value}
-        )[0]
+        euser = EventUser.for_projects(projects, {key: value})[0]
     except (KeyError, IndexError):
         return f"{key}:{value}"
     except DataError:
         raise InvalidQuery(f"malformed '{key}:' query '{value}'.")
+
     return euser.tag_value
 
 
