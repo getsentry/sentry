@@ -1,7 +1,6 @@
-import {memo, useCallback, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {CellMeasurerCache} from 'react-virtualized';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
 
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {space} from 'sentry/styles/space';
@@ -15,7 +14,7 @@ import Level from './level';
 import Time from './time';
 import Type from './type';
 
-type Props = {
+export interface BreadcrumbProps {
   breadcrumb: Crumb;
   cache: CellMeasurerCache;
   displayRelativeTime: boolean;
@@ -25,14 +24,13 @@ type Props = {
   onResize: () => void;
   organization: Organization;
   relativeTime: string;
-  scrollbarSize: number;
   searchTerm: string;
   style: React.CSSProperties;
   meta?: Record<any, any>;
   transactionEvents?: BreadcrumbTransactionEvent[];
-};
+}
 
-export const Breadcrumb = memo(function Breadcrumb({
+export function Breadcrumb({
   index,
   organization,
   event,
@@ -41,37 +39,19 @@ export const Breadcrumb = memo(function Breadcrumb({
   displayRelativeTime,
   searchTerm,
   onResize,
-  scrollbarSize,
   meta,
   isLastItem,
   cache,
   transactionEvents,
-}: Props) {
-  const sizingRef = useRef<HTMLDivElement | null>(null);
+}: BreadcrumbProps) {
   const {type, description, color, level, category, timestamp} = breadcrumb;
   const error = breadcrumb.type === BreadcrumbType.ERROR;
-
-  const resizeObserverOnResize = useCallback(() => {
-    const height = sizingRef.current?.offsetHeight ?? 0;
-
-    // Values in cache are sometimes slightly off
-    // This fuzzy check prevents overly aggressive height recalcs
-    if (Math.abs(cache.getHeight(index, 0) - height) > 1) {
-      onResize();
-    }
-  }, [cache, index, onResize]);
-
-  useResizeObserver({
-    ref: sizingRef,
-    onResize: resizeObserverOnResize,
-  });
 
   return (
     <Wrapper
       ref={sizingRef}
       error={error}
       data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
-      scrollbarSize={scrollbarSize}
       isLastItem={isLastItem}
     >
       <Type type={type} color={color} description={description} error={error} />
@@ -95,15 +75,14 @@ export const Breadcrumb = memo(function Breadcrumb({
       />
     </Wrapper>
   );
-});
+}
 
 const Wrapper = styled('div')<{
   error: boolean;
   isLastItem: boolean;
-  scrollbarSize: number;
 }>`
   display: grid;
-  grid-template-columns: 64px 140px 1fr 106px 100px ${p => p.scrollbarSize}px;
+  grid-template-columns: 64px 140px 1fr 106px 100px;
 
   > * {
     padding: ${space(1)} ${space(2)};
@@ -111,7 +90,7 @@ const Wrapper = styled('div')<{
 
   @media (max-width: ${props => props.theme.breakpoints.small}) {
     grid-template-rows: repeat(2, auto);
-    grid-template-columns: max-content 1fr 74px 82px ${p => p.scrollbarSize}px;
+    grid-template-columns: max-content 1fr 74px 82px;
 
     > * {
       padding: ${space(1)};

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -6,14 +6,13 @@ import {
   List,
   ListRowProps,
 } from 'react-virtualized';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
   BreadcrumbTransactionEvent,
   BreadcrumbWithMeta,
 } from 'sentry/components/events/interfaces/breadcrumbs/types';
-import PanelTable from 'sentry/components/panels/panelTable';
+import PanelTable, {PanelTableProps} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -30,22 +29,25 @@ import {Breadcrumb} from './breadcrumb';
 const PANEL_MIN_HEIGHT = 200;
 const PANEL_INITIAL_HEIGHT = 400;
 
+const noop = () => void 0;
+
 const cache = new CellMeasurerCache({
   fixedWidth: true,
   defaultHeight: 38,
 });
 
-type Props = Pick<
-  React.ComponentProps<typeof Breadcrumb>,
-  'event' | 'organization' | 'searchTerm' | 'relativeTime' | 'displayRelativeTime'
-> & {
+interface Props
+  extends Pick<
+    React.ComponentProps<typeof Breadcrumb>,
+    'event' | 'organization' | 'searchTerm' | 'relativeTime' | 'displayRelativeTime'
+  > {
   breadcrumbs: BreadcrumbWithMeta[];
   emptyMessage: Pick<
     React.ComponentProps<typeof PanelTable>,
     'emptyMessage' | 'emptyAction'
   >;
   onSwitchTimeFormat: () => void;
-};
+}
 
 function Breadcrumbs({
   breadcrumbs,
@@ -57,7 +59,6 @@ function Breadcrumbs({
   relativeTime,
   emptyMessage,
 }: Props) {
-  const [scrollbarSize, setScrollbarSize] = useState(0);
   const {projects, fetching: loadingProjects} = useProjects();
 
   const maybeProject = !loadingProjects
@@ -67,18 +68,24 @@ function Breadcrumbs({
     : null;
 
   const listRef = useRef<List>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
 
-  const sentryTransaction = breadcrumbs.filter(
-    crumb =>
-      crumb.breadcrumb.category === 'sentry.transaction' &&
-      defined(crumb.breadcrumb.message) &&
-      isEventId(crumb.breadcrumb.message)
-  );
+  const sentryTransactionIds = useMemo(() => {
+    const crumbs: string[] = [];
 
-  const sentryTransactionIds = sentryTransaction
-    .map(crumb => crumb.breadcrumb.message)
-    .filter(defined);
+    for (const crumb of breadcrumbs) {
+      if (
+        crumb.breadcrumb.category !== 'sentry.transaction' ||
+        !defined(crumb.breadcrumb.message) ||
+        !isEventId(crumb.breadcrumb.message)
+      ) {
+        continue;
+      }
+
+      crumbs.push(crumb.breadcrumb.message);
+    }
+
+    return crumbs;
+  }, [breadcrumbs]);
 
   const {data: transactionEvents} = useApiQuery<{
     data: BreadcrumbTransactionEvent[];
@@ -107,10 +114,6 @@ function Breadcrumbs({
     }
   }, []);
 
-  useEffect(() => {
-    updateGrid();
-  }, [breadcrumbs, updateGrid]);
-
   const {
     size: containerSize,
     isHeld,
@@ -118,7 +121,7 @@ function Breadcrumbs({
     onDoubleClick,
   } = useResizableDrawer({
     direction: 'down',
-    onResize: () => void 0,
+    onResize: noop,
     initialSize: PANEL_INITIAL_HEIGHT,
     min: PANEL_MIN_HEIGHT,
   });
@@ -129,9 +132,9 @@ function Breadcrumbs({
 
     return (
       <CellMeasurer
+        key={key}
         cache={cache}
         columnIndex={0}
-        key={key}
         parent={parent}
         rowIndex={index}
       >
@@ -150,11 +153,6 @@ function Breadcrumbs({
               event={event}
               relativeTime={relativeTime}
               displayRelativeTime={displayRelativeTime}
-              scrollbarSize={
-                (contentRef?.current?.offsetHeight ?? 0) < containerSize
-                  ? scrollbarSize
-                  : 0
-              }
               transactionEvents={transactionEvents?.data}
             />
           </BreadcrumbRow>
@@ -163,69 +161,79 @@ function Breadcrumbs({
     );
   }
 
-  return (
-    <Wrapper>
-      <StyledPanelTable
-        scrollbarSize={scrollbarSize}
-        headers={[
-          t('Type'),
-          t('Category'),
-          t('Description'),
-          t('Level'),
-          <Time key="time" onClick={onSwitchTimeFormat}>
-            <Tooltip
-              containerDisplayMode="inline-flex"
-              title={
-                displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
-              }
-            >
-              <StyledIconSort size="xs" rotated />
-            </Tooltip>
+  const panelHeaders: PanelTableProps['headers'] = useMemo(() => {
+    return [
+      t('Type'),
+      t('Category'),
+      t('Description'),
+      t('Level'),
+      <Time key="time" onClick={onSwitchTimeFormat}>
+        <Tooltip
+          containerDisplayMode="inline-flex"
+          title={displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')}
+        >
+          <StyledIconSort size="xs" rotated />
+        </Tooltip>
 
-            {t('Time')}
-          </Time>,
-          // Space for the scrollbar
-          '',
-        ]}
+        {t('Time')}
+      </Time>,
+    ];
+  }, [displayRelativeTime, onSwitchTimeFormat]);
+
+  const panelTableRef = useRef<HTMLDivElement | null>(null);
+  const onScrollBarChange = useCallback((args: {size: number}) => {
+    if (!panelTableRef.current) {
+      return;
+    }
+
+    panelTableRef.current.style.setProperty('--scrollbar-size', `${args.size}px`);
+  }, []);
+
+  // Force update the grid whenever updateGrid, breadcrumbs or transactionEvents changes.
+  // This will recompute cell sizes so which might change as a consequence of having more
+  // data, which affects how cells are rendered (e.g. links might become internal transaction links).
+  useEffect(() => {
+    updateGrid();
+  }, [breadcrumbs, updateGrid, transactionEvents?.data]);
+
+  return (
+    <Fragment>
+      <StyledPanelTable
+        ref={panelTableRef}
+        headers={panelHeaders}
         isEmpty={!breadcrumbs.length}
         {...emptyMessage}
       >
-        <Content ref={contentRef}>
-          <AutoSizer disableHeight onResize={updateGrid}>
-            {({width}) => (
-              <StyledList
-                ref={listRef}
-                deferredMeasurementCache={cache}
-                height={containerSize}
-                overscanRowCount={5}
-                rowCount={breadcrumbs.length}
-                rowHeight={cache.rowHeight}
-                rowRenderer={renderRow}
-                width={width}
-                onScrollbarPresenceChange={({size}) => setScrollbarSize(size)}
-              />
-            )}
-          </AutoSizer>
-        </Content>
+        <AutoSizer disableHeight onResize={updateGrid}>
+          {({width}) => (
+            <StyledList
+              ref={listRef}
+              deferredMeasurementCache={cache}
+              height={containerSize}
+              overscanRowCount={5}
+              rowCount={breadcrumbs.length}
+              rowHeight={cache.rowHeight}
+              rowRenderer={renderRow}
+              width={width}
+              onScrollbarPresenceChange={onScrollBarChange}
+            />
+          )}
+        </AutoSizer>
       </StyledPanelTable>
       <PanelDragHandle
         onMouseDown={onMouseDown}
         onDoubleClick={onDoubleClick}
         className={isHeld ? 'is-held' : undefined}
       />
-    </Wrapper>
+    </Fragment>
   );
 }
 
 export default Breadcrumbs;
 
-const Wrapper = styled('div')`
-  position: relative;
-`;
-
-const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
+const StyledPanelTable = styled(PanelTable)`
   display: grid;
-  grid-template-columns: 64px 140px 1fr 106px 100px ${p => `${p.scrollbarSize}px`};
+  grid-template-columns: 64px 140px 1fr 106px 100px;
 
   > * {
     :nth-child(-n + 6) {
@@ -257,7 +265,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
   }
 
   @media (max-width: ${props => props.theme.breakpoints.small}) {
-    grid-template-columns: 48px 1fr 74px 82px ${p => `${p.scrollbarSize}px`};
+    grid-template-columns: 48px 1fr 74px 82px;
     > * {
       :nth-child(-n + 6) {
         /* Type, Category & Level */
@@ -288,10 +296,6 @@ const StyledIconSort = styled(IconSort)`
   :hover {
     color: ${p => p.theme.gray300};
   }
-`;
-
-const Content = styled('div')`
-  overflow: hidden;
 `;
 
 const PanelDragHandle = styled('div')`
@@ -333,17 +337,13 @@ const BreadcrumbRow = styled('div')<{error: boolean}>`
     border-bottom: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
   }
 
-  ${p =>
-    p.error &&
-    css`
-      :after {
-        content: '';
-        position: absolute;
-        top: -1px;
-        left: 0;
-        height: 1px;
-        width: 100%;
-        background: ${p.theme.red300};
-      }
-    `}
+  :after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    height: 1px;
+    width: 100%;
+    background-color: ${p => (p.error ? p.theme.red300 : 'transparent')};
+  }
 `;
