@@ -220,7 +220,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert data[1][1][0]["count"] == 4.0
 
     def test_resource_decoded_length(self):
-        self.features["organizations:use-metrics-layer"] = True
         self.store_span_metric(
             4,
             metric="http.decoded_response_content_length",
