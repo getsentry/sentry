@@ -42,7 +42,7 @@ describe('Utils', function () {
       const projects = [TestStubs.Project()];
       const data = initializeData(projects, {landingDisplay: 'frontend_pageload'});
       expect(getCurrentLandingDisplay(data.router.location, projects).label).toEqual(
-        'Web Vitals'
+        'All Transactions'
       );
     });
     it('returns frontend display if project matches', function () {
@@ -50,7 +50,7 @@ describe('Utils', function () {
       const data = initializeData(projects, {project: 22});
       expect(
         getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
-      ).toEqual('Web Vitals');
+      ).toEqual('Frontend');
     });
     it('returns backend display if project matches', function () {
       const projects = [TestStubs.Project({id: '22', platform: 'php'})];
