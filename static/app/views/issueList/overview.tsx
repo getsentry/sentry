@@ -27,6 +27,7 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {space} from 'sentry/styles/space';
 import {
@@ -124,7 +125,7 @@ type State = {
   query?: string;
 };
 
-type EndpointParams = Partial<PageFilters['datetime']> & {
+interface EndpointParams extends Partial<PageFilters['datetime']> {
   environment: string[];
   project: number[];
   cursor?: string;
@@ -133,7 +134,7 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
-};
+}
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
   query: string[];
@@ -185,7 +186,10 @@ class IssueListOverview extends Component<Props, State> {
       !this.props.savedSearchLoading ||
       this.props.organization.features.includes('issue-stream-performance')
     ) {
-      this.fetchData();
+      const loadedFromCache = this.loadFromCache();
+      if (!loadedFromCache) {
+        this.fetchData();
+      }
     }
     this.fetchTags();
     this.fetchMemberList();
@@ -206,6 +210,7 @@ class IssueListOverview extends Component<Props, State> {
     // If the project selection has changed reload the member list and tag keys
     // allowing autocomplete and tag sidebar to be more accurate.
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+      this.loadFromCache();
       this.fetchMemberList();
       this.fetchTags();
     }
@@ -227,7 +232,10 @@ class IssueListOverview extends Component<Props, State> {
       prevProps.savedSearchLoading &&
       !this.props.organization.features.includes('issue-stream-performance')
     ) {
-      this.fetchData();
+      const loadedFromCache = this.loadFromCache();
+      if (!loadedFromCache) {
+        this.fetchData();
+      }
       return;
     }
 
@@ -271,6 +279,20 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   componentWillUnmount() {
+    const groups = GroupStore.getState() as Group[];
+    if (
+      groups.length > 0 &&
+      !this.state.issuesLoading &&
+      !this.state.realtimeActive &&
+      this.props.organization.features.includes('issue-stream-performance-cache')
+    ) {
+      IssueListCacheStore.save(this.getCacheEndpointParams(), {
+        groups,
+        queryCount: this.state.queryCount,
+        queryMaxCount: this.state.queryMaxCount,
+        pageLinks: this.state.pageLinks,
+      });
+    }
     this._poller.disable();
     SelectedGroupStore.reset();
     GroupStore.reset();
@@ -312,6 +334,39 @@ class IssueListOverview extends Component<Props, State> {
       return location.query.sort as string;
     }
     return DEFAULT_ISSUE_STREAM_SORT;
+  }
+
+  /**
+   * Load the previous
+   * @returns Returns true if the data was loaded from cache
+   */
+  loadFromCache(): boolean {
+    if (!this.props.organization.features.includes('issue-stream-performance-cache')) {
+      return false;
+    }
+
+    const cache = IssueListCacheStore.getFromCache(this.getCacheEndpointParams());
+    if (!cache) {
+      return false;
+    }
+
+    this.setState(
+      {
+        issuesLoading: false,
+        queryCount: cache.queryCount,
+        queryMaxCount: cache.queryMaxCount,
+        pageLinks: cache.pageLinks,
+      },
+      () => {
+        // Handle this in the next tick to avoid being overwritten by GroupStore.reset
+        // Group details clears the GroupStore at the same time this component mounts
+        GroupStore.add(cache.groups);
+        // Clear cache after loading
+        IssueListCacheStore.reset();
+      }
+    );
+
+    return true;
   }
 
   getQuery(): string {
@@ -374,6 +429,14 @@ class IssueListOverview extends Component<Props, State> {
 
     // only include defined values.
     return pickBy(params, v => defined(v)) as EndpointParams;
+  };
+
+  getCacheEndpointParams = (): EndpointParams => {
+    const cursor = this.props.location.query.cursor;
+    return {
+      ...this.getEndpointParams(),
+      cursor,
+    };
   };
 
   getSelectedProjectIds = (): string[] => {

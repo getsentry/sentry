@@ -17,7 +17,11 @@ from sentry.integrations.slack.message_builder.issues import (
     get_option_groups,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import (
+    FeedbackGroup,
+    PerformanceNPlusOneGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -631,6 +635,53 @@ class ActionsTest(TestCase):
                 "value": "unresolved:ongoing",
             },
         )
+
+    def test_ignore_unresolved_no_escalating(self):
+        group = self.create_group(project=self.project)
+        group.status = GroupStatus.UNRESOLVED
+        group.save()
+
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
+
+        self._assert_message_actions_list(
+            res[0],
+            {
+                "label": "Ignore",
+                "name": "status",
+                "type": "button",
+                "value": "ignored:forever",
+            },
+        )
+
+    def test_ignore_unresolved_has_escalating(self):
+        group = self.create_group(project=self.project)
+        group.status = GroupStatus.UNRESOLVED
+        group.save()
+
+        with self.feature({"organizations:escalating-issues": True}):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+
+        self._assert_message_actions_list(
+            res[0],
+            {
+                "label": "Archive",
+                "name": "status",
+                "type": "button",
+                "value": "ignored:until_escalating",
+            },
+        )
+
+    def test_no_ignore_if_feedback(self):
+        group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
+        # no ignore action if feedback issue, so only assign and resolve
+        assert len(res[0]) == 2
 
     def test_resolve_resolved(self):
         group = self.create_group(project=self.project)

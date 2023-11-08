@@ -143,7 +143,7 @@ const ZoomIndicatorContainer = styled('div')`
 `;
 
 const ZoomIndicator = styled('div')`
-  border-right: ${space(0.25)} solid ${p => p.theme.black};
+  border-right: ${space(0.25)} solid ${p => p.theme.gray500};
   height: ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
 `;
@@ -153,7 +153,7 @@ const ZoomTriangleDown = styled('div')`
   height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-top: 4px solid black;
+  border-top: 4px solid ${p => p.theme.gray500};
 `;
 
 const ZoomTriangleUp = styled('div')`
@@ -161,7 +161,7 @@ const ZoomTriangleUp = styled('div')`
   height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-bottom: 4px solid black;
+  border-bottom: 4px solid ${p => p.theme.gray500};
 `;
 
 export const TimelineScrubber = styled(Scrubber)`

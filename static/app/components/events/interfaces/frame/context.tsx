@@ -139,12 +139,7 @@ function Context({
   }
 
   const startLineNo = hasContextSource ? frame.context[0][0] : 0;
-  const hasStacktraceLink =
-    frame.inApp &&
-    !!frame.filename &&
-    isExpanded &&
-    organization?.features.includes('integrations-stacktrace-link');
-
+  const hasStacktraceLink = frame.inApp && !!frame.filename && isExpanded;
   return (
     <Wrapper
       start={startLineNo}
