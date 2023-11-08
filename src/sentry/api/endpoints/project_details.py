@@ -31,7 +31,7 @@ from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
-from sentry.datascrubbing import validate_pii_config_update
+from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.dynamic_sampling import generate_rules, get_supported_biases_ids, get_user_biases
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -422,6 +422,9 @@ class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
         if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
             raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
+
+    def validate_safeFields(self, value):
+        return validate_pii_selectors(value)
 
     def validate_recapServerUrl(self, value):
         from sentry import features
