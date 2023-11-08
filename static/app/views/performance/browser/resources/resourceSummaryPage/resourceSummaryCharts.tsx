@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -9,14 +10,30 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {DataTitles, getDurationChartTitle} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
-const {SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
+const {
+  SPAN_SELF_TIME,
+  HTTP_RESPONSE_CONTENT_LENGTH,
+  HTTP_DECODED_RESPONSE_CONTENT_LENGTH,
+  HTTP_RESPONSE_TRANSFER_SIZE,
+} = SpanMetricsField;
 
 function ResourceSummaryCharts(props: {groupId: string}) {
   const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries(props.groupId, {}, [
       `avg(${SPAN_SELF_TIME})`,
       `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+      `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
+      `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
     ]);
+
+  if (spanMetricsSeriesData) {
+    spanMetricsSeriesData[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`].lineStyle = {
+      type: 'dashed',
+    };
+    spanMetricsSeriesData[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`].lineStyle = {
+      type: 'dashed',
+    };
+  }
 
   return (
     <BlockContainer>
@@ -34,10 +51,14 @@ function ResourceSummaryCharts(props: {groupId: string}) {
         </ChartPanel>
       </Block>
       <Block>
-        <ChartPanel title={DataTitles['avg(http.response_content_length)']}>
+        <ChartPanel title={t('Average Resource Size')}>
           <Chart
             height={160}
-            data={[spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]]}
+            data={[
+              spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
+              spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
+              spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
+            ]}
             loading={areSpanMetricsSeriesLoading}
             utc={false}
             chartColors={[AVG_COLOR]}
@@ -49,6 +70,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
                   value: formatBytesBase2(bytes),
                   fixed: 'xx KiB',
                 }),
+              nameFormatter: name => DataTitles[name],
             }}
           />
         </ChartPanel>

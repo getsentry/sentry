@@ -7,11 +7,11 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {TabList, Tabs} from 'sentry/components/tabs';
@@ -172,7 +172,6 @@ export default function PageOverview() {
             <Layout.Title>
               {transaction && project && <ProjectAvatar project={project} size={24} />}
               {transaction ?? t('Page Loads')}
-              <FeatureBadge type="alpha" />
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
@@ -212,6 +211,7 @@ export default function PageOverview() {
                 )}
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
               </TopMenuContainer>

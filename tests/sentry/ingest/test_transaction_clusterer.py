@@ -63,6 +63,17 @@ def test_single_leaf():
     assert clusterer.get_rules() == ["/a/*/**"]
 
 
+def test_deep_tree():
+    clusterer = TreeClusterer(merge_threshold=1)
+    transaction_names = [
+        1001 * "/.",
+    ]
+    clusterer.add_input(transaction_names)
+
+    # Does not throw an exception:
+    clusterer.get_rules()
+
+
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
 def test_collection():
     org = Organization(pk=666)

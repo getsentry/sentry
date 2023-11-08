@@ -62,6 +62,7 @@ register_permanent_features(default_manager)
 # Features that don't use resource scoping
 default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.REMOTE)
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -88,9 +89,6 @@ default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, Featu
 default_manager.add("organizations:higher-ownership-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-discord", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:integrations-discord-metric-alerts", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:integrations-discord-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-opsgenie-migration", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-open-pr-comment", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:investigation-bias", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -106,6 +104,7 @@ default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFe
 default_manager.add("organizations:issue-search-use-cdc-secondary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-search-group-attributes-side-query", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:issue-stream-performance-cache", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)

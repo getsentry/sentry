@@ -772,6 +772,10 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
 
+  const isRegressionIssue =
+    props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+    props.group?.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
+
   useEffect(() => {
     if (props.group && projectsLoaded && !project) {
       Sentry.withScope(scope => {
@@ -793,10 +797,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
       );
       setInjectedEvent(event);
     };
-    if (
-      props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
-      !defined(props.event)
-    ) {
+    if (isRegressionIssue && !defined(props.event)) {
       fetchLatestEvent();
     }
   }, [
@@ -805,7 +806,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     props.event,
     props.group,
     props.group?.id,
-    props.group?.issueType,
+    isRegressionIssue,
   ]);
 
   if (props.error) {
@@ -824,8 +825,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     );
   }
 
-  const isRegressionIssue =
-    props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION;
   const regressionIssueLoaded = defined(injectedEvent ?? props.event);
   if (
     !projectsLoaded ||
