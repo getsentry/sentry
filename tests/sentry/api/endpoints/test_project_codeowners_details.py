@@ -51,14 +51,15 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 204
         assert not ProjectCodeOwners.objects.filter(id=str(self.codeowners.id)).exists()
 
-    def test_basic_update(self):
+    @patch("django.utils.timezone.now")
+    def test_basic_update(self, mock_timezone_now):
         self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
         self.create_external_team(external_name="@getsentry/docs", integration=self.integration)
         date = datetime(2023, 10, 3, tzinfo=timezone.utc)
+        mock_timezone_now.return_value = date
         raw = "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n"
         data = {
             "raw": raw,
-            "date_updated": date,
         }
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
