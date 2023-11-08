@@ -238,7 +238,7 @@ export function InviteMissingMembersModal({
         ]}
       >
         {membersOnPage.map((member, i) => {
-          const checked = membersOnPage[i].selected;
+          const checked = member.selected;
           const username = member.externalId.split(':').pop();
           return (
             <Fragment key={i}>
