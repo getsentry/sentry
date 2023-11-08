@@ -1,7 +1,6 @@
 from functools import wraps
 from typing import Any, Callable
 
-from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -28,17 +27,6 @@ def login_required(func: EndpointFunc) -> EndpointFunc:
             else:
                 redirect_uri = auth.get_login_url()
             return HttpResponseRedirect(redirect_uri)
-        return func(request, *args, **kwargs)
-
-    return wrapped
-
-
-def signed_auth_required(func: EndpointFunc) -> EndpointFunc:
-    @wraps(func)
-    def wrapped(request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not request.user_from_signed_request:
-            messages.add_message(request, messages.ERROR, ERR_BAD_SIGNATURE)
-            return HttpResponseRedirect(auth.get_login_url())
         return func(request, *args, **kwargs)
 
     return wrapped

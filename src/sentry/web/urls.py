@@ -50,10 +50,6 @@ from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
-from sentry.web.frontend.unsubscribe_incident_notifications import (
-    UnsubscribeIncidentNotificationsView,
-)
-from sentry.web.frontend.unsubscribe_issue_notifications import UnsubscribeIssueNotificationsView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ("urlpatterns",)
@@ -376,27 +372,6 @@ urlpatterns += [
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-notifications", permanent=False
                     ),
-                ),
-                # TODO(hybridcloud) These routes can be removed in Jan 2024 as all valid links
-                # will have been generated with hybrid-cloud compatible URLs.
-                re_path(
-                    r"^settings/notifications/unsubscribe/(?P<project_id>\d+)/$",
-                    accounts.email_unsubscribe_project,
-                ),
-                re_path(
-                    r"^notifications/unsubscribe/(?P<project_id>\d+)/$",
-                    accounts.email_unsubscribe_project,
-                    name="sentry-account-email-unsubscribe-project",
-                ),
-                re_path(
-                    r"^notifications/unsubscribe/issue/(?P<issue_id>\d+)/$",
-                    UnsubscribeIssueNotificationsView.as_view(),
-                    name="sentry-account-email-unsubscribe-issue",
-                ),
-                re_path(
-                    r"^notifications/unsubscribe/incident/(?P<incident_id>\d+)/$",
-                    UnsubscribeIncidentNotificationsView.as_view(),
-                    name="sentry-account-email-unsubscribe-incident",
                 ),
                 re_path(
                     r"^remove/$",

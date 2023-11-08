@@ -5,27 +5,19 @@ from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as login_user
 from django.db import router, transaction
-from django.http import Http404, HttpResponse, HttpResponseRedirect
-from django.template.context_processors import csrf
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext as _
-from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
 from sentry.models.lostpasswordhash import LostPasswordHash
-from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.security import capture_security_activity
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.signals import email_verified
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import auth
-from sentry.web.decorators import login_required, set_referrer_policy, signed_auth_required
+from sentry.web.decorators import login_required, set_referrer_policy
 from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm
 from sentry.web.helpers import render_to_response
 
@@ -236,31 +228,3 @@ def confirm_email(request, user_id, hash):
         )
     messages.add_message(request, level, msg)
     return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
-
-
-@csrf_protect
-@never_cache
-@signed_auth_required
-def email_unsubscribe_project(request, project_id):
-    # For now we only support getting here from the signed link.
-    if not request.user_from_signed_request:
-        raise Http404()
-    try:
-        project = Project.objects.get(pk=project_id)
-    except Project.DoesNotExist:
-        raise Http404()
-
-    if request.method == "POST":
-        if "cancel" not in request.POST:
-            notifications_service.update_settings(
-                external_provider=ExternalProviders.EMAIL,
-                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-                setting_option=NotificationSettingOptionValues.NEVER,
-                actor=RpcActor.from_object(request.user),
-                project_id=project.id,
-            )
-        return HttpResponseRedirect(auth.get_login_url())
-
-    context = csrf(request)
-    context["project"] = project
-    return render_to_response("sentry/account/email_unsubscribe_project.html", context, request)
