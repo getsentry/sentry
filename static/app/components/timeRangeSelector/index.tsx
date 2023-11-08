@@ -10,15 +10,6 @@ import {
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
-import {
-  getAbsoluteSummary,
-  getArbitraryRelativePeriod,
-  getSortedRelativePeriods,
-  timeRangeAutoCompleteFilter,
-} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -38,6 +29,15 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
+import DateRange from './dateRange';
+import SelectorItems from './selectorItems';
+import {
+  getAbsoluteSummary,
+  getArbitraryRelativePeriod,
+  getSortedRelativePeriods,
+  timeRangeAutoCompleteFilter,
+} from './utils';
+
 const ABSOLUTE_OPTION_VALUE = 'absolute';
 
 const DateRangeHook = HookOrDefault({
@@ -49,6 +49,13 @@ const SelectorItemsHook = HookOrDefault({
   hookName: 'component:header-selector-items',
   defaultComponent: SelectorItems,
 });
+
+export type ChangeData = {
+  relative: string | null;
+  end?: Date;
+  start?: Date;
+  utc?: boolean | null;
+};
 
 export interface TimeRangeSelectorProps
   extends Omit<

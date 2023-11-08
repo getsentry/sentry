@@ -7,9 +7,8 @@ import uniq from 'lodash/uniq';
 import moment from 'moment';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import TeamSelector from 'sentry/components/teamSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DateString, TeamWithProjects} from 'sentry/types';

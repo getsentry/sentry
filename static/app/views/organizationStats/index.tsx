@@ -17,9 +17,8 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {
   DATA_CATEGORY_INFO,
   DEFAULT_RELATIVE_PERIODS,

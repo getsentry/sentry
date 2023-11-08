@@ -275,6 +275,13 @@ export type RequestOptions = RequestCallbacks & {
    * Query parameters to add to the requested URL.
    */
   query?: Record<string, any>;
+  /**
+   * By default, requests will be aborted anytime api.clear() is called,
+   * which is commonly used on unmounts. When skipAbort is true, the
+   * request is opted out of this behavior. Useful for when you still
+   * want to cache a request on unmount.
+   */
+  skipAbort?: boolean;
 };
 
 type ClientOptions = {
@@ -483,7 +490,9 @@ export class Client {
 
     // AbortController is optional, though most browser should support it.
     const aborter =
-      typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+      typeof AbortController !== 'undefined' && !options.skipAbort
+        ? new AbortController()
+        : undefined;
 
     // GET requests may not have a body
     const body = method !== 'GET' ? data : undefined;
