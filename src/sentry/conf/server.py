@@ -1565,6 +1565,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-ticket-rules": True,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
+    # Allow orgs to create a Discord integration
+    "organizations:integrations-discord": False,
+    # Enable Discord metric alert notifications
+    "organizations:integrations-discord-metric-alerts": False,
+    # Enable Discord integration notifications
+    "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
