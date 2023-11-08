@@ -89,7 +89,7 @@ export function PagePerformanceTable() {
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
     opportunity: calculateOpportunity(
-      projectScore.totalScore,
+      projectScore.totalScore ?? 0,
       count,
       row.score,
       row['count()']
