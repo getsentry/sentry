@@ -137,7 +137,13 @@ class BaseModel(models.Model):
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        """ """
+        """
+        Create a custom query for performing exports. This is useful when we can't use the usual
+        method of filtering by foreign keys of already-seen models, and allows us to export a
+        smaller subset of data than "all models of this kind".
+
+        The `q` argument represents the exist query. This method should modify that query, then return it.
+        """
 
         model_name = get_model_name(cls)
         model_relations = dependencies()[model_name]

@@ -26,7 +26,6 @@ _KNOWN_TAGS = {
     "sentry.javascript.sveltekit",
     "sentry.javascript.vue",
     "sentry.kubernetes",
-    "sentry.lua",
     "sentry.native.android",
     "sentry.native.dotnet",
     "sentry.native.unity",
@@ -53,6 +52,11 @@ _SYNONYMOUS_TAGS = {
     "sentry.symfony": "sentry.php.symfony",
     "sentry.unity": "sentry.native.unity",
 }
+
+
+# TODO: Should we be grouping by origin SDK instead? (For example, should we be
+#       combining all flutter events rather than all native events?)
+#       See https://github.com/getsentry/sentry/pull/59504#discussion_r1385483963
 
 
 @functools.lru_cache(maxsize=300)

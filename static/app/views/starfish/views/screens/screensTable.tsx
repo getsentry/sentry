@@ -21,7 +21,6 @@ import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
-import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 type Props = {
@@ -34,7 +33,6 @@ type Props = {
 export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const routingContext = useRoutingContext();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const truncatedPrimary = centerTruncate(primaryRelease ?? '', 15);
   const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 15);
@@ -76,7 +74,9 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         <Fragment>
           <TopResultsIndicator count={TOP_SCREENS} index={index} />
           <Link
-            to={`${routingContext.baseURL}/pageload/spans/?${qs.stringify({
+            to={`/organizations/${
+              organization.slug
+            }/performance/mobile/screens/spans/?${qs.stringify({
               ...location.query,
               project: row['project.id'],
               transaction: row.transaction,

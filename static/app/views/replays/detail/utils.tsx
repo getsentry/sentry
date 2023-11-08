@@ -28,12 +28,13 @@ export function operationName(op: string) {
 }
 
 export function getAriaLabel(str: string) {
-  const matches = str.match(/\[aria=(.*?)\]/g);
+  const matches = str.match(/\[aria=(.*)\]/g);
   if (!matches) {
     return '';
   }
   const pre = matches[0];
-  return matches[0].substring(pre.indexOf('aria="') + 6, pre.lastIndexOf('"]'));
+  const start = pre.indexOf('aria="') + 6;
+  return pre.substring(start, pre.indexOf('"]', start));
 }
 
 function trimAttribute(elementAttribute, fullAlltribute) {
