@@ -13,11 +13,7 @@ import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {DateString, PageFilters} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
-import {
-  formatMetricsUsingUnitAndOp,
-  getNameFromMRI,
-  MetricDisplayType,
-} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
 import theme from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
@@ -77,7 +73,6 @@ export function MetricChart({
   const formatters = {
     valueFormatter: (value: number) =>
       formatMetricsUsingUnitAndOp(value, unit, operation),
-    nameFormatter: mri => getNameFromMRI(mri),
     isGroupedByDate: true,
     bucketSize,
     showTimeInTooltip: true,

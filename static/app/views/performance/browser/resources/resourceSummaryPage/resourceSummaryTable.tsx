@@ -17,11 +17,16 @@ import {useResourceSummarySort} from 'sentry/views/performance/browser/resources
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+
+const {RESOURCE_RENDER_BLOCKING_STATUS, SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} =
+  SpanMetricsField;
 
 type Row = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
+  'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
   'spm()': number;
   transaction: string;
 };
@@ -42,14 +47,19 @@ function ResourceSummaryTable() {
       name: getThroughputTitle('http'),
     },
     {
-      key: 'avg(span.self_time)',
+      key: `avg(${SPAN_SELF_TIME})`,
       width: COL_WIDTH_UNDEFINED,
       name: t('Avg Duration'),
     },
     {
-      key: 'avg(http.response_content_length)',
+      key: `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
       width: COL_WIDTH_UNDEFINED,
-      name: DataTitles['avg(http.response_content_length)'],
+      name: DataTitles[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
+    },
+    {
+      key: RESOURCE_RENDER_BLOCKING_STATUS,
+      width: COL_WIDTH_UNDEFINED,
+      name: t('Render Blocking'),
     },
   ];
 
@@ -78,6 +88,16 @@ function ResourceSummaryTable() {
           {row[key]}
         </Link>
       );
+    }
+    if (key === RESOURCE_RENDER_BLOCKING_STATUS) {
+      const value = row[key];
+      if (value === 'blocking') {
+        return <span>{t('Yes')}</span>;
+      }
+      if (value === 'non-blocking') {
+        return <span>{t('No')}</span>;
+      }
+      return <span>{'-'}</span>;
     }
     return <span>{row[key]}</span>;
   };

@@ -121,17 +121,6 @@ class QuotaTest(TestCase):
             == PermitCheckInStatus.ACCEPT
         )
 
-    def test_remove_monitor_seat(self):
-        monitor = Monitor.objects.create(
-            slug="test-monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            name="test monitor",
-            status=MonitorObjectStatus.ACTIVE,
-            type=MonitorType.CRON_JOB,
-        )
-        assert self.backend.remove_monitor_seat(monitor) is None
-
 
 @pytest.mark.parametrize(
     "obj,json",
