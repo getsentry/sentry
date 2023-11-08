@@ -6,6 +6,16 @@ from packaging.version import InvalidVersion, Version
 from sentry.db.models import NodeData
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
+from sentry.utils.sdk_crashes.path_replacer import PathReplacer
+
+
+@dataclass
+class SDKFrameConfig:
+    function_patterns: Set[str]
+
+    filename_patterns: Set[str]
+
+    path_replacer: PathReplacer
 
 
 @dataclass
@@ -16,29 +26,7 @@ class SDKCrashDetectorConfig:
 
     system_library_paths: Set[str]
 
-    sdk_frame_function_matchers: Set[str]
-
-    sdk_frame_filename_matchers: Set[str]
-
-    """
-    When stripping the frames of the original event, we have to replace the original
-    abs_path, module, and package field with something cause these fields could contain
-    the application name or other unwanted private data. This property contains the
-    replacements string for these fields. The first str of the mapping is a regex
-    pattern, the second str is the replacement name. If the regex pattern matches the
-    field, the field is replaced with the replacement name. If no regex pattern matches
-    the field, the `sdk_frame_path_default_replacement_name` is used.
-
-    str: regex pattern
-    str: replacement name
-    """
-    sdk_frame_path_replacement_names: Mapping[str, str]
-
-    """
-    If `sdk_frame_path_replacement_names` doesn't contain a replacement name for the
-    path field, this is the default replacement name.
-    """
-    sdk_frame_path_default_replacement_name: str
+    sdk_frame_config: SDKFrameConfig
 
     sdk_crash_ignore_functions_matchers: Set[str]
 
@@ -61,12 +49,8 @@ class SDKCrashDetector:
     def fields_containing_paths(self) -> Set[str]:
         return {"package", "module", "abs_path", "filename"}
 
-    def replace_sdk_frame_path(self, field: str) -> str:
-        for matcher, replacement_name in self.config.sdk_frame_path_replacement_names.items():
-            if glob_match(field, matcher, ignorecase=True):
-                return replacement_name
-
-        return self.config.sdk_frame_path_default_replacement_name
+    def replace_sdk_frame_path(self, path: str) -> str:
+        return self.config.sdk_frame_config.path_replacer.replace_path(path)
 
     def should_detect_sdk_crash(self, event_data: NodeData) -> bool:
         sdk_name = get_path(event_data, "sdk", "name")
@@ -136,14 +120,14 @@ class SDKCrashDetector:
 
         function = frame.get("function")
         if function:
-            for matcher in self.config.sdk_frame_function_matchers:
-                if glob_match(function, matcher, ignorecase=True):
+            for patterns in self.config.sdk_frame_config.function_patterns:
+                if glob_match(function, patterns, ignorecase=True):
                     return True
 
         filename = frame.get("filename")
         if filename:
-            for matcher in self.config.sdk_frame_filename_matchers:
-                if glob_match(filename, matcher, ignorecase=True):
+            for patterns in self.config.sdk_frame_config.filename_patterns:
+                if glob_match(filename, patterns, ignorecase=True):
                     return True
 
         return False

@@ -4,7 +4,7 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
