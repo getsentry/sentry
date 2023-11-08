@@ -474,6 +474,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
+        assert group
         mock_logger.info.assert_called_with(
             "mail.adapter.notify",
             extra={
@@ -1562,6 +1563,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         with mock.patch.object(self.adapter, "notify") as notify:
             self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
             assert notify.call_count == 1
+            assert event.group
             mock_logger.info.assert_called_with(
                 "mail.adapter.notification.dispatched",
                 extra={
@@ -1588,6 +1590,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.add.call_count == 1
+        assert event.group
         mock_logger.info.assert_called_with(
             "mail.adapter.notification.dispatched",
             extra={
