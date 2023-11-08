@@ -1,4 +1,4 @@
-FROM python:3.8.16-slim-bullseye as sdist
+FROM python:3.8.18-slim-bullseye as sdist
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry Wheel Builder"
