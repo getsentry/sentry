@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {CellMeasurerCache} from 'react-virtualized';
+import {CellMeasurerCache, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
@@ -21,35 +21,76 @@ export interface BreadcrumbProps {
   event: Event;
   index: number;
   isLastItem: boolean;
-  onResize: () => void;
   organization: Organization;
+  parent: List;
   relativeTime: string;
   searchTerm: string;
   style: React.CSSProperties;
+  transactionEvents: BreadcrumbTransactionEvent[] | undefined;
   meta?: Record<any, any>;
-  transactionEvents?: BreadcrumbTransactionEvent[];
 }
 
 export function Breadcrumb({
-  index,
   organization,
   event,
   breadcrumb,
   relativeTime,
   displayRelativeTime,
   searchTerm,
-  onResize,
   meta,
   isLastItem,
+  index,
   cache,
+  parent,
   transactionEvents,
 }: BreadcrumbProps) {
   const {type, description, color, level, category, timestamp} = breadcrumb;
   const error = breadcrumb.type === BreadcrumbType.ERROR;
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!wrapperRef.current) {
+      return undefined;
+    }
+    if (window.ResizeObserver === undefined) {
+      return undefined;
+    }
+
+    const onResizeObserver: ResizeObserverCallback = entries => {
+      const entry = entries[0];
+      if (!entry) {
+        return;
+      }
+
+      const height =
+        entry.contentBoxSize?.[0]?.blockSize ?? entry.borderBoxSize?.[0]?.blockSize ?? 0;
+
+      if (height === 0) {
+        return;
+      }
+
+      const oldHeight = cache.getHeight(index, 0);
+
+      if (Math.abs(oldHeight - height) > 1) {
+        cache.set(index, 0, cache.getWidth(index, 0), height);
+        // pass row and column index so that react virtualized can only update the
+        // cells after the one that has changed and avoid recomputing the entire grid
+        parent.recomputeGridSize({rowIndex: index, columnIndex: 0});
+      }
+    };
+
+    const observer = new ResizeObserver(onResizeObserver);
+    observer.observe(wrapperRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [cache, index, parent]);
+
   return (
     <Wrapper
-      ref={sizingRef}
+      ref={wrapperRef}
       error={error}
       data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
       isLastItem={isLastItem}
@@ -64,9 +105,7 @@ export function Breadcrumb({
         meta={meta}
         transactionEvents={transactionEvents}
       />
-      <div>
-        <Level level={level} searchTerm={searchTerm} />
-      </div>
+      <Level level={level} searchTerm={searchTerm} />
       <Time
         timestamp={timestamp}
         relativeTime={relativeTime}
