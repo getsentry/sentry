@@ -154,6 +154,16 @@ describe('Exception Content', function () {
   describe('exception groups', function () {
     const event = TestStubs.Event({entries: [TestStubs.EventEntryExceptionGroup()]});
     const project = TestStubs.Project();
+    beforeEach(() => {
+      const promptResponse = {
+        dismissed_ts: undefined,
+        snoozed_ts: undefined,
+      };
+      MockApiClient.addMockResponse({
+        url: '/prompts-activity/',
+        body: promptResponse,
+      });
+    });
 
     const defaultProps = {
       type: StackType.ORIGINAL,

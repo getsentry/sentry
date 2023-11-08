@@ -30,6 +30,16 @@ function renderedComponent(
   );
 }
 describe('Native StackTrace', function () {
+  beforeEach(() => {
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
+  });
   it('does not render non in app tags', function () {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: false};
