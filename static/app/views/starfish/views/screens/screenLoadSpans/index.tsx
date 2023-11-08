@@ -19,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   ScreenCharts,
@@ -46,7 +47,11 @@ function ScreenLoadSpans() {
   const screenLoadModule: LocationDescriptor = {
     pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
     query: {
-      ...omit(location.query, [QueryParameterNames.SPANS_SORT, 'transaction']),
+      ...omit(location.query, [
+        QueryParameterNames.SPANS_SORT,
+        'transaction',
+        SpanMetricsField.SPAN_OP,
+      ]),
     },
   };
 

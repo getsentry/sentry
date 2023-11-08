@@ -14,6 +14,8 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test
 @django_db_all(transaction=True, reset_sequences=True)
 def test_good_fresh_install(tmp_path):
+    # TODO(getsentry/team-ospo#190): Once we release 23.12.0, we have fulfilled our "two versions
+    # back" promise, and we can remove `sentry:latest*` options from `fresh_install.json`.
     import_export_from_fixture_then_validate(
         tmp_path, "fresh-install.json", get_default_comparators()
     )

@@ -18,9 +18,8 @@ import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetec
 import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
-import {EventFunctionRegressionEvidence} from 'sentry/components/events/eventStatisticalDetector/eventFunctionRegressionEvidence';
+import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
-import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -195,12 +194,14 @@ function PerformanceDurationRegressionIssueDetailsContent({
       renderDisabled
     >
       <Fragment>
-        <RegressionMessage event={event} group={group} />
+        <ErrorBoundary mini>
+          <EventRegressionSummary event={event} group={group} />
+        </ErrorBoundary>
         <ErrorBoundary mini>
           <EventBreakpointChart event={event} />
         </ErrorBoundary>
         <ErrorBoundary mini>
-          <AggregateSpanDiff event={event} projectId={project.id} />
+          <AggregateSpanDiff event={event} project={project} />
         </ErrorBoundary>
         <ErrorBoundary mini>
           <EventComparison event={event} project={project} />
@@ -224,12 +225,11 @@ function ProfilingDurationRegressionIssueDetailsContent({
       renderDisabled
     >
       <Fragment>
-        <RegressionMessage event={event} group={group} />
         <ErrorBoundary mini>
-          <EventFunctionBreakpointChart event={event} />
+          <EventRegressionSummary event={event} group={group} />
         </ErrorBoundary>
         <ErrorBoundary mini>
-          <EventFunctionRegressionEvidence event={event} />
+          <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
         <ErrorBoundary mini>
           <EventAffectedTransactions event={event} group={group} project={project} />
