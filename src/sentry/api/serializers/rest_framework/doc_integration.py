@@ -1,14 +1,12 @@
-import random
-import string
 from typing import Any, MutableMapping
 
 from django.db import router, transaction
-from django.utils.text import slugify
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.api.fields.avatar import AvatarField
+from sentry.api.helpers.slugs import sentry_slugify
 from sentry.api.serializers.rest_framework.sentry_app import URLField
 from sentry.api.validators.doc_integration import validate_metadata_schema
 from sentry.models.integrations.doc_integration import DocIntegration
@@ -47,11 +45,8 @@ class DocIntegrationSerializer(Serializer):
         choices=Feature.as_choices(), allow_blank=True, allow_null=True, required=False
     )
 
-    def _generate_slug(self, name: str) -> str:
-        return slugify(name)
-
     def validate_name(self, value: str) -> str:
-        slug = self._generate_slug(value)
+        slug = sentry_slugify(value)
         if len(slug) > DocIntegration._meta.get_field("slug").max_length:
             raise ValidationError(
                 f"Generated slug '{slug}' is too long, please use a shorter name."
@@ -64,12 +59,8 @@ class DocIntegrationSerializer(Serializer):
         return value
 
     def create(self, validated_data: MutableMapping[str, Any]) -> DocIntegration:
-        slug = self._generate_slug(validated_data["name"])
-
-        # If option is set, add random 3 lowercase letter suffix to prevent numeric slug
-        # eg: 123 -> 123-abc
-        if slug.isdecimal():
-            slug = f"{slug}-{''.join(random.choice(string.ascii_lowercase) for _ in range(3))}"
+        # sentry_slugify ensures the slug is not entirely numeric
+        slug = sentry_slugify(validated_data["name"])
 
         features = validated_data.pop("features") if validated_data.get("features") else []
         with transaction.atomic(router.db_for_write(DocIntegration)):
