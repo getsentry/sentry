@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {space} from 'sentry/styles/space';
 
 export interface CodeSnippetTab {
   code: string;
@@ -39,9 +40,8 @@ export function TabbedCodeSnippet({tabs}: TabbedCodeSnippetProps) {
 }
 
 const StyledCodeSnippet = styled(CodeSnippet)`
-  width: auto;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    width: 100%;
+  pre {
+    max-height: 80px;
   }
+  margin-top: ${space(1)};
 `;
