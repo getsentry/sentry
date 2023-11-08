@@ -180,7 +180,7 @@ def is_sample_event(job):
 
 
 def normalized_sdk_tag_from_event(event: Event) -> str:
-    return normalize_sdk_tag(event.data.get("sdk", {}).get("name", ""))
+    return normalize_sdk_tag(event.data.get("sdk", {}).get("name", "other"))
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
