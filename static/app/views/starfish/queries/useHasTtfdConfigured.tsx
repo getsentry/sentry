@@ -44,6 +44,7 @@ export function useTTFDConfigured(additionalFilters?: string[]) {
   const result = useTableQuery({
     eventView,
     enabled: !isReleasesLoading,
+    staleTime: Infinity,
   });
 
   const hasTTFD: boolean | undefined = result.data
