@@ -1698,6 +1698,21 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="mobile/">
+        <Route path="screens/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/starfish/modules/mobile/pageload')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+            )}
+          />
+        </Route>
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -1823,17 +1838,6 @@ function buildRoutes() {
         <IndexRoute
           component={make(
             () => import('sentry/views/starfish/modules/mobile/initialization')
-          )}
-        />
-      </Route>
-      <Route path="pageload/">
-        <IndexRoute
-          component={make(() => import('sentry/views/starfish/modules/mobile/pageload'))}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/starfish/views/screens/screenLoadSpans')
           )}
         />
       </Route>

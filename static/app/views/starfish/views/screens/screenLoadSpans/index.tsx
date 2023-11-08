@@ -20,7 +20,6 @@ import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   ScreenCharts,
@@ -43,11 +42,10 @@ type Query = {
 function ScreenLoadSpans() {
   const location = useLocation<Query>();
   const organization = useOrganization();
-  const routingContext = useRoutingContext();
   const router = useRouter();
 
   const screenLoadModule: LocationDescriptor = {
-    pathname: `${routingContext.baseURL}/pageload/`,
+    pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
     query: {
       ...omit(location.query, [
         QueryParameterNames.SPANS_SORT,
