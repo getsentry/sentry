@@ -45,12 +45,9 @@ class DocIntegrationSerializer(Serializer):
         choices=Feature.as_choices(), allow_blank=True, allow_null=True, required=False
     )
 
-    def _generate_slug(self, name: str) -> str:
-        # sentry_slugify ensures the slug is not entirely numeric
-        return sentry_slugify(name)
-
     def validate_name(self, value: str) -> str:
-        slug = self._generate_slug(value)
+        # sentry_slugify ensures the slug is not entirely numeric
+        slug = sentry_slugify(value)
         if len(slug) > DocIntegration._meta.get_field("slug").max_length:
             raise ValidationError(
                 f"Generated slug '{slug}' is too long, please use a shorter name."
