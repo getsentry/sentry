@@ -11,6 +11,7 @@ import styled from '@emotion/styled';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
 import useFetchFeedbackInfiniteListData from 'sentry/components/feedback/useFetchFeedbackInfiniteListData';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -48,6 +49,8 @@ export default function FeedbackList() {
     hits,
     knownIds: issues.map(issue => issue.id),
   });
+
+  const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
@@ -112,7 +115,9 @@ export default function FeedbackList() {
                         unfilteredItems={issues}
                         clearSearchTerm={clearSearchTerm}
                       >
-                        {t('No feedback received')}
+                        {hasSetupOneFeedback
+                          ? t('No feedback found')
+                          : t('No feedback received yet')}
                       </NoRowRenderer>
                     )
                   }
