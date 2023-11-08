@@ -8,7 +8,7 @@ from urllib.parse import quote
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
 from django.db.models.functions import Lower
-from snuba_sdk import Column, Condition, Direction, Op, OrderBy, Request
+from snuba_sdk import Column, Direction, OrderBy, Request
 
 from sentry.utils.cursors import Cursor, CursorResult, build_cursor
 from sentry.utils.pagination_factory import PaginatorLike
@@ -757,7 +757,7 @@ class SnubaRequestPaginator:
         dataset,
         app_id,
         tenant_ids,
-        order_by,
+        order_by=None,
         max_limit=MAX_LIMIT,
         converter=None,
         on_results=None,
@@ -767,27 +767,19 @@ class SnubaRequestPaginator:
         self.app_id = app_id
         self.tenant_ids = tenant_ids
         self.desc = False
-        if order_by:
-            if order_by.startswith("-"):
-                self.desc = True
-                self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.DESC)])
-            else:
-                self.desc = False
-                self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.ASC)])
+        if order_by.startswith("-"):
+            self.desc = True
+            self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.DESC)])
+        else:
+            self.desc = False
+            self.query = self.query.set_orderby([OrderBy(Column(order_by), Direction.ASC)])
         self.max_limit = max_limit
         self.converter = converter
         self.on_results = on_results
 
     def build_next_snuba_request(self, cursor_value, query):
         if cursor_value != 0:
-            where_conditions = []
-            if query.where:
-                where_conditions = query.where
-                # TODO(isabella): need to pop the most recent where condition if this has been run before (page > 2)
-            where_conditions.append(
-                Condition(Column("id"), Op.GT if self.desc else Op.LT, cursor_value)
-            )
-            query = query.set_where(where_conditions)
+            query = query.set_offset(cursor_value)
         return query
 
     def get_result(self, limit=100, cursor=None):
