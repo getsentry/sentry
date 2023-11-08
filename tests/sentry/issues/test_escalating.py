@@ -12,6 +12,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.escalating import (
     GroupsCountResponse,
     _start_and_end_dates,
+    compare_dataset_results,
     get_group_hourly_count,
     is_escalating,
     query_groups_past_counts,
@@ -383,3 +384,598 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}")
                 == 6
             )
+
+    def test_compare_dataset_results_simple(self):
+        metrics_dataset_results = [
+            {
+                "project_id": 4394,
+                "group_id": 3987509439,
+                "count()": 1,
+                "hourBucket": "2023-10-31T16:00:00+00:00",
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T17:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 2,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T18:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T19:00:00+00:00",
+                "group_id": 3987509439,
+            },
+        ]
+
+        errors_dataset_results = [
+            {
+                "project_id": 4394,
+                "group_id": 3987509439,
+                "count()": 1,
+                "hourBucket": "2023-10-31T16:00:00+00:00",
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T17:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 2,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T18:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T19:00:00+00:00",
+                "group_id": 3987509439,
+            },
+        ]
+        missing_comparison_values, incorrect_values = compare_dataset_results(
+            metrics_dataset_results, errors_dataset_results
+        )
+
+        assert len(missing_comparison_values) == 0
+        assert len(incorrect_values) == 0
+
+    def test_compare_dataset_results_missing_hourly_bucket(self):
+        metrics_dataset_results = [
+            {
+                "project_id": 4394,
+                "group_id": 3987509439,
+                "count()": 1,
+                "hourBucket": "2023-10-31T16:00:00+00:00",
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T17:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "group_id": 3987509439,
+                "count()": 1,
+                "hourBucket": "2023-11-01T05:00:00+00:00",
+                "project_id": 4394,
+            },
+            {
+                "group_id": 3987509439,
+                "hourBucket": "2023-11-01T09:00:00+00:00",
+                "count()": 2,
+                "project_id": 4394,
+            },
+            {
+                "hourBucket": "2023-11-01T15:00:00+00:00",
+                "group_id": 3987509439,
+                "count()": 1,
+                "project_id": 4394,
+            },
+            {
+                "hourBucket": "2023-11-01T18:00:00+00:00",
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "count()": 1,
+            },
+            {
+                "hourBucket": "2023-11-02T05:00:00+00:00",
+                "project_id": 4394,
+                "group_id": 3987509439,
+                "count()": 1,
+            },
+            {
+                "count()": 1,
+                "hourBucket": "2023-11-02T10:00:00+00:00",
+                "project_id": 4394,
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 1,
+                "hourBucket": "2023-11-02T15:00:00+00:00",
+                "project_id": 4394,
+                "group_id": 3987509439,
+            },
+            {
+                "group_id": 3987509439,
+                "count()": 1,
+                "hourBucket": "2023-11-02T17:00:00+00:00",
+                "project_id": 4394,
+            },
+            {
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "hourBucket": "2023-11-03T01:00:00+00:00",
+                "count()": 1,
+            },
+            {
+                "project_id": 4394,
+                "hourBucket": "2023-11-03T05:00:00+00:00",
+                "count()": 1,
+                "group_id": 3987509439,
+            },
+            {
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "count()": 1,
+                "hourBucket": "2023-11-03T08:00:00+00:00",
+            },
+            {
+                "count()": 1,
+                "hourBucket": "2023-11-03T09:00:00+00:00",
+                "group_id": 3987509439,
+                "project_id": 4394,
+            },
+            {
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "hourBucket": "2023-11-03T12:00:00+00:00",
+                "count()": 1,
+            },
+            {
+                "group_id": 3987509439,
+                "hourBucket": "2023-11-03T13:00:00+00:00",
+                "count()": 2,
+                "project_id": 4394,
+            },
+            {
+                "group_id": 3987509439,
+                "hourBucket": "2023-11-03T15:00:00+00:00",
+                "count()": 1,
+                "project_id": 4394,
+            },
+            {
+                "hourBucket": "2023-11-03T16:00:00+00:00",
+                "project_id": 4394,
+                "group_id": 3987509439,
+                "count()": 1,
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-11-04T02:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 1,
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "hourBucket": "2023-11-04T09:00:00+00:00",
+            },
+            {
+                "hourBucket": "2023-11-04T10:00:00+00:00",
+                "count()": 1,
+                "group_id": 3987509439,
+                "project_id": 4394,
+            },
+            {
+                "hourBucket": "2023-11-04T14:00:00+00:00",
+                "project_id": 4394,
+                "count()": 1,
+                "group_id": 3987509439,
+            },
+            {
+                "project_id": 4394,
+                "count()": 1,
+                "group_id": 3987509439,
+                "hourBucket": "2023-11-04T15:00:00+00:00",
+            },
+            {
+                "group_id": 3987509439,
+                "hourBucket": "2023-11-04T21:00:00+00:00",
+                "count()": 1,
+                "project_id": 4394,
+            },
+            {
+                "hourBucket": "2023-11-05T08:00:00+00:00",
+                "count()": 1,
+                "project_id": 4394,
+                "group_id": 3987509439,
+            },
+            {
+                "group_id": 3987509439,
+                "hourBucket": "2023-11-05T11:00:00+00:00",
+                "count()": 1,
+                "project_id": 4394,
+            },
+            {
+                "hourBucket": "2023-11-05T13:00:00+00:00",
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "count()": 1,
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-11-05T14:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "hourBucket": "2023-11-06T06:00:00+00:00",
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "count()": 1,
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-11-06T08:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "group_id": 3987509439,
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-11-06T11:00:00+00:00",
+            },
+            {
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "hourBucket": "2023-11-07T07:00:00+00:00",
+                "count()": 1,
+            },
+            {
+                "project_id": 4394,
+                "group_id": 3987509439,
+                "count()": 1,
+                "hourBucket": "2023-11-07T11:00:00+00:00",
+            },
+            {
+                "count()": 1,
+                "group_id": 3861229642,
+                "project_id": 4394,
+                "hourBucket": "2023-11-01T09:00:00+00:00",
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "group_id": 3861229642,
+                "hourBucket": "2023-11-01T16:00:00+00:00",
+            },
+            {
+                "project_id": 4394,
+                "group_id": 3861229642,
+                "hourBucket": "2023-11-02T07:00:00+00:00",
+                "count()": 1,
+            },
+            {
+                "count()": 1,
+                "hourBucket": "2023-11-02T11:00:00+00:00",
+                "group_id": 3861229642,
+                "project_id": 4394,
+            },
+            {
+                "group_id": 3861229642,
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-11-02T21:00:00+00:00",
+            },
+            {
+                "group_id": 3861229642,
+                "hourBucket": "2023-11-06T14:00:00+00:00",
+                "project_id": 4394,
+                "count()": 1,
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "group_id": 3471761305,
+                "hourBucket": "2023-11-02T15:00:00+00:00",
+            },
+            {
+                "hourBucket": "2023-11-03T08:00:00+00:00",
+                "group_id": 3471761305,
+                "count()": 1,
+                "project_id": 4394,
+            },
+            {
+                "group_id": 3471761305,
+                "project_id": 4394,
+                "count()": 1,
+                "hourBucket": "2023-11-03T19:00:00+00:00",
+            },
+            {
+                "project_id": 4394,
+                "group_id": 3471761305,
+                "hourBucket": "2023-11-06T04:00:00+00:00",
+                "count()": 1,
+            },
+            {
+                "hourBucket": "2023-11-07T09:00:00+00:00",
+                "count()": 1,
+                "group_id": 3471761305,
+                "project_id": 4394,
+            },
+            {
+                "group_id": 2763383768,
+                "project_id": 4394,
+                "hourBucket": "2023-11-01T02:00:00+00:00",
+                "count()": 1,
+            },
+            {
+                "hourBucket": "2023-11-05T13:00:00+00:00",
+                "group_id": 2763383768,
+                "project_id": 4394,
+                "count()": 1,
+            },
+        ]
+
+        errors_dataset_results = [
+            {
+                "project_id": 4394,
+                "group_id": 3987509439,
+                "count()": 1,
+                "hourBucket": "2023-10-31T16:00:00+00:00",
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T17:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 2,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T18:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T19:00:00+00:00",
+                "group_id": 3987509439,
+            },
+        ]
+        incorrect_values = compare_dataset_results(metrics_dataset_results, errors_dataset_results)
+        assert incorrect_values == [
+            {
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T17:00:00+00:00",
+                "metrics_dataset_count": 0,
+                "errors_dataset_count": 1,
+            }
+        ]
+
+    def test_compare_dataset_results_different_counts(self):
+        metrics_dataset_results = [
+            {
+                "project_id": 4394,
+                "group_id": 3987509439,
+                "count()": 1,
+                "hourBucket": "2023-10-31T16:00:00+00:00",
+            },
+            {
+                "count()": 5,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T17:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 2,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T18:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 3,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T19:00:00+00:00",
+                "group_id": 3987509439,
+            },
+        ]
+
+        errors_dataset_results = [
+            {
+                "project_id": 4394,
+                "group_id": 3987509439,
+                "count()": 1,
+                "hourBucket": "2023-10-31T16:00:00+00:00",
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T17:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 2,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T18:00:00+00:00",
+                "group_id": 3987509439,
+            },
+            {
+                "count()": 1,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T19:00:00+00:00",
+                "group_id": 3987509439,
+            },
+        ]
+        incorrect_values = compare_dataset_results(metrics_dataset_results, errors_dataset_results)
+        assert incorrect_values == [
+            {
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T19:00:00+00:00",
+                "metrics_dataset_count": 3,
+                "errors_dataset_count": 1,
+            },
+            {
+                "group_id": 3987509439,
+                "project_id": 4394,
+                "hourBucket": "2023-10-31T17:00:00+00:00",
+                "metrics_dataset_count": 5,
+                "errors_dataset_count": 1,
+            },
+        ]
+
+    def test_compare_dataset_results_incorrect_counts_for_multiple_groups(self):
+        metrics_dataset_results = [
+            {
+                "group_id": 2763383768,
+                "project_id": 4394,
+                "count()": 0,
+                "hourBucket": "2023-11-01T01:00:00+00:00",
+            },
+            {
+                "group_id": 2763383768,
+                "project_id": 4394,
+                "count()": 2,
+                "hourBucket": "2023-11-01T02:00:00+00:00",
+            },
+            {
+                "group_id": 2763383768,
+                "project_id": 4394,
+                "count()": 1,
+                "hourBucket": "2023-11-01T04:00:00+00:00",
+            },
+            {
+                "group_id": 3471761305,
+                "count()": 1,
+                "hourBucket": "2023-11-02T01:00:00+00:00",
+                "project_id": 4394,
+            },
+            {
+                "count()": 2,
+                "project_id": 4394,
+                "hourBucket": "2023-11-02T02:00:00+00:00",
+                "group_id": 3471761305,
+            },
+        ]
+
+        errors_dataset_results = [
+            {
+                "group_id": 2763383768,
+                "project_id": 4394,
+                "count()": 1,
+                "hourBucket": "2023-11-01T01:00:00+00:00",
+            },
+            {
+                "group_id": 2763383768,
+                "project_id": 4394,
+                "count()": 1,
+                "hourBucket": "2023-11-01T03:00:00+00:00",
+            },
+            {
+                "group_id": 2763383768,
+                "project_id": 4394,
+                "count()": 1,
+                "hourBucket": "2023-11-01T04:00:00+00:00",
+            },
+            {
+                "group_id": 3471761305,
+                "count()": 0,
+                "hourBucket": "2023-11-02T01:00:00+00:00",
+                "project_id": 4394,
+            },
+            {
+                "count()": 2,
+                "project_id": 4394,
+                "hourBucket": "2023-11-02T02:00:00+00:00",
+                "group_id": 3471761305,
+            },
+        ]
+
+        metrics_dataset_results_obj = {
+            (result["group_id"], result["project_id"], result["hourBucket"]): result["count()"]
+            for result in metrics_dataset_results
+        }
+        errors_dataset_results_obj = {
+            (result["group_id"], result["project_id"], result["hourBucket"]): result["count()"]
+            for result in errors_dataset_results
+        }
+
+        incorrect_values = compare_dataset_results(metrics_dataset_results, errors_dataset_results)
+
+        assert len(incorrect_values) == 3
+        first_incorrect_value = next(
+            (
+                item
+                for item in incorrect_values
+                if item["hourBucket"] == "2023-11-01T01:00:00+00:00"
+                and item["group_id"] == 2763383768
+            ),
+            None,
+        )
+
+        assert first_incorrect_value["hourBucket"] == "2023-11-01T01:00:00+00:00"
+        assert first_incorrect_value["metrics_dataset_count"] == 0
+        assert first_incorrect_value["errors_dataset_count"] == 1
+
+        # Metrics adjacent hour counts:
+        # Prev hour count 2023-11-01T02:00:00+00:00 -> 2
+        # Next hour count 2023-11-01T04:00:00+00:00 -> 1
+        # Total -> prev hour count + current hour count + next hour count -> 2 + 0 + 1 = 3
+        #
+        # Errors adjacent hour counts:
+        # Prev hour count 2023-11-01T02:00:00+00:00 -> 0
+        # Next hour count 2023-11-01T04:00:00+00:00 -> 1
+        # Total -> prev hour count + current hour count + next hour count -> 0 + 1 + 1 = 2
+        assert first_incorrect_value["adjacent_hour_balance"] == (
+            (
+                metrics_dataset_results_obj.get((2763383768, 4394, "2023-11-01T00:00:00+00:00"), 0)
+                + first_incorrect_value["metrics_dataset_count"]
+                + metrics_dataset_results_obj.get(
+                    (2763383768, 4394, "2023-11-01T02:00:00+00:00"), 0
+                )
+            )
+            - (
+                errors_dataset_results_obj.get((2763383768, 4394, "2023-11-01T00:00:00+00:00"), 0)
+                + first_incorrect_value["errors_dataset_count"]
+                + errors_dataset_results_obj.get((2763383768, 4394, "2023-11-01T02:00:00+00:00"), 0)
+            )
+        )
+
+        second_incorrect_value = next(
+            (
+                item
+                for item in incorrect_values
+                if item["hourBucket"] == "2023-11-02T01:00:00+00:00"
+                and item["group_id"] == 3471761305
+            ),
+            None,
+        )
+        assert second_incorrect_value["hourBucket"] == "2023-11-02T01:00:00+00:00"
+        assert second_incorrect_value["metrics_dataset_count"] == 1
+        assert second_incorrect_value["errors_dataset_count"] == 0
+
+        assert second_incorrect_value["adjacent_hour_balance"] == (
+            (
+                metrics_dataset_results_obj.get((3471761305, 4394, "2023-11-01T00:00:00+00:00"), 0)
+                + second_incorrect_value["metrics_dataset_count"]
+                + metrics_dataset_results_obj.get(
+                    (3471761305, 4394, "2023-11-01T02:00:00+00:00"), 0
+                )
+            )
+            - (
+                errors_dataset_results_obj.get((3471761305, 4394, "2023-11-01T00:00:00+00:00"), 0)
+                + second_incorrect_value["errors_dataset_count"]
+                + errors_dataset_results_obj.get((3471761305, 4394, "2023-11-01T02:00:00+00:00"), 0)
+            )
+        )

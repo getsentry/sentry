@@ -247,10 +247,15 @@ def _query_metrics_with_pagination(
 
         # Log exception if results from the Metrics backend are
         # not equivalent to the Errors dataset.
-        if not compare_lists(metrics_results, all_results):
+        incorrect_values = compare_dataset_results(metrics_results, all_results)
+        if not len(incorrect_values):
             logger.info(
                 "Generics Metrics Backend query results not the same as Errors dataset query.",
-                extra={"metrics_results": metrics_results, "dataset_results": all_results},
+                extra={
+                    "metrics_results": metrics_results,
+                    "dataset_results": all_results,
+                    "incorrect_values": incorrect_values,
+                },
             )
 
 
@@ -277,12 +282,78 @@ def transform_to_groups_count_response(data: dict) -> List[GroupsCountResponse]:
     return result
 
 
-def compare_lists(list1, list2):
-    # Convert each dictionary in the list to a frozenset so it's hashable
-    set1 = set(map(lambda x: frozenset(x.items()), list1))
-    set2 = set(map(lambda x: frozenset(x.items()), list2))
+# Helper function to convert the hourBucket to a datetime object
+def parse_hour_bucket(hour_bucket):
+    return datetime.strptime(hour_bucket, "%Y-%m-%dT%H:%M:%S%z")
 
-    return set1 == set2
+
+# Helper function to format the datetime object back to hourBucket string
+def format_hour_bucket(date):
+    # Convert to string and add colon in timezone manually
+    return (
+        date.strftime("%Y-%m-%dT%H:%M:%S") + date.strftime("%z")[:3] + ":" + date.strftime("%z")[3:]
+    )
+
+
+def compare_dataset_results(metrics_dataset_results, errors_dataset_results):
+    # Convert the metrics and datasets into a more searchable structure
+    indexed_metrics_dataset = defaultdict(int)
+    for m in metrics_dataset_results:
+        indexed_metrics_dataset[(m["group_id"], m["project_id"], m["hourBucket"])] = m["count()"]
+
+    indexed_errors_dataset = defaultdict(int)
+    for d in errors_dataset_results:
+        indexed_errors_dataset[(d["group_id"], d["project_id"], d["hourBucket"])] = d["count()"]
+
+    incorrect_values = []
+
+    # Create a combined set of keys to iterate through all possible combinations
+    all_keys = set(indexed_metrics_dataset.keys()) | set(indexed_errors_dataset.keys())
+
+    for key in all_keys:
+        metrics_count = indexed_metrics_dataset[key]
+        errors_count = indexed_errors_dataset[key]
+
+        # If counts are the same, no action needed
+        if metrics_count == errors_count:
+            continue
+
+        # Parse the hourBucket to handle previous and next hours
+        dt_key = parse_hour_bucket(key[2])
+        prev_hour_dt = dt_key - timedelta(hours=1)
+        next_hour_dt = dt_key + timedelta(hours=1)
+        prev_hour = (key[0], key[1], format_hour_bucket(prev_hour_dt))
+        next_hour = (key[0], key[1], format_hour_bucket(next_hour_dt))
+
+        # Calculate balance with adjacent buckets
+        metrics_dataset_balance = (
+            indexed_metrics_dataset.get(prev_hour, 0)
+            + indexed_metrics_dataset.get(next_hour, 0)
+            + metrics_count
+        )
+        errors_dataset_balance = (
+            indexed_errors_dataset.get(prev_hour, 0)
+            + indexed_errors_dataset.get(next_hour, 0)
+            + errors_count
+        )
+
+        # Determine if difference is not balanced
+        if (metrics_count != errors_count) and (
+            metrics_dataset_balance - errors_dataset_balance != 0
+        ):
+            group_id, project_id, hourBucket = key
+            incorrect_values.append(
+                {
+                    "group_id": group_id,
+                    "project_id": project_id,
+                    "hourBucket": hourBucket,
+                    "metrics_dataset_count": metrics_count,
+                    "errors_dataset_count": errors_count,
+                    "adjacent_hour_balance": metrics_dataset_balance - errors_dataset_balance,
+                }
+            )
+
+    return incorrect_values
 
 
 def _generate_generic_metrics_backend_query(
@@ -341,7 +412,6 @@ def _generate_entity_dataset_query(
     end_date: datetime,
     category: GroupCategory | None = None,
 ) -> Query:
-
     """This simply generates a query based on the passed parameters"""
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
