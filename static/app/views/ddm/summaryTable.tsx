@@ -103,7 +103,9 @@ export function SummaryTable({
 
   const rows = series
     .map(s => {
-      const {name} = parseMRI(s.seriesName);
+      const parsed = parseMRI(s.seriesName);
+      const name = parsed?.name ?? s.seriesName;
+
       return {
         ...s,
         ...getValues(s.data),
