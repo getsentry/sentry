@@ -92,7 +92,7 @@ pydantic==1.10.9
 pyjwt==2.4.0
 pyparsing==3.0.9
 pyrsistent==0.18.1
-python-dateutil==2.8.1
+python-dateutil==2.8.2
 python-memcached==1.59
 python-rapidjson==1.8
 python-u2flib-server==5.0.0
