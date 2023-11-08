@@ -270,6 +270,7 @@ class AlertRuleNotification(ProjectNotification):
                 "fallthrough_choice": self.fallthrough_choice.value
                 if self.fallthrough_choice
                 else None,
+                "notification_uuid": self.notification_uuid,
             },
         )
 
@@ -282,6 +283,7 @@ class AlertRuleNotification(ProjectNotification):
                     "target_identifier": self.target_identifier,
                     "group": self.group.id,
                     "project_id": self.project.id,
+                    "notification_uuid": self.notification_uuid,
                 },
             )
             return
