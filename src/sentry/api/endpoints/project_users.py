@@ -19,6 +19,7 @@ QUERY_TO_SNUBA_FIELD_MAPPING = {
     "username": "user_name",
     "email": "user_email",
     "ip": ["ip_address_v4", "ip_address_v6"],
+    "date_created": "timestamp",
 }
 
 
@@ -129,7 +130,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
 def convert_to_event_user(snuba_results):
     eventusers = []
     for result in snuba_results:
-        name = result.get("name", "user_name")
+        name = result.get("name", result.get("user_email", result.get("user_name")))
         ip_address = result.get("ip_address_v4", result.get("ip_address_v6"))
         eventusers.append(
             EventUser(

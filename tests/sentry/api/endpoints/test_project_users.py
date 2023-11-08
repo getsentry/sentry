@@ -6,8 +6,6 @@ from django.utils import timezone
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
-
-# from sentry.models.eventuser import EventUser
 from sentry.utils.eventuser import EventUser
 
 

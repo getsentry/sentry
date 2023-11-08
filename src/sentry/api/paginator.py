@@ -766,16 +766,14 @@ class SnubaRequestPaginator:
         self.dataset = dataset
         self.app_id = app_id
         self.tenant_ids = tenant_ids
+        self.desc = False
         if order_by:
             if order_by.startswith("-"):
                 self.desc = True
                 self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.DESC)])
             else:
-                self.desc = order_by, False
+                self.desc = False
                 self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.ASC)])
-        else:
-            self.key = None
-            self.desc = False
         self.max_limit = max_limit
         self.converter = converter
         self.on_results = on_results
@@ -785,6 +783,7 @@ class SnubaRequestPaginator:
             where_conditions = []
             if query.where:
                 where_conditions = query.where
+                # TODO(isabella): need to pop the most recent where condition if this has been run before (page > 2)
             where_conditions.append(
                 Condition(Column("id"), Op.GT if self.desc else Op.LT, cursor_value)
             )
