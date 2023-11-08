@@ -1691,5 +1691,3 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # END: SDK Crash Detection
-
-register("unsubscribe_link.use_react_views", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
