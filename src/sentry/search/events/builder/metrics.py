@@ -176,7 +176,7 @@ class MetricsQueryBuilder(QueryBuilder):
             interval = self.interval
         else:
             limit = self.limit or Limit(1)
-            alias = spec.mri
+            alias = get_function_alias(spec.field)
             include_series = False
             interval = None
 
@@ -915,7 +915,6 @@ class MetricsQueryBuilder(QueryBuilder):
                                 )
                             )
                     metrics_data = []
-                    # XXX: Now metrics_data is a list
                     for metrics_query in metrics_queries:
                         with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                             metrics_data.append(

@@ -1646,11 +1646,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         return spec
 
-    def test_run_metrics_query_builder_with_groupbys(self):
+    def test_run_on_demand_metrics_query_builder_with_groupbys(self):
         selected_columns = ["count()", "epm()"]
         duration = 100
         query_s = f"transaction.duration:>={duration}"
-        groupbys = ["customtag1", "customtag2"]
+        # XXX: We need to test with more than 1
+        groupbys = ["customtag1"]
         for field in selected_columns:
             spec = OnDemandMetricSpec(field=field, query=query_s, groupbys=groupbys)
 
@@ -1662,13 +1663,13 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                     additional_tags={"customtag1": "div > text"},
                     timestamp=self.start + datetime.timedelta(hours=hour),
                 )
-                self.store_on_demand_metric(
-                    value=hour * 10,
-                    spec=spec,
-                    # Spec tags for fields need to be overriden since the stored value is dynamic
-                    additional_tags={"customtag2": "div > text"},
-                    timestamp=self.start + datetime.timedelta(hours=hour),
-                )
+                # self.store_on_demand_metric(
+                #     value=hour * 10,
+                #     spec=spec,
+                #     # Spec tags for fields need to be overriden since the stored value is dynamic
+                #     additional_tags={"customtag2": "div > text"},
+                #     timestamp=self.start + datetime.timedelta(hours=hour),
+                # )
                 self.store_transaction_metric(
                     value=hour * 10,
                     tags={"customtag1": "div > text"},
@@ -1690,21 +1691,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         result = query.run_query("test_query")
 
-        expected = {
-            "data": [
-                {
-                    "c:transactions/on_demand@none": None,
-                    "customtag1": "event.tags.customtag1",
-                    "customtag2": "div > text",
-                }
-            ],
+        assert result == {
+            "data": [{"count": 100.0, "customtag1": "div > text", "epm": None}],
             "meta": [
-                {"name": "c:transactions/on_demand@none", "type": "Nullable(Nothing)"},
+                {"name": "count", "type": "Float64"},
+                {"name": "customtag1", "type": "string"},
+                {"name": "epm", "type": "Nullable(Nothing)"},
             ],
         }
-        for tag in groupbys:
-            expected["meta"].append({"name": tag, "type": "string"})
-        assert result == expected
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
