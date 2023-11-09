@@ -8,7 +8,7 @@ from sentry.utils.relocation import (
     OrderedTask,
     fail_relocation,
     retry_task_or_fail_relocation,
-    start_task,
+    start_relocation_task,
 )
 
 
@@ -22,8 +22,8 @@ class RelocationUtilsTestCase(TestCase):
             "superuser", is_superuser=True, is_staff=True, is_active=True
         )
         self.relocation: Relocation = Relocation.objects.create(
-            creator=self.superuser.id,
-            owner=self.owner.id,
+            creator_id=self.superuser.id,
+            owner_id=self.owner.id,
             want_org_slugs=["testing"],
             step=Relocation.Step.UPLOADING.value,
         )
@@ -33,7 +33,7 @@ class RelocationUtilsTestCase(TestCase):
 class RelocationStartTestCase(RelocationUtilsTestCase):
     def test_bad_relocation_not_found(self):
         uuid = uuid4().hex
-        (relocation, attempts_left) = start_task(
+        (relocation, attempts_left) = start_relocation_task(
             uuid, Relocation.Step.UPLOADING, OrderedTask.UPLOADING_COMPLETE, 3
         )
 
@@ -44,7 +44,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         self.relocation.status = Relocation.Status.FAILURE.value
         self.relocation.save()
 
-        (relocation, attempts_left) = start_task(
+        (relocation, attempts_left) = start_relocation_task(
             self.uuid, Relocation.Step.UPLOADING, OrderedTask.UPLOADING_COMPLETE, 3
         )
 
@@ -53,7 +53,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
     def test_bad_unknown_task(self):
-        (relocation, attempts_left) = start_task(
+        (relocation, attempts_left) = start_relocation_task(
             self.uuid, Relocation.Step.UPLOADING, OrderedTask.NONE, 3
         )
 
@@ -65,7 +65,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
         self.relocation.save()
 
-        (relocation, attempts_left) = start_task(
+        (relocation, attempts_left) = start_relocation_task(
             self.uuid, Relocation.Step.UPLOADING, OrderedTask.UPLOADING_COMPLETE, 3
         )
 
@@ -74,7 +74,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
     def test_good_first_task(self):
-        (relocation, attempts_left) = start_task(
+        (relocation, attempts_left) = start_relocation_task(
             self.uuid, Relocation.Step.UPLOADING, OrderedTask.UPLOADING_COMPLETE, 3
         )
 
@@ -92,7 +92,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
 
         assert self.relocation.step == Relocation.Step.UPLOADING.value
 
-        (relocation, attempts_left) = start_task(
+        (relocation, attempts_left) = start_relocation_task(
             self.uuid, Relocation.Step.PREPROCESSING, OrderedTask.PREPROCESSING_SCAN, 3
         )
 

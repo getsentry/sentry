@@ -69,6 +69,7 @@ class TestCommitContextMixin(TestCase):
                             "lineno": 30,
                             "filename": "sentry/tasks.py",
                         },
+                        None,
                         {
                             "function": "set_commits",
                             "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
@@ -1128,7 +1129,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         )
 
         mock_logger_exception.assert_any_call(
-            "process_commit_context.get_commit_context_all_frames.unknown_error",
+            "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
             extra={
                 "organization": self.organization.id,
                 "group": self.event.group_id,

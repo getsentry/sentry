@@ -6,6 +6,7 @@ import debounce from 'lodash/debounce';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {IconReleases} from 'sentry/icons/iconReleases';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -23,7 +24,7 @@ type Props = {
   selectorValue?: string;
 };
 
-export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Props) {
+export function ReleaseSelector({selectorKey, selectorValue}: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm);
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
@@ -67,10 +68,10 @@ export function ReleaseSelector({selectorName, selectorKey, selectorValue}: Prop
   return (
     <StyledCompactSelect
       triggerProps={{
-        prefix: selectorName,
+        icon: <IconReleases />,
         title: selectorValue,
       }}
-      triggerLabel={selectorValue ? centerTruncate(selectorValue, 20) : selectorValue}
+      triggerLabel={selectorValue ? centerTruncate(selectorValue, 16) : selectorValue}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable

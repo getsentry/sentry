@@ -45,7 +45,7 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         try:
-            replay_id = str(uuid.UUID(replay_id))
+            replay_id = str(uuid.UUID(replay_id)).replace("-", "")
         except ValueError:
             return Response(status=404)
 

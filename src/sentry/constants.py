@@ -707,6 +707,56 @@ HEALTH_CHECK_GLOBS = [
     "*/ping",
 ]
 
+
+NEL_CULPRITS = {
+    # https://w3c.github.io/network-error-logging/#predefined-network-error-types
+    "dns.unreachable": "DNS server is unreachable",
+    "dns.name_not_resolved": "DNS server responded but is unable to resolve the address",
+    "dns.failed": "Request to the DNS server failed due to reasons not covered by previous errors",
+    "dns.address_changed": "Indicates that the resolved IP address for a request's origin has changed since the corresponding NEL policy was received",
+    "tcp.timed_out": "TCP connection to the server timed out",
+    "tcp.closed": "The TCP connection was closed by the server",
+    "tcp.reset": "The TCP connection was reset",
+    "tcp.refused": "The TCP connection was refused by the server",
+    "tcp.aborted": "The TCP connection was aborted",
+    "tcp.address_invalid": "The IP address is invalid",
+    "tcp.address_unreachable": "The IP address is unreachable",
+    "tcp.failed": "The TCP connection failed due to reasons not covered by previous errors",
+    "tls.version_or_cipher_mismatch": "The TLS connection was aborted due to version or cipher mismatch",
+    "tls.bad_client_auth_cert": "The TLS connection was aborted due to invalid client certificate",
+    "tls.cert.name_invalid": "The TLS connection was aborted due to invalid name",
+    "tls.cert.date_invalid": "The TLS connection was aborted due to invalid certificate date",
+    "tls.cert.authority_invalid": "The TLS connection was aborted due to invalid issuing authority",
+    "tls.cert.invalid": "The TLS connection was aborted due to invalid certificate",
+    "tls.cert.revoked": "The TLS connection was aborted due to revoked server certificate",
+    "tls.cert.pinned_key_not_in_cert_chain": "The TLS connection was aborted due to a key pinning error",
+    "tls.protocol.error": "The TLS connection was aborted due to a TLS protocol error",
+    "tls.failed": "The TLS connection failed due to reasons not covered by previous errors",
+    "http.error": "The user agent successfully received a response, but it had a {} status code",
+    "http.protocol.error": "The connection was aborted due to an HTTP protocol error",
+    "http.response.invalid": "Response is empty, has a content-length mismatch, has improper encoding, and/or other conditions that prevent user agent from processing the response",
+    "http.response.redirect_loop": "The request was aborted due to a detected redirect loop",
+    "http.failed": "The connection failed due to errors in HTTP protocol not covered by previous errors",
+    "abandoned": "User aborted the resource fetch before it is complete",
+    "unknown": "error type is unknown",
+    # Chromium-specific errors, not documented in the spec
+    # https://chromium.googlesource.com/chromium/src/+/HEAD/net/network_error_logging/network_error_logging_service.cc
+    "dns.protocol": "ERR_DNS_MALFORMED_RESPONSE",
+    "dns.server": "ERR_DNS_SERVER_FAILED",
+    "tls.unrecognized_name_alert": "ERR_SSL_UNRECOGNIZED_NAME_ALERT",
+    "h2.ping_failed": "ERR_HTTP2_PING_FAILED",
+    "h2.protocol.error": "ERR_HTTP2_PROTOCOL_ERROR",
+    "h3.protocol.error": "ERR_QUIC_PROTOCOL_ERROR",
+    "http.response.invalid.empty": "ERR_EMPTY_RESPONSE",
+    "http.response.invalid.content_length_mismatch": "ERR_CONTENT_LENGTH_MISMATCH",
+    "http.response.invalid.incomplete_chunked_encoding": "ERR_INCOMPLETE_CHUNKED_ENCODING",
+    "http.response.invalid.invalid_chunked_encoding": "ERR_INVALID_CHUNKED_ENCODING",
+    "http.request.range_not_satisfiable": "ERR_REQUEST_RANGE_NOT_SATISFIABLE",
+    "http.response.headers.truncated": "ERR_RESPONSE_HEADERS_TRUNCATED",
+    "http.response.headers.multiple_content_disposition": "ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_DISPOSITION",
+    "http.response.headers.multiple_content_length": "ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_LENGTH",
+}
+
 # Generated from https://raw.githubusercontent.com/github-linguist/linguist/master/lib/linguist/languages.yml and our list of platforms/languages
 EXTENSION_LANGUAGE_MAP = {
     "c": "c",

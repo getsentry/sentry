@@ -82,10 +82,15 @@ export function SampleList({
     transaction: transactionName,
   })}`;
 
+  let extraQuery: string[] | undefined = undefined;
+  if (query.query) {
+    extraQuery = Array.isArray(query.query) ? query.query : [query.query];
+  }
+
   function defaultOnClose() {
     router.replace({
       pathname: router.location.pathname,
-      query: omit(router.location.query, 'transaction', 'transactionMethod'),
+      query: omit(router.location.query, 'transaction', 'transactionMethod', 'query'),
     });
   }
 
@@ -144,6 +149,7 @@ export function SampleList({
           onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
           groupId={groupId}
           transactionName={transactionName}
+          query={extraQuery}
         />
       </DetailPanel>
     </PageErrorProvider>

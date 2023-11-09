@@ -20,7 +20,7 @@ import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
+import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 type Props = {
@@ -33,21 +33,30 @@ type Props = {
 export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const routingContext = useRoutingContext();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const truncatedPrimary = centerTruncate(primaryRelease ?? '', 15);
+  const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 15);
 
   const eventViewColumns = eventView.getColumns();
 
   const columnNameMap = {
     transaction: t('Screen'),
-    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]:
-      t('TTID (Release 1)'),
-    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]:
-      t('TTID (Release 2)'),
-    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]:
-      t('TTFD (Release 1)'),
-    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]:
-      t('TTFD (Release 2)'),
+    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
+      'TTID (%s)',
+      truncatedPrimary
+    ),
+    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
+      'TTID (%s)',
+      truncatedSecondary
+    ),
+    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
+      'TTFD (%s)',
+      truncatedPrimary
+    ),
+    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
+      'TTFD (%s)',
+      truncatedSecondary
+    ),
     'count()': t('Total Count'),
   };
 
@@ -65,7 +74,9 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         <Fragment>
           <TopResultsIndicator count={TOP_SCREENS} index={index} />
           <Link
-            to={`${routingContext.baseURL}/pageload/spans/?${qs.stringify({
+            to={`/organizations/${
+              organization.slug
+            }/performance/mobile/screens/spans/?${qs.stringify({
               ...location.query,
               project: row['project.id'],
               transaction: row.transaction,
