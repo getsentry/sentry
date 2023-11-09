@@ -14,7 +14,6 @@ from sentry.eventstore.models import BaseEvent
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.eventuser import EventUser
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -27,6 +26,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
+from sentry.utils.eventuser import EventUser
 from sentry.utils.query import celery_run_batch_query
 from sentry.utils.safe import get_path
 
@@ -381,10 +381,12 @@ def get_event_user_from_interface(value, project):
         endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
     )
     return EventUser(
-        ident=value.get("id"),
+        user_ident=value.get("id"),
         email=value.get("email"),
         username=value.get("valuename"),
         ip_address=value.get("ip_address"),
+        project_id=project.id,
+        name=value.get("valuename"),
     )
 
 

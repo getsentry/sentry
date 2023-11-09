@@ -179,7 +179,8 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             return now + timedelta(seconds=offset)
 
         project = self.create_project()
-
+        project.date_added = timezone.now() - timedelta(minutes=10)
+        project.save()
         sequence = itertools.count(0)
         tag_values = itertools.cycle(["red", "green", "blue"])
         user_values = itertools.cycle([{"id": 1}, {"id": 2}])
