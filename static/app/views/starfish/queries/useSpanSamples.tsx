@@ -19,6 +19,7 @@ const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 type Options = {
   groupId: string;
   transactionName: string;
+  query?: string[];
   release?: string;
   transactionMethod?: string;
 };
@@ -38,12 +39,19 @@ export const useSpanSamples = (options: Options) => {
   const url = `/api/0/organizations/${organization.slug}/spans-samples/`;
   const api = useApi();
   const pageFilter = usePageFilters();
-  const {groupId, transactionName, transactionMethod, release} = options;
+  const {
+    groupId,
+    transactionName,
+    transactionMethod,
+    release,
+    query: extraQuery = [],
+  } = options;
   const location = useLocation();
 
   const query = new MutableSearch([
     `${SPAN_GROUP}:${groupId}`,
     `transaction:"${transactionName}"`,
+    ...extraQuery,
   ]);
 
   const filters: SpanSummaryQueryFilters = {
