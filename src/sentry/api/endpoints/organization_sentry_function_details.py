@@ -16,9 +16,9 @@ from sentry.utils.cloudfunctions import delete_function, update_function
 @region_silo_endpoint
 class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def convert_args(self, request, organization_slug, function_slug, *args, **kwargs):

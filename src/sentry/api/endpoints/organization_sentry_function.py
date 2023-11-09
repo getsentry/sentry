@@ -40,8 +40,8 @@ class SentryFunctionSerializer(CamelSnakeSerializer):
 @region_silo_endpoint
 class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     # Creating a new sentry function
