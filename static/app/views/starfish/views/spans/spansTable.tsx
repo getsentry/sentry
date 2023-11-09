@@ -63,10 +63,11 @@ export default function SpansTable({
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const {isLoading, data, meta, pageLinks} = useSpanList(
-    moduleName ?? ModuleName.ALL,
-    endpoint,
-    method,
-    spanCategory,
+    {
+      'span.module': moduleName ?? ModuleName.ALL,
+      transaction: endpoint,
+      'transaction.method': method,
+    },
     [sort],
     limit,
     'api.starfish.use-span-list',
