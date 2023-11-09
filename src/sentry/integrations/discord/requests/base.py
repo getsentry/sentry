@@ -118,7 +118,7 @@ class DiscordRequest:
         signature: str | None = self.request.META.get("HTTP_X_SIGNATURE_ED25519")
         timestamp: str | None = self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP")
         body: str = self.request.body.decode("utf-8")
-        self._info("discord.authorize.auth", extra={"timestamp": timestamp, "body": body})
+        logger.info("discord.authorize.auth", extra={"timestamp": timestamp, "body": body})
         verify_signature(public_key, signature, timestamp, body)
 
     def _validate_identity(self) -> None:
