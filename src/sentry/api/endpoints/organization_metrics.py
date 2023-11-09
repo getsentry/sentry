@@ -24,7 +24,6 @@ from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricPars
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.email.alert_migration import send_alert_migration_emails
 
 
 def get_use_case_id(request: Request) -> UseCaseID:
@@ -70,7 +69,6 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
-        send_alert_migration_emails(organization)
         try:
             metric = get_single_metric_info(
                 projects,

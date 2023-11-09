@@ -1,12 +1,14 @@
 {% extends "sentry/emails/base.html" %}
 
+{% load sentry_assets %}
 {% load i18n %}
 
 {% block main %}
 <h3>Performance based alerts just got a lot more accurate.</h3>
 
 <p>
-    Starting from November 30th, alerts will be based on<strong>all the events you send to Sentry</strong>, not just the
+    Starting from November 30th, alerts will be based on <strong>all the events you send to Sentry</strong>, not just
+    the
     ones that are stored.
 </p>
 
@@ -18,6 +20,8 @@
     reviewing the thresholds of each affected alert. This will allow you to migrate alerts ahead of time with the
     assurance that they will work as expected.
 </p>
+
+<img src="{% absolute_asset_url 'sentry' 'images/email/alerts-migration-lgtm.png' %}"/>
 
 <h4>How do I review my thresholds?</h4>
 
@@ -36,16 +40,15 @@
     If you need any assistance, please reply to this email or contact support@sentry.io.
 </p>
 
-<p><a href="{{ performance_alerts_url }}" class="btn">View Performance Alerts</a></p>
+<p><a href="{{ alerts_url }}" class="btn">View Performance Alerts</a></p>
 
-<h5>Affected Alerts</h5>
-
-<hr/>
+<h5 class="header">Affected Alerts</h5>
 
 <ul>
-    {% for url, name, in alerts %}
+    {% for url, name in alerts %}
     <li>
         <a href="{{ url }}">{{ name }}</a>
     </li>
+    {% endfor %}
 </ul>
 {% endblock %}
