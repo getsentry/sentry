@@ -125,6 +125,7 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
 
     const unresolvedQuery = omit(query, 'status');
     const allIssuesQuery = {...query, status: ''};
+    const hasNewFeedback = organization.features.includes('user-feedback-ui');
 
     return (
       <PageFiltersContainer>
@@ -141,30 +142,32 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
                 />
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <Tooltip
-                title={t('Go back to the new feedback layout.')}
-                position="left"
-                isHoverable
-              >
-                <Button
-                  size="sm"
-                  priority="default"
-                  to={{
-                    pathname: normalizeUrl(
-                      `/organizations/${organization.slug}/feedback/`
-                    ),
-                    query: {
-                      ...location.query,
-                      query: undefined,
-                      cursor: undefined,
-                    },
-                  }}
+            {hasNewFeedback && (
+              <Layout.HeaderActions>
+                <Tooltip
+                  title={t('Go back to the new feedback layout.')}
+                  position="left"
+                  isHoverable
                 >
-                  {t('Go to New User Feedback')}
-                </Button>
-              </Tooltip>
-            </Layout.HeaderActions>
+                  <Button
+                    size="sm"
+                    priority="default"
+                    to={{
+                      pathname: normalizeUrl(
+                        `/organizations/${organization.slug}/feedback/`
+                      ),
+                      query: {
+                        ...location.query,
+                        query: undefined,
+                        cursor: undefined,
+                      },
+                    }}
+                  >
+                    {t('Go to New User Feedback')}
+                  </Button>
+                </Tooltip>
+              </Layout.HeaderActions>
+            )}
           </Layout.Header>
           <Layout.Body data-test-id="user-feedback">
             <Layout.Main fullWidth>
