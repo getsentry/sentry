@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Callable
 
 from django.core.exceptions import DisallowedHost
@@ -8,6 +9,8 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
 from sentry import options
+
+logger = logging.getLogger(__name__)
 
 
 class SubdomainMiddleware:
@@ -36,6 +39,10 @@ class SubdomainMiddleware:
             host = request.get_host().lower()
         except DisallowedHost:
             url_prefix = options.get("system.url-prefix")
+            logger.info(
+                "subdomain.disallowed_host",
+                extra={"location": url_prefix, "host": request.get_host()},
+            )
             return HttpResponseRedirect(url_prefix)
 
         if not host.endswith(f".{self.base_hostname}"):
