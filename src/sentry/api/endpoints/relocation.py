@@ -77,7 +77,7 @@ class RelocationEndpoint(Endpoint):
 
         # Quickly check that this `owner` does not have more than one active `Relocation` in flight.
         if Relocation.objects.filter(
-            owner=owner.id, status=Relocation.Status.IN_PROGRESS.value
+            owner_id=owner.id, status=Relocation.Status.IN_PROGRESS.value
         ).exists():
             return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=409)
 
@@ -91,8 +91,8 @@ class RelocationEndpoint(Endpoint):
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationFile))
         ):
             relocation: Relocation = Relocation.objects.create(
-                creator=request.user.id,
-                owner=owner.id,
+                creator_id=request.user.id,
+                owner_id=owner.id,
                 want_org_slugs=org_slugs,
                 step=Relocation.Step.UPLOADING.value,
             )

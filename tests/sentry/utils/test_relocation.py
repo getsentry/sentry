@@ -22,8 +22,8 @@ class RelocationUtilsTestCase(TestCase):
             "superuser", is_superuser=True, is_staff=True, is_active=True
         )
         self.relocation: Relocation = Relocation.objects.create(
-            creator=self.superuser.id,
-            owner=self.owner.id,
+            creator_id=self.superuser.id,
+            owner_id=self.owner.id,
             want_org_slugs=["testing"],
             step=Relocation.Step.UPLOADING.value,
         )

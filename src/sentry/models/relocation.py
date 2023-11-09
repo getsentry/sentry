@@ -7,10 +7,9 @@ from uuid import uuid4
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import region_silo_only_model
+from sentry.db.models import BoundedBigIntegerField, region_silo_only_model
 from sentry.db.models.base import DefaultFieldsModel, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.uuid import UUIDField
 
 logger = logging.getLogger(__name__)
@@ -28,6 +27,7 @@ class Relocation(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Excluded
+    __relocation_dependencies__ = {"sentry.User"}
 
     # The last stage this relocation reached. If the `Status` is `IN_PROGRESS`, the relocation is
     # still active; otherwise, this can be considered the terminal stage.
@@ -66,22 +66,14 @@ class Relocation(DefaultFieldsModel):
 
     # The user that requested this relocation - if the request was made by an admin on behalf of a
     # user, this will be different from `owner`. Otherwise, they are identical.
-    #
-    # This is left NULL because we want to retain the ability to audit and rollback a `Relocation`
-    # even in the (unlikely) event of an admin account being deleted, but that `NULL` should never
-    # be set at creation time.
-    creator = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    creator_id = BoundedBigIntegerField()
 
     # The user that will be marked as the `owner` of this relocation. This is subtly different from
     # the `creator` - anyone with superuser privileges can create a new relocation, but it must
     # always be assigned to some user who will be responsible for it (ex: will become a global admin
     # for all newly imported orgs, will receive emails with status updates as the relocation
     # progresses, etc) over its lifetime and once it is completed.
-    #
-    # This is left NULL because we want to retain the ability to audit and rollback a `Relocation`
-    # even in the event of the owner's account being deleted, but that `NULL` should never be set at
-    # creation time.
-    owner = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    owner_id = BoundedBigIntegerField()
 
     # Unique ID for this import attempt. All assembled files in the remote filestore will be in a
     # directory named after this UUID.
