@@ -928,7 +928,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
 
         assert response.status_code == 200, response.content
 
-        print(response.data)
         groups = [
             ("foo,red", "count()", 0.0, 1488.0),
             ("foo,red", "count_web_vitals(measurements.lcp, good)", 0.0, 0.0),
