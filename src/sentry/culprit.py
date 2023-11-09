@@ -79,4 +79,4 @@ def get_nel_culprit(data_nel):
     ty = body.get("type", "<missing>")
     if ty == "http.error":
         return NEL_CULPRITS[ty].format(body.get("status_code"))
-    return NEL_CULPRITS.get(ty, f"Unknown type: {ty}")
+    return NEL_CULPRITS.get(ty, ty)
