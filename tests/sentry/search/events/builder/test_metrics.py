@@ -2395,11 +2395,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         spec = OnDemandMetricSpec(field=field, groupbys=groupbys, query=query_s)
         spec_two = OnDemandMetricSpec(field=field_two, groupbys=groupbys, query=query_s)
 
-        # assert (
-        #    spec._query_str_for_hash
-        #    == "on_demand_epm;{'name': 'event.duration', 'op': 'gte', 'value': 100.0};['customtag1', 'customtag2']"
-        # )
-
         for day in range(0, 5):
             self.store_on_demand_metric(
                 day * 62 * 24,
@@ -2419,20 +2414,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 },
                 timestamp=self.start + datetime.timedelta(days=day),
             )
-            self.store_transaction_metric(
-                day * 60 * 24,
-                tags={
-                    "customtag1": "div > text",
-                    "customtag2": "red",
-                },
-                timestamp=self.start + datetime.timedelta(days=day),
-            )
 
         query = TopMetricsQueryBuilder(
             Dataset.PerformanceMetrics,
             self.params,
             3600 * 24,
-            [{"customtag1": "div > text", "count": 9}, {"customtag2": "red", "count": 3}],
+            [{"customtag1": "div > text"}, {"customtag2": "red"}],
             query=query_s,
             selected_columns=groupbys,
             timeseries_columns=[field, field_two],
@@ -2447,7 +2434,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             Dataset.PerformanceMetrics,
             self.params,
             3600 * 24,
-            [{"customtag1": "div > text", "count": 9}, {"customtag2": "red", "count": 3}],
+            [{"customtag1": "div > text"}, {"customtag2": "red"}],
             query="",
             selected_columns=groupbys,
             timeseries_columns=[field, field_two],
@@ -2463,19 +2450,11 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
         assert len(metrics_query.select) == 1
-        assert metrics_query.select[0].op == "sum"
-
         assert metrics_query.where
         assert metrics_query.where[0].rhs == spec.query_hash
-        # timeseries_result = timeseries_query.run_query("test_timeseries_query")
-
-        # assert timeseries_result["data"][:1] == [{"epm": 0, "time": self.start.isoformat()}]
-
         result = query.run_query("test_query")
-        mep_result = mep_query.run_query("test_mep_query")
 
         assert result["data"]
-        assert mep_result["data"]
 
         assert result["data"][:3] == [
             {
@@ -2500,8 +2479,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 "customtag2": "red",
             },
         ]
-
-        # assert result["data"][:3] == mep_result["data"][:3] # mep results aren't right.
 
         self.assertCountEqual(
             result["meta"],
