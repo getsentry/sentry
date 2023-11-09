@@ -25,7 +25,7 @@
             },
             "dsn": {
                 "type": "object",
-                "required": ["cdn", "csp", "minidump", "public", "secret", "security"],
+                "required": ["cdn", "csp", "minidump", "nel", "public", "secret", "security"],
                 "properties": {
                     "cdn": {
                         "type": "string"
@@ -34,6 +34,9 @@
                         "type": "string"
                     },
                     "minidump": {
+                        "type": "string"
+                    },
+                    "nel": {
                         "type": "string"
                     },
                     "public": {
