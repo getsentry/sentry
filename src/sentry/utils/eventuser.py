@@ -35,7 +35,7 @@ class EventUser:
     username: Optional[str]
     name: Optional[str]
     ip_address: Optional[str]
-    user_id: Optional[int]
+    user_ident: Optional[int]
     id: Optional[int] = None  # EventUser model id
 
     @staticmethod
@@ -47,7 +47,7 @@ class EventUser:
             username=event.data.get("user", {}).get("username") if event else None,
             name=event.data.get("user", {}).get("name") if event else None,
             ip_address=event.data.get("user", {}).get("ip_address") if event else None,
-            user_id=event.data.get("user", {}).get("id") if event else None,
+            user_ident=event.data.get("user", {}).get("id") if event else None,
         )
 
     def get_display_name(self):
@@ -116,13 +116,13 @@ class EventUser:
         Converts the object from the Snuba query into an EventUser instance
         """
         return EventUser(
-            id=result.get("user_id"),
+            id=None,
             project_id=result.get("project_id"),
             email=result.get("user_email"),
             username=result.get("user_name"),
             name=result.get("user_name"),
             ip_address=result.get("ip_address_4") or result.get("ip_address_6"),
-            user_id=result.get("user_id"),
+            user_ident=result.get("user_id"),
         )
 
     @property
@@ -130,7 +130,7 @@ class EventUser:
         """
         Return the identifier to link this user.
         """
-        return f"id:{self.user_id}"
+        return f"id:{self.user_ident}"
 
     def serialize(self):
         return {
