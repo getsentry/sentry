@@ -1,6 +1,5 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -30,12 +29,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const {
-    data: projKeyData,
-    isLoading,
-    isFetching,
-    isError,
-  } = useApiQuery<ProjectKey>(
+  const {data: projKeyData, isError} = useApiQuery<ProjectKey>(
     [`/projects/${organization.slug}/${projectId}/keys/${keyId}/`],
     {staleTime: 0}
   );
@@ -43,7 +37,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
   function onDataChange(data: ProjectKey) {
     setApiQueryData<ProjectKey>(
       queryClient,
-      [`/projects/${organization.slug}/${projectId}/keys/${keyId}/`, {}],
+      [`/projects/${organization.slug}/${projectId}/keys/${keyId}/`],
       oldData => {
         return {...oldData, data};
       }
@@ -60,13 +54,9 @@ export default function ProjectKeyDetails({organization, params, project}: Props
     return <RouteError />;
   }
 
-  if (isLoading || isFetching) {
-    return <LoadingIndicator />;
-  }
-
-  return (
-    <SentryDocumentTitle title={t('Key Details')} data-test-id="key-details">
-      <SettingsPageHeader title={t('Key Details')} />
+  return projKeyData ? (
+    <SentryDocumentTitle title={t('Key Details')}>
+      <SettingsPageHeader title={t('Key Details')} data-test-id="key-details" />
       <PermissionAlert project={project} />
       <KeyStats api={api} organization={organization} params={params} />
       <KeySettings
@@ -78,5 +68,5 @@ export default function ProjectKeyDetails({organization, params, project}: Props
         params={params}
       />
     </SentryDocumentTitle>
-  );
+  ) : null;
 }
