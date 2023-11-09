@@ -109,7 +109,7 @@ openapi-spec-validator==0.4.0
 outcome==1.2.0
 packaging==21.3
 parse==1.19.0
-parsimonious==0.8.0
+parsimonious==0.9.0
 pathspec==0.9.0
 pep517==0.12.0
 petname==2.6
@@ -159,6 +159,7 @@ pyyaml==5.4
 rb==1.10.0
 redis==3.4.1
 redis-py-cluster==2.1.0
+regex==2022.9.13
 reportlab==3.6.13
 requests==2.31.0
 requests-oauthlib==1.2.0
