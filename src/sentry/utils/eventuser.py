@@ -39,7 +39,7 @@ class EventUser:
     id: Optional[int] = None  # EventUser model id
 
     @staticmethod
-    def from_event(event: Event):
+    def from_event(event: Event) -> EventUser:
         return EventUser(
             id=None,
             project_id=event.project_id if event else None,
@@ -58,7 +58,13 @@ class EventUser:
         return KEYWORD_MAP.get_key(keyword)
 
     @classmethod
-    def for_projects(self, projects: List[Project], keyword_filters: Mapping[str, Any]):
+    def for_projects(
+        self, projects: List[Project], keyword_filters: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
+        """
+        Fetch the EventUsers for a list of projects with a Snuba query.
+        Valid `keyword_filters` keys are in KEYWORD_MAP.
+        """
         oldest_project = min(projects, key=lambda item: item.date_added)
 
         where_conditions = [
@@ -103,7 +109,10 @@ class EventUser:
         return results
 
     @staticmethod
-    def from_snuba(result: Mapping[str, Any]):
+    def from_snuba(result: Mapping[str, Any]) -> EventUser:
+        """
+        Converts the object from the Snuba query into an EventUser instance
+        """
         return EventUser(
             id=result.get("user_id"),
             project_id=result.get("project_id"),
@@ -115,9 +124,9 @@ class EventUser:
         )
 
     @property
-    def tag_value(self):
+    def tag_value(self) -> str:
         """
-        Return the identifier used with tags to link this user.
+        Return the identifier to link this user.
         """
         return f"id:{self.user_id}"
 
