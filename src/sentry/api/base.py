@@ -11,9 +11,8 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
-from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import BasePermission
@@ -87,13 +86,6 @@ DEFAULT_AUTHENTICATION = (
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
-
-DEFAULT_SLUG_PATTERN = r"^[a-z0-9_\-]+$"
-NON_NUMERIC_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
-DEFAULT_SLUG_ERROR_MESSAGE = _(
-    "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
-    "It cannot be entirely numeric."
-)
 
 
 def allow_cors_options(func):
@@ -584,17 +576,6 @@ class ReleaseAnalyticsMixin:
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
-
-
-class PreventNumericSlugMixin:
-    def validate_slug(self, slug: str) -> str:
-        """
-        Validates that the slug is not entirely numeric. Requires a feature flag
-        to be turned on.
-        """
-        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
-            raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
-        return slug
 
 
 def resolve_region(request: HttpRequest) -> Optional[str]:

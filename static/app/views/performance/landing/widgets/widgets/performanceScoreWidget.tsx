@@ -40,9 +40,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
     <GenericPerformanceWidget
       {...props}
       location={location}
-      Subtitle={() => (
-        <Subtitle>{props.subTitle ?? t('P75 in Top Transactions')}</Subtitle>
-      )}
+      Subtitle={() => <Subtitle>{props.subTitle}</Subtitle>}
       HeaderActions={() => (
         <div>
           <LinkButton

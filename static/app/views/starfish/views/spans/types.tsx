@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {RATE_UNIT_TITLE, RateUnits} from 'sentry/utils/discover/fields';
 
 export type DataKey =
   | 'change'
@@ -38,12 +39,15 @@ export const DataTitles: Record<DataKey, string> = {
   'avg(http.response_transfer_size)': t('Avg Transfer Size'),
 };
 
-export const getThroughputTitle = (spanOp?: string) => {
+export const getThroughputTitle = (
+  spanOp?: string,
+  throughputUnit = RateUnits.PER_MINUTE
+) => {
   if (spanOp?.startsWith('db')) {
-    return t('Queries Per Min');
+    return `${t('Queries')} ${RATE_UNIT_TITLE[throughputUnit]}`;
   }
   if (defined(spanOp)) {
-    return t('Requests');
+    return `${t('Requests')} ${RATE_UNIT_TITLE[throughputUnit]}`;
   }
   return '--';
 };
@@ -56,12 +60,15 @@ export const getDurationChartTitle = (spanOp?: string) => {
   return '--';
 };
 
-export const getThroughputChartTitle = (spanOp?: string) => {
+export const getThroughputChartTitle = (
+  spanOp?: string,
+  throughputUnit = RateUnits.PER_MINUTE
+) => {
   if (spanOp?.startsWith('db')) {
-    return t('Queries Per Minute');
+    return `${t('Queries')} ${RATE_UNIT_TITLE[throughputUnit]}`;
   }
   if (spanOp) {
-    return t('Requests Per Minute');
+    return `${t('Requests')} ${RATE_UNIT_TITLE[throughputUnit]}`;
   }
   return '--';
 };

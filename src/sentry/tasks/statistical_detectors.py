@@ -290,16 +290,13 @@ def _detect_transaction_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
+            "min_change()": 200,  # require a minimum 200ms increase (in ms)
+            "trend_percentage()": 0.5,  # require a minimum 50% increase
+            "validate_tail_hours": 6,
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
             "allow_midpoint": "0",
-            # TODO: uncomment these thresholds below after the
-            # rollout is complete so that only severe regressions
-            # are promoted to issues.
-            # "trend_percentage()": 0.5,
-            # "min_change()": 200_000_000,
-            # "validate_tail_hours": 12,
         }
 
         try:
@@ -770,10 +767,9 @@ def _detect_function_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            # TODO: uncomment this threshold below after the
-            # rollout is complete so that only severe regressions
-            # are promoted to issues.
-            # "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
+            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
+            "trend_percentage()": 0.5,  # require a minimum 50% increase
+            "validate_tail_hours": 6,
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
