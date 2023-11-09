@@ -348,10 +348,10 @@ def retry_task_or_fail_relocation(
         # `FAILURE`.
         if attempts_left == 0:
             fail_relocation(relocation, task, reason)
-            return
+        else:
+            logger_data["reason"] = reason
+            logger.info("Task retried", extra=logger_data)
 
-        logger_data["reason"] = reason
-        logger.info("Task retried", extra=logger_data)
         raise e
     else:
         logger.info("Task finished", extra=logger_data)

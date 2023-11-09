@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -46,7 +48,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.snuba.metrics.extraction import (
@@ -55,7 +57,8 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
-from sentry.snuba.metrics.query import MetricField, MetricsQuery
+from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery
+from sentry.snuba.metrics.utils import get_num_intervals
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
@@ -121,7 +124,9 @@ class MetricsQueryBuilder(QueryBuilder):
         if not field:
             return None
 
-        if not should_use_on_demand_metrics(self.dataset, field, self.query):
+        groupby_columns = self._get_group_bys()
+
+        if not should_use_on_demand_metrics(self.dataset, field, self.query, groupby_columns):
             return None
 
         try:
@@ -129,10 +134,16 @@ class MetricsQueryBuilder(QueryBuilder):
             if self.params.environments:
                 environment = self.params.environments[0].name
 
-            return OnDemandMetricSpec(field, self.query, environment)
+            return OnDemandMetricSpec(field, self.query, environment, groupby_columns)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
+
+    def _get_group_bys(self) -> list[str]:
+        return [c for c in self.selected_columns if not fields.is_function(c)]
+
+    def _get_aggregates(self) -> list[str]:
+        return [c for c in self.selected_columns if fields.is_function(c)]
 
     @cached_property
     def _has_on_demand_specs(self) -> bool:
@@ -147,11 +158,18 @@ class MetricsQueryBuilder(QueryBuilder):
         return {
             col: self._get_on_demand_metric_spec(col)
             for col in aggregate_columns
-            if self._get_on_demand_metric_spec(col)
+            # Replace with proper table code later
+            if fields.is_function(col) and self._get_on_demand_metric_spec(col)
         }
 
     def _get_metrics_query_from_on_demand_spec(
-        self, spec: OnDemandMetricSpec, require_time_range: bool = True
+        self,
+        spec: OnDemandMetricSpec,
+        require_time_range: bool = True,
+        groupby: Optional[Sequence[MetricGroupByField]] = None,
+        # Where normally isn't accepted for on-demand since it should only encoded into the metric
+        # but in the case of top events, etc. there is need for another where condition dynamically for top N groups.
+        additional_where: Optional[Sequence[Condition]] = None,
     ) -> MetricsQuery:
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
@@ -161,14 +179,36 @@ class MetricsQueryBuilder(QueryBuilder):
                 "An on demand metrics query requires at least one selected column"
             )
 
-        if isinstance(self, TimeseriesMetricQueryBuilder):
+        max_limit = None
+        if isinstance(self, TopMetricsQueryBuilder):
+            limit = self.limit or Limit(1)
+            # Top N events passes a limit of 10000 by default. That's also the upper bound for metrics layer, so
+            # we need to reduce the interval.
+            intervals_len = get_num_intervals(
+                start=self.start,
+                end=self.end,
+                granularity=self.granularity,
+                interval=self.interval,
+            )
+            if intervals_len > 0:
+                limit = Limit(int(limit.limit / intervals_len))
+            max_limit = 10_000
+            alias = get_function_alias(spec.field) or "count"
+            include_series = True
+            interval = self.interval
+        elif isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)
             alias = get_function_alias(spec.field) or "count"
             include_series = True
             interval = self.interval
-        else:
+        elif isinstance(self, AlertMetricsQueryBuilder):
             limit = self.limit or Limit(1)
             alias = spec.mri
+            include_series = False
+            interval = None
+        else:
+            limit = self.limit or Limit(1)
+            alias = get_function_alias(spec.field) or spec.mri
             include_series = False
             interval = None
 
@@ -194,10 +234,14 @@ class MetricsQueryBuilder(QueryBuilder):
             ),
         ]
 
+        if additional_where:
+            where.extend(additional_where)
+
         return MetricsQuery(
             select=[MetricField(spec.op, spec.mri, alias=alias)],
             where=where,
             limit=limit,
+            max_limit=max_limit,
             offset=self.offset,
             granularity=self.granularity,
             interval=interval,
@@ -205,6 +249,7 @@ class MetricsQueryBuilder(QueryBuilder):
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
             include_series=include_series,
+            groupby=groupby,
             start=start,
             end=end,
         )
@@ -794,30 +839,76 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return primary, query_framework
 
-    def convert_metric_layer_result(self, metrics_data: Any) -> Any:
+    def convert_metric_layer_result(self, metrics_data_list: Any) -> Any:
         """The metric_layer returns results in a non-standard format, this function changes it back to the expected
         one"""
+        seen_metrics_metas = {}
+        seen_total_keys = set()
         with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
             metric_layer_result: Any = {
                 "data": [],
-                "meta": metrics_data["meta"],
+                "meta": [],
             }
-            for group in metrics_data["groups"]:
-                data = group["by"]
-                data.update(group["totals"])
-                metric_layer_result["data"].append(data)
-                for meta in metric_layer_result["meta"]:
-                    if data.get(meta["name"]) is None:
-                        data[meta["name"]] = self.get_default_value(meta["type"])
+            for metrics_data in metrics_data_list:
+                for meta in metrics_data["meta"]:
+                    if meta["name"] not in seen_metrics_metas:
+                        seen_metrics_metas[meta["name"]] = True
+                        metric_layer_result["meta"].append(meta)
+
+                for group in metrics_data["groups"]:
+                    data = group["by"]
+                    data.update(group["totals"])
+                    seen_total_keys.update(group["totals"].keys())
+                    metric_layer_result["data"].append(data)
+                    for meta in metric_layer_result["meta"]:
+                        if data.get(meta["name"]) is None:
+                            data[meta["name"]] = self.get_default_value(meta["type"])
+
+        for item in metric_layer_result["data"]:
+            for total_key in seen_total_keys:
+                if total_key not in item:
+                    item[total_key] = 0.0  # TODO: Check if these are all Float64
 
         return metric_layer_result
 
+    def use_case_id_from_metrics_query(self, metrics_query: MetricsQuery) -> UseCaseID:
+        """
+        Extracts the use case from the `MetricsQuery` which has to be executed in the metrics layer.
+
+        This function could be moved entirely in the `MetricsQuery` object but the metrics layer wasn't designed to
+        infer the use case id but rather it expects to have it specified from the outside.
+
+        Note that this is an alternative way to compute the use case id, which overrides the `use_case_id()` method
+        which is used for non metrics layer queries.
+        """
+        use_case_ids = set()
+
+        for field in metrics_query.select:
+            mri = field.metric_mri
+            if mri:
+                use_case_ids.add(extract_use_case_id(mri=mri))
+
+        if len(use_case_ids) == 0:
+            raise IncompatibleMetricsQuery(
+                "Unable to infer the use case id from the supplied metrics."
+            )
+        elif len(use_case_ids) > 1:
+            raise IncompatibleMetricsQuery(
+                "You can only query metrics belonging to the same use case id."
+            )
+
+        return use_case_ids.pop()
+
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        groupbys = self.groupby
+        if not groupbys and self._has_on_demand_specs:
+            # Need this otherwise top_events returns only 1 item
+            groupbys = [Column(col) for col in self._get_group_bys()]
         groupby_aliases = [
             groupby.alias
             if isinstance(groupby, (AliasedExpression, CurriedFunction))
             else groupby.name
-            for groupby in self.groupby
+            for groupby in groupbys
             if not (
                 isinstance(groupby, CurriedFunction) and groupby.function == "team_key_transaction"
             )
@@ -881,28 +972,41 @@ class MetricsQueryBuilder(QueryBuilder):
                 else:
                     extra_conditions = None
                 try:
+                    metrics_queries = []
                     with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                         if self._has_on_demand_specs:
-                            # TODO: Build queries for each column that has a spec, then merge the data back together.
-                            spec = self._on_demand_metric_spec_map[self.selected_columns[0]]
-                            metrics_query = self._get_metrics_query_from_on_demand_spec(
-                                spec=spec, require_time_range=True
-                            )
+                            aggregates = self._get_aggregates()
+                            group_bys = self._get_group_bys()
+                            for agg in aggregates:
+                                spec = self._on_demand_metric_spec_map[agg]
+                                metrics_queries.append(
+                                    self._get_metrics_query_from_on_demand_spec(
+                                        spec=spec,
+                                        require_time_range=True,
+                                        groupby=[MetricGroupByField(field=c) for c in group_bys],
+                                    )
+                                )
                         else:
-                            metrics_query = transform_mqb_query_to_metrics_query(
-                                self.get_metrics_layer_snql_query(query_details, extra_conditions),
-                                self.is_alerts_query,
+                            metrics_queries.append(
+                                transform_mqb_query_to_metrics_query(
+                                    self.get_metrics_layer_snql_query(
+                                        query_details, extra_conditions
+                                    ),
+                                    self.is_alerts_query,
+                                )
                             )
-                    with sentry_sdk.start_span(op="metric_layer", description="run_query"):
-                        metrics_data = get_series(
-                            projects=self.params.projects,
-                            metrics_query=metrics_query,
-                            use_case_id=UseCaseID.TRANSACTIONS
-                            if self.is_performance
-                            else UseCaseID.SESSIONS,
-                            include_meta=True,
-                            tenant_ids=self.tenant_ids,
-                        )
+                    metrics_data = []
+                    for metrics_query in metrics_queries:
+                        with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                            metrics_data.append(
+                                get_series(
+                                    projects=self.params.projects,
+                                    metrics_query=metrics_query,
+                                    use_case_id=self.use_case_id_from_metrics_query(metrics_query),
+                                    include_meta=True,
+                                    tenant_ids=self.tenant_ids,
+                                )
+                            )
                 except Exception as err:
                     raise IncompatibleMetricsQuery(err)
                 with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
@@ -1080,7 +1184,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             snuba_queries, _ = SnubaQueryBuilder(
                 projects=self.params.projects,
                 metrics_query=metrics_query,
-                use_case_id=UseCaseID.TRANSACTIONS if self.is_performance else UseCaseID.SESSIONS,
+                use_case_id=self.use_case_id_from_metrics_query(metrics_query),
             ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
@@ -1333,9 +1437,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metrics_query,
-                        use_case_id=UseCaseID.TRANSACTIONS
-                        if self.is_performance
-                        else UseCaseID.SESSIONS,
+                        use_case_id=self.use_case_id_from_metrics_query(metrics_query),
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )
@@ -1387,6 +1489,11 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
 
 class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
+    # Kept for building on demand specs
+    timeseries_columns = []
+    # Needs to be kept for rebuilding where clause for on-demand metrics.
+    top_events = []
+
     def __init__(
         self,
         dataset: Dataset,
@@ -1402,6 +1509,8 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
+        self.timeseries_columns = timeseries_columns
+        self.top_events = top_events
         super().__init__(
             dataset=dataset,
             params=params,
@@ -1414,6 +1523,8 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
         self.fields: List[str] = selected_columns if selected_columns is not None else []
         self.fields = [self.tag_to_prefixed_map.get(c, c) for c in selected_columns]
+        if self._has_on_demand_specs:
+            self.groupby = list(set(selected_columns) - set(timeseries_columns))
 
         if (conditions := self.resolve_top_event_conditions(top_events, other)) is not None:
             self.where.append(conditions)
@@ -1423,10 +1534,21 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 [column for column in self.columns if column not in self.aggregates]
             )
 
+    @cached_property
+    def non_aggregate_columns(self) -> List[str]:
+        return list(set(self.original_selected_columns) - set(self.timeseries_columns))
+
     @property
     def translated_groupby(self) -> List[str]:
         """Get the names of the groupby columns to create the series names"""
         translated = []
+
+        if self._has_on_demand_specs:
+            groupby_columns = self._get_group_bys()
+            for groupby in groupby_columns:
+                translated.append(groupby)
+            return sorted(translated)
+
         for groupby in self.groupby:
             if groupby == self.time_column:
                 continue
@@ -1436,6 +1558,17 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 translated.append(groupby.name)
         # sorted so the result key is consistent
         return sorted(translated)
+
+    @cached_property
+    def _on_demand_metric_spec_map(self) -> Dict[str, OnDemandMetricSpec]:
+        if not self.builder_config.on_demand_metrics_enabled:
+            return None
+
+        return {
+            col: self._get_on_demand_metric_spec(col)
+            for col in self.timeseries_columns
+            if self._get_on_demand_metric_spec(col)
+        }
 
     def resolve_top_event_conditions(
         self, top_events: List[Dict[str, Any]], other: bool
@@ -1477,24 +1610,129 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         return final_condition
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        queries = self.get_snql_query()
-        if queries:
-            results = bulk_snql_query(queries, referrer, use_cache)
-        else:
-            results = []
-
-        time_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        result = {}
+        results = []
         meta_dict = {}
-        for current_result in results:
-            # there's multiple groupbys so we need the unique keys
-            for row in current_result["data"]:
-                result_key = create_result_key(row, self.translated_groupby, {})
-                time_alias = row[self.time_alias]
-                time_map[f"{time_alias}-{result_key}"].update(row)
-            for meta in current_result["meta"]:
-                meta_dict[meta["name"]] = meta["type"]
 
-        return {
-            "data": list(time_map.values()),
-            "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
-        }
+        if self.builder_config.use_metrics_layer or self._has_on_demand_specs:
+            from sentry.snuba.metrics.datasource import get_series
+            from sentry.snuba.metrics.mqb_query_transformer import (
+                transform_mqb_query_to_metrics_query,
+            )
+
+            try:
+                metrics_queries = []
+                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                    if self._has_on_demand_specs:
+                        group_bys = self._get_group_bys()
+
+                        # Using timeseries columns here since epm(%d) etc is resolved.
+                        for agg in self.timeseries_columns:
+                            spec = self._on_demand_metric_spec_map[agg]
+                            top_event_conditions = None
+
+                            if (
+                                condition := self.resolve_top_event_conditions(
+                                    self.top_events, False
+                                )
+                            ) is not None:
+                                top_event_conditions = [condition]
+                            metrics_query = self._get_metrics_query_from_on_demand_spec(
+                                spec=spec,
+                                require_time_range=True,
+                                groupby=[MetricGroupByField(field=c) for c in group_bys],
+                                additional_where=top_event_conditions,
+                            )
+                            metrics_queries.append(metrics_query)
+
+                    elif self.builder_config.use_metrics_layer:
+                        snuba_query = self.get_snql_query()[0].query
+                        metrics_queries.append(
+                            transform_mqb_query_to_metrics_query(snuba_query, self.is_alerts_query)
+                        )
+                metrics_data = []
+                for metrics_query in metrics_queries:
+                    with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                        metrics_data.append(
+                            get_series(
+                                projects=self.params.projects,
+                                metrics_query=metrics_query,
+                                use_case_id=UseCaseID.TRANSACTIONS
+                                if self.is_performance
+                                else UseCaseID.SESSIONS,
+                                include_meta=True,
+                                tenant_ids=self.tenant_ids,
+                            )
+                        )
+            except Exception as err:
+                raise IncompatibleMetricsQuery(err)
+            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+                result = self._metric_layer_result(metrics_data)
+                return result
+
+        else:
+            queries = self.get_snql_query()
+            if queries:
+                results = bulk_snql_query(queries, referrer, use_cache)
+
+            time_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
+            for current_result in results:
+                # there's multiple groupbys so we need the unique keys
+                for row in current_result["data"]:
+                    result_key = create_result_key(row, self.translated_groupby, {})
+                    time_alias = row[self.time_alias]
+                    time_map[f"{time_alias}-{result_key}"].update(row)
+                for meta in current_result["meta"]:
+                    meta_dict[meta["name"]] = meta["type"]
+
+            return {
+                "data": list(time_map.values()),
+                "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
+            }
+
+    def _metric_layer_result(self, metrics_data_list: Any) -> Any:
+        """The metric_layer returns results in a non-standard format, this function changes it back to the expected
+        one"""
+        seen_metrics_metas = {}
+        time_data_map = defaultdict(dict)
+        with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+            metric_layer_result: Any = {
+                "data": [],
+                "meta": [],
+            }
+            for metrics_data in metrics_data_list:
+                for meta in metrics_data["meta"]:
+                    if meta["name"] not in seen_metrics_metas:
+                        seen_metrics_metas[meta["name"]] = True
+                        metric_layer_result["meta"].append(meta)
+                for meta in metric_layer_result["meta"]:
+                    if meta["name"] == "bucketed_time":
+                        meta["name"] = "time"
+
+                for group in metrics_data["groups"]:
+                    group_data = group["by"]
+                    group_key = ",".join(str(group_data[x]) for x in sorted(group_data))
+                    group_data.update(group["totals"])
+
+                    for index, interval in enumerate(metrics_data["intervals"]):
+                        time = interval.isoformat()
+                        has_seen_row = time in time_data_map and group_key in time_data_map[time]
+                        if has_seen_row:
+                            data = time_data_map[time][group_key]
+                        else:
+                            data = {self.time_alias: time}
+                            time_data_map[time][group_key] = data
+
+                        data.update(group_data)
+
+                        for key, value_list in group.get("series", {}).items():
+                            data[key] = value_list[index]
+
+                        if not has_seen_row:
+                            metric_layer_result["data"].append(data)
+
+                        for meta in metric_layer_result["meta"]:
+                            if data.get(meta["name"]) is None:
+                                data[meta["name"]] = self.get_default_value(meta["type"])
+
+        return metric_layer_result

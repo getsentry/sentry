@@ -16,10 +16,10 @@ import {
   SessionApiResponse,
   SessionFieldWithOperation,
 } from 'sentry/types';
-import {defined, percent} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';
-import {displayCrashFreePercent, getCrashFreePercent} from 'sentry/views/releases/utils';
+import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -28,7 +28,9 @@ import {
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
 type Props = DeprecatedAsyncComponent['props'] & {
-  field: SessionFieldWithOperation.SESSIONS | SessionFieldWithOperation.USERS;
+  field:
+    | SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS
+    | SessionFieldWithOperation.CRASH_FREE_RATE_USERS;
   hasSessions: boolean | null;
   isProjectStabilized: boolean;
   organization: Organization;
@@ -65,7 +67,6 @@ class ProjectStabilityScoreCard extends DeprecatedAsyncComponent<Props, State> {
     const commonQuery = {
       environment,
       project: projects[0],
-      groupBy: 'session.status',
       interval: getDiffInMinutes(datetime) > 24 * 60 ? '1d' : '1h',
       query,
       field,
@@ -76,7 +77,7 @@ class ProjectStabilityScoreCard extends DeprecatedAsyncComponent<Props, State> {
 
     const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
       [
-        'currentSessions',
+        'crashFreeRate',
         `/organizations/${organization.slug}/sessions/`,
         {
           query: {
@@ -100,7 +101,7 @@ class ProjectStabilityScoreCard extends DeprecatedAsyncComponent<Props, State> {
       ).statsPeriod;
 
       endpoints.push([
-        'previousSessions',
+        'previousCrashFreeRate',
         `/organizations/${organization.slug}/sessions/`,
         {
           query: {
@@ -116,14 +117,14 @@ class ProjectStabilityScoreCard extends DeprecatedAsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return this.props.field === SessionFieldWithOperation.SESSIONS
+    return this.props.field === SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS
       ? t('Crash Free Sessions')
       : t('Crash Free Users');
   }
 
   get cardHelp() {
     return getSessionTermDescription(
-      this.props.field === SessionFieldWithOperation.SESSIONS
+      this.props.field === SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS
         ? SessionTerm.CRASH_FREE_SESSIONS
         : SessionTerm.CRASH_FREE_USERS,
       null
@@ -131,15 +132,16 @@ class ProjectStabilityScoreCard extends DeprecatedAsyncComponent<Props, State> {
   }
 
   get score() {
-    const {currentSessions} = this.state;
+    const {crashFreeRate} = this.state;
 
-    return this.calculateCrashFree(currentSessions);
+    return crashFreeRate?.groups[0]?.totals[this.props.field] * 100;
   }
 
   get trend() {
-    const {previousSessions} = this.state;
+    const {previousCrashFreeRate} = this.state;
 
-    const previousScore = this.calculateCrashFree(previousSessions);
+    const previousScore =
+      previousCrashFreeRate?.groups[0]?.totals[this.props.field] * 100;
 
     if (!defined(this.score) || !defined(previousScore)) {
       return undefined;
@@ -167,31 +169,6 @@ class ProjectStabilityScoreCard extends DeprecatedAsyncComponent<Props, State> {
     ) {
       this.remountComponent();
     }
-  }
-
-  calculateCrashFree(data?: SessionApiResponse | null) {
-    const {field} = this.props;
-
-    if (!data) {
-      return undefined;
-    }
-
-    const totalSessions = data.groups.reduce(
-      (acc, group) => acc + group.totals[field],
-      0
-    );
-
-    const crashedSessions = data.groups.find(
-      group => group.by['session.status'] === 'crashed'
-    )?.totals[field];
-
-    if (totalSessions === 0 || !defined(totalSessions) || !defined(crashedSessions)) {
-      return undefined;
-    }
-
-    const crashedSessionsPercent = percent(crashedSessions, totalSessions);
-
-    return getCrashFreePercent(100 - crashedSessionsPercent);
   }
 
   renderLoading() {

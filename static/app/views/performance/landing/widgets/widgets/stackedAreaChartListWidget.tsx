@@ -316,27 +316,27 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
               });
 
             formattedWebVitalsScoreBreakdown.total.push({
-              value: totalScore,
+              value: totalScore ?? 0,
               name: dataRow.name,
             });
             formattedWebVitalsScoreBreakdown.cls.push({
-              value: clsScore,
+              value: clsScore ?? 0,
               name: dataRow.name,
             });
             formattedWebVitalsScoreBreakdown.lcp.push({
-              value: lcpScore,
+              value: lcpScore ?? 0,
               name: dataRow.name,
             });
             formattedWebVitalsScoreBreakdown.fcp.push({
-              value: fcpScore,
+              value: fcpScore ?? 0,
               name: dataRow.name,
             });
             formattedWebVitalsScoreBreakdown.ttfb.push({
-              value: ttfbScore,
+              value: ttfbScore ?? 0,
               name: dataRow.name,
             });
             formattedWebVitalsScoreBreakdown.fid.push({
-              value: fidScore,
+              value: fidScore ?? 0,
               name: dataRow.name,
             });
           });
@@ -419,12 +419,15 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
               ttfb: listItem['p75(measurements.ttfb)'] as number,
               fid: listItem['p75(measurements.fid)'] as number,
             });
-            const opportunity = calculateOpportunity(
-              projectScore.totalScore,
-              count,
-              rowScore.totalScore,
-              listItem['count()']
-            );
+            const opportunity =
+              projectScore.totalScore !== null && rowScore.totalScore !== null
+                ? calculateOpportunity(
+                    projectScore.totalScore,
+                    count,
+                    rowScore.totalScore,
+                    listItem['count()']
+                  )
+                : null;
             return (
               <Fragment>
                 <GrowLink
@@ -436,22 +439,24 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
                   <Truncate value={transaction} maxLength={40} />
                 </GrowLink>
                 <StyledRightAlignedCell>
-                  <Tooltip
-                    title={
-                      <span>
-                        {t('The overall performance rating of this page.')}
-                        <br />
-                        <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
-                          {t('How is this calculated?')}
-                        </ExternalLink>
-                      </span>
-                    }
-                    isHoverable
-                  >
-                    <PerformanceBadgeWrapper>
-                      <PerformanceBadge score={rowScore.totalScore} />
-                    </PerformanceBadgeWrapper>
-                  </Tooltip>
+                  {rowScore.totalScore !== null && (
+                    <Tooltip
+                      title={
+                        <span>
+                          {t('The overall performance rating of this page.')}
+                          <br />
+                          <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                            {t('How is this calculated?')}
+                          </ExternalLink>
+                        </span>
+                      }
+                      isHoverable
+                    >
+                      <PerformanceBadgeWrapper>
+                        <PerformanceBadge score={rowScore.totalScore} />
+                      </PerformanceBadgeWrapper>
+                    </Tooltip>
+                  )}
                   {isProjectWebVitalDataLoading ? (
                     <StyledLoadingIndicator size={20} />
                   ) : (

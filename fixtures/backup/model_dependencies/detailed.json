@@ -4991,20 +4991,11 @@
   },
   "sentry.relocation": {
     "dangling": false,
-    "foreign_keys": {
-      "creator": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      },
-      "owner": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      }
-    },
+    "foreign_keys": {},
     "model": "sentry.relocation",
-    "relocation_dependencies": [],
+    "relocation_dependencies": [
+      "sentry.user"
+    ],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"

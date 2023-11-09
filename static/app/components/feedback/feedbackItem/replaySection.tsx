@@ -29,9 +29,10 @@ export default function ReplaySection({eventTimestampMs, organization, replayId}
             replaySlug={replayId}
             orgSlug={organization.slug}
             eventTimestampMs={eventTimestampMs}
+            fromFeedback
             buttonProps={{
-              analyticsEventKey: 'issue_details.open_replay_details_clicked',
-              analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+              analyticsEventKey: 'feedback_details.open_replay_details_clicked',
+              analyticsEventName: 'Feedback Details: Open Replay Details Clicked',
               analyticsParams: {
                 organization,
               },

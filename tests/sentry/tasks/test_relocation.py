@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 import yaml
+from django.core.files.storage import Storage
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google_crc32c import value as crc32c
 
@@ -82,8 +83,8 @@ class RelocationTaskTestCase(TestCase):
         )
         self.login_as(user=self.superuser, superuser=True)
         self.relocation: Relocation = Relocation.objects.create(
-            creator=self.superuser.id,
-            owner=self.owner.id,
+            creator_id=self.superuser.id,
+            owner_id=self.owner.id,
             want_org_slugs=["testing"],
             step=Relocation.Step.UPLOADING.value,
         )
@@ -192,7 +193,8 @@ class UploadingCompleteTest(RelocationTaskTestCase):
         self.relocation.save()
         RelocationFile.objects.filter(relocation=self.relocation).delete()
 
-        uploading_complete(self.relocation.uuid)
+        with pytest.raises(Exception):
+            uploading_complete(self.relocation.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -257,7 +259,8 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_kms_client(fake_kms_client)
 
-        preprocessing_scan(self.uuid)
+        with pytest.raises(Exception):
+            preprocessing_scan(self.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -483,7 +486,8 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_kms_client(fake_kms_client)
 
-        preprocessing_baseline_config(self.uuid)
+        with pytest.raises(Exception):
+            preprocessing_baseline_config(self.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -582,7 +586,8 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_kms_client(fake_kms_client)
 
-        preprocessing_colliding_users(self.uuid)
+        with pytest.raises(Exception):
+            preprocessing_colliding_users(self.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -688,7 +693,8 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation.save()
         RelocationFile.objects.filter(relocation=self.relocation).delete()
 
-        preprocessing_complete(self.relocation.uuid)
+        with pytest.raises(Exception):
+            preprocessing_complete(self.relocation.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -764,7 +770,8 @@ class ValidatingStartTest(RelocationTaskTestCase):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
         fake_cloudbuild_client.create_build.side_effect = Exception("Test")
 
-        validating_start(self.relocation.uuid)
+        with pytest.raises(Exception):
+            validating_start(self.relocation.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -948,11 +955,35 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
         fake_cloudbuild_client.get_build.side_effect = Exception("Test")
 
-        validating_poll(self.relocation.uuid, self.relocation_validation_attempt.build_id)
+        with pytest.raises(Exception):
+            validating_poll(self.relocation.uuid, self.relocation_validation_attempt.build_id)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.failure_reason == ERR_VALIDATING_INTERNAL
+
+
+def mock_invalid_finding(storage: Storage, uuid: str):
+    storage.save(
+        f"relocations/runs/{uuid}/findings/import-baseline-config.json",
+        BytesIO(
+            b"""
+[
+    {
+        "finding": "RpcImportError",
+        "kind": "Unknown",
+        "left_pk": 2,
+        "on": {
+            "model": "sentry.email",
+            "ordinal": 1
+        },
+        "reason": "test reason",
+        "right_pk": 3
+    }
+]
+            """
+        ),
+    )
 
 
 @patch("sentry.tasks.relocation.importing.delay")
@@ -980,7 +1011,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
 
         self.storage = get_storage()
         self.storage.save(
-            f"relocations/runs/{self.relocation.uuid}/findings/artifacts-prefix-should-be-ignored.json",
+            f"relocations/runs/{self.relocation.uuid}/findings/artifacts-prefixes-are-ignored.json",
             BytesIO(b"invalid-json"),
         )
         files = [
@@ -1013,26 +1044,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert importing_mock.call_count == 1
 
     def test_invalid(self, importing_mock: Mock):
-        self.storage.save(
-            f"relocations/runs/{self.relocation.uuid}/findings/import-baseline-config.json",
-            BytesIO(
-                b"""
-[
-    {
-        "finding": "RpcImportError",
-        "kind": "Unknown",
-        "left_pk": 2,
-        "on": {
-            "model": "sentry.email",
-            "ordinal": 1
-        },
-        "reason": "test reason",
-        "right_pk": 3
-    }
-]
-            """
-            ),
-        )
+        mock_invalid_finding(self.storage, self.uuid)
 
         validating_complete(self.relocation.uuid, self.relocation_validation_attempt.build_id)
 
@@ -1069,7 +1081,8 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
             f"relocations/runs/{self.relocation.uuid}/findings/null.json", BytesIO(b"invalid-json")
         )
 
-        validating_complete(self.relocation.uuid, self.relocation_validation_attempt.build_id)
+        with pytest.raises(Exception):
+            validating_complete(self.relocation.uuid, self.relocation_validation_attempt.build_id)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -1099,3 +1112,70 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         # TODO(getsentry/team-ospo#203): Should notify users instead.
         assert completed_mock.call_count == 1
         assert Organization.objects.filter(slug__startswith="testing").count() == org_count + 1
+
+
+@patch(
+    "sentry.backup.helpers.KeyManagementServiceClient",
+    new_callable=lambda: FakeKeyManagementServiceClient,
+)
+@patch(
+    "sentry.tasks.relocation.CloudBuildClient",
+    new_callable=lambda: FakeCloudBuildClient,
+)
+@region_silo_test
+class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
+    def setUp(self):
+        RelocationTaskTestCase.setUp(self)
+        TransactionTestCase.setUp(self)
+
+        self.storage = get_storage()
+        files = [
+            "null.json",
+            "import-baseline-config.json",
+            "import-colliding-users.json",
+            "import-raw-relocation-data.json",
+            "export-baseline-config.json",
+            "export-colliding-users.json",
+            "export-raw-relocation-data.json",
+            "compare-baseline-config.json",
+            "compare-colliding-users.json",
+        ]
+        for file in files:
+            self.storage.save(
+                f"relocations/runs/{self.relocation.uuid}/findings/{file}", BytesIO(b"[]")
+            )
+
+    def test_valid_no_retries(
+        self,
+        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.SUCCESS))
+        self.mock_kms_client(fake_kms_client)
+        org_count = Organization.objects.filter(slug__startswith="testing").count()
+
+        with self.tasks():
+            uploading_complete(self.relocation.uuid)
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.SUCCESS.value
+        assert not relocation.failure_reason
+        assert Organization.objects.filter(slug__startswith="testing").count() == org_count + 1
+
+    def test_invalid_no_retries(
+        self,
+        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.SUCCESS))
+        self.mock_kms_client(fake_kms_client)
+        mock_invalid_finding(self.storage, self.uuid)
+        org_count = Organization.objects.filter(slug__startswith="testing").count()
+
+        with self.tasks():
+            uploading_complete(self.relocation.uuid)
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.failure_reason
+        assert Organization.objects.filter(slug__startswith="testing").count() == org_count

@@ -5,7 +5,18 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, List, Mapping, Optional, Tuple
 
-from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query, Request
+from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -18,12 +29,24 @@ logger = logging.getLogger(__name__)
 
 REFERRER = "sentry.utils.eventuser"
 
-KEYWORD_MAP = BidirectionalMapping(
+SNUBA_KEYWORD_MAP = BidirectionalMapping(
     {
         ("user_id"): "id",
         ("user_name"): "username",
         ("email"): "email",
         ("ip_address_4", "ip_address_6"): "ip",
+    }
+)
+
+# The order of these keys are significant to also indicate priority
+# when used in hashing and determining uniqueness. If you change the order
+# you will break stuff.
+KEYWORD_MAP = BidirectionalMapping(
+    {
+        "user_ident": "id",
+        "username": "username",
+        "email": "email",
+        "ip_address": "ip",
     }
 )
 
@@ -35,7 +58,7 @@ class EventUser:
     username: Optional[str]
     name: Optional[str]
     ip_address: Optional[str]
-    user_id: Optional[int]
+    user_ident: Optional[int]
     id: Optional[int] = None  # EventUser model id
 
     @staticmethod
@@ -47,19 +70,19 @@ class EventUser:
             username=event.data.get("user", {}).get("username") if event else None,
             name=event.data.get("user", {}).get("name") if event else None,
             ip_address=event.data.get("user", {}).get("ip_address") if event else None,
-            user_id=event.data.get("user", {}).get("id") if event else None,
+            user_ident=event.data.get("user", {}).get("id") if event else None,
         )
 
     def get_display_name(self):
         return self.name or self.email or self.username
 
     @classmethod
-    def attr_from_keyword(self, keyword):
-        return KEYWORD_MAP.get_key(keyword)
-
-    @classmethod
     def for_projects(
-        self, projects: List[Project], keyword_filters: Mapping[str, Any]
+        self,
+        projects: List[Project],
+        keyword_filters: Mapping[str, Any],
+        filter_boolean="AND",
+        return_all=False,
     ) -> List[EventUser]:
         """
         Fetch the EventUser with a Snuba query that exists within a list of projects
@@ -73,13 +96,22 @@ class EventUser:
             Condition(Column("timestamp"), Op.GTE, oldest_project.date_added),
         ]
 
+        keyword_where_conditions = []
         for keyword, value in keyword_filters.items():
-            snuba_column = KEYWORD_MAP.get_key(keyword)
+            snuba_column = SNUBA_KEYWORD_MAP.get_key(keyword)
             if isinstance(snuba_column, tuple):
                 for column in snuba_column:
-                    where_conditions.append(Condition(Column(column), Op.EQ, value))
+                    keyword_where_conditions.append(Condition(Column(column), Op.EQ, value))
             else:
-                where_conditions.append(Condition(Column(snuba_column), Op.EQ, value))
+                keyword_where_conditions.append(Condition(Column(snuba_column), Op.EQ, value))
+
+        if len(keyword_where_conditions):
+            where_conditions.append(
+                BooleanCondition(
+                    BooleanOp.AND if filter_boolean == "AND" else BooleanOp.OR,
+                    keyword_filters,
+                )
+            )
 
         query = Query(
             match=Entity(EntityKey.Events.value),
@@ -95,9 +127,11 @@ class EventUser:
                 Column("user_email"),
             ],
             where=where_conditions,
-            limit=Limit(1),
-            orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
         )
+
+        if return_all:
+            query.set_limit(1)
+            query.set_orderby([OrderBy(Column("timestamp"), Direction.DESC)])
 
         request = Request(
             dataset=Dataset.Events.value,
@@ -116,13 +150,13 @@ class EventUser:
         Converts the object from the Snuba query into an EventUser instance
         """
         return EventUser(
-            id=result.get("user_id"),
+            id=None,
             project_id=result.get("project_id"),
             email=result.get("user_email"),
             username=result.get("user_name"),
             name=result.get("user_name"),
             ip_address=result.get("ip_address_4") or result.get("ip_address_6"),
-            user_id=result.get("user_id"),
+            user_ident=result.get("user_id"),
         )
 
     @classmethod
@@ -134,18 +168,31 @@ class EventUser:
         """
         projects = Project.objects.filter(id=project_id)
         result = {}
-        for value in values:
-            keyword_filters = {value.split(":", 1)[0]: value.split(":", 1)[-1]}
-            eventusers = EventUser.for_projects(projects, keyword_filters)
-            result[value] = eventusers[0] if len(eventusers) else None
+        keyword_filters = {value.split(":", 1)[0]: value.split(":", 1)[-1] for value in values}
+        eventusers = EventUser.for_projects(projects, keyword_filters, return_all=True)
+
+        for key, value in keyword_filters:
+            result[f"{key}:{value}"] = next(
+                (euser for euser in eventusers if euser.get(key) == value), None
+            )
+
         return result
 
     @property
-    def tag_value(self) -> str:
+    def tag_value(self):
         """
-        Return the identifier to link this user.
+        Return the identifier used with tags to link this user.
         """
-        return f"id:{self.user_id}"
+        for key, value in self.iter_attributes():
+            if value:
+                return f"{KEYWORD_MAP[key]}:{value}"
+
+    def iter_attributes(self):
+        """
+        Iterate over key/value pairs for this EventUser in priority order.
+        """
+        for key in KEYWORD_MAP.keys():
+            yield key, getattr(self, key)
 
     def serialize(self):
         return {

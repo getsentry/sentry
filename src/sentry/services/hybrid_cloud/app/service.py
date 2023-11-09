@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Any, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
@@ -142,6 +142,7 @@ class AppService(RpcService):
         integration_name: str,
         integration_scopes: List[str],
         integration_creator_id: int,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> RpcSentryAppInstallation:
         pass
 

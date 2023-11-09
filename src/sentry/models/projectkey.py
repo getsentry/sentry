@@ -210,6 +210,12 @@ class ProjectKey(Model):
         return f"{endpoint}/api/{self.project_id}/security/?sentry_key={self.public_key}"
 
     @property
+    def nel_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/nel/?sentry_key={self.public_key}"
+
+    @property
     def minidump_endpoint(self):
         endpoint = self.get_endpoint()
 

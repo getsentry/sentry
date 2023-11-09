@@ -1418,7 +1418,8 @@ def get_alert_rule_trigger_action_opsgenie_team(
     )
     try:
         client.authorize_integration(type="sentry")
-    except ApiError:
+    except ApiError as e:
+        logger.info("opsgenie.authorization_error", extra={"error": str(e)})
         raise InvalidTriggerActionError("Invalid integration key.")
     return team["id"], team["team"]
 

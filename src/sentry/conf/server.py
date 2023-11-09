@@ -1563,8 +1563,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-deployment": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
     "organizations:integrations-ticket-rules": True,
-    # Allow orgs to use the stacktrace linking feature
-    "organizations:integrations-stacktrace-link": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
@@ -1974,6 +1972,7 @@ SENTRY_INTERFACES = {
     "hpkp": "sentry.interfaces.security.Hpkp",
     "expectct": "sentry.interfaces.security.ExpectCT",
     "expectstaple": "sentry.interfaces.security.ExpectStaple",
+    "nel": "sentry.interfaces.nel.Nel",
     "exception": "sentry.interfaces.exception.Exception",
     "logentry": "sentry.interfaces.message.Message",
     "request": "sentry.interfaces.http.Http",
