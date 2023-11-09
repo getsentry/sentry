@@ -5,7 +5,7 @@ import pytest
 import responses
 
 from sentry import audit_log, options
-from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
 from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
@@ -51,7 +51,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}{DiscordClient.GUILD_URL.format(guild_id=guild_id)}",
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
             json={
                 "id": guild_id,
                 "name": server_name,
@@ -121,14 +121,14 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}{DiscordClient.GUILD_URL.format(guild_id=guild_id)}",
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
             json={
                 "id": guild_id,
                 "name": guild_name,
             },
         )
 
-        resp = provider._get_guild_name(guild_id)
+        resp = provider.client.get_guild_name(guild_id)
         assert resp == "asdf"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
@@ -140,11 +140,11 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}{DiscordClient.GUILD_URL.format(guild_id=guild_id)}",
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
             status=500,
         )
 
-        resp = provider._get_guild_name(guild_id)
+        resp = provider.client.get_guild_name(guild_id)
         assert resp == "1234"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
@@ -153,7 +153,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
     def test_setup(self):
         provider = self.provider()
 
-        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
+        url = f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
         responses.add(
             responses.PUT,
             url=url,
@@ -170,7 +170,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         mock_log_error.return_value = None
         provider = self.provider()
 
-        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
+        url = f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
         responses.add(
             responses.PUT,
             url=url,
@@ -186,7 +186,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
     def test_setup_cache(self):
         provider = self.provider()
 
-        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
+        url = f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
         responses.add(
             responses.PUT,
             url=url,
