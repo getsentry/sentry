@@ -810,6 +810,7 @@ def _auto_update_grouping(project: Project) -> None:
         )
 
 
+# TODO: this seems to be dead code, validate and remove
 def _calculate_background_grouping(
     project: Project, event: Event, config: GroupingConfig
 ) -> CalculatedHashes:
