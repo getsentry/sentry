@@ -8,11 +8,9 @@ from urllib.parse import quote
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
 from django.db.models.functions import Lower
-from snuba_sdk import Column, Direction, OrderBy, Request
 
 from sentry.utils.cursors import Cursor, CursorResult, build_cursor
 from sentry.utils.pagination_factory import PaginatorLike
-from sentry.utils.snuba import raw_snql_query
 
 quote_name = connections["default"].ops.quote_name
 
@@ -120,7 +118,7 @@ class BasePaginator:
     def value_from_cursor(self, cursor):
         raise NotImplementedError
 
-    def get_result(self, limit=1, cursor=None, count_hits=False, known_hits=None, max_hits=None):
+    def get_result(self, limit=100, cursor=None, count_hits=False, known_hits=None, max_hits=None):
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
         if cursor is None:
@@ -743,72 +741,6 @@ class ChainPaginator:
 
         if next_cursor.has_results:
             results.pop()
-
-        if self.on_results:
-            results = self.on_results(results)
-
-        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
-
-
-class SnubaRequestPaginator:
-    def __init__(
-        self,
-        query,
-        dataset,
-        app_id,
-        tenant_ids,
-        order_by=None,
-        max_limit=MAX_LIMIT,
-        converter=None,
-        on_results=None,
-    ):
-        self.query = query
-        self.dataset = dataset
-        self.app_id = app_id
-        self.tenant_ids = tenant_ids
-        self.desc = False
-        if order_by.startswith("-"):
-            self.desc = True
-            self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.DESC)])
-        else:
-            self.desc = False
-            self.query = self.query.set_orderby([OrderBy(Column(order_by), Direction.ASC)])
-        self.max_limit = max_limit
-        self.converter = converter
-        self.on_results = on_results
-
-    def build_next_snuba_request(self, cursor_value, query):
-        if cursor_value != 0:
-            query = query.set_offset(cursor_value)
-        return query
-
-    def get_result(self, limit=100, cursor=None):
-        if cursor is None:
-            cursor = Cursor(0, 0, 0)
-
-        limit = min(limit, self.max_limit)
-        self.query = self.query.set_limit(
-            limit + 1
-        )  # +1 to limit so that we can tell if there are more results left after the current page
-
-        request = Request(
-            dataset=self.dataset,
-            app_id=self.app_id,
-            query=self.build_next_snuba_request(cursor.value, self.query),
-            tenant_ids=self.tenant_ids,
-        )
-
-        results = raw_snql_query(request, referrer=self.app_id)["data"]
-        assert len(results) <= limit + 1
-
-        next_cursor = Cursor(limit, cursor.offset + 1, False, len(results) > limit)
-        prev_cursor = Cursor(limit, cursor.offset - 1, True, cursor.offset > 0)
-
-        if next_cursor.has_results:
-            results.pop()  # pop the last result bc we have more results than the limit by 1 on this page
-
-        if self.converter:
-            results = self.converter(results)
 
         if self.on_results:
             results = self.on_results(results)
