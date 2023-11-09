@@ -20,7 +20,7 @@ REFERRER = "sentry.utils.eventuser"
 
 KEYWORD_MAP = BidirectionalMapping(
     {
-        ("user_id"): "id",
+        ("user_ident"): "id",
         ("user_name"): "username",
         ("email"): "email",
         ("ip_address_4", "ip_address_6"): "ip",
@@ -126,11 +126,20 @@ class EventUser:
         )
 
     @property
-    def tag_value(self) -> str:
+    def tag_value(self):
         """
-        Return the identifier to link this user.
+        Return the identifier used with tags to link this user.
         """
-        return f"id:{self.user_ident}"
+        for key, value in self.iter_attributes():
+            if value:
+                return f"{KEYWORD_MAP[key]}:{value}"
+
+    def iter_attributes(self):
+        """
+        Iterate over key/value pairs for this EventUser in priority order.
+        """
+        for key in KEYWORD_MAP.keys():
+            yield key, getattr(self, key)
 
     def serialize(self):
         return {
