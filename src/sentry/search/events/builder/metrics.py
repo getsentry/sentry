@@ -124,7 +124,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if not field:
             return None
 
-        groupby_columns = [c for c in self.selected_columns if not fields.is_function(c)]
+        groupby_columns = self._get_group_bys()
 
         if not should_use_on_demand_metrics(self.dataset, field, self.query, groupby_columns):
             return None
@@ -997,7 +997,6 @@ class MetricsQueryBuilder(QueryBuilder):
                                 )
                             )
                     metrics_data = []
-                    # XXX: Now metrics_data is a list
                     for metrics_query in metrics_queries:
                         with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                             metrics_data.append(
@@ -1546,7 +1545,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         translated = []
 
         if self._has_on_demand_specs:
-            groupby_columns = [c for c in self.selected_columns if not fields.is_function(c)]
+            groupby_columns = self._get_group_bys()
             for groupby in groupby_columns:
                 translated.append(groupby)
             return sorted(translated)
