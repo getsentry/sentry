@@ -694,9 +694,7 @@
     "sentry.environment",
     "sentry.project"
   ],
-  "sentry.relocation": [
-    "sentry.user"
-  ],
+  "sentry.relocation": [],
   "sentry.relocationfile": [
     "sentry.file",
     "sentry.relocation"
