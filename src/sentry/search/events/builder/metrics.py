@@ -1626,10 +1626,10 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 metrics_queries = []
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                     if self._has_on_demand_specs:
-                        aggregates = self._get_aggregates()
                         group_bys = self._get_group_bys()
 
-                        for agg in aggregates:
+                        # Using timeseries columns here since epm(%d) etc is resolved.
+                        for agg in self.timeseries_columns:
                             spec = self._on_demand_metric_spec_map[agg]
                             top_event_conditions = None
 
@@ -1670,7 +1670,6 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 raise IncompatibleMetricsQuery(err)
             with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
                 result = self._metric_layer_result(metrics_data)
-                # result["meta"]["isOnDemandMetrics"] = True
                 return result
 
         else:
@@ -1696,7 +1695,6 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
     def _metric_layer_result(self, metrics_data_list: Any) -> Any:
         """The metric_layer returns results in a non-standard format, this function changes it back to the expected
         one"""
-        metrics_data = metrics_data_list[0]
         seen_metrics_metas = {}
         time_data_map = defaultdict(dict)
         with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
@@ -1729,7 +1727,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                         data.update(group_data)
 
                         for key, value_list in (
-                            metrics_data.get("groups", [{}])[0].get("series", {}).items()
+                            group.get("series", {}).items()
                         ):
                             data[key] = value_list[index]
                         metric_layer_result["data"].append(data)
