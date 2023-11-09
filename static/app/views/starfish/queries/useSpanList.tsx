@@ -8,6 +8,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, SPAN_DOMAIN, PROJECT_ID} =
   SpanMetricsField;
@@ -55,10 +56,17 @@ function getEventView(
   sorts?: Sort[]
 ) {
   const query = new MutableSearch('');
+
   Object.entries(filters).forEach(([key, value]) => {
-    if (value) {
-      query.addFilterValue(key, value);
+    if (!value) {
+      return;
     }
+
+    if (value === EMPTY_OPTION_VALUE) {
+      query.addFilterValue('!has', key);
+    }
+
+    query.addFilterValue(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
   });
 
   query.addFilterValue('has', 'span.description');
@@ -93,3 +101,5 @@ function getEventView(
 
   return eventView;
 }
+
+const ALLOWED_WILDCARD_FIELDS = ['span.description'];
