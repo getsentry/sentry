@@ -1,53 +1,44 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';
+import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {Organization, OrganizationSummary} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
-import {
-  ALL_PROVIDER_NAMES,
-  CONFIRMATION_MESSAGE,
-  NotificationSettingsByProviderObject,
-  NotificationSettingsObject,
-} from 'sentry/views/settings/account/notifications/constants';
-import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
-import {
-  NOTIFICATION_SETTING_FIELDS,
-  QUOTA_FIELDS,
-} from 'sentry/views/settings/account/notifications/fields2';
-import NotificationSettingsByOrganization from 'sentry/views/settings/account/notifications/notificationSettingsByOrganization';
-import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
-import {Identity} from 'sentry/views/settings/account/notifications/types';
-import UnlinkedAlert from 'sentry/views/settings/account/notifications/unlinkedAlert';
-import {
-  getCurrentDefault,
-  getCurrentProviders,
-  getParentIds,
-  getStateToPutForDefault,
-  getStateToPutForParent,
-  getStateToPutForProvider,
-  isEverythingDisabled,
-  isGroupedByProject,
-  isSufficientlyComplex,
-  mergeNotificationSettings,
-} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {
+  DefaultSettings,
+  NotificationOptionsObject,
+  NotificationProvidersObject,
+} from './constants';
+import {ACCOUNT_NOTIFICATION_FIELDS} from './fields';
+import {NOTIFICATION_SETTING_FIELDS_V2, QUOTA_FIELDS} from './fields2';
+import NotificationSettingsByEntity from './notificationSettingsByEntity';
+import {Identity} from './types';
+import UnlinkedAlert from './unlinkedAlert';
+import {isGroupedByProject} from './utils';
+
 type Props = {
-  notificationType: string;
+  notificationType: string; // TODO(steve)? type better
   organizations: Organization[];
 } & DeprecatedAsyncComponent['props'];
 
 type State = {
+  defaultSettings: DefaultSettings | null;
   identities: Identity[];
-  notificationSettings: NotificationSettingsObject;
+  notificationOptions: NotificationOptionsObject[];
+  notificationProviders: NotificationProvidersObject[];
   organizationIntegrations: OrganizationIntegration[];
 } & DeprecatedAsyncComponent['state'];
 
@@ -71,13 +62,17 @@ const getQueryParams = (notificationType: string) => {
   return {type: notificationType};
 };
 
-class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> {
+class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State> {
+  // topLevelOptionFormModel = new TopLevelOptionFormModel(this.props.notificationType);
+
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      notificationSettings: {},
+      notificationOptions: [],
+      notificationProviders: [],
       identities: [],
       organizationIntegrations: [],
+      defaultSettings: null,
     };
   }
 
@@ -85,9 +80,14 @@ class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> 
     const {notificationType} = this.props;
     return [
       [
-        'notificationSettings',
-        `/users/me/notification-settings/`,
-        {query: getQueryParams(notificationType), v2: 'serializer'},
+        'notificationOptions',
+        `/users/me/notification-options/`,
+        {query: getQueryParams(notificationType)},
+      ],
+      [
+        'notificationProviders',
+        `/users/me/notification-providers/`,
+        {query: getQueryParams(notificationType)},
       ],
       ['identities', `/users/me/identities/`, {query: {provider: 'slack'}}],
       [
@@ -95,6 +95,7 @@ class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> 
         `/users/me/organization-integrations/`,
         {query: {provider: 'slack'}},
       ],
+      ['defaultSettings', '/notification-defaults/'],
     ];
   }
 
@@ -114,186 +115,134 @@ class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> 
     });
   }
 
-  /* Methods responsible for updating state and hitting the API. */
-
-  getStateToPutForProvider = (
-    changedData: NotificationSettingsByProviderObject
-  ): NotificationSettingsObject => {
+  getInitialTopOptionData(): {[key: string]: string} {
     const {notificationType} = this.props;
-    const {notificationSettings} = this.state;
-
-    const updatedNotificationSettings = getStateToPutForProvider(
-      notificationType,
-      notificationSettings,
-      changedData
+    const {notificationOptions, defaultSettings} = this.state;
+    const matchedOption = notificationOptions.find(
+      option => option.type === notificationType && option.scopeType === 'user'
     );
-
-    this.setState({
-      notificationSettings: mergeNotificationSettings(
-        notificationSettings,
-        updatedNotificationSettings
-      ),
-    });
-
-    return updatedNotificationSettings;
-  };
-
-  getStateToPutForDependentSetting = (
-    changedData: NotificationSettingsByProviderObject,
-    notificationType: string
-  ) => {
-    const value = changedData[notificationType];
-    const {notificationSettings} = this.state;
-
-    // parent setting will control the which providers we send to
-    // just set every provider to the same value for the child/dependent setting
-    const userSettings = ALL_PROVIDER_NAMES.reduce((accum, provider) => {
-      accum[provider] = value;
-      return accum;
-    }, {});
-
-    // setting is a user-only setting
-    const updatedNotificationSettings = {
-      [notificationType]: {
-        user: {
-          me: userSettings,
-        },
-      },
-    };
-
-    this.setState({
-      notificationSettings: mergeNotificationSettings(
-        notificationSettings,
-        updatedNotificationSettings
-      ),
-    });
-
-    return updatedNotificationSettings;
-  };
-
-  getStateToPutForDefault = (
-    changedData: NotificationSettingsByProviderObject
-  ): NotificationSettingsObject => {
-    const {notificationType} = this.props;
-    const {notificationSettings} = this.state;
-
-    const updatedNotificationSettings = getStateToPutForDefault(
-      notificationType,
-      notificationSettings,
-      changedData,
-      getParentIds(notificationType, notificationSettings)
-    );
-
-    this.setState({
-      notificationSettings: mergeNotificationSettings(
-        notificationSettings,
-        updatedNotificationSettings
-      ),
-    });
-
-    return updatedNotificationSettings;
-  };
-
-  getStateToPutForParent = (
-    changedData: NotificationSettingsByProviderObject,
-    parentId: string
-  ): NotificationSettingsObject => {
-    const {notificationType} = this.props;
-    const {notificationSettings} = this.state;
-
-    const updatedNotificationSettings = getStateToPutForParent(
-      notificationType,
-      notificationSettings,
-      changedData,
-      parentId
-    );
-
-    this.setState({
-      notificationSettings: mergeNotificationSettings(
-        notificationSettings,
-        updatedNotificationSettings
-      ),
-    });
-    return updatedNotificationSettings;
-  };
-
-  /* Methods responsible for rendering the page. */
-
-  getInitialData(): {[key: string]: string | string[]} {
-    const {notificationType} = this.props;
-    const {notificationSettings} = this.state;
-
-    // TODO: Backend should be in charge of providing defaults since it depends on the type
-    const provider = !isEverythingDisabled(notificationType, notificationSettings)
-      ? getCurrentProviders(notificationType, notificationSettings)
-      : ['email', 'slack'];
-
+    // if no match, fall back to the
+    let defaultValue: string;
+    if (!matchedOption) {
+      if (defaultSettings) {
+        defaultValue = defaultSettings.typeDefaults[notificationType];
+      } else {
+        // should never happen
+        defaultValue = 'never';
+      }
+    } else {
+      defaultValue = matchedOption.value;
+    }
+    // if we have child types, map the default
     const childTypes: string[] = typeMappedChildren[notificationType] || [];
     const childTypesDefaults = Object.fromEntries(
-      childTypes.map(childType => [
-        childType,
-        getCurrentDefault(childType, notificationSettings),
-      ])
+      childTypes.map(childType => {
+        const childMatchedOption = notificationOptions.find(
+          option => option.type === childType && option.scopeType === 'user'
+        );
+        return [childType, childMatchedOption ? childMatchedOption.value : defaultValue];
+      })
     );
 
     return {
-      [notificationType]: getCurrentDefault(notificationType, notificationSettings),
-      provider,
+      [notificationType]: defaultValue,
       ...childTypesDefaults,
     };
   }
 
+  getProviderInitialData(): {[key: string]: string[]} {
+    const {notificationType} = this.props;
+    const {notificationProviders, defaultSettings} = this.state;
+
+    const relevantProviderSettings = notificationProviders.filter(
+      option => option.scopeType === 'user' && option.type === notificationType
+    );
+    // user has no settings saved so use default
+    if (relevantProviderSettings.length === 0 && defaultSettings) {
+      return {provider: defaultSettings.providerDefaults};
+    }
+    const providers = relevantProviderSettings
+      .filter(option => option.value === 'always')
+      .map(option => option.provider);
+    return {provider: providers};
+  }
+
   getFields(): Field[] {
     const {notificationType} = this.props;
-    const {notificationSettings} = this.state;
 
     const help = isGroupedByProject(notificationType)
       ? t('This is the default for all projects.')
       : t('This is the default for all organizations.');
 
-    const defaultField: Field = Object.assign(
-      {},
-      NOTIFICATION_SETTING_FIELDS[notificationType],
-      {
-        help,
-        getData: data => this.getStateToPutForDefault(data),
-      }
-    );
-    if (isSufficientlyComplex(notificationType, notificationSettings)) {
-      defaultField.confirm = {never: CONFIRMATION_MESSAGE};
-    }
-
-    const fields: Field[] = [defaultField];
-    if (!isEverythingDisabled(notificationType, notificationSettings)) {
-      fields.push(
-        Object.assign(
-          {
-            help: t('Where personal notifications will be sent.'),
-            getData: data => this.getStateToPutForProvider(data),
-          },
-          NOTIFICATION_SETTING_FIELDS.provider
-        )
-      );
-    }
-
+    const fields: Field[] = [];
     // if a quota notification is not disabled, add in our dependent fields
-    if (
-      notificationType === 'quota' &&
-      !isEverythingDisabled(notificationType, notificationSettings)
-    ) {
+    // but do not show the top level controller
+    if (notificationType === 'quota') {
       fields.push(
         ...QUOTA_FIELDS.map(field => ({
           ...field,
           type: 'select' as const,
-          getData: data =>
-            this.getStateToPutForDependentSetting(
-              data as NotificationSettingsByProviderObject,
-              field.name
-            ),
+          getData: data => {
+            return {
+              type: field.name,
+              scopeType: 'user',
+              scopeIdentifier: ConfigStore.get('user').id,
+              value: data[field.name],
+            };
+          },
         }))
       );
+    } else {
+      const defaultField: Field = Object.assign(
+        {},
+        NOTIFICATION_SETTING_FIELDS_V2[notificationType],
+        {
+          help,
+          defaultValue: 'always',
+          getData: data => {
+            return {
+              type: notificationType,
+              scopeType: 'user',
+              scopeIdentifier: ConfigStore.get('user').id,
+              value: data[notificationType],
+            };
+          },
+        }
+      );
+      fields.push(defaultField);
     }
 
+    return fields;
+  }
+
+  getProviderFields(): Field[] {
+    const {notificationType} = this.props;
+    const {organizationIntegrations} = this.state;
+    // get the choices but only the ones that are available to the user
+    const choices = (
+      NOTIFICATION_SETTING_FIELDS_V2.provider.choices as [string, string][]
+    ).filter(([providerSlug]) => {
+      if (providerSlug === 'email') {
+        return true;
+      }
+      return organizationIntegrations.some(
+        organizationIntegration => organizationIntegration.provider.slug === providerSlug
+      );
+    });
+
+    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS_V2.provider, {
+      choices,
+      getData: data => {
+        return {
+          type: notificationType,
+          scopeType: 'user',
+          scopeIdentifier: ConfigStore.get('user').id,
+          providers: data.provider,
+          value: data[notificationType],
+        };
+      },
+    });
+    const fields: Field[] = [defaultField];
     return fields;
   }
 
@@ -318,14 +267,70 @@ class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> 
     });
   };
 
+  handleRemoveNotificationOption = async (id: string) => {
+    await this.api.requestPromise(`/users/me/notification-options/${id}/`, {
+      method: 'DELETE',
+    });
+    this.setState(state => {
+      const newNotificationOptions = state.notificationOptions.filter(
+        option => !(option.id.toString() === id.toString())
+      );
+      return {
+        notificationOptions: newNotificationOptions,
+      };
+    });
+  };
+
+  handleAddNotificationOption = async (data: Omit<NotificationOptionsObject, 'id'>) => {
+    // TODO: add error handling
+    const notificationOption = await this.api.requestPromise(
+      '/users/me/notification-options/',
+      {
+        method: 'PUT',
+        data,
+      }
+    );
+
+    this.setState(state => {
+      return {
+        notificationOptions: [...state.notificationOptions, notificationOption],
+      };
+    });
+  };
+
+  handleEditNotificationOption = async (data: NotificationOptionsObject) => {
+    try {
+      const notificationOption: NotificationOptionsObject = await this.api.requestPromise(
+        '/users/me/notification-options/',
+        {
+          method: 'PUT',
+          data,
+        }
+      );
+      this.setState(state => {
+        // Replace the item in state
+        const newNotificationOptions = state.notificationOptions.map(option => {
+          if (option.id === data.id) {
+            return notificationOption;
+          }
+          return option;
+        });
+
+        return {notificationOptions: newNotificationOptions};
+      });
+      addSuccessMessage(t('Updated notification setting'));
+    } catch (err) {
+      addErrorMessage(t('Unable to update notification setting'));
+    }
+  };
+
   renderBody() {
     const {notificationType} = this.props;
-    const {notificationSettings} = this.state;
-    const hasSlack = getCurrentProviders(notificationType, notificationSettings).includes(
-      'slack'
-    );
+    const {notificationOptions} = this.state;
+    const hasSlack = true;
     const unlinkedOrgs = this.getUnlinkedOrgs();
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
+    const entityType = isGroupedByProject(notificationType) ? 'project' : 'organization';
     return (
       <Fragment>
         <SentryDocumentTitle title={title} />
@@ -337,11 +342,11 @@ class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> 
         <Form
           saveOnBlur
           apiMethod="PUT"
-          apiEndpoint="/users/me/notification-settings/"
-          initialData={this.getInitialData()}
+          apiEndpoint="/users/me/notification-options/"
+          initialData={this.getInitialTopOptionData()}
           onSubmitSuccess={() => this.trackTuningUpdated('general')}
         >
-          <JsonForm
+          <TopJsonForm
             title={
               isGroupedByProject(notificationType)
                 ? t('All Projects')
@@ -350,26 +355,44 @@ class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> 
             fields={this.getFields()}
           />
         </Form>
-        {!isEverythingDisabled(notificationType, notificationSettings) &&
-          (isGroupedByProject(notificationType) ? (
-            <NotificationSettingsByProjects
-              notificationType={notificationType}
-              notificationSettings={notificationSettings}
-              onChange={this.getStateToPutForParent}
-              onSubmitSuccess={() => this.trackTuningUpdated('project')}
-              organizations={this.props.organizations}
-            />
-          ) : (
-            <NotificationSettingsByOrganization
-              notificationType={notificationType}
-              notificationSettings={notificationSettings}
-              onChange={this.getStateToPutForParent}
-              onSubmitSuccess={() => this.trackTuningUpdated('organization')}
-            />
-          ))}
+        {notificationType !== 'reports' ? (
+          <Form
+            saveOnBlur
+            apiMethod="PUT"
+            apiEndpoint="/users/me/notification-providers/"
+            initialData={this.getProviderInitialData()}
+          >
+            <BottomJsonForm fields={this.getProviderFields()} />
+          </Form>
+        ) : null}
+        <NotificationSettingsByEntity
+          notificationType={notificationType}
+          notificationOptions={notificationOptions}
+          organizations={this.props.organizations}
+          handleRemoveNotificationOption={this.handleRemoveNotificationOption}
+          handleAddNotificationOption={this.handleAddNotificationOption}
+          handleEditNotificationOption={this.handleEditNotificationOption}
+          entityType={entityType}
+        />
       </Fragment>
     );
   }
 }
 
-export default withOrganizations(NotificationSettingsByType);
+export default withOrganizations(NotificationSettingsByTypeV2);
+
+export const TopJsonForm = styled(JsonForm)`
+  ${Panel} {
+    border-bottom: 0;
+    margin-bottom: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+`;
+
+export const BottomJsonForm = styled(JsonForm)`
+  ${Panel} {
+    border-top-right-radius: 0;
+    border-top-left-radius: 0;
+  }
+`;
