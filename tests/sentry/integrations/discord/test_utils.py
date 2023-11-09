@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from pytest import raises
 from requests.exceptions import Timeout
 
+from sentry.integrations.discord.requests.base import DiscordRequestError
 from sentry.integrations.discord.utils.auth import verify_signature
 from sentry.integrations.discord.utils.channel import ChannelType, validate_channel_id
 from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
@@ -19,9 +20,7 @@ class AuthTest(TestCase):
         body = '{"type":1}'
         message = timestamp + body
 
-        result = verify_signature(public_key_string, signature, message, body)
-
-        assert result
+        verify_signature(public_key_string, signature, message, body)
 
     def test_verify_signature_invalid(self):
         public_key_string = "3AC1A3E56E967E1C61E3D17B37FA1865CB20CD6C54418631F4E8AE4D1E83EE0E"
@@ -30,9 +29,8 @@ class AuthTest(TestCase):
         body = '{"type":1}'
         message = timestamp + body
 
-        result = verify_signature(public_key_string, signature, message, body)
-
-        assert not result
+        with raises(DiscordRequestError):
+            verify_signature(public_key_string, signature, message, body)
 
 
 class ValidateChannelTest(TestCase):
