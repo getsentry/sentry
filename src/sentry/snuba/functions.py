@@ -137,6 +137,7 @@ def top_events_timeseries(
     include_other=False,
     functions_acl=None,
     result_key_order=None,
+    on_demand_metrics_enabled: bool = False,
 ):
     assert not include_other, "Other is not supported"  # TODO: support other
 

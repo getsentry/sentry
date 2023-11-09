@@ -330,6 +330,7 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled=False,
 ):
     if top_events is None:
         top_events = query(
@@ -342,6 +343,7 @@ def top_events_timeseries(
             referrer=referrer,
             auto_aggregations=True,
             use_aggregate_conditions=True,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
         )
 
     top_events_builder = TopMetricsQueryBuilder(
@@ -355,6 +357,7 @@ def top_events_timeseries(
         timeseries_columns=timeseries_columns,
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
         ),
     )
     if len(top_events["data"]) == limit and include_other:
@@ -367,6 +370,9 @@ def top_events_timeseries(
             query=user_query,
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
+            ),
         )
 
         # TODO: use bulk_snql_query
