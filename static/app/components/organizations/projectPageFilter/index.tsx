@@ -158,12 +158,14 @@ export function ProjectPageFilter({
 
       // "My Projects"
       if (!val.length) {
-        return memberProjects.map(p => parseInt(p.id, 10));
+        return allowMultiple
+          ? memberProjects.map(p => parseInt(p.id, 10))
+          : [parseInt(memberProjects[0]?.id, 10)];
       }
 
-      return val;
+      return allowMultiple ? val : [val[0]];
     },
-    [memberProjects]
+    [memberProjects, allowMultiple]
   );
 
   const value = useMemo<number[]>(

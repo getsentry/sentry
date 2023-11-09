@@ -3,40 +3,17 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-// Configuration Start
-export const steps = ({
-  dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct('Install our Go Gin SDK using [code:go get]:', {
-          code: <code />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: 'go get github.com/getsentry/sentry-go/gin',
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: t(
-      "Import and initialize the Sentry SDK early in your application's setup:"
-    ),
-    configurations: [
-      {
-        language: 'go',
-        code: `
+type Params = DocsParams;
+
+const getConfigureSnippet = (params: Params) => `
 import (
   "fmt"
   "net/http"
@@ -48,7 +25,7 @@ import (
 
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
-  Dsn: "${dsn}",
+  Dsn: "${params.dsn}",
   EnableTracing: true,
   // Set TracesSampleRate to 1.0 to capture 100%
   // of transactions for performance monitoring.
@@ -70,24 +47,9 @@ app.GET("/", func(ctx *gin.Context) {
 })
 
 // And run it
-app.Run(":3000")
-        `,
-      },
-      {
-        description: (
-          <Fragment>
-            <strong>{t('Options')}</strong>
-            <p>
-              {tct(
-                '[sentryGinCode:sentrygin] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
-                {sentryGinCode: <code />, optionsCode: <code />}
-              )}
-            </p>
-            {t('Currently it respects 3 options:')}
-          </Fragment>
-        ),
-        language: 'go',
-        code: `
+app.Run(":3000")`;
+
+const getOptionsSnippet = () => `
 // Whether Sentry should repanic after recovery, in most cases it should be set to true,
 // as gin.Default includes its own Recovery middleware that handles http responses.
 Repanic bool
@@ -96,42 +58,9 @@ Repanic bool
 // it's safe to either skip this option or set it to "false".
 WaitForDelivery bool
 // Timeout for the event delivery requests.
-Timeout time.Duration
-        `,
-      },
-    ],
-  },
-  {
-    title: t('Usage'),
-    description: (
-      <Fragment>
-        <p>
-          {tct(
-            "[sentryGinCode:sentrygin] attaches an instance of [sentryHubLink:*sentry.Hub] to the [ginContextCode:*gin.Context], which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentrygin.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
-            {
-              sentryGinCode: <code />,
-              sentryHubLink: (
-                <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
-              ),
-              ginContextCode: <code />,
-              getHubFromContextCode: <code />,
-              captureMessageCode: <code />,
-              captureExceptionCode: <code />,
-            }
-          )}
-        </p>
-        <AlertWithoutMarginBottom>
-          {tct(
-            "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryGinCode:sentrygin]!",
-            {sentryGinCode: <code />, sentryHubCode: <code />}
-          )}
-        </AlertWithoutMarginBottom>
-      </Fragment>
-    ),
-    configurations: [
-      {
-        language: 'go',
-        code: `
+Timeout time.Duration`;
+
+const getUsageSnippet = () => `
 app := gin.Default()
 
 app.Use(sentrygin.New(sentrygin.Options{
@@ -161,21 +90,11 @@ app.GET("/foo", func(ctx *gin.Context) {
   panic("y tho")
 })
 
-app.Run(":3000")
-        `,
-      },
-      {
-        description: (
-          <strong>
-            {tct('Accessing Request in [beforeSendCode:BeforeSend] callback', {
-              beforeSendCode: <code />,
-            })}
-          </strong>
-        ),
-        language: 'go',
-        code: `
+app.Run(":3000")`;
+
+const getBeforeSendSnippet = params => `
 sentry.Init(sentry.ClientOptions{
-  Dsn: "${dsn}",
+  Dsn: "${params.dsn}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
     if hint.Context != nil {
       if req, ok := hint.Context.Value(sentry.RequestContextKey).(*http.Request); ok {
@@ -185,19 +104,106 @@ sentry.Init(sentry.ClientOptions{
 
     return event
   },
-})
-        `,
-      },
-    ],
-  },
-];
-// Configuration End
+})`;
 
-export function GettingStartedWithGin({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
-}
+const onboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct('Install our Go Gin SDK using [code:go get]:', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'bash',
+          code: 'go get github.com/getsentry/sentry-go/gin',
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Import and initialize the Sentry SDK early in your application's setup:"
+      ),
+      configurations: [
+        {
+          language: 'go',
+          code: getConfigureSnippet(params),
+        },
+        {
+          description: (
+            <Fragment>
+              <strong>{t('Options')}</strong>
+              <p>
+                {tct(
+                  '[sentryGinCode:sentrygin] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
+                  {sentryGinCode: <code />, optionsCode: <code />}
+                )}
+              </p>
+              {t('Currently it respects 3 options:')}
+            </Fragment>
+          ),
+          language: 'go',
+          code: getOptionsSnippet(),
+        },
+      ],
+    },
+    {
+      title: t('Usage'),
+      description: (
+        <Fragment>
+          <p>
+            {tct(
+              "[sentryGinCode:sentrygin] attaches an instance of [sentryHubLink:*sentry.Hub] to the [ginContextCode:*gin.Context], which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentrygin.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
+              {
+                sentryGinCode: <code />,
+                sentryHubLink: (
+                  <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
+                ),
+                ginContextCode: <code />,
+                getHubFromContextCode: <code />,
+                captureMessageCode: <code />,
+                captureExceptionCode: <code />,
+              }
+            )}
+          </p>
+          <AlertWithoutMarginBottom>
+            {tct(
+              "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryGinCode:sentrygin]!",
+              {sentryGinCode: <code />, sentryHubCode: <code />}
+            )}
+          </AlertWithoutMarginBottom>
+        </Fragment>
+      ),
+      configurations: [
+        {
+          language: 'go',
+          code: getUsageSnippet(),
+        },
+        {
+          description: (
+            <strong>
+              {tct('Accessing Request in [beforeSendCode:BeforeSend] callback', {
+                beforeSendCode: <code />,
+              })}
+            </strong>
+          ),
+          language: 'go',
+          code: getBeforeSendSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+};
 
-export default GettingStartedWithGin;
+const docs: Docs = {
+  onboarding,
+};
+
+export default docs;
 
 const AlertWithoutMarginBottom = styled(Alert)`
   margin-bottom: 0;

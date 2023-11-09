@@ -2283,10 +2283,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ),
         )
 
-        assert query._on_demand_metric_spec
-
+        assert query._on_demand_metric_spec_map
+        selected_spec = query._on_demand_metric_spec_map[field]
         metrics_query = query._get_metrics_query_from_on_demand_spec(
-            spec=query._on_demand_metric_spec, require_time_range=True
+            spec=selected_spec, require_time_range=True
         )
 
         assert len(metrics_query.select) == 1
@@ -2386,6 +2386,21 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "eps", "type": "Float64"},
         ]
 
+    def test_on_demand_map_with_multiple_selected(self):
+        query_str = "transaction.duration:>=100"
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query_str,
+            selected_columns=["eps()", "epm()", "not_on_demand"],
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+        )
+        assert query._on_demand_metric_spec_map
+        assert query._on_demand_metric_spec_map["eps()"]
+        assert query._on_demand_metric_spec_map["epm()"]
+        assert "not_on_demand" not in query._on_demand_metric_spec_map
+
     def _test_user_misery(
         self, user_to_frustration: list[Tuple[str, bool]], expected_user_misery: float
     ) -> None:
@@ -2419,9 +2434,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=[field],
             config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
-        assert query._on_demand_metric_spec
+        assert query._on_demand_metric_spec_map
+        selected_spec = query._on_demand_metric_spec_map[field]
         metrics_query = query._get_metrics_query_from_on_demand_spec(
-            spec=query._on_demand_metric_spec, require_time_range=True
+            spec=selected_spec, require_time_range=True
         )
 
         assert len(metrics_query.select) == 1
@@ -2884,3 +2900,147 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert start_time_clause in snql_query.where
         assert end_time_clause in snql_query.where
         assert query_hash_clause in snql_query.where
+
+
+class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
+    def setUp(self):
+        super().setUp()
+
+    def test_distribution_metrics_query(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+        for value in (10, 20, 30):
+            self.store_transaction_metric(
+                value=value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_distributions",
+                tags={},
+                timestamp=self.start,
+                use_case_id=UseCaseID.CUSTOM,
+            )
+
+        query = MetricsQueryBuilder(
+            self.params,
+            granularity=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[f"count({mri})"],
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+
+        result = query.run_query("test_query")
+
+        assert result["data"] == [{"count_d_custom_sentry_process_profile_track_outcome_second": 3}]
+        meta = result["meta"]
+
+        assert len(meta) == 1
+        assert meta[0]["name"] == "count_d_custom_sentry_process_profile_track_outcome_second"
+
+    def test_distribution_timeseries_metrics_query(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            for multiplier in (1, 2, 3):
+                self.store_transaction_metric(
+                    value=value * multiplier,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_distributions",
+                    tags={},
+                    timestamp=self.start + datetime.timedelta(hours=index),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            interval=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[f"sum({mri})"],
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+
+        result = query.run_query("test_query")
+
+        assert result["data"][:6] == [
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 60.0,
+                "time": (self.start + datetime.timedelta(hours=0)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 120.0,
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 180.0,
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 240.0,
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 300.0,
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 360.0,
+                "time": (self.start + datetime.timedelta(hours=5)).isoformat(),
+            },
+        ]
+
+        meta = result["meta"]
+        assert len(meta) == 2
+        assert meta[1]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"
+
+    def test_distribution_query_generation(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+
+        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string=mri)
+        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string="my_tag")
+
+        query = AlertMetricsQueryBuilder(
+            {**self.params, "environment": self.environment.name},
+            granularity=3600,
+            query="my_tag:my_value",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[f"max({mri})"],
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "generic_metrics"
+
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            [
+                Function(
+                    "maxIf",
+                    [
+                        Column("value"),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                indexer.resolve(
+                                    UseCaseID.CUSTOM,
+                                    self.organization.id,
+                                    mri,
+                                ),
+                            ],
+                        ),
+                    ],
+                    "max_d_custom_sentry_process_profile_track_outcome_second",
+                )
+            ],
+            snql_query.select,
+        )
+
+        environment_id = indexer.resolve(UseCaseID.CUSTOM, self.organization.id, "environment")
+        environment_condition = Condition(
+            lhs=Column(name=f"tags_raw[{environment_id}]"), op=Op.EQ, rhs="development"
+        )
+        assert environment_condition in snql_query.where

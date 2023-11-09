@@ -1028,7 +1028,7 @@ class SnubaQueryBuilder:
         if self._metrics_query.include_series:
             series_limit = limit.limit * intervals_len
 
-            if self._use_case_id is UseCaseID.TRANSACTIONS:
+            if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS, UseCaseID.CUSTOM]:
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     self._metrics_query.interval
                 )

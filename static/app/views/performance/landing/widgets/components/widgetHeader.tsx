@@ -19,8 +19,10 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
 ) {
   const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle, chartSetting} =
     props;
-  const isHighestOpportunityPagesWidget =
-    chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES;
+  const isWebVitalsWidget = [
+    PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES,
+    PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE,
+  ].includes(chartSetting);
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
@@ -30,7 +32,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
           ) : (
             <TextOverflow>{title}</TextOverflow>
           )}
-          {isHighestOpportunityPagesWidget && <FeatureBadge type="alpha" />}
+          {isWebVitalsWidget && <FeatureBadge type="new" />}
           <MEPTag />
           {titleTooltip && (
             <QuestionTooltip position="top" size="sm" title={titleTooltip} />

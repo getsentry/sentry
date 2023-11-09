@@ -163,7 +163,12 @@ class GroupType:
 
     @classmethod
     def should_detect_escalation(cls, organization: Organization) -> bool:
-        if not features.has("organizations:issue-platform-api-crons-sd", organization):
+        """
+        If the feature is enabled and enable_escalation_detection=True, then escalation detection is enabled.
+
+        When the feature flag is removed, we can remove the organization parameter from this method.
+        """
+        if not features.has("organizations:issue-platform-crons-sd", organization):
             return True
         return cls.enable_escalation_detection
 
@@ -336,22 +341,20 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
 
 # experimental
 @dataclass(frozen=True)
-class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceDurationRegressionGroupType(GroupType):
     type_id = 1017
     slug = "performance_duration_regression"
     description = "Transaction Duration Regression (Experimental)"
-    noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     enable_escalation_detection = False
 
 
 @dataclass(frozen=True)
-class PerformanceP95EndpointRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
+class PerformanceP95EndpointRegressionGroupType(GroupType):
     type_id = 1018
     slug = "performance_p95_endpoint_regression"
     description = "Endpoint Regression"
-    noise_config = NoiseConfig(ignore_limit=0)
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     enable_escalation_detection = False

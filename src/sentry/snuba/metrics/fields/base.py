@@ -194,6 +194,7 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
                 "c": EntityKey.GenericMetricsCounters,
                 "d": EntityKey.GenericMetricsDistributions,
                 "s": EntityKey.GenericMetricsSets,
+                "g": EntityKey.GenericMetricsGauges,
             }[entity_prefix]
     except (ValueError, IndexError, KeyError):
         pass
@@ -216,7 +217,7 @@ def _get_entity_of_metric_mri(
         raise InvalidParams
 
     entity_keys_set: frozenset[EntityKey]
-    if use_case_id in [UseCaseID.TRANSACTIONS]:
+    if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
         entity_keys_set = frozenset(
             {
                 EntityKey.GenericMetricsCounters,
@@ -447,7 +448,12 @@ class RawOp(MetricOperation):
         org_id: int,
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
-        if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM, UseCaseID.ESCALATING_ISSUES]:
+        if use_case_id in [
+            UseCaseID.TRANSACTIONS,
+            UseCaseID.SPANS,
+            UseCaseID.CUSTOM,
+            UseCaseID.ESCALATING_ISSUES,
+        ]:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]

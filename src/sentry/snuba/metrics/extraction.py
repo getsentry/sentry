@@ -64,6 +64,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "transaction": "transaction",
     "platform": "platform",
     "platform.name": "platform",
+    "level": "level",
+    "logger": "logger",
     # Top-level structures ("interfaces")
     "user.email": "user.email",
     "user.id": "user.id",
@@ -82,6 +84,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "sdk.version": "sdk.version",
     # Subset of context fields
     "app.in_foreground": "contexts.app.in_foreground",
+    "device": "contexts.device.model",
     "device.arch": "contexts.device.arch",
     "device.battery_level": "contexts.device.battery_level",
     "device.brand": "contexts.device.brand",
@@ -111,6 +114,28 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "release.build": "release.build",
     "release.package": "release.package",
     "release.version": "release.version.short",
+    # Known tags that have to be mapped to fields that Relay can extract
+    "tags[level]": "level",
+    "tags[logger]": "logger",
+    "tags[environment]": "environment",
+    "tags[transaction]": "transaction",
+    "tags[release]": "release",
+    "tags[dist]": "dist",
+    # These match the mapping in sentry/interfaces/contexts.py
+    "tags[app.device]": "device_app_hash",
+    "tags[device]": "device.model",
+    "tags[device.family]": "device.family",
+    "tags[runtime]": "runtime",
+    "tags[runtime.name]": "runtime.name",
+    "tags[browser]": "browser",
+    "tags[browser.name]": "browser.name",
+    "tags[os]": "os",
+    "tags[os.name]": "os.name",
+    "tags[os.rooted]": "os.rooted",
+    "tags[gpu.vendor]": "gpu.vendor_name",
+    "tags[gpu.name]": "gpu.name",
+    "tags[monitor.id]": "monitor.id",
+    "tags[monitor.slug]": "monitor.slug",
     # Tags, measurements, and breakdowns are mapped by the converter
 }
 
@@ -484,8 +509,10 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
         if not _SEARCH_TO_RELAY_OPERATORS.get(token.operator):
             return False
 
-        return not _is_excluding_transactions(token) and _is_on_demand_supported_field(
-            token.key.name
+        return (
+            not _is_excluding_transactions(token)
+            and not _is_error_field(token.key.name)
+            and _is_on_demand_supported_field(token.key.name)
         )
 
     if isinstance(token, ParenExpression):
@@ -495,11 +522,13 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
 
 
 def _is_excluding_transactions(token: SearchFilter) -> bool:
-    return (
-        token.key.name == "event.type"
-        and token.operator == "!="
-        and token.value.raw_value == "transaction"
-    )
+    if token.key.name != "event.type":
+        return False
+
+    is_not_transaction = token.operator == "!=" and token.value.raw_value == "transaction"
+    is_error_or_default = token.operator == "=" and token.value.raw_value in ["error", "default"]
+
+    return is_not_transaction or is_error_or_default
 
 
 def _is_standard_metrics_field(field: str) -> bool:
@@ -509,6 +538,10 @@ def _is_standard_metrics_field(field: str) -> bool:
         or is_span_op_breakdown(field)
         or field == "transaction.duration"
     )
+
+
+def _is_error_field(token: str) -> bool:
+    return token.startswith("error.")
 
 
 def _is_standard_metrics_search_term(field: str) -> bool:

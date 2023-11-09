@@ -195,7 +195,17 @@ class ErrorPageEmbedView(View):
             if features.has(
                 "organizations:user-feedback-ingest", project.organization, actor=request.user
             ):
-                shim_to_feedback(report, event, project)
+                shim_to_feedback(
+                    {
+                        "name": report.name,
+                        "email": report.email,
+                        "comments": report.comments,
+                        "event_id": report.event_id,
+                        "level": "error",  # assume error level from error page embed
+                    },
+                    event,
+                    project,
+                )
 
             return self._smart_response(request)
         elif request.method == "POST":

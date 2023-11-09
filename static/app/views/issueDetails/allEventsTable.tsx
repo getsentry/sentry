@@ -85,7 +85,8 @@ function AllEventsTable(props: Props) {
   if (group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked) {
     idQuery = `performance.issue_ids:${issueId} event.type:transaction`;
   } else if (
-    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
+    (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+      group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION) &&
     groupIsOccurrenceBacked
   ) {
     const {transaction, aggregateRange2, breakpoint} =

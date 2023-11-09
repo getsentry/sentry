@@ -44,6 +44,21 @@ from sentry.testutils.pytest.fixtures import django_db_all
             True,
         ),  # transaction.duration query is on-demand
         ("count[)", "", False),  # Malformed aggregate should return false
+        (
+            "count()",
+            "event.type:error transaction.duration:>0",
+            False,
+        ),  # event.type:error not supported by metrics
+        (
+            "count()",
+            "event.type:default transaction.duration:>0",
+            False,
+        ),  # event.type:error not supported by metrics
+        (
+            "count()",
+            "error.handled:true transaction.duration:>0",
+            False,
+        ),  # error.handled is an error search term
     ],
 )
 def test_should_use_on_demand(agg, query, result):
@@ -178,6 +193,19 @@ def test_spec_simple_query_with_environment_only():
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.environment", "op": "eq", "value": "production"}
+
+
+def test_spec_context_mapping():
+    spec = OnDemandMetricSpec("count()", "device:SM-A226B")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "name": "event.contexts.device.model",
+        "op": "eq",
+        "value": "SM-A226B",
+    }
 
 
 def test_spec_query_with_parentheses_and_environment():

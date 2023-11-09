@@ -1,18 +1,37 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './bun';
 
-import {GettingStartedWithBun, steps} from './bun';
-
-describe('GettingStartedWithBun', function () {
+describe('bun onboarding docs', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithBun dsn="test-dsn" projectSlug="test-project" />);
+    renderWithOnboardingLayout(docs);
 
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+
+    // Renders config options
+    expect(
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0,/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders without performance monitoring', function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    // Does not render config option
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0,/))
+    ).not.toBeInTheDocument();
+
+    // Renders next steps
+    expect(
+      screen.getByRole('link', {name: 'Performance Monitoring'})
+    ).toBeInTheDocument();
   });
 });

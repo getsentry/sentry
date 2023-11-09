@@ -199,6 +199,26 @@ function buildRoutes() {
         path="/organizations/:orgId/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
+      {usingCustomerDomain && (
+        <Route
+          path="/unsubscribe/project/:id/"
+          component={make(() => import('sentry/views/unsubscribe/project'))}
+        />
+      )}
+      <Route
+        path="/unsubscribe/:orgId/project/:id/"
+        component={make(() => import('sentry/views/unsubscribe/project'))}
+      />
+      {usingCustomerDomain && (
+        <Route
+          path="/unsubscribe/issue/:id/"
+          component={make(() => import('sentry/views/unsubscribe/issue'))}
+        />
+      )}
+      <Route
+        path="/unsubscribe/:orgId/issue/:id/"
+        component={make(() => import('sentry/views/unsubscribe/issue'))}
+      />
       <Route
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
@@ -1678,6 +1698,21 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="mobile/">
+        <Route path="screens/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/starfish/modules/mobile/pageload')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+            )}
+          />
+        </Route>
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -1803,17 +1838,6 @@ function buildRoutes() {
         <IndexRoute
           component={make(
             () => import('sentry/views/starfish/modules/mobile/initialization')
-          )}
-        />
-      </Route>
-      <Route path="pageload/">
-        <IndexRoute
-          component={make(() => import('sentry/views/starfish/modules/mobile/pageload'))}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/starfish/views/screens/screenLoadSpans')
           )}
         />
       </Route>
@@ -1991,7 +2015,9 @@ function buildRoutes() {
     <Fragment>
       <Route
         path="/organizations/:orgId/issues/:groupId/"
-        component={withDomainRedirect(make(() => import('sentry/views/issueDetails')))}
+        component={withDomainRedirect(
+          make(() => import('sentry/views/issueDetails/groupDetails'))
+        )}
         key="org-issues-group-id"
       >
         {issueDetailsChildRoutes({forCustomerDomain: false})}
@@ -1999,7 +2025,9 @@ function buildRoutes() {
       {usingCustomerDomain && (
         <Route
           path="/issues/:groupId/"
-          component={withDomainRequired(make(() => import('sentry/views/issueDetails')))}
+          component={withDomainRequired(
+            make(() => import('sentry/views/issueDetails/groupDetails'))
+          )}
           key="orgless-issues-group-id-route"
         >
           {issueDetailsChildRoutes({forCustomerDomain: true})}

@@ -12,7 +12,8 @@ from requests import Request
 from responses import matchers
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.client import GitHubApproachingRateLimit, GitHubAppsClient
+from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
+from sentry.integrations.github.client import GitHubAppsClient
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.notify_disable import notify_disable
@@ -98,7 +99,7 @@ class GitHubAppsClientTest(TestCase):
             assert gh_rate_limit.next_window() == "17:39:49"
 
     @responses.activate
-    def test_get_rate_limit_non_existant_resouce(self):
+    def test_get_rate_limit_non_existent_resource(self):
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
 
@@ -1151,6 +1152,60 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
         assert json.loads(responses.calls[2].request.body)["query"] == query
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_trim_file_path_for_query(self, get_jwt):
+        """
+        When file path has hanging forward slashes, trims them for the request.
+        The GitHub GraphQL API will return empty responses otherwise.
+        """
+        file1 = SourceLineInfo(
+            path="/src/sentry/integrations/github/client.py/",
+            lineno=10,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+
+        query = """query {
+    repository0: repository(name: "foo", owner: "Test-Organization") {
+        ref0: ref(qualifiedName: "master") {
+            target {
+                ... on Commit {
+                    blame0: blame(path: "src/sentry/integrations/github/client.py") {
+                        ranges {
+                            commit {
+                                oid
+                                author {
+                                    name
+                                    email
+                                }
+                                message
+                                committedDate
+                            }
+                            startingLine
+                            endingLine
+                            age
+                        }
+                    }
+                }
+            }
+        }
+    }
+}"""
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "query": query,
+                "data": {},
+            },
+            content_type="application/json",
+        )
+
+        self.github_client.get_blame_for_files([file1], extra={})
+        assert json.loads(responses.calls[2].request.body)["query"] == query
+
 
 class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     """
@@ -1160,34 +1215,29 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     def setUp(self):
         super().setUp()
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_get_blame_for_files_full_response(self, get_jwt):
-        """
-        Tests that the correct commits are selected from the blame range when a full response is returned.
-        """
-        file1 = SourceLineInfo(
+        self.file1 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=10,
             ref="master",
             repo=self.repo_1,
             code_mapping=None,  # type:ignore
         )
-        file2 = SourceLineInfo(
+        self.file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=20,
             ref="master",
             repo=self.repo_1,
             code_mapping=None,  # type:ignore
         )
-        file3 = SourceLineInfo(
+        self.file3 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=20,
             ref="master",
             repo=self.repo_1,
             code_mapping=None,  # type:ignore
         )
-        data = {
+
+        self.data = {
             "repository0": {
                 "ref0": {
                     "target": {
@@ -1251,21 +1301,30 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             }
         }
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_blame_for_files_full_response(self, get_jwt):
+        """
+        Tests that the correct commits are selected from the blame range when a full response is returned.
+        """
+
         responses.add(
             method=responses.POST,
             url="https://api.github.com/graphql",
             json={
-                "data": data,
+                "data": self.data,
             },
             content_type="application/json",
         )
 
-        response = self.github_client.get_blame_for_files([file1, file2, file3], extra={})
+        response = self.github_client.get_blame_for_files(
+            [self.file1, self.file2, self.file3], extra={}
+        )
         self.assertEqual(
             response,
             [
                 FileBlameInfo(
-                    **asdict(file1),
+                    **asdict(self.file1),
                     commit=CommitInfo(
                         commitId="123",
                         commitAuthorName="foo1",
@@ -1275,7 +1334,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                     ),
                 ),
                 FileBlameInfo(
-                    **asdict(file2),
+                    **asdict(self.file2),
                     commit=CommitInfo(
                         commitId="456",
                         commitAuthorName="foo2",
@@ -1285,7 +1344,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                     ),
                 ),
                 FileBlameInfo(
-                    **asdict(file3),
+                    **asdict(self.file3),
                     commit=CommitInfo(
                         commitId="789",
                         commitAuthorName="foo3",
@@ -1295,6 +1354,81 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                     ),
                 ),
             ],
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_cached_blame_for_files_full_response(self, get_jwt):
+        """
+        Tests that the cached commits are returned with full response
+        """
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": self.data,
+            },
+            content_type="application/json",
+        )
+
+        data = create_blame_query(
+            generate_file_path_mapping([self.file1, self.file2, self.file3]), extra={}
+        )
+        cache_key = self.github_client.get_cache_key("/graphql", data)
+        assert self.github_client.check_cache(cache_key) is None
+        response = self.github_client.get_blame_for_files(
+            [self.file1, self.file2, self.file3], extra={}
+        )
+
+        self.assertEqual(
+            response,
+            [
+                FileBlameInfo(
+                    **asdict(self.file1),
+                    commit=CommitInfo(
+                        commitId="123",
+                        commitAuthorName="foo1",
+                        commitAuthorEmail="foo1@example.com",
+                        commitMessage="hello",
+                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    ),
+                ),
+                FileBlameInfo(
+                    **asdict(self.file2),
+                    commit=CommitInfo(
+                        commitId="456",
+                        commitAuthorName="foo2",
+                        commitAuthorEmail="foo2@example.com",
+                        commitMessage="hello",
+                        committedDate=datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    ),
+                ),
+                FileBlameInfo(
+                    **asdict(self.file3),
+                    commit=CommitInfo(
+                        commitId="789",
+                        commitAuthorName="foo3",
+                        commitAuthorEmail="foo3@example.com",
+                        commitMessage="hello",
+                        committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    ),
+                ),
+            ],
+        )
+        assert self.github_client.check_cache(cache_key)["data"] == self.data
+        # Calling a second time should work
+        response = self.github_client.get_blame_for_files(
+            [self.file1, self.file2, self.file3], extra={}
+        )
+        assert self.github_client.check_cache(cache_key)["data"] == self.data
+        # Calling again after the cache has been cleared should still work
+        cache.delete(cache_key)
+        response = self.github_client.get_blame_for_files(
+            [self.file1, self.file2, self.file3], extra={}
+        )
+        assert self.github_client.check_cache(cache_key)["data"] == self.data
+        assert (
+            self.github_client.get_blame_for_files([self.file1, self.file2], extra={}) != response
         )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -1532,7 +1666,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_rate_limit_exceeded(self, get_jwt, mock_logger_error):
-        with pytest.raises(GitHubApproachingRateLimit):
+        with pytest.raises(ApiRateLimitedError):
             self.github_client.get_blame_for_files([self.file], extra={})
         mock_logger_error.assert_called_with(
             "sentry.integrations.github.get_blame_for_files.rate_limit",

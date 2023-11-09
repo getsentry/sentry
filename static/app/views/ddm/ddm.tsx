@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -22,13 +21,13 @@ function DDM() {
   const organization = useOrganization();
 
   return (
-    <SentryDocumentTitle title={t('Metrics')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('DDM')} orgSlug={organization.slug}>
       <PageFiltersContainer disablePersistence>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
               <Layout.Title>
-                {t('Metrics')}
+                {t('DDM')}
                 <PageHeadingQuestionTooltip
                   docsUrl="https://docs.sentry.io"
                   title={t('Delightful Developer Metrics.')}
@@ -36,13 +35,10 @@ function DDM() {
                 <FeatureBadge type="alpha" />
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                <FeatureFeedback featureName="DDM" buttonProps={{size: 'sm'}} />
-              </ButtonBar>
-            </Layout.HeaderActions>
+            <Layout.HeaderActions />
           </Layout.Header>
           <Layout.Body>
+            <FeedbackWidget />
             <Layout.Main fullWidth>
               <PaddedContainer>
                 <PageFilterBar condensed>

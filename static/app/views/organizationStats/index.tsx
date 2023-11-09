@@ -17,9 +17,8 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {
   DATA_CATEGORY_INFO,
   DEFAULT_RELATIVE_PERIODS,
@@ -44,6 +43,8 @@ import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
+
+const relativeOptions = omit(DEFAULT_RELATIVE_PERIODS, ['1h']);
 
 export const PAGE_QUERY_PARAMS = [
   // From DatePageFilter
@@ -336,13 +337,15 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
           onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
         />
 
-        <StyledPageTimeRangeSelector
+        <StyledTimeRangeSelector
           relative={period ?? ''}
           start={start ?? null}
           end={end ?? null}
           utc={utc ?? null}
           onChange={this.handleUpdateDatetime}
-          relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
+          relativeOptions={relativeOptions}
+          triggerLabel={period && relativeOptions[period]}
+          triggerProps={{prefix: t('Date Range')}}
         />
       </SelectorGrid>
     );
@@ -473,7 +476,7 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
 `;
 
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   grid-column: auto / span 1;
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: auto / span 2;
