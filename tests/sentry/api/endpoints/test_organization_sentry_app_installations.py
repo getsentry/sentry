@@ -121,3 +121,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert SentryAppInstallation.objects.filter(sentry_app=app).count() == 1
         assert response.status_code == 200
+
+    def test_invalid_numeric_slug(self):
+        self.login_as(user=self.user)
+        self.get_error_response(self.org.slug, slug="1234", status_code=400)
