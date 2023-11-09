@@ -125,6 +125,16 @@ class DiscordRequest:
             return
         else:
             self._info("discord.authorize.unauthorized")
+            logger.info(
+                "discord.authorize.unauthorized",
+                extra={
+                    "public_key": public_key,
+                    "signature": signature,
+                    "timestamp": timestamp,
+                    "body": body,
+                    "timestamp_body": timestamp + body,
+                },
+            )
 
         raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
 
