@@ -188,10 +188,18 @@ const performanceConfig: IssueCategoryConfigMapping = {
     },
   },
   [IssueType.PERFORMANCE_DURATION_REGRESSION]: {
+    discover: {enabled: false},
+    regression: {enabled: true},
+    replays: {enabled: false},
     stats: {enabled: false},
     tags: {enabled: false},
-    replays: {enabled: false},
+  },
+  [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: {
     discover: {enabled: false},
+    regression: {enabled: true},
+    replays: {enabled: false},
+    stats: {enabled: false},
+    tags: {enabled: false},
   },
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
     resources: {
@@ -278,11 +286,20 @@ const performanceConfig: IssueCategoryConfigMapping = {
     },
   },
   [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: {
+    discover: {enabled: false},
     events: {enabled: false},
+    regression: {enabled: true},
     replays: {enabled: false},
     stats: {enabled: false},
     tags: {enabled: false},
+  },
+  [IssueType.PROFILE_FUNCTION_REGRESSION]: {
     discover: {enabled: false},
+    events: {enabled: false},
+    regression: {enabled: true},
+    replays: {enabled: false},
+    stats: {enabled: false},
+    tags: {enabled: false},
   },
 };
 

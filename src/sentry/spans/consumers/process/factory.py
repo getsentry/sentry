@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Mapping, Optional, cast
 
 import sentry_sdk
@@ -30,20 +30,21 @@ def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> SpanEvent:
     start_timestamp = datetime.utcfromtimestamp(relay_span["start_timestamp"])
     end_timestamp = datetime.utcfromtimestamp(relay_span["timestamp"])
     snuba_span: SpanEvent = SpanEvent(
+        duration_ms=max(
+            int((end_timestamp - start_timestamp).total_seconds() * 1e3),
+            0,
+        ),
         exclusive_time_ms=int(relay_span.get("exclusive_time", 0)),
         is_segment=relay_span.get("is_segment", False),
         organization_id=relay_span["organization_id"],
         parent_span_id=relay_span.get("parent_span_id", "0"),
         project_id=relay_span["project_id"],
+        received=relay_span.get("received", datetime.now(tz=timezone.utc).timestamp()),
         retention_days=relay_span["retention_days"],
         segment_id=relay_span.get("segment_id", "0"),
         span_id=relay_span.get("span_id", "0"),
-        trace_id=uuid.UUID(relay_span["trace_id"]).hex,
         start_timestamp_ms=int(start_timestamp.timestamp() * 1e3),
-        duration_ms=max(
-            int((end_timestamp - start_timestamp).total_seconds() * 1e3),
-            0,
-        ),
+        trace_id=uuid.UUID(relay_span["trace_id"]).hex,
     )
 
     if value := relay_span.get("description"):
@@ -58,7 +59,10 @@ def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> SpanEvent:
     if value := _format_event_id(relay_span, key="profile_id"):
         snuba_span["profile_id"] = value
 
-    snuba_span["sentry_tags"] = cast(_SentryExtractedTags, relay_span.get("sentry_tags", {}))
+    snuba_span["sentry_tags"] = cast(
+        _SentryExtractedTags,
+        relay_span.get("sentry_tags", {}),
+    )
 
     _process_group_raw(snuba_span, snuba_span["sentry_tags"].get("transaction", ""))
 
@@ -112,7 +116,7 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredP
     try:
         payload = _deserialize_payload(message.payload.value)
     except ValidationError as err:
-        metrics.incr("spans.consumer.input.schema_validation.failed")
+        metrics.incr("spans.consumer.schema_validation.failed.input")
         _capture_exception(err)
         return FILTERED_PAYLOAD
 
@@ -127,7 +131,7 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredP
         snuba_payload = SNUBA_SPAN_SCHEMA.encode(snuba_span)
         return KafkaPayload(key=None, value=snuba_payload, headers=[])
     except ValidationError as err:
-        metrics.incr("spans.consumer.input.schema_validation.failed")
+        metrics.incr("spans.consumer.schema_validation.failed.output")
         _capture_exception(err)
         return FILTERED_PAYLOAD
 

@@ -4,10 +4,11 @@ import omit from 'lodash/omit';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
-import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
+import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, SPAN_DOMAIN, PROJECT_ID} =
   SpanMetricsField;
@@ -26,10 +27,7 @@ export type SpanMetrics = {
 };
 
 export const useSpanList = (
-  moduleName: ModuleName,
-  transaction?: string,
-  method?: string,
-  spanCategory?: string,
+  filters: SpanMetricsQueryFilters,
   sorts?: Sort[],
   limit?: number,
   referrer = 'api.starfish.use-span-list',
@@ -37,15 +35,10 @@ export const useSpanList = (
 ) => {
   const location = useLocation();
 
-  const eventView = getEventView(
-    moduleName,
-    location,
-    transaction,
-    method,
-    spanCategory,
-    sorts
-  );
+  const eventView = getEventView(filters, location, sorts);
 
+  // TODO: Add correct typing. The response should only include the fields
+  // we're querying for
   const {isLoading, data, meta, pageLinks} = useWrappedDiscoverQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
@@ -58,22 +51,25 @@ export const useSpanList = (
 };
 
 function getEventView(
-  moduleName: ModuleName,
+  filters: SpanMetricsQueryFilters,
   location: Location,
-  transaction?: string,
-  method?: string,
-  spanCategory?: string,
   sorts?: Sort[]
 ) {
-  const query = buildEventViewQuery({
-    moduleName,
-    location,
-    transaction,
-    method,
-    spanCategory,
-  })
-    .filter(Boolean)
-    .join(' ');
+  const query = new MutableSearch('');
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (!value) {
+      return;
+    }
+
+    if (value === EMPTY_OPTION_VALUE) {
+      query.addFilterValue('!has', key);
+    }
+
+    query.addFilterValue(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
+  });
+
+  query.addFilterValue('has', 'span.description');
 
   const fields = [
     PROJECT_ID,
@@ -91,7 +87,7 @@ function getEventView(
   const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query,
+      query: query.formatString(),
       fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
@@ -105,3 +101,5 @@ function getEventView(
 
   return eventView;
 }
+
+const ALLOWED_WILDCARD_FIELDS = ['span.description'];

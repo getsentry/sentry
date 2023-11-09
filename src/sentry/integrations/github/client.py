@@ -43,10 +43,6 @@ logger = logging.getLogger("sentry.integrations.github")
 MINIMUM_REQUESTS = 200
 
 
-class GitHubApproachingRateLimit(Exception):
-    pass
-
-
 class GithubRateLimitInfo:
     def __init__(self, info: Dict[str, int]) -> None:
         self.limit = info["limit"]
@@ -698,9 +694,10 @@ class GitHubClientMixin(GithubProxyClient):
             "provider": "github",
             "organization_integration_id": self.org_integration_id,
         }
+        metrics.incr("integrations.github.get_blame_for_files")
         rate_limit = self.get_rate_limit(specific_resource="graphql")
         if rate_limit.remaining < MINIMUM_REQUESTS:
-            metrics.incr("sentry.integrations.github.get_blame_for_files.rate_limit")
+            metrics.incr("integrations.github.get_blame_for_files.not_enough_requests_remaining")
             logger.error(
                 "sentry.integrations.github.get_blame_for_files.rate_limit",
                 extra={
@@ -711,31 +708,47 @@ class GitHubClientMixin(GithubProxyClient):
                     "organization_integration_id": self.org_integration_id,
                 },
             )
-            raise GitHubApproachingRateLimit()
+            raise ApiRateLimitedError("Not enough requests remaining for GitHub")
 
         file_path_mapping = generate_file_path_mapping(files)
-
-        try:
-            response = self.post(
-                path="/graphql",
-                data={"query": create_blame_query(file_path_mapping, extra=log_info)},
-                allow_text=False,
+        data = create_blame_query(file_path_mapping, extra=log_info)
+        cache_key = self.get_cache_key("/graphql", data)
+        response = self.check_cache(cache_key)
+        if response:
+            metrics.incr("integrations.github.get_blame_for_files.got_cached")
+            logger.info(
+                "sentry.integrations.github.get_blame_for_files.got_cached",
+                extra=log_info,
             )
-        except ValueError as e:
-            logger.exception(e, log_info)
-            return []
+        else:
+            try:
+                response = self.post(
+                    path="/graphql",
+                    data={"query": create_blame_query(file_path_mapping, extra=log_info)},
+                    allow_text=False,
+                )
+            except ValueError as e:
+                logger.exception(e, log_info)
+                return []
+            else:
+                self.set_cache(cache_key, response, 60)
 
         if not isinstance(response, MappingApiResponse):
             raise ApiError("Response is not JSON")
 
-        if response.get("errors"):
-            err_message = ", ".join(
-                [error.get("message", "") for error in response.get("errors", [])]
-            )
-            logger.error(
-                "get_blame_for_files.graphql_error",
-                extra={**log_info, "error_message": err_message},
-            )
+        errors = response.get("errors", [])
+        if len(errors) > 0:
+            if any([error for error in errors if error.get("type") == "RATE_LIMITED"]):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+
+            # When data is present, it means that the query was at least partially successful,
+            # usually a missing repo/branch/file which is expected with wrong configurations.
+            # If data is not present, the query may be formed incorrectly, so raise an error.
+            if not response.get("data"):
+                err_message = ", ".join(
+                    [error.get("message", "") for error in response.get("errors", [])]
+                )
+                raise ApiError(err_message)
 
         return extract_commits_from_blame_response(
             response=response,

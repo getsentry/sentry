@@ -6,7 +6,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {
@@ -19,6 +19,8 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   PROJECT_ID,
 } = SpanMetricsField;
+
+const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Props = {
   sort: ValidSort;
@@ -67,6 +69,8 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
         SPAN_DOMAIN,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         'project.id',
+        `${TIME_SPENT_PERCENTAGE}()`,
+        `sum(${SPAN_SELF_TIME})`,
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
@@ -107,7 +111,9 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
     [`avg(http.response_content_length)`]: row[
       `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`
     ] as number,
+    [`time_spent_percentage()`]: row[`${TIME_SPENT_PERCENTAGE}()`] as number,
     ['count_unique(transaction)']: row['count_unique(transaction)'] as number,
+    [`sum(span.self_time)`]: row[`sum(${SPAN_SELF_TIME})`] as number,
   }));
 
   return {...result, data: data || []};

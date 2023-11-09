@@ -57,8 +57,7 @@ def add_notification_setting_provider(
 
 
 # The tests below are intended to check behavior with the new
-# NotificationSettingOption and NotificationSettingProvider tables,
-# which will be enabled with the "organization:notification-settings-v2" flag.
+# NotificationSettingOption and NotificationSettingProvider tables
 @control_silo_test(stable=True)
 class NotificationControllerTest(TestCase):
     def setUp(self):
@@ -638,7 +637,6 @@ class NotificationControllerTest(TestCase):
             }
         }
 
-    @with_feature("organizations:notification-settings-v2")
     @with_feature("organizations:team-workflow-notifications")
     def test_get_team_workflow_participants(self):
         rpc_user = RpcActor.from_object(self.team)
@@ -651,7 +649,28 @@ class NotificationControllerTest(TestCase):
             type=NotificationSettingEnum.WORKFLOW,
         )
         assert controller.get_participants() == {
-            rpc_user: {ExternalProviders.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY}
+            rpc_user: {
+                ExternalProviders.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                ExternalProviders.EMAIL: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+            }
+        }
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_get_team_issue_alert_participants(self):
+        rpc_user = RpcActor.from_object(self.team)
+        with assume_test_silo_mode(SiloMode.REGION):
+            link_team(self.team, self.integration, "#team-channel", "team_channel_id")
+        controller = NotificationController(
+            recipients=[self.team],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS,
+        )
+        assert controller.get_participants() == {
+            rpc_user: {
+                ExternalProviders.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+                ExternalProviders.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+            }
         }
 
     def test_get_notification_value_for_recipient_and_type(self):

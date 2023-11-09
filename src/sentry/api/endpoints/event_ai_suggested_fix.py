@@ -6,7 +6,7 @@ from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse, StreamingHttpResponse
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -297,10 +297,8 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         This endpoint returns a JSON response that provides helpful suggestions about how to
         understand or resolve an event.
         """
-        # To use this feature you need the feature enabled and openai needs to be configured
-        if not settings.OPENAI_API_KEY or not features.has(
-            "organizations:open-ai-suggestion", project.organization, actor=request.user
-        ):
+        # To use this feature you need openai to be configured
+        if not settings.OPENAI_API_KEY:
             raise ResourceDoesNotExist
 
         event = eventstore.backend.get_event_by_id(project.id, event_id)

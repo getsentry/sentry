@@ -490,7 +490,7 @@ async function fetchProjects(
   }
 
   if (allProjects) {
-    const projects = ProjectsStore.getAll();
+    const projects = ProjectsStore.getState().projects;
     const loading = ProjectsStore.isLoading();
     // If the projects store is loaded then return all projects from the store
     if (!loading) {

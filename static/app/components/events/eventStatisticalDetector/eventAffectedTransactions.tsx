@@ -1,24 +1,13 @@
-import {Fragment, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {LineChart} from 'sentry/components/charts/lineChart';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {t} from 'sentry/locale';
 import {Event, Group, Project} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {tooltipFormatter} from 'sentry/utils/discover/charts';
-import {Container, NumberContainer} from 'sentry/utils/discover/styles';
-import {getDuration} from 'sentry/utils/formatters';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
@@ -28,6 +17,9 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import {RELATIVE_DAYS_WINDOW} from './consts';
+import {EventRegressionTable} from './eventRegressionTable';
 
 interface EventAffectedTransactionsProps {
   event: Event;
@@ -79,7 +71,11 @@ export function EventAffectedTransactions({
   );
 }
 
-const TRANSACTIONS_LIMIT = 5;
+const TRANSACTIONS_LIMIT = 10;
+
+const ADDITIONAL_COLUMNS = [
+  {key: 'transaction', name: t('Transaction'), width: COL_WIDTH_UNDEFINED},
+];
 
 interface EventAffectedTransactionsInnerProps {
   breakpoint: number;
@@ -96,20 +92,31 @@ function EventAffectedTransactionsInner({
   framePackage,
   project,
 }: EventAffectedTransactionsInnerProps) {
+  const [causeType, setCauseType] = useState<'duration' | 'throughput'>('duration');
+
   const organization = useOrganization();
 
   const datetime = useRelativeDateTime({
     anchor: breakpoint,
-    relativeDays: 14,
+    relativeDays: RELATIVE_DAYS_WINDOW,
   });
 
   const percentileBefore = `percentile_before(function.duration, 0.95, ${breakpoint})`;
   const percentileAfter = `percentile_after(function.duration, 0.95, ${breakpoint})`;
+  const throughputBefore = `cpm_before(${breakpoint})`;
+  const throughputAfter = `cpm_after(${breakpoint})`;
   const regressionScore = `regression_score(function.duration, 0.95, ${breakpoint})`;
 
   const transactionsDeltaQuery = useProfileFunctions({
     datetime,
-    fields: ['transaction', percentileBefore, percentileAfter, regressionScore],
+    fields: [
+      'transaction',
+      percentileBefore,
+      percentileAfter,
+      throughputBefore,
+      throughputAfter,
+      regressionScore,
+    ],
     sort: {
       key: regressionScore,
       order: 'desc',
@@ -148,7 +155,7 @@ function EventAffectedTransactionsInner({
     others: false,
     referrer: 'api.profiling.functions.regression.transaction-stats',
     topEvents: TRANSACTIONS_LIMIT,
-    yAxes: ['p95()', 'worst()'],
+    yAxes: ['worst()'],
   });
 
   const examplesByTransaction = useMemo(() => {
@@ -178,186 +185,133 @@ function EventAffectedTransactionsInner({
     return allExamples;
   }, [breakpoint, transactionsDeltaQuery, functionStats]);
 
-  const timeseriesByTransaction: Record<string, Series> = useMemo(() => {
-    const allTimeseries: Record<string, Series> = {};
-    if (!defined(functionStats.data)) {
-      return allTimeseries;
+  const tableData = useMemo(() => {
+    return (
+      transactionsDeltaQuery.data?.data.map(row => {
+        const [exampleBefore, exampleAfter] = examplesByTransaction[
+          row.transaction as string
+        ] ?? [null, null];
+
+        if (causeType === 'throughput') {
+          const before = row[throughputBefore] as number;
+          const after = row[throughputAfter] as number;
+          return {
+            exampleBefore,
+            exampleAfter,
+            transaction: row.transaction,
+            throughputBefore: before,
+            throughputAfter: after,
+            percentageChange: after / before - 1,
+          };
+        }
+
+        const before = (row[percentileBefore] as number) / 1e9;
+        const after = (row[percentileAfter] as number) / 1e9;
+        return {
+          exampleBefore,
+          exampleAfter,
+          transaction: row.transaction,
+          durationBefore: before,
+          durationAfter: after,
+          percentageChange: after / before - 1,
+        };
+      }) || []
+    );
+  }, [
+    causeType,
+    percentileBefore,
+    percentileAfter,
+    throughputBefore,
+    throughputAfter,
+    transactionsDeltaQuery.data?.data,
+    examplesByTransaction,
+  ]);
+
+  const options = useMemo(() => {
+    function handleGoToProfile() {
+      trackAnalytics('profiling_views.go_to_flamegraph', {
+        organization,
+        source: 'profiling.issue.function_regression.transactions',
+      });
     }
 
-    const timestamps = functionStats.data.timestamps;
-
-    transactionsDeltaQuery.data?.data?.forEach(row => {
-      const transaction = row.transaction as string;
-      const data = functionStats.data.data.find(
-        ({axis, label}) => axis === 'p95()' && label === transaction
-      );
-      if (!defined(data)) {
-        return;
-      }
-
-      allTimeseries[transaction] = {
-        data: timestamps.map((timestamp, i) => {
-          return {
-            name: timestamp * 1000,
-            value: data.values[i],
-          };
-        }),
-        seriesName: 'p95(function.duration)',
-      };
-    });
-
-    return allTimeseries;
-  }, [transactionsDeltaQuery, functionStats]);
-
-  const chartOptions = useMemo(() => {
-    return {
-      width: 300,
-      height: 20,
-      grid: {
-        top: '2px',
-        left: '2px',
-        right: '2px',
-        bottom: '2px',
-        containLabel: false,
-      },
-      xAxis: {
-        show: false,
-        type: 'time' as const,
-      },
-      yAxis: {
-        show: false,
-      },
-      tooltip: {
-        valueFormatter: value => tooltipFormatter(value, 'duration'),
-      },
-    };
-  }, []);
-
-  function handleGoToProfile() {
-    trackAnalytics('profiling_views.go_to_flamegraph', {
-      organization,
-      source: 'profiling.issue.function_regression.transactions',
-    });
-  }
-
-  return (
-    <EventDataSection type="transactions-impacted" title={t('Transactions Impacted')}>
-      {transactionsDeltaQuery.isLoading ? (
-        <LoadingIndicator hideMessage />
-      ) : transactionsDeltaQuery.isError ? (
-        <EmptyStateWarning>
-          <p>{t('Oops! Something went wrong fetching transaction impacted.')}</p>
-        </EmptyStateWarning>
-      ) : (
-        <ListContainer>
-          {(transactionsDeltaQuery.data?.data ?? []).map(transaction => {
-            const transactionName = transaction.transaction as string;
-            const series = timeseriesByTransaction[transactionName] ?? {
-              seriesName: 'p95()',
-              data: [],
-            };
-
-            const [beforeExample, afterExample] = examplesByTransaction[
-              transactionName
-            ] ?? [null, null];
-
-            let before = (
-              <PerformanceDuration
-                nanoseconds={transaction[percentileBefore] as number}
-                abbreviation
-              />
-            );
-
-            if (defined(beforeExample)) {
-              const beforeTarget = generateProfileFlamechartRouteWithQuery({
-                orgSlug: organization.slug,
-                projectSlug: project.slug,
-                profileId: beforeExample,
-                query: {
-                  frameName,
-                  framePackage,
-                },
-              });
-
-              before = (
-                <Link to={beforeTarget} onClick={handleGoToProfile}>
-                  {before}
-                </Link>
-              );
-            }
-
-            let after = (
-              <PerformanceDuration
-                nanoseconds={transaction[percentileAfter] as number}
-                abbreviation
-              />
-            );
-
-            if (defined(afterExample)) {
-              const afterTarget = generateProfileFlamechartRouteWithQuery({
-                orgSlug: organization.slug,
-                projectSlug: project.slug,
-                profileId: afterExample,
-                query: {
-                  frameName,
-                  framePackage,
-                },
-              });
-
-              after = (
-                <Link to={afterTarget} onClick={handleGoToProfile}>
-                  {after}
-                </Link>
-              );
-            }
-
-            const summaryTarget = generateProfileSummaryRouteWithQuery({
+    const before = dataRow =>
+      defined(dataRow.exampleBefore)
+        ? {
+            target: generateProfileFlamechartRouteWithQuery({
               orgSlug: organization.slug,
               projectSlug: project.slug,
-              transaction: transaction.transaction as string,
-            });
-            return (
-              <Fragment key={transaction.transaction as string}>
-                <Container>
-                  <Link to={summaryTarget}>{transaction.transaction}</Link>
-                </Container>
-                <LineChart
-                  {...chartOptions}
-                  series={[series]}
-                  isGroupedByDate
-                  showTimeInTooltip
-                />
-                <NumberContainer>
-                  <Tooltip
-                    title={tct(
-                      'The function duration in this transaction increased from [before] to [after]',
-                      {
-                        before: getDuration(
-                          (transaction[percentileBefore] as number) / 1_000_000_000,
-                          2,
-                          true
-                        ),
-                        after: getDuration(
-                          (transaction[percentileAfter] as number) / 1_000_000_000,
-                          2,
-                          true
-                        ),
-                      }
-                    )}
-                    position="top"
-                  >
-                    <DurationChange>
-                      {before}
-                      <IconArrow direction="right" size="xs" />
-                      {after}
-                    </DurationChange>
-                  </Tooltip>
-                </NumberContainer>
-              </Fragment>
-            );
-          })}
-        </ListContainer>
-      )}
+              profileId: dataRow.exampleBefore,
+              query: {
+                frameName,
+                framePackage,
+              },
+            }),
+            onClick: handleGoToProfile,
+          }
+        : undefined;
+
+    const after = dataRow =>
+      defined(dataRow.exampleAfter)
+        ? {
+            target: generateProfileFlamechartRouteWithQuery({
+              orgSlug: organization.slug,
+              projectSlug: project.slug,
+              profileId: dataRow.exampleAfter,
+              query: {
+                frameName,
+                framePackage,
+              },
+            }),
+            onClick: handleGoToProfile,
+          }
+        : undefined;
+
+    return {
+      transaction: {
+        link: dataRow => ({
+          target: generateProfileSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            projectSlug: project.slug,
+            transaction: dataRow.transaction as string,
+          }),
+        }),
+      },
+      durationBefore: {link: before},
+      durationAfter: {link: after},
+      throughputBefore: {link: before},
+      throughputAfter: {link: after},
+    };
+  }, [organization, project, frameName, framePackage]);
+
+  return (
+    <EventDataSection
+      type="most-affected"
+      title={t('Most Affected')}
+      actions={
+        <SegmentedControl
+          size="xs"
+          aria-label={t('Duration or Throughput')}
+          value={causeType}
+          onChange={setCauseType}
+        >
+          <SegmentedControl.Item key="duration">
+            {t('Duration (P95)')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="throughput">
+            {t('Throughput')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+      }
+    >
+      <EventRegressionTable
+        causeType={causeType}
+        columns={ADDITIONAL_COLUMNS}
+        data={tableData || []}
+        isLoading={transactionsDeltaQuery.isLoading}
+        isError={transactionsDeltaQuery.isError}
+        options={options}
+      />
     </EventDataSection>
   );
 }
@@ -421,16 +375,3 @@ function findExamplePair(
 
   return [before, after];
 }
-
-const ListContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: ${space(1)};
-`;
-
-const DurationChange = styled('span')`
-  color: ${p => p.theme.gray300};
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
