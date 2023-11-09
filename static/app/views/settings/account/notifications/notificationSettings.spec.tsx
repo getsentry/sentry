@@ -1,24 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  NotificationSettingsObject,
-  SELF_NOTIFICATION_SETTINGS_TYPES,
-} from 'sentry/views/settings/account/notifications/constants';
+import {SELF_NOTIFICATION_SETTINGS_TYPES} from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
 import NotificationSettings from 'sentry/views/settings/account/notifications/notificationSettings';
 
-function renderMockRequests({
-  notificationSettings,
-}: {
-  notificationSettings: NotificationSettingsObject;
-}) {
-  MockApiClient.addMockResponse({
-    url: '/users/me/notification-settings/',
-    method: 'GET',
-    body: notificationSettings,
-  });
-
+function renderMockRequests({}: {}) {
   MockApiClient.addMockResponse({
     url: '/users/me/notifications/',
     method: 'GET',
@@ -31,23 +18,17 @@ function renderMockRequests({
 }
 
 describe('NotificationSettings', function () {
-  it('should render', function () {
+  it('should render', async function () {
     const {routerContext, organization} = initializeOrg();
 
-    renderMockRequests({
-      notificationSettings: {
-        alerts: {user: {me: {email: 'never', slack: 'never'}}},
-        deploy: {user: {me: {email: 'never', slack: 'never'}}},
-        workflow: {user: {me: {email: 'never', slack: 'never'}}},
-      },
-    });
+    renderMockRequests({});
 
     render(<NotificationSettings organizations={[organization]} />, {
       context: routerContext,
     });
 
     // There are 8 notification setting Selects/Toggles.
-    [
+    for (const field of [
       'alerts',
       'workflow',
       'deploy',
@@ -55,48 +36,43 @@ describe('NotificationSettings', function () {
       'reports',
       'email',
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
-    ].forEach(field => {
+    ]) {
       expect(
-        screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
+        await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
       ).toBeInTheDocument();
-    });
-
+    }
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();
   });
 
-  it('renders quota section with feature flag', function () {
+  it('renders quota section with feature flag', async function () {
     const {routerContext, organization} = initializeOrg({
       organization: {
         features: ['slack-overage-notifications'],
       },
     });
 
-    renderMockRequests({
-      notificationSettings: {
-        alerts: {user: {me: {email: 'never', slack: 'never'}}},
-        deploy: {user: {me: {email: 'never', slack: 'never'}}},
-        workflow: {user: {me: {email: 'never', slack: 'never'}}},
-      },
-    });
+    renderMockRequests({});
 
     render(<NotificationSettings organizations={[organization]} />, {
       context: routerContext,
     });
 
     // There are 9 notification setting Selects/Toggles.
-    [
+
+    for (const field of [
       'alerts',
       'workflow',
       'deploy',
       'approval',
-      'quota',
       'reports',
       'email',
+      'quota',
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
-    ].forEach(field => {
+    ]) {
       expect(
-        screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
+        await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
       ).toBeInTheDocument();
-    });
+    }
+    expect(screen.getByText('Issue Alerts')).toBeInTheDocument();
   });
 });
