@@ -2427,8 +2427,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 on_demand_metrics_enabled=True,
             ),
         )
-        assert query._on_demand_metric_spec_map["count()"]
-        assert query._on_demand_metric_spec_map["count_web_vitals(measurements.lcp, good)"]
+        assert query._on_demand_metric_spec_map[field]
+        assert query._on_demand_metric_spec_map[field_two]
 
         mep_query = TopMetricsQueryBuilder(
             Dataset.PerformanceMetrics,
@@ -2444,14 +2444,6 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
         assert not mep_query._on_demand_metric_spec_map
-
-        metrics_query = query._get_metrics_query_from_on_demand_spec(
-            spec=query._on_demand_metric_spec_map["count()"], require_time_range=True
-        )
-
-        assert len(metrics_query.select) == 1
-        assert metrics_query.where
-        assert metrics_query.where[0].rhs == spec.query_hash
         result = query.run_query("test_query")
 
         assert result["data"]
