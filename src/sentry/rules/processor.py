@@ -66,7 +66,6 @@ class RuleProcessor:
         has_reappeared: bool,
     ) -> None:
         self.event = event
-        assert hasattr(event, "group")
         self.group = event.group
         self.project = event.project
 

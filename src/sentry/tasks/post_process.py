@@ -124,6 +124,8 @@ def format_event_platform(event: GroupEvent):
 
 
 def _capture_event_stats(event: Event) -> None:
+    from sentry.eventstore.models import GroupEvent
+
     if not event.group:
         logger.error(
             "Group not found on event while capturing event stats",
@@ -157,6 +159,8 @@ def _update_escalating_metrics(event: Event) -> None:
 
 
 def _capture_group_stats(job: PostProcessJob) -> None:
+    from sentry.eventstore.models import Event, GroupEvent
+
     event = job["event"]
     if not event.group:
         logger.error(
@@ -490,6 +494,7 @@ def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -
     return (
         features.has("organizations:escalating-metrics-backend", event.project.organization)
         and not is_transaction_event
+        and event.group is not None
         and event.group.issue_type.should_detect_escalation(event.project.organization)
     )
 
@@ -738,8 +743,7 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)
-
+    setattr(event, "data", EventDict(event.data, skip_renormalization=True))
     return event
 
 
@@ -848,6 +852,7 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
+    from sentry.eventstore.models import Event, GroupEvent
     from sentry.issues.escalating import is_escalating, manage_issue_states
     from sentry.models.group import GroupStatus
     from sentry.models.groupinbox import GroupInboxReason
@@ -992,6 +997,8 @@ def process_replay_link(job: PostProcessJob) -> None:
 
 
 def process_rules(job: PostProcessJob) -> None:
+    from sentry.eventstore.models import Event, GroupEvent
+
     if job["is_reprocessed"]:
         return
 
