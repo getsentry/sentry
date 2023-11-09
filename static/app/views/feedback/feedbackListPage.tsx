@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -11,11 +12,15 @@ import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/u
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props extends RouteComponentProps<{}, {}, {}> {}
@@ -23,6 +28,7 @@ interface Props extends RouteComponentProps<{}, {}, {}> {}
 export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
+  const location = useLocation();
 
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
@@ -32,6 +38,37 @@ export default function FeedbackListPage({}: Props) {
             <Layout.HeaderContent>
               <Layout.Title>{t('User Feedback')}</Layout.Title>
             </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <Tooltip
+                title={tct(
+                  'View [link:error-associated feedback reports] from before November 3rd, 2023.',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
+                    ),
+                  }
+                )}
+                position="left"
+                isHoverable
+              >
+                <Button
+                  size="sm"
+                  priority="default"
+                  to={{
+                    pathname: normalizeUrl(
+                      `/organizations/${organization.slug}/user-feedback/`
+                    ),
+                    query: {
+                      ...location.query,
+                      query: undefined,
+                      cursor: undefined,
+                    },
+                  }}
+                >
+                  {t('Go to Old User Feedback')}
+                </Button>
+              </Tooltip>
+            </Layout.HeaderActions>
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
