@@ -884,7 +884,7 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         now = timezone.now()
         self.project.date_added = now - timedelta(minutes=5)
-        for i in range(9):
+        for i in range(8):
             self.store_event(
                 project_id=self.project.id,
                 data={"event_id": str(i) * 32, "timestamp": iso_format(now - timedelta(minutes=2))},
@@ -906,21 +906,30 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
             app_id=referrer,
             tenant_ids={"referrer": referrer, "organization_id": self.organization.id},
             order_by="event_id",
+            max_limit=3,
         )
 
-        first_page = paginator.get_result(limit=5)
-        assert len(first_page.results) == 5
-        assert first_page.results == [{"event_id": str(i) * 32} for i in range(5)]
+        first_page = paginator.get_result()
+        assert len(first_page.results) == 3
+        assert first_page.results == [{"event_id": str(i) * 32} for i in range(3)]
         assert first_page.next.offset == 1
         assert first_page.next.has_results
         assert first_page.prev.has_results is False
 
-        second_page = paginator.get_result(limit=5, cursor=first_page.next)
-        assert len(second_page.results) == 4
-        assert second_page.results == [{"event_id": str(i) * 32} for i in range(5, 9)]
-        assert second_page.next.has_results is False
+        second_page = paginator.get_result(cursor=first_page.next)
+        assert len(second_page.results) == 3
+        assert second_page.results == [{"event_id": str(i) * 32} for i in range(3, 6)]
+        assert second_page.next.offset == 2
+        assert second_page.next.has_results
         assert second_page.prev.offset == 0
         assert second_page.prev.has_results
+
+        third_page = paginator.get_result(cursor=second_page.next)
+        assert len(third_page.results) == 2
+        assert third_page.results == [{"event_id": str(i) * 32} for i in range(6, 8)]
+        assert third_page.next.has_results is False
+        assert third_page.prev.offset == 1
+        assert third_page.prev.has_results
 
     def test_desc_order(self):
         now = timezone.now()

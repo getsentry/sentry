@@ -775,9 +775,9 @@ class SnubaRequestPaginator:
         self.max_limit = max_limit
         self.on_results = on_results
 
-    def set_offset_for_query(self, cursor_value, query):
-        if cursor_value != 0:
-            query = query.set_offset(cursor_value)
+    def set_offset_for_query(self, cursor, query):
+        # offset = "page" number * max number of items per page
+        query = query.set_offset(cursor.offset * cursor.value)
         return query
 
     def get_result(self, limit=100, cursor=None):
@@ -792,7 +792,7 @@ class SnubaRequestPaginator:
         request = Request(
             dataset=self.dataset,
             app_id=self.app_id,
-            query=self.set_offset_for_query(cursor.value, self.query),
+            query=self.set_offset_for_query(cursor, self.query),
             tenant_ids=self.tenant_ids,
         )
 
