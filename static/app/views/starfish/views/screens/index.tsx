@@ -35,9 +35,10 @@ import {
   useTableQuery,
 } from 'sentry/views/starfish/views/screens/screensTable';
 import {
-  CodeSnippetTab,
-  TabbedCodeSnippet,
-} from 'sentry/views/starfish/views/screens/tabbedCodeSnippets';
+  REPORT_FULLY_DRAWN_CONTENT,
+  SETUP_CONTENT,
+} from 'sentry/views/starfish/views/screens/setupContent';
+import {TabbedCodeSnippet} from 'sentry/views/starfish/views/screens/tabbedCodeSnippets';
 
 export enum YAxis {
   WARM_START,
@@ -287,8 +288,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
           <ChartsContainerItem key="ttfd">
             {defined(hasTTFD) && !hasTTFD && yAxes[1] === YAxis.TTFD ? (
               <ChartPanel title={CHART_TITLES[yAxes[1]]}>
-                <TabbedCodeSnippet tabs={getSetupContent()} />
-                <TabbedCodeSnippet tabs={getReportFullyDrawnContent()} />
+                <TabbedCodeSnippet tabs={SETUP_CONTENT} />
+                <TabbedCodeSnippet tabs={REPORT_FULLY_DRAWN_CONTENT} />
               </ChartPanel>
             ) : (
               <ScreensBarChart
@@ -374,95 +375,3 @@ export const Spacer = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};
 `;
-
-function getSetupContent(): CodeSnippetTab[] {
-  const swiftSnippet = `// Enable Time to Full Display
-import Sentry
-
-SentrySDK.start { options in
-  options.dsn = "<my-dsn-key>"
-  options.enableTimeToFullDisplayTracing = true
-}`;
-  const objCSnippet = `// Enable Time to Full Display
-@import Sentry;
-
-[SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
-  options.dsn = @"<my-dsn-key>";
-  options.enableTimeToFullDisplayTracing = YES;
-}];`;
-
-  const xmlSnippet = `<!--Enable Time to Full Display-->
-<application>
-    <meta-data android:name="io.sentry.traces.time-to-full-display.enable" android:value="true" />
-</application>`;
-  return [
-    {
-      code: swiftSnippet,
-      label: 'Swift',
-      language: 'swift',
-      value: 'swift',
-    },
-    {
-      code: objCSnippet,
-      label: 'Objective-C',
-      language: 'objectivec',
-      value: 'objective-c',
-    },
-    {
-      code: xmlSnippet,
-      label: 'Xml',
-      language: 'xml',
-      value: 'xml',
-      filename: 'AndroidManifest.xml',
-    },
-  ];
-}
-
-function getReportFullyDrawnContent(): CodeSnippetTab[] {
-  const swiftSnippet = `// Call API when screen is fully drawn
-import Sentry
-
-SentrySDK.reportFullyDisplayed()`;
-
-  const objCSnippet = `// Call API when screen is fully drawn
-@import Sentry;
-
-[SentrySDK reportFullyDisplayed];`;
-
-  const javaSnippet = `// Call API when screen is fully drawn
-import io.sentry.Sentry;
-
-Sentry.reportFullyDisplayed();`;
-
-  const kotlinSnippet = `// Call API when screen is fully drawn
-import io.sentry.Sentry
-
-Sentry.reportFullyDisplayed()`;
-
-  return [
-    {
-      code: swiftSnippet,
-      label: 'Swift',
-      language: 'swift',
-      value: 'swift',
-    },
-    {
-      code: objCSnippet,
-      label: 'Objective-C',
-      language: 'objectivec',
-      value: 'objective-c',
-    },
-    {
-      code: javaSnippet,
-      label: 'Java',
-      language: 'java',
-      value: 'java',
-    },
-    {
-      code: kotlinSnippet,
-      label: 'Kotlin',
-      language: 'kotlin',
-      value: 'kotlin',
-    },
-  ];
-}
