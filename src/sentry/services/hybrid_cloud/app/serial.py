@@ -42,6 +42,7 @@ def serialize_sentry_app(app: SentryApp) -> RpcSentryApp:
         is_internal=app.status == SentryAppStatus.INTERNAL,
         is_publish_request_inprogress=app.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS,
         status=SentryAppStatus.as_str(app.status),
+        metadata=app.metadata,
     )
 
 
