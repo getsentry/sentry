@@ -31,11 +31,11 @@ KEYWORD_MAP = BidirectionalMapping(
 @dataclass
 class EventUser:
     project_id: Optional[int]
-    email: str
-    username: str
-    name: str
-    ip_address: str
-    user_id: int
+    email: Optional[str]
+    username: Optional[str]
+    name: Optional[str]
+    ip_address: Optional[str]
+    user_id: Optional[int]
     id: Optional[int] = None  # EventUser model id
 
     @staticmethod
@@ -60,7 +60,7 @@ class EventUser:
     @classmethod
     def for_projects(
         self, projects: List[Project], keyword_filters: Mapping[str, Any]
-    ) -> Mapping[str, Any]:
+    ) -> List[EventUser]:
         """
         Fetch the EventUser with a Snuba query that exists within a list of projects
         and valid `keyword_filters`. The `keyword_filter` keys are in `KEYWORD_MAP`.
