@@ -34,6 +34,7 @@ type Props = {
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  query?: string[];
   release?: string;
   transactionMethod?: string;
 };
@@ -47,6 +48,7 @@ function SampleTable({
   transactionMethod,
   columnOrder,
   release,
+  query,
 }: Props) {
   const filters: SpanSummaryQueryFilters = {
     transactionName,
@@ -81,6 +83,7 @@ function SampleTable({
     transactionName,
     transactionMethod,
     release,
+    query,
   });
 
   const {

@@ -30,6 +30,7 @@ type Props = {
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  query?: string[];
   release?: string;
   spanDescription?: string;
   transactionMethod?: string;
@@ -67,6 +68,7 @@ function DurationChart({
   highlightedSpanId,
   transactionMethod,
   release,
+  query,
 }: Props) {
   const theme = useTheme();
   const {setPageError} = usePageError();
@@ -113,6 +115,7 @@ function DurationChart({
     transactionName,
     transactionMethod,
     release,
+    query,
   });
 
   const baselineAvgSeries: Series = {
