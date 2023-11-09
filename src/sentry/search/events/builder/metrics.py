@@ -58,6 +58,7 @@ from sentry.snuba.metrics.extraction import (
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery
+from sentry.snuba.metrics.utils import get_num_intervals
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
@@ -183,6 +184,14 @@ class MetricsQueryBuilder(QueryBuilder):
             limit = self.limit or Limit(1)
             # Top N events passes a limit of 10000 by default. That's also the upper bound for metrics layer, so
             # we need to reduce the interval.
+            intervals_len = get_num_intervals(
+                start=self.start,
+                end=self.end,
+                granularity=self.granularity,
+                interval=self.interval,
+            )
+            if intervals_len > 0:
+                limit = Limit(int(limit.limit / intervals_len))
             max_limit = 10_000
             alias = get_function_alias(spec.field) or "count"
             include_series = True
