@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import pickle
 import time
-from collections import deque
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Dict, List, MutableMapping, Sequence, Union
@@ -11,6 +10,7 @@ from unittest.mock import Mock, call
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
@@ -19,7 +19,6 @@ from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_
 from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
-    BrokerMeta,
     IndexerOutputMessageBatch,
     MetricsBatchBuilder,
 )
@@ -56,6 +55,10 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
     actual_payload = actual.payload
     expected_payload = expected.payload
 
+    if isinstance(actual_payload, InvalidMessage):
+        assert actual_payload == expected_payload
+        return
+
     assert actual_payload.key == expected_payload.key
 
     actual_headers_without_mapping_sources = [
@@ -73,7 +76,7 @@ def compare_message_batches_ignoring_metadata(
     actual: IndexerOutputMessageBatch, expected: Sequence[Message]
 ) -> None:
     assert len(actual.data) == len(expected)
-    for (a, e) in zip(actual.data, expected):
+    for a, e in zip(actual.data, expected):
         compare_messages_ignoring_mapping_metadata(a, e)
 
 
@@ -342,7 +345,6 @@ def test_process_messages() -> None:
             )
         )
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
-    assert not new_batch.invalid_msg_meta
 
 
 invalid_payloads = [
@@ -448,11 +450,16 @@ def test_process_messages_invalid_messages(
                 ),
                 expected_msg.committable,
             )
-        )
+        ),
+        Message(
+            Value(
+                InvalidMessage(Partition(Topic("topic"), 0), 1),
+                message_batch[1].committable,
+            )
+        ),
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
     assert error_text in caplog.text
-    assert new_batch.invalid_msg_meta == deque([BrokerMeta(Partition(Topic("topic"), 0), 1)])
 
 
 @pytest.mark.django_db
@@ -520,7 +527,6 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
     assert "dropped_message" in caplog.text
-    assert not new_batch.invalid_msg_meta
 
 
 @pytest.mark.django_db
@@ -572,7 +578,6 @@ def test_process_messages_cardinality_limited(
             new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
 
         compare_message_batches_ignoring_metadata(new_batch, [])
-        assert not new_batch.invalid_msg_meta
 
 
 def test_valid_metric_name() -> None:
