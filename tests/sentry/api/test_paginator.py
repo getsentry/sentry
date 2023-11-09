@@ -881,7 +881,8 @@ class TestChainPaginator(SimpleTestCase):
 class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
     cls = SnubaRequestPaginator
 
-    def test_simple(self):
+    def setUp(self):
+        super().setUp()
         now = timezone.now()
         self.project.date_added = now - timedelta(minutes=5)
         for i in range(8):
@@ -889,7 +890,7 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
                 data={"event_id": str(i) * 32, "timestamp": iso_format(now - timedelta(minutes=2))},
             )
-        query = Query(
+        self.query = Query(
             match=Entity("events"),
             select=[Column("event_id")],
             where=[
@@ -898,17 +899,17 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
                 Condition(Column("timestamp"), Op.LT, now + timedelta(days=1)),
             ],
         )
+        self.referrer = "tests.sentry.api.test_paginator"
 
-        referrer = "tests.sentry.api.test_paginator"
+    def test_simple(self):
         paginator = self.cls(
-            query=query,
+            query=self.query,
             dataset="events",
-            app_id=referrer,
-            tenant_ids={"referrer": referrer, "organization_id": self.organization.id},
+            app_id=self.referrer,
+            tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
             order_by="event_id",
             max_limit=3,
         )
-
         first_page = paginator.get_result()
         assert len(first_page.results) == 3
         assert first_page.results == [{"event_id": str(i) * 32} for i in range(3)]
@@ -932,36 +933,18 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
         assert third_page.prev.has_results
 
     def test_desc_order(self):
-        now = timezone.now()
-        self.project.date_added = now - timedelta(minutes=5)
-        for i in range(9):
-            self.store_event(
-                project_id=self.project.id,
-                data={"event_id": str(i) * 32, "timestamp": iso_format(now - timedelta(minutes=2))},
-            )
-        query = Query(
-            match=Entity("events"),
-            select=[Column("event_id")],
-            where=[
-                Condition(Column("project_id"), Op.EQ, self.project.id),
-                Condition(Column("timestamp"), Op.GTE, now - timedelta(days=1)),
-                Condition(Column("timestamp"), Op.LT, now + timedelta(days=1)),
-            ],
-        )
-
-        referrer = "tests.sentry.api.test_paginator"
         paginator = self.cls(
-            query=query,
+            query=self.query,
             dataset="events",
-            app_id=referrer,
-            tenant_ids={"referrer": referrer, "organization_id": self.organization.id},
+            app_id=self.referrer,
+            tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
             order_by="-event_id",
+            max_limit=5,
         )
-
-        first_page = paginator.get_result(limit=5)
+        first_page = paginator.get_result()
         assert len(first_page.results) == 5
-        assert first_page.results == [{"event_id": str(i) * 32} for i in range(8, 3, -1)]
+        assert first_page.results == [{"event_id": str(i) * 32} for i in range(7, 2, -1)]
 
-        second_page = paginator.get_result(limit=5, cursor=first_page.next)
-        assert len(second_page.results) == 4
-        assert second_page.results == [{"event_id": str(i) * 32} for i in range(3, -1, -1)]
+        second_page = paginator.get_result(cursor=first_page.next)
+        assert len(second_page.results) == 3
+        assert second_page.results == [{"event_id": str(i) * 32} for i in range(2, -1, -1)]
