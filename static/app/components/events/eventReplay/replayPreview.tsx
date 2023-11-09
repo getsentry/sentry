@@ -118,20 +118,11 @@ function ReplayPreview({
     );
   }
 
-  const fullReplayUrlErrors = {
+  const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: TabKey.ERRORS,
-      t: initialTimeOffsetMs / 1000,
-    },
-  };
-
-  const fullReplayUrlBreadcrumbs = {
-    pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
-    query: {
-      referrer: getRouteStringFromRoutes(routes),
-      t_main: TabKey.BREADCRUMBS,
+      t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
       t: initialTimeOffsetMs / 1000,
     },
   };
@@ -151,7 +142,7 @@ function ReplayPreview({
             {...buttonProps}
             icon={<IconPlay />}
             priority="primary"
-            to={fromFeedback ? fullReplayUrlBreadcrumbs : fullReplayUrlErrors}
+            to={fullReplayUrl}
           >
             {t('Open Replay')}
           </LinkButton>
