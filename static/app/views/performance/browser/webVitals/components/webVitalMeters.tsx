@@ -151,7 +151,7 @@ const MeterValueText = styled('div')`
 function MeterBarFooter({score}: {score: number | null}) {
   if (score === null) {
     return (
-      <MeterBarFooterContainer status="none">{t('No Value')}</MeterBarFooterContainer>
+      <MeterBarFooterContainer status="none">{t('No Data')}</MeterBarFooterContainer>
     );
   }
   const status = scoreToStatus(score);
@@ -178,7 +178,7 @@ const NoValueContainer = styled('span')`
 `;
 
 function NoValue() {
-  return <NoValueContainer>{t('(no value)')}</NoValueContainer>;
+  return <NoValueContainer>{' \u2014 '}</NoValueContainer>;
 }
 
 const StyledTooltip = styled(Tooltip)`
