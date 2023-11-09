@@ -122,8 +122,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             },
             order_by="-timestamp",
             paginator_cls=SnubaRequestPaginator,
-            converter=convert_to_event_user,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(convert_to_event_user(x), request.user),
         )
 
 
