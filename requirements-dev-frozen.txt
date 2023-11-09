@@ -27,7 +27,7 @@ certifi==2023.7.22
 cffi==1.15.1
 cfgv==3.3.1
 charset-normalizer==3.0.1
-click==8.0.4
+click==8.1.7
 confluent-kafka==2.1.1
 covdefaults==2.3.0
 coverage==6.3.3
@@ -145,7 +145,7 @@ pytest-fail-slow==0.3.0
 pytest-rerunfailures==11.0
 pytest-sentry==0.1.11
 pytest-xdist==3.0.2
-python-dateutil==2.8.1
+python-dateutil==2.8.2
 python-memcached==1.59
 python-rapidjson==1.8
 python-u2flib-server==5.0.0
@@ -168,7 +168,7 @@ rfc3986-validator==0.1.1
 rsa==4.8
 s3transfer==0.6.1
 selenium==4.3.0
-sentry-arroyo==2.14.17
+sentry-arroyo==2.14.18
 sentry-cli==2.16.0
 sentry-forked-django-stubs==4.2.6.post2
 sentry-forked-djangorestframework-stubs==3.14.4.post2

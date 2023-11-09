@@ -1565,12 +1565,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-ticket-rules": True,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
-    # Allow orgs to create a Discord integration
-    "organizations:integrations-discord": False,
-    # Enable Discord metric alert notifications
-    "organizations:integrations-discord-metric-alerts": False,
-    # Enable Discord integration notifications
-    "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
@@ -1676,6 +1670,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable performance score calculation for transactions in relay
     "organizations:performance-calculate-score-relay": False,
+    # Enable screens view powered by span metrics
+    "organizations:performance-screens-view": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1978,6 +1974,7 @@ SENTRY_INTERFACES = {
     "hpkp": "sentry.interfaces.security.Hpkp",
     "expectct": "sentry.interfaces.security.ExpectCT",
     "expectstaple": "sentry.interfaces.security.ExpectStaple",
+    "nel": "sentry.interfaces.nel.Nel",
     "exception": "sentry.interfaces.exception.Exception",
     "logentry": "sentry.interfaces.message.Message",
     "request": "sentry.interfaces.http.Http",

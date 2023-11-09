@@ -33,7 +33,7 @@ import {
   PageSamplePerformanceTable,
   TransactionSampleRowWithScoreAndExtra,
 } from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
@@ -128,13 +128,7 @@ export default function PageOverview() {
 
   const projectScore = isLoading
     ? undefined
-    : calculatePerformanceScore({
-        lcp: pageData?.data[0]['p75(measurements.lcp)'] as number,
-        fcp: pageData?.data[0]['p75(measurements.fcp)'] as number,
-        cls: pageData?.data[0]['p75(measurements.cls)'] as number,
-        ttfb: pageData?.data[0]['p75(measurements.ttfb)'] as number,
-        fid: pageData?.data[0]['p75(measurements.fid)'] as number,
-      });
+    : calculatePerformanceScoreFromTableDataRow(pageData?.data[0]);
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
@@ -245,6 +239,7 @@ export default function PageOverview() {
               <PageOverviewSidebar
                 projectScore={projectScore}
                 transaction={transaction}
+                projectScoreIsLoading={isLoading}
               />
             </Layout.Side>
           </Layout.Body>

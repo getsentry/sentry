@@ -183,7 +183,9 @@ function PerformanceScoreRingWithTooltips({
               <Dot color={ringBackgroundColors[ORDER.indexOf(webVitalTooltip)]} />
               {webVitalTooltip.toUpperCase()} {t('Opportunity')}
             </span>
-            <TooltipValue>{100 - projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
+            <TooltipValue>
+              {100 - (projectScore[`${webVitalTooltip}Score`] ?? 0)}
+            </TooltipValue>
           </TooltipRow>
           <TooltipRow>
             <span>
@@ -242,11 +244,11 @@ function PerformanceScoreRingWithTooltips({
         )}
         <PerformanceScoreRing
           values={[
-            projectScore.lcpScore * LCP_WEIGHT * 0.01,
-            projectScore.fcpScore * FCP_WEIGHT * 0.01,
-            projectScore.fidScore * FID_WEIGHT * 0.01,
-            projectScore.clsScore * CLS_WEIGHT * 0.01,
-            projectScore.ttfbScore * TTFB_WEIGHT * 0.01,
+            (projectScore.lcpScore ?? 0) * LCP_WEIGHT * 0.01,
+            (projectScore.fcpScore ?? 0) * FCP_WEIGHT * 0.01,
+            (projectScore.fidScore ?? 0) * FID_WEIGHT * 0.01,
+            (projectScore.clsScore ?? 0) * CLS_WEIGHT * 0.01,
+            (projectScore.ttfbScore ?? 0) * TTFB_WEIGHT * 0.01,
           ]}
           maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
           text={text}

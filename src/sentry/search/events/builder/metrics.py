@@ -48,7 +48,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.snuba.metrics.extraction import (
@@ -821,6 +821,34 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return metric_layer_result
 
+    def use_case_id_from_metrics_query(self, metrics_query: MetricsQuery) -> UseCaseID:
+        """
+        Extracts the use case from the `MetricsQuery` which has to be executed in the metrics layer.
+
+        This function could be moved entirely in the `MetricsQuery` object but the metrics layer wasn't designed to
+        infer the use case id but rather it expects to have it specified from the outside.
+
+        Note that this is an alternative way to compute the use case id, which overrides the `use_case_id()` method
+        which is used for non metrics layer queries.
+        """
+        use_case_ids = set()
+
+        for field in metrics_query.select:
+            mri = field.metric_mri
+            if mri:
+                use_case_ids.add(extract_use_case_id(mri=mri))
+
+        if len(use_case_ids) == 0:
+            raise IncompatibleMetricsQuery(
+                "Unable to infer the use case id from the supplied metrics."
+            )
+        elif len(use_case_ids) > 1:
+            raise IncompatibleMetricsQuery(
+                "You can only query metrics belonging to the same use case id."
+            )
+
+        return use_case_ids.pop()
+
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         groupby_aliases = [
             groupby.alias
@@ -1107,7 +1135,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             snuba_queries, _ = SnubaQueryBuilder(
                 projects=self.params.projects,
                 metrics_query=metrics_query,
-                use_case_id=UseCaseID.TRANSACTIONS if self.is_performance else UseCaseID.SESSIONS,
+                use_case_id=self.use_case_id_from_metrics_query(metrics_query),
             ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
@@ -1360,9 +1388,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metrics_query,
-                        use_case_id=UseCaseID.TRANSACTIONS
-                        if self.is_performance
-                        else UseCaseID.SESSIONS,
+                        use_case_id=self.use_case_id_from_metrics_query(metrics_query),
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )
