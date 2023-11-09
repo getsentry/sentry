@@ -1718,7 +1718,8 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
                     for index, interval in enumerate(metrics_data["intervals"]):
                         time = interval.isoformat()
-                        if time in time_data_map and group_key in time_data_map[time]:
+                        has_seen_row = time in time_data_map and group_key in time_data_map[time]
+                        if has_seen_row:
                             data = time_data_map[time][group_key]
                         else:
                             data = {self.time_alias: time}
@@ -1728,7 +1729,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
                         for key, value_list in group.get("series", {}).items():
                             data[key] = value_list[index]
-                        metric_layer_result["data"].append(data)
+
+                        if not has_seen_row:
+                            metric_layer_result["data"].append(data)
 
                         for meta in metric_layer_result["meta"]:
                             if data.get(meta["name"]) is None:
