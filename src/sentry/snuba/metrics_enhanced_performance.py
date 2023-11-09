@@ -190,6 +190,7 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled: bool = False,
 ):
     metrics_compatible = False
     equations, columns = categorize_columns(selected_columns)
@@ -214,6 +215,7 @@ def top_events_timeseries(
                 zerofill_results,
                 include_other,
                 functions_acl,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
