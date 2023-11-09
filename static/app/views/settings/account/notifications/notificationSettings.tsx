@@ -58,6 +58,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
             size="sm"
             borderless
             aria-label={t('Notification Settings')}
+            data-test-id="fine-tuning"
             to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[type]}/`}
           />
         </IconWrapper>
