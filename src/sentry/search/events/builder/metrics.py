@@ -1005,20 +1005,18 @@ class MetricsQueryBuilder(QueryBuilder):
                 except Exception as err:
                     raise IncompatibleMetricsQuery(err)
                 with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
-                    for datum in metrics_data:
-                        metric_layer_result = self.convert_metric_layer_result(datum)
-                        for row in metric_layer_result["data"]:
-                            # Arrays in clickhouse cannot contain multiple types, and since groupby values
-                            # can contain any type, we must use tuples instead
-                            groupby_key = tuple(row[key] for key in groupby_aliases)
-                            value_map_key = ",".join(str(value) for value in groupby_key)
-                            # First time we're seeing this value, add it to the values we're going to filter by
-                            if value_map_key not in value_map and groupby_key:
-                                groupby_values.append(groupby_key)
-                            # print(row)
-                            value_map[value_map_key].update(row)
-                        for meta in metric_layer_result["meta"]:
-                            meta_dict[meta["name"]] = meta["type"]
+                    metric_layer_result = self.convert_metric_layer_result(metrics_data)
+                    for row in metric_layer_result["data"]:
+                        # Arrays in clickhouse cannot contain multiple types, and since groupby values
+                        # can contain any type, we must use tuples instead
+                        groupby_key = tuple(row[key] for key in groupby_aliases)
+                        value_map_key = ",".join(str(value) for value in groupby_key)
+                        # First time we're seeing this value, add it to the values we're going to filter by
+                        if value_map_key not in value_map and groupby_key:
+                            groupby_values.append(groupby_key)
+                        value_map[value_map_key].update(row)
+                    for meta in metric_layer_result["meta"]:
+                        meta_dict[meta["name"]] = meta["type"]
         else:
             self.validate_having_clause()
 

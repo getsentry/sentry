@@ -3,14 +3,13 @@ from __future__ import annotations
 import datetime
 import math
 from datetime import timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Tuple
 from unittest import mock
 
 import pytest
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.models.project import Project
 from sentry.search.events import constants
 from sentry.search.events.builder import (
     AlertMetricsQueryBuilder,
@@ -171,22 +170,6 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
-    ON_DEMAND_KEY_MAP = {
-        "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
-        "d": TransactionMetricKey.DIST_ON_DEMAND.value,
-        "s": TransactionMetricKey.SET_ON_DEMAND.value,
-    }
-    ON_DEMAND_MRI_MAP = {
-        "c": TransactionMRI.COUNT_ON_DEMAND.value,
-        "d": TransactionMRI.DIST_ON_DEMAND.value,
-        "s": TransactionMRI.SET_ON_DEMAND.value,
-    }
-    ON_DEMAND_ENTITY_MAP = {
-        "c": EntityKey.MetricsCounters.value,
-        "d": EntityKey.MetricsDistributions.value,
-        "s": EntityKey.MetricsSets.value,
-    }
-
     def test_default_conditions(self):
         query = MetricsQueryBuilder(
             self.params, query="", dataset=Dataset.PerformanceMetrics, selected_columns=[]
@@ -1618,34 +1601,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[],
             )
-
-    def store_on_demand_metric(
-        self,
-        value: list[Any] | Any,
-        spec: OnDemandMetricSpec,
-        additional_tags: Optional[Dict[str, str]] = None,
-        timestamp: Optional[datetime.datetime] = None,
-    ):
-        project: Project = self.project
-        metric_spec = spec.to_metric_spec(project)
-        metric_spec_tags = metric_spec["tags"] or [] if metric_spec else []
-        spec_tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
-
-        metric_type = spec._metric_type
-
-        self.store_transaction_metric(
-            value=value,
-            metric=self.ON_DEMAND_KEY_MAP[metric_type],
-            internal_metric=self.ON_DEMAND_MRI_MAP[metric_type],
-            entity=self.ON_DEMAND_ENTITY_MAP[metric_type],
-            tags={
-                **spec_tags,
-                **additional_tags,  # Additional tags might be needed to override field values from the spec.
-            },
-            timestamp=timestamp,
-        )
-
-        return spec
 
     def test_run_on_demand_metrics_query_builder_with_groupbys(self):
         selected_columns = ["count()", "epm()"]
