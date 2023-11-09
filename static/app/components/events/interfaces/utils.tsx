@@ -125,6 +125,8 @@ export function getCurlCommand(data: EntryRequest['data']) {
     result += ' \\\n -X ' + data.method;
   }
 
+  data.headers = data.headers?.filter(defined);
+
   // TODO(benvinegar): just gzip? what about deflate?
   const compressed = data.headers?.find(
     h => h[0] === 'Accept-Encoding' && h[1].includes('gzip')
