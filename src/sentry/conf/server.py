@@ -1980,6 +1980,7 @@ SENTRY_INTERFACES = {
     "hpkp": "sentry.interfaces.security.Hpkp",
     "expectct": "sentry.interfaces.security.ExpectCT",
     "expectstaple": "sentry.interfaces.security.ExpectStaple",
+    "nel": "sentry.interfaces.nel.Nel",
     "exception": "sentry.interfaces.exception.Exception",
     "logentry": "sentry.interfaces.message.Message",
     "request": "sentry.interfaces.http.Http",
