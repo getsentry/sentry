@@ -15,7 +15,6 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
   IconDashboard,
-  IconFile,
   IconGraph,
   IconIssues,
   IconLightning,
@@ -292,7 +291,7 @@ function Sidebar({location, organization}: Props) {
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"
-                  icon={<IconFile />}
+                  icon={<SubitemDot collapsed={collapsed} />}
                 />
               </Feature>
             </SidebarAccordion>
