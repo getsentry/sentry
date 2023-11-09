@@ -1782,6 +1782,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "metrics_distributions": "distribution",
         "metrics_sets": "set",
         "metrics_counters": "counter",
+        "metrics_gauges": "gauge",
     }
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
@@ -1862,7 +1863,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=UseCaseID.TRANSACTIONS,
+                use_case_id=use_case_id,
                 aggregation_option=aggregation_option,
             )
 
@@ -1875,7 +1876,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
-        use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,  # TODO(wmak): this needs to be the span id
+        use_case_id: UseCaseID = UseCaseID.SPANS,
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1903,7 +1904,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=UseCaseID.TRANSACTIONS,
+                use_case_id=use_case_id,
             )
 
     def wait_for_metric_count(
