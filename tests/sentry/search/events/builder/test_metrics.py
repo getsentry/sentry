@@ -1648,7 +1648,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
 
         assert result == {
-            "data": [{"count": 100.0, "customtag1": "div > text", "epm": None}],
+            "data": [{"count": 0, "customtag1": "div > text", "epm": None}],
             "meta": [
                 {"name": "count", "type": "Float64"},
                 {"name": "customtag1", "type": "string"},

@@ -113,8 +113,8 @@ class MetricsQueryBuilder(QueryBuilder):
         self.organization_id: int = org_id
 
     def are_columns_resolved(self) -> bool:
-        # If we have an on demand spec, we want to mark the columns as resolved, since we are not
-        # running the `resolve_query` method.
+        # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
+        # `resolve_query` method.
         if self._has_on_demand_specs:
             return True
 
@@ -142,8 +142,8 @@ class MetricsQueryBuilder(QueryBuilder):
     def _get_group_bys(self) -> list[str]:
         return [c for c in self.selected_columns if not fields.is_function(c)]
 
-    def _get_aggregates(self) -> list[str]:
-        return [c for c in self.selected_columns if fields.is_function(c)]
+    def _get_on_demand_fields(self, columns: Sequence[str]) -> list[str]:
+        return [c for c in columns if fields.is_function(c) and self._get_on_demand_metric_spec(c)]
 
     @cached_property
     def _has_on_demand_specs(self) -> bool:
@@ -154,7 +154,10 @@ class MetricsQueryBuilder(QueryBuilder):
         if not self.builder_config.on_demand_metrics_enabled:
             return None
 
-        return {col: self._get_on_demand_metric_spec(col) for col in self._get_aggregates()}
+        return {
+            col: self._get_on_demand_metric_spec(col)
+            for col in self._get_on_demand_fields(self.selected_columns)
+        }
 
     def _get_metrics_query_from_on_demand_spec(
         self,
@@ -970,7 +973,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                         if self._has_on_demand_specs:
                             # We need to build a query for each column which has a spec and then merge the data back together.
-                            aggregates = self._get_aggregates()
+                            aggregates = self._get_on_demand_fields(self.selected_columns)
                             group_bys = self._get_group_bys()
                             for agg in aggregates:
                                 spec = self._on_demand_metric_spec_map[agg]
@@ -1561,8 +1564,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
         return {
             col: self._get_on_demand_metric_spec(col)
-            for col in self.timeseries_columns
-            if self._get_on_demand_metric_spec(col)
+            for col in self._get_on_demand_fields(self.timeseries_columns)
         }
 
     def resolve_top_event_conditions(
