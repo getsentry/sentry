@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, List, Mapping, Optional, Tuple
 
-from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query, Request
+from snuba_sdk import Column, Condition, Direction, Entity, Op, OrderBy, Query, Request
 
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -67,7 +67,7 @@ class EventUser:
 
     @classmethod
     def for_projects(
-        self, projects: List[Project], keyword_filters: Mapping[str, Any]
+        self, projects: List[Project], keyword_filters: Mapping[str, Any], return_all=False
     ) -> List[EventUser]:
         """
         Fetch the EventUser with a Snuba query that exists within a list of projects
@@ -103,9 +103,11 @@ class EventUser:
                 Column("user_email"),
             ],
             where=where_conditions,
-            limit=Limit(1),
-            orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
         )
+
+        if return_all:
+            query.set_limit(1)
+            query.set_orderby([OrderBy(Column("timestamp"), Direction.DESC)])
 
         request = Request(
             dataset=Dataset.Events.value,
@@ -142,10 +144,14 @@ class EventUser:
         """
         projects = Project.objects.filter(id=project_id)
         result = {}
-        for value in values:
-            keyword_filters = {value.split(":", 1)[0]: value.split(":", 1)[-1]}
-            eventusers = EventUser.for_projects(projects, keyword_filters)
-            result[value] = eventusers[0] if len(eventusers) else None
+        keyword_filters = {value.split(":", 1)[0]: value.split(":", 1)[-1] for value in values}
+        eventusers = EventUser.for_projects(projects, keyword_filters, return_all=True)
+
+        for key, value in keyword_filters:
+            result[f"{key}:{value}"] = next(
+                (euser for euser in eventusers if euser.get(key) == value), None
+            )
+
         return result
 
     @property
