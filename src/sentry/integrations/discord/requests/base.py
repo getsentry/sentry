@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Mapping
 
-from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import options
@@ -120,23 +119,7 @@ class DiscordRequest:
         timestamp: str | None = self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP")
         body: str = self.request.body.decode("utf-8")
         self._info("discord.authorize.auth")
-
-        if signature and timestamp and verify_signature(public_key, signature, timestamp + body):
-            return
-        else:
-            self._info("discord.authorize.unauthorized")
-            logger.info(
-                "discord.authorize.unauthorized",
-                extra={
-                    "public_key": public_key,
-                    "signature": signature,
-                    "timestamp": timestamp,
-                    "body": body,
-                    "timestamp_body": timestamp + body,
-                },
-            )
-
-        raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
+        verify_signature(public_key, signature, timestamp, body)
 
     def _validate_identity(self) -> None:
         self.user = self.get_identity_user()
