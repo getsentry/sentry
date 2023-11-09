@@ -36,6 +36,8 @@ export const useSpanList = (
 
   const eventView = getEventView(filters, location, sorts);
 
+  // TODO: Add correct typing. The response should only include the fields
+  // we're querying for
   const {isLoading, data, meta, pageLinks} = useWrappedDiscoverQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
