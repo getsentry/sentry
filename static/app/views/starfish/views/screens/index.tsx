@@ -5,7 +5,6 @@ import Color from 'color';
 
 import Alert from 'sentry/components/alert';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/performance/searchBar';
@@ -25,15 +24,21 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {
   ScreensTable,
   useTableQuery,
 } from 'sentry/views/starfish/views/screens/screensTable';
+import {
+  REPORT_FULLY_DRAWN_CONTENT,
+  SETUP_CONTENT,
+} from 'sentry/views/starfish/views/screens/setupContent';
+import {TabbedCodeSnippet} from 'sentry/views/starfish/views/screens/tabbedCodeSnippets';
 
 export enum YAxis {
   WARM_START,
@@ -116,6 +121,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   const router = useRouter();
 
+  const {hasTTFD} = useTTFDConfigured(additionalFilters);
+
   const query = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
@@ -191,26 +198,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     enabled: !topTransactionsLoading,
   });
 
-  const {data: deviceClassEvents, isLoading: isDeviceClassEventsLoading} = useTableQuery({
-    eventView: EventView.fromNewQueryWithLocation(
-      {
-        name: '',
-        fields: ['transaction', 'device.class', ...yAxisCols],
-        orderby: yAxisCols[0],
-        yAxis: yAxisCols,
-        query: topEventsQueryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-        interval: getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        ),
-      },
-      location
-    ),
-    enabled: !topTransactionsLoading,
-  });
-
   if (isReleasesLoading) {
     return (
       <LoadingContainer>
@@ -241,22 +228,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     }
   });
 
-  const transformedDeviceEvents: {
-    [yAxisName: string]: {
-      [deviceClass: string]: Series;
-    };
-  } = {};
-
-  yAxes.forEach(val => {
-    transformedDeviceEvents[YAXIS_COLUMNS[val]] = {};
-    ['high', 'medium', 'low', 'Unknown'].forEach(deviceClass => {
-      transformedDeviceEvents[YAXIS_COLUMNS[val]][deviceClass] = {
-        seriesName: deviceClass,
-        data: Array(topTransactions.length).fill(0),
-      };
-    });
-  });
-
   const topTransactionsIndex = Object.fromEntries(topTransactions.map((e, i) => [e, i]));
 
   if (defined(releaseEvents) && defined(primaryRelease)) {
@@ -281,93 +252,62 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     });
   }
 
-  if (defined(deviceClassEvents) && defined(primaryRelease)) {
-    deviceClassEvents.data?.forEach(row => {
-      const deviceClass = row['device.class'];
-      const transaction = row.transaction;
-      const index = topTransactionsIndex[transaction];
-
-      function deviceClassColor() {
-        switch (deviceClass) {
-          case 'high':
-            return theme.charts.getColorPalette(TOP_SCREENS - 2)[index];
-
-          case 'medium':
-            return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.1)
-              .string();
-
-          case 'low':
-            return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.2)
-              .string();
-
-          default:
-            return Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-              .lighten(0.3)
-              .string();
-        }
-      }
-
-      yAxes.forEach(val => {
-        transformedDeviceEvents[YAXIS_COLUMNS[val]][deviceClass].data[index] = {
-          name: row.transaction,
-          value: row[YAXIS_COLUMNS[val]],
-          itemStyle: {
-            color: deviceClassColor(),
-          },
-        } as SeriesDataUnit;
-      });
-    });
-  }
-
   const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
 
   const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
 
   return (
     <div data-test-id="starfish-mobile-view">
-      {!defined(primaryRelease) &&
-        !isReleaseEventsLoading &&
-        !isDeviceClassEventsLoading && (
-          <Alert type="warning" showIcon>
-            {t(
-              'No screens found on recent releases. Please try a single iOS or Android project or a smaller date range.'
-            )}
-          </Alert>
-        )}
+      {!defined(primaryRelease) && !isReleaseEventsLoading && (
+        <Alert type="warning" showIcon>
+          {t(
+            'No screens found on recent releases. Please try a single iOS or Android project or a smaller date range.'
+          )}
+        </Alert>
+      )}
       <ChartsContainer>
         <Fragment>
-          <ChartsContainerItem key="release">
+          <ChartsContainerItem key="ttid">
             <ScreensBarChart
-              chartOptions={yAxes.map(yAxis => {
-                return {
-                  title: t('%s by Release', CHART_TITLES[yAxis]),
-                  yAxis: YAXIS_COLUMNS[yAxis],
+              chartOptions={[
+                {
+                  title: t('Comparing Release %s', CHART_TITLES[yAxes[0]]),
+                  yAxis: YAXIS_COLUMNS[yAxes[0]],
                   xAxisLabel: topTransactions,
-                  series: Object.values(transformedReleaseEvents[YAXIS_COLUMNS[yAxis]]),
-                };
-              })}
+                  series: Object.values(
+                    transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]]]
+                  ),
+                },
+              ]}
               chartHeight={chartHeight ?? 180}
               isLoading={isReleaseEventsLoading}
               chartKey="screensChart1"
             />
           </ChartsContainerItem>
 
-          <ChartsContainerItem key="deviceClass">
-            <ScreensBarChart
-              chartOptions={yAxes.map(yAxis => {
-                return {
-                  title: t('%s by Device Class', CHART_TITLES[yAxis]),
-                  yAxis: YAXIS_COLUMNS[yAxis],
-                  xAxisLabel: topTransactions,
-                  series: Object.values(transformedDeviceEvents[YAXIS_COLUMNS[yAxis]]),
-                };
-              })}
-              chartHeight={chartHeight ?? 180}
-              isLoading={isDeviceClassEventsLoading}
-              chartKey="screensChart2"
-            />
+          <ChartsContainerItem key="ttfd">
+            {defined(hasTTFD) && !hasTTFD && yAxes[1] === YAxis.TTFD ? (
+              <ChartPanel title={CHART_TITLES[yAxes[1]]}>
+                <TabbedCodeSnippet tabs={SETUP_CONTENT} />
+                <TabbedCodeSnippet tabs={REPORT_FULLY_DRAWN_CONTENT} />
+              </ChartPanel>
+            ) : (
+              <ScreensBarChart
+                chartOptions={[
+                  {
+                    title: t('Comparing Release %s', CHART_TITLES[yAxes[1]]),
+                    yAxis: YAXIS_COLUMNS[yAxes[1]],
+                    xAxisLabel: topTransactions,
+                    series: Object.values(
+                      transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]]]
+                    ),
+                  },
+                ]}
+                chartHeight={chartHeight ?? 180}
+                isLoading={isReleaseEventsLoading}
+                chartKey="screensChart1"
+              />
+            )}
           </ChartsContainerItem>
         </Fragment>
       </ChartsContainer>
@@ -425,6 +365,7 @@ const ChartsContainer = styled('div')`
 
 const ChartsContainerItem = styled('div')`
   flex: 1;
+  overflow: hidden;
 `;
 
 export const Spacer = styled('div')`

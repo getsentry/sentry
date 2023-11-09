@@ -10,7 +10,7 @@ from zipfile import ZipFile
 
 import yaml
 from cryptography.fernet import Fernet
-from django.db import router
+from django.db import router, transaction
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
 
@@ -625,7 +625,16 @@ def _update_relocation_validation_attempt(
             "Validation result: valid",
             extra={"uuid": relocation.uuid, "task": task.name},
         )
-        importing.delay(relocation.uuid)
+
+        # Why wrap in `on_commit()` here rather than calling `.delay()` directly? Because it will
+        # cause tests to fail. We run tasks synchronously (celery's `ALWAYS_EAGER` settings) during
+        # tests, so the `delay`'ed call will actually occur on the stack. That is bad, because we
+        # are currently in an atomic transaction, which will cause the transaction in `importing` to
+        # inevitably cross databases. Instead, by doing `on_commit`, we can ensure that the
+        # `importing` task always runs after this transaction finishes.
+        transaction.on_commit(
+            lambda: importing.delay(relocation.uuid), using=router.db_for_write(Relocation)
+        )
 
 
 @instrumented_task(

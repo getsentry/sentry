@@ -61,25 +61,29 @@ export function ScreensBarChart({
       <HeaderContainer>
         <Header>
           <ChartLabel>
-            <StyledCompactSelect
-              options={menuOptions}
-              value={chartOptions[selectedDisplay]?.yAxis}
-              onChange={option => {
-                const chartOption = chartOptions.find(o => o.yAxis === option.value);
-                if (defined(chartOption)) {
-                  router.replace({
-                    pathname: router.location.pathname,
-                    query: {...router.location.query, [chartKey]: chartOption.yAxis},
-                  });
-                }
-              }}
-              triggerProps={{
-                borderless: true,
-                size: 'zero',
-                'aria-label': chartOptions[selectedDisplay]?.title,
-              }}
-              offset={4}
-            />
+            {chartOptions.length > 1 ? (
+              <StyledCompactSelect
+                options={menuOptions}
+                value={chartOptions[selectedDisplay]?.yAxis}
+                onChange={option => {
+                  const chartOption = chartOptions.find(o => o.yAxis === option.value);
+                  if (defined(chartOption)) {
+                    router.replace({
+                      pathname: router.location.pathname,
+                      query: {...router.location.query, [chartKey]: chartOption.yAxis},
+                    });
+                  }
+                }}
+                triggerProps={{
+                  borderless: true,
+                  size: 'zero',
+                  'aria-label': chartOptions[selectedDisplay]?.title,
+                }}
+                offset={4}
+              />
+            ) : (
+              chartOptions[selectedDisplay]?.title
+            )}
           </ChartLabel>
         </Header>
       </HeaderContainer>
