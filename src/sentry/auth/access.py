@@ -613,6 +613,9 @@ class RpcBackedAccess(Access):
                         return True
         return False
 
+    def is_disabled_member(self) -> bool:
+        return self.rpc_user_organization_context.member.flags.member_limit__restricted
+
 
 def _wrap_scopes(scopes_upper_bound: Iterable[str] | None) -> FrozenSet[str] | None:
     if scopes_upper_bound is not None:
