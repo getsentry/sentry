@@ -34,8 +34,8 @@ def generate_culprit(data):
     if not culprit and stacktraces:
         culprit = get_stacktrace_culprit(get_path(stacktraces, -1), platform=platform)
 
-    if not culprit and data.get("nel"):
-        culprit = get_nel_culprit(data.get("nel"))
+    if not culprit and data.get("type") and data.get("type") == "nel":
+        culprit = get_nel_culprit(data.get("contexts"))
 
     if not culprit and data.get("request"):
         culprit = get_path(data, "request", "url")
@@ -74,9 +74,8 @@ def get_frame_culprit(frame, platform):
     return "{} in {}".format(fileloc, frame.get("function") or "?")
 
 
-def get_nel_culprit(data_nel):
-    body = data_nel.get("body")
-    ty = body.get("type", "<missing>")
+def get_nel_culprit(contexts):
+    ty = contexts.get("nel").get("error_type", "<missing>")
     if ty == "http.error":
-        return NEL_CULPRITS[ty].format(body.get("status_code"))
+        return NEL_CULPRITS[ty].format(contexts.get("response").get("status_code"))
     return NEL_CULPRITS.get(ty, ty)
