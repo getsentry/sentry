@@ -19,7 +19,7 @@ class AuthTest(TestCase):
         body = '{"type":1}'
         message = timestamp + body
 
-        result = verify_signature(public_key_string, signature, message)
+        result = verify_signature(public_key_string, signature, message, body)
 
         assert result
 
@@ -30,7 +30,7 @@ class AuthTest(TestCase):
         body = '{"type":1}'
         message = timestamp + body
 
-        result = verify_signature(public_key_string, signature, message)
+        result = verify_signature(public_key_string, signature, message, body)
 
         assert not result
 
