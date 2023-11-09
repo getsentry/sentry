@@ -16,7 +16,6 @@ class ApiOwner(Enum):
     PERFORMANCE = "performance"
     TEAM_STARFISH = "team-starfish"
     PROFILING = "profiling"
-    GROWTH = "growth"
     OWNERS_INGEST = "owners-ingest"
     OWNERS_NATIVE = "owners-native"
     RELOCATION = "open-source"

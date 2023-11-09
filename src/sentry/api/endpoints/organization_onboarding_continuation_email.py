@@ -46,7 +46,7 @@ class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.GROWTH
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     # let anyone in the org use this endpoint
     permission_classes = ()
 
