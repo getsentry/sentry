@@ -2301,7 +2301,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self):
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
@@ -2441,7 +2440,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @patch("sentry.event_manager.metrics.incr")
     def test_new_group_metrics_logging(self, mock_metrics_incr: MagicMock) -> None:
-        manager = EventManager(make_event(platform="javascript"))
+        manager = EventManager(
+            make_event(platform="javascript", sdk={"name": "sentry.javascript.nextjs"})
+        )
         manager.normalize()
         manager.save(self.project.id)
 
@@ -2450,12 +2451,49 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             skip_internal=True,
             tags={
                 "platform": "javascript",
+                "sdk": "sentry.javascript.nextjs",
+            },
+        )
+
+    @patch("sentry.event_manager.metrics.incr")
+    def test_new_group_metrics_logging_no_platform_no_sdk(
+        self, mock_metrics_incr: MagicMock
+    ) -> None:
+        manager = EventManager(make_event(platform=None, sdk=None))
+        manager.normalize()
+        manager.save(self.project.id)
+
+        mock_metrics_incr.assert_any_call(
+            "group.created",
+            skip_internal=True,
+            tags={
+                "platform": "other",
+                "sdk": "other",
+            },
+        )
+
+    @patch("sentry.event_manager.metrics.incr")
+    def test_new_group_metrics_logging_sdk_exist_but_null(
+        self, mock_metrics_incr: MagicMock
+    ) -> None:
+        manager = EventManager(make_event(platform=None, sdk={"name": None}))
+        manager.normalize()
+        manager.save(self.project.id)
+
+        mock_metrics_incr.assert_any_call(
+            "group.created",
+            skip_internal=True,
+            tags={
+                "platform": "other",
+                "sdk": "other",
             },
         )
 
     def test_new_group_metrics_logging_with_frame_mix(self) -> None:
         with patch("sentry.event_manager.metrics.incr") as mock_metrics_incr:
-            manager = EventManager(make_event(platform="javascript"))
+            manager = EventManager(
+                make_event(platform="javascript", sdk={"name": "sentry.javascript.nextjs"})
+            )
             manager.normalize()
             # IRL, `normalize_stacktraces_for_grouping` adds frame mix metadata to the event, but we
             # can't mock that because it's imported inside its calling function to avoid circular imports
@@ -2468,6 +2506,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 tags={
                     "platform": "javascript",
                     "frame_mix": "in-app-only",
+                    "sdk": "sentry.javascript.nextjs",
                 },
             )
 
