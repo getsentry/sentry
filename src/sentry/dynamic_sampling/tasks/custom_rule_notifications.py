@@ -157,7 +157,7 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: List[int]) -
     q.setlist("field", ["title", "event.type", "project", "user.display", "timestamp"])
     q.setlist("project", project_ids)
     q["name"] = "All Events"
-    q["query"] = rule.query
+    q["query"] = rule.query if rule.query else ""
     q["utc"] = "true"
     q["yAxis"] = "count()"
     q["sort"] = "-timestamp"
