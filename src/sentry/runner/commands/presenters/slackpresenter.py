@@ -2,6 +2,7 @@ from typing import Any, List, Optional, Tuple
 
 import requests
 from django.conf import settings
+from requests.exceptions import HTTPError, RequestException
 
 from sentry import options
 from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
@@ -122,8 +123,14 @@ class SlackPresenter(OptionsPresenter):
     def _send_to_webhook(self, json_data: dict) -> None:
         if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
             headers = {"Content-Type": "application/json"}
-            requests.post(
-                settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL,
-                data=json.dumps(json_data),
-                headers=headers,
-            )
+            try:
+                response = requests.post(
+                    settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL,
+                    data=json.dumps(json_data),
+                    headers=headers,
+                )
+                response.raise_for_status()
+            except HTTPError as http_err:
+                raise ConnectionError(f"HTTP error occurred: {http_err}") from None
+            except RequestException as req_err:
+                raise ConnectionError(f"Network-related error occurred: {req_err}") from None
