@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 
 import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
@@ -7,9 +7,10 @@ import GridEditable, {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {RateUnits} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePageQuery';
@@ -18,6 +19,7 @@ import {DurationCell} from 'sentry/views/starfish/components/tableCells/duration
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 const {RESOURCE_RENDER_BLOCKING_STATUS, SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} =
@@ -37,7 +39,8 @@ function ResourceSummaryTable() {
   const location = useLocation();
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
-  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {sort});
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {sort, cursor});
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
@@ -102,6 +105,13 @@ function ResourceSummaryTable() {
     return <span>{row[key]}</span>;
   };
 
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
+    });
+  };
+
   return (
     <Fragment>
       <GridEditable
@@ -125,7 +135,7 @@ function ResourceSummaryTable() {
         }}
         location={location}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
