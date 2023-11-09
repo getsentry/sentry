@@ -130,6 +130,7 @@ def format_event_platform(event: Union[Event, GroupEvent]):
 def _capture_event_stats(event: Event) -> None:
     if not should_write_event_stats(event):
         return
+
     platform = format_event_platform(event)
     tags = {"platform": platform}
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
@@ -156,6 +157,7 @@ def _capture_group_stats(job: PostProcessJob) -> None:
     event = job["event"]
     if not job["group_state"]["is_new"] or not should_write_event_stats(event):
         return
+
     if not event.group:
         logger.error(
             "Group not found on event while capturing group stats",
