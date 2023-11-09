@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, List, Mapping, Optional, Tuple
 
-from snuba_sdk import Column, Condition, Entity, Op, Query, Request
+from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query, Request
 
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -62,8 +62,8 @@ class EventUser:
         self, projects: List[Project], keyword_filters: Mapping[str, Any]
     ) -> Mapping[str, Any]:
         """
-        Fetch the EventUsers for a list of projects with a Snuba query.
-        Valid `keyword_filters` keys are in KEYWORD_MAP.
+        Fetch the EventUser with a Snuba query that exists within a list of projects
+        and valid `keyword_filters`. The `keyword_filter` keys are in `KEYWORD_MAP`.
         """
         oldest_project = min(projects, key=lambda item: item.date_added)
 
@@ -95,6 +95,8 @@ class EventUser:
                 Column("user_email"),
             ],
             where=where_conditions,
+            limit=Limit(1),
+            orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
         )
 
         request = Request(
