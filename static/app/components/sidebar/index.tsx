@@ -248,7 +248,9 @@ function Sidebar({location, organization}: Props) {
                   }
                   to={`/organizations/${organization.slug}/performance/database/`}
                   id="performance-database"
-                  icon={<SubitemDot collapsed={collapsed} />}
+                  // collapsed controls whether the dot is visible or not.
+                  // We always want it visible for these sidebar items so force it to true.
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
               <Feature
@@ -267,7 +269,7 @@ function Sidebar({location, organization}: Props) {
                   }
                   to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
                   id="performance-webvitals"
-                  icon={<SubitemDot collapsed={collapsed} />}
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
               <Feature
@@ -282,7 +284,7 @@ function Sidebar({location, organization}: Props) {
                   label={t('Screens')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
-                  icon={<SubitemDot collapsed={collapsed} />}
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
               <Feature features={['starfish-browser-resource-module-ui']}>
@@ -291,7 +293,7 @@ function Sidebar({location, organization}: Props) {
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"
-                  icon={<SubitemDot collapsed={collapsed} />}
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
             </SidebarAccordion>
