@@ -903,8 +903,7 @@ class MetricsQueryBuilder(QueryBuilder):
         groupbys = self.groupby
         if not groupbys and self._has_on_demand_specs:
             # Need this otherwise top_events returns only 1 item
-            # TODO: Fix this later
-            groupbys = [Column(col) for col in self.selected_columns if not fields.is_function(col)]
+            groupbys = [Column(col) for col in self._get_group_bys()]
         groupby_aliases = [
             groupby.alias
             if isinstance(groupby, (AliasedExpression, CurriedFunction))
