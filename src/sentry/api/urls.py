@@ -37,7 +37,8 @@ from sentry.api.endpoints.release_thresholds.release_threshold_index import (
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
-from sentry.api.endpoints.relocation import RelocationEndpoint
+from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
+from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -737,6 +738,19 @@ BROADCAST_URLS = [
     re_path(
         r"^(?P<broadcast_id>[^\/]+)/$",
         BroadcastDetailsEndpoint.as_view(),
+    ),
+]
+
+RELOCATION_URLS = [
+    re_path(
+        r"^$",
+        RelocationIndexEndpoint.as_view(),
+        name="sentry-api-0-relocations-index",
+    ),
+    re_path(
+        r"^public-key/$",
+        RelocationPublicKeyEndpoint.as_view(),
+        name="sentry-api-0-relocations-public-key",
     ),
 ]
 
@@ -3022,12 +3036,10 @@ urlpatterns = [
         r"^internal/",
         include(INTERNAL_URLS),
     ),
-    # Relocation
-    # TODO(getsentry/team-ospo#169): Add URL endpoint to pull encryption public key.
+    # Relocations
     re_path(
-        r"^relocation/$",
-        RelocationEndpoint.as_view(),
-        name="sentry-api-0-relocation",
+        r"^relocations/",
+        include(RELOCATION_URLS),
     ),
     # Catch all
     re_path(

@@ -181,6 +181,7 @@ class CryptoKeyVersion(NamedTuple):
     version: str
 
 
+# TODO(getsentry/team-ospo#215): These should be options, instead of hard coding.
 DEFAULT_CRYPTO_KEY_VERSION = CryptoKeyVersion(
     project_id=gcp_project_id(),
     location="global",
