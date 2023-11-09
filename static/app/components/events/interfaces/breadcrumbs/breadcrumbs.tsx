@@ -250,6 +250,7 @@ export default Breadcrumbs;
 
 const StyledPanelTable = styled(PanelTable)`
   display: grid;
+  overflow: hidden;
   grid-template-columns: 64px 140px 1fr 106px 100px;
 
   > * {
