@@ -131,6 +131,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+from sentry.utils.tag_normalization import normalize_sdk_tag
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -176,6 +177,10 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
 
 def is_sample_event(job):
     return get_tag(job["data"], "sample_event") == "yes"
+
+
+def normalized_sdk_tag_from_event(event: Event) -> str:
+    return normalize_sdk_tag(event.data.get("sdk", {}).get("name", "other"))
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
@@ -451,7 +456,10 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
-            metric_tags = {"platform": job["event"].platform or "unknown"}
+            metric_tags = {
+                "platform": job["event"].platform or "unknown",
+                "sdk": normalized_sdk_tag_from_event(job["event"]),
+            }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
@@ -776,7 +784,7 @@ def _auto_update_grouping(project: Project) -> None:
             "sentry:secondary_grouping_expiry": expiry,
             "sentry:grouping_config": new_grouping,
         }
-        for (key, value) in changes.items():
+        for key, value in changes.items():
             project.update_option(key, value)
         create_system_audit_entry(
             organization=project.organization,
@@ -786,11 +794,16 @@ def _auto_update_grouping(project: Project) -> None:
         )
 
 
-@metrics.wraps("event_manager.background_grouping")
 def _calculate_background_grouping(
     project: Project, event: Event, config: GroupingConfig
 ) -> CalculatedHashes:
-    return _calculate_event_grouping(project, event, config)
+    metric_tags: MutableTags = {
+        "grouping_config": config["id"],
+        "platform": event.platform or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
+    }
+    with metrics.timer("event_manager.background_grouping", tags=metric_tags):
+        return _calculate_event_grouping(project, event, config)
 
 
 def _run_background_grouping(project: Project, job: Job) -> None:
@@ -1581,7 +1594,6 @@ def _save_aggregate(
     kwargs["data"]["last_received"] = received_timestamp
 
     if existing_grouphash is None:
-
         if killswitch_matches_context(
             "store.load-shed-group-creation-projects",
             {
@@ -1621,7 +1633,6 @@ def _save_aggregate(
                 root_hierarchical_grouphash = None
 
             if existing_grouphash is None:
-
                 group = _create_group(project, event, **kwargs)
 
                 if (
@@ -1654,7 +1665,10 @@ def _save_aggregate(
                 metrics.incr(
                     "group.created",
                     skip_internal=True,
-                    tags={"platform": event.platform or "unknown"},
+                    tags={
+                        "platform": event.platform or "unknown",
+                        "sdk": normalized_sdk_tag_from_event(event),
+                    },
                 )
 
                 # This only applies to events with stacktraces
@@ -1665,6 +1679,7 @@ def _save_aggregate(
                         sample_rate=1.0,
                         tags={
                             "platform": event.platform or "unknown",
+                            "sdk": normalized_sdk_tag_from_event(event),
                             "frame_mix": frame_mix,
                         },
                     )
@@ -1826,7 +1841,9 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     except OperationalError:
         metrics.incr(
             "next_short_id.timeout",
-            tags={"platform": event.platform or "unknown"},
+            tags={
+                "platform": event.platform or "unknown"
+            },  # TODO: remove this tag, it's nor relevant
         )
         sentry_sdk.capture_message("short_id.timeout")
         raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
@@ -2207,7 +2224,10 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     metrics.incr(
         "events.discarded",
         skip_internal=True,
-        tags={"platform": job["platform"]},
+        tags={
+            "platform": job["platform"],
+            "sdk": normalized_sdk_tag_from_event(job["event"]),
+        },
     )
 
 
@@ -2455,7 +2475,6 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event_metrics"] = event_metrics
 
 
-@metrics.wraps("save_event.calculate_event_grouping")
 def _calculate_event_grouping(
     project: Project, event: Event, grouping_config: GroupingConfig
 ) -> CalculatedHashes:
@@ -2466,40 +2485,42 @@ def _calculate_event_grouping(
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
     }
 
-    with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
-        with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-            event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
+    with metrics.timer("save_event.calculate_event_grouping", tags=metric_tags):
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
+            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
+                event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
 
-    # Detect & set synthetic marker if necessary
-    detect_synthetic_exception(event.data, grouping_config)
+        # Detect & set synthetic marker if necessary
+        detect_synthetic_exception(event.data, grouping_config)
 
-    with metrics.timer("event_manager.apply_server_fingerprinting"):
-        # The active grouping config was put into the event in the
-        # normalize step before.  We now also make sure that the
-        # fingerprint was set to `'{{ default }}' just in case someone
-        # removed it from the payload.  The call to get_hashes will then
-        # look at `grouping_config` to pick the right parameters.
-        event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
-        apply_server_fingerprinting(
-            event.data.data,
-            get_fingerprinting_config_for_project(project),
-            allow_custom_title=True,
-        )
+        with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
+            # The active grouping config was put into the event in the
+            # normalize step before.  We now also make sure that the
+            # fingerprint was set to `'{{ default }}' just in case someone
+            # removed it from the payload.  The call to get_hashes will then
+            # look at `grouping_config` to pick the right parameters.
+            event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
+            apply_server_fingerprinting(
+                event.data.data,
+                get_fingerprinting_config_for_project(project),
+                allow_custom_title=True,
+            )
 
-    with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-        # Here we try to use the grouping config that was requested in the
-        # event. If that config has since been deleted (because it was an
-        # experimental grouping config) we fall back to the default.
-        try:
-            hashes = event.get_hashes(grouping_config)
-        except GroupingConfigNotFound:
-            event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-            hashes = event.get_hashes()
+        with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
+            # Here we try to use the grouping config that was requested in the
+            # event. If that config has since been deleted (because it was an
+            # experimental grouping config) we fall back to the default.
+            try:
+                hashes = event.get_hashes(grouping_config)
+            except GroupingConfigNotFound:
+                event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
+                hashes = event.get_hashes()
 
-    hashes.write_to_event(event.data)
-    return hashes
+        hashes.write_to_event(event.data)
+        return hashes
 
 
 @metrics.wraps("save_event.calculate_span_grouping")
@@ -2518,7 +2539,10 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
             metrics.incr(
                 "save_event.transaction.span_group_count.default",
                 amount=len(unique_default_hashes),
-                tags={"platform": job["platform"] or "unknown"},
+                tags={
+                    "platform": job["platform"] or "unknown",
+                    "sdk": normalized_sdk_tag_from_event(event),
+                },
             )
         except Exception:
             sentry_sdk.capture_exception()
