@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -8,8 +9,11 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
@@ -26,9 +30,22 @@ import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 function DatabaseLandingPage() {
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
+  const location = useLocation();
 
+  const spanDescription = decodeScalar(location.query?.['span.description'], '');
   const moduleFilters = useModuleFilters();
   const sort = useModuleSort(QueryParameterNames.SPANS_SORT);
+
+  const handleSearch = (newQuery: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        'span.description': newQuery === '' ? undefined : newQuery,
+        cursor: undefined,
+      },
+    });
+  };
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
@@ -77,6 +94,14 @@ function DatabaseLandingPage() {
             />
           </FilterOptionsContainer>
 
+          <SearchBarContainer>
+            <SearchBar
+              query={spanDescription}
+              placeholder={t('Search for more Queries')}
+              onSearch={handleSearch}
+            />
+          </SearchBarContainer>
+
           <SpansTable moduleName={moduleName} sort={sort} limit={LIMIT} />
         </Layout.Main>
       </Layout.Body>
@@ -98,6 +123,10 @@ const FilterOptionsContainer = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
   max-width: 800px;
+`;
+
+const SearchBarContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const LIMIT: number = 25;

@@ -50,6 +50,10 @@ export type SpanStringFields =
   | 'transaction'
   | 'transaction.method';
 
+export type SpanMetricsQueryFilters = {
+  [Field in SpanStringFields]?: string;
+};
+
 export type SpanStringArrayFields = 'span.domain';
 
 export type SpanFunctions =
