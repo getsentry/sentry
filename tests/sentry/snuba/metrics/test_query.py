@@ -480,7 +480,7 @@ def test_validate_limit():
     with pytest.raises(
         InvalidParams,
         match=(
-            "Requested intervals (61) of timedelta of 0:01:00 with statsPeriod "
+            r"Requested intervals \(61\) of timedelta of 0:01:00 with statsPeriod "
             "timedelta of 1:00:00 is too granular for a per_page of 200 "
             "elements. Increase your interval, decrease your statsPeriod, or decrease your per_page "
             "parameter."
