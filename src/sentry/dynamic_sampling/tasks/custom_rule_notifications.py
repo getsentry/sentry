@@ -88,8 +88,6 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         "organization_id": rule.organization.id,
     }
 
-    #     referrer="api.profiling.functions.regression.stats",
-    #     referrer="dynamic_sampling.tasks.custom_rule_notifications",
     result = discover.query(
         selected_columns=["count()"],
         params=params,
