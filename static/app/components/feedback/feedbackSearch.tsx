@@ -6,8 +6,7 @@ import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import ReplaySearchBar from 'sentry/views/replays/list/replaySearchBar';
+import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
   className?: string;
@@ -15,17 +14,15 @@ interface Props {
 }
 
 export default function FeedbackSearch({className, style}: Props) {
-  const {selection} = usePageFilters();
   const {pathname, query} = useLocation();
   const organization = useOrganization();
 
   return (
     <SearchContainer className={className} style={style}>
-      <ReplaySearchBar
+      <IssueListSearchBar
         placeholder={t('Search Feedback')}
-        disabled
         organization={organization}
-        pageFilters={selection}
+        defaultSearchGroup={undefined}
         defaultQuery=""
         query={decodeScalar(query.query, '')}
         onSearch={searchQuery => {
