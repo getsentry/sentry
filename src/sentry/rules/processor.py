@@ -21,7 +21,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
@@ -59,7 +59,7 @@ class RuleProcessor:
 
     def __init__(
         self,
-        event: Event | GroupEvent,
+        event: GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -85,7 +85,7 @@ class RuleProcessor:
         return rules_
 
     def _build_rule_status_cache_key(self, rule_id: int) -> str:
-        return "grouprulestatus:1:%s" % hash_values([self.group.id, rule_id])  # type: ignore[union-attr]
+        return "grouprulestatus:1:%s" % hash_values([self.group.id, rule_id])
 
     def bulk_get_rule_status(self, rules: Sequence[Rule]) -> Mapping[int, GroupRuleStatus]:
         keys = [self._build_rule_status_cache_key(rule.id) for rule in rules]
@@ -136,7 +136,7 @@ class RuleProcessor:
                     # Shouldn't happen, but log just in case
                     self.logger.error(
                         "Failed to fetch some GroupRuleStatuses in RuleProcessor",
-                        extra={"missing_rule_ids": missing_rule_ids, "group_id": self.group.id},  # type: ignore[union-attr]
+                        extra={"missing_rule_ids": missing_rule_ids, "group_id": self.group.id},
                     )
             if to_cache:
                 cache.set_many(
@@ -191,7 +191,7 @@ class RuleProcessor:
         """
         logging_details = {
             "rule_id": rule.id,
-            "group_id": self.group.id,  # type: ignore[union-attr]
+            "group_id": self.group.id,
             "event_id": self.event.event_id,
             "project_id": self.project.id,
             "is_new": self.is_new,
@@ -262,16 +262,14 @@ class RuleProcessor:
         if randrange(10) == 0:
             analytics.record(
                 "issue_alert.fired",
-                issue_id=self.group.id,  # type: ignore[union-attr]
+                issue_id=self.group.id,
                 project_id=rule.project.id,
                 organization_id=rule.project.organization.id,
                 rule_id=rule.id,
             )
 
         notification_uuid = str(uuid.uuid4())
-        history.record(
-            rule, self.group, self.event.event_id, notification_uuid  # type: ignore[arg-type]
-        )
+        history.record(rule, self.group, self.event.event_id, notification_uuid)
         self.activate_downstream_actions(rule, notification_uuid)
 
     def activate_downstream_actions(
@@ -313,7 +311,7 @@ class RuleProcessor:
         self,
     ) -> Collection[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
         # we should only apply rules on unresolved issues
-        if self.event.group and not self.event.group.is_unresolved():
+        if not self.event.group.is_unresolved():
             return {}.values()
 
         self.grouped_futures.clear()

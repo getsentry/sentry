@@ -99,7 +99,7 @@ def _should_send_error_created_hooks(project):
     return result
 
 
-def should_write_event_stats(event: Union[Event, GroupEvent]):
+def should_write_event_stats(event: GroupEvent):
     # For now, we only want to write these stats for error events. If we start writing them for
     # other event types we'll throw off existing stats and potentially cause various alerts to fire.
     # We might decide to write these stats for other event types later, either under different keys
@@ -111,13 +111,8 @@ def should_write_event_stats(event: Union[Event, GroupEvent]):
     )
 
 
-def format_event_platform(event: Union[Event, GroupEvent]):
+def format_event_platform(event: GroupEvent):
     group = event.group
-    if not group:
-        logger.error(
-            "Group not found on event during formatting", extra={"event_id": event.event_id}
-        )
-        return
     platform = group.platform
     if not platform:
         logger.error(
@@ -129,10 +124,17 @@ def format_event_platform(event: Union[Event, GroupEvent]):
 
 
 def _capture_event_stats(event: Event) -> None:
-    if not should_write_event_stats(event):
+    if not event.group:
+        logger.error(
+            "Group not found on event while capturing event stats",
+            extra={"event_id": event.event_id},
+        )
+        return
+    group_event = GroupEvent.from_event(event, event.group)
+    if not should_write_event_stats(group_event):
         return
 
-    platform = format_event_platform(event)
+    platform = format_event_platform(group_event)
     tags = {"platform": platform}
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
     metrics.incr(f"events.processed.{platform}", skip_internal=False)
@@ -156,6 +158,14 @@ def _update_escalating_metrics(event: Event) -> None:
 
 def _capture_group_stats(job: PostProcessJob) -> None:
     event = job["event"]
+    if not event.group:
+        logger.error(
+            "Group not found on event while capturing group stats",
+            extra={"event_id": event.event_id},
+        )
+        return
+    if isinstance(event, Event):
+        event = GroupEvent.from_event(event, event.group)
     if not job["group_state"]["is_new"] or not should_write_event_stats(event):
         return
 
@@ -363,7 +373,7 @@ def handle_group_owners(
             # Owners already in the database that we'll keep
             keeping_owners = set()
             for group_owner in current_group_owners:
-                owner_rule_type: str = (
+                owner_rule_type = (
                     OwnerRuleType.CODEOWNERS.value
                     if group_owner.type == GroupOwnerType.CODEOWNERS.value
                     else OwnerRuleType.OWNERSHIP_RULE.value
@@ -723,7 +733,7 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)  # type: ignore[assignment]  # the setter for the data property uses NodeData as a wrapper
+    event.data = EventDict(event.data, skip_renormalization=True)
 
     return event
 
@@ -846,6 +856,8 @@ def process_snoozes(job: PostProcessJob) -> None:
             "Group not found on event while processing snoozes", extra={"event_id": event.event_id}
         )
         return
+    if isinstance(event, Event):
+        event = GroupEvent.from_event(event, group)
 
     if not group.issue_type.should_detect_escalation(group.organization):
         return
@@ -981,6 +993,12 @@ def process_rules(job: PostProcessJob) -> None:
     from sentry.rules.processor import RuleProcessor
 
     group_event = job["event"]
+    if isinstance(group_event, Event):
+        if group_event.group:
+            group_event = GroupEvent.from_event(group_event, group_event.group)
+        else:
+            logger.error("Group not found on event while processing rules")
+            return
     is_new = job["group_state"]["is_new"]
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
