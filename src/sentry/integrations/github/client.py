@@ -694,7 +694,7 @@ class GitHubClientMixin(GithubProxyClient):
             "provider": "github",
             "organization_integration_id": self.org_integration_id,
         }
-        metrics.incr("sentry.integrations.github.get_blame_for_files")
+        metrics.incr("integrations.github.get_blame_for_files")
         rate_limit = self.get_rate_limit(specific_resource="graphql")
         if rate_limit.remaining < MINIMUM_REQUESTS:
             metrics.incr("integrations.github.get_blame_for_files.not_enough_requests_remaining")
@@ -715,6 +715,7 @@ class GitHubClientMixin(GithubProxyClient):
         cache_key = self.get_cache_key("/graphql", data)
         response = self.check_cache(cache_key)
         if response:
+            metrics.incr("integrations.github.get_blame_for_files.got_cached")
             logger.info(
                 "sentry.integrations.github.get_blame_for_files.got_cached",
                 extra=log_info,

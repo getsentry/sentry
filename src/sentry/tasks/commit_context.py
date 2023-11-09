@@ -258,6 +258,7 @@ def process_commit_context(
                 return
 
             if features.has("organizations:suspect-commits-all-frames", project.organization):
+                metrics.incr("tasks.process_commit_context_all_frames.start")
                 blame = None
                 installation = None
                 try:
@@ -270,10 +271,10 @@ def process_commit_context(
                     )
                 except ApiError:
                     logger.info(
-                        "process_commit_context.retry",
+                        "process_commit_context_all_frames.retry",
                         extra={**basic_logging_details, "retry_count": self.request.retries},
                     )
-                    metrics.incr("tasks.process_commit_context.retry")
+                    metrics.incr("tasks.process_commit_context_all_frames.retry")
                     self.retry()
 
                 if not blame or not installation:
