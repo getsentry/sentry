@@ -13,7 +13,6 @@ from snuba_sdk import (
     Direction,
     Entity,
     Function,
-    Limit,
     Op,
     OrderBy,
     Query,
@@ -72,7 +71,10 @@ class EventUser:
             project_id=event.project_id if event else None,
             email=event.data.get("user", {}).get("email") if event else None,
             username=event.data.get("user", {}).get("username") if event else None,
-            name=event.data.get("user", {}).get("name") if event else None,
+            name=event.data.get("user", {}).get("name")
+            or event.data.get("user", {}).get("username")
+            if event
+            else None,
             ip_address=event.data.get("user", {}).get("ip_address") if event else None,
             user_ident=event.data.get("user", {}).get("id") if event else None,
         )
@@ -82,7 +84,11 @@ class EventUser:
 
     @classmethod
     def for_projects(
-        self, projects: List[Project], keyword_filters: Mapping[str, Any]
+        self,
+        projects: List[Project],
+        keyword_filters: Mapping[str, List[Any]],
+        filter_boolean="AND",
+        return_all=False,
     ) -> List[EventUser]:
         """
         Fetch the EventUser with a Snuba query that exists within a list of projects
@@ -96,29 +102,43 @@ class EventUser:
             Condition(Column("timestamp"), Op.GTE, oldest_project.date_added),
         ]
 
+        keyword_where_conditions = []
         for keyword, value in keyword_filters.items():
+            if not isinstance(value, list):
+                raise Exception(f"{keyword} filter must be a list of values")
+
             snuba_column = SNUBA_KEYWORD_MAP.get_key(keyword)
             if isinstance(snuba_column, tuple):
-                where_conditions.append(
+                keyword_where_conditions.append(
                     BooleanCondition(
                         BooleanOp.OR,
                         [
                             Condition(
                                 Column(column),
-                                Op.EQ,
+                                Op.IN,
                                 value
                                 if SNUBA_COLUMN_COALASCE.get(column, None) is None
-                                else Function(
-                                    SNUBA_COLUMN_COALASCE.get(column), parameters=[value]
-                                ),
+                                else Function(SNUBA_COLUMN_COALASCE.get(column), parameters=value),
                             )
                             for column in snuba_column
                         ],
                     )
                 )
-
             else:
-                where_conditions.append(Condition(Column(snuba_column), Op.EQ, value))
+                keyword_where_conditions.append(Condition(Column(snuba_column), Op.IN, value))
+
+        if len(keyword_where_conditions) > 1:
+            where_conditions.append(
+                BooleanCondition(
+                    BooleanOp.AND if filter_boolean == "AND" else BooleanOp.OR,
+                    keyword_where_conditions,
+                )
+            )
+
+        if len(keyword_where_conditions) == 1:
+            where_conditions.extend(
+                keyword_where_conditions,
+            )
 
         query = Query(
             match=Entity(EntityKey.Events.value),
@@ -134,9 +154,11 @@ class EventUser:
                 Column("user_email"),
             ],
             where=where_conditions,
-            limit=Limit(1),
-            orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
         )
+
+        if return_all:
+            query.set_limit(1)
+            query.set_orderby([OrderBy(Column("timestamp"), Direction.DESC)])
 
         request = Request(
             dataset=Dataset.Events.value,
@@ -163,6 +185,35 @@ class EventUser:
             ip_address=result.get("ip_address_v4") or result.get("ip_address_v6"),
             user_ident=result.get("user_id"),
         )
+
+    @classmethod
+    def for_tags(cls, project_id: int, values):
+        """
+        Finds matching EventUser objects from a list of tag values.
+
+        Return a dictionary of {tag_value: event_user}.
+        """
+        projects = Project.objects.filter(id=project_id)
+        result = {}
+        keyword_filters = {}
+        for value in values:
+            key, value = value.split(":", 1)[0], value.split(":", 1)[-1]
+            if keyword_filters.get(key):
+                keyword_filters[key].append(value)
+            else:
+                keyword_filters[key] = [value]
+
+        eventusers = EventUser.for_projects(projects, keyword_filters, return_all=True)
+        for keyword, values in keyword_filters.items():
+            column = KEYWORD_MAP.get_key(keyword)
+            for value in values:
+                matching_euser = next(
+                    (euser for euser in eventusers if getattr(euser, column, None) == value), None
+                )
+                if matching_euser:
+                    result[f"{keyword}:{value}"] = matching_euser
+
+        return result
 
     @property
     def tag_value(self):

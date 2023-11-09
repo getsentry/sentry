@@ -17,7 +17,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
 
         self.project = self.create_project(date_added=(timezone.now() - timedelta(hours=2)))
 
-        self.store_event(
+        self.event_1 = self.store_event(
             data={
                 "user": {
                     "id": 1,
@@ -30,7 +30,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        self.store_event(
+        self.event_2 = self.store_event(
             data={
                 "user": {
                     "id": 2,
@@ -43,10 +43,10 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        self.store_event(
+        self.event_3 = self.store_event(
             data={
                 "user": {
-                    "id": 3,
+                    "id": "myminion",
                     "email": "minion@universal.com",
                     "username": "minion",
                     "ip_address": "8.8.8.8",
@@ -57,31 +57,48 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         )
 
     def test_for_projects_query_filter_id(self):
-        euser = EventUser.for_projects([self.project], {"id": "2"})
+        euser = EventUser.for_projects([self.project], {"id": ["2"]})
         assert len(euser) == 1
         assert euser[0].user_ident == "2"
         assert euser[0].email == "nisanthan@sentry.io"
 
     def test_for_projects_query_filter_username(self):
-        euser = EventUser.for_projects([self.project], {"username": "minion"})
+        euser = EventUser.for_projects([self.project], {"username": ["minion"]})
         assert len(euser) == 1
-        assert euser[0].user_ident == "3"
+        assert euser[0].user_ident == "myminion"
         assert euser[0].email == "minion@universal.com"
 
     def test_for_projects_query_filter_email(self):
-        euser = EventUser.for_projects([self.project], {"email": "foo@example.com"})
+        euser = EventUser.for_projects([self.project], {"email": ["foo@example.com"]})
         assert len(euser) == 1
         assert euser[0].user_ident == "1"
         assert euser[0].email == "foo@example.com"
 
     def test_for_projects_query_filter_ip(self):
-        euser = EventUser.for_projects([self.project], {"ip": "8.8.8.8"})
+        euser = EventUser.for_projects([self.project], {"ip": ["8.8.8.8"]})
         assert len(euser) == 1
-        assert euser[0].user_ident == "3"
+        assert euser[0].user_ident == "myminion"
         assert euser[0].email == "minion@universal.com"
 
+    def test_for_projects_query_multiple_OR_filters(self):
+        eusers = EventUser.for_projects(
+            [self.project],
+            {"username": ["minion"], "email": ["foo@example.com"]},
+            filter_boolean="OR",
+            return_all=True,
+        )
+        assert len(eusers) == 2
+
+    def test_for_projects_query_multiple_AND_filters(self):
+        eusers = EventUser.for_projects(
+            [self.project],
+            {"username": ["minion"], "email": ["minion@universal.com"], "ip": ["8.8.8.8"]},
+            return_all=True,
+        )
+        assert len(eusers) == 1
+
     def test_tag_value_primary_is_user_ident(self):
-        euser = EventUser.for_projects([self.project], {"id": "2"})
+        euser = EventUser.for_projects([self.project], {"id": ["2"]})
         assert len(euser) == 1
         assert euser[0].user_ident == "2"
         assert euser[0].tag_value == "id:2"
@@ -99,7 +116,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        euser = EventUser.for_projects([self.project], {"username": "cocoa"})
+        euser = EventUser.for_projects([self.project], {"username": ["cocoa"]})
         assert len(euser) == 1
         assert euser[0].user_ident is None
         assert euser[0].tag_value == "username:cocoa"
@@ -117,7 +134,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        euser = EventUser.for_projects([self.project], {"email": "cocoa@universal.com"})
+        euser = EventUser.for_projects([self.project], {"email": ["cocoa@universal.com"]})
         assert len(euser) == 1
         assert euser[0].user_ident is None
         assert euser[0].username is None
@@ -130,15 +147,24 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "id": None,
                     "email": None,
                     "username": None,
-                    "ip_address": "8.8.8.8",
+                    "ip_address": "8.8.8.1",
                 },
                 "timestamp": iso_format(before_now(seconds=30)),
             },
             project_id=self.project.id,
         )
-        euser = EventUser.for_projects([self.project], {"ip": "8.8.8.8"})
+        euser = EventUser.for_projects([self.project], {"ip": ["8.8.8.1"]})
         assert len(euser) == 1
         assert euser[0].user_ident is None
         assert euser[0].username is None
         assert euser[0].email is None
-        assert euser[0].tag_value == "ip:8.8.8.8"
+        assert euser[0].tag_value == "ip:8.8.8.1"
+
+    def test_for_tags(self):
+        assert EventUser.for_tags(self.project.id, ["id:myminion"]) == {
+            "id:myminion": EventUser.from_event(self.event_3)
+        }
+        assert EventUser.for_tags(self.project.id, ["id:doesnotexist"]) == {}
+        assert EventUser.for_tags(self.project.id, ["id:myminion", "id:doesnotexist"]) == {
+            "id:myminion": EventUser.from_event(self.event_3)
+        }
