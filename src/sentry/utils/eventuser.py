@@ -5,7 +5,18 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, List, Mapping, Optional, Tuple
 
-from snuba_sdk import Column, Condition, Direction, Entity, Op, OrderBy, Query, Request
+from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -67,7 +78,11 @@ class EventUser:
 
     @classmethod
     def for_projects(
-        self, projects: List[Project], keyword_filters: Mapping[str, Any], return_all=False
+        self,
+        projects: List[Project],
+        keyword_filters: Mapping[str, Any],
+        filter_boolean="AND",
+        return_all=False,
     ) -> List[EventUser]:
         """
         Fetch the EventUser with a Snuba query that exists within a list of projects
@@ -81,13 +96,22 @@ class EventUser:
             Condition(Column("timestamp"), Op.GTE, oldest_project.date_added),
         ]
 
+        keyword_where_conditions = []
         for keyword, value in keyword_filters.items():
             snuba_column = SNUBA_KEYWORD_MAP.get_key(keyword)
             if isinstance(snuba_column, tuple):
                 for column in snuba_column:
-                    where_conditions.append(Condition(Column(column), Op.EQ, value))
+                    keyword_where_conditions.append(Condition(Column(column), Op.EQ, value))
             else:
-                where_conditions.append(Condition(Column(snuba_column), Op.EQ, value))
+                keyword_where_conditions.append(Condition(Column(snuba_column), Op.EQ, value))
+
+        if len(keyword_where_conditions):
+            where_conditions.append(
+                BooleanCondition(
+                    BooleanOp.AND if filter_boolean == "AND" else BooleanOp.OR,
+                    keyword_filters,
+                )
+            )
 
         query = Query(
             match=Entity(EntityKey.Events.value),
