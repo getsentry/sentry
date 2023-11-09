@@ -201,9 +201,14 @@ class MetricsQueryBuilder(QueryBuilder):
             alias = get_function_alias(spec.field) or "count"
             include_series = True
             interval = self.interval
-        else:
+        elif isinstance(self, AlertMetricsQueryBuilder):
             limit = self.limit or Limit(1)
             alias = spec.mri
+            include_series = False
+            interval = None
+        else:
+            limit = self.limit or Limit(1)
+            alias = get_function_alias(spec.field) or spec.mri
             include_series = False
             interval = None
 
@@ -834,21 +839,35 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return primary, query_framework
 
-    def convert_metric_layer_result(self, metrics_data: Any) -> Any:
+    def convert_metric_layer_result(self, metrics_data_list: Any) -> Any:
         """The metric_layer returns results in a non-standard format, this function changes it back to the expected
         one"""
+        seen_metrics_metas = {}
+        seen_total_keys = set()
         with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
             metric_layer_result: Any = {
                 "data": [],
-                "meta": metrics_data["meta"],
+                "meta": [],
             }
-            for group in metrics_data["groups"]:
-                data = group["by"]
-                data.update(group["totals"])
-                metric_layer_result["data"].append(data)
-                for meta in metric_layer_result["meta"]:
-                    if data.get(meta["name"]) is None:
-                        data[meta["name"]] = self.get_default_value(meta["type"])
+            for metrics_data in metrics_data_list:
+                for meta in metrics_data["meta"]:
+                    if meta["name"] not in seen_metrics_metas:
+                        seen_metrics_metas[meta["name"]] = True
+                        metric_layer_result["meta"].append(meta)
+
+                for group in metrics_data["groups"]:
+                    data = group["by"]
+                    data.update(group["totals"])
+                    seen_total_keys.update(group["totals"].keys())
+                    metric_layer_result["data"].append(data)
+                    for meta in metric_layer_result["meta"]:
+                        if data.get(meta["name"]) is None:
+                            data[meta["name"]] = self.get_default_value(meta["type"])
+
+        for item in metric_layer_result["data"]:
+            for total_key in seen_total_keys:
+                if total_key not in item:
+                    item[total_key] = 0.0 # TODO: Check if these are all Float64
 
         return metric_layer_result
 
@@ -993,19 +1012,18 @@ class MetricsQueryBuilder(QueryBuilder):
                 except Exception as err:
                     raise IncompatibleMetricsQuery(err)
                 with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
-                    for datum in metrics_data:
-                        metric_layer_result = self.convert_metric_layer_result(datum)
-                        for row in metric_layer_result["data"]:
-                            # Arrays in clickhouse cannot contain multiple types, and since groupby values
-                            # can contain any type, we must use tuples instead
-                            groupby_key = tuple(row[key] for key in groupby_aliases)
-                            value_map_key = ",".join(str(value) for value in groupby_key)
-                            # First time we're seeing this value, add it to the values we're going to filter by
-                            if value_map_key not in value_map and groupby_key:
-                                groupby_values.append(groupby_key)
-                            value_map[value_map_key].update(row)
-                        for meta in metric_layer_result["meta"]:
-                            meta_dict[meta["name"]] = meta["type"]
+                    metric_layer_result = self.convert_metric_layer_result(metrics_data)
+                    for row in metric_layer_result["data"]:
+                        # Arrays in clickhouse cannot contain multiple types, and since groupby values
+                        # can contain any type, we must use tuples instead
+                        groupby_key = tuple(row[key] for key in groupby_aliases)
+                        value_map_key = ",".join(str(value) for value in groupby_key)
+                        # First time we're seeing this value, add it to the values we're going to filter by
+                        if value_map_key not in value_map and groupby_key:
+                            groupby_values.append(groupby_key)
+                        value_map[value_map_key].update(row)
+                    for meta in metric_layer_result["meta"]:
+                        meta_dict[meta["name"]] = meta["type"]
         else:
             self.validate_having_clause()
 
@@ -1680,7 +1698,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         one"""
         metrics_data = metrics_data_list[0]
         seen_metrics_metas = {}
-        time_data_map = {}
+        time_data_map = defaultdict(dict)
         with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
             metric_layer_result: Any = {
                 "data": [],
@@ -1697,15 +1715,16 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
                 for group in metrics_data["groups"]:
                     group_data = group["by"]
+                    group_key = ','.join(str(group_data[x]) for x in sorted(group_data))
                     group_data.update(group["totals"])
 
                     for index, interval in enumerate(metrics_data["intervals"]):
                         time = interval.isoformat()
-                        if time in time_data_map:
-                            data = time_data_map[time]
+                        if time in time_data_map and group_key in time_data_map[time]:
+                            data = time_data_map[time][group_key]
                         else:
                             data = {self.time_alias: time}
-                            time_data_map[time] = data
+                            time_data_map[time][group_key] = data
 
                         data.update(group_data)
 
