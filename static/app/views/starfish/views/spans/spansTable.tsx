@@ -60,10 +60,12 @@ export default function SpansTable({
   const location = useLocation();
   const organization = useOrganization();
 
+  const spanDescription = decodeScalar(location.query?.['span.description']);
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const {isLoading, data, meta, pageLinks} = useSpanList(
     {
+      'span.description': spanDescription ? `*${spanDescription}*` : undefined,
       'span.module': moduleName ?? ModuleName.ALL,
       transaction: endpoint,
       'transaction.method': method,
