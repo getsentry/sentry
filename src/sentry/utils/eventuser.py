@@ -18,12 +18,24 @@ logger = logging.getLogger(__name__)
 
 REFERRER = "sentry.utils.eventuser"
 
-KEYWORD_MAP = BidirectionalMapping(
+SNUBA_KEYWORD_MAP = BidirectionalMapping(
     {
-        ("user_ident"): "id",
+        ("user_id"): "id",
         ("user_name"): "username",
         ("email"): "email",
         ("ip_address_4", "ip_address_6"): "ip",
+    }
+)
+
+# The order of these keys are significant to also indicate priority
+# when used in hashing and determining uniqueness. If you change the order
+# you will break stuff.
+KEYWORD_MAP = BidirectionalMapping(
+    {
+        "user_ident": "id",
+        "username": "username",
+        "email": "email",
+        "ip_address": "ip",
     }
 )
 
@@ -54,10 +66,6 @@ class EventUser:
         return self.name or self.email or self.username
 
     @classmethod
-    def attr_from_keyword(self, keyword):
-        return KEYWORD_MAP.get_key(keyword)
-
-    @classmethod
     def for_projects(
         self, projects: List[Project], keyword_filters: Mapping[str, Any]
     ) -> List[EventUser]:
@@ -74,7 +82,7 @@ class EventUser:
         ]
 
         for keyword, value in keyword_filters.items():
-            snuba_column = KEYWORD_MAP.get_key(keyword)
+            snuba_column = SNUBA_KEYWORD_MAP.get_key(keyword)
             if isinstance(snuba_column, tuple):
                 for column in snuba_column:
                     where_conditions.append(Condition(Column(column), Op.EQ, value))
