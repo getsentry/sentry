@@ -759,7 +759,6 @@ class SnubaRequestPaginator:
         tenant_ids,
         order_by=None,
         max_limit=MAX_LIMIT,
-        converter=None,
         on_results=None,
     ):
         self.query = query
@@ -774,7 +773,6 @@ class SnubaRequestPaginator:
             self.desc = False
             self.query = self.query.set_orderby([OrderBy(Column(order_by), Direction.ASC)])
         self.max_limit = max_limit
-        self.converter = converter
         self.on_results = on_results
 
     def set_offset_for_query(self, cursor_value, query):
@@ -806,9 +804,6 @@ class SnubaRequestPaginator:
 
         if next_cursor.has_results:
             results.pop()  # pop the last result bc we have more results than the limit by 1 on this page
-
-        if self.converter:
-            results = self.converter(results)
 
         if self.on_results:
             results = self.on_results(results)
