@@ -118,7 +118,7 @@ def test_nel_culprit():
     assert generate_culprit(data) == "The TCP connection was reset"
 
     data = {"nel": {"body": {"phase": "dns", "type": "dns.weird"}}}
-    assert generate_culprit(data) == "Unknown type: dns.weird"
+    assert generate_culprit(data) == "dns.weird"
 
     data = {"nel": {"body": {"phase": "dns"}}}
-    assert generate_culprit(data) == "Unknown type: <missing>"
+    assert generate_culprit(data) == "<missing>"
