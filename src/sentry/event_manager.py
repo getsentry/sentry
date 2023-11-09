@@ -1856,12 +1856,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     try:
         short_id = project.next_short_id()
     except OperationalError:
-        metrics.incr(
-            "next_short_id.timeout",
-            tags={
-                "platform": event.platform or "unknown"
-            },  # TODO: remove this tag, it's nor relevant
-        )
+        metrics.incr("next_short_id.timeout")
         sentry_sdk.capture_message("short_id.timeout")
         raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
 
@@ -1877,8 +1872,12 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         else None
     )
 
-    # get severity score for use in alerting
     group_data = kwargs.pop("data", {})
+
+    # add sdk tag to metadata
+    group_data.setdefault("metadata", {})["sdk"] = normalized_sdk_tag_from_event(event)
+
+    # get severity score for use in alerting
     if features.has("projects:first-event-severity-calculation", event.project):
         severity = _get_severity_score(event)
         if severity is not None:  # Severity can be 0

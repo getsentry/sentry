@@ -185,7 +185,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
         assert group.data.get("type") == "default"
-        assert group.data.get("metadata") == {"title": "foo bar"}
+        assert group.data.get("metadata").get("title") == "foo bar"
 
     def test_materialze_metadata_simple(self):
         manager = EventManager(make_event(transaction="/dogs/are/great/"))
@@ -1334,7 +1334,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = event.group
         assert group is not None
         assert group.data.get("type") == "default"
-        assert group.data.get("metadata") == {"title": "foo bar"}
+        assert group.data.get("metadata").get("title") == "foo bar"
 
     def test_message_event_type(self):
         manager = EventManager(
@@ -1352,7 +1352,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = event.group
         assert group is not None
         assert group.data.get("type") == "default"
-        assert group.data.get("metadata") == {"title": "foo bar"}
+        assert group.data.get("metadata").get("title") == "foo bar"
 
     def test_error_event_type(self):
         manager = EventManager(
@@ -1369,6 +1369,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "type": "Foo",
             "value": "bar",
             "display_title_with_tree_label": False,
+            "sdk": "other",
         }
 
     def test_csp_event_type(self):
@@ -1395,6 +1396,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "directive": "script-src",
             "uri": "example.com",
             "message": "Blocked 'script' from 'example.com'",
+            "sdk": "other",
         }
         assert group.title == "Blocked 'script' from 'example.com'"
 
@@ -1493,6 +1495,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "integrations": None,
             "packages": None,
         }
+
+    def test_sdk_group_tagging(self):
+        manager = EventManager(
+            make_event(**{"sdk": {"name": "sentry.native.unity", "version": "1.0"}})
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.group.data.get("metadata").get("sdk") == "sentry.native.unity"
 
     def test_no_message(self):
         # test that the message is handled gracefully
@@ -2257,6 +2268,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 "location": "/books/",
                 "title": "N+1 Query",
                 "value": description,
+                "sdk": "other",
             }
             assert (
                 event.search_message
