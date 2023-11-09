@@ -20,11 +20,11 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 import Header from '../components/header';
-import {NEW_GROUP_PREFIX} from '../utils/constants';
-import {NewThresholdGroup, Threshold} from '../utils/types';
+import {Threshold} from '../utils/types';
 import useFetchThresholdsListData from '../utils/useFetchThresholdsListData';
 
-import {ThresholdGroupTable} from './thresholdGroupTable';
+import NoThresholdCard from './noThresholdCard';
+import ThresholdGroupTable from './thresholdGroupTable';
 
 type Props = {};
 
@@ -32,8 +32,6 @@ function ReleaseThresholdList({}: Props) {
   const [listError, setListError] = useState<string>('');
   const router = useRouter();
   const organization = useOrganization();
-  const [newThresholdGroup, setNewThresholdGroup] = useState<NewThresholdGroup[]>([]);
-  const [newGroupIterator, setNewGroupIterator] = useState<number>(0);
   useEffect(() => {
     const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
     if (!hasV2ReleaseUIEnabled) {
@@ -54,12 +52,22 @@ function ReleaseThresholdList({}: Props) {
   });
 
   const selectedProjects: Project[] = useMemo(() => {
-    return projects.filter(project =>
-      selection.projects.some(id => String(id) === project.id || id === -1)
+    return projects.filter(
+      project =>
+        selection.projects.some(id => String(id) === project.id || id === -1) ||
+        !selection.projects.length
     );
   }, [projects, selection.projects]);
 
-  const getAllEnvironments = (): string[] => {
+  const projectsById: {[key: string]: Project} = useMemo(() => {
+    const byId = {};
+    selectedProjects.forEach(proj => {
+      byId[proj.id] = proj;
+    });
+    return byId;
+  }, [selectedProjects]);
+
+  const getAllEnvironmentNames = useMemo((): string[] => {
     const selectedProjectIds = selection.projects.map(id => String(id));
     const {user} = ConfigStore.getState();
     const allEnvSet = new Set(projects.flatMap(project => project.environments));
@@ -92,7 +100,7 @@ function ReleaseThresholdList({}: Props) {
     return Array.from(unSortedEnvs)
       .sort()
       .concat([...envDiff].sort());
-  };
+  }, [projects, selection.projects]);
 
   /**
    * Thresholds filtered by environment selection
@@ -118,6 +126,10 @@ function ReleaseThresholdList({}: Props) {
     return byProj;
   }, [filteredThresholds]);
 
+  const projectsWithoutThresholds: Project[] = useMemo(() => {
+    return selectedProjects.filter(proj => !thresholdsByProject[proj.id]);
+  }, [thresholdsByProject, selectedProjects]);
+
   const setTempError = msg => {
     setListError(msg);
     setTimeout(() => setListError(''), 5000);
@@ -130,39 +142,10 @@ function ReleaseThresholdList({}: Props) {
     return <LoadingIndicator />;
   }
 
-  const createNewThresholdGroup = () => {
-    if (selectedProjects.length === 1) {
-      setNewThresholdGroup([
-        ...newThresholdGroup,
-        {
-          id: `${NEW_GROUP_PREFIX}-${newGroupIterator}`,
-          project: selectedProjects[0],
-          environments: getAllEnvironments(),
-        },
-      ]);
-      setNewGroupIterator(newGroupIterator + 1);
-    } else {
-      setTempError('Must select a single project in order to create a new threshold');
-    }
-  };
-
-  // const onNewGroupFinished = id => {
-  //   const newGroups = newThresholdGroup.filter(group => group.id !== id);
-  //   setNewThresholdGroup(newGroups);
-  // };
-
   return (
     <PageFiltersContainer>
       <NoProjectMessage organization={organization}>
-        <Header
-          router={router}
-          hasV2ReleaseUIEnabled
-          newThresholdAction={createNewThresholdGroup}
-          newThresholdDisabled={
-            selection.projects.length !== 1 ||
-            selection.projects.includes(ALL_ACCESS_PROJECTS)
-          }
-        />
+        <Header router={router} hasV2ReleaseUIEnabled />
         <Layout.Body>
           <Layout.Main fullWidth>
             <FilterRow>
@@ -178,13 +161,29 @@ function ReleaseThresholdList({}: Props) {
               Object.entries(thresholdsByProject).map(([projId, thresholdsByProj]) => (
                 <ThresholdGroupTable
                   key={projId}
+                  project={projectsById[projId]}
                   thresholds={thresholdsByProj}
                   isLoading={isLoading}
                   isError={isError}
                   refetch={refetch}
                   setTempError={setTempError}
+                  allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
                 />
               ))}
+            {projectsWithoutThresholds[0] && (
+              <div>
+                <div>Projects without Thresholds</div>
+                {projectsWithoutThresholds.map(proj => (
+                  <NoThresholdCard
+                    key={proj.id}
+                    project={proj}
+                    allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
+                    refetch={refetch}
+                    setTempError={setTempError}
+                  />
+                ))}
+              </div>
+            )}
           </Layout.Main>
         </Layout.Body>
       </NoProjectMessage>

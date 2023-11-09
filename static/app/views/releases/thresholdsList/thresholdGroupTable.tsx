@@ -4,27 +4,31 @@ import styled from '@emotion/styled';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
 
 import {Threshold} from '../utils/types';
 
 import {ThresholdGroupRows} from './thresholdGroupRows';
 
 type Props = {
+  allEnvironmentNames: string[];
   isError: boolean;
   isLoading: boolean;
+  project: Project;
   refetch: () => void;
   setTempError: (msg: string) => void;
   thresholds: Threshold[];
 };
 
-export function ThresholdGroupTable({
+export default function ThresholdGroupTable({
+  allEnvironmentNames,
   isError,
   isLoading,
+  project,
   refetch,
   setTempError,
   thresholds,
 }: Props) {
-  const project = thresholds[0]?.project;
   const thresholdsByEnv: {[key: string]: Threshold[]} = useMemo(() => {
     const byEnv = {};
     thresholds.forEach(threshold => {
@@ -37,6 +41,11 @@ export function ThresholdGroupTable({
     return byEnv;
   }, [thresholds]);
 
+  const flattenedThresholds: Threshold[] = useMemo(
+    () => Object.values(thresholdsByEnv).flat(),
+    [thresholdsByEnv]
+  );
+
   return (
     <div>
       <StyledStrong>
@@ -48,15 +57,20 @@ export function ThresholdGroupTable({
         emptyMessage={t('No thresholds found.')}
         headers={[t('Environment'), t('Window'), t('Condition'), t(' ')]}
       >
-        {thresholdsByEnv &&
-          Object.entries(thresholdsByEnv).map(([envName, thresholdGroup]) => (
-            <ThresholdGroupRows
-              key={`${envName}`}
-              thresholds={thresholdGroup}
-              refetch={refetch}
-              setError={setTempError}
-            />
-          ))}
+        {flattenedThresholds &&
+          flattenedThresholds.map((threshold, idx) => {
+            return (
+              <ThresholdGroupRows
+                key={threshold.id}
+                project={project}
+                allEnvironmentNames={allEnvironmentNames}
+                threshold={threshold}
+                refetch={refetch}
+                setTempError={setTempError}
+                isLastRow={idx === flattenedThresholds.length - 1}
+              />
+            );
+          })}
       </StyledPanelTable>
     </div>
   );
