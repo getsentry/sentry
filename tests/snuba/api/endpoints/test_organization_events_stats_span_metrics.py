@@ -76,7 +76,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_transaction_metric(
+                self.store_span_metric(
                     1,
                     internal_metric=constants.SELF_TIME_LIGHT,
                     timestamp=self.day_ago + timedelta(hours=hour, minutes=minute),
@@ -105,7 +105,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_transaction_metric(
+                self.store_span_metric(
                     1,
                     internal_metric=constants.SELF_TIME_LIGHT,
                     timestamp=self.day_ago + timedelta(hours=hour, minutes=minute + 30),

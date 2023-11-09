@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -690,3 +691,153 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
     def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
+
+    def test_counter_custom_metric(self):
+        mri = "c:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            self.store_transaction_metric(
+                value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_counters",
+                timestamp=self.day_ago + timedelta(hours=index),
+                use_case_id=UseCaseID.CUSTOM,
+            )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": [f"sum({mri})"],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        for (_, value), expected_value in zip(data, [10, 20, 30, 40, 50, 60]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+    def test_distribution_custom_metric(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            for multiplier in (1, 2, 3):
+                self.store_transaction_metric(
+                    value * multiplier,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_distributions",
+                    timestamp=self.day_ago + timedelta(hours=index),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": [f"min({mri})", f"max({mri})", f"p90({mri})"],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        min = data[f"min({mri})"]["data"]
+        for (_, value), expected_value in zip(min, [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        max = data[f"max({mri})"]["data"]
+        for (_, value), expected_value in zip(max, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        p90 = data[f"p90({mri})"]["data"]
+        for (_, value), expected_value in zip(p90, [28.0, 56.0, 84.0, 112.0, 140.0, 168.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+    def test_set_custom_metric(self):
+        mri = "s:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            # We store each value a second time, since we want to check the de-duplication of sets.
+            for i in range(0, 2):
+                self.store_transaction_metric(
+                    value,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_sets",
+                    timestamp=self.day_ago + timedelta(hours=index),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": [f"count_unique({mri})"],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        for (_, value), expected_value in zip(data, [1, 1, 1, 1, 1, 1]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+    def test_gauge_custom_metric(self):
+        mri = "g:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            for multiplier in (1, 3):
+                self.store_transaction_metric(
+                    value * multiplier,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_gauges",
+                    # When multiple gauges are merged, in order to make the `last` merge work deterministically it's
+                    # better to have the gauges with different timestamps so that the last value is always the same.
+                    timestamp=self.day_ago + timedelta(hours=index, minutes=multiplier),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": [
+                    f"min({mri})",
+                    f"max({mri})",
+                    f"last({mri})",
+                    f"sum({mri})",
+                    f"count({mri})",
+                ],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        min = data[f"min({mri})"]["data"]
+        for (_, value), expected_value in zip(min, [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        max = data[f"max({mri})"]["data"]
+        for (_, value), expected_value in zip(max, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        last = data[f"last({mri})"]["data"]
+        for (_, value), expected_value in zip(last, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        sum = data[f"sum({mri})"]["data"]
+        for (_, value), expected_value in zip(sum, [40.0, 80.0, 120.0, 160.0, 200.0, 240.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        count = data[f"count({mri})"]["data"]
+        for (_, value), expected_value in zip(count, [40, 80, 120, 160, 200, 240]):
+            assert value[0]["count"] == expected_value  # type:ignore
