@@ -27,45 +27,20 @@ class SlackPresenter(OptionsPresenter):
         self.not_writable_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []
         self.invalid_type_options: List[Tuple[str, type, type]] = []
+        self.options_changed = False
 
     @staticmethod
     def is_slack_enabled():
-
         if not (
             options.get("options_automator_slack_webhook_enabled")
             and settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL
         ):
             return False
-        try:
-            test_payload: dict = {
-                "drifted_options": [],
-                "updated_options": [],
-                "set_options": [],
-                "unset_options": [],
-                "not_writable_options": [],
-                "unregistered_options": [],
-                "invalid_type_options": [],
-            }
-
-            response = requests.post(
-                settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, json=test_payload
-            )
-            if response.status_code == 200:
-                return True
-
-            # Retry the call once to ensure reliability
-            response = requests.post(
-                settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, json=test_payload
-            )
-            if response.status_code == 200:
-                return True
-            raise ConnectionError(
-                f"Slack integration webhook failed. Status code: {response.status_code}"
-            )
-        except Exception:
-            raise
 
     def flush(self) -> None:
+        if not self.options_changed:
+            return
+
         region: Optional[str] = settings.SENTRY_REGION
         if not region:
             region = settings.CUSTOMER_ID
@@ -110,24 +85,30 @@ class SlackPresenter(OptionsPresenter):
 
     def set(self, key: str, value: Any) -> None:
         self.set_options.append((key, value))
+        self.options_changed = True
 
     def unset(self, key: str) -> None:
         self.unset_options.append(key)
+        self.options_changed = True
 
     def update(self, key: str, db_value: Any, value: Any) -> None:
         self.updated_options.append((key, db_value, value))
+        self.options_changed = True
 
     def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
     def drift(self, key: str, db_value: Any) -> None:
         self.drifted_options.append((key, db_value))
+        self.options_changed = True
 
     def not_writable(self, key: str, not_writable_reason: str) -> None:
         self.not_writable_options.append((key, not_writable_reason))
+        self.options_changed = True
 
     def unregistered(self, key: str) -> None:
         self.unregistered_options.append(key)
+        self.options_changed = True
 
     def invalid_type(
         self,
@@ -136,6 +117,7 @@ class SlackPresenter(OptionsPresenter):
         expected_type: type,
     ) -> None:
         self.invalid_type_options.append((key, got_type, expected_type))
+        self.options_changed = True
 
     def _send_to_webhook(self, json_data: dict) -> None:
         if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
