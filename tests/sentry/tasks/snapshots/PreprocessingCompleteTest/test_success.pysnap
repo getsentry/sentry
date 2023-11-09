@@ -1,5 +1,5 @@
 ---
-created: '2023-10-31T20:53:56.260180Z'
+created: '2023-11-08T16:54:13.403961Z'
 creator: sentry
 source: tests/sentry/tasks/test_relocation.py
 ---
@@ -295,6 +295,7 @@ steps:
   - -v
   - /workspace/findings:/findings
   - web
+  - backup
   - compare
   - /in/baseline-config.tar
   - /out/baseline-config.json
@@ -324,6 +325,7 @@ steps:
   - -v
   - /workspace/findings:/findings
   - web
+  - backup
   - compare
   - /in/colliding-users.tar
   - /out/colliding-users.json

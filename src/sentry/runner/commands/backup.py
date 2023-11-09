@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from io import BytesIO
-from typing import Callable, Sequence, TextIO
+from typing import Callable, Generator, Sequence, TextIO
 
 import click
 
 from sentry.backup.comparators import get_default_comparators
 from sentry.backup.findings import Finding, FindingJSONEncoder
-from sentry.backup.helpers import DecryptionError, ImportFlags, Side, decrypt_encrypted_tarball
+from sentry.backup.helpers import (
+    DecryptionError,
+    ImportFlags,
+    Side,
+    create_encrypted_export_tarball,
+    decrypt_encrypted_tarball,
+)
 from sentry.backup.validate import validate
 from sentry.runner.decorators import configuration
 from sentry.utils import json
@@ -99,9 +106,7 @@ def get_decryptor_io_from_flags(
     return decrypt_with if decrypt_with is not None else decrypt_with_gcp_kms
 
 
-def write_findings(
-    findings_file: TextIO | None, findings: Sequence[Finding], indent: int, printer: Callable
-):
+def write_findings(findings_file: TextIO | None, findings: Sequence[Finding], printer: Callable):
     for f in findings:
         printer(f.pretty(), err=True)
 
@@ -111,7 +116,7 @@ def write_findings(
             ensure_ascii=True,
             check_circular=True,
             allow_nan=True,
-            indent=indent,
+            indent=DEFAULT_INDENT,
             encoding="utf-8",
         )
 
@@ -120,7 +125,52 @@ def write_findings(
             file.write(encoded)
 
 
-@click.command(name="compare")
+@contextmanager
+def write_import_findings(
+    findings_file: TextIO | None, printer: Callable
+) -> Generator[None, None, None]:
+    """
+    Helper that ensures that we write findings for the `import ...` command regardless of outcome.
+    """
+
+    from sentry.backup.imports import ImportingError
+
+    try:
+        yield
+    except ImportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], printer)
+        raise e
+    else:
+        write_findings(findings_file, [], printer)
+
+
+@contextmanager
+def write_export_findings(
+    findings_file: TextIO | None, printer: Callable
+) -> Generator[None, None, None]:
+    """
+    Helper that ensures that we write findings for the `export ...` command regardless of outcome.
+    """
+
+    from sentry.backup.exports import ExportingError
+
+    try:
+        yield
+    except ExportingError as e:
+        if e.context:
+            write_findings(findings_file, [e.context], printer)
+        raise e
+    else:
+        write_findings(findings_file, [], printer)
+
+
+@click.group(name="backup")
+def backup():
+    """A collection of helper tools for operating on backup Sentry backup imports/exports."""
+
+
+@backup.command(name="compare")
 @click.argument("left", type=click.File("rb"))
 @click.argument("right", type=click.File("rb"))
 @click.option(
@@ -198,10 +248,41 @@ def compare(
 
     res = validate(left_data, right_data, get_default_comparators())
     if res:
-        write_findings(findings_file, res.findings, DEFAULT_INDENT, click.echo)
+        write_findings(findings_file, res.findings, click.echo)
         click.echo(f"Done, found {len(res.findings)} differences:\n\n{res.pretty()}")
     else:
+        write_findings(findings_file, [], click.echo)
         click.echo("Done, found 0 differences!")
+
+
+@backup.command(name="encrypt")
+@click.argument("dest", type=click.File("wb"))
+@click.option(
+    "--encrypt-with",
+    required=True,
+    type=click.File("rb"),
+    help="The file containing the public key RSA file to be used for encryption.",
+)
+@click.option(
+    "--src",
+    required=True,
+    type=click.File("rb"),
+    help="The input JSON file that needs to be encrypted.",
+)
+@configuration
+def encrypt(dest, encrypt_with, src):
+    """
+    Encrypt an unencrypted raw JSON export into an encrypted tarball.
+    """
+
+    try:
+        data = json.load(src)
+    except json.JSONDecodeError:
+        click.echo("Invalid input JSON", err=True)
+
+    encrypted = create_encrypted_export_tarball(data, encrypt_with)
+    with dest:
+        dest.write(encrypted.getbuffer())
 
 
 @click.group(name="import")
@@ -258,10 +339,10 @@ def import_users(
     Import the Sentry users from an exported JSON file.
     """
 
-    from sentry.backup.imports import ImportingError, import_in_user_scope
+    from sentry.backup.imports import import_in_user_scope
 
     printer = get_printer(silent)
-    try:
+    with write_import_findings(findings_file, printer):
         import_in_user_scope(
             src,
             decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
@@ -272,10 +353,6 @@ def import_users(
             user_filter=parse_filter_arg(filter_usernames),
             printer=printer,
         )
-    except ImportingError as e:
-        if e.context:
-            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
-        raise e
 
 
 @import_.command(name="organizations")
@@ -328,10 +405,10 @@ def import_organizations(
     Import the Sentry organizations, and all constituent Sentry users, from an exported JSON file.
     """
 
-    from sentry.backup.imports import ImportingError, import_in_organization_scope
+    from sentry.backup.imports import import_in_organization_scope
 
     printer = get_printer(silent)
-    try:
+    with write_import_findings(findings_file, printer):
         import_in_organization_scope(
             src,
             decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
@@ -342,10 +419,6 @@ def import_organizations(
             org_filter=parse_filter_arg(filter_org_slugs),
             printer=printer,
         )
-    except ImportingError as e:
-        if e.context:
-            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
-        raise e
 
 
 @import_.command(name="config")
@@ -396,10 +469,10 @@ def import_config(
     Import all configuration and administrator accounts needed to set up this Sentry instance.
     """
 
-    from sentry.backup.imports import ImportingError, import_in_config_scope
+    from sentry.backup.imports import import_in_config_scope
 
     printer = get_printer(silent)
-    try:
+    with write_import_findings(findings_file, printer):
         import_in_config_scope(
             src,
             decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
@@ -410,10 +483,6 @@ def import_config(
             ),
             printer=printer,
         )
-    except ImportingError as e:
-        if e.context:
-            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
-        raise e
 
 
 @import_.command(name="global")
@@ -456,10 +525,10 @@ def import_global(
     Import all Sentry data from an exported JSON file.
     """
 
-    from sentry.backup.imports import ImportingError, import_in_global_scope
+    from sentry.backup.imports import import_in_global_scope
 
     printer = get_printer(silent)
-    try:
+    with write_import_findings(findings_file, printer):
         import_in_global_scope(
             src,
             decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
@@ -469,10 +538,6 @@ def import_global(
             ),
             printer=printer,
         )
-    except ImportingError as e:
-        if e.context:
-            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
-        raise e
 
 
 @click.group(name="export")
@@ -515,10 +580,10 @@ def export_users(dest, encrypt_with, filter_usernames, findings_file, indent, si
     Export all Sentry users in the JSON format.
     """
 
-    from sentry.backup.exports import ExportingError, export_in_user_scope
+    from sentry.backup.exports import export_in_user_scope
 
     printer = get_printer(silent)
-    try:
+    with write_export_findings(findings_file, printer):
         export_in_user_scope(
             dest,
             encrypt_with=encrypt_with,
@@ -526,10 +591,6 @@ def export_users(dest, encrypt_with, filter_usernames, findings_file, indent, si
             user_filter=parse_filter_arg(filter_usernames),
             printer=printer,
         )
-    except ExportingError as e:
-        if e.context:
-            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
-        raise e
 
 
 @export.command(name="organizations")
@@ -568,10 +629,10 @@ def export_organizations(dest, encrypt_with, filter_org_slugs, findings_file, in
     Export all Sentry organizations, and their constituent users, in the JSON format.
     """
 
-    from sentry.backup.exports import ExportingError, export_in_organization_scope
+    from sentry.backup.exports import export_in_organization_scope
 
     printer = get_printer(silent)
-    try:
+    with write_export_findings(findings_file, printer):
         export_in_organization_scope(
             dest,
             encrypt_with=encrypt_with,
@@ -579,10 +640,6 @@ def export_organizations(dest, encrypt_with, filter_org_slugs, findings_file, in
             org_filter=parse_filter_arg(filter_org_slugs),
             printer=printer,
         )
-    except ExportingError as e:
-        if e.context:
-            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
-        raise e
 
 
 @export.command(name="config")
@@ -612,20 +669,16 @@ def export_config(dest, encrypt_with, findings_file, indent, silent):
     Export all configuration and administrator accounts needed to set up this Sentry instance.
     """
 
-    from sentry.backup.exports import ExportingError, export_in_config_scope
+    from sentry.backup.exports import export_in_config_scope
 
     printer = get_printer(silent)
-    try:
+    with write_export_findings(findings_file, printer):
         export_in_config_scope(
             dest,
             encrypt_with=encrypt_with,
             indent=indent,
             printer=printer,
         )
-    except ExportingError as e:
-        if e.context:
-            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
-        raise e
 
 
 @export.command(name="global")
@@ -655,17 +708,13 @@ def export_global(dest, encrypt_with, findings_file, indent, silent):
     Export all Sentry data in the JSON format.
     """
 
-    from sentry.backup.exports import ExportingError, export_in_global_scope
+    from sentry.backup.exports import export_in_global_scope
 
     printer = get_printer(silent)
-    try:
+    with write_export_findings(findings_file, printer):
         export_in_global_scope(
             dest,
             encrypt_with=encrypt_with,
             indent=indent,
             printer=printer,
         )
-    except ExportingError as e:
-        if e.context:
-            write_findings(findings_file, [e.context], DEFAULT_INDENT, printer)
-        raise e
