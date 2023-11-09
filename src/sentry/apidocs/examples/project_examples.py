@@ -306,7 +306,6 @@ detailed_project = {
             "performance-file-io-main-thread-ingest",
             "metrics-extraction",
             "profile-json-decode-main-thread-ingest",
-            "integrations-stacktrace-link",
             "onboarding",
             "promotion-mobperf-gift50kerr",
             "device-classification",
