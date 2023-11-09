@@ -23,7 +23,7 @@ import WebVitalMeters from 'sentry/views/performance/browser/webVitals/component
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
 import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
@@ -56,13 +56,7 @@ export default function WebVitalsLandingPage() {
   const projectScore =
     isLoading || noTransactions
       ? undefined
-      : calculatePerformanceScore({
-          lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-          fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-          cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-          ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-          fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-        });
+      : calculatePerformanceScoreFromTableDataRow(projectData?.data[0]);
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>

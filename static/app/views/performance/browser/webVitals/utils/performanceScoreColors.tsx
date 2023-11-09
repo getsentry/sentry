@@ -11,4 +11,8 @@ export const PERFORMANCE_SCORE_COLORS = {
     light: 'red100',
     normal: 'red300',
   },
+  none: {
+    light: 'gray100',
+    normal: 'gray300',
+  },
 };

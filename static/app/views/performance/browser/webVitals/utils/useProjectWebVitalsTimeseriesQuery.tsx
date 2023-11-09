@@ -106,27 +106,27 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction, tag}: Props) =>
       });
 
     data.total.push({
-      value: totalScore,
+      value: totalScore ?? 0,
       name: interval[0] * 1000,
     });
     data.cls.push({
-      value: clsScore,
+      value: clsScore ?? 0,
       name: interval[0] * 1000,
     });
     data.lcp.push({
-      value: lcpScore,
+      value: lcpScore ?? 0,
       name: interval[0] * 1000,
     });
     data.fcp.push({
-      value: fcpScore,
+      value: fcpScore ?? 0,
       name: interval[0] * 1000,
     });
     data.ttfb.push({
-      value: ttfbScore,
+      value: ttfbScore ?? 0,
       name: interval[0] * 1000,
     });
     data.fid.push({
-      value: fidScore,
+      value: fidScore ?? 0,
       name: interval[0] * 1000,
     });
   });

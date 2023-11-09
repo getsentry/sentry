@@ -1,3 +1,6 @@
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {getWebVitalsFromTableData} from 'sentry/views/performance/browser/webVitals/utils/getWebVitalValues';
+
 export const PERFORMANCE_SCORE_WEIGHTS = {
   lcp: 30,
   fcp: 15,
@@ -23,12 +26,12 @@ export const PERFORMANCE_SCORE_P90S = {
 };
 
 export type ProjectScore = {
-  clsScore: number;
-  fcpScore: number;
-  fidScore: number;
-  lcpScore: number;
-  totalScore: number;
-  ttfbScore: number;
+  clsScore: number | null;
+  fcpScore: number | null;
+  fidScore: number | null;
+  lcpScore: number | null;
+  totalScore: number | null;
+  ttfbScore: number | null;
 };
 
 type Vitals = {
@@ -37,6 +40,13 @@ type Vitals = {
   fid?: number | null;
   lcp?: number | null;
   ttfb?: number | null;
+};
+
+export const calculatePerformanceScoreFromTableDataRow = (
+  data?: TableDataRow
+): ProjectScore => {
+  const webVitals = data ? getWebVitalsFromTableData(data) : {};
+  return calculatePerformanceScore(webVitals);
 };
 
 export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
@@ -48,7 +58,7 @@ export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
     'fid',
   ].map(vital => {
     if (vitals[vital] === null) {
-      return 0;
+      return null;
     }
 
     return cdf(
@@ -58,6 +68,8 @@ export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
     );
   });
 
+  // If any of the vitals are null/missing, we need to multiply the total score by
+  // a weight multiplier to normalize back to 100
   const weightSum = Object.keys(PERFORMANCE_SCORE_WEIGHTS).reduce(
     (sum, key) => (vitals[key] !== null ? sum + PERFORMANCE_SCORE_WEIGHTS[key] : sum),
     0
@@ -65,20 +77,24 @@ export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
   const weightMultiplier = 100 / weightSum;
 
   const totalScore =
-    (lcpScore * PERFORMANCE_SCORE_WEIGHTS.lcp +
-      fcpScore * PERFORMANCE_SCORE_WEIGHTS.fcp +
-      ttfbScore * PERFORMANCE_SCORE_WEIGHTS.ttfb +
-      clsScore * PERFORMANCE_SCORE_WEIGHTS.cls +
-      fidScore * PERFORMANCE_SCORE_WEIGHTS.fid) *
+    ((lcpScore ?? 0) * PERFORMANCE_SCORE_WEIGHTS.lcp +
+      (fcpScore ?? 0) * PERFORMANCE_SCORE_WEIGHTS.fcp +
+      (ttfbScore ?? 0) * PERFORMANCE_SCORE_WEIGHTS.ttfb +
+      (clsScore ?? 0) * PERFORMANCE_SCORE_WEIGHTS.cls +
+      (fidScore ?? 0) * PERFORMANCE_SCORE_WEIGHTS.fid) *
     weightMultiplier;
 
   return {
-    totalScore: Math.round(totalScore),
-    lcpScore: Math.round(lcpScore * 100),
-    fcpScore: Math.round(fcpScore * 100),
-    ttfbScore: Math.round(ttfbScore * 100),
-    clsScore: Math.round(clsScore * 100),
-    fidScore: Math.round(fidScore * 100),
+    totalScore: [lcpScore, fcpScore, ttfbScore, clsScore, fidScore].every(
+      score => score === null
+    )
+      ? null
+      : Math.round(totalScore),
+    lcpScore: lcpScore !== null ? Math.round(lcpScore * 100) : null,
+    fcpScore: fcpScore !== null ? Math.round(fcpScore * 100) : null,
+    ttfbScore: ttfbScore !== null ? Math.round(ttfbScore * 100) : null,
+    clsScore: clsScore !== null ? Math.round(clsScore * 100) : null,
+    fidScore: fidScore !== null ? Math.round(fidScore * 100) : null,
   };
 };
 

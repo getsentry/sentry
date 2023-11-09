@@ -262,10 +262,12 @@ export function PageOverviewWebVitalsDetailPanel({
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  const webVitalScore = projectScore[`${webVital}Score`];
+
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={webVital ?? undefined} onClose={onClose}>
-        {webVital && projectData && (
+        {webVital && projectData && webVitalScore !== null && (
           <WebVitalDetailHeader
             value={
               webVital !== 'cls'
@@ -280,7 +282,7 @@ export function PageOverviewWebVitalsDetailPanel({
                   ).toFixed(2)
             }
             webVital={webVital}
-            score={projectScore[`${webVital}Score`]}
+            score={webVitalScore}
           />
         )}
         <ChartContainer>
