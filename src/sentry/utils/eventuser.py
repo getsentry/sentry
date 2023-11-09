@@ -125,6 +125,21 @@ class EventUser:
             user_id=result.get("user_id"),
         )
 
+    @classmethod
+    def for_tags(cls, project_id: int, values):
+        """
+        Finds matching EventUser objects from a list of tag values.
+
+        Return a dictionary of {tag_value: event_user}.
+        """
+        projects = Project.objects.filter(id=project_id)
+        result = {}
+        for value in values:
+            keyword_filters = {value.split(":", 1)[0]: value.split(":", 1)[-1]}
+            eventusers = EventUser.for_projects(projects, keyword_filters)
+            result[value] = eventusers[0] if len(eventusers) else None
+        return result
+
     @property
     def tag_value(self) -> str:
         """
