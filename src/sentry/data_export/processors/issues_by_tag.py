@@ -97,7 +97,7 @@ class IssuesByTagProcessor:
         }
         if key == "user":
             euser = item._eventuser
-            result["id"] = euser.user_id if euser else ""
+            result["id"] = euser.user_ident if euser else ""
             result["email"] = euser.email if euser else ""
             result["username"] = euser.username if euser else ""
             result["ip_address"] = euser.ip_address if euser else ""

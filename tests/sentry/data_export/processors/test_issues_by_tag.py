@@ -47,7 +47,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
             username=None,
             name=None,
             ip_address=None,
-            user_id=None,
+            user_ident=None,
             id=None,
         )
 
