@@ -1334,7 +1334,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = event.group
         assert group is not None
         assert group.data.get("type") == "default"
-        assert group.data.get("metadata").get("title") == "foo bar"
+        assert group.data.get("metadata")
+        assert group.data.get("metadata").get("title") == "foo bar"  # type: ignore[union-attr]
 
     def test_message_event_type(self):
         manager = EventManager(
@@ -1352,7 +1353,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = event.group
         assert group is not None
         assert group.data.get("type") == "default"
-        assert group.data.get("metadata").get("title") == "foo bar"
+        assert group.data.get("metadata")
+        assert group.data.get("metadata").get("title") == "foo bar"  # type: ignore[union-attr]
 
     def test_error_event_type(self):
         manager = EventManager(
@@ -1503,7 +1505,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         event = manager.save(self.project.id)
 
-        assert event.group.data.get("metadata").get("sdk") == "sentry.native.unity"
+        assert event.group.data.get("metadata").get("sdk") == "sentry.native.unity"  # type: ignore[union-attr]
 
     def test_no_message(self):
         # test that the message is handled gracefully
