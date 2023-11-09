@@ -28,20 +28,12 @@ const cellMeasurer = {
   minHeight: 24,
 };
 
-function Message({title, subtitle}: {subtitle: React.ReactNode; title: React.ReactNode}) {
-  return (
-    <Fragment>
-      <EmptyMessage>{title}</EmptyMessage>
-      <p>{subtitle}</p>
-    </Fragment>
-  );
-}
-
 function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
   return (
     <Wrapper>
       <img src={waitingForEventImg} alt="No feedback found spot illustration" />
-      <Message title={title} subtitle={subtitle} />
+      <EmptyMessage>{title}</EmptyMessage>
+      <p>{subtitle}</p>
     </Wrapper>
   );
 }

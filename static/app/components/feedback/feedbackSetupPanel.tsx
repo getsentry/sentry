@@ -1,4 +1,4 @@
-import {CSSProperties, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import newFeatureImg from 'sentry-images/spot/new-feature.svg';
@@ -8,11 +8,7 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-interface Props {
-  style?: CSSProperties;
-}
-
-export default function FeedbackSetupPanel({style}: Props) {
+export default function FeedbackSetupPanel() {
   const docsButton = (
     <LinkButton
       external
@@ -24,7 +20,7 @@ export default function FeedbackSetupPanel({style}: Props) {
   );
 
   return (
-    <Panel style={style}>
+    <Panel>
       <Container>
         <IlloBox>
           <img src={newFeatureImg} />

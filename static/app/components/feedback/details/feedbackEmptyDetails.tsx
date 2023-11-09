@@ -7,7 +7,10 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 const FeedbackEmptyDetails = styled(props => (
   <FluidHeight {...props}>
-    <StyledEmptyMessage icon={<IconMail />} description={t('No feedback selected')} />
+    <StyledEmptyMessage
+      icon={<IconMail size="xl" />}
+      description={t('No feedback selected')}
+    />
   </FluidHeight>
 ))`
   display: grid;

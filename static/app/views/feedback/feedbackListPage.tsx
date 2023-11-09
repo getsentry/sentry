@@ -46,8 +46,7 @@ export default function FeedbackListPage({}: Props) {
                       <FeedbackItemLoader />
                     </Container>
                   </Fragment>
-                ) : null}
-                {!hasSetupOneFeedback && (
+                ) : (
                   <SetupContainer>
                     <FeedbackSetupPanel />
                   </SetupContainer>
