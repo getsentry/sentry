@@ -100,7 +100,7 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
 
 def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None:
     """
-    Notifies to the rule creator that samples have been gathered.
+    Notifies the rule creator that samples have been gathered.
     """
     subject_template = "We've collected ${num_samples} samples for the query: {query} you made"
 
