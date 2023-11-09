@@ -17,7 +17,6 @@ QUERY_TO_SNUBA_FIELD_MAPPING = {
     "username": "user_name",
     "email": "user_email",
     "ip": ["ip_address_v4", "ip_address_v6"],
-    "date_created": "timestamp",
 }
 
 REFERRER = "sentry.api.endpoints.project_users"
@@ -138,7 +137,6 @@ def convert_to_event_user(snuba_results):
                 username=result["user_name"],
                 name=name,
                 ip_address=ip_address,
-                date_created=result["timestamp"],
                 id=int(result["user_id"]),
             ).serialize()
         )
