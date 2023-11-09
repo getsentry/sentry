@@ -52,13 +52,6 @@ class ProjectSerializerTest(TestCase):
         assert result["name"] == self.project.name
         assert result["id"] == str(self.project.id)
 
-    @with_feature("organizations:notification-settings-v2")
-    def test_simple_settings_v2(self):
-        result = serialize(self.project, self.user)
-        assert result["slug"] == self.project.slug
-        assert result["name"] == self.project.name
-        assert result["id"] == str(self.project.id)
-
     def test_member(self):
         self.create_member(user=self.user, organization=self.organization)
 

@@ -32,7 +32,6 @@ from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -1156,31 +1155,6 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
 
     def test_snapshot_and_create_new_with_same_name(self):
-        with self.tasks():
-            self.create_member(
-                user=self.user, organization=self.organization, role="owner", teams=[self.team]
-            )
-            self.login_as(self.user)
-
-            # We attach the rule to an incident so the rule is snapshotted instead of deleted.
-            incident = self.create_incident(alert_rule=self.alert_rule)
-
-            with self.feature("organizations:incidents"):
-                self.get_success_response(
-                    self.organization.slug, self.alert_rule.id, status_code=204
-                )
-
-            alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
-
-            assert not AlertRule.objects.filter(id=alert_rule.id).exists()
-            assert AlertRule.objects_with_snapshots.filter(id=alert_rule.id).exists()
-            assert alert_rule.status == AlertRuleStatus.SNAPSHOT.value
-
-            # We also confirm that the incident is automatically resolved.
-            assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
-
-    @with_feature("organizations:notification-settings-v2")
-    def test_snapshot_and_create_new_with_same_name_v2(self):
         with self.tasks():
             self.create_member(
                 user=self.user, organization=self.organization, role="owner", teams=[self.team]
