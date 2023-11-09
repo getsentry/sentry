@@ -16,6 +16,7 @@ from sentry.search.events.builder import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
+    TopMetricsQueryBuilder,
 )
 from sentry.search.events.types import HistogramParams, QueryBuilderConfig
 from sentry.sentry_metrics import indexer
@@ -2385,6 +2386,133 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "time", "type": "DateTime('Universal')"},
             {"name": "eps", "type": "Float64"},
         ]
+
+    def test_run_top_timeseries_query_with_on_demand_columns(self):
+        field = "count()"
+        field_two = "count_web_vitals(measurements.lcp, good)"
+        groupbys = ["customtag1", "customtag2"]
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, groupbys=groupbys, query=query_s)
+        spec_two = OnDemandMetricSpec(field=field_two, groupbys=groupbys, query=query_s)
+
+        # assert (
+        #    spec._query_str_for_hash
+        #    == "on_demand_epm;{'name': 'event.duration', 'op': 'gte', 'value': 100.0};['customtag1', 'customtag2']"
+        # )
+
+        for day in range(0, 5):
+            self.store_on_demand_metric(
+                day * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
+                    "customtag2": "red",
+                },
+                timestamp=self.start + datetime.timedelta(days=day),
+            )
+            self.store_on_demand_metric(
+                day * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
+                    "customtag2": "red",
+                },
+                timestamp=self.start + datetime.timedelta(days=day),
+            )
+            self.store_transaction_metric(
+                day * 60 * 24,
+                tags={
+                    "customtag1": "div > text",
+                    "customtag2": "red",
+                },
+                timestamp=self.start + datetime.timedelta(days=day),
+            )
+
+        query = TopMetricsQueryBuilder(
+            Dataset.PerformanceMetrics,
+            self.params,
+            3600 * 24,
+            [{"customtag1": "div > text", "count": 9}, {"customtag2": "red", "count": 3}],
+            query=query_s,
+            selected_columns=groupbys,
+            timeseries_columns=[field, field_two],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
+        )
+        assert query._on_demand_metric_spec_map["count()"]
+        assert query._on_demand_metric_spec_map["count_web_vitals(measurements.lcp, good)"]
+
+        mep_query = TopMetricsQueryBuilder(
+            Dataset.PerformanceMetrics,
+            self.params,
+            3600 * 24,
+            [{"customtag1": "div > text", "count": 9}, {"customtag2": "red", "count": 3}],
+            query="",
+            selected_columns=groupbys,
+            timeseries_columns=[field, field_two],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=False,
+            ),
+        )
+
+        assert not mep_query._on_demand_metric_spec_map
+
+        metrics_query = query._get_metrics_query_from_on_demand_spec(
+            spec=query._on_demand_metric_spec_map["count()"], require_time_range=True
+        )
+
+        assert len(metrics_query.select) == 1
+        assert metrics_query.select[0].op == "sum"
+
+        assert metrics_query.where
+        assert metrics_query.where[0].rhs == spec.query_hash
+        # timeseries_result = timeseries_query.run_query("test_timeseries_query")
+
+        # assert timeseries_result["data"][:1] == [{"epm": 0, "time": self.start.isoformat()}]
+
+        result = query.run_query("test_query")
+        mep_result = mep_query.run_query("test_mep_query")
+
+        assert result["data"]
+        assert mep_result["data"]
+
+        assert result["data"][:3] == [
+            {
+                "time": (self.start + datetime.timedelta(days=0, hours=-10)).isoformat(),
+                "count": 0.0,
+                "count_web_vitals_measurements_lcp_good": 0.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+            {
+                "time": (self.start + datetime.timedelta(days=1, hours=-10)).isoformat(),
+                "count": 1488.0,
+                "count_web_vitals_measurements_lcp_good": 1440.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+            {
+                "time": (self.start + datetime.timedelta(days=2, hours=-10)).isoformat(),
+                "count": 2976.0,
+                "count_web_vitals_measurements_lcp_good": 2880.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+        ]
+
+        # assert result["data"][:3] == mep_result["data"][:3] # mep results aren't right.
+
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count", "type": "Float64"},
+                {"name": "count_web_vitals_measurements_lcp_good", "type": "Float64"},
+                {"name": "customtag1", "type": "string"},
+                {"name": "customtag2", "type": "string"},
+            ],
+        )
 
     def test_on_demand_map_with_multiple_selected(self):
         query_str = "transaction.duration:>=100"

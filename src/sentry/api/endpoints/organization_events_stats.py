@@ -224,6 +224,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
+                    on_demand_metrics_enabled=use_on_demand_metrics,
                     include_other=include_other,
                 )
             return dataset.timeseries_query(
