@@ -4,7 +4,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 from time import time
-from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -99,7 +99,7 @@ def _should_send_error_created_hooks(project):
     return result
 
 
-def should_write_event_stats(event: GroupEvent):
+def should_write_event_stats(event: Union[Event, GroupEvent]):
     # For now, we only want to write these stats for error events. If we start writing them for
     # other event types we'll throw off existing stats and potentially cause various alerts to fire.
     # We might decide to write these stats for other event types later, either under different keys
@@ -111,32 +111,26 @@ def should_write_event_stats(event: GroupEvent):
     )
 
 
-def format_event_platform(event: GroupEvent):
-    group = event.group
-    platform = group.platform
-    if not platform:
+def format_event_platform(event: Union[Event, GroupEvent]):
+    if not event.group:
         logger.error(
-            "Platform not found on group during formatting",
-            extra={"event_id": event.event_id, "group_id": group.id},
+            "Group not found on event during formatting", extra={"event_id": event.event_id}
         )
         return
+    if not event.group.platform:
+        logger.error(
+            "Platform not found on group during formatting",
+            extra={"event_id": event.event_id, "group_id": event.group.id},
+        )
+        return
+    platform = event.group.platform
     return platform.split("-", 1)[0].split("_", 1)[0]
 
 
 def _capture_event_stats(event: Event) -> None:
-    from sentry.eventstore.models import GroupEvent
-
-    if not event.group:
-        logger.error(
-            "Group not found on event while capturing event stats",
-            extra={"event_id": event.event_id},
-        )
+    if not should_write_event_stats(event):
         return
-    group_event = GroupEvent.from_event(event, event.group)
-    if not should_write_event_stats(group_event):
-        return
-
-    platform = format_event_platform(group_event)
+    platform = format_event_platform(event)
     tags = {"platform": platform}
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
     metrics.incr(f"events.processed.{platform}", skip_internal=False)
@@ -159,20 +153,15 @@ def _update_escalating_metrics(event: Event) -> None:
 
 
 def _capture_group_stats(job: PostProcessJob) -> None:
-    from sentry.eventstore.models import Event, GroupEvent
-
     event = job["event"]
+    if not job["group_state"]["is_new"] or not should_write_event_stats(event):
+        return
     if not event.group:
         logger.error(
             "Group not found on event while capturing group stats",
             extra={"event_id": event.event_id},
         )
         return
-    if isinstance(event, Event):
-        event = GroupEvent.from_event(event, event.group)
-    if not job["group_state"]["is_new"] or not should_write_event_stats(event):
-        return
-
     with metrics.timer("post_process._capture_group_stats.duration"):
         platform = format_event_platform(event)
         tags = {"platform": platform}
@@ -361,7 +350,7 @@ def handle_group_owners(
         with metrics.timer("post_process.handle_group_owners"), sentry_sdk.start_span(
             op="post_process.handle_group_owners"
         ), lock.acquire():
-            current_group_owners: List[GroupOwner] = GroupOwner.objects.filter(
+            current_group_owners = GroupOwner.objects.filter(
                 group=group,
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
             )
@@ -406,7 +395,6 @@ def handle_group_owners(
 
             for key in new_owners.keys():
                 if key not in keeping_owners:
-                    owner_id: int
                     owner_type, owner_id, owner_source = key
                     rules = new_owners[key]
                     group_owner_type = (
@@ -1009,7 +997,10 @@ def process_rules(job: PostProcessJob) -> None:
         if group_event.group:
             group_event = GroupEvent.from_event(group_event, group_event.group)
         else:
-            logger.error("Group not found on event while processing rules")
+            logger.error(
+                "Group not found on event while processing rules",
+                extra={"event_id": group_event.event_id},
+            )
             return
     is_new = job["group_state"]["is_new"]
     is_regression = job["group_state"]["is_regression"]
