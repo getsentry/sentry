@@ -1726,9 +1726,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
                         data.update(group_data)
 
-                        for key, value_list in (
-                            group.get("series", {}).items()
-                        ):
+                        for key, value_list in group.get("series", {}).items():
                             data[key] = value_list[index]
                         metric_layer_result["data"].append(data)
 
