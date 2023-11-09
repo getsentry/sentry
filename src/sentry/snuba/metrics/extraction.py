@@ -64,6 +64,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "transaction": "transaction",
     "platform": "platform",
     "platform.name": "platform",
+    "level": "level",
+    "logger": "logger",
     # Top-level structures ("interfaces")
     "user.email": "user.email",
     "user.id": "user.id",
@@ -112,6 +114,28 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "release.build": "release.build",
     "release.package": "release.package",
     "release.version": "release.version.short",
+    # Known tags that have to be mapped to fields that Relay can extract
+    "tags[level]": "level",
+    "tags[logger]": "logger",
+    "tags[environment]": "environment",
+    "tags[transaction]": "transaction",
+    "tags[release]": "release",
+    "tags[dist]": "dist",
+    # These match the mapping in sentry/interfaces/contexts.py
+    "tags[app.device]": "device_app_hash",
+    "tags[device]": "device.model",
+    "tags[device.family]": "device.family",
+    "tags[runtime]": "runtime",
+    "tags[runtime.name]": "runtime.name",
+    "tags[browser]": "browser",
+    "tags[browser.name]": "browser.name",
+    "tags[os]": "os",
+    "tags[os.name]": "os.name",
+    "tags[os.rooted]": "os.rooted",
+    "tags[gpu.vendor]": "gpu.vendor_name",
+    "tags[gpu.name]": "gpu.name",
+    "tags[monitor.id]": "monitor.id",
+    "tags[monitor.slug]": "monitor.slug",
     # Tags, measurements, and breakdowns are mapped by the converter
 }
 
