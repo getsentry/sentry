@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Mapping
 
+from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import options
@@ -119,6 +120,8 @@ class DiscordRequest:
         timestamp: str | None = self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP")
         body: str = self.request.body.decode("utf-8")
         logger.info("discord.authorize.auth", extra={"timestamp": timestamp, "body": body})
+        if not signature or not timestamp:
+            raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
         verify_signature(public_key, signature, timestamp, body)
 
     def _validate_identity(self) -> None:
