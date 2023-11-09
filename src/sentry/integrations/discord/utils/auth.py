@@ -6,7 +6,7 @@ from rest_framework import status
 
 
 def verify_signature(
-    public_key_string: str, signature: Optional[str], timestamp: Optional[str] | None, body: str
+    public_key_string: str, signature: Optional[str], timestamp: Optional[str], body: str
 ) -> None:
     try:
         public_key = Ed25519PublicKey.from_public_bytes(bytes.fromhex(public_key_string))
