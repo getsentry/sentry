@@ -41,7 +41,7 @@ function DatabaseLandingPage() {
       ...location,
       query: {
         ...location.query,
-        'span.description': newQuery === '' ? undefined : `${newQuery}`,
+        'span.description': newQuery === '' ? undefined : newQuery,
         cursor: undefined,
       },
     });
