@@ -75,6 +75,12 @@ function ResourceSummaryTable() {
       return <FileSize bytes={row[key]} />;
     }
     if (key === 'transaction') {
+      const blockingStatus = row['resource.render_blocking_status'];
+      let query = `!has:${RESOURCE_RENDER_BLOCKING_STATUS}`;
+      if (blockingStatus) {
+        query = `${RESOURCE_RENDER_BLOCKING_STATUS}:${blockingStatus}`;
+      }
+
       return (
         <Link
           to={{
@@ -82,6 +88,7 @@ function ResourceSummaryTable() {
             query: {
               ...location.query,
               transaction: row[key],
+              query: [query],
             },
           }}
         >
