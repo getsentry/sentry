@@ -42,7 +42,7 @@ export default function PageloadModule() {
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </Container>
-                <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} />
+                <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
               </PageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
