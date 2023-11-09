@@ -413,7 +413,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
 /src/sentry/models/release_threshold                                    @getsentry/enterprise
 /src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
-/src/sentry/web/frontend/auth_login.py                                 @getsentry/enterprise
+/src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
 ## End of Enterprise
 
 
