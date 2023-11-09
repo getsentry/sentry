@@ -179,6 +179,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 "An on demand metrics query requires at least one selected column"
             )
 
+        max_limit = None
         if isinstance(self, TopMetricsQueryBuilder):
             limit = self.limit or Limit(1)
             # Top N events passes a limit of 10000 by default. That's also the upper bound for metrics layer, so
@@ -191,6 +192,7 @@ class MetricsQueryBuilder(QueryBuilder):
             )
             if intervals_len > 0:
                 limit = Limit(int(limit.limit / intervals_len))
+            max_limit = 10_000
             alias = get_function_alias(spec.field) or "count"
             include_series = True
             interval = self.interval
@@ -239,6 +241,7 @@ class MetricsQueryBuilder(QueryBuilder):
             select=[MetricField(spec.op, spec.mri, alias=alias)],
             where=where,
             limit=limit,
+            max_limit=max_limit,
             offset=self.offset,
             granularity=self.granularity,
             interval=interval,
