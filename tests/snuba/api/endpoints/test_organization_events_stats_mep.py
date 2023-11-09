@@ -914,7 +914,12 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 "orderby": ["-count()"],
                 "query": query,
                 "yAxis": yAxis,
-                "field": ["count()", "count_web_vitals(measurements.lcp, good)", "customtag1", "customtag2"],
+                "field": [
+                    "count()",
+                    "count_web_vitals(measurements.lcp, good)",
+                    "customtag1",
+                    "customtag2",
+                ],
                 "topEvents": 5,
                 "dataset": "metrics",
                 "useOnDemandMetrics": "true",
@@ -927,8 +932,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
         groups = [
             ("foo,red", "count()", 0.0, 1488.0),
             ("foo,red", "count_web_vitals(measurements.lcp, good)", 0.0, 0.0),
-            ("bar,blue","count()",0.0,0.0),
-            ("bar,blue","count_web_vitals(measurements.lcp, good)",0.0,1440.0),
+            ("bar,blue", "count()", 0.0, 0.0),
+            ("bar,blue", "count_web_vitals(measurements.lcp, good)", 0.0, 1440.0),
         ]
         assert len(response.data.keys()) == 2
         for group_count in groups:

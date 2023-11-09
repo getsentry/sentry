@@ -867,7 +867,7 @@ class MetricsQueryBuilder(QueryBuilder):
         for item in metric_layer_result["data"]:
             for total_key in seen_total_keys:
                 if total_key not in item:
-                    item[total_key] = 0.0 # TODO: Check if these are all Float64
+                    item[total_key] = 0.0  # TODO: Check if these are all Float64
 
         return metric_layer_result
 
@@ -1715,7 +1715,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
                 for group in metrics_data["groups"]:
                     group_data = group["by"]
-                    group_key = ','.join(str(group_data[x]) for x in sorted(group_data))
+                    group_key = ",".join(str(group_data[x]) for x in sorted(group_data))
                     group_data.update(group["totals"])
 
                     for index, interval in enumerate(metrics_data["intervals"]):
