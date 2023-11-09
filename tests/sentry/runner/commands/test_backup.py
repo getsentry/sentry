@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from random import choice
+from string import ascii_letters
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -15,7 +17,7 @@ from sentry.backup.helpers import (
     unwrap_encrypted_export_tarball,
 )
 from sentry.backup.imports import ImportingError
-from sentry.runner.commands.backup import compare, export, import_
+from sentry.runner.commands.backup import backup, export, import_
 from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -61,11 +63,11 @@ def create_encryption_test_files(tmp_dir: str) -> tuple[Path, Path, Path]:
 
 class GoodCompareCommandTests(TestCase):
     """
-    Test success cases of the `sentry compare` CLI command.
+    Test success cases of the `sentry backup compare` CLI command.
     """
 
     def test_compare_equal(self):
-        rv = CliRunner().invoke(compare, [GOOD_FILE_PATH, GOOD_FILE_PATH])
+        rv = CliRunner().invoke(backup, ["compare", GOOD_FILE_PATH, GOOD_FILE_PATH])
         assert rv.exit_code == 0, rv.output
         assert "found 0" in rv.output
 
@@ -73,7 +75,8 @@ class GoodCompareCommandTests(TestCase):
         with TemporaryDirectory() as tmp_dir:
             tmp_findings = Path(tmp_dir).joinpath(f"{self._testMethodName}.findings.json")
             rv = CliRunner().invoke(
-                compare, [GOOD_FILE_PATH, GOOD_FILE_PATH, "--findings-file", str(tmp_findings)]
+                backup,
+                ["compare", GOOD_FILE_PATH, GOOD_FILE_PATH, "--findings-file", str(tmp_findings)],
             )
             assert rv.exit_code == 0, rv.output
 
@@ -82,7 +85,7 @@ class GoodCompareCommandTests(TestCase):
                 assert len(findings) == 0
 
     def test_compare_unequal(self):
-        rv = CliRunner().invoke(compare, [MAX_USER_PATH, MIN_USER_PATH])
+        rv = CliRunner().invoke(backup, ["compare", MAX_USER_PATH, MIN_USER_PATH])
         assert rv.exit_code == 0, rv.output
         assert "found 0" not in rv.output
 
@@ -90,7 +93,8 @@ class GoodCompareCommandTests(TestCase):
         with TemporaryDirectory() as tmp_dir:
             tmp_findings = Path(tmp_dir).joinpath(f"{self._testMethodName}.findings.json")
             rv = CliRunner().invoke(
-                compare, [MAX_USER_PATH, MIN_USER_PATH, "--findings-file", str(tmp_findings)]
+                backup,
+                ["compare", MAX_USER_PATH, MIN_USER_PATH, "--findings-file", str(tmp_findings)],
             )
             assert rv.exit_code == 0, rv.output
 
@@ -144,6 +148,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
             cases = [
                 # Only left-side encrypted.
                 [
+                    "compare",
                     str(tmp_encrypted_path),
                     GOOD_FILE_PATH,
                     "--findings-file",
@@ -153,6 +158,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
                 ],
                 # Only right-side encrypted.
                 [
+                    "compare",
                     GOOD_FILE_PATH,
                     str(tmp_encrypted_path),
                     "--findings-file",
@@ -162,6 +168,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
                 ],
                 # Both sides encrypted.
                 [
+                    "compare",
                     str(tmp_encrypted_path),
                     str(tmp_encrypted_path),
                     "--findings-file",
@@ -174,7 +181,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
             ]
 
             for args in cases:
-                rv = CliRunner().invoke(compare, args)
+                rv = CliRunner().invoke(backup, args)
                 assert rv.exit_code == 0, rv.output
 
                 with open(tmp_findings) as findings_file:
@@ -196,6 +203,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
             cases = [
                 # Only left-side encrypted.
                 [
+                    "compare",
                     str(tmp_encrypted_path),
                     GOOD_FILE_PATH,
                     "--findings-file",
@@ -205,6 +213,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
                 ],
                 # Only right-side encrypted.
                 [
+                    "compare",
                     GOOD_FILE_PATH,
                     str(tmp_encrypted_path),
                     "--findings-file",
@@ -214,6 +223,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
                 ],
                 # Both sides encrypted.
                 [
+                    "compare",
                     str(tmp_encrypted_path),
                     str(tmp_encrypted_path),
                     "--findings-file",
@@ -227,7 +237,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
 
             for args in cases:
                 fake_kms_client.asymmetric_decrypt.call_count = 0
-                rv = CliRunner().invoke(compare, args)
+                rv = CliRunner().invoke(backup, args)
                 assert rv.exit_code == 0, rv.output
 
                 with open(tmp_findings) as findings_file:
@@ -241,17 +251,56 @@ class GoodCompareCommandEncryptionTests(TestCase):
 def cli_import_then_export(
     scope: str, *, import_args: list[str] | None = None, export_args: list[str] | None = None
 ):
-    rv = CliRunner().invoke(
-        import_, [scope, GOOD_FILE_PATH] + ([] if import_args is None else import_args)
-    )
-    assert rv.exit_code == 0, rv.output
-
     with TemporaryDirectory() as tmp_dir:
-        tmp_path = Path(tmp_dir).joinpath("good.json")
+        tmp_in_findings = Path(tmp_dir).joinpath(
+            f"{''.join(choice(ascii_letters)for _ in range(6))}.json"
+        )
         rv = CliRunner().invoke(
-            export, [scope, str(tmp_path)] + ([] if export_args is None else export_args)
+            import_,
+            [scope, GOOD_FILE_PATH, "--findings-file", str(tmp_in_findings)]
+            + ([] if import_args is None else import_args),
         )
         assert rv.exit_code == 0, rv.output
+        with open(tmp_in_findings) as f:
+            findings = json.load(f)
+            assert len(findings) == 0
+
+        tmp_out_findings = Path(tmp_dir).joinpath(
+            f"{''.join(choice(ascii_letters)for _ in range(6))}.json"
+        )
+        tmp_out_path = Path(tmp_dir).joinpath("good.json")
+        rv = CliRunner().invoke(
+            export,
+            [scope, str(tmp_out_path), "--findings-file", str(tmp_out_findings)]
+            + ([] if export_args is None else export_args),
+        )
+        assert rv.exit_code == 0, rv.output
+        with open(tmp_out_findings) as f:
+            findings = json.load(f)
+            assert len(findings) == 0
+
+
+class GoodEncryptCommandTests(TransactionTestCase):
+    """
+    Test the `sentry backup encrypt ...` command
+    """
+
+    def test_encrypt_use_local(self):
+        with TemporaryDirectory() as tmp_dir:
+            tmp_output_path = Path(tmp_dir).joinpath("output.tar")
+            (_, tmp_pub_key_path, tmp_tar_path) = create_encryption_test_files(tmp_dir)
+            rv = CliRunner().invoke(
+                backup,
+                [
+                    "encrypt",
+                    str(tmp_output_path),
+                    "--src",
+                    GOOD_FILE_PATH,
+                    "--encrypt-with",
+                    str(tmp_pub_key_path),
+                ],
+            )
+            assert rv.exit_code == 0, rv.output
 
 
 @region_silo_test(stable=True)
@@ -259,7 +308,8 @@ class GoodImportExportCommandTests(TransactionTestCase):
     """
     Test success cases of the `sentry import` and `sentry export` CLI command. We're not asserting
     against the content of any of the imports/exports (we have other tests for that in
-    `tests/sentry/backup`), we just want to make sure invoking all reasonable variants of the commands occurs without error.
+    `tests/sentry/backup`), we just want to make sure invoking all reasonable variants of the
+    commands occurs without error.
     """
 
     def test_global_scope(self):

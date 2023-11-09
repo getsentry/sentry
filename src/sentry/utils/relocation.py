@@ -235,6 +235,7 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
       - "-v"
       - "/workspace/findings:/findings"
       - "web"
+      - "backup"
       - "compare"
       - "/in/$tarfile"
       - "/out/$jsonfile"
