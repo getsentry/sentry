@@ -71,6 +71,7 @@ export const ReleasesConfig: DatasetConfig<
   disableSortOptions,
   getTableRequest: (
     api: Client,
+    _: Widget,
     query: WidgetQuery,
     organization: Organization,
     pageFilters: PageFilters,

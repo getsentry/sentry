@@ -762,6 +762,7 @@ CELERY_IMPORTS = (
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
     "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.dynamic_sampling.tasks.utils",
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
@@ -1121,6 +1122,11 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "dynamic-sampling-sliding-window-org": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
+    },
+    "custom_rule_notifications": {
+        "task": "sentry.dynamic_sampling.tasks.custom_rule_notifications",
         # Run every 10 minutes
         "schedule": crontab(minute="*/10"),
     },
@@ -1563,8 +1569,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-deployment": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
     "organizations:integrations-ticket-rules": True,
-    # Allow orgs to use the stacktrace linking feature
-    "organizations:integrations-stacktrace-link": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin

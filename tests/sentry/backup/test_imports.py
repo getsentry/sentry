@@ -18,7 +18,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from django.utils import timezone
 
 from sentry.backup.dependencies import NormalizedModelName
-from sentry.backup.helpers import ImportFlags
+from sentry.backup.helpers import ImportFlags, LocalFileDecryptor
 from sentry.backup.imports import (
     ImportingError,
     import_in_config_scope,
@@ -84,7 +84,7 @@ class SanitizationTests(ImportTestCase):
     Ensure that potentially damaging data is properly scrubbed at import time.
     """
 
-    def test_user_sanitized_in_user_scope(self):
+    def test_users_sanitized_in_user_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -123,7 +123,7 @@ class SanitizationTests(ImportTestCase):
             assert UserRole.objects.count() == 0
             assert UserRoleUser.objects.count() == 0
 
-    def test_user_sanitized_in_organization_scope(self):
+    def test_users_sanitized_in_organization_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -658,7 +658,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_user_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -673,7 +675,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_organization_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             assert Organization.objects.count() > 0
@@ -688,7 +692,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_config_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -707,7 +713,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_global_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             assert Organization.objects.count() > 0
