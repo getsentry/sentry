@@ -80,7 +80,7 @@ function DatabaseLandingPage() {
             </PageFilterBar>
           </PaddedContainer>
 
-          <SpanTimeCharts moduleName={moduleName} appliedFilters={moduleFilters} />
+          <SpanTimeCharts moduleName={moduleName} appliedFilters={{}} />
 
           <FilterOptionsContainer>
             <ActionSelector
