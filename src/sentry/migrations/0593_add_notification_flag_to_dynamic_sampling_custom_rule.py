@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0593_eventattachment_metadata"),
+        ("sentry", "0592_delete_relocation_hybrid_cloud_foreign_keys"),
     ]
 
     operations = [
