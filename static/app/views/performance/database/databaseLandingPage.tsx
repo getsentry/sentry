@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -16,8 +17,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
+import Onboarding from 'sentry/views/performance/onboarding';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
@@ -31,6 +34,7 @@ function DatabaseLandingPage() {
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
   const location = useLocation();
+  const onboardingProject = useOnboardingProject();
 
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
   const moduleFilters = useModuleFilters();
@@ -70,7 +74,7 @@ function DatabaseLandingPage() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <NoDataMessage Wrapper={AlertBanner} />
+          {!onboardingProject && <NoDataMessage Wrapper={AlertBanner} />}
           <FeedbackWidget />
           <PaddedContainer>
             <PageFilterBar condensed>
@@ -80,29 +84,36 @@ function DatabaseLandingPage() {
             </PageFilterBar>
           </PaddedContainer>
 
-          <SpanTimeCharts moduleName={moduleName} appliedFilters={moduleFilters} />
+          {onboardingProject && (
+            <Onboarding organization={organization} project={onboardingProject} />
+          )}
+          {!onboardingProject && (
+            <Fragment>
+              <SpanTimeCharts moduleName={moduleName} appliedFilters={moduleFilters} />
 
-          <FilterOptionsContainer>
-            <ActionSelector
-              moduleName={moduleName}
-              value={moduleFilters[SpanMetricsField.SPAN_ACTION] || ''}
-            />
+              <FilterOptionsContainer>
+                <ActionSelector
+                  moduleName={moduleName}
+                  value={moduleFilters[SpanMetricsField.SPAN_ACTION] || ''}
+                />
 
-            <DomainSelector
-              moduleName={moduleName}
-              value={moduleFilters[SpanMetricsField.SPAN_DOMAIN] || ''}
-            />
-          </FilterOptionsContainer>
+                <DomainSelector
+                  moduleName={moduleName}
+                  value={moduleFilters[SpanMetricsField.SPAN_DOMAIN] || ''}
+                />
+              </FilterOptionsContainer>
 
-          <SearchBarContainer>
-            <SearchBar
-              query={spanDescription}
-              placeholder={t('Search for more Queries')}
-              onSearch={handleSearch}
-            />
-          </SearchBarContainer>
+              <SearchBarContainer>
+                <SearchBar
+                  query={spanDescription}
+                  placeholder={t('Search for more Queries')}
+                  onSearch={handleSearch}
+                />
+              </SearchBarContainer>
 
-          <SpansTable moduleName={moduleName} sort={sort} limit={LIMIT} />
+              <SpansTable moduleName={moduleName} sort={sort} limit={LIMIT} />
+            </Fragment>
+          )}
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>
