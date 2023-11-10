@@ -14,7 +14,10 @@ interface EventRegressionSummaryProps {
 }
 
 export function EventRegressionSummary({event, group}: EventRegressionSummaryProps) {
-  const data = useMemo(() => getKeyValueListData(group, event), [event, group]);
+  const data = useMemo(
+    () => getKeyValueListData(group.issueType, event),
+    [event, group.issueType]
+  );
 
   if (!defined(data)) {
     return null;
@@ -27,13 +30,16 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
   );
 }
 
-function getKeyValueListData(group: Group, event: Event): KeyValueListData | null {
+export function getKeyValueListData(
+  issueType: IssueType,
+  event: Event
+): KeyValueListData | null {
   const evidenceData = event.occurrence?.evidenceData;
   if (!defined(evidenceData)) {
     return null;
   }
 
-  switch (group.issueType) {
+  switch (issueType) {
     case IssueType.PERFORMANCE_DURATION_REGRESSION:
     case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
       return [

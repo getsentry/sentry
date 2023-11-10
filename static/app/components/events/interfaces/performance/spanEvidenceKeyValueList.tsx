@@ -1,4 +1,4 @@
-import {Fragment, ReactNode} from 'react';
+import {Fragment, ReactNode, useMemo} from 'react';
 import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
@@ -6,6 +6,7 @@ import mapValues from 'lodash/mapValues';
 import {Button} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
@@ -17,7 +18,9 @@ import {
   Event,
   EventTransaction,
   getIssueTypeFromOccurrenceType,
+  isOccurrenceBased,
   IssueType,
+  isTransactionBased,
   KeyValueListData,
   KeyValueListDataItem,
 } from 'sentry/types';
@@ -50,62 +53,11 @@ type SpanEvidenceKeyValueListProps = {
   offendingSpans: Span[];
   orgSlug: string;
   parentSpan: Span | null;
+  issueType?: IssueType;
   projectSlug?: string;
 };
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
-
-export function SpanEvidenceKeyValueList({
-  event,
-  projectSlug,
-}: {
-  event: EventTransaction;
-  projectSlug?: string;
-}) {
-  const {slug: orgSlug} = useOrganization();
-  const spanInfo = getSpanInfoFromTransactionEvent(event);
-
-  const issueType =
-    event.perfProblem?.issueType ??
-    getIssueTypeFromOccurrenceType(event.occurrence?.type);
-
-  if (!issueType || !spanInfo) {
-    return (
-      <DefaultSpanEvidence
-        event={event}
-        offendingSpans={[]}
-        causeSpans={[]}
-        parentSpan={null}
-        orgSlug={orgSlug}
-        projectSlug={projectSlug}
-      />
-    );
-  }
-
-  const Component =
-    {
-      [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
-      [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
-      [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
-      [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
-      [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
-      [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
-      [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
-      [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
-      [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
-    }[issueType] ?? DefaultSpanEvidence;
-
-  return (
-    <ClippedBox clipHeight={300}>
-      <Component
-        event={event}
-        orgSlug={orgSlug}
-        projectSlug={projectSlug}
-        {...spanInfo}
-      />
-    </ClippedBox>
-  );
-}
 
 function ConsecutiveDBQueriesSpanEvidence({
   event,
@@ -271,6 +223,117 @@ function NPlusOneAPICallsSpanEvidence({
         ].filter(Boolean) as KeyValueListData
       }
     />
+  );
+}
+
+function MainThreadFunctionEvidence({event, orgSlug}: SpanEvidenceKeyValueListProps) {
+  const data = useMemo(() => {
+    const dataRows: KeyValueListDataItem[] = [];
+
+    const evidenceData = event.occurrence?.evidenceData ?? {};
+    const evidenceDisplay = event.occurrence?.evidenceDisplay ?? [];
+
+    if (evidenceData.transactionName) {
+      const transactionSummaryLocation = transactionSummaryRouteWithQuery({
+        orgSlug,
+        projectID: event.projectID,
+        transaction: evidenceData.transactionName,
+        query: {},
+      });
+      dataRows.push(
+        makeRow(
+          t('Transaction'),
+          <pre>
+            <Link to={transactionSummaryLocation}>{evidenceData.transactionName}</Link>
+          </pre>
+        )
+      );
+    }
+
+    dataRows.push(
+      ...evidenceDisplay.map(item => ({
+        subject: item.name,
+        key: item.name,
+        value: item.value,
+      }))
+    );
+
+    return dataRows;
+  }, [event, orgSlug]);
+
+  return <PresortedKeyValueList data={data} />;
+}
+
+function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
+  const data = useMemo(
+    () => (issueType ? getRegressionIssueKeyValueList(issueType, event) : null),
+    [event, issueType]
+  );
+  return data ? <PresortedKeyValueList data={data} /> : null;
+}
+
+const PREVIEW_COMPONENTS = {
+  [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
+  [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
+  [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
+  [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
+  [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
+  [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
+  [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
+  [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
+  [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
+  [IssueType.PERFORMANCE_DURATION_REGRESSION]: RegressionEvidence,
+  [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: RegressionEvidence,
+  [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
+  [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: RegressionEvidence,
+};
+
+export function SpanEvidenceKeyValueList({
+  event,
+  projectSlug,
+}: {
+  event: EventTransaction;
+  projectSlug?: string;
+}) {
+  const {slug: orgSlug} = useOrganization();
+  const spanInfo = getSpanInfoFromTransactionEvent(event);
+
+  const typeId = event.occurrence?.type;
+  const issueType =
+    event.perfProblem?.issueType ?? getIssueTypeFromOccurrenceType(typeId);
+  const requiresSpanInfo = isTransactionBased(typeId) && isOccurrenceBased(typeId);
+
+  if (!issueType || (requiresSpanInfo && !spanInfo)) {
+    return (
+      <DefaultSpanEvidence
+        event={event}
+        offendingSpans={[]}
+        causeSpans={[]}
+        parentSpan={null}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+      />
+    );
+  }
+
+  const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
+
+  return (
+    <ClippedBox clipHeight={300}>
+      <Component
+        event={event}
+        issueType={issueType}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+        {...spanInfo}
+      />
+    </ClippedBox>
   );
 }
 
