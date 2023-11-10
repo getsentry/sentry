@@ -83,6 +83,7 @@ function ResourcesLandingPage() {
 }
 
 export const PaddedContainer = styled('div')`
+  display: grid;
   margin-bottom: ${space(2)};
 `;
 
