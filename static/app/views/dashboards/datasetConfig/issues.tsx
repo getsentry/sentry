@@ -6,6 +6,7 @@ import {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
@@ -162,6 +163,7 @@ function getTableRequest(
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,
+  __?: OnDemandControlContext,
   limit?: number,
   cursor?: string
 ) {
