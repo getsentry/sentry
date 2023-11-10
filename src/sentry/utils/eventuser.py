@@ -5,7 +5,20 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, List, Mapping, Optional, Tuple
 
-from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query, Request
+from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -23,7 +36,7 @@ SNUBA_KEYWORD_MAP = BidirectionalMapping(
         ("user_id"): "id",
         ("user_name"): "username",
         ("email"): "email",
-        ("ip_address_4", "ip_address_6"): "ip",
+        ("ip_address_v4", "ip_address_v6"): "ip",
     }
 )
 
@@ -38,6 +51,8 @@ KEYWORD_MAP = BidirectionalMapping(
         "ip_address": "ip",
     }
 )
+
+SNUBA_COLUMN_COALASCE = {"ip_address_v4": "IPv4StringToNum", "ip_address_v6": "IPv6StringToNum"}
 
 
 @dataclass
@@ -84,8 +99,24 @@ class EventUser:
         for keyword, value in keyword_filters.items():
             snuba_column = SNUBA_KEYWORD_MAP.get_key(keyword)
             if isinstance(snuba_column, tuple):
-                for column in snuba_column:
-                    where_conditions.append(Condition(Column(column), Op.EQ, value))
+                where_conditions.append(
+                    BooleanCondition(
+                        BooleanOp.OR,
+                        [
+                            Condition(
+                                Column(column),
+                                Op.EQ,
+                                value
+                                if SNUBA_COLUMN_COALASCE.get(column, None) is None
+                                else Function(
+                                    SNUBA_COLUMN_COALASCE.get(column), parameters=[value]
+                                ),
+                            )
+                            for column in snuba_column
+                        ],
+                    )
+                )
+
             else:
                 where_conditions.append(Condition(Column(snuba_column), Op.EQ, value))
 
@@ -129,7 +160,7 @@ class EventUser:
             email=result.get("user_email"),
             username=result.get("user_name"),
             name=result.get("user_name"),
-            ip_address=result.get("ip_address_4") or result.get("ip_address_6"),
+            ip_address=result.get("ip_address_v4") or result.get("ip_address_v6"),
             user_ident=result.get("user_id"),
         )
 
