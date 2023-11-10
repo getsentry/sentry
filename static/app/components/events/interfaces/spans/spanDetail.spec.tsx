@@ -96,7 +96,6 @@ describe('SpanDetail', function () {
             hash: 'a',
             description: 'SELECT * FROM users;',
             sentry_tags: {
-              module: 'db',
               group: 'a7ebd21614897',
             },
           }),
