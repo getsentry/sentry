@@ -656,6 +656,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         cb_conf["artifacts"]["objects"][
             "location"
         ] = "gs://<BUCKET>/relocations/runs/<UUID>/findings/"
+        cb_conf["steps"][12]["args"][3] = "gs://<BUCKET>/relocations/runs/<UUID>/out"
         self.insta_snapshot(cb_conf)
 
         (_, files) = self.storage.listdir(f"relocations/runs/{self.relocation.uuid}/in")
