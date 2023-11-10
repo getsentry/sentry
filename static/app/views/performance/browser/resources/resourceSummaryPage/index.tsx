@@ -11,10 +11,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {PaddedContainer} from 'sentry/views/performance/browser/resources';
+import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/jsCssView';
 import ResourceInfo from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceInfo';
 import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
+import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
+import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -26,11 +28,13 @@ const {
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH,
   HTTP_RESPONSE_CONTENT_LENGTH,
   HTTP_RESPONSE_TRANSFER_SIZE,
+  RESOURCE_RENDER_BLOCKING_STATUS,
 } = SpanMetricsField;
 
 function ResourceSummary() {
   const organization = useOrganization();
   const {groupId} = useParams();
+  const filters = useResourceModuleFilters();
   const {
     query: {transaction},
   } = useLocation();
@@ -79,12 +83,13 @@ function ResourceSummary() {
       <Layout.Body>
         <Layout.Main fullWidth>
           <HeaderContainer>
-            <PaddedContainer>
+            <FilterOptionsContainer>
               <PageFilterBar condensed>
                 <ProjectPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-            </PaddedContainer>
+              <RenderBlockingSelector value={filters[RESOURCE_RENDER_BLOCKING_STATUS]} />
+            </FilterOptionsContainer>
             <ResourceInfo
               avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
               avgDecodedContentLength={

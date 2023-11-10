@@ -6,10 +6,21 @@ const {HTTP_RESPONSE_CONTENT_LENGTH, RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetr
 
 export const useResourcePagesQuery = (
   groupId: string,
-  {sort, cursor}: {sort: Sort; cursor?: string}
+  {
+    sort,
+    cursor,
+    renderBlockingStatus,
+  }: {sort: Sort; cursor?: string; renderBlockingStatus?: string}
 ) => {
-  return useSpanTransactionMetrics({'span.group': groupId}, [sort], cursor, [
-    `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-    RESOURCE_RENDER_BLOCKING_STATUS,
-  ]);
+  return useSpanTransactionMetrics(
+    {
+      'span.group': groupId,
+      ...(renderBlockingStatus
+        ? {[RESOURCE_RENDER_BLOCKING_STATUS]: renderBlockingStatus}
+        : {}),
+    },
+    [sort],
+    cursor,
+    [`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`, RESOURCE_RENDER_BLOCKING_STATUS]
+  );
 };
