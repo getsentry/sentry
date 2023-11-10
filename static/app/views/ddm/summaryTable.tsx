@@ -36,7 +36,7 @@ export function SummaryTable({
   sort?: SortState;
 }) {
   const {selection} = usePageFilters();
-  const {slug} = useOrganization();
+  const organization = useOrganization();
 
   const hasActions = series.some(s => s.release || s.transaction);
 
@@ -48,7 +48,7 @@ export function SummaryTable({
   const changeSort = useCallback(
     (name: SortState['name']) => {
       trackAnalytics('ddm.widget.sort', {
-        organization: slug,
+        organization,
         by: name,
         order: sort.order,
       });
@@ -73,12 +73,14 @@ export function SummaryTable({
         });
       }
     },
-    [sort, onSortChange, slug]
+    [sort, onSortChange, organization]
   );
 
   const releaseTo = (release: string) => {
     return {
-      pathname: `/organizations/${slug}/releases/${encodeURIComponent(release)}/`,
+      pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+        release
+      )}/`,
       query: {
         pageStart: start,
         pageEnd: end,
@@ -91,7 +93,7 @@ export function SummaryTable({
 
   const transactionTo = (transaction: string) =>
     transactionSummaryRouteWithQuery({
-      orgSlug: slug,
+      orgSlug: organization.slug,
       transaction,
       projectID: selection.projects.map(p => String(p)),
       query: {

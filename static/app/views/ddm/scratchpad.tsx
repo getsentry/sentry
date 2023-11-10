@@ -41,7 +41,7 @@ export function MetricScratchpad() {
       <AddWidgetPanel
         onClick={() => {
           trackAnalytics('ddm.widget.add', {
-            organization: organization.slug,
+            organization,
           });
 
           addWidget();

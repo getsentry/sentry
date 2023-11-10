@@ -186,7 +186,7 @@ export function ScratchpadSelector() {
                 onPointerDown={e => e.stopPropagation()}
                 onClick={() => {
                   trackAnalytics('ddm.scratchpad.set-default', {
-                    organization: organization.slug,
+                    organization,
                   });
 
                   if (isDefault(s)) {
@@ -210,7 +210,7 @@ export function ScratchpadSelector() {
                   openConfirmModal({
                     onConfirm: () => {
                       trackAnalytics('ddm.scratchpad.remove', {
-                        organization: organization.slug,
+                        organization,
                       });
 
                       return scratchpads.remove(s.id);
@@ -228,7 +228,7 @@ export function ScratchpadSelector() {
           </Fragment>
         ),
       })),
-    [scratchpads, isDefault, organization.slug]
+    [scratchpads, isDefault, organization]
   );
 
   return (
@@ -276,7 +276,7 @@ function SaveAsDropdown({
 
   const save = useCallback(() => {
     trackAnalytics('ddm.scratchpad.save', {
-      organization: organization.slug,
+      organization,
     });
 
     onSave(name);
