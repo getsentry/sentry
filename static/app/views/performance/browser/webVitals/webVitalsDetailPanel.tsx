@@ -226,18 +226,21 @@ export function WebVitalsDetailPanel({
         <ChartContainer>
           {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
         </ChartContainer>
+
         {!transaction && (
-          <GridEditable
-            data={dataByOpportunity}
-            isLoading={isLoading}
-            columnOrder={columnOrder}
-            columnSortBy={[sort]}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-            }}
-            location={location}
-          />
+          <TableContainer>
+            <GridEditable
+              data={dataByOpportunity}
+              isLoading={isLoading}
+              columnOrder={columnOrder}
+              columnSortBy={[sort]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+              location={location}
+            />
+          </TableContainer>
         )}
         <PageErrorAlert />
       </DetailPanel>
@@ -285,4 +288,8 @@ const AlignCenter = styled('span')`
 
 const OpportunityHeader = styled('span')`
   ${p => p.theme.tooltipUnderline()};
+`;
+
+const TableContainer = styled('div')`
+  margin-bottom: 80px;
 `;

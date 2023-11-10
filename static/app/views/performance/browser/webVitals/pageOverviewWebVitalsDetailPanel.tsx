@@ -288,17 +288,19 @@ export function PageOverviewWebVitalsDetailPanel({
         <ChartContainer>
           {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
         </ChartContainer>
-        <GridEditable
-          data={tableData}
-          isLoading={isTransactionWebVitalsQueryLoading}
-          columnOrder={columnOrder}
-          columnSortBy={[sort]}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
-          location={location}
-        />
+        <TableContainer>
+          <GridEditable
+            data={tableData}
+            isLoading={isTransactionWebVitalsQueryLoading}
+            columnOrder={columnOrder}
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+            location={location}
+          />
+        </TableContainer>
         <PageErrorAlert />
       </DetailPanel>
     </PageErrorProvider>
@@ -328,4 +330,8 @@ const ChartContainer = styled('div')`
 
 const NoValue = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const TableContainer = styled('div')`
+  margin-bottom: 80px;
 `;
