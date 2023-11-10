@@ -2,6 +2,7 @@ import dataclasses
 import functools
 
 import pytest
+from snuba_sdk import Entity
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
@@ -65,8 +66,8 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             if isinstance(query, MetricsQuery):
                 is_performance_metrics = is_metrics = False
             else:
-                is_performance_metrics = query.match.name.startswith("generic_metrics")
-                is_metrics = "metrics" in query.match.name
+                is_performance_metrics = False
+                is_metrics = False
 
             if is_performance_metrics:
                 _validate_query(query, True)
@@ -81,8 +82,11 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
 
         def new_create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription):
             query = snql_query.query
-            is_performance_metrics = query.match.name.startswith("generic_metrics")
-            is_metrics = "metrics" in query.match.name
+            is_performance_metrics = False
+            is_metrics = False
+            if isinstance(query.match, Entity):
+                is_performance_metrics = query.match.name.startswith("generic_metrics")
+                is_metrics = "metrics" in query.match.name
 
             if is_performance_metrics:
                 _validate_query(query, True)
