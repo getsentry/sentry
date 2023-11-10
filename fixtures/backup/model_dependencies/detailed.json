@@ -1705,7 +1705,7 @@
       "file_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.file",
-        "nullable": true
+        "nullable": false
       },
       "group_id": {
         "kind": "ImplicitForeignKey",
@@ -1725,7 +1725,13 @@
       "Region"
     ],
     "table_name": "sentry_eventattachment",
-    "uniques": []
+    "uniques": [
+      [
+        "event_id",
+        "file_id",
+        "project_id"
+      ]
+    ]
   },
   "sentry.eventprocessingissue": {
     "dangling": false,
