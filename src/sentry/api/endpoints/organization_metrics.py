@@ -69,8 +69,8 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
-        
         try:
+
             metric = get_single_metric_info(
                 projects,
                 metric_name,
