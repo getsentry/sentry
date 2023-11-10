@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from django.http import QueryDict
-from django.urls import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.tasks.common import TimedIterator, to_context_iterator
@@ -142,9 +141,7 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: List[int]) -
     It will point to a discover query using the same query as the rule
     and the same time range as the rule.
     """
-    url = absolute_uri(
-        reverse("sentry-api-0-discover-homepage-query", args=[rule.organization.slug])
-    )
+    url = absolute_uri("/discover/homepage/")
 
     if len(projects) == 0:
         projects = [-1]
