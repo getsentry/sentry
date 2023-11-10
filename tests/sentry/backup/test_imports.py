@@ -205,7 +205,7 @@ class SanitizationTests(ImportTestCase):
 
             # 1 from `max_user`.
             assert UserRole.objects.count() == 1
-            assert UserRoleUser.objects.count() == 1
+            assert UserRoleUser.objects.count() == 2
 
     def test_users_unsanitized_in_global_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -251,7 +251,7 @@ class SanitizationTests(ImportTestCase):
 
             # 1 from `max_user`.
             assert UserRole.objects.count() == 1
-            assert UserRoleUser.objects.count() == 1
+            assert UserRoleUser.objects.count() == 2
 
     def test_generate_suffix_for_already_taken_organization(self):
         owner = self.create_user(email="testing@example.com")
@@ -306,23 +306,32 @@ class SanitizationTests(ImportTestCase):
 
     def test_generate_suffix_for_already_taken_username(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            self.create_user("testing@example.com")
+            self.create_user("min_user")
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "w+") as tmp_file:
-                same_username_user = self.json_of_exhaustive_user_with_minimum_privileges()
-                copy_of_same_username_user = self.copy_user(
-                    same_username_user, "testing@example.com"
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+                json.dump(
+                    self.sort_in_memory_json(models),
+                    tmp_file,
                 )
-                json.dump(same_username_user + copy_of_same_username_user, tmp_file)
 
+            # Import twice, to check that new suffixes are assigned both times.
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
             with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 3
-                assert User.objects.filter(username__icontains="testing@example.com").count() == 3
-                assert User.objects.filter(username__iexact="testing@example.com").count() == 1
-                assert User.objects.filter(username__icontains="testing@example.com-").count() == 2
+                assert (
+                    User.objects.filter(username__icontains="min_user")
+                    .values("username")
+                    .distinct()
+                    .count()
+                    == 3
+                )
+                assert User.objects.filter(username__iexact="min_user").count() == 1
+                assert User.objects.filter(username__icontains="min_user-").count() == 2
 
     def test_bad_invalid_user(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -432,9 +441,9 @@ class SanitizationTests(ImportTestCase):
                 models.append(
                     {
                         "model": "sentry.userip",
-                        "pk": 1,
+                        "pk": 3,
                         "fields": {
-                            "user": 1,
+                            "user": 2,
                             "ip_address": "8.8.8.9",
                             "country_code": "US",
                             "region_code": "CA",
@@ -446,19 +455,19 @@ class SanitizationTests(ImportTestCase):
                 models.append(
                     {
                         "model": "sentry.userip",
-                        "pk": 1,
+                        "pk": 4,
                         "fields": {
-                            "user": 1,
+                            "user": 2,
                             "ip_address": "8.8.8.9",
-                            "country_code": "CA",  # Incorrect - should fix.
-                            "region_code": "BC",  # Incorrect - should fix.
+                            "country_code": "CA",  # Incorrect value - importing should fix this.
+                            "region_code": "BC",  # Incorrect value - importing should fix this.
                             "first_seen": "2014-04-05T03:29:45.000Z",
                             "last_seen": "2014-04-05T03:29:45.000Z",
                         },
                     }
                 )
 
-                json.dump(models, tmp_file)
+                json.dump(self.sort_in_memory_json(models), tmp_file)
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
