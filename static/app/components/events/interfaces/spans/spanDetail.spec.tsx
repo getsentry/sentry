@@ -97,6 +97,7 @@ describe('SpanDetail', function () {
             description: 'SELECT * FROM users;',
             sentry_tags: {
               group: 'a7ebd21614897',
+              category: 'db',
             },
           }),
           organization: Organization({
