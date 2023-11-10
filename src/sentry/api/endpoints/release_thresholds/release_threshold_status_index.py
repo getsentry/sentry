@@ -135,6 +135,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         """
         # ========================================================================
         # STEP 1: Validate request data
+        #
+        # NOTE: start/end parameters determine window to query for releases
+        # This is NOT the window to query for event data - nor the individual threshold windows
         # ========================================================================
         data = request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
         start: datetime
@@ -203,6 +206,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # Step 3: flatten thresholds and compile projects/release-thresholds by type
         # ========================================================================
         thresholds_by_type: DefaultDict[int, dict[str, list]] = defaultdict()
+        query_windows_by_type: DefaultDict[int, dict[str, datetime]] = defaultdict()
         for release in queryset:
             # TODO:
             # We should update release model to preserve threshold states.
@@ -229,9 +233,23 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         }
                     thresholds_by_type[threshold.threshold_type]["project_ids"].append(project.id)
                     thresholds_by_type[threshold.threshold_type]["releases"].append(release.version)
+                    if threshold.threshold_type not in query_windows_by_type:
+                        query_windows_by_type[threshold.threshold_type] = {
+                            "start": datetime.utcnow(),
+                            "end": datetime.utcnow(),
+                        }
+                    # NOTE: query window starts at the earliest release up until the latest threshold window
+                    query_windows_by_type[threshold.threshold_type]["start"] = min(
+                        release.date, query_windows_by_type[threshold.threshold_type]["start"]
+                    )
+                    query_windows_by_type[threshold.threshold_type]["end"] = max(
+                        release.date + timedelta(seconds=threshold.window_in_seconds),
+                        query_windows_by_type[threshold.threshold_type]["end"],
+                    )
                     # NOTE: enriched threshold is SERIALIZED
                     # meaning project and environment models are dictionaries
                     enriched_threshold: EnrichedThreshold = serialize(threshold)
+                    # NOTE: start/end for a threshold are different than start/end for querying data
                     enriched_threshold.update(
                         {
                             "key": self.construct_threshold_key(
@@ -270,23 +288,24 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     IF the param window doesn't cover the full threshold window, results will be inaccurate
                 TODO: If too many results, then throw an error and request user to narrow their search window
                 """
+                query_window = query_windows_by_type[threshold_type]
                 logger.info(
                     "querying error counts",
                     extra={
-                        "start": start,
-                        "end": end,
+                        "start": query_window["start"],
+                        "end": query_window["end"],
                         "project_ids": project_id_list,
                         "releases": release_value_list,
                         "environments": environments_list,
                     },
                 )
                 error_counts = get_errors_counts_timeseries_by_project_and_release(
-                    end=end,
+                    end=query_window["end"],
                     environments_list=environments_list,
                     organization_id=organization.id,
                     project_id_list=project_id_list,
                     release_value_list=release_value_list,
-                    start=start,
+                    start=query_window["start"],
                 )
                 for ethreshold in category_thresholds:
                     # TODO: filter by environment as well?
