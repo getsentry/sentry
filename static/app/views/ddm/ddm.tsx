@@ -24,7 +24,7 @@ function DDM() {
 
   useEffect(() => {
     trackAnalytics('ddm.page-view', {
-      organization: organization.slug,
+      organization,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
