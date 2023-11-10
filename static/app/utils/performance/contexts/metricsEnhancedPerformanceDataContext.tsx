@@ -10,7 +10,9 @@ import {createDefinedContext} from './utils';
 
 export interface MetricsEnhancedPerformanceDataContext {
   setIsMetricsData: (value?: boolean) => void;
+  setIsOnDemandData: (value?: boolean) => void;
   isMetricsData?: boolean;
+  isOnDemandData?: boolean;
 }
 
 const [_MEPDataProvider, _useMEPDataContext] =
@@ -27,6 +29,7 @@ export function MEPDataProvider({
 }) {
   const {setAutoSampleState} = useMEPSettingContext();
   const [isMetricsData, _setIsMetricsData] = useState<boolean | undefined>(undefined); // Uses undefined to cover 'not initialized'
+  const [isOnDemandData, _setIsOnDemandData] = useState<boolean | undefined>(undefined); // Uses undefined to cover 'not initialized'
 
   const setIsMetricsData = useCallback(
     (value?: boolean) => {
@@ -44,8 +47,17 @@ export function MEPDataProvider({
     [setAutoSampleState, _setIsMetricsData, chartSetting]
   );
 
+  const setIsOnDemandData = useCallback(
+    (value?: boolean) => {
+      _setIsOnDemandData(value);
+    },
+    [_setIsOnDemandData]
+  );
+
   return (
-    <_MEPDataProvider value={{isMetricsData, setIsMetricsData}}>
+    <_MEPDataProvider
+      value={{isMetricsData, setIsMetricsData, isOnDemandData, setIsOnDemandData}}
+    >
       {children}
     </_MEPDataProvider>
   );
@@ -63,6 +75,18 @@ export function getIsMetricsDataFromResults(
     results?.histograms?.meta?.isMetricsData ??
     results?.tableData?.meta?.isMetricsData;
   return isMetricsData;
+}
+
+export function getIsOnDemandDataFromResults(
+  results: any,
+  field = ''
+): boolean | undefined {
+  const isOnDemandData =
+    results?.meta?.isOnDemandData ??
+    results?.seriesAdditionalInfo?.[field]?.isOnDemandData ??
+    results?.histograms?.meta?.isOnDemandData ??
+    results?.tableData?.meta?.isOnDemandData;
+  return isOnDemandData;
 }
 
 export function MEPTag() {

@@ -156,6 +156,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getTableRequest?: (
     api: Client,
+    widget: Widget,
     query: WidgetQuery,
     organization: Organization,
     pageFilters: PageFilters,
