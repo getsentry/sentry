@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from copy import deepcopy
 from functools import cached_property
+from uuid import uuid4
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.options.option import ControlOption, Option
 from sentry.models.project import Project
 from sentry.models.user import MAX_USERNAME_LENGTH, User
 from sentry.services.hybrid_cloud.import_export import import_export_service
@@ -14,6 +17,7 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportError,
     RpcImportErrorKind,
     RpcImportFlags,
+    RpcImportOk,
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
@@ -23,12 +27,142 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
-USER_MODEL_NAME = get_model_name(User)
+CONTROL_OPTION_MODEL_NAME = get_model_name(ControlOption)
+OPTION_MODEL_NAME = get_model_name(Option)
 PROJECT_MODEL_NAME = get_model_name(Project)
+USER_MODEL_NAME = get_model_name(User)
+
+
+class RpcImportRetryTests(TestCase):
+    """
+    Ensure that retries don't duplicate writes.
+    """
+
+    def test_good_local_retry_idempotent(self):
+        # If the response gets lost on the way to the caller, it will try again. Make sure it is
+        # clever enough to not try to write the data twice if its already been committed.
+        import_uuid = str(uuid4().hex)
+
+        option_count = Option.objects.count()
+        import_chunk_count = RegionImportChunk.objects.count()
+
+        def verify_option_write():
+            nonlocal option_count, import_chunk_count, import_uuid
+
+            result = import_export_service.import_by_model(
+                model_name="sentry.option",
+                scope=RpcImportScope.Global,
+                flags=RpcImportFlags(import_uuid=import_uuid),
+                filter_by=[],
+                pk_map=RpcPrimaryKeyMap(),
+                json_data="""
+                [
+                    {
+                        "model": "sentry.option",
+                        "pk": 5,
+                        "fields": {
+                            "key": "foo",
+                            "last_updated": "2023-06-22T00:00:00.000Z",
+                            "last_updated_by": "unknown",
+                            "value": "bar"
+                        }
+                    }
+                ]
+                """,
+            )
+
+            assert isinstance(result, RpcImportOk)
+            assert result.min_ordinal == 1
+            assert result.max_ordinal == 1
+            assert result.min_source_pk == 5
+            assert result.max_source_pk == 5
+            assert result.min_inserted_pk == result.max_inserted_pk
+            assert len(result.mapped_pks.from_rpc().mapping[str(OPTION_MODEL_NAME)]) == 1
+
+            assert Option.objects.count() == option_count + 1
+            assert RegionImportChunk.objects.count() == import_chunk_count + 1
+
+            import_chunk = RegionImportChunk.objects.get(import_uuid=import_uuid)
+            assert import_chunk.min_ordinal == 1
+            assert import_chunk.max_ordinal == 1
+            assert import_chunk.min_source_pk == 5
+            assert import_chunk.max_source_pk == 5
+            assert import_chunk.min_inserted_pk == import_chunk.max_inserted_pk
+            assert len(import_chunk.inserted_map) == 1
+            assert len(import_chunk.existing_map) == 0
+            assert len(import_chunk.overwrite_map) == 0
+
+        # Doing the write twice should produce identical results from the sender's point of view,
+        # and should not result in multiple `RegionImportChunk`s being written.
+        verify_option_write()
+        verify_option_write()
+
+    def test_good_remote_retry_idempotent(self):
+        # If the response gets lost on the way to the caller, it will try again. Make sure it is
+        # clever enough to not try to write the data twice if its already been committed.
+        import_uuid = str(uuid4().hex)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            control_option_count = ControlOption.objects.count()
+            import_chunk_count = ControlImportChunk.objects.count()
+
+        def verify_control_option_write():
+            nonlocal control_option_count, import_chunk_count, import_uuid
+
+            result = import_export_service.import_by_model(
+                model_name="sentry.controloption",
+                scope=RpcImportScope.Global,
+                flags=RpcImportFlags(import_uuid=import_uuid),
+                filter_by=[],
+                pk_map=RpcPrimaryKeyMap(),
+                json_data="""
+                [
+                    {
+                        "model": "sentry.controloption",
+                        "pk": 7,
+                        "fields": {
+                            "key": "foo",
+                            "last_updated": "2023-06-22T00:00:00.000Z",
+                            "last_updated_by": "unknown",
+                            "value": "bar"
+                        }
+                    }
+                ]
+                """,
+            )
+
+            assert isinstance(result, RpcImportOk)
+            assert result.min_ordinal == 1
+            assert result.max_ordinal == 1
+            assert result.min_source_pk == 7
+            assert result.max_source_pk == 7
+            assert result.min_inserted_pk == result.max_inserted_pk
+            assert len(result.mapped_pks.from_rpc().mapping[str(CONTROL_OPTION_MODEL_NAME)]) == 1
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert ControlOption.objects.count() == control_option_count + 1
+                assert ControlImportChunk.objects.count() == import_chunk_count + 1
+
+                import_chunk = ControlImportChunk.objects.get(import_uuid=import_uuid)
+                assert import_chunk.min_ordinal == 1
+                assert import_chunk.max_ordinal == 1
+                assert import_chunk.min_source_pk == 7
+                assert import_chunk.max_source_pk == 7
+                assert import_chunk.min_inserted_pk == import_chunk.max_inserted_pk
+                assert len(import_chunk.inserted_map) == 1
+                assert len(import_chunk.existing_map) == 0
+                assert len(import_chunk.overwrite_map) == 0
+
+        # Doing the write twice should produce identical results from the sender's point of view,
+        # and should not result in multiple `ControlImportChunk`s being written.
+        verify_control_option_write()
+        verify_control_option_write()
 
 
 class RpcImportErrorTests(TestCase):
-    """Validate errors related to the `import_by_model()` RPC method."""
+    """
+    Validate errors related to the `import_by_model()` RPC method.
+    """
 
     @staticmethod
     def is_user_model(model: json.JSONData) -> bool:
@@ -46,10 +180,10 @@ class RpcImportErrorTests(TestCase):
         result = import_export_service.import_by_model(
             model_name="sentry.doesnotexist",
             scope=RpcImportScope.Global,
-            flags=RpcImportFlags(),
+            flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
-            json_data="",
+            json_data="[]",
         )
 
         assert isinstance(result, RpcImportError)
@@ -60,10 +194,10 @@ class RpcImportErrorTests(TestCase):
         result = import_export_service.import_by_model(
             model_name=str(PROJECT_MODEL_NAME),
             scope=RpcImportScope.Global,
-            flags=RpcImportFlags(),
+            flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
-            json_data="",
+            json_data="[]",
         )
 
         assert isinstance(result, RpcImportError)
@@ -72,20 +206,33 @@ class RpcImportErrorTests(TestCase):
     def test_bad_unspecified_scope(self):
         result = import_export_service.import_by_model(
             model_name=str(USER_MODEL_NAME),
-            flags=RpcImportFlags(),
+            flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
-            json_data="",
+            json_data="[]",
         )
 
         assert isinstance(result, RpcImportError)
         assert result.get_kind() == RpcImportErrorKind.UnspecifiedScope
 
-    def test_bad_invalid_json(self):
+    def test_bad_missing_import_uuid(self):
         result = import_export_service.import_by_model(
             model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(),
+            filter_by=[],
+            pk_map=RpcPrimaryKeyMap(),
+            json_data="[]",
+        )
+
+        assert isinstance(result, RpcImportError)
+        assert result.get_kind() == RpcImportErrorKind.MissingImportUUID
+
+    def test_bad_invalid_json(self):
+        result = import_export_service.import_by_model(
+            model_name=str(USER_MODEL_NAME),
+            scope=RpcImportScope.Global,
+            flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="_",
@@ -106,7 +253,7 @@ class RpcImportErrorTests(TestCase):
         result = import_export_service.import_by_model(
             model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
-            flags=RpcImportFlags(),
+            flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data=json_data,
@@ -121,7 +268,7 @@ class RpcImportErrorTests(TestCase):
         result = import_export_service.import_by_model(
             model_name="sentry.option",
             scope=RpcImportScope.Global,
-            flags=RpcImportFlags(),
+            flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data=json_data,

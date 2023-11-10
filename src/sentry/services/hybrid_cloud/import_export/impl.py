@@ -11,6 +11,7 @@ from django.core.serializers import deserialize, serialize
 from django.core.serializers.base import DeserializationError
 from django.db import DatabaseError, IntegrityError, connections, router, transaction
 from django.db.models import Q
+from django.forms import model_to_dict
 from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
 from sentry.backup.dependencies import (
@@ -24,6 +25,7 @@ from sentry.backup.dependencies import (
 from sentry.backup.findings import InstanceID
 from sentry.backup.helpers import EXCLUDED_APPS, DatetimeSafeDjangoJSONEncoder, Filter
 from sentry.backup.scopes import ExportScope
+from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
 from sentry.models.user import User
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRoleUser
@@ -71,7 +73,7 @@ class UniversalImportExportService(ImportExportService):
         pk_map: RpcPrimaryKeyMap,
         json_data: str,
     ) -> RpcImportResult:
-        import_flags = flags.from_rpc()
+        deps = dependencies()
         batch_model_name = NormalizedModelName(model_name)
         model = get_model(batch_model_name)
         if model is None:
@@ -97,6 +99,14 @@ class UniversalImportExportService(ImportExportService):
                 reason="The RPC was called incorrectly, please set an `ImportScope` parameter",
             )
 
+        import_flags = flags.from_rpc()
+        if import_flags.import_uuid is None:
+            return RpcImportError(
+                kind=RpcImportErrorKind.MissingImportUUID,
+                on=InstanceID(model_name),
+                reason="Must specify `import_uuid` when importing",
+            )
+
         import_scope = scope.from_rpc()
         in_pk_map = pk_map.from_rpc()
         filters: List[Filter] = []
@@ -107,12 +117,52 @@ class UniversalImportExportService(ImportExportService):
         try:
             using = router.db_for_write(model)
             with transaction.atomic(using=using):
+                # It's possible that this write has already occurred, and we are simply retrying
+                # because the response got lost in transit. If so, just re-use that reply. We do
+                # this in the transaction because, while `import_by_model` is generally called in a
+                # sequential manner, cases like timeouts or long queues may cause a previous call to
+                # still be active when the next one is made. Doing this check inside the transaction
+                # lock ensures that the data is globally accurate and thwarts data races.
+                found_chunk = (
+                    (
+                        ControlImportChunk
+                        if SiloMode.CONTROL in deps[batch_model_name].silos
+                        else RegionImportChunk
+                    )
+                    .objects.filter(import_uuid=flags.import_uuid, model=model_name)
+                    .first()
+                )
+                if found_chunk is not None:
+                    found_data = model_to_dict(found_chunk)
+                    out_pk_map = PrimaryKeyMap()
+                    for old_pk, new_pk in found_data["inserted_map"].items():
+                        identifier = found_data["inserted_identifiers"].get(new_pk, None)
+                        out_pk_map.insert(
+                            batch_model_name, old_pk, new_pk, ImportKind.Inserted, identifier
+                        )
+                    for old_pk, new_pk in found_data["existing_map"].items():
+                        out_pk_map.insert(batch_model_name, old_pk, new_pk, ImportKind.Existing)
+                    for old_pk, new_pk in found_data["overwrite_map"].items():
+                        out_pk_map.insert(batch_model_name, old_pk, new_pk, ImportKind.Overwrite)
+
+                    return RpcImportOk(
+                        mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
+                        min_ordinal=found_data["min_ordinal"],
+                        max_ordinal=found_data["max_ordinal"],
+                        min_source_pk=found_data["min_source_pk"],
+                        max_source_pk=found_data["max_source_pk"],
+                        min_inserted_pk=found_data["min_inserted_pk"],
+                        max_inserted_pk=found_data["max_inserted_pk"],
+                    )
+
                 ok_relocation_scopes = import_scope.value
                 out_pk_map = PrimaryKeyMap()
-                max_pk = 0
+                min_old_pk = 0
+                max_old_pk = 0
+                min_inserted_pk: Optional[int] = None
+                max_inserted_pk: Optional[int] = None
                 counter = 0
                 for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
-                    counter += 1
                     model_instance = deserialized_object.object
                     if model_instance._meta.app_label not in EXCLUDED_APPS or model_instance:
                         if model_instance.get_possible_relocation_scopes() & ok_relocation_scopes:
@@ -159,6 +209,7 @@ class UniversalImportExportService(ImportExportService):
 
                                     # For models that may have circular references to themselves
                                     # (unlikely), keep track of the new pk in the input map as well.
+                                    counter += 1
                                     new_pk, import_kind = written
                                     slug = getattr(model_instance, "slug", None)
                                     in_pk_map.insert(
@@ -167,8 +218,17 @@ class UniversalImportExportService(ImportExportService):
                                     out_pk_map.insert(
                                         inst_model_name, old_pk, new_pk, import_kind, slug
                                     )
-                                    if new_pk > max_pk:
-                                        max_pk = new_pk
+
+                                    # Do a little bit of book-keeping for our future `ImportChunk`.
+                                    if min_old_pk == 0:
+                                        min_old_pk = old_pk
+                                    if old_pk > max_old_pk:
+                                        max_old_pk = old_pk
+                                    if import_kind == ImportKind.Inserted:
+                                        if min_inserted_pk is None:
+                                            min_inserted_pk = new_pk
+                                        if max_inserted_pk is None or new_pk > max_inserted_pk:
+                                            max_inserted_pk = new_pk
 
                                 except DjangoValidationError as e:
                                     errs = {field: error for field, error in e.message_dict.items()}
@@ -187,17 +247,54 @@ class UniversalImportExportService(ImportExportService):
                                         reason=str(e),
                                     )
 
-            # If we wrote at least one model, make sure to update the sequences too.
-            if counter > 0:
-                table = model_instance._meta.db_table
-                seq = f"{table}_id_seq"
-                with connections[using].cursor() as cursor:
-                    cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
+                # If we wrote at least one model, make sure to write an appropriate `ImportChunk`
+                # and update the sequences too.
+                if counter > 0:
+                    table = model_instance._meta.db_table
+                    seq = f"{table}_id_seq"
+                    with connections[using].cursor() as cursor:
+                        cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
+
+                    inserted = out_pk_map.partition(
+                        {batch_model_name}, {ImportKind.Inserted}
+                    ).mapping[model_name]
+                    existing = out_pk_map.partition(
+                        {batch_model_name}, {ImportKind.Existing}
+                    ).mapping[model_name]
+                    overwrite = out_pk_map.partition(
+                        {batch_model_name}, {ImportKind.Overwrite}
+                    ).mapping[model_name]
+                    import_chunk_args = {
+                        "import_uuid": flags.import_uuid,
+                        "model": model_name,
+                        # TODO(getsentry/team-ospo#190): The next two fields assume the entire model
+                        # is being imported in a single call; we may change this in the future.
+                        "min_ordinal": 1,
+                        "max_ordinal": counter,
+                        "min_source_pk": min_old_pk,
+                        "max_source_pk": max_old_pk,
+                        "min_inserted_pk": min_inserted_pk,
+                        "max_inserted_pk": max_inserted_pk,
+                        "inserted_map": {k: v[0] for k, v in inserted.items()},
+                        "existing_map": {k: v[0] for k, v in existing.items()},
+                        "overwrite_map": {k: v[0] for k, v in overwrite.items()},
+                        "inserted_identifiers": {
+                            k: v[2] for k, v in inserted.items() if v[2] is not None
+                        },
+                    }
+                    if SiloMode.CONTROL in deps[batch_model_name].silos:
+                        ControlImportChunk(**import_chunk_args).save()
+                    else:
+                        RegionImportChunk(**import_chunk_args).save()
 
             return RpcImportOk(
                 mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
-                max_pk=max_pk,
-                num_imported=counter,
+                min_ordinal=1,
+                max_ordinal=counter,
+                min_source_pk=min_old_pk,
+                max_source_pk=max_old_pk,
+                min_inserted_pk=min_inserted_pk,
+                max_inserted_pk=max_inserted_pk,
             )
 
         except DeserializationError:

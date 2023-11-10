@@ -940,7 +940,9 @@ def importing(uuid: str) -> None:
             import_in_organization_scope(
                 relocation_data_fp,
                 decryptor=GCPKMSDecryptor(kms_config_fp),
-                flags=ImportFlags(merge_users=False, overwrite_configs=False),
+                flags=ImportFlags(
+                    merge_users=False, overwrite_configs=False, import_uuid=str(uuid)
+                ),
                 org_filter=set(relocation.want_org_slugs),
                 printer=printer,
             )

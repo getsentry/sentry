@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import BinaryIO, Iterator, Optional, Tuple, Type
+from uuid import uuid4
 
 import click
 from django.core import serializers
@@ -8,6 +9,7 @@ from django.db import transaction
 from django.db.models.base import Model
 
 from sentry.backup.dependencies import (
+    ImportKind,
     NormalizedModelName,
     PrimaryKeyMap,
     dependencies,
@@ -15,6 +17,7 @@ from sentry.backup.dependencies import (
 )
 from sentry.backup.helpers import Decryptor, Filter, ImportFlags, decrypt_encrypted_tarball
 from sentry.backup.scopes import ImportScope
+from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcFilter,
@@ -73,6 +76,10 @@ def _import(
         raise RuntimeError(errText)
 
     flags = flags if flags is not None else ImportFlags()
+    if flags.import_uuid is None:
+        flags = flags._replace(import_uuid=uuid4().hex)
+
+    deps = dependencies()
     user_model_name = get_model_name(User)
     org_auth_token_model_name = get_model_name(OrgAuthToken)
     org_member_model_name = get_model_name(OrganizationMember)
@@ -107,8 +114,8 @@ def _import(
     if filter_by is not None:
         filters.append(filter_by)
 
-        # `sentry.Email` models don't have any explicit dependencies on `User`, so we need to find
-        # and record them manually.
+        # `sentry.Email` models don't have any explicit dependencies on `sentry.User`, so we need to
+        # find and record them manually.
         user_to_email = dict()
 
         if filter_by.model == Organization:
@@ -199,14 +206,17 @@ def _import(
     def do_write(
         pk_map: PrimaryKeyMap, model_name: NormalizedModelName, json_data: json.JSONData
     ) -> None:
-        model_relations = dependencies().get(model_name)
+        nonlocal scope, flags, filters, deps
+
+        model_relations = deps.get(model_name)
         if not model_relations:
             return
 
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
+        model_name_str = str(model_name)
         result = import_by_model(
-            model_name=str(model_name),
+            model_name=model_name_str,
             scope=RpcImportScope.into_rpc(scope),
             flags=RpcImportFlags.into_rpc(flags),
             filter_by=[RpcFilter.into_rpc(f) for f in filters],
@@ -220,15 +230,55 @@ def _import(
                 warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
                 printer(warningText, err=True)
             raise ImportingError(result)
-        pk_map.extend(result.mapped_pks)
+
+        out_pk_map: PrimaryKeyMap = result.mapped_pks.from_rpc()
+        pk_map.extend(out_pk_map)
+
+        # If the model we just imported lives in the control silo, that means the import took place
+        # over RPC. To ensure that we have an accurate view of the import result in both sides of
+        # the RPC divide, we create a replica of the `ControlImportChunk` that successful import
+        # would have generated in the calling region as well.
+        if result.min_ordinal is not None and SiloMode.CONTROL in deps[model_name].silos:
+            # If `min_ordinal` is not null, these values must not be either.
+            assert result.max_ordinal is not None
+            assert result.min_source_pk is not None
+            assert result.max_source_pk is not None
+
+            inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
+                model_name_str
+            ]
+            existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
+                model_name_str
+            ]
+            overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
+                model_name_str
+            ]
+            control_import_chunk_replica = ControlImportChunkReplica(
+                import_uuid=flags.import_uuid,
+                model=model_name_str,
+                # TODO(getsentry/team-ospo#190): The next two fields assume the entire model is
+                # being imported in a single call; we may change this in the future.
+                min_ordinal=result.min_ordinal,
+                max_ordinal=result.max_ordinal,
+                min_source_pk=result.min_source_pk,
+                max_source_pk=result.max_source_pk,
+                min_inserted_pk=result.min_inserted_pk,
+                max_inserted_pk=result.max_inserted_pk,
+                inserted_map={k: v[0] for k, v in inserted.items()},
+                existing_map={k: v[0] for k, v in existing.items()},
+                overwrite_map={k: v[0] for k, v in overwrite.items()},
+                inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
+            )
+            control_import_chunk_replica.save()
 
     # Extract some write logic into its own internal function, so that we may call it irrespective
     # of how we do atomicity: on a per-model (if using multiple dbs) or global (if using a single
     # db) basis.
     def do_writes(pk_map: PrimaryKeyMap) -> None:
+        nonlocal deferred_org_auth_tokens
+
         for model_name, json_data in yield_json_models(content):
             if model_name == org_auth_token_model_name:
-                nonlocal deferred_org_auth_tokens
                 deferred_org_auth_tokens = json_data
                 continue
 
