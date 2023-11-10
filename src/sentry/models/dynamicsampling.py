@@ -107,6 +107,7 @@ class CustomDynamicSamplingRule(Model):
     # the raw query field from the request
     query = models.TextField(null=True)
     created_by_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True, blank=True)
+    notification_sent = models.BooleanField(null=True, blank=True)
 
     @property
     def external_rule_id(self) -> int:
@@ -164,6 +165,7 @@ class CustomDynamicSamplingRule(Model):
         num_samples: int,
         sample_rate: float,
         query: str,
+        created_by_id: Optional[int] = None,
     ) -> "CustomDynamicSamplingRule":
 
         from sentry.models.project import Project
@@ -200,6 +202,8 @@ class CustomDynamicSamplingRule(Model):
                     is_active=True,
                     is_org_level=is_org_level,
                     query=query,
+                    notification_sent=False,
+                    created_by_id=created_by_id,
                 )
 
                 rule.save()
