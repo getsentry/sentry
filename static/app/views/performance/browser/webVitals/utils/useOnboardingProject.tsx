@@ -3,15 +3,9 @@ import {Project} from 'sentry/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
-export function useOnboardingProject(demoMode?: boolean): Project | undefined {
+export function useOnboardingProject(): Project | undefined {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
-
-  // XXX used by getsentry to bypass onboarding for the upsell demo state.
-  if (demoMode) {
-    return undefined;
-  }
-
   if (projects.length === 0) {
     return undefined;
   }
