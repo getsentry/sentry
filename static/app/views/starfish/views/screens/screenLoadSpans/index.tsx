@@ -25,6 +25,7 @@ import {
   ScreenCharts,
   YAxis,
 } from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
+import {ScreenLoadEventSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamples';
 import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
@@ -104,6 +105,25 @@ function ScreenLoadSpans() {
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
               />
+              <SampleContainer>
+                <SampleContainerItem>
+                  <ScreenLoadEventSamples
+                    release={primaryRelease}
+                    sortKey="release1Samples"
+                    cursorName="release1Cursor"
+                    transaction={transactionName}
+                    showDeviceClassSelector
+                  />
+                </SampleContainerItem>
+                <SampleContainerItem>
+                  <ScreenLoadEventSamples
+                    release={secondaryRelease}
+                    sortKey="release2Samples"
+                    cursorName="release2Cursor"
+                    transaction={transactionName}
+                  />
+                </SampleContainerItem>
+              </SampleContainer>
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
@@ -153,4 +173,15 @@ const FilterContainer = styled('div')`
   column-gap: ${space(1)};
   grid-template-rows: auto;
   grid-template-columns: auto 1fr;
+`;
+
+const SampleContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(2)};
+`;
+
+const SampleContainerItem = styled('div')`
+  flex: 1;
 `;
