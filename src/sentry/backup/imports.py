@@ -13,7 +13,7 @@ from sentry.backup.dependencies import (
     dependencies,
     get_model_name,
 )
-from sentry.backup.helpers import Filter, ImportFlags, decrypt_encrypted_tarball
+from sentry.backup.helpers import Decryptor, Filter, ImportFlags, decrypt_encrypted_tarball
 from sentry.backup.scopes import ImportScope
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.hybrid_cloud.import_export.model import (
@@ -48,7 +48,7 @@ def _import(
     src: BinaryIO,
     scope: ImportScope,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     filter_by: Filter | None = None,
     printer=click.echo,
@@ -99,8 +99,8 @@ def _import(
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
     # footprint when processing super large (>100MB) exports.
     content = (
-        decrypt_encrypted_tarball(src, flags.decrypt_using_gcp_kms, decrypt_with)
-        if decrypt_with is not None
+        decrypt_encrypted_tarball(src, decryptor)
+        if decryptor is not None
         else src.read().decode("utf-8")
     )
     filters = []
@@ -269,7 +269,7 @@ def _import(
 def import_in_user_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer=click.echo,
@@ -288,7 +288,7 @@ def import_in_user_scope(
     return _import(
         src,
         ImportScope.User,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
@@ -298,7 +298,7 @@ def import_in_user_scope(
 def import_in_organization_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     org_filter: set[str] | None = None,
     printer=click.echo,
@@ -319,7 +319,7 @@ def import_in_organization_scope(
     return _import(
         src,
         ImportScope.Organization,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
@@ -329,7 +329,7 @@ def import_in_organization_scope(
 def import_in_config_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer=click.echo,
@@ -351,7 +351,7 @@ def import_in_config_scope(
     return _import(
         src,
         ImportScope.Config,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
@@ -361,7 +361,7 @@ def import_in_config_scope(
 def import_in_global_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     printer=click.echo,
 ):
@@ -376,7 +376,7 @@ def import_in_global_scope(
     return _import(
         src,
         ImportScope.Global,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         printer=printer,
     )

@@ -14,8 +14,8 @@ from google_crc32c import value as crc32c
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import (
+    LocalFileDecryptor,
     create_encrypted_export_tarball,
-    decrypt_data_encryption_key_local,
     decrypt_encrypted_tarball,
     unwrap_encrypted_export_tarball,
 )
@@ -139,7 +139,9 @@ class RelocationTaskTestCase(TestCase):
         fake_kms_client.get_public_key.call_count = 0
 
         unwrapped = unwrap_encrypted_export_tarball(BytesIO(self.tarball))
-        plaintext_dek = decrypt_data_encryption_key_local(unwrapped, self.priv_key_pem)
+        plaintext_dek = LocalFileDecryptor.from_bytes(
+            self.priv_key_pem
+        ).decrypt_data_encryption_key(unwrapped)
 
         fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
             plaintext=plaintext_dek,
@@ -439,7 +441,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
 
         with relocation_file.file.getfile() as fp:
             json_models = json.loads(
-                decrypt_encrypted_tarball(fp, False, BytesIO(self.priv_key_pem))
+                decrypt_encrypted_tarball(fp, LocalFileDecryptor.from_bytes(self.priv_key_pem))
             )
         assert len(json_models) > 0
 
@@ -539,7 +541,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
 
         with relocation_file.file.getfile() as fp:
             json_models = json.loads(
-                decrypt_encrypted_tarball(fp, False, BytesIO(self.priv_key_pem))
+                decrypt_encrypted_tarball(fp, LocalFileDecryptor.from_bytes(self.priv_key_pem))
             )
         assert len(json_models) > 0
 

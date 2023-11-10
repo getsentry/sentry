@@ -12,8 +12,8 @@ from google_crc32c import value as crc32c
 
 from sentry.backup.helpers import (
     DecryptionError,
+    LocalFileDecryptor,
     create_encrypted_export_tarball,
-    decrypt_data_encryption_key_local,
     unwrap_encrypted_export_tarball,
 )
 from sentry.backup.imports import ImportingError
@@ -127,7 +127,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
         with open(tmp_encrypted_path, "rb") as f:
             unwrapped_tarball = unwrap_encrypted_export_tarball(f)
         with open(tmp_priv_key_path, "rb") as f:
-            plaintext_dek = decrypt_data_encryption_key_local(unwrapped_tarball, f.read())
+            plaintext_dek = LocalFileDecryptor(f).decrypt_data_encryption_key(unwrapped_tarball)
             fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
                 plaintext=plaintext_dek,
                 plaintext_crc32c=crc32c(plaintext_dek),
@@ -341,7 +341,7 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
             with open(tmp_encrypted_path, "rb") as f:
                 unwrapped_tarball = unwrap_encrypted_export_tarball(f)
             with open(tmp_priv_key_path, "rb") as f:
-                plaintext_dek = decrypt_data_encryption_key_local(unwrapped_tarball, f.read())
+                plaintext_dek = LocalFileDecryptor(f).decrypt_data_encryption_key(unwrapped_tarball)
                 fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
                     plaintext=plaintext_dek,
                     plaintext_crc32c=crc32c(plaintext_dek),
@@ -465,6 +465,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
     def cli_encrypted_import_then_export_use_gcp_kms(
         scope: str, fake_kms_client: FakeKeyManagementServiceClient
     ):
+        fake_kms_client.asymmetric_decrypt.call_count = 0
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path) = create_encryption_test_files(
                 tmp_dir
@@ -474,7 +475,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
             with open(tmp_tar_path, "rb") as f:
                 unwrapped_tarball = unwrap_encrypted_export_tarball(f)
             with open(tmp_priv_key_path, "rb") as f:
-                plaintext_dek = decrypt_data_encryption_key_local(unwrapped_tarball, f.read())
+                plaintext_dek = LocalFileDecryptor(f).decrypt_data_encryption_key(unwrapped_tarball)
                 fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
                     plaintext=plaintext_dek,
                     plaintext_crc32c=crc32c(plaintext_dek),
@@ -504,6 +505,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                 ],
             )
             assert rv.exit_code == 0, rv.output
+            assert fake_kms_client.asymmetric_decrypt.call_count == 1
 
             tmp_output_path = Path(tmp_dir).joinpath("output.tar")
             rv = CliRunner().invoke(
@@ -524,12 +526,10 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
     def test_encryption_with_gcp_kms_decryption(
         self, fake_kms_client: FakeKeyManagementServiceClient
     ):
-        fake_kms_client.asymmetric_decrypt.call_count = 0
         self.cli_encrypted_import_then_export_use_gcp_kms("global", fake_kms_client)
         self.cli_encrypted_import_then_export_use_gcp_kms("config", fake_kms_client)
         self.cli_encrypted_import_then_export_use_gcp_kms("organizations", fake_kms_client)
         self.cli_encrypted_import_then_export_use_gcp_kms("users", fake_kms_client)
-        assert fake_kms_client.asymmetric_decrypt.call_count == 4
 
 
 class BadImportExportDomainErrorTests(TransactionTestCase):
