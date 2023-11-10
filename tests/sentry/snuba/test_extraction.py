@@ -426,6 +426,24 @@ def test_spec_with_has():
     }
 
 
+def test_spec_with_message():
+    spec = OnDemandMetricSpec("avg(measurements.lcp)", 'message:"issues" AND !message:"alerts"')
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.transaction", "op": "glob", "value": ["*issues*"]},
+            {
+                "inner": {"name": "event.transaction", "op": "glob", "value": ["*alerts*"]},
+                "op": "not",
+            },
+        ],
+        "op": "and",
+    }
+
+
 def test_spec_ignore_fields():
     with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
     without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
