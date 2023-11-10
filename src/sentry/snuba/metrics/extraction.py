@@ -338,7 +338,7 @@ def _transform_search_filter(search_filter: SearchFilter) -> SearchFilter:
 
 
 def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]:
-    transformed_query = []
+    transformed_query: List[QueryToken] = []
 
     for token in query:
         if isinstance(token, SearchFilter):
