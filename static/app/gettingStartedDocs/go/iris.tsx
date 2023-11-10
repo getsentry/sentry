@@ -3,40 +3,17 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-// Configuration Start
-export const steps = ({
-  dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct('Install our Go Iris SDK using [code:go get]:', {
-          code: <code />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: 'go get github.com/getsentry/sentry-go/iris',
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: t(
-      "Import and initialize the Sentry SDK early in your application's setup:"
-    ),
-    configurations: [
-      {
-        language: 'go',
-        code: `
+type Params = DocsParams;
+
+const getConfigureSnippet = (params: Params) => `
 import (
   "fmt"
 
@@ -47,7 +24,7 @@ import (
 
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
-  Dsn: "${dsn}",
+  Dsn: "${params.dsn}",
   EnableTracing: true,
   // Set TracesSampleRate to 1.0 to capture 100%
   // of transactions for performance monitoring.
@@ -69,24 +46,9 @@ app.Get("/", func(ctx iris.Context) {
 })
 
 // And run it
-app.Run(iris.Addr(":3000"))
-        `,
-      },
-      {
-        description: (
-          <Fragment>
-            <strong>{t('Options')}</strong>
-            <p>
-              {tct(
-                '[sentryirisCode:sentryiris] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
-                {sentryirisCode: <code />, optionsCode: <code />}
-              )}
-            </p>
-            {t('Currently it respects 3 options:')}
-          </Fragment>
-        ),
-        language: 'go',
-        code: `
+app.Run(iris.Addr(":3000"))`;
+
+const getOptionsSnippet = () => `
 // Whether Sentry should repanic after recovery, in most cases it should be set to true,
 // as iris.Default includes its own Recovery middleware what handles http responses.
 Repanic bool
@@ -95,42 +57,9 @@ Repanic bool
 // it's safe to either skip this option or set it to "false".
 WaitForDelivery bool
 // Timeout for the event delivery requests.
-Timeout time.Duration
-        `,
-      },
-    ],
-  },
-  {
-    title: t('Usage'),
-    description: (
-      <Fragment>
-        <p>
-          {tct(
-            "[sentryirisCode:sentryiris] attaches an instance of [sentryHubLink:*sentry.Hub] to the [irisContextCode:iris.Context], which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentryiris.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
-            {
-              sentryirisCode: <code />,
-              sentryHubLink: (
-                <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
-              ),
-              irisContextCode: <code />,
-              getHubFromContextCode: <code />,
-              captureMessageCode: <code />,
-              captureExceptionCode: <code />,
-            }
-          )}
-        </p>
-        <AlertWithoutMarginBottom>
-          {tct(
-            "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryirisCode:sentryiris]!",
-            {sentryirisCode: <code />, sentryHubCode: <code />}
-          )}
-        </AlertWithoutMarginBottom>
-      </Fragment>
-    ),
-    configurations: [
-      {
-        language: 'go',
-        code: `
+Timeout time.Duration`;
+
+const getUsageSnippet = () => `
 app := iris.Default()
 
 app.Use(sentryiris.New(sentryiris.Options{
@@ -159,21 +88,11 @@ app.Get("/foo", func(ctx iris.Context) {
   panic("y tho")
 })
 
-app.Run(iris.Addr(":3000"))
-        `,
-      },
-      {
-        description: (
-          <strong>
-            {tct('Accessing Request in [beforeSendCode:BeforeSend] callback', {
-              beforeSendCode: <code />,
-            })}
-          </strong>
-        ),
-        language: 'go',
-        code: `
+app.Run(iris.Addr(":3000"))`;
+
+const getBeforeSendSnippet = params => `
 sentry.Init(sentry.ClientOptions{
-  Dsn: "${dsn}",
+  Dsn: "${params.dsn}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
     if hint.Context != nil {
       if req, ok := hint.Context.Value(sentry.RequestContextKey).(*http.Request); ok {
@@ -183,19 +102,106 @@ sentry.Init(sentry.ClientOptions{
 
     return event
   },
-})
-        `,
-      },
-    ],
-  },
-];
-// Configuration End
+})`;
 
-export function GettingStartedWithIris({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
-}
+const onboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct('Install our Go Iris SDK using [code:go get]:', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'bash',
+          code: 'go get github.com/getsentry/sentry-go/iris',
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Import and initialize the Sentry SDK early in your application's setup:"
+      ),
+      configurations: [
+        {
+          language: 'go',
+          code: getConfigureSnippet(params),
+        },
+        {
+          description: (
+            <Fragment>
+              <strong>{t('Options')}</strong>
+              <p>
+                {tct(
+                  '[sentryirisCode:sentryiris] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
+                  {sentryirisCode: <code />, optionsCode: <code />}
+                )}
+              </p>
+              {t('Currently it respects 3 options:')}
+            </Fragment>
+          ),
+          language: 'go',
+          code: getOptionsSnippet(),
+        },
+      ],
+    },
+    {
+      title: t('Usage'),
+      description: (
+        <Fragment>
+          <p>
+            {tct(
+              "[sentryirisCode:sentryiris] attaches an instance of [sentryHubLink:*sentry.Hub] to the [irisContextCode:iris.Context], which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentryiris.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
+              {
+                sentryirisCode: <code />,
+                sentryHubLink: (
+                  <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
+                ),
+                irisContextCode: <code />,
+                getHubFromContextCode: <code />,
+                captureMessageCode: <code />,
+                captureExceptionCode: <code />,
+              }
+            )}
+          </p>
+          <AlertWithoutMarginBottom>
+            {tct(
+              "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryirisCode:sentryiris]!",
+              {sentryirisCode: <code />, sentryHubCode: <code />}
+            )}
+          </AlertWithoutMarginBottom>
+        </Fragment>
+      ),
+      configurations: [
+        {
+          language: 'go',
+          code: getUsageSnippet(),
+        },
+        {
+          description: (
+            <strong>
+              {tct('Accessing Request in [beforeSendCode:BeforeSend] callback', {
+                beforeSendCode: <code />,
+              })}
+            </strong>
+          ),
+          language: 'go',
+          code: getBeforeSendSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+};
 
-export default GettingStartedWithIris;
+const docs: Docs = {
+  onboarding,
+};
+
+export default docs;
 
 const AlertWithoutMarginBottom = styled(Alert)`
   margin-bottom: 0;
