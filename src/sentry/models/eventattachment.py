@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -32,21 +33,31 @@ def event_attachment_screenshot_filter(queryset):
 class EventAttachment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
+    # the things we want to look up attachments by:
     project_id = BoundedBigIntegerField()
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
-    file_id = BoundedBigIntegerField(db_index=True)
+
+    # attachment and file metadata
     type = models.CharField(max_length=64, db_index=True)
     name = models.TextField()
+    content_type = models.TextField(null=True)
+    size = BoundedPositiveIntegerField(null=True)
+    sha1 = models.CharField(max_length=40, null=True)
+
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
+
+    # the backing blob, either going through the `File` model,
+    # or directly to a backing blob store
+    file_id = BoundedBigIntegerField(null=True, db_index=True)
+    blob_path = models.TextField(null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_eventattachment"
-        index_together = (("project_id", "date_added"), ("project_id", "date_added", "file_id"))
-        unique_together = (("project_id", "event_id", "file_id"),)
+        index_together = ("project_id", "date_added")
 
-    __repr__ = sane_repr("event_id", "name", "file_id")
+    __repr__ = sane_repr("event_id", "name")
 
     def delete(self, *args, **kwargs):
         from sentry.models.files.file import File
