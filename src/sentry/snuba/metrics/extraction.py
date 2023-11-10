@@ -351,7 +351,7 @@ def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]
     return transformed_query
 
 
-def _parse_search_query(query: str) -> Sequence[QueryToken]:
+def _parse_search_query(query: Optional[str]) -> Sequence[QueryToken]:
     """
     Parses a search query with the discover grammar and performs some transformations on the AST in order to account for
     edge cases.
