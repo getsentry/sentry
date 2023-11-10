@@ -254,7 +254,7 @@ function SpanDetail(props: Props) {
     );
   }
 
-  function renderViewSimilarSpansButton() {
+  function renderSpanDetailActions() {
     const {span, organization, event} = props;
 
     if (isGapSpan(span) || !span.op || !span.hash) {
@@ -478,7 +478,7 @@ function SpanDetail(props: Props) {
                   {profileId}
                 </Row>
               )}
-              <Row title="Description" extra={renderViewSimilarSpansButton()}>
+              <Row title="Description" extra={renderSpanDetailActions()}>
                 {span?.description ?? ''}
               </Row>
               <Row title="Status">{span.status || ''}</Row>
