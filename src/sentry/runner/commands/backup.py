@@ -11,9 +11,12 @@ from sentry.backup.findings import Finding, FindingJSONEncoder
 from sentry.backup.helpers import (
     DecryptionError,
     Decryptor,
+    Encryptor,
     GCPKMSDecryptor,
+    GCPKMSEncryptor,
     ImportFlags,
     LocalFileDecryptor,
+    LocalFileEncryptor,
     Side,
     create_encrypted_export_tarball,
     decrypt_encrypted_tarball,
@@ -67,6 +70,31 @@ ENCRYPT_WITH_HELP = """A path to the a public key with which to encrypt this exp
                        with `key.pub` to decrypt the DEK, which can then be used to decrypt the
                        export data in `export.json`."""
 
+ENCRYPT_WITH_GCP_KMS_HELP = """For users that want to avoid storing their own public keys, this
+                            flag can be used in lieu of `--encrypt-with` to retrieve those keys from
+                            Google Cloud's Key Management Service directly, avoiding ever storing
+                            them on the machine doing the encryption.
+
+                            This flag should point to a JSON file containing a single top-level
+                            object storing the `project-id`, `location`, `keyring`, `key`, and
+                            `version` of the desired asymmetric public key that pairs will be used
+                            to encrypt the final tarball being exported (for more information on
+                            these resource identifiers and how to set up KMS to use the, see:
+                            https://cloud.google.com/kms/docs/getting-resource-ids). An example
+                            version of this file might look like:
+
+                            ``` {
+                                "project_id": "my-google-cloud-project",
+                                "location": "global",
+                                "key_ring": "my-key-ring-name",
+                                "key": "my-key-name",
+                                "version": "1"
+                            }
+                            ```
+
+                            Property names must be spelled exactly as above, and the `version`
+                            field in particular must be a string, not an integer."""
+
 FINDINGS_FILE_HELP = """Optional file that records comparator findings, saved in the JSON format.
                      If left unset, no such file is written."""
 
@@ -110,13 +138,35 @@ def get_decryptor_from_flags(
 
     if decrypt_with is not None and decrypt_with_gcp_kms is not None:
         raise click.UsageError(
-            """`--decrypt-with` and `--decrypt-with-gcp-kms` are mutually exclusive options - you may use one or the other, but not both."""
+            """`--decrypt-with` and `--decrypt-with-gcp-kms` are mutually exclusive options - you
+            may use one or the other, but not both."""
         )
 
     if decrypt_with is not None:
         return LocalFileDecryptor(decrypt_with)
-    if decrypt_with_gcp_kms:
+    if decrypt_with_gcp_kms is not None:
         return GCPKMSDecryptor(decrypt_with_gcp_kms)
+    return None
+
+
+def get_encryptor_from_flags(
+    encrypt_with: BytesIO | None, encrypt_with_gcp_kms: BytesIO | None
+) -> Encryptor | None:
+    """
+    Helper function to select the right encryptor class based on the supplied flag: use GCP KMS, use
+    a local key, or don't encrypt at all.
+    """
+
+    if encrypt_with is not None and encrypt_with_gcp_kms is not None:
+        raise click.UsageError(
+            """`--encrypt-with` and `--encrypt-with-gcp-kms` are mutually exclusive options - you
+            may use one or the other, but not both."""
+        )
+
+    if encrypt_with is not None:
+        return LocalFileEncryptor(encrypt_with)
+    if encrypt_with_gcp_kms is not None:
+        return GCPKMSEncryptor(encrypt_with_gcp_kms)
     return None
 
 
@@ -312,9 +362,13 @@ def decrypt(dest, decrypt_with, decrypt_with_gcp_kms, src):
 @click.argument("dest", type=click.File("wb"))
 @click.option(
     "--encrypt-with",
-    required=True,
     type=click.File("rb"),
-    help="The file containing the public key RSA file to be used for encryption.",
+    help=ENCRYPT_WITH_HELP,
+)
+@click.option(
+    "--encrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_GCP_KMS_HELP,
 )
 @click.option(
     "--src",
@@ -323,17 +377,25 @@ def decrypt(dest, decrypt_with, decrypt_with_gcp_kms, src):
     help="The input JSON file that needs to be encrypted.",
 )
 @configuration
-def encrypt(dest, encrypt_with, src):
+def encrypt(dest, encrypt_with, encrypt_with_gcp_kms, src):
     """
     Encrypt an unencrypted raw JSON export into an encrypted tarball.
     """
+
+    # Encrypt the raw JSON file, if the user has indicated that this is desired by using either of
+    # the `--encrypt...` flags.
+    encryptor = get_encryptor_from_flags(encrypt_with, encrypt_with_gcp_kms)
+    if encryptor is None:
+        raise click.UsageError(
+            """You must specify one of `--encrypt-with` or `--encrypt-with-gcp-kms`."""
+        )
 
     try:
         data = json.load(src)
     except json.JSONDecodeError:
         click.echo("Invalid input JSON", err=True)
 
-    encrypted = create_encrypted_export_tarball(data, encrypt_with)
+    encrypted = create_encrypted_export_tarball(data, encryptor)
     with dest:
         dest.write(encrypted.getbuffer())
 
@@ -594,6 +656,11 @@ def export():
     help=ENCRYPT_WITH_HELP,
 )
 @click.option(
+    "--encrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
     "--filter-usernames",
     "--filter_usernames",  # For backwards compatibility with self-hosted@23.10.0
     default="",
@@ -615,7 +682,15 @@ def export():
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_users(dest, encrypt_with, filter_usernames, findings_file, indent, silent):
+def export_users(
+    dest,
+    encrypt_with,
+    encrypt_with_gcp_kms,
+    filter_usernames,
+    findings_file,
+    indent,
+    silent,
+):
     """
     Export all Sentry users in the JSON format.
     """
@@ -626,7 +701,7 @@ def export_users(dest, encrypt_with, filter_usernames, findings_file, indent, si
     with write_export_findings(findings_file, printer):
         export_in_user_scope(
             dest,
-            encrypt_with=encrypt_with,
+            encryptor=get_encryptor_from_flags(encrypt_with, encrypt_with_gcp_kms),
             indent=indent,
             user_filter=parse_filter_arg(filter_usernames),
             printer=printer,
@@ -640,6 +715,11 @@ def export_users(dest, encrypt_with, filter_usernames, findings_file, indent, si
     "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
+)
+@click.option(
+    "--encrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_GCP_KMS_HELP,
 )
 @click.option(
     "--filter-org-slugs",
@@ -664,7 +744,15 @@ def export_users(dest, encrypt_with, filter_usernames, findings_file, indent, si
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_organizations(dest, encrypt_with, filter_org_slugs, findings_file, indent, silent):
+def export_organizations(
+    dest,
+    encrypt_with,
+    encrypt_with_gcp_kms,
+    filter_org_slugs,
+    findings_file,
+    indent,
+    silent,
+):
     """
     Export all Sentry organizations, and their constituent users, in the JSON format.
     """
@@ -675,7 +763,7 @@ def export_organizations(dest, encrypt_with, filter_org_slugs, findings_file, in
     with write_export_findings(findings_file, printer):
         export_in_organization_scope(
             dest,
-            encrypt_with=encrypt_with,
+            encryptor=get_encryptor_from_flags(encrypt_with, encrypt_with_gcp_kms),
             indent=indent,
             org_filter=parse_filter_arg(filter_org_slugs),
             printer=printer,
@@ -691,6 +779,11 @@ def export_organizations(dest, encrypt_with, filter_org_slugs, findings_file, in
     help=ENCRYPT_WITH_HELP,
 )
 @click.option(
+    "--encrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
     "--findings-file",
     type=click.File("w"),
     required=False,
@@ -704,7 +797,14 @@ def export_organizations(dest, encrypt_with, filter_org_slugs, findings_file, in
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_config(dest, encrypt_with, findings_file, indent, silent):
+def export_config(
+    dest,
+    encrypt_with,
+    encrypt_with_gcp_kms,
+    findings_file,
+    indent,
+    silent,
+):
     """
     Export all configuration and administrator accounts needed to set up this Sentry instance.
     """
@@ -715,7 +815,7 @@ def export_config(dest, encrypt_with, findings_file, indent, silent):
     with write_export_findings(findings_file, printer):
         export_in_config_scope(
             dest,
-            encrypt_with=encrypt_with,
+            encryptor=get_encryptor_from_flags(encrypt_with, encrypt_with_gcp_kms),
             indent=indent,
             printer=printer,
         )
@@ -730,6 +830,11 @@ def export_config(dest, encrypt_with, findings_file, indent, silent):
     help=ENCRYPT_WITH_HELP,
 )
 @click.option(
+    "--encrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
     "--findings-file",
     type=click.File("w"),
     required=False,
@@ -743,7 +848,14 @@ def export_config(dest, encrypt_with, findings_file, indent, silent):
 )
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def export_global(dest, encrypt_with, findings_file, indent, silent):
+def export_global(
+    dest,
+    encrypt_with,
+    encrypt_with_gcp_kms,
+    findings_file,
+    indent,
+    silent,
+):
     """
     Export all Sentry data in the JSON format.
     """
@@ -754,7 +866,7 @@ def export_global(dest, encrypt_with, findings_file, indent, silent):
     with write_export_findings(findings_file, printer):
         export_in_global_scope(
             dest,
-            encrypt_with=encrypt_with,
+            encryptor=get_encryptor_from_flags(encrypt_with, encrypt_with_gcp_kms),
             indent=indent,
             printer=printer,
         )

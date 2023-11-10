@@ -84,7 +84,7 @@ class SanitizationTests(ImportTestCase):
     Ensure that potentially damaging data is properly scrubbed at import time.
     """
 
-    def test_user_sanitized_in_user_scope(self):
+    def test_users_sanitized_in_user_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -123,7 +123,7 @@ class SanitizationTests(ImportTestCase):
             assert UserRole.objects.count() == 0
             assert UserRoleUser.objects.count() == 0
 
-    def test_user_sanitized_in_organization_scope(self):
+    def test_users_sanitized_in_organization_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)

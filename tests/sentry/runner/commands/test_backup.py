@@ -12,7 +12,9 @@ from google_crc32c import value as crc32c
 
 from sentry.backup.helpers import (
     DecryptionError,
+    EncryptionError,
     LocalFileDecryptor,
+    LocalFileEncryptor,
     create_encrypted_export_tarball,
     unwrap_encrypted_export_tarball,
 )
@@ -65,7 +67,7 @@ def create_encryption_test_files(tmp_dir: str) -> tuple[Path, Path, Path]:
 
     tmp_tar_path = Path(tmp_dir).joinpath("input.tar")
     with open(tmp_tar_path, "wb") as i, open(tmp_pub_key_path, "rb") as p:
-        i.write(create_encrypted_export_tarball(data, p).getvalue())
+        i.write(create_encrypted_export_tarball(data, LocalFileEncryptor(p)).getvalue())
 
     return (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path)
 
@@ -305,6 +307,7 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
     )
     def test_use_gcp_kms(self, fake_kms_client: FakeKeyManagementServiceClient):
         fake_kms_client.asymmetric_decrypt.call_count = 0
+        fake_kms_client.get_public_key.call_count = 0
 
         with TemporaryDirectory() as tmp_dir:
             tmp_decrypted_path = Path(tmp_dir).joinpath("decrypted.tar")
@@ -324,6 +327,12 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
                     """
                 )
 
+            # Mock out the GCP KMS reply for the public key retrieval.
+            with open(tmp_pub_key_path, "rb") as f:
+                fake_kms_client.get_public_key.return_value = SimpleNamespace(
+                    pem=f.read().decode("utf-8")
+                )
+
             rv = CliRunner().invoke(
                 backup,
                 [
@@ -331,8 +340,8 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
                     str(tmp_encrypted_path),
                     "--src",
                     GOOD_FILE_PATH,
-                    "--encrypt-with",
-                    str(tmp_pub_key_path),
+                    "--encrypt-with-gcp-kms",
+                    str(gcp_kms_config_path),
                 ],
             )
             assert rv.exit_code == 0, rv.output
@@ -441,7 +450,8 @@ class GoodImportExportCommandTests(TransactionTestCase):
 
 class GoodImportExportCommandEncryptionTests(TransactionTestCase):
     """
-    Ensure that encryption using an `--encrypt-with` file works as expected.
+    Ensure that encryption using an `--encrypt-with`/`--encrypt-with-gcp-kms` flag and decryption
+    using a `decrypt-with`/`decrypt-with-gcp-kms` works as expected.
     """
 
     @staticmethod
@@ -471,7 +481,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                 tmp_dir
             )
 
-            # Mock out the GCP KMS reply by decrypting the DEK here.
+            # Mock out the GCP KMS replies.
             with open(tmp_tar_path, "rb") as f:
                 unwrapped_tarball = unwrap_encrypted_export_tarball(f)
             with open(tmp_priv_key_path, "rb") as f:
@@ -479,6 +489,10 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                 fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
                     plaintext=plaintext_dek,
                     plaintext_crc32c=crc32c(plaintext_dek),
+                )
+            with open(tmp_pub_key_path, "rb") as f:
+                fake_kms_client.get_public_key.return_value = SimpleNamespace(
+                    pem=f.read().decode("utf-8")
                 )
 
             gcp_kms_config_path = Path(tmp_dir).joinpath("config.json")
@@ -509,7 +523,8 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
 
             tmp_output_path = Path(tmp_dir).joinpath("output.tar")
             rv = CliRunner().invoke(
-                export, [scope, str(tmp_output_path), "--encrypt-with", str(tmp_pub_key_path)]
+                export,
+                [scope, str(tmp_output_path), "--encrypt-with-gcp-kms", str(gcp_kms_config_path)],
             )
             assert rv.exit_code == 0, rv.output
 
@@ -598,6 +613,30 @@ class BadImportExportCommandTests(TestCase):
             assert isinstance(rv.exception, ValueError)
             assert rv.exit_code == 1
             assert "Could not deserialize" in str(rv.exception)
+
+    def test_export_invalid_gcp_kms_config(self):
+        with TemporaryDirectory() as tmp_dir:
+            (_, _, tmp_tar_path) = create_encryption_test_files(tmp_dir)
+            gcp_kms_config_path = Path(tmp_dir).joinpath("config.json")
+            with open(gcp_kms_config_path, "w") as f:
+                f.write(
+                    """
+                    {
+                        "project_id": "test-google-cloud-project",
+                        "location": "global",
+                        "key_ring": "test-key-ring-name",
+                        "key": "test-key-name",
+                        "version_is_misspelled_and_has_int_instead_of_string": 1
+                    }
+                    """
+                )
+
+            rv = CliRunner().invoke(
+                export,
+                ["global", str(tmp_tar_path), "--encrypt-with-gcp-kms", str(gcp_kms_config_path)],
+            )
+            assert isinstance(rv.exception, EncryptionError)
+            assert rv.exit_code == 1
 
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
     def test_import_in_control_silo(self):
