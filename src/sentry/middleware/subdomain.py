@@ -41,7 +41,7 @@ class SubdomainMiddleware:
             url_prefix = options.get("system.url-prefix")
             logger.info(
                 "subdomain.disallowed_host",
-                extra={"location": url_prefix, "host": request.get_host()},
+                extra={"location": url_prefix, "uri": request.get_raw_uri()},
             )
             return HttpResponseRedirect(url_prefix)
 
