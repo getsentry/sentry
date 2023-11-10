@@ -30,7 +30,8 @@ class OrderedTask(Enum):
     VALIDATING_POLL = 7
     VALIDATING_COMPLETE = 8
     IMPORTING = 9
-    COMPLETED = 10
+    POSTPROCESSING = 10
+    COMPLETED = 11
 
 
 # The file type for a relocation export tarball of any kind.
