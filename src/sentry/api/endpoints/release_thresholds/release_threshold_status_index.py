@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, TypedDict
 
 from dateutil import parser
@@ -235,8 +235,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     thresholds_by_type[threshold.threshold_type]["releases"].append(release.version)
                     if threshold.threshold_type not in query_windows_by_type:
                         query_windows_by_type[threshold.threshold_type] = {
-                            "start": datetime.utcnow(),
-                            "end": datetime.utcnow(),
+                            "start": datetime.now(tz=timezone.utc),
+                            "end": datetime.now(tz=timezone.utc),
                         }
                     # NOTE: query window starts at the earliest release up until the latest threshold window
                     query_windows_by_type[threshold.threshold_type]["start"] = min(
