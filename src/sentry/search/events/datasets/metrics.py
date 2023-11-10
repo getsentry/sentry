@@ -32,6 +32,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
             "environment": self.builder._environment_filter_converter,
             "transaction": self._transaction_filter_converter,
+            "transaction.status": self._transaction_status_converter,
             "tags[transaction]": self._transaction_filter_converter,
             constants.TITLE_ALIAS: self._transaction_filter_converter,
             constants.RELEASE_ALIAS: self._release_filter_converter,
@@ -890,6 +891,17 @@ class MetricsDatasetConfig(DatasetConfig):
             )
 
         return Condition(self.builder.resolve_column("transaction"), Op(operator), value)
+
+    def _transaction_status_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        operator = search_filter.operator
+        value = search_filter.value.value
+
+        # For backward compatibility, `unknown_error` is converted to `unknown`, since Relay always emits `unknown`
+        # `transaction.status`.
+        if value == "unknown_error":
+            value = "unknown"
+
+        return Condition(self.builder.resolve_column("transaction.status"), Op(operator), value)
 
     # Query Functions
     def _resolve_count_if(
