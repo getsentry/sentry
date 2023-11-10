@@ -312,6 +312,53 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
+def _transform_search_filter(search_filter: SearchFilter) -> SearchFilter:
+    # If we have `message:something` we convert it to `message:*something*` since we want to perform `contains` matching
+    # exactly how discover does it.
+    if search_filter.key.name == "message":
+        return SearchFilter(
+            key=SearchKey(name=search_filter.key.name),
+            operator=search_filter.operator,
+            value=SearchValue(raw_value=f"*{search_filter.value.raw_value}*"),
+        )
+
+    # If we have `transaction.status:unknown_error` we convert it to `transaction.status:unknown` since we need to be
+    # backward compatible.
+    if (
+        search_filter.key.name == "transaction.status"
+        and search_filter.value.raw_value == "unknown_error"
+    ):
+        return SearchFilter(
+            key=SearchKey(name=search_filter.key.name),
+            operator=search_filter.operator,
+            value=SearchValue(raw_value="unknown"),
+        )
+
+    return search_filter
+
+
+def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    transformed_query = []
+
+    for token in query:
+        if isinstance(token, SearchFilter):
+            transformed_query.append(_transform_search_filter(token))
+        elif isinstance(token, ParenExpression):
+            transformed_query.append(ParenExpression(_transform_search_query(token.children)))
+        else:
+            transformed_query.append(token)
+
+    return transformed_query
+
+
+def _parse_search_query(query: str) -> Sequence[QueryToken]:
+    """
+    Parses a search query with the discover grammar and performs some transformations on the AST in order to account for
+    edge cases.
+    """
+    return _transform_search_query(event_search.parse_search_query(query))
+
+
 @dataclass(frozen=True)
 class SupportedBy:
     """Result of a check for standard and on-demand metric support."""
@@ -456,7 +503,7 @@ def _get_groupbys_support(groupbys: Sequence[str]) -> SupportedBy:
 
 def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
     try:
-        parsed_query = event_search.parse_search_query(query)
+        parsed_query = _parse_search_query(query)
 
         standard_metrics = _is_standard_metrics_query(parsed_query)
         on_demand_metrics = _is_on_demand_supported_query(parsed_query)
@@ -574,7 +621,7 @@ def to_standard_metrics_query(query: str) -> str:
         "transaction.duration:>=1s AND browser.version:1" -> ""
     """
     try:
-        tokens = event_search.parse_search_query(query)
+        tokens = _parse_search_query(query)
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         raise
@@ -1149,7 +1196,7 @@ class OnDemandMetricSpec:
     def _parse_query(value: str) -> QueryParsingResult:
         """Parse query string into our internal AST format."""
         try:
-            conditions = event_search.parse_search_query(value)
+            conditions = _parse_search_query(value)
             clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
             return QueryParsingResult(conditions=clean_conditions)
         except InvalidSearchQuery as e:
@@ -1322,15 +1369,6 @@ class SearchQueryConverter:
         operator = _SEARCH_TO_RELAY_OPERATORS.get(token.operator)
         if not operator:
             raise ValueError(f"Unsupported operator {token.operator}")
-
-        # If we have a `message` field, we want to convert it to a glob matching, since in the UI `message` will perform
-        # a contains style match.
-        if token.key.name == "message":
-            token = SearchFilter(
-                key=SearchKey(name=token.key.name),
-                operator=token.operator,
-                value=SearchValue(raw_value=f"*{token.value.raw_value}*"),
-            )
 
         # We propagate the filter in order to give as output a better error message with more context.
         key: str = token.key.name

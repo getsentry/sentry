@@ -447,6 +447,23 @@ def test_spec_with_message():
     }
 
 
+def test_spec_with_unknown_error_status():
+    spec = OnDemandMetricSpec(
+        "avg(measurements.lcp)", "transaction.status:unknown_error OR transaction.status:unknown"
+    )
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.contexts.trace.status", "op": "eq", "value": "unknown"},
+            {"name": "event.contexts.trace.status", "op": "eq", "value": "unknown"},
+        ],
+        "op": "or",
+    }
+
+
 def test_spec_ignore_fields():
     with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
     without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
