@@ -99,8 +99,8 @@ export const shouldUseOnDemandMetrics = (
     return false;
   }
 
-  if (onDemandControlContext && onDemandControlContext.forceOnDemand) {
-    return true;
+  if (onDemandControlContext && onDemandControlContext.isControlEnabled) {
+    return onDemandControlContext.forceOnDemand;
   }
 
   return _isOnDemandMetricWidget(widget);

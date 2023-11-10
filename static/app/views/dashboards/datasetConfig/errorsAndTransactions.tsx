@@ -50,7 +50,10 @@ import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
+import {
+  OnDemandControlContext,
+  shouldUseOnDemandMetrics,
+} from 'sentry/utils/performance/contexts/onDemandControl';
 import {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -119,6 +122,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     query: WidgetQuery,
     organization: Organization,
     pageFilters: PageFilters,
+    onDemandControlContext?: OnDemandControlContext,
     limit?: number,
     cursor?: string,
     referrer?: string,
@@ -126,11 +130,13 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   ) => {
     const url = `/organizations/${organization.slug}/events/`;
 
-    const queryExtras = shouldUseOnDemandMetrics(organization, widget)
-      ? {
-          useOnDemandMetrics: true,
-        }
-      : undefined;
+    const queryExtras = {
+      useOnDemandMetrics: shouldUseOnDemandMetrics(
+        organization,
+        widget,
+        onDemandControlContext
+      ),
+    };
     return getEventsRequest(
       url,
       api,
@@ -481,7 +487,7 @@ function getEventsRequest(
     cursor,
     referrer,
     ...getDashboardsMEPQueryParams(isMEPEnabled),
-    queryExtras,
+    ...queryExtras,
   };
 
   if (query.orderby) {
@@ -512,6 +518,7 @@ function getEventsSeriesRequest(
   queryIndex: number,
   organization: Organization,
   pageFilters: PageFilters,
+  onDemandControlContext?: OnDemandControlContext,
   referrer?: string,
   mepSetting?: MEPState | null
 ) {
@@ -600,7 +607,7 @@ function getEventsSeriesRequest(
     }
   }
 
-  if (shouldUseOnDemandMetrics(organization, widget)) {
+  if (shouldUseOnDemandMetrics(organization, widget, onDemandControlContext)) {
     return doOnDemandMetricsRequest(api, requestData);
   }
 

@@ -20,6 +20,7 @@ import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 
@@ -75,6 +76,7 @@ export const ReleasesConfig: DatasetConfig<
     query: WidgetQuery,
     organization: Organization,
     pageFilters: PageFilters,
+    __?: OnDemandControlContext,
     limit?: number,
     cursor?: string
   ) =>

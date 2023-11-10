@@ -167,7 +167,7 @@ function WidgetQueries({
 
   return (
     <OnDemandControlConsumer>
-      {value => (
+      {OnDemandControlContext => (
         <GenericWidgetQueries<SeriesResult, TableResult>
           config={config}
           api={api}
@@ -181,7 +181,8 @@ function WidgetQueries({
           afterFetchSeriesData={afterFetchSeriesData}
           afterFetchTableData={afterFetchTableData}
           mepSetting={mepSettingContext.metricSettingState}
-          {...value}
+          onDemandControlContext={OnDemandControlContext}
+          {...OnDemandControlContext}
         >
           {children}
         </GenericWidgetQueries>
