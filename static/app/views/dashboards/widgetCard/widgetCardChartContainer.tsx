@@ -11,7 +11,6 @@ import {Organization, PageFilters} from 'sentry/types';
 import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -152,57 +151,52 @@ export function WidgetCardChartContainer({
   }
 
   return (
-    <OnDemandControlConsumer>
-      {value => (
-        <WidgetQueries
-          api={api}
-          organization={organization}
-          widget={widget}
-          selection={selection}
-          limit={tableItemLimit}
-          onDataFetched={onDataFetched}
-          dashboardFilters={dashboardFilters}
-          {...value}
-        >
-          {({
-            tableResults,
-            timeseriesResults,
-            errorMessage,
-            loading,
-            timeseriesResultsTypes,
-          }) => {
-            return (
-              <Fragment>
-                {typeof renderErrorMessage === 'function'
-                  ? renderErrorMessage(errorMessage)
-                  : null}
-                <WidgetCardChart
-                  timeseriesResults={timeseriesResults}
-                  tableResults={tableResults}
-                  errorMessage={errorMessage}
-                  loading={loading}
-                  location={location}
-                  widget={widget}
-                  selection={selection}
-                  router={router}
-                  organization={organization}
-                  isMobile={isMobile}
-                  windowWidth={windowWidth}
-                  onZoom={onZoom}
-                  onLegendSelectChanged={onLegendSelectChanged}
-                  legendOptions={legendOptions}
-                  expandNumbers={expandNumbers}
-                  showSlider={showSlider}
-                  noPadding={noPadding}
-                  chartZoomOptions={chartZoomOptions}
-                  timeseriesResultsTypes={timeseriesResultsTypes}
-                />
-              </Fragment>
-            );
-          }}
-        </WidgetQueries>
-      )}
-    </OnDemandControlConsumer>
+    <WidgetQueries
+      api={api}
+      organization={organization}
+      widget={widget}
+      selection={selection}
+      limit={tableItemLimit}
+      onDataFetched={onDataFetched}
+      dashboardFilters={dashboardFilters}
+    >
+      {({
+        tableResults,
+        timeseriesResults,
+        errorMessage,
+        loading,
+        timeseriesResultsTypes,
+      }) => {
+        return (
+          <Fragment>
+            {typeof renderErrorMessage === 'function'
+              ? renderErrorMessage(errorMessage)
+              : null}
+            <WidgetCardChart
+              timeseriesResults={timeseriesResults}
+              tableResults={tableResults}
+              errorMessage={errorMessage}
+              loading={loading}
+              location={location}
+              widget={widget}
+              selection={selection}
+              router={router}
+              organization={organization}
+              isMobile={isMobile}
+              windowWidth={windowWidth}
+              onZoom={onZoom}
+              onLegendSelectChanged={onLegendSelectChanged}
+              legendOptions={legendOptions}
+              expandNumbers={expandNumbers}
+              showSlider={showSlider}
+              noPadding={noPadding}
+              chartZoomOptions={chartZoomOptions}
+              timeseriesResultsTypes={timeseriesResultsTypes}
+            />
+          </Fragment>
+        );
+      }}
+    </WidgetQueries>
   );
 }
 

@@ -32,10 +32,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {
-  OnDemandControlConsumer,
-  OnDemandControlProvider,
-} from 'sentry/utils/performance/contexts/onDemandControl';
+import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -901,26 +898,21 @@ class DashboardDetail extends Component<Props, State> {
                             />
 
                             <WidgetViewerContext.Provider value={{seriesData, setData}}>
-                              <OnDemandControlConsumer>
-                                {value => (
-                                  <Dashboard
-                                    paramDashboardId={dashboardId}
-                                    dashboard={modifiedDashboard ?? dashboard}
-                                    organization={organization}
-                                    isEditing={this.isEditing}
-                                    widgetLimitReached={widgetLimitReached}
-                                    onUpdate={this.onUpdateWidget}
-                                    handleUpdateWidgetList={this.handleUpdateWidgetList}
-                                    handleAddCustomWidget={this.handleAddCustomWidget}
-                                    router={router}
-                                    location={location}
-                                    newWidget={newWidget}
-                                    onSetNewWidget={onSetNewWidget}
-                                    isPreview={this.isPreview}
-                                    {...value}
-                                  />
-                                )}
-                              </OnDemandControlConsumer>
+                              <Dashboard
+                                paramDashboardId={dashboardId}
+                                dashboard={modifiedDashboard ?? dashboard}
+                                organization={organization}
+                                isEditing={this.isEditing}
+                                widgetLimitReached={widgetLimitReached}
+                                onUpdate={this.onUpdateWidget}
+                                handleUpdateWidgetList={this.handleUpdateWidgetList}
+                                handleAddCustomWidget={this.handleAddCustomWidget}
+                                router={router}
+                                location={location}
+                                newWidget={newWidget}
+                                onSetNewWidget={onSetNewWidget}
+                                isPreview={this.isPreview}
+                              />
                             </WidgetViewerContext.Provider>
                           </MEPSettingProvider>
                         )}
