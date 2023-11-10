@@ -1422,9 +1422,107 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
 };
 
+export enum FeedbackFieldKey {
+  BROWSER_NAME = 'browser.name',
+  BROWSER_VERSION = 'browser.version',
+  EMAIL = 'contact_email',
+  LOCALE_LANG = 'locale.lang',
+  LOCALE_TIMEZONE = 'locale.timezone',
+  MESSAGE = 'message',
+  NAME = 'name',
+  OS_NAME = 'os.name',
+  OS_VERSION = 'os.version',
+  URL = 'url',
+}
+
+export const FEEDBACK_FIELDS = [
+  FieldKey.ASSIGNED,
+  FeedbackFieldKey.BROWSER_NAME,
+  FeedbackFieldKey.BROWSER_VERSION,
+  FieldKey.DEVICE_BRAND,
+  FieldKey.DEVICE_FAMILY,
+  FieldKey.DEVICE_MODEL_ID,
+  FieldKey.DEVICE_NAME,
+  FieldKey.DIST,
+  FeedbackFieldKey.EMAIL,
+  FieldKey.ENVIRONMENT,
+  FieldKey.ID,
+  FieldKey.IS,
+  FieldKey.LEVEL,
+  FeedbackFieldKey.LOCALE_LANG,
+  FeedbackFieldKey.LOCALE_TIMEZONE,
+  FeedbackFieldKey.MESSAGE,
+  FeedbackFieldKey.NAME,
+  FeedbackFieldKey.OS_NAME,
+  FeedbackFieldKey.OS_VERSION,
+  FieldKey.PLATFORM,
+  FieldKey.SDK_NAME,
+  FieldKey.SDK_VERSION,
+  FieldKey.TIMESTAMP,
+  FieldKey.TRANSACTION,
+  FeedbackFieldKey.URL,
+  FieldKey.USER_EMAIL,
+  FieldKey.USER_ID,
+  FieldKey.USER_IP,
+  FieldKey.USER_USERNAME,
+];
+
+const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
+  [FeedbackFieldKey.BROWSER_NAME]: {
+    desc: t('Name of the browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.BROWSER_VERSION]: {
+    desc: t('Version number of the browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.EMAIL]: {
+    desc: t('Contact email of the user writing the feedback'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.LOCALE_LANG]: {
+    desc: t('Language preference of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.LOCALE_TIMEZONE]: {
+    desc: t('Timezone the feedback was submitted from'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.MESSAGE]: {
+    desc: t('Message written by the user providing feedback'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.NAME]: {
+    desc: t('Name of the user writing feedback'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.OS_NAME]: {
+    desc: t('Name of the Operating System'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.OS_VERSION]: {
+    desc: t('Version number of the Operating System'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.URL]: {
+    desc: t('URL of the page that the feedback is triggered on'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' = 'event'
+  type: 'event' | 'replay' | 'replay_click' | 'feedback' = 'event'
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
@@ -1435,6 +1533,14 @@ export const getFieldDefinition = (
         return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
+        return EVENT_FIELD_DEFINITIONS[key];
+      }
+      return null;
+    case 'feedback':
+      if (key in FEEDBACK_FIELD_DEFINITIONS) {
+        return FEEDBACK_FIELD_DEFINITIONS[key];
+      }
+      if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
