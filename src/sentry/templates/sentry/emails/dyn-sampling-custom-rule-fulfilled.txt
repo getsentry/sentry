@@ -1,0 +1,7 @@
+Hello {{ display_name }},
+
+We've collected {{ num_samples }} samples for the following search query:
+{{ query }}
+
+You can view the samples here:
+{{ discover_link|safe }}
