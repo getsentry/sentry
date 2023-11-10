@@ -1129,7 +1129,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         )
 
         mock_logger_exception.assert_any_call(
-            "process_commit_context.get_commit_context_all_frames.unknown_error",
+            "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
             extra={
                 "organization": self.organization.id,
                 "group": self.event.group_id,

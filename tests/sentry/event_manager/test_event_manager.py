@@ -2472,6 +2472,23 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             },
         )
 
+    @patch("sentry.event_manager.metrics.incr")
+    def test_new_group_metrics_logging_sdk_exist_but_null(
+        self, mock_metrics_incr: MagicMock
+    ) -> None:
+        manager = EventManager(make_event(platform=None, sdk={"name": None}))
+        manager.normalize()
+        manager.save(self.project.id)
+
+        mock_metrics_incr.assert_any_call(
+            "group.created",
+            skip_internal=True,
+            tags={
+                "platform": "other",
+                "sdk": "other",
+            },
+        )
+
     def test_new_group_metrics_logging_with_frame_mix(self) -> None:
         with patch("sentry.event_manager.metrics.incr") as mock_metrics_incr:
             manager = EventManager(

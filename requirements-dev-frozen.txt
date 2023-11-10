@@ -168,9 +168,9 @@ rfc3986-validator==0.1.1
 rsa==4.8
 s3transfer==0.6.1
 selenium==4.3.0
-sentry-arroyo==2.14.18
+sentry-arroyo==2.14.19
 sentry-cli==2.16.0
-sentry-forked-django-stubs==4.2.6.post2
+sentry-forked-django-stubs==4.2.6.post3
 sentry-forked-djangorestframework-stubs==3.14.4.post2
 sentry-kafka-schemas==0.1.34
 sentry-redis-tools==0.1.7

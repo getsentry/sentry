@@ -1705,7 +1705,7 @@
       "file_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.file",
-        "nullable": false
+        "nullable": true
       },
       "group_id": {
         "kind": "ImplicitForeignKey",
@@ -1725,13 +1725,7 @@
       "Region"
     ],
     "table_name": "sentry_eventattachment",
-    "uniques": [
-      [
-        "event_id",
-        "file_id",
-        "project_id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.eventprocessingissue": {
     "dangling": false,
@@ -4991,20 +4985,11 @@
   },
   "sentry.relocation": {
     "dangling": false,
-    "foreign_keys": {
-      "creator": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      },
-      "owner": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      }
-    },
+    "foreign_keys": {},
     "model": "sentry.relocation",
-    "relocation_dependencies": [],
+    "relocation_dependencies": [
+      "sentry.user"
+    ],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"

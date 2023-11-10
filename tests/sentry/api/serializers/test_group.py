@@ -22,8 +22,6 @@ from sentry.notifications.types import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
@@ -154,11 +152,9 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
             user_id=user.id, group=group, project=group.project, is_active=True
         )
 
-        for use_v2 in [False, True]:
-            with Feature({"organizations:notification-settings-v2", use_v2}):
-                result = serialize(group, user)
-                assert result["isSubscribed"]
-                assert result["subscriptionDetails"] == {"reason": "unknown"}
+        result = serialize(group, user)
+        assert result["isSubscribed"]
+        assert result["subscriptionDetails"] == {"reason": "unknown"}
 
     def test_explicit_unsubscribed(self):
         user = self.create_user()
@@ -168,129 +164,11 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
             user_id=user.id, group=group, project=group.project, is_active=False
         )
 
-        for use_v2 in [False, True]:
-            with Feature({"organizations:notification-settings-v2", use_v2}):
-                result = serialize(group, user)
-                assert not result["isSubscribed"]
-                assert not result["subscriptionDetails"]
+        result = serialize(group, user)
+        assert not result["isSubscribed"]
+        assert not result["subscriptionDetails"]
 
     def test_implicit_subscribed(self):
-        user = self.create_user()
-        group = self.create_group()
-
-        combinations = (
-            # (default, project, subscribed, has_details)
-            (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.DEFAULT,
-                True,
-                False,
-            ),
-            (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.ALWAYS,
-                True,
-                False,
-            ),
-            (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                False,
-                False,
-            ),
-            (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.NEVER,
-                False,
-                True,
-            ),
-            (
-                NotificationSettingOptionValues.DEFAULT,
-                NotificationSettingOptionValues.DEFAULT,
-                False,
-                False,
-            ),
-            (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.DEFAULT,
-                False,
-                False,
-            ),
-            (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.ALWAYS,
-                True,
-                False,
-            ),
-            (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                False,
-                False,
-            ),
-            (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.NEVER,
-                False,
-                True,
-            ),
-            (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.DEFAULT,
-                False,
-                True,
-            ),
-            (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.ALWAYS,
-                True,
-                False,
-            ),
-            (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                False,
-                False,
-            ),
-            (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.NEVER,
-                False,
-                True,
-            ),
-        )
-
-        for default_value, project_value, is_subscribed, has_details in combinations:
-            UserOption.objects.clear_local_cache()
-
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-                    NotificationSetting.objects.update_settings(
-                        provider,
-                        NotificationSettingTypes.WORKFLOW,
-                        default_value,
-                        user_id=user.id,
-                    )
-                    NotificationSetting.objects.update_settings(
-                        provider,
-                        NotificationSettingTypes.WORKFLOW,
-                        project_value,
-                        user_id=user.id,
-                        project=group.project,
-                    )
-
-            result = serialize(group, user)
-            subscription_details = result.get("subscriptionDetails")
-
-            assert result["isSubscribed"] is is_subscribed
-            assert (
-                subscription_details == {"disabled": True}
-                if has_details
-                else subscription_details is None
-            )
-
-    @with_feature("organizations:notification-settings-v2")
-    def test_implicit_subscribed_v2(self):
         user = self.create_user()
         group = self.create_group()
 
@@ -487,11 +365,9 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                 user_id=user.id,
             )
 
-        for use_v2 in [False, True]:
-            with Feature({"organizations:notification-settings-v2", use_v2}):
-                result = serialize(group, user)
-                assert not result["isSubscribed"]
-                assert result["subscriptionDetails"] == {"disabled": True}
+        result = serialize(group, user)
+        assert not result["isSubscribed"]
+        assert result["subscriptionDetails"] == {"disabled": True}
 
     def test_project_no_conversations_overrides_group_subscription(self):
         user = self.create_user()
@@ -526,19 +402,14 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                 user_id=user.id,
             )
 
-        for use_v2 in [False, True]:
-            with Feature({"organizations:notification-settings-v2", use_v2}):
-                result = serialize(group, user)
-                assert not result["isSubscribed"]
-                assert result["subscriptionDetails"] == {"disabled": True}
+        result = serialize(group, user)
+        assert not result["isSubscribed"]
+        assert result["subscriptionDetails"] == {"disabled": True}
 
     def test_no_user_unsubscribed(self):
         group = self.create_group()
-
-        for use_v2 in [False, True]:
-            with Feature({"organizations:notification-settings-v2", use_v2}):
-                result = serialize(group)
-                assert not result["isSubscribed"]
+        result = serialize(group)
+        assert not result["isSubscribed"]
 
     def test_reprocessing(self):
         from sentry.reprocessing2 import start_group_reprocessing

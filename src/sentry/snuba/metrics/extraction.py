@@ -1323,6 +1323,15 @@ class SearchQueryConverter:
         if not operator:
             raise ValueError(f"Unsupported operator {token.operator}")
 
+        # If we have a `message` field, we want to convert it to a glob matching, since in the UI `message` will perform
+        # a contains style match.
+        if token.key.name == "message":
+            token = SearchFilter(
+                key=SearchKey(name=token.key.name),
+                operator=token.operator,
+                value=SearchValue(raw_value=f"*{token.value.raw_value}*"),
+            )
+
         # We propagate the filter in order to give as output a better error message with more context.
         key: str = token.key.name
         value: Any = token.value.raw_value

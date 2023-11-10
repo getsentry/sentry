@@ -5,6 +5,8 @@ import {Button} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconAdd} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 
@@ -13,6 +15,7 @@ import {MetricWidget, useMetricWidgets} from './widget';
 export function MetricScratchpad() {
   const {widgets, onChange, addWidget} = useMetricWidgets();
   const {selection} = usePageFilters();
+  const organization = useOrganization();
 
   const Wrapper =
     widgets.length === 1 ? StyledSingleWidgetWrapper : StyledMetricDashboard;
@@ -35,7 +38,15 @@ export function MetricScratchpad() {
           environments={selection.environments}
         />
       ))}
-      <AddWidgetPanel onClick={addWidget}>
+      <AddWidgetPanel
+        onClick={() => {
+          trackAnalytics('ddm.widget.add', {
+            organization: organization.slug,
+          });
+
+          addWidget();
+        }}
+      >
         <Button icon={<IconAdd isCircled />}>Add widget</Button>
       </AddWidgetPanel>
     </Wrapper>
