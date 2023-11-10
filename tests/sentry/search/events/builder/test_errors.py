@@ -19,19 +19,20 @@ class ErrorsQueryBuilderTest(TestCase):
         self.projects = [self.project.id]
 
     def test_simple_query(self):
-        query = ErrorsQueryBuilder(
-            dataset=Dataset.Events,
-            query="status:unresolved",
-            selected_columns=["count_unique(user)"],
-            params={
-                "project_id": self.projects,
-            },
-            offset=None,
-            limit=None,
-            config=QueryBuilderConfig(
-                skip_time_conditions=True,
-            ),
-        ).get_snql_query()
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            query = ErrorsQueryBuilder(
+                dataset=Dataset.Events,
+                query="status:unresolved",
+                selected_columns=["count_unique(user)"],
+                params={
+                    "project_id": self.projects,
+                },
+                offset=None,
+                limit=None,
+                config=QueryBuilderConfig(
+                    skip_time_conditions=True,
+                ),
+            ).get_snql_query()
         query.validate()
         e_entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         g_entity = Entity("group_attributes", alias="ga")

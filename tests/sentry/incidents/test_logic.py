@@ -478,18 +478,19 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         resolve_threshold = 10
         threshold_period = 1
         event_types = [SnubaQueryEventType.EventType.ERROR]
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            query,
-            aggregate,
-            time_window,
-            threshold_type,
-            threshold_period,
-            resolve_threshold=resolve_threshold,
-            event_types=event_types,
-        )
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            alert_rule = create_alert_rule(
+                self.organization,
+                [self.project],
+                name,
+                query,
+                aggregate,
+                time_window,
+                threshold_type,
+                threshold_period,
+                resolve_threshold=resolve_threshold,
+                event_types=event_types,
+            )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.owner is None

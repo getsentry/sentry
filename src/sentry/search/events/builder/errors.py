@@ -36,7 +36,6 @@ class ErrorsQueryBuilder(QueryBuilder):
             group_entity = Entity("group_attributes", alias="ga")
             self.match = Join([Relationship(error_entity, "attributes", group_entity)])
         else:
-            # TODO: Better exception
             raise Exception("Unexpected number of entities")
 
     def resolve_query(
