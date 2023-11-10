@@ -20,8 +20,8 @@ from sentry.backup.exports import export_in_config_scope, export_in_user_scope
 from sentry.backup.helpers import (
     DEFAULT_CRYPTO_KEY_VERSION,
     GCPKMSDecryptor,
+    GCPKMSEncryptor,
     ImportFlags,
-    get_public_key_using_gcp_kms,
     unwrap_encrypted_export_tarball,
 )
 from sentry.backup.imports import import_in_organization_scope
@@ -348,7 +348,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         fp = BytesIO()
         export_in_config_scope(
             fp,
-            encrypt_with=BytesIO(get_public_key_using_gcp_kms(DEFAULT_CRYPTO_KEY_VERSION)),
+            encryptor=GCPKMSEncryptor.from_crypto_key_version(DEFAULT_CRYPTO_KEY_VERSION),
         )
         fp.seek(0)
         kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
@@ -400,7 +400,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
         fp = BytesIO()
         export_in_user_scope(
             fp,
-            encrypt_with=BytesIO(get_public_key_using_gcp_kms(DEFAULT_CRYPTO_KEY_VERSION)),
+            encryptor=GCPKMSEncryptor.from_crypto_key_version(DEFAULT_CRYPTO_KEY_VERSION),
             user_filter=set(relocation.want_usernames),
         )
         fp.seek(0)

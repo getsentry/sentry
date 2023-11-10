@@ -30,6 +30,7 @@ from sentry.backup.findings import ComparatorFindings
 from sentry.backup.helpers import (
     KeyManagementServiceClient,
     LocalFileDecryptor,
+    LocalFileEncryptor,
     decrypt_encrypted_tarball,
 )
 from sentry.backup.imports import import_in_global_scope
@@ -185,16 +186,26 @@ def export_to_encrypted_tarball(
         # These functions are just thin wrappers, but its best to exercise them directly anyway in
         # case that ever changes.
         if scope == ExportScope.Global:
-            export_in_global_scope(tmp_file, encrypt_with=public_key_fp, printer=NOOP_PRINTER)
+            export_in_global_scope(
+                tmp_file, encryptor=LocalFileEncryptor(public_key_fp), printer=NOOP_PRINTER
+            )
         elif scope == ExportScope.Config:
-            export_in_config_scope(tmp_file, encrypt_with=public_key_fp, printer=NOOP_PRINTER)
+            export_in_config_scope(
+                tmp_file, encryptor=LocalFileEncryptor(public_key_fp), printer=NOOP_PRINTER
+            )
         elif scope == ExportScope.Organization:
             export_in_organization_scope(
-                tmp_file, encrypt_with=public_key_fp, org_filter=filter_by, printer=NOOP_PRINTER
+                tmp_file,
+                encryptor=LocalFileEncryptor(public_key_fp),
+                org_filter=filter_by,
+                printer=NOOP_PRINTER,
             )
         elif scope == ExportScope.User:
             export_in_user_scope(
-                tmp_file, encrypt_with=public_key_fp, user_filter=filter_by, printer=NOOP_PRINTER
+                tmp_file,
+                encryptor=LocalFileEncryptor(public_key_fp),
+                user_filter=filter_by,
+                printer=NOOP_PRINTER,
             )
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
