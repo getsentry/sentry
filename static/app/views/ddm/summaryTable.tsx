@@ -8,6 +8,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {formatMetricsUsingUnitAndOp, parseMRI} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,6 +47,9 @@ export function SummaryTable({
 
   const changeSort = useCallback(
     (name: SortState['name']) => {
+      trackAnalytics('ddm.widget.sort', {
+        organization: slug,
+      });
       if (sort.name === name) {
         if (sort.order === 'desc') {
           onSortChange(DEFAULT_SORT_STATE as SortState);
@@ -67,7 +71,7 @@ export function SummaryTable({
         });
       }
     },
-    [sort, onSortChange]
+    [sort, onSortChange, slug]
   );
 
   const releaseTo = (release: string) => {
