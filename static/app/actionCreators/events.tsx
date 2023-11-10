@@ -106,7 +106,6 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     excludeOther,
     includeAllArgs,
     dataset,
-    useOnDemandMetrics,
   }: {includeAllArgs?: IncludeAllArgsType} & Options
 ): IncludeAllArgsType extends true
   ? Promise<
@@ -135,7 +134,6 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
       dataset,
-      useOnDemandMetrics,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 

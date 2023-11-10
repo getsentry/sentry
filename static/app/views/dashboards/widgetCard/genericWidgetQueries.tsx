@@ -72,6 +72,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) => boolean;
   dashboardFilters?: DashboardFilters;
+  forceOnDemand?: boolean;
   limit?: number;
   loading?: boolean;
   mepSetting?: MEPState | null;
@@ -173,6 +174,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           !isEqual(widget.interval, prevProps.widget.interval) ||
           !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
           !isEqual(this.props.dashboardFilters, prevProps.dashboardFilters) ||
+          !isEqual(this.props.forceOnDemand, prevProps.forceOnDemand) ||
           !isSelectionEqual(selection, prevProps.selection) ||
           cursor !== prevProps.cursor
     ) {
@@ -246,6 +248,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
         return requestCreator(
           api,
+          widget,
           query,
           organization,
           selection,
