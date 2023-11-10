@@ -17,7 +17,6 @@ from sentry.silo import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
-from sentry.utils.http import absolute_uri
 
 MIN_SAMPLES_FOR_NOTIFICATION = 10
 
@@ -141,8 +140,6 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: List[int]) -
     It will point to a discover query using the same query as the rule
     and the same time range as the rule.
     """
-    url = absolute_uri("/discover/homepage/")
-
     if len(projects) == 0:
         projects = [-1]
 
@@ -160,4 +157,7 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: List[int]) -
     q["sort"] = "-timestamp"
 
     query_string = q.urlencode()
-    return url + "?" + query_string
+    discover_url = rule.organization.absolute_url(
+        f"/organizations/{rule.organization.slug}/discover/results/", query=query_string
+    )
+    return discover_url
