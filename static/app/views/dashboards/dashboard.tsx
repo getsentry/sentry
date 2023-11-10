@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -347,12 +348,17 @@ class Dashboard extends Component<Props, State> {
     const key = constructGridItemKey(widget);
     return (
       <div key={key} data-grid={widget.layout}>
-        <SortableWidget
-          {...widgetProps}
-          isMobile={isMobile}
-          windowWidth={windowWidth}
-          index={String(index)}
-        />
+        <OnDemandControlConsumer>
+          {value => (
+            <SortableWidget
+              {...widgetProps}
+              isMobile={isMobile}
+              windowWidth={windowWidth}
+              index={String(index)}
+              {...value}
+            />
+          )}
+        </OnDemandControlConsumer>
       </div>
     );
   }
