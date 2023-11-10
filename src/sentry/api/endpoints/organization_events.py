@@ -238,9 +238,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:dashboards-mep", False)
         )
 
+        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
         on_demand_metrics_enabled = batch_features.get(
             "organizations:on-demand-metrics-extraction", False
-        ) and batch_features.get("organizations:on-demand-metrics-extraction-experimental", False)
+        ) and use_on_demand_metrics
 
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
