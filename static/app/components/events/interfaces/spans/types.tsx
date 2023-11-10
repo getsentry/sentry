@@ -28,6 +28,7 @@ export type RawSpanType = {
   origin?: string;
   parent_span_id?: string;
   same_process_as_parent?: boolean;
+  sentry_tags?: Record<string, string>;
   status?: string;
   tags?: {[key: string]: string};
 };
