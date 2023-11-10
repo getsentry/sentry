@@ -7,9 +7,8 @@ import isEqual from 'lodash/isEqual';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {PageFilters, Project} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -24,6 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 
 import {getLandingDisplayFromParam} from './landing/utils';
 import {generatePerformanceEventView, getDefaultStatsPeriod} from './data';
@@ -62,38 +62,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
     organization
   );
 
-  function getOnboardingProject(): Project | undefined {
-    // XXX used by getsentry to bypass onboarding for the upsell demo state.
-    if (demoMode) {
-      return undefined;
-    }
-
-    if (projects.length === 0) {
-      return undefined;
-    }
-
-    // Current selection is 'my projects' or 'all projects'
-    if (eventView.project.length === 0 || eventView.project[0] === ALL_ACCESS_PROJECTS) {
-      const filtered = projects.filter(p => p.firstTransactionEvent === false);
-      if (filtered.length === projects.length) {
-        return filtered[0];
-      }
-    }
-
-    // Any other subset of projects.
-    const filtered = projects.filter(
-      p =>
-        eventView.project.includes(parseInt(p.id, 10)) &&
-        p.firstTransactionEvent === false
-    );
-    if (filtered.length === eventView.project.length) {
-      return filtered[0];
-    }
-
-    return undefined;
-  }
-
-  const onboardingProject = getOnboardingProject();
+  const onboardingProject = useOnboardingProject(demoMode);
 
   useRouteAnalyticsEventNames(
     'performance_views.overview.view',
