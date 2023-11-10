@@ -50,6 +50,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 import {OpsDot} from '../../opsBreakdown';
 
@@ -269,6 +270,7 @@ function SpanDetail(props: Props) {
     return (
       <ButtonGroup>
         {organization.features.includes('performance-database-view') &&
+        span.sentry_tags?.module === ModuleName.DB &&
         span.sentry_tags?.group ? (
           <StyledButton
             size="xs"
