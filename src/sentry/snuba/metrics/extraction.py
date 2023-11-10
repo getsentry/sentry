@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import sentry_sdk
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -20,6 +19,7 @@ from typing import (
     cast,
 )
 
+import sentry_sdk
 from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
