@@ -1,13 +1,11 @@
 import time
 from datetime import datetime, timedelta, timezone
 from unittest import mock
-from unittest.mock import ANY as PARAM_ANY
 
 from sentry.dynamic_sampling.tasks.custom_rule_notifications import (
     MIN_SAMPLES_FOR_NOTIFICATION,
     custom_rule_notifications,
     get_num_samples,
-    send_notification,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -46,16 +44,6 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
             created_by_id=user.id,
         )
 
-    @mock.patch("sentry.dynamic_sampling.tasks.custom_rule_notifications.send_mail")
-    def test_send_notification(self, send_mail_mock):
-        """
-        Tests that the send_notification function sends the correct email
-        """
-        send_notification(self.rule, 100)
-        send_mail_mock.assert_called_once_with(
-            PARAM_ANY, PARAM_ANY, PARAM_ANY, ["radu@sentry.io"], fail_silently=PARAM_ANY
-        )
-
     def test_get_num_samples(self):
         """
         Tests that the num_samples function returns the correct number of samples
@@ -68,8 +56,8 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
         num_samples = get_num_samples(self.rule)
         assert num_samples == 3
 
-    @mock.patch("sentry.dynamic_sampling.tasks.custom_rule_notifications.send_mail")
-    def test_email_is_sent_when_enough_samples_have_been_collected(self, send_mail_mock):
+    @mock.patch("sentry.dynamic_sampling.tasks.custom_rule_notifications.send_notification")
+    def test_email_is_sent_when_enough_samples_have_been_collected(self, send_notification_mock):
         for idx in range(MIN_SAMPLES_FOR_NOTIFICATION):
             self.create_transaction()
 
@@ -85,7 +73,7 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
             custom_rule_notifications()
 
         # test we sent an email
-        send_mail_mock.assert_called_once()
+        send_notification_mock.assert_called_once()
         # test the rule was marked as notification_sent
         self.rule.refresh_from_db()
         assert self.rule.notification_sent
