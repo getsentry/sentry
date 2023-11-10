@@ -105,8 +105,6 @@ class UserEmail(ControlOutboxProducingModel):
         # If we are merging users, ignore the imported email and use the merged user's email
         # instead.
         if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
-            useremail = self.__class__.objects.get(user_id=self.user_id)
-            pk_map.insert(get_model_name(self), self.pk, useremail.pk, ImportKind.Existing)
             return None
 
         # Only preserve validation hashes in the backup/restore scope - in all others, have the user
