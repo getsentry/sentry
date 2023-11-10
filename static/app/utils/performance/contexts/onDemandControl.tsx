@@ -1,4 +1,6 @@
 import {ReactNode, useCallback, useState} from 'react';
+import {browserHistory} from 'react-router';
+import {Location} from 'history';
 
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
@@ -25,16 +27,36 @@ const [_OnDemandControlProvider, useOnDemandControl, _context] =
 
 export const OnDemandControlConsumer = _context.Consumer;
 
-export function OnDemandControlProvider({children}: {children: ReactNode}) {
-  const [isControlEnabled, setIsControlEnabled] = useState(false);
-  const [forceOnDemand, _setForceOnDemand] = useState(false);
+export function OnDemandControlProvider({
+  children,
+  location,
+}: {
+  children: ReactNode;
+  location: Location;
+}) {
+  const _forceOnDemandQuery = location?.query.forceOnDemand;
+  const _forceOnDemand =
+    _forceOnDemandQuery === 'true'
+      ? true
+      : _forceOnDemandQuery === 'false'
+      ? false
+      : undefined;
+  const [isControlEnabled, setIsControlEnabled] = useState(_forceOnDemand !== undefined);
+  const [forceOnDemand, _setForceOnDemand] = useState(_forceOnDemand || false);
 
   const setForceOnDemand = useCallback(
     (value: boolean) => {
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          forceOnDemand: value,
+        },
+      });
       _setForceOnDemand(value);
       setIsControlEnabled(true);
     },
-    [setIsControlEnabled, _setForceOnDemand]
+    [setIsControlEnabled, _setForceOnDemand, location]
   );
 
   return (
