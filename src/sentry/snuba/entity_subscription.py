@@ -190,7 +190,11 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             params["environment"] = environment.name
 
         query_builder_cls = QueryBuilder
-        if self.dataset == Dataset.Events:
+        # TODO: Remove this query when we remove the feature check
+        organization = Organization.objects.filter(project__id__in=project_ids)[0]
+        if self.dataset == Dataset.Events and features.has(
+            "organizations:metric-alert-ignore-archived", organization
+        ):
             query_builder_cls = ErrorsQueryBuilder
 
         return query_builder_cls(

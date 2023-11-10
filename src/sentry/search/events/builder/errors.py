@@ -30,7 +30,7 @@ class ErrorsQueryBuilder(QueryBuilder):
         self.validate_having_clause()
         return Request(
             dataset=self.dataset.value,
-            app_id="default",
+            app_id="errors",
             query=Query(
                 match=self.match,
                 select=self.columns,
@@ -48,7 +48,7 @@ class ErrorsQueryBuilder(QueryBuilder):
         )
 
     def column(self, name: str) -> Column:
-        """Given an unresolved sentry name and return a snql column.
+        """Given an unresolved sentry column name and return a snql column.
 
         :param name: The unresolved sentry name.
         """
