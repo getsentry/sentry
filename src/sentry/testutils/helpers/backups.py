@@ -27,7 +27,11 @@ from sentry.backup.exports import (
     export_in_user_scope,
 )
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.helpers import KeyManagementServiceClient, decrypt_encrypted_tarball
+from sentry.backup.helpers import (
+    KeyManagementServiceClient,
+    LocalFileDecryptor,
+    decrypt_encrypted_tarball,
+)
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
@@ -199,7 +203,9 @@ def export_to_encrypted_tarball(
     # part of the encrypt/decrypt tar-ing API, so we need to ensure that these exact names are
     # present and contain the data we expect.
     with open(tar_file_path, "rb") as f:
-        return json.loads(decrypt_encrypted_tarball(f, False, io.BytesIO(private_key_pem)))
+        return json.loads(
+            decrypt_encrypted_tarball(f, LocalFileDecryptor.from_bytes(private_key_pem))
+        )
 
 
 # No arguments, so we lazily cache the result after the first calculation.

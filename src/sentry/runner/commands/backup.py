@@ -10,7 +10,10 @@ from sentry.backup.comparators import get_default_comparators
 from sentry.backup.findings import Finding, FindingJSONEncoder
 from sentry.backup.helpers import (
     DecryptionError,
+    Decryptor,
+    GCPKMSDecryptor,
     ImportFlags,
+    LocalFileDecryptor,
     Side,
     create_encrypted_export_tarball,
     decrypt_encrypted_tarball,
@@ -97,14 +100,24 @@ def parse_filter_arg(filter_arg: str) -> set[str] | None:
     return filter_by
 
 
-def get_decryptor_io_from_flags(
+def get_decryptor_from_flags(
     decrypt_with: BytesIO | None, decrypt_with_gcp_kms: BytesIO | None
-) -> BytesIO | None:
+) -> Decryptor | None:
+    """
+    Helper function to select the right decryptor class based on the supplied flag: use GCP KMS, use
+    a local key, or don't decrypt at all.
+    """
+
     if decrypt_with is not None and decrypt_with_gcp_kms is not None:
         raise click.UsageError(
             """`--decrypt-with` and `--decrypt-with-gcp-kms` are mutually exclusive options - you may use one or the other, but not both."""
         )
-    return decrypt_with if decrypt_with is not None else decrypt_with_gcp_kms
+
+    if decrypt_with is not None:
+        return LocalFileDecryptor(decrypt_with)
+    if decrypt_with_gcp_kms:
+        return GCPKMSDecryptor(decrypt_with_gcp_kms)
+    return None
 
 
 def write_findings(findings_file: TextIO | None, findings: Sequence[Finding], printer: Callable):
@@ -220,15 +233,13 @@ def compare(
     def load_data(
         side: Side, src: BytesIO, decrypt_with: BytesIO, decrypt_with_gcp_kms: BytesIO
     ) -> json.JSONData:
-        decrypt_io = get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms)
+        decryptor = get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms)
 
         # Decrypt the tarball, if the user has indicated that this is one by using either of the
         # `--decrypt...` flags.
-        if decrypt_io is not None:
+        if decryptor is not None:
             try:
-                input = BytesIO(
-                    decrypt_encrypted_tarball(src, decrypt_with_gcp_kms is not None, decrypt_io)
-                )
+                input = BytesIO(decrypt_encrypted_tarball(src, decryptor))
             except DecryptionError as e:
                 click.echo(f"Invalid {side.name} side tarball: {str(e)}", err=True)
         else:
@@ -282,14 +293,14 @@ def decrypt(dest, decrypt_with, decrypt_with_gcp_kms, src):
 
     # Decrypt the tarball, if the user has indicated that this is one by using either of the
     # `--decrypt...` flags.
-    decrypt_io = get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms)
-    if decrypt_io is None:
+    decryptor = get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms)
+    if decryptor is None:
         raise click.UsageError(
             """You must specify one of `--decrypt-with` or `--decrypt-with-gcp-kms`."""
         )
 
     try:
-        decrypted = decrypt_encrypted_tarball(src, decrypt_with_gcp_kms is not None, decrypt_io)
+        decrypted = decrypt_encrypted_tarball(src, decryptor)
     except DecryptionError as e:
         click.echo(f"Invalid tarball: {str(e)}", err=True)
 
@@ -387,11 +398,8 @@ def import_users(
     with write_import_findings(findings_file, printer):
         import_in_user_scope(
             src,
-            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
-            flags=ImportFlags(
-                merge_users=merge_users,
-                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
-            ),
+            decryptor=get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(merge_users=merge_users),
             user_filter=parse_filter_arg(filter_usernames),
             printer=printer,
         )
@@ -453,11 +461,8 @@ def import_organizations(
     with write_import_findings(findings_file, printer):
         import_in_organization_scope(
             src,
-            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
-            flags=ImportFlags(
-                merge_users=merge_users,
-                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
-            ),
+            decryptor=get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(merge_users=merge_users),
             org_filter=parse_filter_arg(filter_org_slugs),
             printer=printer,
         )
@@ -517,12 +522,8 @@ def import_config(
     with write_import_findings(findings_file, printer):
         import_in_config_scope(
             src,
-            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
-            flags=ImportFlags(
-                merge_users=merge_users,
-                overwrite_configs=overwrite_configs,
-                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
-            ),
+            decryptor=get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(merge_users=merge_users, overwrite_configs=overwrite_configs),
             printer=printer,
         )
 
@@ -573,11 +574,8 @@ def import_global(
     with write_import_findings(findings_file, printer):
         import_in_global_scope(
             src,
-            decrypt_with=get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms),
-            flags=ImportFlags(
-                overwrite_configs=overwrite_configs,
-                decrypt_using_gcp_kms=decrypt_with_gcp_kms is not None,
-            ),
+            decryptor=get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms),
+            flags=ImportFlags(overwrite_configs=overwrite_configs),
             printer=printer,
         )
 
