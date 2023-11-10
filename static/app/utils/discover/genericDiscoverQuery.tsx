@@ -16,6 +16,13 @@ import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/per
 import useApi from '../useApi';
 import useOrganization from '../useOrganization';
 
+export interface DiscoverQueryExtras {
+  useOnDemandMetrics?: boolean;
+}
+
+interface _DiscoverQueryExtras {
+  queryExtras?: DiscoverQueryExtras;
+}
 export class QueryError {
   message: string;
   private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
@@ -311,7 +318,9 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
   return <_GenericDiscoverQuery<T, P> {..._props} />;
 }
 
-export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
+export type DiscoverQueryRequestParams = Partial<
+  EventQuery & LocationQuery & _DiscoverQueryExtras
+>;
 
 type RetryOptions = {
   statusCodes: number[];

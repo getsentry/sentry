@@ -12,7 +12,7 @@ import {
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
 import {IssuesSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
@@ -158,6 +158,7 @@ export function transformIssuesResponseToTable(
 
 function getTableRequest(
   api: Client,
+  _: Widget,
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,

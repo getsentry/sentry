@@ -14,6 +14,7 @@ import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
 import {DashboardFilters, Widget} from '../types';
@@ -165,22 +166,27 @@ function WidgetQueries({
   };
 
   return (
-    <GenericWidgetQueries<SeriesResult, TableResult>
-      config={config}
-      api={api}
-      organization={organization}
-      selection={selection}
-      widget={widget}
-      cursor={cursor}
-      limit={limit}
-      dashboardFilters={dashboardFilters}
-      onDataFetched={onDataFetched}
-      afterFetchSeriesData={afterFetchSeriesData}
-      afterFetchTableData={afterFetchTableData}
-      mepSetting={mepSettingContext.metricSettingState}
-    >
-      {children}
-    </GenericWidgetQueries>
+    <OnDemandControlConsumer>
+      {value => (
+        <GenericWidgetQueries<SeriesResult, TableResult>
+          config={config}
+          api={api}
+          organization={organization}
+          selection={selection}
+          widget={widget}
+          cursor={cursor}
+          limit={limit}
+          dashboardFilters={dashboardFilters}
+          onDataFetched={onDataFetched}
+          afterFetchSeriesData={afterFetchSeriesData}
+          afterFetchTableData={afterFetchTableData}
+          mepSetting={mepSettingContext.metricSettingState}
+          {...value}
+        >
+          {children}
+        </GenericWidgetQueries>
+      )}
+    </OnDemandControlConsumer>
   );
 }
 

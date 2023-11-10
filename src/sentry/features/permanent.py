@@ -38,7 +38,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:integrations-incident-management",
         "organizations:integrations-issue-basic",
         "organizations:integrations-issue-sync",
-        "organizations:integrations-stacktrace-link",
         "organizations:integrations-ticket-rules",
         "organizations:performance-view",
         "organizations:profiling-view",
