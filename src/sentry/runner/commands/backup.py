@@ -51,7 +51,8 @@ DECRYPT_WITH_GCP_KMS_HELP = """For users that want to avoid storing their own pr
                             }
                             ```
 
-                            Property names must be spelled exactly as above, and the `version` field in particular must be a string, not an integer."""
+                            Property names must be spelled exactly as above, and the `version`
+                            field in particular must be a string, not an integer."""
 
 ENCRYPT_WITH_HELP = """A path to the a public key with which to encrypt this export. If this flag is
                        enabled and points to a valid key, the output file will be a tarball
@@ -253,6 +254,47 @@ def compare(
     else:
         write_findings(findings_file, [], click.echo)
         click.echo("Done, found 0 differences!")
+
+
+@backup.command(name="decrypt")
+@click.argument("dest", type=click.File("wb"))
+@click.option(
+    "--decrypt-with",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--src",
+    required=True,
+    type=click.File("rb"),
+    help="The output tarball file that needs to be decrypted.",
+)
+@configuration
+def decrypt(dest, decrypt_with, decrypt_with_gcp_kms, src):
+    """
+    Decrypt an encrypted tarball export into an unencrypted JSON file.
+    """
+
+    # Decrypt the tarball, if the user has indicated that this is one by using either of the
+    # `--decrypt...` flags.
+    decrypt_io = get_decryptor_io_from_flags(decrypt_with, decrypt_with_gcp_kms)
+    if decrypt_io is None:
+        raise click.UsageError(
+            """You must specify one of `--decrypt-with` or `--decrypt-with-gcp-kms`."""
+        )
+
+    try:
+        decrypted = decrypt_encrypted_tarball(src, decrypt_with_gcp_kms is not None, decrypt_io)
+    except DecryptionError as e:
+        click.echo(f"Invalid tarball: {str(e)}", err=True)
+
+    with dest:
+        dest.write(decrypted)
 
 
 @backup.command(name="encrypt")
