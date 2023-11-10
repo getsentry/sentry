@@ -19,6 +19,7 @@ from typing import (
     cast,
 )
 
+import sentry_sdk
 from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
@@ -930,7 +931,10 @@ class OnDemandMetricSpec:
     @cached_property
     def query_hash(self) -> str:
         str_to_hash = self._query_str_for_hash
-        return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+        hash = hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+        with sentry_sdk.start_span(op="OnDemandMetricSpec.query_hash", description=hash) as span:
+            span.set_tag("str_to_hash", str_to_hash)
+        return hash
 
     def _field_for_hash(self) -> Optional[str]:
         # Since derived metrics are a special case, we want to make sure that the hashing is different from the other
