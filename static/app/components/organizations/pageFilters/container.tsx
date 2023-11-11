@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useRef} from 'react';
-import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -11,7 +10,7 @@ import {
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import * as Layout from 'sentry/components/layouts/thirds';
-import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -22,7 +21,6 @@ import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
-import {extractSelectionParameters} from './utils';
 
 type InitializeUrlStateProps = Omit<
   InitializeUrlStateParams,
@@ -36,19 +34,11 @@ type InitializeUrlStateProps = Omit<
 interface Props extends InitializeUrlStateProps {
   children?: React.ReactNode;
   /**
-   * Custom alert message for the desynced filter state.
-   */
-  desyncedAlertMessage?: string;
-  /**
    * When true, changes to page filters' value won't be saved to local storage, and will
    * be forgotten when the user navigates to a different page. This is useful for local
    * filtering contexts like in Dashboard Details.
    */
   disablePersistence?: boolean;
-  /**
-   * Whether to hide the revert button in the desynced filter alert.
-   */
-  hideDesyncRevertButton?: boolean;
   /**
    * Slugs of projects to display in project selector
    */
@@ -78,8 +68,6 @@ function Container({
     specificProjectSlugs,
     skipInitializeUrlParams,
     disablePersistence,
-    desyncedAlertMessage,
-    hideDesyncRevertButton,
     storageNamespace,
   } = props;
   const router = useRouter();
@@ -153,13 +141,7 @@ function Container({
     // We may need to re-initialize the URL state if we completely clear
     // out the global selection URL state, for example by navigating with
     // the sidebar on the same view.
-    const oldSelectionQuery = extractSelectionParameters(lastQuery.current);
-    const newSelectionQuery = extractSelectionParameters(location.query);
-
-    // XXX: This re-initialization is only required in new-page-filter
-    // land, since we have implicit pinning in the old land which will
-    // cause page filters to commonly reset.
-    if (isEmpty(newSelectionQuery) && !isEqual(oldSelectionQuery, newSelectionQuery)) {
+    if (location.state?.source === SIDEBAR_NAVIGATION_SOURCE) {
       doInitialization();
       lastQuery.current = location.query;
       return;
@@ -207,18 +189,7 @@ function Container({
     return <Layout.Page withPadding />;
   }
 
-  return (
-    <Fragment>
-      {!organization.features.includes('new-page-filter') && (
-        <DesyncedFilterAlert
-          router={router}
-          message={desyncedAlertMessage}
-          hideRevertButton={hideDesyncRevertButton}
-        />
-      )}
-      {children}
-    </Fragment>
-  );
+  return <Fragment>{children}</Fragment>;
 }
 
 const PageFiltersContainer = withOrganization(Container);

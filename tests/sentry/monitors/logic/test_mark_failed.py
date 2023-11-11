@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
 from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     MonitorCheckInFailure,
@@ -20,6 +19,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
+    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -82,7 +82,7 @@ class MarkFailedTestCase(TestCase):
                         },
                         "id": str(monitor.guid),
                         "name": monitor.name,
-                        "slug": monitor.slug,
+                        "slug": str(monitor.slug),
                     }
                 },
                 "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
@@ -316,7 +316,11 @@ class MarkFailedTestCase(TestCase):
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
-                    }
+                    },
+                    "trace": {
+                        "trace_id": trace_id.hex,
+                        "span_id": None,
+                    },
                 },
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
@@ -326,9 +330,8 @@ class MarkFailedTestCase(TestCase):
                 "sdk": None,
                 "tags": {
                     "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
+                    "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": trace_id.hex,
             },
         ) == dict(event)
 
@@ -420,7 +423,7 @@ class MarkFailedTestCase(TestCase):
                         },
                         "id": str(monitor.guid),
                         "name": monitor.name,
-                        "slug": monitor.slug,
+                        "slug": str(monitor.slug),
                     }
                 },
                 "environment": monitor_environment.environment.name,
@@ -431,9 +434,8 @@ class MarkFailedTestCase(TestCase):
                 "sdk": None,
                 "tags": {
                     "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
+                    "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": None,
             },
         ) == dict(event)
 
@@ -528,7 +530,7 @@ class MarkFailedTestCase(TestCase):
                         },
                         "id": str(monitor.guid),
                         "name": monitor.name,
-                        "slug": monitor.slug,
+                        "slug": str(monitor.slug),
                     }
                 },
                 "environment": monitor_environment.environment.name,
@@ -539,9 +541,8 @@ class MarkFailedTestCase(TestCase):
                 "sdk": None,
                 "tags": {
                     "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
+                    "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": None,
             },
         ) == dict(event)
 
@@ -559,7 +560,7 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            status=ObjectStatus.DISABLED,
+            status=MonitorObjectStatus.DISABLED,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -576,7 +577,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.status == ObjectStatus.DISABLED
+        assert monitor.status == MonitorObjectStatus.DISABLED
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
@@ -716,7 +717,7 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            status=ObjectStatus.DISABLED,
+            status=MonitorObjectStatus.DISABLED,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -734,7 +735,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.status == ObjectStatus.DISABLED
+        assert monitor.status == MonitorObjectStatus.DISABLED
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0

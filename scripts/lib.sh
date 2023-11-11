@@ -26,7 +26,11 @@ require() {
 configure-sentry-cli() {
     if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
-            curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
+            if [ -f "${venv_name}/bin/pip" ]; then
+                pip-install sentry-cli
+            else
+                curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
+            fi
         fi
     fi
 }
@@ -92,7 +96,7 @@ install-py-dev() {
     echo "--> Installing Sentry (for development)"
 
     # pip doesn't do well with swapping drop-ins
-    pip uninstall -qqy uwsgi
+    pip uninstall -qqy djangorestframework-stubs django-stubs
 
     pip-install -r requirements-dev-frozen.txt
 

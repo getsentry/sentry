@@ -44,7 +44,7 @@ function ProjectScoreCards({
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
         query={query}
-        field={SessionFieldWithOperation.SESSIONS}
+        field={SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS}
       />
 
       <ProjectStabilityScoreCard
@@ -53,7 +53,7 @@ function ProjectScoreCards({
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
         query={query}
-        field={SessionFieldWithOperation.USERS}
+        field={SessionFieldWithOperation.CRASH_FREE_RATE_USERS}
       />
 
       <ProjectVelocityScoreCard

@@ -113,21 +113,25 @@ def _delete_activeorg(session):
         del session["activeorg"]
 
 
-def _resolve_last_org(session, user):
-    last_org_slug = session["activeorg"] if session and "activeorg" in session else None
-    if not last_org_slug:
-        return None
-    if user is not None and not isinstance(user, AnonymousUser):
-        org_context = organization_service.get_organization_by_slug(
-            slug=last_org_slug, only_visible=False, user_id=user.id
-        )
-        if org_context and org_context.member:
-            return org_context.organization
+def _resolve_last_org(session, user, org_context=None):
+    if org_context is None:
+        last_org_slug = session["activeorg"] if session and "activeorg" in session else None
+        if not last_org_slug:
+            return None
+
+        if user is not None and not isinstance(user, AnonymousUser):
+            org_context = organization_service.get_organization_by_slug(
+                slug=last_org_slug, only_visible=False, user_id=user.id
+            )
+
+    if org_context and org_context.member:
+        return org_context.organization
+
     return None
 
 
 class _ClientConfig:
-    def __init__(self, request=None) -> None:
+    def __init__(self, request=None, org_context=None) -> None:
         self.request = request
         if request is not None:
             self.user = getattr(request, "user", None) or AnonymousUser()
@@ -136,7 +140,7 @@ class _ClientConfig:
             self.user = None
             self.session = None
 
-        self.last_org = _resolve_last_org(self.session, self.user)
+        self.last_org = _resolve_last_org(self.session, self.user, org_context)
 
     @property
     def last_org_slug(self) -> str | None:
@@ -164,6 +168,8 @@ class _ClientConfig:
             self.last_org and features.has("organizations:customer-domains", self.last_org)
         ):
             yield "organizations:customer-domains"
+        if options.get("hybrid_cloud.multi-region-selector"):
+            yield "organizations:multi-region-selector"
 
     @property
     def needs_upgrade(self) -> bool:
@@ -345,12 +351,12 @@ class _ClientConfig:
         }
 
 
-def get_client_config(request=None) -> MutableMapping[str, Any]:
+def get_client_config(request=None, org_context=None) -> MutableMapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.
     """
 
-    config = _ClientConfig(request)
+    config = _ClientConfig(request, org_context)
     if request is not None and config.last_org is None:
         _delete_activeorg(config.session)
     return config.get_context()

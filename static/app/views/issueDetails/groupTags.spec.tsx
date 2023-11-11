@@ -57,7 +57,7 @@ describe('GroupTags', function () {
     render(
       <GroupTags
         {...routerProps}
-        group={{...group, issueType: IssueType.PERFORMANCE_DURATION_REGRESSION}}
+        group={{...group, issueType: IssueType.PERFORMANCE_ENDPOINT_REGRESSION}}
         environments={['dev']}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,

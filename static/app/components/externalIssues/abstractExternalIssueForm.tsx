@@ -297,7 +297,7 @@ export default class AbstractExternalIssueForm<
 
   hasErrorInFields = (): boolean => {
     // check if we have any form fields with name error and type blank
-    const fields = this.getCleanedFields();
+    const fields = this.loadAsyncThenFetchAllFields();
     return fields.some(field => field.name === 'error' && field.type === 'blank');
   };
 
@@ -311,7 +311,12 @@ export default class AbstractExternalIssueForm<
     };
   };
 
-  getCleanedFields = (): IssueConfigField[] => {
+  /**
+   * Populate all async fields with their choices, then return the full list of fields.
+   * We pull from the fetchedFieldOptionsCache which contains the most recent choices
+   * for each async field.
+   */
+  loadAsyncThenFetchAllFields = (): IssueConfigField[] => {
     const {fetchedFieldOptionsCache, integrationDetails} = this.state;
 
     const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
@@ -336,9 +341,7 @@ export default class AbstractExternalIssueForm<
   ) => {
     const initialData: {[key: string]: any} = (formFields || []).reduce(
       (accumulator, field: FormField) => {
-        accumulator[field.name] =
-          // Passing an empty array breaks MultiSelect.
-          field.multiple && field.default.length === 0 ? '' : field.default;
+        accumulator[field.name] = field.default;
         return accumulator;
       },
       {}

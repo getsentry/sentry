@@ -1,8 +1,6 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -23,9 +21,6 @@ import ReplayTabs from 'sentry/views/replays/tabs';
 export default function DeadRageClickList() {
   const organization = useOrganization();
   const location = useLocation();
-  const hasDeadClickFeature = organization.features.includes(
-    'session-replay-rage-dead-selectors'
-  );
 
   const {isLoading, isError, data, pageLinks} = useDeadRageSelectors({
     per_page: 50,
@@ -34,14 +29,6 @@ export default function DeadRageClickList() {
     prefix: '',
     isWidgetData: false,
   });
-
-  if (!hasDeadClickFeature) {
-    return (
-      <Layout.Page withPadding>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </Layout.Page>
-    );
-  }
 
   return (
     <SentryDocumentTitle
@@ -56,7 +43,6 @@ export default function DeadRageClickList() {
               title={t('See the top selectors your users have dead and rage clicked on.')}
               docsUrl="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
             />
-            <FeatureBadge type="beta" />
           </Layout.Title>
         </Layout.HeaderContent>
         <div /> {/* wraps the tabs below the page title */}

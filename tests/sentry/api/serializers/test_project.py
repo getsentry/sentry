@@ -52,13 +52,6 @@ class ProjectSerializerTest(TestCase):
         assert result["name"] == self.project.name
         assert result["id"] == str(self.project.id)
 
-    @with_feature("organizations:notification-settings-v2")
-    def test_simple_settings_v2(self):
-        result = serialize(self.project, self.user)
-        assert result["slug"] == self.project.slug
-        assert result["name"] == self.project.name
-        assert result["id"] == str(self.project.id)
-
     def test_member(self):
         self.create_member(user=self.user, organization=self.organization)
 
@@ -441,6 +434,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasReplays"] is True
+
+    def test_has_feedbacks_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasFeedbacks"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_feedbacks))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasFeedbacks"] is True
 
     def test_has_monitors_flag(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())

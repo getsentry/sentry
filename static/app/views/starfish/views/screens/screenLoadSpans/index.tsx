@@ -13,17 +13,21 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
-import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
+import {
+  ScreenCharts,
+  YAxis,
+} from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
+import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
+import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
-import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenMetricsRibbon';
-import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 type Query = {
   primaryRelease: string;
@@ -38,31 +42,35 @@ type Query = {
 function ScreenLoadSpans() {
   const location = useLocation<Query>();
   const organization = useOrganization();
-  const routingContext = useRoutingContext();
   const router = useRouter();
 
   const screenLoadModule: LocationDescriptor = {
-    pathname: `${routingContext.baseURL}/pageload/`,
+    pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
     query: {
-      ...omit(location.query, [QueryParameterNames.SPANS_SORT, 'transaction']),
+      ...omit(location.query, [
+        QueryParameterNames.SPANS_SORT,
+        'transaction',
+        SpanMetricsField.SPAN_OP,
+      ]),
     },
   };
 
   const crumbs: Crumb[] = [
     {
       to: screenLoadModule,
-      label: t('Module View'),
+      label: t('Screens'),
       preservePageFilters: true,
     },
     {
       to: '',
-      label: t('Screen Load'),
+      label: decodeScalar(location.query.transaction),
     },
   ];
 
   const {
     spanGroup,
     primaryRelease,
+    secondaryRelease,
     transaction: transactionName,
     spanDescription,
   } = location.query;
@@ -82,24 +90,27 @@ function ScreenLoadSpans() {
               <PageErrorAlert />
               <StarfishPageFiltersContainer>
                 <Container>
-                  <PageFilterBar condensed>
-                    <DatePageFilter />
-                  </PageFilterBar>
-                  <ReleaseComparisonSelector />
+                  <FilterContainer>
+                    <PageFilterBar condensed>
+                      <DatePageFilter />
+                    </PageFilterBar>
+                    <ReleaseComparisonSelector />
+                  </FilterContainer>
                   <ScreenMetricsRibbon />
                 </Container>
               </StarfishPageFiltersContainer>
-              <ScreensView
-                yAxes={[YAxis.COUNT, YAxis.TTID, YAxis.TTFD]}
+              <ScreenCharts
+                yAxes={[YAxis.TTID, YAxis.TTFD]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
               />
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
+                secondaryRelease={secondaryRelease}
               />
               {spanGroup && (
-                <SampleList
+                <ScreenLoadSpanSamples
                   groupId={spanGroup}
                   transactionName={transactionName}
                   spanDescription={spanDescription}
@@ -127,11 +138,19 @@ export default ScreenLoadSpans;
 
 const Container = styled('div')`
   display: grid;
-  grid-template-rows: auto auto auto;
-  gap: ${space(2)};
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr;
+  column-gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(100px, max-content);
   }
+`;
+
+const FilterContainer = styled('div')`
+  display: grid;
+  column-gap: ${space(1)};
+  grid-template-rows: auto;
+  grid-template-columns: auto 1fr;
 `;

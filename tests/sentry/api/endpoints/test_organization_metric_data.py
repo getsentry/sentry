@@ -39,6 +39,78 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 @region_silo_test(stable=True)
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
+class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
+    endpoint = "sentry-api-0-organization-metrics-data"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+    @property
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
+
+    @patch("sentry.api.endpoints.organization_metrics.run_metrics_query")
+    def test_query_with_feature_flag_enabled_but_param_missing(self, run_metrics_query):
+        run_metrics_query.return_value = {}
+
+        self.get_response(
+            self.project.organization.slug,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="false",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        run_metrics_query.assert_not_called()
+
+        self.get_response(
+            self.project.organization.slug,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="true",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        run_metrics_query.assert_called_once()
+
+    def test_compare_query_with_transactions_metric(self):
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "/hello", "platform": "ios"},
+            value=10,
+        )
+
+        responses = []
+        for flag_value in False, True:
+            response = self.get_response(
+                self.project.organization.slug,
+                field=f"sum({TransactionMRI.DURATION.value})",
+                useCase="transactions",
+                useNewMetricsLayer="true" if flag_value else "false",
+                statsPeriod="1h",
+                interval="1h",
+            )
+            responses.append(response)
+
+        response_old = responses[0].data
+        response_new = responses[1].data
+
+        # We want to only compare a subset of the fields, since the new integration doesn't have all features.
+        assert response_old["groups"][0]["by"] == response_new["groups"][0]["by"]
+        assert list(response_old["groups"][0]["series"].values()) == list(
+            response_new["groups"][0]["series"].values()
+        )
+        assert list(response_old["groups"][0]["totals"].values()) == list(
+            response_new["groups"][0]["totals"].values()
+        )
+        assert response_old["intervals"] == response_new["intervals"]
+        assert response_old["start"] == response_new["start"]
+        assert response_old["end"] == response_new["end"]
+
+
+@region_silo_test(stable=True)
+@freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -1463,7 +1535,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            f"Requested interval of timedelta of {timedelta(minutes=5)} with statsPeriod "
+            f"Requested intervals (288) of timedelta of {timedelta(minutes=5)} with statsPeriod "
             f"timedelta of {timedelta(hours=24)} is too granular "
             f"for a per_page of 51 elements. Increase your interval, decrease your statsPeriod, "
             f"or decrease your per_page parameter."
@@ -1494,6 +1566,68 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             includeTotals="0",
         )
         assert response.status_code == 400
+
+    def test_gauges(self):
+        mri = "g:custom/page_load@millisecond"
+
+        gauge_1 = {
+            "min": 1.0,
+            "max": 20.0,
+            "sum": 21.0,
+            "count": 2,
+            "last": 20.0,
+        }
+
+        gauge_2 = {
+            "min": 2.0,
+            "max": 21.0,
+            "sum": 25.0,
+            "count": 3,
+            "last": 4.0,
+        }
+
+        for value, minutes in ((gauge_1, 35), (gauge_2, 5)):
+            self.store_custom_metric(name=mri, tags={}, value=value, minutes_before_now=minutes)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                f"count({mri})",
+                f"min({mri})",
+                f"max({mri})",
+                f"last({mri})",
+                f"sum({mri})",
+            ],
+            query="",
+            statsPeriod="1h",
+            interval="30m",
+            per_page=3,
+            useCase="custom",
+            includeSeries="1",
+            allowPrivate="true",
+        )
+        groups = response.data["groups"]
+
+        assert len(groups) == 1
+        assert groups == [
+            {
+                "by": {},
+                "series": {
+                    "count(g:custom/page_load@millisecond)": [2, 3],
+                    "max(g:custom/page_load@millisecond)": [20.0, 21.0],
+                    "min(g:custom/page_load@millisecond)": [1.0, 2.0],
+                    "last(g:custom/page_load@millisecond)": [20.0, 4.0],
+                    "sum(g:custom/page_load@millisecond)": [21.0, 25.0],
+                },
+                "totals": {
+                    "count(g:custom/page_load@millisecond)": 5,
+                    "max(g:custom/page_load@millisecond)": 21.0,
+                    "min(g:custom/page_load@millisecond)": 1.0,
+                    "last(g:custom/page_load@millisecond)": 4.0,
+                    "sum(g:custom/page_load@millisecond)": 46.0,
+                },
+            }
+        ]
 
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)

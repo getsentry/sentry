@@ -77,10 +77,10 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
       if (depths.length > 0) {
         depths.sort();
-        const d = depths[Math.floor(depths.length * 0.75) - 1];
+        const d = depths[Math.floor(depths.length - 1 * 0.75)];
         const depth = Math.max(d, 0);
+
         newView.setConfigView(
-          // set to 3/4
           newView.configView.withY(depth - (newView.configView.height * 3) / 4)
         );
       }
@@ -197,6 +197,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
     <FlamegraphZoomView
       disableGrid
       disableCallOrderSort
+      disableColorCoding
       canvasBounds={flamegraphCanvasBounds}
       canvasPoolManager={props.canvasPoolManager}
       flamegraph={flamegraph}

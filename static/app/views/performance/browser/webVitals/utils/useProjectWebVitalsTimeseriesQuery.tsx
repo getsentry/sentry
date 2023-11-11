@@ -1,4 +1,5 @@
 import {getInterval} from 'sentry/components/charts/utils';
+import {Tag} from 'sentry/types';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -12,10 +13,20 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 
 type Props = {
+  tag?: Tag;
   transaction?: string;
 };
 
-export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
+export type WebVitalsScoreBreakdown = {
+  cls: SeriesDataUnit[];
+  fcp: SeriesDataUnit[];
+  fid: SeriesDataUnit[];
+  lcp: SeriesDataUnit[];
+  total: SeriesDataUnit[];
+  ttfb: SeriesDataUnit[];
+};
+
+export const useProjectWebVitalsTimeseriesQuery = ({transaction, tag}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -31,7 +42,9 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
+        'transaction.op:pageload' +
+        (transaction ? ` transaction:"${transaction}"` : '') +
+        (tag ? ` ${tag.key}:"${tag.name}"` : ''),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
@@ -66,14 +79,7 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
     },
   });
 
-  const data: {
-    cls: SeriesDataUnit[];
-    fcp: SeriesDataUnit[];
-    fid: SeriesDataUnit[];
-    lcp: SeriesDataUnit[];
-    total: SeriesDataUnit[];
-    ttfb: SeriesDataUnit[];
-  } = {
+  const data: WebVitalsScoreBreakdown = {
     lcp: [],
     fcp: [],
     cls: [],
@@ -100,27 +106,27 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction}: Props) => {
       });
 
     data.total.push({
-      value: totalScore,
+      value: totalScore ?? 0,
       name: interval[0] * 1000,
     });
     data.cls.push({
-      value: clsScore,
+      value: clsScore ?? 0,
       name: interval[0] * 1000,
     });
     data.lcp.push({
-      value: lcpScore,
+      value: lcpScore ?? 0,
       name: interval[0] * 1000,
     });
     data.fcp.push({
-      value: fcpScore,
+      value: fcpScore ?? 0,
       name: interval[0] * 1000,
     });
     data.ttfb.push({
-      value: ttfbScore,
+      value: ttfbScore ?? 0,
       name: interval[0] * 1000,
     });
     data.fid.push({
-      value: fidScore,
+      value: fidScore ?? 0,
       name: interval[0] * 1000,
     });
   });

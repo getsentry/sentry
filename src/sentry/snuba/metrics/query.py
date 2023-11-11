@@ -162,6 +162,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[MetricOrderByField]] = None
     limit: Optional[Limit] = None
+    # In cases where limit involves calculation (eg. top N series), we want to cap the limit since it'll be blocked otherwise.
+    max_limit: Optional[Limit] = None
     offset: Optional[Offset] = None
     include_totals: bool = True
     include_series: bool = True
@@ -303,6 +305,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
             granularity=self.granularity.granularity,
             interval=self.interval,
         )
+        if self.max_limit and self.max_limit < MAX_POINTS:
+            return
         if self.limit.limit > MAX_POINTS:
             raise InvalidParams(
                 f"Requested limit exceeds the maximum allowed limit of {MAX_POINTS}"
@@ -310,7 +314,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if self.start and self.end and self.include_series:
             if intervals_len * self.limit.limit > MAX_POINTS:
                 raise InvalidParams(
-                    f"Requested interval of timedelta of "
+                    f"Requested intervals ({intervals_len}) of timedelta of "
                     f"{timedelta(seconds=self.granularity.granularity)} with statsPeriod "
                     f"timedelta of {self.end - self.start} is too granular for a per_page of "
                     f"{self.limit.limit} elements. Increase your interval, decrease your "
@@ -419,7 +423,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
 
         if (
-            self.use_case_id is UseCaseID.TRANSACTIONS
+            self.use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]
             and self.include_series
             and self.interval is None
         ):

@@ -1,10 +1,11 @@
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
+const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Query = {
   sort?: string;
@@ -15,6 +16,7 @@ const SORTABLE_FIELDS = [
   SPAN_DESCRIPTION,
   'spm()',
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+  `${TIME_SPENT_PERCENTAGE}()`,
 ] as const;
 
 export type ValidSort = Sort & {
@@ -36,7 +38,7 @@ export function useResourceSort(
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: SORTABLE_FIELDS[0],
+  field: SORTABLE_FIELDS[4],
 };
 
 function isAValidSort(sort: Sort): sort is ValidSort {

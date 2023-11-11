@@ -1,8 +1,8 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -13,12 +13,21 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
+import {TraceTable} from 'sentry/views/ddm/traceTable';
 
 function DDM() {
   const organization = useOrganization();
+
+  useEffect(() => {
+    trackAnalytics('ddm.page-view', {
+      organization,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <SentryDocumentTitle title={t('DDM')} orgSlug={organization.slug}>
@@ -35,13 +44,10 @@ function DDM() {
                 <FeatureBadge type="alpha" />
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                <FeatureFeedback featureName="DDM" buttonProps={{size: 'sm'}} />
-              </ButtonBar>
-            </Layout.HeaderActions>
+            <Layout.HeaderActions />
           </Layout.Header>
           <Layout.Body>
+            <FeedbackWidget />
             <Layout.Main fullWidth>
               <PaddedContainer>
                 <PageFilterBar condensed>
@@ -52,6 +58,7 @@ function DDM() {
                 <ScratchpadSelector />
               </PaddedContainer>
               <MetricScratchpad />
+              <TraceTable />
             </Layout.Main>
           </Layout.Body>
         </Layout.Page>

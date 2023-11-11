@@ -16,6 +16,7 @@ import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -82,6 +83,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   // XXX(epurkhiser): Attachmnets are still experimental and may not exist in
   // the future. For now hide these if they're not being used.
   const hasAttachments = checkInList?.some(checkin => checkin.attachmentId !== null);
+  const hasMultiEnv = monitorEnvs.length > 1;
 
   const headers = [
     t('Status'),
@@ -89,8 +91,13 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     t('Duration'),
     t('Issues'),
     ...(hasAttachments ? [t('Attachment')] : []),
+    ...(hasMultiEnv ? [t('Environment')] : []),
     t('Expected At'),
   ];
+
+  const customTimezone =
+    monitor.config.timezone &&
+    monitor.config.timezone !== ConfigStore.get('user').options.timezone;
 
   return (
     <Fragment>
@@ -115,23 +122,20 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 </Status>
                 {checkIn.status !== CheckInStatus.MISSED ? (
                   <div>
-                    {monitor.config.timezone ? (
-                      <Tooltip
-                        title={
-                          <DateTime
-                            date={checkIn.dateCreated}
-                            forcedTimezone={monitor.config.timezone}
-                            timeZone
-                            timeOnly
-                            seconds
-                          />
-                        }
-                      >
-                        {<DateTime date={checkIn.dateCreated} timeOnly seconds />}
-                      </Tooltip>
-                    ) : (
-                      <DateTime date={checkIn.dateCreated} timeOnly seconds />
-                    )}
+                    <Tooltip
+                      disabled={!customTimezone}
+                      title={
+                        <DateTime
+                          date={checkIn.dateCreated}
+                          forcedTimezone={monitor.config.timezone ?? 'UTC'}
+                          timeZone
+                          timeOnly
+                          seconds
+                        />
+                      }
+                    >
+                      {<DateTime date={checkIn.dateCreated} timeZone timeOnly seconds />}
+                    </Tooltip>
                   </div>
                 ) : (
                   emptyCell
@@ -173,17 +177,34 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                   emptyCell
                 )}
                 {!hasAttachments ? null : checkIn.attachmentId ? (
-                  <Button
-                    size="xs"
-                    icon={<IconDownload size="xs" />}
-                    href={generateDownloadUrl(checkIn)}
-                  >
-                    {t('Attachment')}
-                  </Button>
+                  <div>
+                    <Button
+                      size="xs"
+                      icon={<IconDownload size="xs" />}
+                      href={generateDownloadUrl(checkIn)}
+                    >
+                      {t('Attachment')}
+                    </Button>
+                  </div>
                 ) : (
                   emptyCell
                 )}
-                <Timestamp date={checkIn.expectedTime} seconds />
+                {!hasMultiEnv ? null : <div>{checkIn.environment}</div>}
+                <div>
+                  <Tooltip
+                    disabled={!customTimezone}
+                    title={
+                      <DateTime
+                        date={checkIn.expectedTime}
+                        forcedTimezone={monitor.config.timezone ?? 'UTC'}
+                        timeZone
+                        seconds
+                      />
+                    }
+                  >
+                    <Timestamp date={checkIn.expectedTime} timeZone seconds />
+                  </Tooltip>
+                </div>
               </Fragment>
             ))}
       </PanelTable>

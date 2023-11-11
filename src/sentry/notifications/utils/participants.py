@@ -9,6 +9,7 @@ from typing import (
     List,
     Mapping,
     MutableMapping,
+    Optional,
     Sequence,
     Tuple,
     Union,
@@ -38,7 +39,6 @@ from sentry.notifications.helpers import (
     should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
 )
-from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
@@ -56,7 +56,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
 from sentry.utils import metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
@@ -392,9 +392,7 @@ def determine_eligible_recipients(
         ).first()
         if group_assignee:
             outcome = "match"
-            assignee_actor = RpcActor.from_orm_actor(
-                group_assignee.assigned_actor().resolve_to_actor()
-            )
+            assignee_actor = group_assignee.assigned_actor()
             suggested_assignees.append(assignee_actor)
 
         suspect_commit_users = None
@@ -572,6 +570,28 @@ def combine_recipients_by_provider(
     return recipients_by_provider
 
 
+def get_notification_recipients_v2(
+    recipients: Iterable[RpcActor],
+    type: NotificationSettingEnum,
+    organization_id: Optional[int] = None,
+    project_ids: Optional[List[int]] = None,
+    actor_type: Optional[ActorType] = None,
+) -> Mapping[ExternalProviders, set[RpcActor]]:
+    recipients_by_provider = notifications_service.get_notification_recipients(
+        recipients=list(recipients),
+        type=type,
+        organization_id=organization_id,
+        project_ids=project_ids,
+        actor_type=actor_type,
+    )
+    # ensure we use a defaultdict here in case someone tries to access a provider that has no recipients
+    out = defaultdict(set)
+    for provider, actors in recipients_by_provider.items():
+        key = get_provider_enum_from_string(provider)
+        out[key] = actors
+    return out
+
+
 def get_recipients_by_provider(
     project: Project,
     recipients: Iterable[RpcActor],
@@ -588,14 +608,12 @@ def get_recipients_by_provider(
 
     if should_use_notifications_v2(project.organization):
         # get by team
-        controller = NotificationController(
+        teams_by_provider = get_notification_recipients_v2(
             recipients=teams,
+            type=setting_type,
             organization_id=project.organization_id,
             project_ids=[project.id],
-            type=setting_type,
-        )
-        teams_by_provider = controller.get_notification_recipients(
-            type=setting_type, actor_type=ActorType.TEAM
+            actor_type=ActorType.TEAM,
         )
     else:
         teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
@@ -615,14 +633,13 @@ def get_recipients_by_provider(
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     if should_use_notifications_v2(project.organization):
-        controller = NotificationController(
+        # convert from string to enum
+        users_by_provider = get_notification_recipients_v2(
             recipients=users,
+            type=setting_type,
             organization_id=project.organization_id,
             project_ids=[project.id],
-            type=setting_type,
-        )
-        users_by_provider = controller.get_notification_recipients(
-            type=setting_type, actor_type=ActorType.USER
+            actor_type=ActorType.USER,
         )
     else:
         users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(

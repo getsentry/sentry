@@ -5,6 +5,7 @@ from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -455,18 +456,22 @@ class FilterToSubscribedUsersTest(TestCase):
 
     def test_project_enabled(self):
         user = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+
+        # disable default
+        NotificationSettingOption.objects.create(
             user_id=user.id,
+            scope_type="user",
+            scope_identifier=user.id,
+            type="alerts",
+            value="never",
         )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
+        # override project
+        NotificationSettingOption.objects.create(
             user_id=user.id,
-            project=self.project,
+            scope_type="project",
+            scope_identifier=self.project.id,
+            type="alerts",
+            value="always",
         )
         self.run_test({user}, {user})
 
@@ -489,49 +494,37 @@ class FilterToSubscribedUsersTest(TestCase):
 
     def test_mixed(self):
         user_global_enabled = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=user_global_enabled.id,
-        )
-
         user_global_disabled = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingOption.objects.create(
             user_id=user_global_disabled.id,
+            scope_type="user",
+            scope_identifier=user_global_disabled.id,
+            type="alerts",
+            value="never",
         )
-
         user_project_enabled = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingOption.objects.create(
             user_id=user_project_enabled.id,
+            scope_type="user",
+            scope_identifier=user_project_enabled.id,
+            type="alerts",
+            value="never",
         )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOption.objects.create(
             user_id=user_project_enabled.id,
-            project=self.project,
+            scope_type="project",
+            scope_identifier=self.project.id,
+            type="alerts",
+            value="always",
         )
 
         user_project_disabled = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOption.objects.create(
             user_id=user_project_disabled.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            user_id=user_project_disabled.id,
-            project=self.project,
+            scope_type="user",
+            scope_identifier=user_project_disabled.id,
+            type="alerts",
+            value="never",
         )
         self.run_test(
             {

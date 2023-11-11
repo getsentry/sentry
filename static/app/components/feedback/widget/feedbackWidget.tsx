@@ -1,38 +1,43 @@
-import {getCurrentHub} from '@sentry/react';
+import {useEffect} from 'react';
+import {css, Global} from '@emotion/react';
+import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {Feedback} from '@sentry-internal/feedback';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-
-import {FeedbackButton} from './feedbackButton';
-import {FeedbackModal} from './feedbackModal';
-
-interface FeedbackWidgetProps {
-  title?: string;
-  type?: string;
-}
+import theme from 'sentry/utils/theme';
 
 /**
- * The "Widget" connects the default Feedback button with the Feedback Modal
- *
- * XXX: this is temporary while we make this an SDK feature.
+ * Use this to display the Feedback widget in certain routes/components
  */
-export default function FeedbackWidget({
-  title = 'Report a Bug',
-  type,
-}: FeedbackWidgetProps) {
+export default function FeedbackWidget() {
   const config = useLegacyStore(ConfigStore);
-
-  // Don't render anything if Sentry SDK is not already loaded
-  if (!getCurrentHub()) {
-    return null;
-  }
-
   const widgetTheme = config.theme === 'dark' ? 'dark' : 'light';
+
+  useEffect(() => {
+    const hub = getCurrentHub();
+    const client = hub && hub.getClient<BrowserClient>();
+    const feedback = client?.getIntegration(Feedback);
+    const widget = feedback?.createWidget({
+      colorScheme: widgetTheme,
+      buttonLabel: 'Give Feedback',
+      submitButtonLabel: 'Send Feedback',
+      messagePlaceholder: 'What did you expect?',
+      formTitle: 'Give Feedback',
+    });
+    return () => {
+      feedback?.removeWidget(widget);
+    };
+  }, [widgetTheme]);
+
+  // z-index needs to be below our indicators which is 10001
   return (
-    <FeedbackModal title={title} type={type} widgetTheme={widgetTheme}>
-      {({open, showModal}) =>
-        open ? null : <FeedbackButton onClick={showModal} widgetTheme={widgetTheme} />
-      }
-    </FeedbackModal>
+    <Global
+      styles={css`
+        #sentry-feedback {
+          --z-index: ${theme.zIndex.toast - 1};
+        }
+      `}
+    />
   );
 }

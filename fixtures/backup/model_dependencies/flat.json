@@ -8,9 +8,27 @@
     "sentry.apikey",
     "sentry.organization"
   ],
+  "hybridcloud.apitokenreplica": [
+    "sentry.apiapplication",
+    "sentry.apitoken",
+    "sentry.organization",
+    "sentry.user"
+  ],
+  "hybridcloud.externalactorreplica": [
+    "sentry.externalactor",
+    "sentry.integration",
+    "sentry.organization",
+    "sentry.team",
+    "sentry.user"
+  ],
   "hybridcloud.organizationslugreservationreplica": [
     "sentry.organization",
     "sentry.organizationslugreservation",
+    "sentry.user"
+  ],
+  "hybridcloud.orgauthtokenreplica": [
+    "sentry.organization",
+    "sentry.orgauthtoken",
     "sentry.user"
   ],
   "hybridcloud.regioncacheversion": [],
@@ -31,7 +49,9 @@
   "sentry.alertrule": [
     "sentry.actor",
     "sentry.organization",
-    "sentry.snubaquery"
+    "sentry.snubaquery",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",
@@ -673,6 +693,18 @@
   "sentry.releasethreshold": [
     "sentry.environment",
     "sentry.project"
+  ],
+  "sentry.relocation": [],
+  "sentry.relocationfile": [
+    "sentry.file",
+    "sentry.relocation"
+  ],
+  "sentry.relocationvalidation": [
+    "sentry.relocation"
+  ],
+  "sentry.relocationvalidationattempt": [
+    "sentry.relocation",
+    "sentry.relocationvalidation"
   ],
   "sentry.repository": [
     "sentry.integration",

@@ -26,7 +26,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
 
         with mock.patch(
-            "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.backend.get_range
+            "sentry.api.endpoints.group_details.tsdb.backend.get_range",
+            side_effect=tsdb.backend.get_range,
         ) as get_range:
             response = self.client.get(
                 f"{url}?environment=production&environment=staging", format="json"

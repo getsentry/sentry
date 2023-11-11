@@ -1,5 +1,5 @@
 import itertools
-from functools import partial, reduce
+from functools import reduce
 from operator import or_
 
 from django.db.models import Q
@@ -148,94 +148,6 @@ def calculate_time_frame(start, end, rollup):
     if rollup_end - rollup_start == rollup:
         rollup_end += 1
     return {"start": rollup_start, "end": rollup_end}
-
-
-class SnubaLookup:
-    """
-    A SnubaLookup consists of all of the attributes needed to facilitate making
-    a query for a column in Snuba. This covers which columns are selected, the extra conditions
-    that need to be applied, how values are serialized in/out of Snuba, etc.
-    """
-
-    __slots__ = (
-        "name",
-        "tagkey",
-        "columns",
-        "selected_columns",
-        "conditions",
-        "serializer",
-        "encoder",
-        "filter_key",
-    )
-    __registry = {}
-
-    def __init__(
-        self,
-        name,
-        tagkey=None,
-        extra=None,
-        selected_columns=None,
-        conditions=None,
-        serializer=serialize_noop,
-        encoder=encoder_noop,
-        filter_key=None,
-    ):
-        cls = type(self)
-        assert name not in cls.__registry
-        self.name = name
-        self.tagkey = tagkey or name
-        self.columns = [self.tagkey] + list(extra or [])
-        self.serializer = partial(serializer, lookup=self)
-        self.encoder = encoder
-        self.conditions = conditions or [[self.tagkey, "IS NOT NULL", None]]
-        self.selected_columns = selected_columns or []
-        self.filter_key = filter_key or self.tagkey
-        cls.__registry[name] = self
-
-    @classmethod
-    def get(cls, name):
-        return cls.__registry[name]
-
-
-SnubaLookup(
-    "user",
-    "tags[sentry:user]",
-    ["project_id"],
-    serializer=serialize_eventusers,
-    encoder=encoder_eventuser,
-    # User is a complex query and can't be treated as a single value.
-    # And EventUser is a tuple of project_id and the tag value. So we need
-    # to make sure we always keep them together and query them as a single unit.
-    filter_key=("concat", (("toString", ("project_id",)), "':'", "tags[sentry:user]")),
-)
-SnubaLookup("release", "tags[sentry:release]", serializer=serialize_releases)
-# error.type is special in that in ClickHouse, it's an array. But we need
-# to make sure that we don't do any queries across a NULL value or an empty array
-# so we must filter them out explicitly. We also are choosing to explicitly take the
-# first element of the exception_stacks array as the "primary" error type for the event.
-# This is slightly inaccurate due to the fact that a single error may have multiple
-# errors.
-SnubaLookup(
-    "error.type",
-    "error_type",
-    selected_columns=[
-        ("ifNull", ("arrayElement", ("exception_stacks.type", 1), "''"), "error_type")
-    ],
-    conditions=[[("notEmpty", ("exception_stacks.type",)), "=", 1], [("error_type", "!=", "")]],
-)
-# Similar to error.type, we need to also guard against NULL types, but for this case,
-# the NULL type is actually significant for us, which means "unknown". So we want
-# to also retain and capture this.
-SnubaLookup(
-    "error.handled",
-    "error_handled",
-    selected_columns=[("arrayElement", ("exception_stacks.mechanism_handled", 1), "error_handled")],
-    conditions=[[("notEmpty", ("exception_stacks.mechanism_handled",)), "=", 1]],
-)
-
-# Simple tags don't need any special treatment
-for _tag in ("transaction", "os", "os.name", "browser", "browser.name", "device", "device.family"):
-    SnubaLookup(_tag, "tags[%s]" % _tag)
 
 
 class BaseSnubaSerializer:
