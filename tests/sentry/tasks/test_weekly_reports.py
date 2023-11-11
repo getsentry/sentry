@@ -1,5 +1,4 @@
 import copy
-import functools
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
@@ -12,7 +11,7 @@ from django.utils import timezone as django_timezone
 from sentry.constants import DataCategory
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
-from sentry.models.options.user_option import UserOption
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
@@ -127,19 +126,23 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         organization = self.organization
         ctx = OrganizationReportContext(0, 0, organization)
 
-        set_option_value = assume_test_silo_mode(SiloMode.CONTROL)(
-            functools.partial(
-                UserOption.objects.set_value, user, DISABLED_ORGANIZATIONS_USER_OPTION_KEY
-            )
-        )
+        def set_option_value(value):
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                NotificationSettingOption.objects.update_or_create(
+                    scope_type="organization",
+                    scope_identifier=organization.id,
+                    user_id=user.id,
+                    type="reports",
+                    defaults={"value": value},
+                )
 
         # disabled
-        set_option_value([organization.id])
+        set_option_value("never")
         deliver_reports(ctx)
         assert mock_send_email.call_count == 0
 
         # enabled
-        set_option_value([])
+        set_option_value("always")
         deliver_reports(ctx)
         mock_send_email.assert_called_once_with(ctx, user.id, dry_run=False)
 
