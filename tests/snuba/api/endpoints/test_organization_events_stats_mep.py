@@ -9,7 +9,6 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.pytest.fixtures import default_project
 from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
