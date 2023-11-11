@@ -176,7 +176,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             organization=self.organization, email="different.email@example.com", token="abc"
         )
 
-        deliver_reports(ctx, use_notifications_v2=True)
+        deliver_reports(ctx)
         assert mock_send_email.call_count == 1
 
     def test_organization_project_issue_summaries(self):
@@ -468,7 +468,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_advanced(self, message_builder):
-
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
@@ -562,7 +561,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @with_feature("organizations:session-replay-weekly_report")
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_replays(self, message_builder):
-
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
         timestamp = to_timestamp(floor_to_utc_day(now))
