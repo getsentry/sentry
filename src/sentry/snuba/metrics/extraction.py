@@ -968,7 +968,7 @@ class OnDemandMetricSpec:
         # semantically identical queries.
         #
         # In case we have `None` condition, we will use `None` string for hashing, so it's a sentinel value.
-        return str(_deep_sorted(self.condition))
+        return str(_deep_sorted(self.condition_for_query_hash))
 
     def _groupbys_for_hash(self):
         # A sorted list of group-bys for the hash, since groupbys will be unique per on_demand metric.
@@ -978,7 +978,13 @@ class OnDemandMetricSpec:
     def condition(self) -> Optional[RuleCondition]:
         """Returns a parent condition containing a list of other conditions which determine whether of not the metric
         is extracted."""
-        return self._process_query()
+        return self._process_query(False)
+
+    @cached_property
+    def condition_for_query_hash(self) -> Optional[RuleCondition]:
+        """ Returns the same as self.condition but removes anything that 
+        shouldn't be added to the spec hash."""
+        return self._process_query(True)
 
     def tags_conditions(self, project: Project) -> List[TagSpec]:
         """Returns a list of tag conditions that will specify how tags are injected into metrics by Relay."""
@@ -1030,11 +1036,13 @@ class OnDemandMetricSpec:
 
         return op, metric_type, self._parse_arguments(op, metric_type, parsed_field)
 
-    def _process_query(self) -> Optional[RuleCondition]:
+    def _process_query(self, is_for_hash: bool) -> Optional[RuleCondition]:
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
         # We extend the parsed query with other conditions that we want to inject externally from the query.
-        parsed_query = self._extend_parsed_query(parsed_query)
+        # We skip adding environment if we are reprocessing the query for hashing. 
+        if not is_for_hash:
+            parsed_query = self._extend_parsed_query(parsed_query)
 
         # Second step is to extract the conditions that might be present in the aggregate function (e.g. count_if).
         parsed_field = self._parse_field(self.field)

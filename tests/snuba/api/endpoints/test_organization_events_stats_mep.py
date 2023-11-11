@@ -4,10 +4,12 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry.models.environment import Environment
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.pytest.fixtures import default_project
 from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
@@ -849,16 +851,13 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
     MetricsEnhancedPerformanceTestCase
 ):
     endpoint = "sentry-api-0-organization-events-stats"
-    METRIC_STRINGS = [
-        "foo_transaction",
-        "d:transactions/measurements.datacenter_memory@pebibyte",
-    ]
 
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.DEFAULT_METRIC_TIMESTAMP = self.day_ago
+        Environment.get_or_create(self.project, "production")
 
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
@@ -912,6 +911,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
                 "orderby": ["-count()"],
+                "environment": "production",
                 "query": query,
                 "yAxis": yAxis,
                 "field": [
