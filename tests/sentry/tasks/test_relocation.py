@@ -86,10 +86,10 @@ class RelocationTaskTestCase(TestCase):
     def setUp(self):
         super().setUp()
         self.owner = self.create_user(
-            email="owner", is_superuser=False, is_staff=False, is_active=True
+            email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
         )
         self.superuser = self.create_user(
-            "superuser", is_superuser=True, is_staff=True, is_active=True
+            email="superuser@example.com", is_superuser=True, is_staff=True, is_active=True
         )
         self.login_as(user=self.superuser, superuser=True)
         self.relocation: Relocation = Relocation.objects.create(
@@ -231,8 +231,10 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         self.relocation.latest_task = "UPLOADING_COMPLETE"
         self.relocation.save()
 
-    def test_success(
+    @patch("sentry.utils.email.MessageBuilder.send_async")
+    def test_success_admin_assisted_relocation(
         self,
+        send_async_mock: Mock,
         preprocessing_baseline_config_mock: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -243,6 +245,26 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_kms_client.asymmetric_decrypt.call_count == 1
         assert fake_kms_client.get_public_key.call_count == 0
         assert preprocessing_baseline_config_mock.call_count == 1
+        send_async_mock.assert_called_once_with(to=[self.owner.email, self.superuser.email])
+        assert Relocation.objects.get(uuid=self.uuid).want_usernames == ["testing@example.com"]
+
+    @patch("sentry.utils.email.MessageBuilder.send_async")
+    def test_success_self_service_relocation(
+        self,
+        send_async_mock: Mock,
+        preprocessing_baseline_config_mock: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_kms_client(fake_kms_client)
+        self.relocation.creator_id = self.relocation.owner_id
+        self.relocation.save()
+
+        preprocessing_scan(self.uuid)
+
+        assert fake_kms_client.asymmetric_decrypt.call_count == 1
+        assert fake_kms_client.get_public_key.call_count == 0
+        assert preprocessing_baseline_config_mock.call_count == 1
+        send_async_mock.assert_called_once_with(to=[self.owner.email])
         assert Relocation.objects.get(uuid=self.uuid).want_usernames == ["testing@example.com"]
 
     def test_retry_if_attempts_left(
@@ -462,7 +484,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         # Only user `superuser` is an admin, so only they should be exported.
         for json_model in json_models:
             if NormalizedModelName(json_model["model"]) == get_model_name(User):
-                assert json_model["fields"]["username"] in "superuser"
+                assert json_model["fields"]["username"] in "superuser@example.com"
 
     def test_retry_if_attempts_left(
         self,
@@ -1227,6 +1249,7 @@ class PostprocessingTest(RelocationTaskTestCase):
     "sentry.tasks.relocation.CloudBuildClient",
     new_callable=lambda: FakeCloudBuildClient,
 )
+@patch("sentry.utils.email.MessageBuilder.send_async")
 @region_silo_test
 class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
     def setUp(self):
@@ -1252,6 +1275,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
     def test_valid_no_retries(
         self,
+        send_async_mock: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -1287,8 +1311,11 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
                 "sentry.useremail",
             ]
 
+        assert send_async_mock.call_count == 1
+
     def test_invalid_no_retries(
         self,
+        send_async_mock: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -1304,6 +1331,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.failure_reason
         assert Organization.objects.filter(slug__startswith="testing").count() == org_count
+
+        assert send_async_mock.call_count == 1
 
     # TODO(getsentry/team-ospo#190): We should add "max retry" tests as well, but these are quite
     # hard to mock in celery at the moment. We may need to use the mock sync celery test scheduler,
