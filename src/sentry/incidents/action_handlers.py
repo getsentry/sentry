@@ -20,10 +20,8 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
-from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients_v2
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -132,23 +130,17 @@ class EmailActionHandler(ActionHandler):
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             users = None
-            if should_use_notifications_v2(self.project.organization):
-                out = get_notification_recipients_v2(
-                    recipients=list(
-                        RpcActor(id=member.user_id, actor_type=ActorType.USER)
-                        for member in target.member_set
-                    ),
-                    type=NotificationSettingEnum.ISSUE_ALERTS,
-                    organization_id=self.project.organization_id,
-                    project_ids=[self.project.id],
-                    actor_type=ActorType.USER,
-                )
-                users = out[ExternalProviders.EMAIL]
-            else:
-                users = NotificationSetting.objects.filter_to_accepting_recipients(
-                    self.project,
-                    {RpcUser(id=member.user_id) for member in target.member_set},
-                )[ExternalProviders.EMAIL]
+            out = get_notification_recipients_v2(
+                recipients=list(
+                    RpcActor(id=member.user_id, actor_type=ActorType.USER)
+                    for member in target.member_set
+                ),
+                type=NotificationSettingEnum.ISSUE_ALERTS,
+                organization_id=self.project.organization_id,
+                project_ids=[self.project.id],
+                actor_type=ActorType.USER,
+            )
+            users = out[ExternalProviders.EMAIL]
 
             snoozed_users = RuleSnooze.objects.filter(
                 alert_rule=self.incident.alert_rule, user_id__in=[user.id for user in users]

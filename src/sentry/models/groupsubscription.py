@@ -17,7 +17,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.notifications.helpers import (
-    should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
     where_should_be_participating,
 )
@@ -119,7 +118,6 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         # 5 retries for race conditions where
         # concurrent subscription attempts cause integrity errors
         for i in range(4, -1, -1):  # 4 3 2 1 0
-
             existing_subscriptions = set(
                 GroupSubscription.objects.filter(
                     user_id__in=user_ids, group=group, project=group.project
@@ -186,14 +184,13 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
             "organizations:team-workflow-notifications", group.project.organization
         )
 
-        if should_use_notifications_v2(group.project.organization) and has_team_workflow:
+        if has_team_workflow:
             possible_team_actors = self.get_possible_team_actors(group)
             all_possible_actors += possible_team_actors
             subscriptions_by_team_id = self.get_subscriptions_by_team_id(
                 group, possible_team_actors
             )
 
-        if should_use_notifications_v2(group.project.organization):
             if not all_possible_actors:  # no actors, no notifications
                 return ParticipantMap()
 

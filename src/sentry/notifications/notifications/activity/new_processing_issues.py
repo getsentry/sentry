@@ -4,8 +4,6 @@ from typing import Any, Mapping, MutableMapping
 from urllib.parse import urlencode
 
 from sentry.models.activity import Activity
-from sentry.models.notificationsetting import NotificationSetting
-from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
 from sentry.notifications.utils import summarize_issues
@@ -27,21 +25,17 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
 
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         participants_by_provider = None
-        if should_use_notifications_v2(self.project.organization):
-            user_ids = list(self.project.member_set.values_list("user_id", flat=True))
-            users = user_service.get_many(filter={"user_ids": user_ids})
-            notification_controller = NotificationController(
-                recipients=users,
-                project_ids=[self.project.id],
-                organization_id=self.project.organization_id,
-            )
-            participants_by_provider = notification_controller.get_notification_recipients(
-                type=NotificationSettingEnum.WORKFLOW,
-            )
-        else:
-            participants_by_provider = NotificationSetting.objects.get_notification_recipients(
-                self.project
-            )
+        user_ids = list(self.project.member_set.values_list("user_id", flat=True))
+        users = user_service.get_many(filter={"user_ids": user_ids})
+        # Do we need to use a notification service here?
+        notification_controller = NotificationController(
+            recipients=users,
+            project_ids=[self.project.id],
+            organization_id=self.project.organization_id,
+        )
+        participants_by_provider = notification_controller.get_notification_recipients(
+            type=NotificationSettingEnum.WORKFLOW,
+        )
 
         result = ParticipantMap()
         for provider, participants in participants_by_provider.items():

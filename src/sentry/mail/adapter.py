@@ -6,10 +6,8 @@ from sentry import digests
 from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
@@ -112,30 +110,18 @@ class MailAdapter:
         user_ids = project.member_set.values_list("user_id", flat=True)
         users = user_service.get_many(filter=dict(user_ids=list(user_ids)))
 
-        if should_use_notifications_v2(project.organization):
-            controller = NotificationController(
-                recipients=users,
-                project_ids=[project.id],
-                organization_id=project.organization_id,
-                provider=ExternalProviderEnum.EMAIL,
-                type=NotificationSettingEnum.ISSUE_ALERTS,
-            )
-            return controller.get_notification_recipients(
-                type=NotificationSettingEnum.ISSUE_ALERTS,
-                actor_type=ActorType.USER,
-            )[ExternalProviders.EMAIL]
-
-        accepting_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
-            project, users
+        # Do we need to use a notification service here?
+        controller = NotificationController(
+            recipients=users,
+            project_ids=[project.id],
+            organization_id=project.organization_id,
+            provider=ExternalProviderEnum.EMAIL,
+            type=NotificationSettingEnum.ISSUE_ALERTS,
         )
-        email_recipients = accepting_recipients.get(ExternalProviders.EMAIL, ())
-
-        users_by_id = {user.id: user for user in users}
-        return [
-            users_by_id[recipient.id]
-            for recipient in email_recipients
-            if recipient.actor_type == ActorType.USER
-        ]
+        return controller.get_notification_recipients(
+            type=NotificationSettingEnum.ISSUE_ALERTS,
+            actor_type=ActorType.USER,
+        )[ExternalProviders.EMAIL]
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)
