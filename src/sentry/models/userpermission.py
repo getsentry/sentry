@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import FrozenSet, List, Optional, Tuple
+from typing import FrozenSet, List
 
 from django.db import models
 
-from sentry.backup.dependencies import ImportKind
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
 from sentry.db.models.outboxes import ControlOutboxProducingModel
@@ -14,7 +15,7 @@ from sentry.types.region import find_regions_for_user
 
 
 @control_silo_only_model
-class UserPermission(ControlOutboxProducingModel):
+class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
     """
     Permissions are applied to administrative users and control explicit scope-like permissions within the API.
 
@@ -52,16 +53,19 @@ class UserPermission(ControlOutboxProducingModel):
             )
         ]
 
-    def write_relocation_import(
-        self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
-        # Ensure that we never attempt to duplicate `UserPermission` entries, even when the
-        # `merge_users` flag is enabled, as they must always be globally unique per user.
-        (up, created) = self.__class__.objects.get_or_create(
-            user_id=self.user_id, permission=self.permission
-        )
-        if up:
-            self.pk = up.pk
-            self.save()
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        from sentry.models.user import User
 
-        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        old_user_id = self.user_id
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # If we are merging users, ignore the imported permissions and use the merged user's
+        # permissions instead.
+        if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
+            return None
+
+        return old_pk

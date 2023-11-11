@@ -88,4 +88,10 @@ class RequestTimingMiddleware(MiddlewareMixin):
             return
 
         ms = int((time.time() - start_time) * 1000)
-        metrics.timing("view.duration", ms, instance=view_path, tags={"method": request.method})
+        metrics.distribution(
+            "view.duration",
+            ms,
+            instance=view_path,
+            tags={"method": request.method},
+            unit="millisecond",
+        )

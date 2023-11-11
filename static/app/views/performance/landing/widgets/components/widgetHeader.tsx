@@ -6,7 +6,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 
 import {
   GenericPerformanceWidgetProps,
@@ -20,8 +19,10 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
 ) {
   const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle, chartSetting} =
     props;
-  const isStarfishDBWidget =
-    chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;
+  const isWebVitalsWidget = [
+    PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES,
+    PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE,
+  ].includes(chartSetting);
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
@@ -31,7 +32,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
           ) : (
             <TextOverflow>{title}</TextOverflow>
           )}
-          {isStarfishDBWidget && <FeatureBadge type={RELEASE_LEVEL} />}
+          {isWebVitalsWidget && <FeatureBadge type="new" />}
           <MEPTag />
           {titleTooltip && (
             <QuestionTooltip position="top" size="sm" title={titleTooltip} />
@@ -54,6 +55,7 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   ${FeatureBadge} {
     position: relative;
     top: -${space(0.25)};
+    margin-left: ${space(0.25)};
   }
 `;
 

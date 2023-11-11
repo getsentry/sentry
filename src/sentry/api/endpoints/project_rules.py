@@ -200,16 +200,17 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
-**Send a Discord notification**
-- `server` - The integration ID associated with the Discord server.
-- `channel_id` - The ID of the channel to send the notification to.
+**Send a Slack notification**
+- `workspace` - The integration ID associated with the Slack workspace.
+- `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
+- `channel_id` (optional) - The ID of the channel to send the notification to.
 - `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
 ```json
 {
-    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
-    "server": 63408298,
-    "channel_id": 94732897,
-    "tags": "browser,user"
+    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+    "workspace": 293854098,
+    "channel": "#warning",
+    "tags": "environment,level"
 }
 ```
 
@@ -224,14 +225,77 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
-**Send an Opsgenie notification**
-- `account` - The integration ID associated with the Opsgenie account.
-- `team` - The ID of the Opsgenie team to send the notification to.
+**Send a Discord notification**
+- `server` - The integration ID associated with the Discord server.
+- `channel_id` - The ID of the channel to send the notification to.
+- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
 ```json
 {
-    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-    "account": 8723897589,
-    "team": "9438930258-fairy"
+    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+    "server": 63408298,
+    "channel_id": 94732897,
+    "tags": "browser,user"
+}
+```
+
+**Create a Jira Ticket**
+- `integration` - The integration ID associated with Jira.
+- `project` - The ID of the Jira project.
+- `issuetype` - The ID of the type of issue that the ticket should be created as.
+- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
+```json
+{
+    "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+    "integration": 321424,
+    "project": "349719"
+    "issueType": "1"
+}
+```
+
+**Create a Jira Server Ticket**
+- `integration` - The integration ID associated with Jira Server.
+- `project` - The ID of the Jira Server project.
+- `issuetype` - The ID of the type of issue that the ticket should be created as.
+- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
+```json
+{
+    "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+    "integration": 321424,
+    "project": "349719"
+    "issueType": "1"
+}
+```
+
+**Create a GitHub Issue**
+- `integration` - The integration ID associated with GitHub.
+- `repo` - The name of the repository to create the issue in.
+- `title` - The title of the issue.
+- `body` (optional) - The contents of the issue.
+- `assignee` (optional) - The GitHub user to assign the issue to.
+- `labels` (optional) - A list of labels to assign to the issue.
+```json
+{
+    "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+    "integration": 93749,
+    "repo": default,
+    "title": "My Test Issue",
+    "assignee": "Baxter the Hacker",
+    "labels": ["bug", "p1"]
+    ""
+}
+```
+
+**Create an Azure DevOps work item**
+- `integration` - The integration ID.
+- `project` - The ID of the Azure DevOps project.
+- `work_item_type` - The type of work item to create.
+- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the work item as objects.
+```json
+{
+    "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+    "integration": 294838,
+    "project": "0389485",
+    "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
 }
 ```
 
@@ -246,17 +310,14 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
-**Send a Slack notification**
-- `workspace` - The integration ID associated with the Slack workspace.
-- `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
-- `channel_id` (optional) - The ID of the channel to send the notification to.
-- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+**Send an Opsgenie notification**
+- `account` - The integration ID associated with the Opsgenie account.
+- `team` - The ID of the Opsgenie team to send the notification to.
 ```json
 {
-    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-    "workspace": 293854098,
-    "channel": "#warning",
-    "tags": "environment,level"
+    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+    "account": 8723897589,
+    "team": "9438930258-fairy"
 }
 ```
 
@@ -288,48 +349,6 @@ A list of actions that take place when all required conditions and filters for t
 ```json
 {
     "id": "sentry.rules.actions.notify_event.NotifyEventAction"
-}
-```
-
-**Create an Azure DevOps work item**
-- `integration` - The integration ID.
-- `project` - The ID of the Azure DevOps project.
-- `work_item_type` - The type of work item to create.
-- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the work item as objects.
-```json
-{
-    "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
-    "integration": 294838,
-    "project": "0389485",
-    "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
-}
-```
-
-**Create a Jira Ticket**
-- `integration` - The integration ID associated with Jira.
-- `project` - The ID of the Jira project.
-- `issuetype` - The ID of the type of issue that the ticket should be created as.
-- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
-```json
-{
-    "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-    "integration": 321424,
-    "project": "349719"
-    "issueType": "1"
-}
-```
-
-**Create a Jira Server Ticket**
-- `integration` - The integration ID associated with Jira Server.
-- `project` - The ID of the Jira Server project.
-- `issuetype` - The ID of the type of issue that the ticket should be created as.
-- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
-```json
-{
-    "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
-    "integration": 321424,
-    "project": "349719"
-    "issueType": "1"
 }
 ```
 """,

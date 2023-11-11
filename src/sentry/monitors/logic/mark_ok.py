@@ -1,11 +1,11 @@
 from datetime import datetime
 
-from sentry.constants import ObjectStatus
 from sentry.monitors.models import (
     CheckInStatus,
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
+    MonitorObjectStatus,
     MonitorStatus,
 )
 
@@ -23,7 +23,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
     }
 
     if (
-        monitor_env.monitor.status != ObjectStatus.DISABLED
+        monitor_env.monitor.status != MonitorObjectStatus.DISABLED
         and monitor_env.status != MonitorStatus.OK
     ):
         params["status"] = MonitorStatus.OK

@@ -1,11 +1,12 @@
 import logging
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 from snuba_sdk import Column
 
 from sentry.discover.arithmetic import categorize_columns
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events.builder import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
@@ -182,7 +183,7 @@ def bulk_timeseries_query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: Dict[str, Any],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -198,15 +199,13 @@ def timeseries_query(
     High-level API for doing arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
     """
-    metrics_compatible = False
     equations, columns = categorize_columns(selected_columns)
-    if comparison_delta is None and not equations:
-        metrics_compatible = True
+    metrics_compatible = not equations
 
-    if metrics_compatible:
+    def run_metrics_query(inner_params: Dict[str, Any]):
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
-                params,
+                inner_params,
                 rollup,
                 dataset=Dataset.PerformanceMetrics,
                 query=query,
@@ -226,8 +225,8 @@ def timeseries_query(
             result["data"] = (
                 discover.zerofill(
                     result["data"],
-                    params["start"],
-                    params["end"],
+                    inner_params["start"],
+                    inner_params["end"],
                     rollup,
                     "time",
                 )
@@ -237,16 +236,72 @@ def timeseries_query(
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
 
-            return SnubaTSResult(
-                {
-                    "data": result["data"],
-                    "isMetricsData": True,
-                    "meta": result["meta"],
-                },
-                params["start"],
-                params["end"],
-                rollup,
+            return {
+                "data": result["data"],
+                "isMetricsData": True,
+                "meta": result["meta"],
+            }
+
+    if metrics_compatible:
+        # We could run these two queries in a batch but this would require a big refactor in the `get_snql_query` method
+        # of the TimeseriesMetricQueryBuilder. In case this becomes a performance bottleneck, we should invest more
+        # time into properly performing batching.
+        #
+        # In case we want to support multiple aggregate comparisons, we can just remove the condition below and rework
+        # the implementation of the `comparisonCount` field.
+        result = run_metrics_query(inner_params=params)
+        if comparison_delta:
+            result_to_compare = run_metrics_query(
+                inner_params={
+                    **params,
+                    "start": params["start"] - comparison_delta,
+                    "end": params["end"] - comparison_delta,
+                }
             )
+
+            aliased_columns = [
+                get_function_alias(selected_column) for selected_column in selected_columns
+            ]
+            if len(aliased_columns) != 1:
+                raise IncompatibleMetricsQuery(
+                    "The comparison query for metrics supports only one aggregate."
+                )
+
+            merged_data = []
+            for data, data_to_compare in zip(result["data"], result_to_compare["data"]):
+                merged_item = {"time": data["time"]}
+
+                for aliased_column in aliased_columns:
+                    # We only add data in the dictionary in case it's not `None`, since the serializer,
+                    # will convert all missing dictionary values to 0.
+                    if (column := data.get(aliased_column)) is not None:
+                        # We get from the main timeseries the actual result.
+                        merged_item[aliased_column] = column
+
+                    # It can be that we have the data in the comparison, in that case want to show it.
+                    if (column := data_to_compare.get(aliased_column)) is not None:
+                        # TODO: this implementation was copied over from discover to reduce the refactor size but it
+                        #  would be better to prefix the comparisons with like `comparison_[alias]` and convert them
+                        #  in the serializer.
+                        merged_item["comparisonCount"] = column
+
+                merged_data.append(merged_item)
+
+            result["data"] = merged_data
+
+        return SnubaTSResult(
+            {
+                "data": result["data"],
+                "isMetricsData": True,
+                "meta": result["meta"],
+            },
+            # We keep the params passed in the function as the time interval.
+            params["start"],
+            params["end"],
+            rollup,
+        )
+
+    # In case the query was not compatible with metrics we return empty data.
     return SnubaTSResult(
         {
             "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
@@ -275,6 +330,7 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled=False,
 ):
     if top_events is None:
         top_events = query(
@@ -287,6 +343,7 @@ def top_events_timeseries(
             referrer=referrer,
             auto_aggregations=True,
             use_aggregate_conditions=True,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
         )
 
     top_events_builder = TopMetricsQueryBuilder(
@@ -300,6 +357,7 @@ def top_events_timeseries(
         timeseries_columns=timeseries_columns,
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
         ),
     )
     if len(top_events["data"]) == limit and include_other:
@@ -312,6 +370,9 @@ def top_events_timeseries(
             query=user_query,
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
+            ),
         )
 
         # TODO: use bulk_snql_query

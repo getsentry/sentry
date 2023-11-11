@@ -12,7 +12,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
-import {mergeProps, useResizeObserver} from '@react-aria/utils';
+import {mergeProps} from '@react-aria/utils';
 import {ListState} from '@react-stately/list';
 import {OverlayTriggerState} from '@react-stately/overlays';
 
@@ -140,14 +140,15 @@ export interface ControlProps
     | React.ReactNode
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   /**
+   * Items to be displayed in the trailing (right) side of the menu's header.
+   */
+  menuHeaderTrailingItems?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
   menuTitle?: React.ReactNode;
-  /**
-   * Whether the menu should always be wider than the trigger. If true, then the menu
-   * will have a min width equal to the trigger's width. Defaults to false.
-   */
-  menuWiderThanTrigger?: boolean;
   menuWidth?: number | string;
   /**
    * Called when the clear button is clicked (applicable only when `clearable` is
@@ -213,7 +214,7 @@ export function Control({
   maxMenuHeight = '32rem',
   maxMenuWidth,
   menuWidth,
-  menuWiderThanTrigger = false,
+  menuHeaderTrailingItems,
   menuBody,
   menuFooter,
 
@@ -451,31 +452,6 @@ export function Control({
     [registerListState, saveSelectedOptions, overlayState, overlayIsOpen, search]
   );
 
-  // Calculate the current trigger element's width. This will be used as
-  // the min width for the menu.
-  const [triggerWidth, setTriggerWidth] = useState<number>();
-  // Update triggerWidth when its size changes using useResizeObserver
-  const updateTriggerWidth = useCallback(async () => {
-    if (!menuWiderThanTrigger) {
-      return;
-    }
-
-    // Wait until the trigger element finishes rendering, otherwise
-    // ResizeObserver might throw an infinite loop error.
-    await new Promise(resolve => window.setTimeout(resolve));
-    setTriggerWidth(triggerRef.current?.offsetWidth ?? 0);
-  }, [menuWiderThanTrigger, triggerRef]);
-
-  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
-  // If ResizeObserver is not available, manually update the width
-  // when any of [trigger, triggerLabel, triggerProps] changes.
-  useEffect(() => {
-    if (typeof window.ResizeObserver !== 'undefined') {
-      return;
-    }
-    updateTriggerWidth();
-  }, [updateTriggerWidth]);
-
   const theme = useTheme();
   return (
     <SelectContext.Provider value={contextValue}>
@@ -499,7 +475,7 @@ export function Control({
         >
           <StyledOverlay
             width={menuWidth ?? menuFullWidth}
-            minWidth={triggerWidth}
+            minWidth={overlayProps.style.minWidth}
             maxWidth={maxMenuWidth}
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
@@ -508,11 +484,16 @@ export function Control({
             data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
-              {(menuTitle || (clearable && showClearButton)) && (
+              {(menuTitle ||
+                menuHeaderTrailingItems ||
+                (clearable && showClearButton)) && (
                 <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
                     {loading && <StyledLoadingIndicator size={12} mini />}
+                    {typeof menuHeaderTrailingItems === 'function'
+                      ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                      : menuHeaderTrailingItems}
                     {clearable && showClearButton && (
                       <ClearButton onClick={clearSelection} size="zero" borderless>
                         {t('Clear')}
@@ -560,6 +541,7 @@ const ControlWrap = styled('div')`
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
+  line-height: normal;
 `;
 
 const StyledBadge = styled(Badge)`

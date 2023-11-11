@@ -1,6 +1,5 @@
 import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -36,7 +35,6 @@ type Props = {
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
   gridRows?: string;
-  saveLocation?: boolean;
   showDropdownFilters?: boolean;
 };
 
@@ -47,25 +45,12 @@ function ReplayTable({
   sort,
   visibleColumns,
   emptyMessage,
-  saveLocation,
   gridRows,
   showDropdownFilters,
 }: Props) {
   const routes = useRoutes();
-  const newLocation = useLocation();
+  const location = useLocation();
   const organization = useOrganization();
-
-  const location: Location = saveLocation
-    ? {
-        pathname: '',
-        search: '',
-        query: {},
-        hash: '',
-        state: '',
-        action: 'PUSH',
-        key: '',
-      }
-    : newLocation;
 
   const tableHeaders = visibleColumns
     .filter(Boolean)
@@ -138,15 +123,6 @@ function ReplayTable({
                     />
                   );
 
-                case ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER:
-                  return (
-                    <DeadClickCountCell
-                      key="countDeadClicks"
-                      replay={replay}
-                      showDropdownFilters={false}
-                    />
-                  );
-
                 case ReplayColumn.COUNT_ERRORS:
                   return (
                     <ErrorCountCell
@@ -162,15 +138,6 @@ function ReplayTable({
                       key="countRageClicks"
                       replay={replay}
                       showDropdownFilters={showDropdownFilters}
-                    />
-                  );
-
-                case ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER:
-                  return (
-                    <RageClickCountCell
-                      key="countRageClicks"
-                      replay={replay}
-                      showDropdownFilters={false}
                     />
                   );
 
@@ -213,42 +180,6 @@ function ReplayTable({
                     />
                   );
 
-                case ReplayColumn.MOST_RAGE_CLICKS:
-                  return (
-                    <ReplayCell
-                      key="mostRageClicks"
-                      replay={replay}
-                      organization={organization}
-                      referrer={referrer}
-                      eventView={eventView}
-                      referrer_table="rage-table"
-                    />
-                  );
-
-                case ReplayColumn.MOST_DEAD_CLICKS:
-                  return (
-                    <ReplayCell
-                      key="mostDeadClicks"
-                      replay={replay}
-                      organization={organization}
-                      referrer={referrer}
-                      eventView={eventView}
-                      referrer_table="dead-table"
-                    />
-                  );
-
-                case ReplayColumn.MOST_ERRONEOUS_REPLAYS:
-                  return (
-                    <ReplayCell
-                      key="mostErroneousReplays"
-                      replay={replay}
-                      organization={organization}
-                      referrer={referrer}
-                      eventView={eventView}
-                      referrer_table="errors-table"
-                    />
-                  );
-
                 default:
                   return null;
               }
@@ -260,32 +191,16 @@ function ReplayTable({
   );
 }
 
-const flexibleColumns = [
-  ReplayColumn.REPLAY,
-  ReplayColumn.MOST_RAGE_CLICKS,
-  ReplayColumn.MOST_DEAD_CLICKS,
-  ReplayColumn.MOST_ERRONEOUS_REPLAYS,
-];
-
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: ReplayColumn[];
   gridRows?: string;
 }>`
-  ${props =>
-    props.visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS) ||
-    props.visibleColumns.includes(ReplayColumn.MOST_DEAD_CLICKS) ||
-    props.visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS)
-      ? `border-bottom-left-radius: 0; border-bottom-right-radius: 0;`
-      : ``}
   margin-bottom: 0;
   grid-template-columns: ${p =>
     p.visibleColumns
       .filter(Boolean)
-      .map(column =>
-        flexibleColumns.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
-      )
+      .map(column => (column === 'replay' ? 'minmax(100px, 1fr)' : 'max-content'))
       .join(' ')};
-
   ${props =>
     props.gridRows
       ? `grid-template-rows: ${props.gridRows};`

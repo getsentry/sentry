@@ -76,7 +76,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_transaction_metric(
+                self.store_span_metric(
                     1,
                     internal_metric=constants.SELF_TIME_LIGHT,
                     timestamp=self.day_ago + timedelta(hours=hour, minutes=minute),
@@ -105,7 +105,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_transaction_metric(
+                self.store_span_metric(
                     1,
                     internal_metric=constants.SELF_TIME_LIGHT,
                     timestamp=self.day_ago + timedelta(hours=hour, minutes=minute + 30),
@@ -192,8 +192,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert "bar" in response.data
         assert response.data["Other"]["meta"]["dataset"] == "spansMetrics"
 
-    @pytest.mark.xfail(reason="Test does not pass")
-    def test_resource_size(self):
+    def test_resource_encoded_length(self):
         self.store_span_metric(
             4,
             metric="http.response_content_length",
@@ -213,10 +212,63 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
             },
         )
 
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        assert len(data) == 2
+        assert not data[0][1][0]["count"]
+        assert data[1][1][0]["count"] == 4.0
+
+    def test_resource_decoded_length(self):
+        self.store_span_metric(
+            4,
+            metric="http.decoded_response_content_length",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "interval": "1m",
+                "yAxis": "avg(http.decoded_response_content_length)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
         data = response.data["data"]
         assert response.status_code == 200
         assert len(data) == 2
-        assert data[0][1][0]["count"] == 0.0
+        assert not data[0][1][0]["count"]
+        assert data[1][1][0]["count"] == 4.0
+
+    def test_resource_transfer_size(self):
+        self.store_span_metric(
+            4,
+            metric="http.response_transfer_size",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "interval": "1m",
+                "yAxis": "avg(http.response_transfer_size)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        data = response.data["data"]
+        assert response.status_code == 200
+        assert len(data) == 2
+        assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
 

@@ -203,11 +203,18 @@ def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List
             EntityKey.MetricsSets,
             EntityKey.MetricsDistributions,
         }
+    elif use_case_id == UseCaseID.TRANSACTIONS:
+        entity_keys = {
+            EntityKey.GenericMetricsCounters,
+            EntityKey.GenericMetricsSets,
+            EntityKey.GenericMetricsDistributions,
+        }
     else:
         entity_keys = {
             EntityKey.GenericMetricsCounters,
             EntityKey.GenericMetricsSets,
             EntityKey.GenericMetricsDistributions,
+            EntityKey.GenericMetricsGauges,
         }
 
     stored_metrics = []

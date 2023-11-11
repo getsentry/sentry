@@ -8,7 +8,6 @@ from typing import (
     Mapping,
     MutableMapping,
     MutableSequence,
-    NamedTuple,
     Optional,
     Sequence,
     Set,
@@ -20,9 +19,10 @@ from typing import (
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
-from sentry_kafka_schemas.codecs import Codec, ValidationError
+from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
@@ -30,7 +30,11 @@ from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 from sentry import options
 from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
-from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import (
+    BrokerMeta,
+    IndexerOutputMessageBatch,
+    MessageBatch,
+)
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
@@ -43,15 +47,10 @@ logger = logging.getLogger(__name__)
 # ensure that the database can store the data.
 MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
-ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
+ACCEPTED_METRIC_TYPES = {"s", "c", "d", "g"}  # set, counter, distribution, gauge
 
 OrgId = int
 Headers = MutableSequence[Tuple[str, bytes]]
-
-
-class PartitionIdxOffset(NamedTuple):
-    partition_idx: int
-    offset: int
 
 
 def valid_metric_name(name: Optional[str]) -> bool:
@@ -74,20 +73,113 @@ class IndexerBatch:
         outer_message: Message[MessageBatch],
         should_index_tag_values: bool,
         is_output_sliced: bool,
-        input_codec: Optional[Codec[Any]],
         tags_validator: Callable[[Mapping[str, str]], bool],
+        schema_validator: Callable[[str, IngestMetric], None],
     ) -> None:
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
         self.is_output_sliced = is_output_sliced
-        self.__input_codec = input_codec
         self.tags_validator = tags_validator
+        self.schema_validator = schema_validator
 
         self.__message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_size_sum: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_size_max: MutableMapping[UseCaseID, int] = defaultdict(int)
 
+        # Invalid messages and filtered messages are both skipped during processing
+        # (reconstruct_messages), but we want to put the invalid messages into the
+        # DLQ while discarding the filtered messages
+        self.invalid_msg_meta: Set[BrokerMeta] = set()
+        self.filtered_msg_meta: Set[BrokerMeta] = set()
+        self.parsed_payloads_by_meta: MutableMapping[BrokerMeta, ParsedMessage] = {}
+
         self._extract_messages()
+
+    @metrics.wraps("process_messages.extract_messages")
+    def _extract_messages(self) -> None:
+        """
+        For each messages:
+        1. Check the header to see if the use case ID is disabled
+        2. Parse the raw bytes into ParsedMessage (_extract_message)
+        3. Semantically validate the content of ParsedMessage (_validate_message)
+
+        We track the offset and partition of the message that are filtered or
+        invalid so later we can:
+        - Produce the invalid messages to DLQ
+        - Skip those filtered/invalid message from the indexing phase
+        (extract_strings and reconstruct_messages)
+        """
+        skipped_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
+
+        for msg in self.outer_message.payload:
+            assert isinstance(msg.value, BrokerValue)
+            broker_meta = BrokerMeta(msg.value.partition, msg.value.offset)
+
+            if (namespace := self._extract_namespace(msg.payload.headers)) in options.get(
+                "sentry-metrics.indexer.disabled-namespaces"
+            ):
+                assert namespace
+                skipped_msgs_cnt[namespace] += 1
+                self.filtered_msg_meta.add(broker_meta)
+                continue
+
+            try:
+                parsed_payload = self._extract_message(msg)
+                self._validate_message(parsed_payload)
+                self.parsed_payloads_by_meta[broker_meta] = parsed_payload
+            except Exception as e:
+                self.invalid_msg_meta.add(broker_meta)
+                logger.error(
+                    e,
+                    extra={"payload_value": str(msg.payload.value)},
+                    exc_info=True,
+                )
+
+        for namespace, cnt in skipped_msgs_cnt.items():
+            metrics.incr(
+                "process_messages.namespace_disabled",
+                amount=cnt,
+                tags={"namespace": namespace},
+            )
+
+    def _extract_message(
+        self,
+        msg: Message[KafkaPayload],
+    ) -> ParsedMessage:
+        assert isinstance(msg.value, BrokerValue)
+        try:
+            parsed_payload: ParsedMessage = json.loads(
+                msg.payload.value.decode("utf-8"), use_rapid_json=True
+            )
+        except rapidjson.JSONDecodeError:
+            logger.error(
+                "process_messages.invalid_json",
+                extra={"payload_value": str(msg.payload.value)},
+                exc_info=True,
+            )
+            raise
+
+        assert parsed_payload.get("name", None) is not None
+        parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
+
+        try:
+            self.schema_validator(use_case_id.value, parsed_payload)
+        except ValidationError:
+            if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
+                raise
+            logger.warning(
+                "process_messages.invalid_schema",
+                extra={"payload_value": str(msg.payload.value)},
+                exc_info=True,
+            )
+
+        self.__message_count[use_case_id] += 1
+        self.__message_size_max[use_case_id] = max(
+            len(msg.payload.value), self.__message_size_max[use_case_id]
+        )
+        self.__message_size_sum[use_case_id] += len(msg.payload.value)
+
+        return parsed_payload
 
     def _extract_namespace(self, headers: Headers) -> Optional[str]:
         for string, endcoded in headers:
@@ -96,96 +188,60 @@ class IndexerBatch:
         metrics.incr("sentry-metrics.indexer.killswitch.no-namespace-in-header")
         return None
 
-    @metrics.wraps("process_messages.extract_messages")
-    def _extract_messages(self) -> None:
-        self.skipped_offsets: Set[PartitionIdxOffset] = set()
-        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, ParsedMessage] = {}
+    def _validate_message(self, parsed_payload: ParsedMessage) -> None:
+        metric_name = parsed_payload["name"]
+        metric_type = parsed_payload["type"]
+        use_case_id = parsed_payload["use_case_id"]
+        org_id = parsed_payload["org_id"]
+        tags = parsed_payload.get("tags", {})
 
-        disabled_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
-
-        for msg in self.outer_message.payload:
-            assert isinstance(msg.value, BrokerValue)
-            partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
-
-            if (namespace := self._extract_namespace(msg.payload.headers)) in options.get(
-                "sentry-metrics.indexer.disabled-namespaces"
-            ):
-                assert namespace
-                self.skipped_offsets.add(partition_offset)
-                disabled_msgs_cnt[namespace] += 1
-                continue
-            try:
-                parsed_payload: ParsedMessage = json.loads(
-                    msg.payload.value.decode("utf-8"), use_rapid_json=True
-                )
-            except rapidjson.JSONDecodeError:
-                self.skipped_offsets.add(partition_offset)
-                logger.error(
-                    "process_messages.invalid_json",
-                    extra={"payload_value": str(msg.payload.value)},
-                    exc_info=True,
-                )
-                continue
-            try:
-                if self.__input_codec:
-                    self.__input_codec.validate(parsed_payload)
-            except ValidationError:
-                if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
-                    raise
-
-                # For now while this is still experimental, those errors are
-                # not supposed to be fatal.
-                logger.warning(
-                    "process_messages.invalid_schema",
-                    extra={"payload_value": str(msg.payload.value)},
-                    exc_info=True,
-                )
-
-            try:
-                parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(
-                    parsed_payload["name"]
-                )
-            except ValidationError:
-                self.skipped_offsets.add(partition_offset)
-                logger.error(
-                    "process_messages.invalid_metric_resource_identifier",
-                    extra={"payload_value": str(msg.payload.value)},
-                    exc_info=True,
-                )
-                continue
-
-            self.__message_count[use_case_id] += 1
-            self.__message_size_max[use_case_id] = max(
-                len(msg.payload.value), self.__message_size_max[use_case_id]
+        if not valid_metric_name(metric_name):
+            logger.error(
+                "process_messages.invalid_metric_name",
+                extra={
+                    "use_case_id": use_case_id,
+                    "org_id": org_id,
+                    "metric_name": metric_name,
+                },
             )
-            self.__message_size_sum[use_case_id] += len(msg.payload.value)
+            raise ValueError(f"Invalid metric name: {metric_name}")
 
-            # Ensure that the parsed_payload can be cast back to to
-            # IngestMetric. If there are any schema changes, this check would
-            # fail and ParsedMessage needs to be adjusted to be a superset of
-            # IngestMetric again.
-            _: IngestMetric = parsed_payload
-
-            self.parsed_payloads_by_offset[partition_offset] = parsed_payload
-
-        for namespace, cnt in disabled_msgs_cnt.items():
-            metrics.incr(
-                "process_messages.namespace_disabled",
-                amount=cnt,
-                tags={"namespace": namespace},
+        if metric_type not in ACCEPTED_METRIC_TYPES:
+            logger.error(
+                "process_messages.invalid_metric_type",
+                extra={
+                    "use_case_id": use_case_id,
+                    "org_id": org_id,
+                    "metric_type": metric_type,
+                },
             )
+            raise ValueError(f"Invalid metric type: {metric_type}")
+
+        if self.tags_validator(tags) is False:
+            # sentry doesn't seem to actually capture nested logger.error extra args
+            sentry_sdk.set_extra("all_metric_tags", tags)
+            logger.error(
+                "process_messages.invalid_tags",
+                extra={
+                    "use_case_id": use_case_id,
+                    "org_id": org_id,
+                    "metric_name": metric_name,
+                    "tags": tags,
+                },
+            )
+            raise ValueError(f"Invalid metric tags: {tags}")
 
     @metrics.wraps("process_messages.filter_messages")
-    def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
+    def filter_messages(self, keys_to_remove: Sequence[BrokerMeta]) -> None:
         # XXX: it is useful to be able to get a sample of organization ids that are affected by rate limits, but this is really slow.
-        for offset in keys_to_remove:
+        for broker_meta in keys_to_remove:
             if _should_sample_debug_log():
                 sentry_sdk.set_tag(
                     "sentry_metrics.organization_id",
-                    self.parsed_payloads_by_offset[offset]["org_id"],
+                    self.parsed_payloads_by_meta[broker_meta]["org_id"],
                 )
                 sentry_sdk.set_tag(
-                    "sentry_metrics.metric_name", self.parsed_payloads_by_offset[offset]["name"]
+                    "sentry_metrics.metric_name", self.parsed_payloads_by_meta[broker_meta]["name"]
                 )
                 logger.error(
                     "process_messages.dropped_message",
@@ -194,7 +250,7 @@ class IndexerBatch:
                     },
                 )
 
-        self.skipped_offsets.update(keys_to_remove)
+        self.filtered_msg_meta.update(keys_to_remove)
 
     @metrics.wraps("process_messages.extract_strings")
     def extract_strings(self) -> Mapping[UseCaseID, Mapping[OrgId, Set[str]]]:
@@ -202,61 +258,14 @@ class IndexerBatch:
             lambda: defaultdict(set)
         )
 
-        for partition_offset, message in self.parsed_payloads_by_offset.items():
-            if partition_offset in self.skipped_offsets:
+        for broker_meta, message in self.parsed_payloads_by_meta.items():
+            if broker_meta in self.invalid_msg_meta or broker_meta in self.filtered_msg_meta:
                 continue
 
-            partition_idx, offset = partition_offset
-
             metric_name = message["name"]
-            metric_type = message["type"]
             use_case_id = message["use_case_id"]
             org_id = message["org_id"]
             tags = message.get("tags", {})
-
-            if not valid_metric_name(metric_name):
-                logger.error(
-                    "process_messages.invalid_metric_name",
-                    extra={
-                        "use_case_id": use_case_id,
-                        "org_id": org_id,
-                        "metric_name": metric_name,
-                        "partition": partition_idx,
-                        "offset": offset,
-                    },
-                )
-                self.skipped_offsets.add(partition_offset)
-                continue
-
-            if metric_type not in ACCEPTED_METRIC_TYPES:
-                logger.error(
-                    "process_messages.invalid_metric_type",
-                    extra={
-                        "use_case_id": use_case_id,
-                        "org_id": org_id,
-                        "metric_type": metric_type,
-                        "offset": offset,
-                    },
-                )
-                self.skipped_offsets.add(partition_offset)
-                continue
-
-            if self.tags_validator(tags) is False:
-                # sentry doesn't seem to actually capture nested logger.error extra args
-                sentry_sdk.set_extra("all_metric_tags", tags)
-                logger.error(
-                    "process_messages.invalid_tags",
-                    extra={
-                        "use_case_id": use_case_id,
-                        "org_id": org_id,
-                        "metric_name": metric_name,
-                        "tags": tags,
-                        "partition": partition_idx,
-                        "offset": offset,
-                    },
-                )
-                self.skipped_offsets.add(partition_offset)
-                continue
 
             strings_in_message = {
                 metric_name,
@@ -283,19 +292,28 @@ class IndexerBatch:
         mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]],
         bulk_record_meta: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]],
     ) -> IndexerOutputMessageBatch:
-        new_messages: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]] = []
+        new_messages: MutableSequence[
+            Message[Union[RoutingPayload, KafkaPayload, InvalidMessage]]
+        ] = []
         cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         for message in self.outer_message.payload:
             used_tags: Set[str] = set()
             output_message_meta: Dict[str, Dict[str, str]] = defaultdict(dict)
             assert isinstance(message.value, BrokerValue)
-            partition_offset = PartitionIdxOffset(
-                message.value.partition.index, message.value.offset
-            )
-            if partition_offset in self.skipped_offsets:
+            broker_meta = BrokerMeta(message.value.partition, message.value.offset)
+            if broker_meta in self.filtered_msg_meta:
                 continue
-            old_payload_value = self.parsed_payloads_by_offset.pop(partition_offset)
+            if broker_meta in self.invalid_msg_meta:
+                new_messages.append(
+                    Message(
+                        message.value.replace(
+                            InvalidMessage(broker_meta.partition, broker_meta.offset)
+                        )
+                    )
+                )
+                continue
+            old_payload_value = self.parsed_payloads_by_meta.pop(broker_meta)
 
             metric_name = old_payload_value["name"]
             org_id = old_payload_value["org_id"]
@@ -416,6 +434,9 @@ class IndexerBatch:
             sentry_received_timestamp = message.value.timestamp.timestamp()
 
             if self.__should_index_tag_values:
+                # Metrics don't support gauges (which use dicts), so assert value type
+                value = old_payload_value["value"]
+                assert isinstance(value, (int, float, list))
                 new_payload_v1: Metric = {
                     "tags": new_tags,
                     # XXX: relay actually sends this value unconditionally
@@ -427,7 +448,7 @@ class IndexerBatch:
                     "timestamp": old_payload_value["timestamp"],
                     "project_id": old_payload_value["project_id"],
                     "type": old_payload_value["type"],
-                    "value": old_payload_value["value"],
+                    "value": value,
                     "sentry_received_timestamp": sentry_received_timestamp,
                 }
 
@@ -490,4 +511,7 @@ class IndexerBatch:
                 self.__message_size_max[use_case_id],
                 tags={"use_case_id": use_case_id.value},
             )
-        return IndexerOutputMessageBatch(new_messages, cogs_usage)
+        return IndexerOutputMessageBatch(
+            new_messages,
+            cogs_usage,
+        )

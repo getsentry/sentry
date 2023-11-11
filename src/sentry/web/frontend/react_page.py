@@ -1,5 +1,6 @@
 from fnmatch import fnmatch
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse, HttpResponseRedirect
@@ -47,6 +48,10 @@ class ReactMixin:
                 {"property": key, "content": value}
                 for key, value in self.meta_tags(request, **kwargs).items()
             ],
+            # Rendering the layout requires serializing the active organization.
+            # Since we already have it here from the OrganizationMixin, we can
+            # save some work and render it faster.
+            "org_context": getattr(self, "active_organization", None),
         }
 
         # Force a new CSRF token to be generated and set in user's
@@ -90,8 +95,16 @@ class ReactMixin:
                             return HttpResponseRedirect(redirect_url)
 
         response = render_to_response("sentry/base-react.html", context=context, request=request)
-        if "x-sentry-browser-profiling" in request.headers:
-            response["Document-Policy"] = "js-profiling"
+
+        try:
+            if "x-sentry-browser-profiling" in request.headers or (
+                getattr(request, "organization", None) is not None
+                and features.has("organizations:profiling-browser", request.organization)
+            ):
+                response["Document-Policy"] = "js-profiling"
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+
         return response
 
 

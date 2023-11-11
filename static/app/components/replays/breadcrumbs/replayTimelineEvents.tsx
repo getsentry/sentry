@@ -78,6 +78,7 @@ function Event({
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
       frame={frame}
+      extraction={undefined}
       key={i}
       onClick={() => {
         onClickTimestamp(frame);
@@ -86,6 +87,9 @@ function Event({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
+      traces={undefined}
+      onDimensionChange={() => {}}
+      onInspectorExpanded={() => {}}
     />
   ));
   const title = <TooltipWrapper>{buttons}</TooltipWrapper>;
@@ -192,7 +196,7 @@ const IconNode = styled('div')<{colors: Color[]; frameCount: number}>`
 `;
 
 const TooltipWrapper = styled('div')`
-  max-height: calc(100vh - ${space(4)});
+  max-height: 80vh;
   overflow: auto;
 `;
 

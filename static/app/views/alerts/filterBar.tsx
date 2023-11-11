@@ -65,7 +65,7 @@ function FilterBar({
           />
         )}
         {onChangeDataset && (
-          <StyledSegmentedControl
+          <SegmentedControl<DatasetOption>
             aria-label={t('Alert type')}
             value={selectedDataset}
             onChange={onChangeDataset}
@@ -86,7 +86,7 @@ function FilterBar({
               {t('Performance')}
               {showMigrationWarning ? <StyledIconWarning /> : null}
             </SegmentedControl.Item>
-          </StyledSegmentedControl>
+          </SegmentedControl>
         )}
       </FilterButtons>
       <SearchBar
@@ -114,17 +114,14 @@ const FilterButtons = styled(ButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     display: flex;
     align-items: flex-start;
+    flex-wrap: wrap;
     gap: ${space(1.5)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: grid;
-    grid-auto-columns: minmax(auto, 300px);
+    grid-auto-columns: max-content;
   }
-`;
-
-const StyledSegmentedControl = styled(SegmentedControl<DatasetOption>)`
-  width: max-content;
 `;
 
 const StyledIconWarning = styled(IconWarning)`

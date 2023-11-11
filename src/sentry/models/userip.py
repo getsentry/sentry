@@ -5,7 +5,6 @@ from typing import Optional, Tuple
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.forms import model_to_dict
 from django.utils import timezone
 
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
@@ -50,12 +49,13 @@ class UserIP(Model):
     ) -> Optional[int]:
         from sentry.models.user import User
 
-        # If we are merging users, ignore this import and use the merged user's data.
-        if pk_map.get_kind(get_model_name(User), self.user_id) == ImportKind.Existing:
-            return None
-
+        old_user_id = self.user_id
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
+            return None
+
+        # If we are merging users, ignore the imported IP and use the merged user's IP instead.
+        if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
             return None
 
         # We'll recalculate the country codes from the IP when we call `log()` in
@@ -74,17 +74,30 @@ class UserIP(Model):
     ) -> Optional[Tuple[int, ImportKind]]:
         # Ensures that the IP address is valid. Exclude the codes, as they should be `None` until we
         # `log()` them below.
-        self.full_clean(exclude=["country_code", "region_code"])
+        self.full_clean(exclude=["country_code", "region_code", "user"])
 
         # Update country/region codes as necessary by using the `log()` method.
-        overwriting = model_to_dict(self)
-        del overwriting["user"]
-        (userip, created) = self.__class__.objects.get_or_create(
-            user=self.user, defaults=overwriting
+        (userip, _) = self.__class__.objects.get_or_create(
+            user=self.user, ip_address=self.ip_address
         )
-        userip.log(self.user, self.ip_address)
 
-        return (userip.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        # Calling the `.log()` method makes a separate "update" call to the database, so we need to
+        # refresh this local version of the model immediately after.
+        self.__class__.log(self.user, self.ip_address)
+        userip.refresh_from_db()
+
+        userip.first_seen = self.first_seen
+        userip.last_seen = self.last_seen
+        userip.save()
+
+        self.country_code = userip.country_code
+        self.region_code = userip.region_code
+
+        # If we've entered this method at all, we can be sure that the `UserIP` was created as part
+        # of the import, since this is a new `User` (the "existing" `User` due to
+        # `--merge_users=true` case is handled in the `normalize_before_relocation_import()` method
+        # above).
+        return (userip.pk, ImportKind.Inserted)
 
 
 def _perform_log(user: User | RpcUser, ip_address: str):

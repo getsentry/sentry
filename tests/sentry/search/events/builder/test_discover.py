@@ -828,3 +828,13 @@ class QueryBuilderTest(TestCase):
                 query="profile.id:foo",
                 selected_columns=["count()"],
             )
+
+    def test_orderby_raw_empty_equation(self):
+        with pytest.raises(InvalidSearchQuery, match=re.escape("Cannot sort by an empty equation")):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="",
+                selected_columns=["count()"],
+                orderby="equation|",
+            )

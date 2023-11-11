@@ -119,10 +119,7 @@ class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
 
   hasStacktraceLinking(provider: IntegrationProvider) {
     // CodeOwners will only work if the provider has StackTrace Linking
-    return (
-      provider.features.includes('stacktrace-link') &&
-      this.props.organization.features.includes('integrations-stacktrace-link')
-    );
+    return provider.features.includes('stacktrace-link');
   }
 
   hasCodeOwners(provider: IntegrationProvider) {

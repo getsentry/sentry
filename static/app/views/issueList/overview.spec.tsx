@@ -436,6 +436,54 @@ describe('IssueList', function () {
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
     });
 
+    it('caches the search results', async function () {
+      issuesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [...new Array(25)].map((_, i) => ({id: i})),
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+          'X-Hits': '500',
+          'X-Max-Hits': '1000',
+        },
+      });
+
+      const defaultProps = {
+        ...props,
+        ...routerProps,
+        useOrgSavedSearches: true,
+        selection: {
+          projects: [],
+          environments: [],
+          datetime: {period: '14d'},
+        },
+        organization: Organization({
+          features: ['issue-stream-performance', 'issue-stream-performance-cache'],
+          projects: [],
+        }),
+      };
+      const {unmount} = render(<IssueListWithStores {...defaultProps} />, {
+        context: routerContext,
+        organization: defaultProps.organization,
+      });
+
+      expect(
+        await screen.findByText(textWithMarkupMatcher('1-25 of 500'))
+      ).toBeInTheDocument();
+      expect(issuesRequest).toHaveBeenCalledTimes(1);
+      unmount();
+
+      // Mount component again, getting from cache
+      render(<IssueListWithStores {...defaultProps} />, {
+        context: routerContext,
+        organization: defaultProps.organization,
+      });
+
+      expect(
+        await screen.findByText(textWithMarkupMatcher('1-25 of 500'))
+      ).toBeInTheDocument();
+      expect(issuesRequest).toHaveBeenCalledTimes(1);
+    });
+
     it('1 search', async function () {
       const localSavedSearch = {...savedSearch, projectId: null};
       savedSearchesRequest = MockApiClient.addMockResponse({
@@ -996,7 +1044,7 @@ describe('IssueList', function () {
       expect(fetchDataMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          data: 'collapse=stats&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
+          data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
         })
       );
     });
