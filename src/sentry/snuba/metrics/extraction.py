@@ -982,7 +982,7 @@ class OnDemandMetricSpec:
 
     @cached_property
     def condition_for_query_hash(self) -> Optional[RuleCondition]:
-        """ Returns the same as self.condition but removes anything that 
+        """Returns the same as self.condition but removes anything that
         shouldn't be added to the spec hash."""
         return self._process_query(True)
 
@@ -1040,7 +1040,7 @@ class OnDemandMetricSpec:
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
         # We extend the parsed query with other conditions that we want to inject externally from the query.
-        # We skip adding environment if we are reprocessing the query for hashing. 
+        # We skip adding environment if we are reprocessing the query for hashing.
         if not is_for_hash:
             parsed_query = self._extend_parsed_query(parsed_query)
 
