@@ -524,6 +524,7 @@ def occurrences_ingest_consumer(**options):
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
 @click.option("max_parallel_batch_time", "--max-parallel-batch-time-ms", type=int, default=10000)
 @click.option("--group-instance-id", type=str, default=None)
+@click.option("--dlq-topic", type=str, default=None)
 def metrics_parallel_consumer(**options):
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
 

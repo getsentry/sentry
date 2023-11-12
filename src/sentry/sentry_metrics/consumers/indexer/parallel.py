@@ -5,9 +5,10 @@ import logging
 from collections import deque
 from typing import Any, Deque, Mapping, Optional, Union, cast
 
-from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
+import click
+from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
 from arroyo.commit import ONCE_PER_SECOND
-from arroyo.dlq import InvalidMessage
+from arroyo.dlq import DlqLimit, DlqPolicy, InvalidMessage, KafkaDlqProducer
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
@@ -32,6 +33,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 # from usageaccountant import UsageAccumulator, UsageUnit
 
@@ -221,6 +223,7 @@ def get_parallel_metrics_consumer(
     ingest_profile: str,
     indexer_db: str,
     group_instance_id: Optional[str],
+    dlq_topic: Optional[str],
 ) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
         max_msg_batch_size=max_msg_batch_size,
@@ -233,6 +236,28 @@ def get_parallel_metrics_consumer(
         ingest_profile=ingest_profile,
         indexer_db=indexer_db,
     )
+
+    if dlq_topic:
+        try:
+            cluster_setting = get_topic_definition(dlq_topic)["cluster"]
+        except ValueError as e:
+            raise click.BadParameter(
+                f"Cannot enable DLQ for parallel metrics consumer: DLQ topic {dlq_topic} is not configured in this environment"
+            ) from e
+
+        producer_config = get_kafka_producer_cluster_options(cluster_setting)
+        dlq_producer = KafkaProducer(producer_config)
+
+        dlq_policy = DlqPolicy(
+            KafkaDlqProducer(dlq_producer, Topic(dlq_topic)),
+            DlqLimit(
+                max_invalid_ratio=0.01,
+                max_consecutive_count=1000,
+            ),
+            None,
+        )
+    else:
+        dlq_policy = None
 
     return StreamProcessor(
         KafkaConsumer(
@@ -247,6 +272,7 @@ def get_parallel_metrics_consumer(
         Topic(processing_factory.config.input_topic),
         processing_factory,
         ONCE_PER_SECOND,
+        dlq_policy,
         # We drop any in flight messages in processing step prior to produce.
         # The SimpleProduceStep has a hardcoded join timeout of 5 seconds.
         join_timeout=0.0,
