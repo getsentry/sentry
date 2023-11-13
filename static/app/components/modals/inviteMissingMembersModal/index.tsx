@@ -220,6 +220,7 @@ export function InviteMissingMembersModal({
           t('Role'),
           t('Team'),
         ]}
+        stickyHeaders
       >
         {memberInvites?.map((member, i) => {
           const checked = memberInvites[i].selected;
@@ -253,6 +254,8 @@ export function InviteMissingMembersModal({
                 roles={allowedRoles}
                 disableUnallowed
                 onChange={value => setRole(value?.value, i)}
+                menuPortalTarget={document.body}
+                isInsideModal
               />
               <TeamSelector
                 organization={organization}
@@ -263,6 +266,8 @@ export function InviteMissingMembersModal({
                 onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
                 multiple
                 clearable
+                menuPortalTarget={document.body}
+                isInsideModal
               />
             </Fragment>
           );
@@ -314,7 +319,8 @@ export default InviteMissingMembersModal;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;
-  overflow: visible;
+  overflow: scroll;
+  max-height: 475px;
 `;
 
 const StyledHeader = styled('div')`
