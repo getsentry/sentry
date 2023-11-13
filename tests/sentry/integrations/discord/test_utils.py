@@ -1,10 +1,10 @@
 from unittest import mock
 
+from cryptography.exceptions import InvalidSignature
 from django.core.exceptions import ValidationError
 from pytest import raises
 from requests.exceptions import Timeout
 
-from sentry.integrations.discord.requests.base import DiscordRequestError
 from sentry.integrations.discord.utils.auth import verify_signature
 from sentry.integrations.discord.utils.channel import ChannelType, validate_channel_id
 from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
@@ -27,7 +27,7 @@ class AuthTest(TestCase):
         timestamp = "1688960024"
         body = '{"type":1}'
 
-        with raises(DiscordRequestError):
+        with raises(InvalidSignature):
             verify_signature(public_key_string, signature, timestamp, body)
 
 
