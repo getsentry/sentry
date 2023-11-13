@@ -221,9 +221,12 @@ def generate_operation_regex():
     """
     Generates a regex of all supported operations defined in OP_TO_SNUBA_FUNCTION
     """
-    operations = []
+    operations = set()
     for item in OP_TO_SNUBA_FUNCTION.values():
-        operations += list(item.keys())
+        operations.update(set(item.keys()))
+    for item in GENERIC_OP_TO_SNUBA_FUNCTION.values():
+        operations.update(set(item.keys()))
+
     return rf"({'|'.join(map(str, operations))})"
 
 
