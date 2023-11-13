@@ -19,7 +19,9 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import features
 from sentry.eventstore.models import Event
+from sentry.models.eventuser import EventUser as EventUser_model
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.avatar import get_gravatar_url
@@ -194,6 +196,10 @@ class EventUser:
         Return a dictionary of {tag_value: event_user}.
         """
         projects = Project.objects.filter(id=project_id)
+
+        if not features.has("organizations:eventuser-from-snuba", projects[0].organization):
+            return EventUser_model.for_tags(project_id, values)
+
         result = {}
         keyword_filters = {}
         for value in values:

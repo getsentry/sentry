@@ -9,6 +9,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.eventuser import EventUser
 
 
@@ -73,6 +74,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         assert IssuesByTagProcessor.get_lookup_key("generic") == "generic"
         assert IssuesByTagProcessor.get_lookup_key("user") == "sentry:user"
 
+    @with_feature("organizations:eventuser-from-snuba")
     def test_get_eventuser_callback(self):
         user_callback = IssuesByTagProcessor.get_eventuser_callback(self.project.id)
         processor = IssuesByTagProcessor(
@@ -86,6 +88,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         user_callback([sample])
         assert sample._eventuser == self.euser
 
+    @with_feature("organizations:eventuser-from-snuba")
     def test_get_callbacks(self):
         generic_callbacks = IssuesByTagProcessor.get_callbacks("generic", self.project.id)
         assert isinstance(generic_callbacks, list)
