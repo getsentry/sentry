@@ -122,7 +122,7 @@ platformdirs==2.5.2
 pluggy==0.13.1
 pre-commit==3.3.2
 progressbar2==3.41.0
-proto-plus==1.22.1
+proto-plus==1.22.2
 protobuf==4.21.6
 psutil==5.9.2
 psycopg2-binary==2.8.6

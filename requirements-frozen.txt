@@ -81,7 +81,7 @@ phonenumberslite==8.12.55
 pillow==9.3.0
 planout==0.6.0
 progressbar2==3.41.0
-proto-plus==1.22.1
+proto-plus==1.22.2
 protobuf==4.21.6
 psycopg2-binary==2.8.6
 pyasn1==0.4.5
