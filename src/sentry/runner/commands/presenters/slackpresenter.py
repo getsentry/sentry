@@ -119,7 +119,6 @@ class SlackPresenter(OptionsPresenter):
         expected_type: type,
     ) -> None:
         self.invalid_type_options.append((key, got_type, expected_type))
-        self.options_changed = True
 
     def _send_to_webhook(self, json_data: dict) -> None:
         if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
