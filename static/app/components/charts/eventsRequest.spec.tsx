@@ -713,4 +713,43 @@ describe('EventsRequest', function () {
       );
     });
   });
+
+  describe('on demand metrics', function () {
+    beforeEach(function () {
+      (doEventsRequest as jest.Mock).mockClear();
+    });
+
+    it('passes useOnDemandMetrics param', async function () {
+      (doEventsRequest as jest.Mock).mockImplementation(({useOnDemandMetrics}) =>
+        Promise.resolve({
+          data: [[new Date(), [COUNT_OBJ]]],
+          start: 1627402280,
+          end: 1627402398,
+          isMetricsData: useOnDemandMetrics,
+          meta: {
+            isMetricsData: useOnDemandMetrics,
+            fields: {
+              p95_measurements_custom: 'size',
+            },
+            units: {
+              p95_measurements_custom: 'kibibyte',
+            },
+          },
+        })
+      );
+      render(
+        <EventsRequest {...DEFAULTS} yAxis="p95(measurements.custom)" useOnDemandMetrics>
+          {mock}
+        </EventsRequest>
+      );
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            isMetricsData: true,
+          })
+        )
+      );
+    });
+  });
 });
