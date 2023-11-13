@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,6 +12,8 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -30,6 +33,8 @@ type Props = {};
 
 function ReleaseThresholdList({}: Props) {
   const [listError, setListError] = useState<string>('');
+  const [newProjThresholdsPage, setNewProjThresholdsPage] = useState(0);
+  const PAGE_SIZE = 10;
   const router = useRouter();
   const organization = useOrganization();
   useEffect(() => {
@@ -127,6 +132,7 @@ function ReleaseThresholdList({}: Props) {
   }, [filteredThresholds]);
 
   const projectsWithoutThresholds: Project[] = useMemo(() => {
+    // TODO: limit + paginate list
     return selectedProjects.filter(proj => !thresholdsByProject[proj.id]);
   }, [thresholdsByProject, selectedProjects]);
 
@@ -173,15 +179,47 @@ function ReleaseThresholdList({}: Props) {
             {projectsWithoutThresholds[0] && (
               <div>
                 <strong>Projects without Thresholds</strong>
-                {projectsWithoutThresholds.map(proj => (
-                  <NoThresholdCard
-                    key={proj.id}
-                    project={proj}
-                    allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
-                    refetch={refetch}
-                    setTempError={setTempError}
+                {projectsWithoutThresholds
+                  .slice(
+                    PAGE_SIZE * newProjThresholdsPage,
+                    PAGE_SIZE * newProjThresholdsPage + PAGE_SIZE
+                  )
+                  .map(proj => (
+                    <NoThresholdCard
+                      key={proj.id}
+                      project={proj}
+                      allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
+                      refetch={refetch}
+                      setTempError={setTempError}
+                    />
+                  ))}
+                <Paginator>
+                  <Button
+                    icon={<IconChevron direction="left" size="sm" />}
+                    aria-label={t('Previous')}
+                    size="sm"
+                    disabled={newProjThresholdsPage === 0}
+                    onClick={() => {
+                      setNewProjThresholdsPage(newProjThresholdsPage - 1);
+                    }}
                   />
-                ))}
+                  <CurrentPage>
+                    {newProjThresholdsPage + 1} of{' '}
+                    {Math.ceil(projectsWithoutThresholds.length / PAGE_SIZE)}
+                  </CurrentPage>
+                  <Button
+                    icon={<IconChevron direction="right" size="sm" />}
+                    aria-label={t('Next')}
+                    size="sm"
+                    disabled={
+                      PAGE_SIZE * newProjThresholdsPage + PAGE_SIZE >=
+                      projectsWithoutThresholds.length
+                    }
+                    onClick={() => {
+                      setNewProjThresholdsPage(newProjThresholdsPage + 1);
+                    }}
+                  />
+                </Paginator>
               </div>
             )}
           </Layout.Main>
@@ -208,4 +246,15 @@ const ListError = styled('div')`
 
 const ReleaseThresholdsPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
+`;
+
+const Paginator = styled('div')`
+  margin: ${space(2)} 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+`;
+
+const CurrentPage = styled('div')`
+  margin: 0 ${space(1)};
 `;
