@@ -1,10 +1,5 @@
-[python.'3.8.16']
-darwin_x86_64 = 'https://github.com/indygreg/python-build-standalone/releases/download/20221220/cpython-3.8.16+20221220-x86_64-apple-darwin-install_only.tar.gz'
-darwin_x86_64_sha256 = '2916eea6b522d5b755ba2e328527019015597751e0f32c27d73c7d618b61f6b1'
-darwin_arm64 = 'https://github.com/indygreg/python-build-standalone/releases/download/20221220/cpython-3.8.16+20221220-aarch64-apple-darwin-install_only.tar.gz'
-darwin_arm64_sha256 = 'a71280128ef05311affb8196a8d80571e48952a50093907ffcad33d886d04736'
-
-[python.'3.8.18']
+[python]
+version = '3.8.18'
 darwin_x86_64 = 'https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.8.18+20231002-x86_64-apple-darwin-install_only.tar.gz'
 darwin_x86_64_sha256 = 'fcf04532e644644213977242cd724fe5e84c0a5ac92ae038e07f1b01b474fca3'
 darwin_arm64 = 'https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.8.18+20231002-aarch64-apple-darwin-install_only.tar.gz'
