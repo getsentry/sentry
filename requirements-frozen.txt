@@ -74,7 +74,7 @@ multidict==6.0.4
 oauthlib==3.1.0
 openai==0.27.0
 packaging==21.3
-parsimonious==0.8.0
+parsimonious==0.9.0
 petname==2.6
 phabricator==0.7.0
 phonenumberslite==8.12.55
@@ -105,6 +105,7 @@ pyyaml==5.4
 rb==1.10.0
 redis==3.4.1
 redis-py-cluster==2.1.0
+regex==2022.9.13
 reportlab==3.6.13
 requests==2.31.0
 requests-oauthlib==1.2.0
