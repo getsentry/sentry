@@ -4,7 +4,6 @@ import io
 import tarfile
 import tempfile
 from datetime import date, datetime
-from os import environ
 from pathlib import Path
 from typing import Tuple
 from unittest.mock import patch
@@ -1780,7 +1779,7 @@ class CollisionTests(ImportTestCase):
                 return json.load(tmp_file)
 
 
-@pytest.mark.skipif(not environ.get("SENTRY_LEGACY_TEST_SUITE"), reason="not legacy")
+@pytest.mark.skipif(reason="not legacy")
 class TestLegacyTestSuite:
     def test_deleteme(self):
         """
