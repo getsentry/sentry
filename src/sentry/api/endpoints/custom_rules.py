@@ -298,8 +298,15 @@ def get_condition(query: Optional[str]) -> RuleCondition:
             converter = SearchQueryConverter(tokens)
             condition = converter.convert()
         return condition
-    except UnsupportedSearchQuery:
-        raise  # do not log unsupported queries (they are expected)
+    except UnsupportedSearchQuery as unsupported_ex:
+        # log unsupported queries with a different message so that
+        # we can differentiate them from other errors
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("query", query)
+            scope.set_extra("error", unsupported_ex)
+            message = "Unsupported search query"
+            sentry_sdk.capture_message(message, level="warning")
+        raise
     except Exception as ex:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("query", query)
