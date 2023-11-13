@@ -1,9 +1,6 @@
-import sys
-from os import path
 from typing import Set, Tuple
 
-sys.path.append(path.abspath(".local/share/sentry-devenv/devenv"))
-from devenv.lib import github  # type: ignore
+from devenv.lib import github
 
 tags: Set[str] = {"github"}
 name = "Check Github Access"

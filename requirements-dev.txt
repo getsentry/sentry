@@ -36,6 +36,7 @@ djangorestframework-stubs
 lxml-stubs
 msgpack-types>=0.2.0
 mypy>=1.4.1
+sentry-devenv>=1.1.1
 types-beautifulsoup4
 types-cachetools
 types-croniter
