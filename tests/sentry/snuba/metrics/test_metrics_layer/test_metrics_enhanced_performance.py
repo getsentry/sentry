@@ -2064,7 +2064,7 @@ class CustomMetricsMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         self.gauge_2 = {
             "min": 2.0,
             "max": 21.0,
-            "sum": 25.0,
+            "sum": 21.0,
             "count": 3,
             "last": 4.0,
         }
@@ -2197,8 +2197,8 @@ class CustomMetricsMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert data["groups"] == [
             {
                 "by": {},
-                "series": {"sum(page_load)": [21.0, 25.0]},
-                "totals": {"sum(page_load)": 46.0},
+                "series": {"sum(page_load)": [21.0, 21.0]},
+                "totals": {"sum(page_load)": 42.0},
             }
         ]
 
@@ -2233,6 +2233,40 @@ class CustomMetricsMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "by": {},
                 "series": {"last(page_load)": [20.0, 4.0]},
                 "totals": {"last(page_load)": 4.0},
+            }
+        ]
+
+    def test_gauge_avg(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="avg",
+                    metric_mri=self.mri,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {
+                "by": {},
+                "series": {"avg(page_load)": [10.5, 7.0]},
+                "totals": {"avg(page_load)": 8.4},
             }
         ]
 
