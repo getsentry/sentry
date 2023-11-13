@@ -1,8 +1,10 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -38,13 +40,21 @@ function DDM() {
               <Layout.Title>
                 {t('DDM')}
                 <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io"
+                  docsUrl="https://develop.sentry.dev/delightful-developer-metrics/"
                   title={t('Delightful Developer Metrics.')}
                 />
                 <FeatureBadge type="alpha" />
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions />
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <GithubFeedbackButton
+                  href="https://github.com/getsentry/sentry/discussions/58584"
+                  label={t('Discussion')}
+                  title={null}
+                />
+              </ButtonBar>
+            </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
             <FeedbackWidget />
