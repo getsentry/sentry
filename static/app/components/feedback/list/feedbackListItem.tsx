@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
-import ErrorLevel from 'sentry/components/events/errorLevel';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -16,7 +15,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCircleFill, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Level} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -48,7 +46,6 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
     return (
       <CardSpacing className={className} style={style} ref={ref}>
-        <GroupLevel level={feedbackItem.level} />
         <LinkedFeedbackCard
           data-selected={isOpen}
           to={() => {
@@ -150,15 +147,6 @@ const ProjectOverflow = styled('span')`
   overflow: hidden;
   white-space: nowrap;
   max-width: 150px;
-`;
-
-const GroupLevel = styled(ErrorLevel)<{level: Level}>`
-  position: absolute;
-  left: -2px;
-  top: 13px;
-  width: 9px;
-  height: 15px;
-  border-radius: 0 3px 3px 0;
 `;
 
 export default FeedbackListItem;
