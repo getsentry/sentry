@@ -19,3 +19,4 @@ class FirstSourcemapsSentEventForProject(FirstSourcemapsSentEvent):
 
 
 analytics.register(FirstSourcemapsSentEvent)
+analytics.register(FirstSourcemapsSentEventForProject)

@@ -744,3 +744,177 @@ class OrganizationOnboardingTaskTest(TestCase):
                 count += 1
 
         assert count == 0
+
+    @patch("sentry.analytics.record")
+    def test_first_event_without_sourcemaps_received(self, record_analytics):
+        """
+        Test that an analytics event is NOT recorded when
+        there no event with sourcemaps is received
+        """
+        now = django_timezone.now()
+        project = self.create_project(first_event=now)
+        project_created.send(project=project, user=self.user, sender=type(project))
+        data = load_data("javascript")
+        event = self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+
+        event_processed.send(project=project, event=event, sender=type(project))
+
+        with pytest.raises(AssertionError):
+            record_analytics.assert_called_with(
+                "first_sourcemaps_for_project.sent",
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform="javascript",
+                url="http://localhost:3000",
+            )
+
+    @patch("sentry.analytics.record")
+    def test_first_event_with_sourcemaps_received(self, record_analytics):
+        """
+        Test that an analytics event is recorded when
+        a first event with sourcemaps is received
+        """
+        now = django_timezone.now()
+        project = self.create_project(first_event=now, platform="VueJS")
+        project_created.send(project=project, user=self.user, sender=type(project))
+        url = "http://localhost:3000"
+        data = load_data("javascript")
+        data["tags"] = [("url", url)]
+        data["exception"] = {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "data": {
+                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                }
+                            }
+                        ]
+                    },
+                    "type": "TypeError",
+                }
+            ]
+        }
+
+        event = self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+        event_processed.send(project=project, event=event, sender=type(project))
+
+        record_analytics.assert_called_with(
+            "first_sourcemaps_for_project.sent",
+            user_id=self.user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            project_platform="VueJS",
+            url=url,
+        )
+
+    @patch("sentry.analytics.record")
+    def test_analytic_triggered_only_once_if_multiple_events_with_sourcemaps_received(
+        self, record_analytics
+    ):
+        """
+        Test that an analytic event is triggered only once when
+        multiple events with sourcemaps are received
+        """
+        now = django_timezone.now()
+        project = self.create_project(first_event=now)
+        project_created.send(project=project, user=self.user, sender=type(project))
+        url = "http://localhost:3000"
+        data = load_data("javascript")
+        data["tags"] = [("url", url)]
+        data["exception"] = {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "data": {
+                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                }
+                            }
+                        ]
+                    },
+                    "type": "TypeError",
+                }
+            ]
+        }
+
+        # Store first event
+        event_1 = self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+        event_processed.send(project=project, event=event_1, sender=type(project))
+
+        # Store second event
+        event_2 = self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+        event_processed.send(project=project, event=event_2, sender=type(project))
+
+        count = 0
+        for call_arg in record_analytics.call_args_list:
+            if "first_sourcemaps_for_project.sent" in call_arg[0]:
+                count += 1
+
+        assert count == 1
+
+    @patch("sentry.analytics.record")
+    def test_old_project_sending_sourcemap_event(self, record_analytics):
+        """
+        Test that an analytics event is NOT recorded when
+        the project creation date is older than the date we defined (START_DATE_TRACKING_FIRST_EVENT_WITH_SOURCEMAPS_PER_PROJ).
+
+        In this test we also check  if the has_sourcemaps is being set to "True" in old projects
+        """
+        old_date = datetime(2022, 12, 10, tzinfo=timezone.utc)
+        project = self.create_project(first_event=old_date, date_added=old_date)
+        project_created.send(project=project, user=self.user, sender=type(project))
+        url = "http://localhost:3000"
+        data = load_data("javascript")
+        data["tags"] = [("url", url)]
+        data["exception"] = {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "data": {
+                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                }
+                            }
+                        ]
+                    },
+                    "type": "TypeError",
+                }
+            ]
+        }
+
+        # project.flags.has_sourcemaps = False
+        assert not project.flags.has_sourcemaps
+
+        event = self.store_event(project_id=project.id, data=data)
+        event_processed.send(project=project, event=event, sender=type(project))
+
+        project.refresh_from_db()
+
+        # project.flags.has_sourcemaps = True
+        assert project.flags.has_sourcemaps
+
+        # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
+        count = 0
+        for call_arg in record_analytics.call_args_list:
+            if "first_sourcemaps_for_project.sent" in call_arg[0]:
+                count += 1
+
+        assert count == 0
