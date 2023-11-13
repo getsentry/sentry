@@ -248,11 +248,7 @@ function GroupHeader({
                 to: {
                   pathname: `/organizations/${organization.slug}/issues/`,
                   // Sanitize sort queries from query
-                  query: {
-                    project: location.query.project,
-                    referrer: location.query.referrer,
-                    stream_index: location.query.referrer,
-                  },
+                  query: omit(location.query, 'sort'),
                 },
               },
               {label: shortIdBreadcrumb},
