@@ -124,6 +124,7 @@ export function ThresholdGroupRows({
       }
       const submitData = {
         ...thresholdData,
+        environment: thresholdData.environmentName,
         window_in_seconds: seconds,
       };
       let path = `/projects/${organization.slug}/${thresholdData.project.slug}/release-thresholds/${id}/`;
@@ -206,14 +207,11 @@ export function ThresholdGroupRows({
   return (
     <StyledThresholdGroup>
       {Array.from(thresholdIdSet).map((tId: string, idx: number) => {
-        let threshold;
-        let isEditing = false;
-        if (tId in editingThresholds) {
-          isEditing = true;
-          threshold = editingThresholds[tId] as EditingThreshold;
-        } else {
-          threshold = initialThreshold as Threshold;
-        }
+        const isEditing = tId in editingThresholds;
+        // NOTE: we're casting the threshold type because we can't dynamically derive type below
+        const threshold = isEditing
+          ? (editingThresholds[tId] as EditingThreshold)
+          : (initialThreshold as Threshold);
 
         return (
           <StyledRow
@@ -225,9 +223,13 @@ export function ThresholdGroupRows({
             {!initialThreshold || threshold.id !== initialThreshold.id ? (
               <CompactSelect
                 style={{width: '100%'}}
-                value={threshold.environmentName}
+                value={(threshold as EditingThreshold).environmentName}
                 onChange={selectedOption =>
-                  editThresholdState(threshold.id, 'environment', selectedOption.value)
+                  editThresholdState(
+                    threshold.id,
+                    'environmentName',
+                    selectedOption.value
+                  )
                 }
                 options={allEnvironmentNames.map(env => ({
                   value: env,
@@ -238,8 +240,8 @@ export function ThresholdGroupRows({
             ) : (
               <FlexCenter>
                 {/* 'None' means it _has_ an environment, but the env has no name */}
-                {threshold.environment
-                  ? threshold.environment.name || 'None'
+                {(threshold as Threshold).environment
+                  ? (threshold as Threshold).environment.name || 'None'
                   : '{No environment}'}
               </FlexCenter>
             )}
@@ -249,7 +251,7 @@ export function ThresholdGroupRows({
                 <FlexCenter>
                   <Input
                     style={{width: '50%'}}
-                    value={threshold.windowValue}
+                    value={(threshold as EditingThreshold).windowValue}
                     type="number"
                     min={0}
                     onChange={e =>
@@ -258,7 +260,7 @@ export function ThresholdGroupRows({
                   />
                   <CompactSelect
                     style={{width: '50%'}}
-                    value={threshold.windowSuffix}
+                    value={(threshold as EditingThreshold).windowSuffix}
                     onChange={selectedOption =>
                       editThresholdState(
                         threshold.id,
@@ -338,7 +340,11 @@ export function ThresholdGroupRows({
             ) : (
               <Fragment>
                 <FlexCenter>
-                  {getExactDuration(threshold.window_in_seconds || 0, false, 'seconds')}
+                  {getExactDuration(
+                    (threshold as Threshold).window_in_seconds || 0,
+                    false,
+                    'seconds'
+                  )}
                 </FlexCenter>
                 <FlexCenter>
                   <div>
@@ -381,7 +387,7 @@ export function ThresholdGroupRows({
                   <Button
                     aria-label={t('Edit threshold')}
                     icon={<IconEdit />}
-                    onClick={() => enableEditThreshold(threshold)}
+                    onClick={() => enableEditThreshold(threshold as Threshold)}
                     size="xs"
                   />
                   <Button

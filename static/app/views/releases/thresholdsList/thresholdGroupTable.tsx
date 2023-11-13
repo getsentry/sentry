@@ -30,22 +30,31 @@ export default function ThresholdGroupTable({
   setTempError,
   thresholds,
 }: Props) {
-  const thresholdsByEnv: {[key: string]: Threshold[]} = useMemo(() => {
-    const byEnv = {};
-    thresholds.forEach(threshold => {
-      const env = threshold.environment ? threshold.environment.name : '';
-      if (!byEnv[env]) {
-        byEnv[env] = [];
-      }
-      byEnv[env].push(threshold);
-    });
-    return byEnv;
-  }, [thresholds]);
+  // const thresholdsByEnv: {[key: string]: Threshold[]} = useMemo(() => {
+  //   const byEnv = {};
+  //   thresholds.forEach(threshold => {
+  //     const env = threshold.environment ? threshold.environment.name : '';
+  //     if (!byEnv[env]) {
+  //       byEnv[env] = [];
+  //     }
+  //     byEnv[env].push(threshold);
+  //   });
+  //   return byEnv;
+  // }, [thresholds]);
 
-  const flattenedThresholds: Threshold[] = useMemo(
-    () => Object.values(thresholdsByEnv).flat(),
-    [thresholdsByEnv]
-  );
+  // const flattenedThresholds: Threshold[] = useMemo(
+  //   () => Object.values(thresholdsByEnv).flat(),
+  //   [thresholdsByEnv]
+  // );
+
+  const sortedThreshold: Threshold[] = useMemo(() => {
+    return thresholds.sort((a, b) => {
+      const keyA: string = a.environment ? a.environment.name : '';
+      const keyB: string = b.environment ? b.environment.name : '';
+
+      return keyA.localeCompare(keyB);
+    });
+  }, [thresholds]);
 
   return (
     <div>
@@ -58,8 +67,8 @@ export default function ThresholdGroupTable({
         emptyMessage={t('No thresholds found.')}
         headers={[t('Environment'), t('Window'), t('Condition'), t(' ')]}
       >
-        {flattenedThresholds &&
-          flattenedThresholds.map((threshold, idx) => {
+        {sortedThreshold &&
+          sortedThreshold.map((threshold, idx) => {
             return (
               <ThresholdGroupRows
                 key={threshold.id}
@@ -68,7 +77,7 @@ export default function ThresholdGroupTable({
                 threshold={threshold}
                 refetch={refetch}
                 setTempError={setTempError}
-                isLastRow={idx === flattenedThresholds.length - 1}
+                isLastRow={idx === sortedThreshold.length - 1}
               />
             );
           })}

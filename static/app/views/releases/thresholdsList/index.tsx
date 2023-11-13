@@ -176,7 +176,7 @@ function ReleaseThresholdList({}: Props) {
                   allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
                 />
               ))}
-            {projectsWithoutThresholds[0] && (
+            {projectsWithoutThresholds.length > 0 && (
               <div>
                 <strong>Projects without Thresholds</strong>
                 {projectsWithoutThresholds
