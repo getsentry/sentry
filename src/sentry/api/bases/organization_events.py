@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple
@@ -36,6 +38,7 @@ from sentry.snuba import (
     spans_indexed,
     spans_metrics,
 )
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
@@ -289,6 +292,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
+
+    def handle_on_demand(self, request: Request) -> tuple[bool, MetricSpecType]:
+        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
+        on_demand_metric_type = MetricSpecType.SIMPLE_QUERY
+        on_demand_metric_type_value = request.GET.get("useOnDemandType")
+        if use_on_demand_metrics and on_demand_metric_type_value:
+            on_demand_metric_type = MetricSpecType(on_demand_metric_type_value)
+
+        return use_on_demand_metrics, on_demand_metric_type
 
     def handle_unit_meta(
         self, meta: Dict[str, str]

@@ -53,6 +53,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
+    MetricSpecType,
     OnDemandMetricSpec,
     should_use_on_demand_metrics,
 )
@@ -134,7 +135,13 @@ class MetricsQueryBuilder(QueryBuilder):
             if self.params.environments:
                 environment = self.params.environments[0].name
 
-            return OnDemandMetricSpec(field, self.query, environment, groupby_columns)
+            return OnDemandMetricSpec(
+                field=field,
+                query=self.query,
+                environment=environment,
+                groupbys=groupby_columns,
+                spec_type=self.builder_config.on_demand_metrics_type or MetricSpecType.SIMPLE_QUERY,
+            )
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
@@ -155,12 +162,13 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
         aggregate_columns = self.selected_columns
-        return {
+        map = {
             col: self._get_on_demand_metric_spec(col)
             for col in aggregate_columns
             # Replace with proper table code later
             if fields.is_function(col) and self._get_on_demand_metric_spec(col)
         }
+        return map
 
     def _get_metrics_query_from_on_demand_spec(
         self,
