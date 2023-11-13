@@ -22,6 +22,7 @@ from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
@@ -449,6 +450,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         result = self.parse_query("user.xxxxxx:example")
         assert result["tags"]["sentry:user"] == "xxxxxx:example"
 
+    @with_feature("organizations:eventuser-from-snuba")
     def test_user_lookup_with_dot_query(self):
         self.project.date_added = timezone.now() - timedelta(minutes=10)
         self.project.save()
@@ -468,10 +470,12 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         result = self.parse_query("user.username:foobar")
         assert result["tags"]["sentry:user"] == "id:1"
 
+    @with_feature("organizations:eventuser-from-snuba")
     def test_unknown_user_legacy_syntax(self):
         result = self.parse_query("user:email:fake@example.com")
         assert result["tags"]["sentry:user"] == "email:fake@example.com"
 
+    @with_feature("organizations:eventuser-from-snuba")
     def test_user_lookup_legacy_syntax(self):
         self.project.date_added = timezone.now() - timedelta(minutes=10)
         self.project.save()

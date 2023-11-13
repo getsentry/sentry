@@ -26,8 +26,10 @@ from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
 
+from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.eventuser import KEYWORD_MAP
+from sentry.models.eventuser import EventUser as EventUser_model
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -48,7 +50,13 @@ class InvalidQuery(Exception):
 def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
     # TODO(dcramer): do something with case of multiple matches
     try:
-        euser = EventUser.for_projects(projects, {key: value})[0]
+        if features.has("organizations:eventuser-from-snuba", projects[0].organization):
+            euser = EventUser.for_projects(projects, {key: value})[0]
+        else:
+            lookup = EventUser_model.attr_from_keyword(key)
+            euser = EventUser_model.objects.filter(
+                project_id__in=[p.id for p in projects], **{lookup: value}
+            )[0]
     except (KeyError, IndexError):
         return f"{key}:{value}"
     except DataError:
