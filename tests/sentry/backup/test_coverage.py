@@ -7,7 +7,7 @@ from sentry.models.actor import Actor
 from sentry.models.team import Team
 from tests.sentry.backup.test_exhaustive import EXHAUSTIVELY_TESTED, UNIQUENESS_TESTED
 from tests.sentry.backup.test_imports import COLLISION_TESTED
-from tests.sentry.backup.test_models import DYNAMIC_RELOCATION_TESTED, UNIT_TESTED
+from tests.sentry.backup.test_models import DYNAMIC_RELOCATION_SCOPE_TESTED, UNIT_TESTED
 from tests.sentry.backup.test_releases import RELEASE_TESTED
 
 ALL_EXPORTABLE_MODELS = {get_model_name(c) for c in get_exportable_sentry_models()}
@@ -24,7 +24,7 @@ def test_exportable_final_derivations_of_sentry_model_are_dynamic_relocation_tes
         for c in get_exportable_sentry_models()
         if isinstance(getattr(c, "__relocation_scope__", None), set)
     }
-    untested = models_with_multiple_relocation_scopes - DYNAMIC_RELOCATION_TESTED
+    untested = models_with_multiple_relocation_scopes - DYNAMIC_RELOCATION_SCOPE_TESTED
     assert not {str(u) for u in untested}
 
 
