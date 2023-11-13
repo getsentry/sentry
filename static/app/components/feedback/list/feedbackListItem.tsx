@@ -113,13 +113,13 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 );
 
 const CardSpacing = styled('div')`
-  padding: ${space(0.25)} ${space(1)} ${space(0.25)} 10px;
+  padding: ${space(0.25)} ${space(0.5)};
 `;
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(0.75)};
+  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1.5)};
 
   color: ${p => p.theme.textColor};
   &:hover {
