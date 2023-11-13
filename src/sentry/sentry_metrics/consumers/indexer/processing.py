@@ -162,8 +162,4 @@ class MessageProcessor:
 
         sdk.set_measurement("new_messages.len", len(results.data))
 
-        self._prev_future = executor.submit(
-            cardinality_limiter.apply_cardinality_limits, cardinality_limiter_state
-        )
-
         return results
