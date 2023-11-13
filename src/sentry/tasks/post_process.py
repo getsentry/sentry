@@ -1218,6 +1218,27 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     )
 
 
+def feedback_decorator(func):
+    def wrapper(job):
+        if not should_postprocess_feedback(job):
+            return
+        return func(job)
+
+    return wrapper
+
+
+def should_postprocess_feedback(job: PostProcessJob) -> bool:
+    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+
+    event = job["event"]
+    if event.occurrence.evidence_data.get("source") in [
+        FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
+        FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT.value,
+    ]:
+        return True
+    return False
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1236,6 +1257,11 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         fire_error_processed,
         sdk_crash_monitoring,
         process_replay_link,
+    ],
+    GroupCategory.FEEDBACK: [
+        feedback_decorator(process_snoozes),
+        feedback_decorator(process_inbox_adds),
+        feedback_decorator(process_rules),
     ],
 }
 
