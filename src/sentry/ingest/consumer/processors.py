@@ -6,6 +6,7 @@ from typing import Any, Mapping
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
+from usageaccountant import UsageUnit
 
 from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
@@ -16,6 +17,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
+from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
@@ -23,6 +25,7 @@ from sentry.utils.snuba import RateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
+RESOURCE_ID = "rc_processing_redis"
 
 CACHE_TIMEOUT = 3600
 
@@ -124,6 +127,13 @@ def process_event(message: IngestMessage, project: Project) -> None:
 
     with metrics.timer("ingest_consumer._store_event"):
         cache_key = event_processing_store.store(data)
+
+    try:
+        app_feature = data.get("type")
+        if app_feature is not None:
+            record(RESOURCE_ID, app_feature, len(payload), UsageUnit.BYTES)
+    except Exception:
+        pass
 
     if attachments:
         with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
