@@ -142,6 +142,24 @@ class UserService(RpcService):
     def verify_any_email(self, *, email: str) -> bool:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def create_by_username_and_email(self, *, email: str, username: str) -> RpcUser:
+        """
+        Creates a new user via a combination of email and username.
+        This is not idempotent and only really intended for legacy
+        Heroku provisioning.
+        :param email: The user's email address
+        :param username: The user's username
+        :return: RpcUser of the newly created user
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def trigger_user_consent_email_if_applicable(self, *, user_id: int) -> None:
+        pass
+
 
 @back_with_silo_cache("user_service.get_user", SiloMode.REGION, RpcUser)
 def get_user(user_id: int) -> RpcUser:
