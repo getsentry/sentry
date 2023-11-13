@@ -166,6 +166,20 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
     )
 
 
+def _refers_to_column(expression: Union[Column, Function]) -> Optional[str]:
+    """
+    Tries to compute to which column the input expression is referring to.
+    """
+
+    if isinstance(expression, Column):
+        return expression.name
+    elif isinstance(expression, Function):
+        if expression.function == "ifNull":
+            return expression.parameters[0].name
+
+    return None
+
+
 # Allow these snuba functions.
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
@@ -330,6 +344,16 @@ def resolve_tags(
                 op=op,
                 rhs=rhs_ids,
             )
+
+        # Hacky way to apply a transformation for backward compatibility, which converts `unknown_error` to `unknown`
+        # for metrics queries.
+        transformed_rhs = input_.rhs
+        if (
+            _refers_to_column(input_.lhs) == "tags[transaction.status]"
+            and input_.rhs == "unknown_error"
+        ):
+            transformed_rhs = "unknown"
+
         return Condition(
             lhs=resolve_tags(
                 use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
@@ -338,7 +362,7 @@ def resolve_tags(
             rhs=resolve_tags(
                 use_case_id,
                 org_id,
-                input_.rhs,
+                transformed_rhs,
                 projects,
                 is_tag_value=True,
                 allowed_tag_keys=allowed_tag_keys,
