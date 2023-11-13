@@ -334,8 +334,12 @@ class GitLabProxyApiClient(IntegrationProxyClient):
 
         return contents or []
 
-    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> list[FileBlameInfo]:
+    def get_blame_for_files(
+        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+    ) -> list[FileBlameInfo]:
         metrics.incr("sentry.integrations.gitlab.get_blame_for_files")
         return fetch_file_blames(
-            self, files, extra={"provider": "gitlab", "org_integration_id": self.org_integration_id}
+            self,
+            files,
+            extra={**extra, "provider": "gitlab", "org_integration_id": self.org_integration_id},
         )
