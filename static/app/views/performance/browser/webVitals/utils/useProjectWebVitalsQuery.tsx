@@ -26,6 +26,10 @@ export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
         'p75(transaction.duration)',
+        'count_web_vitals(measurements.lcp, any)',
+        'count_web_vitals(measurements.fcp, any)',
+        'count_web_vitals(measurements.cls, any)',
+        'count_web_vitals(measurements.fid, any)',
         'count()',
         'failure_count()',
         'p95(transaction.duration)',
@@ -52,5 +56,6 @@ export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}
       enabled: pageFilters.isReady,
       refetchOnWindowFocus: false,
     },
+    skipAbort: true,
   });
 };

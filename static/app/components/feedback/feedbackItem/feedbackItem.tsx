@@ -9,6 +9,7 @@ import {
 import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
@@ -54,6 +55,8 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
       addSuccessMessage(t('Updated feedback'));
     },
   };
+
+  const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
   return (
     <Fragment>
@@ -119,23 +122,27 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             <pre>{feedbackItem.metadata.message}</pre>
           </Blockquote>
         </Section>
-
-        <Section icon={<IconLink size="xs" />} title={t('Url')}>
+        <Section icon={<IconLink size="xs" />} title={t('URL')}>
           <ErrorBoundary mini>
             <TextCopyInput size="sm">
               {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
             </TextCopyInput>
           </ErrorBoundary>
         </Section>
-
-        {hasReplayId && replayId ? (
+        {feedbackItem.level === 'error' && crashReportId && (
+          <CrashReportSection
+            organization={organization}
+            crashReportId={crashReportId}
+            projSlug={feedbackItem.project.slug}
+          />
+        )}
+        {hasReplayId && replayId && (
           <ReplaySection
             eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
             organization={organization}
             replayId={replayId}
           />
-        ) : null}
-
+        )}
         <TagsSection tags={tags} />
       </OverflowPanelItem>
     </Fragment>

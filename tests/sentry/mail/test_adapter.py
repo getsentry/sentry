@@ -24,6 +24,7 @@ from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.integrations.integration import Integration
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
@@ -436,7 +437,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         _to_email_html.assert_called_once_with(event)
 
     @mock_notify
-    def test_notify_users_does_email(self, mock_func):
+    @mock.patch("sentry.notifications.notifications.rules.logger")
+    def test_notify_users_does_email(self, mock_logger, mock_func):
         UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -448,11 +450,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event_manager.save(self.project.id)
         group = event.group
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingProvider.objects.create(
             user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            provider="slack",
+            type="alerts",
+            value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -473,6 +477,20 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
+        assert group
+        mock_logger.info.assert_called_with(
+            "mail.adapter.notify",
+            extra={
+                "target_type": "IssueOwners",
+                "target_identifier": None,
+                "group": group.id,
+                "project_id": group.project.id,
+                "organization": group.organization.id,
+                "fallthrough_choice": None,
+                "notification_uuid": mock.ANY,
+            },
+        )
+
     @mock_notify
     def test_email_notification_is_not_sent_to_deleted_email(self, mock_func):
         """
@@ -490,11 +508,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             user=user, key="mail:email", value="foo@bar.dodo", project_id=self.project.id
         )
         # disable slack
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingProvider.objects.create(
             user_id=user.id,
+            scope_type="user",
+            scope_identifier=user.id,
+            provider="slack",
+            type="alerts",
+            value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -542,11 +562,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event_data["metadata"] = event_type.get_metadata(event_data)
 
         # disable slack
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingProvider.objects.create(
             user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            provider="slack",
+            type="alerts",
+            value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -888,13 +910,14 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         with assume_test_silo_mode(SiloMode.CONTROL):
             for u in [user, user2, user3, user4, user5]:
                 # disable slack
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
+                NotificationSettingProvider.objects.create(
                     user_id=u.id,
+                    scope_type="user",
+                    scope_identifier=u.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
-
         with self.feature("organizations:notification-all-recipients"):
             self.create_assert_delete_projectownership(
                 project,
@@ -950,11 +973,13 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             for u in [user, user2, user3, user4, user5]:
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
+                NotificationSettingProvider.objects.create(
                     user_id=u.id,
+                    scope_type="user",
+                    scope_identifier=u.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
 
         with self.feature("organizations:notification-all-recipients"):
@@ -1101,11 +1126,13 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             self.create_member(user=u, organization=organization, teams=[team])
         with assume_test_silo_mode(SiloMode.CONTROL):
             for u in users:
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
-                    user_id=u.id,
+                NotificationSettingProvider.objects.create(
+                    user_id=self.user.id,
+                    scope_type="user",
+                    scope_identifier=self.user.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
 
         """
@@ -1540,16 +1567,33 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
 
 class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
-    def test_normal(self):
+    @mock.patch("sentry.mail.adapter.logger")
+    def test_normal(self, mock_logger):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = Rule.objects.create(project=self.project, label="my rule")
         futures = [RuleFuture(rule, {})]
         with mock.patch.object(self.adapter, "notify") as notify:
             self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
             assert notify.call_count == 1
+            assert event.group
+            mock_logger.info.assert_called_with(
+                "mail.adapter.notification.dispatched",
+                extra={
+                    "event_id": event.event_id,
+                    "group_id": event.group.id,
+                    "is_from_mail_action_adapter": True,
+                    "target_type": "IssueOwners",
+                    "target_identifier": None,
+                    "fallthrough_choice": None,
+                    "notification_uuid": mock.ANY,
+                    "rule_id": rule.id,
+                    "project_id": event.group.project.id,
+                },
+            )
 
     @mock.patch("sentry.mail.adapter.digests")
-    def test_digest(self, digests):
+    @mock.patch("sentry.mail.adapter.logger")
+    def test_digest(self, mock_logger, digests):
         digests.enabled.return_value = True
 
         event = self.store_event(data={}, project_id=self.project.id)
@@ -1558,6 +1602,22 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.add.call_count == 1
+        assert event.group
+        mock_logger.info.assert_called_with(
+            "mail.adapter.notification.dispatched",
+            extra={
+                "event_id": event.event_id,
+                "group_id": event.group.id,
+                "is_from_mail_action_adapter": True,
+                "target_type": "IssueOwners",
+                "target_identifier": None,
+                "fallthrough_choice": None,
+                "notification_uuid": mock.ANY,
+                "rule_id": rule.id,
+                "project_id": event.group.project.id,
+                "digest_key": mock.ANY,
+            },
+        )
 
     @mock.patch("sentry.mail.adapter.digests")
     def test_digest_with_perf_issue(self, digests):

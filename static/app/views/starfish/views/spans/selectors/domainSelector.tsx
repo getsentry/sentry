@@ -155,7 +155,7 @@ function getEventView(
       moduleName,
       location: {
         ...location,
-        query: omit(location.query, SpanMetricsField.SPAN_DOMAIN),
+        query: omit(location.query, ['span.action', 'span.domain']),
       },
       spanCategory,
     }),

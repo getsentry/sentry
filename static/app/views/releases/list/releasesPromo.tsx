@@ -177,7 +177,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
   const codeChunks = useMemo(
     () => [
       `# Install the cli
-curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.2.0" bash
+curl -sL https://sentry.io/get-cli/ | bash
 
 # Setup configuration values
 SENTRY_AUTH_TOKEN=`,

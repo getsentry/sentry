@@ -1152,6 +1152,60 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
         assert json.loads(responses.calls[2].request.body)["query"] == query
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_trim_file_path_for_query(self, get_jwt):
+        """
+        When file path has hanging forward slashes, trims them for the request.
+        The GitHub GraphQL API will return empty responses otherwise.
+        """
+        file1 = SourceLineInfo(
+            path="/src/sentry/integrations/github/client.py/",
+            lineno=10,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+
+        query = """query {
+    repository0: repository(name: "foo", owner: "Test-Organization") {
+        ref0: ref(qualifiedName: "master") {
+            target {
+                ... on Commit {
+                    blame0: blame(path: "src/sentry/integrations/github/client.py") {
+                        ranges {
+                            commit {
+                                oid
+                                author {
+                                    name
+                                    email
+                                }
+                                message
+                                committedDate
+                            }
+                            startingLine
+                            endingLine
+                            age
+                        }
+                    }
+                }
+            }
+        }
+    }
+}"""
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "query": query,
+                "data": {},
+            },
+            content_type="application/json",
+        )
+
+        self.github_client.get_blame_for_files([file1], extra={})
+        assert json.loads(responses.calls[2].request.body)["query"] == query
+
 
 class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     """

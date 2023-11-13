@@ -6,6 +6,7 @@ import type {OnAssignCallback} from 'sentry/components/assigneeSelectorDropdown'
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
@@ -311,6 +312,9 @@ export default function GroupSidebar({
             group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION
           }
         />
+      )}
+      {issueTypeConfig.regression.enabled && event && (
+        <EventThroughput event={event} group={group} />
       )}
       {renderParticipantData()}
       {renderSeenByList()}

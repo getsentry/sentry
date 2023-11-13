@@ -217,7 +217,7 @@ def _get_entity_of_metric_mri(
         raise InvalidParams
 
     entity_keys_set: frozenset[EntityKey]
-    if use_case_id in [UseCaseID.TRANSACTIONS]:
+    if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
         entity_keys_set = frozenset(
             {
                 EntityKey.GenericMetricsCounters,
@@ -439,6 +439,16 @@ class RawOp(MetricOperation):
 
         return function
 
+    def _gauge_avg(self, aggregate_filter: Function, alias: str) -> Function:
+        return Function(
+            "divide",
+            [
+                Function("sumIf", [Column("value"), aggregate_filter]),
+                Function("countIf", [Column("value"), aggregate_filter]),
+            ],
+            alias=alias,
+        )
+
     def generate_snql_function(
         self,
         entity: MetricEntity,
@@ -448,12 +458,25 @@ class RawOp(MetricOperation):
         org_id: int,
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
-        if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM, UseCaseID.ESCALATING_ISSUES]:
+        if use_case_id in [
+            UseCaseID.TRANSACTIONS,
+            UseCaseID.SPANS,
+            UseCaseID.CUSTOM,
+            UseCaseID.ESCALATING_ISSUES,
+        ]:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
 
-        function = Function(snuba_function, [Column("value"), aggregate_filter], alias=alias)
+        # The average of a gauge is a special case of operation that is derived of two sub-operations
+        # , and it could have been implemented with `DerivedOp` but in order to disambiguate between `avg` of
+        # a gauge or `avg` of a distribution, significant code changes would have to be done, since metric
+        # factory is used all over the code and lacks the entity parameter that would make the dataset inference
+        # simpler.
+        if entity == "generic_metrics_gauges" and self.op == "avg":
+            function = self._gauge_avg(aggregate_filter, alias)
+        else:
+            function = Function(snuba_function, [Column("value"), aggregate_filter], alias=alias)
 
         return self._wrap_quantiles(function, alias)
 

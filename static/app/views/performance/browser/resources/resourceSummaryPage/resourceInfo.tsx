@@ -4,8 +4,8 @@ import Alert from 'sentry/components/alert';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils';
-import {RateUnits} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -82,7 +82,7 @@ function ResourceInfo(props: Props) {
             <ResourceSize bytes={avgDecodedContentLength} />
           </Tooltip>
         </Block>
-        <Block title={DataTitles['avg(http.transfer_size)']}>
+        <Block title={DataTitles['avg(http.response_transfer_size)']}>
           <Tooltip
             isHoverable
             title={tooltips.avgTransferSize}
@@ -96,7 +96,7 @@ function ResourceInfo(props: Props) {
           <DurationCell milliseconds={avgDuration} />
         </Block>
         <Block title={getThroughputTitle('http')}>
-          <ThroughputCell rate={throughput * 60} unit={RateUnits.PER_SECOND} />
+          <ThroughputCell rate={throughput} unit={RESOURCE_THROUGHPUT_UNIT} />
         </Block>
       </BlockContainer>
       {hasNoData && (
