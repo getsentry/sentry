@@ -67,10 +67,7 @@ from sentry.search.events.datasets.profile_functions import ProfileFunctionsData
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
-from sentry.search.events.datasets.spans_metrics import (
-    SpansMetricsDatasetConfig,
-    SpansMetricsLayerDatasetConfig,
-)
+from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -362,10 +359,11 @@ class BaseQueryBuilder:
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.spans_metrics_builder:
-                if self.builder_config.use_metrics_layer:
-                    self.config = SpansMetricsLayerDatasetConfig(self)
-                else:
-                    self.config = SpansMetricsDatasetConfig(self)
+                # For now, we won't support the metrics layer for spans since it needs some work,
+                # but once the work will be done, we will have to add:
+                # if self.builder_config.use_metrics_layer:
+                #     self.config = SpansMetricsLayerDatasetConfig(self)
+                self.config = SpansMetricsDatasetConfig(self)
             elif self.builder_config.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
             else:
