@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 
 import {Threshold} from '../utils/types';
@@ -76,8 +77,10 @@ export default function ThresholdGroupTable({
   );
 }
 
-const StyledStrong = styled('strong')`
+const StyledStrong = styled('div')`
+  font-weight: 600;
   font-size: ${p => p.theme.fontSizeMedium};
+  margin: ${space(2)} 0;
 `;
 
 const StyledPanelTable = styled(PanelTable)`
