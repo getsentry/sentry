@@ -3,31 +3,70 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
-from snuba_sdk import Column, Condition, Entity, Op, Query, Request
+from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry.eventstore.models import Event
+from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.avatar import get_gravatar_url
+from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
 REFERRER = "sentry.utils.eventuser"
 
+SNUBA_KEYWORD_MAP = BidirectionalMapping(
+    {
+        ("user_id"): "id",
+        ("user_name"): "username",
+        ("email"): "email",
+        ("ip_address_v4", "ip_address_v6"): "ip",
+    }
+)
+
+# The order of these keys are significant to also indicate priority
+# when used in hashing and determining uniqueness. If you change the order
+# you will break stuff.
+KEYWORD_MAP = BidirectionalMapping(
+    {
+        "user_ident": "id",
+        "username": "username",
+        "email": "email",
+        "ip_address": "ip",
+    }
+)
+
+SNUBA_COLUMN_COALASCE = {"ip_address_v4": "IPv4StringToNum", "ip_address_v6": "IPv6StringToNum"}
+
 
 @dataclass
 class EventUser:
     project_id: Optional[int]
-    email: str
-    username: str
-    name: str
-    ip_address: str
-    id: Optional[int] = None
+    email: Optional[str]
+    username: Optional[str]
+    name: Optional[str]
+    ip_address: Optional[str]
+    user_ident: Optional[int]
+    id: Optional[int] = None  # EventUser model id
 
     @staticmethod
-    def from_event(event: Event):
+    def from_event(event: Event) -> EventUser:
         return EventUser(
             id=None,
             project_id=event.project_id if event else None,
@@ -35,10 +74,111 @@ class EventUser:
             username=event.data.get("user", {}).get("username") if event else None,
             name=event.data.get("user", {}).get("name") if event else None,
             ip_address=event.data.get("user", {}).get("ip_address") if event else None,
+            user_ident=event.data.get("user", {}).get("id") if event else None,
         )
 
     def get_display_name(self):
         return self.name or self.email or self.username
+
+    @classmethod
+    def for_projects(
+        self, projects: List[Project], keyword_filters: Mapping[str, Any]
+    ) -> List[EventUser]:
+        """
+        Fetch the EventUser with a Snuba query that exists within a list of projects
+        and valid `keyword_filters`. The `keyword_filter` keys are in `KEYWORD_MAP`.
+        """
+        oldest_project = min(projects, key=lambda item: item.date_added)
+
+        where_conditions = [
+            Condition(Column("project_id"), Op.IN, [p.id for p in projects]),
+            Condition(Column("timestamp"), Op.LT, datetime.now()),
+            Condition(Column("timestamp"), Op.GTE, oldest_project.date_added),
+        ]
+
+        for keyword, value in keyword_filters.items():
+            snuba_column = SNUBA_KEYWORD_MAP.get_key(keyword)
+            if isinstance(snuba_column, tuple):
+                where_conditions.append(
+                    BooleanCondition(
+                        BooleanOp.OR,
+                        [
+                            Condition(
+                                Column(column),
+                                Op.EQ,
+                                value
+                                if SNUBA_COLUMN_COALASCE.get(column, None) is None
+                                else Function(
+                                    SNUBA_COLUMN_COALASCE.get(column), parameters=[value]
+                                ),
+                            )
+                            for column in snuba_column
+                        ],
+                    )
+                )
+
+            else:
+                where_conditions.append(Condition(Column(snuba_column), Op.EQ, value))
+
+        query = Query(
+            match=Entity(EntityKey.Events.value),
+            select=[
+                Column("project_id"),
+                Column("group_id"),
+                Column("ip_address_v6"),
+                Column("ip_address_v4"),
+                Column("event_id"),
+                Column("user_id"),
+                Column("user"),
+                Column("user_name"),
+                Column("user_email"),
+            ],
+            where=where_conditions,
+            limit=Limit(1),
+            orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
+        )
+
+        request = Request(
+            dataset=Dataset.Events.value,
+            app_id=REFERRER,
+            query=query,
+            tenant_ids={"referrer": REFERRER, "organization_id": projects[0].organization.id},
+        )
+        data_results = raw_snql_query(request, referrer=REFERRER)["data"]
+        results = [EventUser.from_snuba(result) for result in data_results]
+
+        return results
+
+    @staticmethod
+    def from_snuba(result: Mapping[str, Any]) -> EventUser:
+        """
+        Converts the object from the Snuba query into an EventUser instance
+        """
+        return EventUser(
+            id=None,
+            project_id=result.get("project_id"),
+            email=result.get("user_email"),
+            username=result.get("user_name"),
+            name=result.get("user_name"),
+            ip_address=result.get("ip_address_v4") or result.get("ip_address_v6"),
+            user_ident=result.get("user_id"),
+        )
+
+    @property
+    def tag_value(self):
+        """
+        Return the identifier used with tags to link this user.
+        """
+        for key, value in self.iter_attributes():
+            if value:
+                return f"{KEYWORD_MAP[key]}:{value}"
+
+    def iter_attributes(self):
+        """
+        Iterate over key/value pairs for this EventUser in priority order.
+        """
+        for key in KEYWORD_MAP.keys():
+            yield key, getattr(self, key)
 
     def serialize(self):
         return {

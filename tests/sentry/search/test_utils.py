@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import pytest
 from django.utils import timezone
 
-from sentry.models.eventuser import EventUser
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.models.team import Team
@@ -21,8 +20,9 @@ from sentry.search.utils import (
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
@@ -138,7 +138,7 @@ def test_get_numeric_field_value_invalid():
 
 
 @region_silo_test(stable=True)
-class ParseQueryTest(TestCase):
+class ParseQueryTest(APITestCase, SnubaTestCase):
     @property
     def rpc_user(self):
         return user_service.get_user(user_id=self.user.id)
@@ -450,19 +450,50 @@ class ParseQueryTest(TestCase):
         result = self.parse_query("user.xxxxxx:example")
         assert result["tags"]["sentry:user"] == "xxxxxx:example"
 
+    @with_feature("organizations:eventuser-from-snuba")
     def test_user_lookup_with_dot_query(self):
-        euser = EventUser.objects.create(project_id=self.project.id, ident="1", username="foobar")
-        result = self.parse_query("user.username:foobar")
-        assert result["tags"]["sentry:user"] == euser.tag_value
+        self.project.date_added = timezone.now() - timedelta(minutes=10)
+        self.project.save()
 
+        self.store_event(
+            data={
+                "user": {
+                    "id": 1,
+                    "email": "foo@example.com",
+                    "username": "foobar",
+                    "ip_address": "127.0.0.1",
+                },
+                "timestamp": iso_format(before_now(seconds=10)),
+            },
+            project_id=self.project.id,
+        )
+        result = self.parse_query("user.username:foobar")
+        assert result["tags"]["sentry:user"] == "id:1"
+
+    @with_feature("organizations:eventuser-from-snuba")
     def test_unknown_user_legacy_syntax(self):
         result = self.parse_query("user:email:fake@example.com")
         assert result["tags"]["sentry:user"] == "email:fake@example.com"
 
+    @with_feature("organizations:eventuser-from-snuba")
     def test_user_lookup_legacy_syntax(self):
-        euser = EventUser.objects.create(project_id=self.project.id, ident="1", username="foobar")
+        self.project.date_added = timezone.now() - timedelta(minutes=10)
+        self.project.save()
+
+        self.store_event(
+            data={
+                "user": {
+                    "id": 1,
+                    "email": "foo@example.com",
+                    "username": "foobar",
+                    "ip_address": "127.0.0.1",
+                },
+                "timestamp": iso_format(before_now(seconds=10)),
+            },
+            project_id=self.project.id,
+        )
         result = self.parse_query("user:username:foobar")
-        assert result["tags"]["sentry:user"] == euser.tag_value
+        assert result["tags"]["sentry:user"] == "id:1"
 
     def test_is_unassigned(self):
         result = self.parse_query("is:unassigned")
