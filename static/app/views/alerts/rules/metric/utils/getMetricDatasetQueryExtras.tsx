@@ -31,7 +31,9 @@ export function getMetricDatasetQueryExtras({
       ? {dataset: getMEPAlertsDataset(dataset, newAlertOrQuery)}
       : {};
 
-  queryExtras.useOnDemandMetrics = useOnDemandMetrics ? 'true' : 'false';
+  if (useOnDemandMetrics) {
+    queryExtras.useOnDemandMetrics = 'true';
+  }
 
   return queryExtras;
 }
