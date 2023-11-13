@@ -24,7 +24,11 @@ from sentry.backup.helpers import (
 from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
-from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.importchunk import (
+    ControlImportChunk,
+    ControlImportChunkReplica,
+    RegionImportChunk,
+)
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.relocation import (
@@ -53,9 +57,11 @@ from sentry.tasks.relocation import (
     ERR_VALIDATING_MAX_RUNS,
     MAX_FAST_TASK_RETRIES,
     MAX_VALIDATION_POLLS,
+    LostPasswordHash,
     completed,
     importing,
     notifying_owner,
+    notifying_users,
     postprocessing,
     preprocessing_baseline_config,
     preprocessing_colliding_users,
@@ -286,7 +292,10 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         )
 
         assert preprocessing_baseline_config_mock.call_count == 1
-        assert Relocation.objects.get(uuid=self.uuid).want_usernames == ["testing@example.com"]
+        assert Relocation.objects.get(uuid=self.uuid).want_usernames == [
+            "admin@example.com",
+            "member@example.com",
+        ]
 
     def test_success_self_service_relocation(
         self,
@@ -309,7 +318,10 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         assert preprocessing_baseline_config_mock.call_count == 1
 
-        assert Relocation.objects.get(uuid=self.uuid).want_usernames == ["testing@example.com"]
+        assert Relocation.objects.get(uuid=self.uuid).want_usernames == [
+            "admin@example.com",
+            "member@example.com",
+        ]
 
     def test_retry_if_attempts_left(
         self,
@@ -488,7 +500,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
-        assert relocation.failure_reason == ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=1)
+        assert relocation.failure_reason == ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=2)
 
     def test_fail_no_orgs(
         self,
@@ -1455,7 +1467,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
 
 
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.notifying_owner.delay")
+@patch("sentry.tasks.relocation.notifying_users.delay")
 @region_silo_test
 class PostprocessingTest(RelocationTaskTestCase):
     def setUp(self):
@@ -1485,7 +1497,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
     def test_success(
         self,
-        notifying_owner_mock: Mock,
+        notifying_users_mock: Mock,
         fake_message_builder: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
@@ -1501,8 +1513,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
         postprocessing(self.uuid)
 
-        # TODO(getsentry/team-ospo#203): Should notify users instead.
-        assert notifying_owner_mock.call_count == 1
+        assert notifying_users_mock.call_count == 1
 
         assert (
             OrganizationMember.objects.filter(
@@ -1516,7 +1527,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
     def test_retry_if_attempts_left(
         self,
-        notifying_owner_mock: Mock,
+        notifying_users_mock: Mock,
         fake_message_builder: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
@@ -1527,14 +1538,16 @@ class PostprocessingTest(RelocationTaskTestCase):
         with pytest.raises(Exception):
             postprocessing(self.uuid)
 
+        assert fake_message_builder.call_count == 0
+        assert notifying_users_mock.call_count == 0
+
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
         assert not relocation.failure_reason
-        assert notifying_owner_mock.call_count == 0
 
     def test_fail_if_no_attempts_left(
         self,
-        notifying_owner_mock: Mock,
+        notifying_users_mock: Mock,
         fake_message_builder: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
@@ -1546,11 +1559,108 @@ class PostprocessingTest(RelocationTaskTestCase):
         with pytest.raises(Exception):
             postprocessing(self.uuid)
 
-        assert notifying_owner_mock.call_count == 0
+        assert fake_message_builder.call_count == 1
+        assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
+        fake_message_builder.return_value.send_async.assert_called_once_with(
+            to=[self.owner.email, self.superuser.email]
+        )
+
+        assert notifying_users_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.failure_reason == ERR_POSTPROCESSING_INTERNAL
+
+
+@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.tasks.relocation.notifying_owner.delay")
+@region_silo_test
+class NotifyingUsersTest(RelocationTaskTestCase):
+    def setUp(self):
+        RelocationTaskTestCase.setUp(self)
+        TransactionTestCase.setUp(self)
+        self.relocation.step = Relocation.Step.POSTPROCESSING.value
+        self.relocation.latest_task = "POSTPROCESSING"
+        self.relocation.want_usernames = ["admin@example.com", "member@example.com"]
+        self.relocation.save()
+
+        with open(IMPORT_JSON_FILE_PATH, "rb") as fp:
+            import_in_organization_scope(
+                fp,
+                flags=ImportFlags(
+                    merge_users=False, overwrite_configs=False, import_uuid=str(self.uuid)
+                ),
+                org_filter=set(self.relocation.want_org_slugs),
+            )
+
+        self.imported_users = ControlImportChunkReplica.objects.get(
+            import_uuid=self.uuid, model="sentry.user"
+        )
+
+        assert len(self.imported_users.inserted_map) == 2
+
+    def test_success(
+        self,
+        notifying_owner_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
+
+        with patch.object(LostPasswordHash, "send_relocate_account_email") as mock_relocation_email:
+            notifying_users(self.uuid)
+
+            # Called once for each user imported, which is 2 for `fresh-install.json`
+            assert mock_relocation_email.call_count == 2
+            assert mock_relocation_email.call_args_list[0][0][0].username == "admin@example.com"
+            assert mock_relocation_email.call_args_list[1][0][0].username == "member@example.com"
+
+            assert fake_message_builder.call_count == 0
+            assert notifying_owner_mock.call_count == 1
+
+    def test_retry_if_attempts_left(
+        self,
+        notifying_owner_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.relocation.want_usernames = ["doesnotexist"]
+        self.relocation.save()
+
+        # An exception being raised will trigger a retry in celery.
+        with pytest.raises(Exception):
+            notifying_users(self.uuid)
+
+        assert fake_message_builder.call_count == 0
+        assert notifying_owner_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert not relocation.failure_reason
+
+    def test_fail_if_no_attempts_left(
+        self,
+        notifying_owner_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.relocation.latest_task = "NOTIFYING_USERS"
+        self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
+        self.relocation.want_usernames = ["doesnotexist"]
+        self.relocation.save()
+
+        with pytest.raises(Exception):
+            notifying_users(self.uuid)
+
+        assert fake_message_builder.call_count == 1
+        assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
+        fake_message_builder.return_value.send_async.assert_called_once_with(
+            to=[self.owner.email, self.superuser.email]
+        )
+        assert notifying_owner_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.failure_reason == ERR_NOTIFYING_INTERNAL
 
 
 @patch("sentry.utils.relocation.MessageBuilder")
@@ -1560,8 +1670,8 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
-        self.relocation.step = Relocation.Step.POSTPROCESSING.value
-        self.relocation.latest_task = "POSTPROCESSING"
+        self.relocation.step = Relocation.Step.NOTIFYING.value
+        self.relocation.latest_task = "NOTIFYING_USERS"
         self.relocation.save()
 
     def test_success_admin_assisted_relocation(
@@ -1705,8 +1815,12 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         self.mock_message_builder(fake_message_builder)
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
-        with self.tasks():
+        with self.tasks(), patch.object(
+            LostPasswordHash, "send_relocate_account_email"
+        ) as mock_relocation_email:
             uploading_complete(self.relocation.uuid)
+
+            assert mock_relocation_email.call_count == 2
 
         assert fake_cloudbuild_client.create_build.call_count == 1
         assert fake_cloudbuild_client.get_build.call_count == 1
@@ -1754,8 +1868,12 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         mock_invalid_finding(self.storage, self.uuid)
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
-        with self.tasks():
+        with self.tasks(), patch.object(
+            LostPasswordHash, "send_relocate_account_email"
+        ) as mock_relocation_email:
             uploading_complete(self.relocation.uuid)
+
+            assert mock_relocation_email.call_count == 0
 
         assert fake_cloudbuild_client.create_build.call_count == 1
         assert fake_cloudbuild_client.get_build.call_count == 1

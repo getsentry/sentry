@@ -28,7 +28,8 @@ from sentry.backup.imports import import_in_organization_scope
 from sentry.filestore.gcs import GoogleCloudStorage
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
-from sentry.models.importchunk import RegionImportChunk
+from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
+from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
 from sentry.models.organization import Organization
 from sentry.models.relocation import (
     Relocation,
@@ -38,7 +39,9 @@ from sentry.models.relocation import (
     ValidationStatus,
 )
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
@@ -117,7 +120,7 @@ ERR_NOTIFYING_INTERNAL = "Internal error during relocation notification."
 ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
 
 
-# TODO(getsentry/team-ospo#203): We should split this task in two, one for "small" imports of say
+# TODO(getsentry/team-ospo#216): We should split this task in two, one for "small" imports of say
 # <=10MB, and one for large imports >10MB. Then we should limit the number of daily executions of
 # the latter.
 @instrumented_task(
@@ -359,7 +362,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         attempts_left,
         ERR_PREPROCESSING_INTERNAL,
     ):
-        # TODO(getsentry/team-ospo#203): A very nice optimization here is to only pull this down
+        # TODO(getsentry/team-ospo#216): A very nice optimization here is to only pull this down
         # once a day - if we've already done a relocation today, we should just copy that file
         # instead of doing this (expensive!) global export again.
         fp = BytesIO()
@@ -1015,7 +1018,7 @@ def postprocessing(uuid: str) -> None:
         ):
             imported_org_ids = imported_org_ids.union(set(chunk.inserted_map.values()))
 
-        # Do a sanity check on pk-mapping before we go an make anyone the owner of an org they did
+        # Do a sanity check on pk-mapping before we go and make anyone the owner of an org they did
         # not import - are all of these orgs plausibly ones that the user requested, based on slug
         # matching?
         imported_orgs = Organization.objects.filter(id__in=imported_org_ids)
@@ -1040,8 +1043,7 @@ def postprocessing(uuid: str) -> None:
                 role="owner",
             )
 
-        # TODO(getsentry/team-ospo#203): Call notifying_users here.
-        notifying_owner.delay(uuid)
+        notifying_users.delay(uuid)
 
 
 @instrumented_task(
@@ -1058,8 +1060,51 @@ def notifying_users(uuid: str) -> None:
     Send an email to all users that have been imported, telling them to claim their accounts.
     """
 
-    # TODO(getsentry/team-ospo#203): Implement this.
-    pass
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        step=Relocation.Step.NOTIFYING,
+        task=OrderedTask.NOTIFYING_USERS,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.NOTIFYING_USERS,
+        attempts_left,
+        ERR_NOTIFYING_INTERNAL,
+    ):
+        imported_user_ids: set[int] = set()
+        chunks = ControlImportChunkReplica.objects.filter(
+            import_uuid=str(uuid), model="sentry.user"
+        )
+        for chunk in chunks:
+            imported_user_ids = imported_user_ids.union(set(chunk.inserted_map.values()))
+
+        # Do a sanity check on pk-mapping before we go and reset the passwords of random users - are
+        # all of these usernames plausibly ones that were included in the import, based on username
+        # prefix matching?
+        imported_users = user_service.get_many(filter={"user_ids": list(imported_user_ids)})
+        for user in imported_users:
+            matched_prefix = False
+            for username_prefix in relocation.want_usernames:
+                if user.username.startswith(username_prefix):
+                    matched_prefix = True
+                    break
+
+            # This should always be treated as an internal logic error, since we just wrote these
+            # orgs, so probably there is a serious bug with pk mapping.
+            assert matched_prefix is True
+
+        # Okay, everything seems fine - go ahead and send those emails.
+        for user in imported_users:
+            hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
+            LostPasswordHash.send_relocate_account_email(user, hash)
+
+        notifying_owner.delay(uuid)
 
 
 @instrumented_task(
