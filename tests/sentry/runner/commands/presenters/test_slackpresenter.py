@@ -74,8 +74,8 @@ def test_is_slack_enabled():
         ],
     }
 
-    assert responses.calls[1].response.status_code == 200
-    assert expected_json_data == json.loads(responses.calls[1].request.body)
+    assert responses.calls[0].response.status_code == 200
+    assert expected_json_data == json.loads(responses.calls[0].request.body)
 
 
 @pytest.mark.django_db
@@ -121,5 +121,5 @@ def test_slack_presenter_methods_with_different_types():
         ],
     }
 
-    assert responses.calls[1].response.status_code == 200
-    assert expected_json_data == json.loads(responses.calls[1].request.body)
+    assert responses.calls[0].response.status_code == 200
+    assert expected_json_data == json.loads(responses.calls[0].request.body)

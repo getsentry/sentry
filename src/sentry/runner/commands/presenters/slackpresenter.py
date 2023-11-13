@@ -32,11 +32,10 @@ class SlackPresenter(OptionsPresenter):
 
     @staticmethod
     def is_slack_enabled():
-        if not (
+        return (
             options.get("options_automator_slack_webhook_enabled")
             and settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL
-        ):
-            return False
+        )
 
     def flush(self) -> None:
         if not self.options_changed:
