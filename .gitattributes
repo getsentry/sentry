@@ -1,2 +1,6 @@
+# mark diff- and/or grep-unfriendly files as binary
 model-manifest.json binary
 tests/js/test-balancer/jest-balance.json binary
+static/app/utils/profiling/profile/formats/typescript/trace.json binary
+yarn.lock binary
+*.js.map binary
