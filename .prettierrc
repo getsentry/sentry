@@ -7,5 +7,14 @@
   "tabWidth": 2,
   "trailingComma": "es5",
   "useTabs": false,
-  "arrowParens": "avoid"
+  "arrowParens": "avoid",
+  "plugins": ["prettier-plugin-jinja-template"],
+  "overrides": [
+    {
+      "files": ["*.html"],
+      "options": {
+        "parser": "jinja-template"
+      }
+    }
+  ]
 }

@@ -140,6 +140,7 @@
     "platformicons": "^5.7.9",
     "po-catalog-loader": "2.0.0",
     "prettier": "3.0.3",
+    "prettier-plugin-jinja-template": "^1.3.1",
     "prismjs": "^1.29.0",
     "process": "^0.11.10",
     "prop-types": "^15.8.1",

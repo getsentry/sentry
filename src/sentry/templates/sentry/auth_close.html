@@ -1,4 +1,5 @@
-{% load sentry_helpers %} {% load sentry_assets %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
 <!doctype html>
 <html>
   <head>
@@ -6,17 +7,17 @@
   </head>
   <body>
     {% script %}
-    <script>
-      // sends message to window that opened this popup if user is authenticated and closes the window
+      <script>
+        // sends message to window that opened this popup if user is authenticated and closes the window
 
-      (function checkAuthChange() {
-        var loggedIn = '{{ logged_in }}';
-        if (window.opener && loggedIn === 'True') {
-          window.opener.postMessage('user_authenticated', '{% system_origin %}');
-        }
-        window.close();
-      })();
-    </script>
+        (function checkAuthChange() {
+          var loggedIn = '{{ logged_in }}';
+          if (window.opener && loggedIn === 'True') {
+            window.opener.postMessage('user_authenticated', '{% system_origin %}');
+          }
+          window.close();
+        })();
+      </script>
     {% endscript %}
   </body>
 </html>

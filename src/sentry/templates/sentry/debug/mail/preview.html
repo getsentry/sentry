@@ -1,19 +1,12 @@
 {% load sentry_assets %}
 
 <div
-  style="
-    padding: 20px;
-    border-bottom: 1px solid #ddd;
-    background: #fff;
-    margin-bottom: 20px;
-  "
+  style="padding: 20px; border-bottom: 1px solid #ddd; background: #fff; margin-bottom: 20px;"
 >
-  <div style="width: 600; margin: 0 auto; display: flex">
-    {% if preview.subject %}
-    <h1>{{ preview.subject }}</h1>
-    {% endif %}
+  <div style="width: 600; margin: 0 auto; display: flex;">
+    {% if preview.subject %}<h1>{{ preview.subject }}</h1>{% endif %}
     <label for="event" style="margin-right: 10px">Selection:</label>
-    <select id="event" style="width: 200px; margin-right: 20px">
+    <select id="event" style="width: 200px; margin-right: 20px;">
       <option></option>
       <optgroup label="Activity">
         <option value="mail/assigned/">Assigned</option>
@@ -88,38 +81,40 @@
     <label for="format" style="margin-right: 10px">Format:</label>
     <select id="format" style="width: 100px">
       <option value="html">HTML</option>
-      <option value="txt" {% if format="" ="txt" %} selected="selected" {% endif %}>
+      <option value="txt" {% if format == 'txt' %}selected="selected"{% endif %}>
         Plaintext
       </option>
     </select>
-    <form action="" method="post" style="margin-left: auto; margin-block-end: 0">
+    <form action="" method="post" style="margin-left: auto; margin-block-end: 0;">
       <button type="submit">Send</button>
     </form>
   </div>
 </div>
 
 {% script type="text/javascript" %}
-<script>
-  function selectEmail(e) {
-    var value = e.target.value;
-    window.location.href = '/debug/' + value;
-  }
+  <script>
+    function selectEmail(e) {
+      var value = e.target.value;
+      window.location.href = '/debug/' + value;
+    }
 
-  function selectFormat(e) {
-    var value = e.target.value;
-    window.location.href = window.location.pathname + '?format=' + value;
-  }
+    function selectFormat(e) {
+      var value = e.target.value;
+      window.location.href = window.location.pathname + '?format=' + value;
+    }
 
-  var eventSelect = document.getElementById('event');
-  eventSelect.addEventListener('change', selectEmail);
+    var eventSelect = document.getElementById('event');
+    eventSelect.addEventListener('change', selectEmail);
 
-  var formatSelect = document.getElementById('format');
-  formatSelect.addEventListener('change', selectFormat);
-</script>
+    var formatSelect = document.getElementById('format');
+    formatSelect.addEventListener('change', selectFormat);
+  </script>
 {% endscript %}
 
 <div id="preview">
   {% if format == 'txt' %}
-  <pre>{{ preview.text_body|safe }}</pre>
-  {% else %} {{ preview.html_body|safe }} {% endif %}
+    <pre>{{ preview.text_body|safe }}</pre>
+  {% else %}
+    {{ preview.html_body|safe }}
+  {% endif %}
 </div>
