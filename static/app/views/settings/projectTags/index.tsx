@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -7,140 +7,128 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, TagWithTopValues} from 'sentry/types';
+import {TagWithTopValues} from 'sentry/types';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
-  organization: Organization;
-  project: Project;
-} & DeprecatedAsyncView['props'];
+type Props = RouteComponentProps<{projectId: string}, {}>;
 
-type State = {
-  tags: Array<TagWithTopValues>;
-} & DeprecatedAsyncView['state'];
+function ProjectTags(props: Props) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const projectId = props.params.projectId;
 
-class ProjectTags extends DeprecatedAsyncView<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      tags: [],
-    };
-  }
+  const project = useMemo(
+    () => projects.find(p => p.id === projectId),
+    [projects, projectId]
+  );
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-    return [['tags', `/projects/${organization.slug}/${projectId}/tags/`]];
-  }
+  const api = useApi();
+  const queryClient = useQueryClient();
 
-  getTitle() {
-    const {projectId} = this.props.params;
-    return routeTitleGen(t('Tags'), projectId, false);
-  }
+  const {data: tags, isLoading} = useApiQuery<TagWithTopValues[]>(
+    [`/projects/${organization.slug}/${projectId}/tags/`],
+    {staleTime: 0}
+  );
 
-  handleDelete = (key: TagWithTopValues['key'], idx: number) => async () => {
-    const {organization, params} = this.props;
-    const {projectId} = params;
+  function handleDelete(key: TagWithTopValues['key']) {
+    api.requestPromise(`/projects/${organization.slug}/${projectId}/tags/${key}/`, {
+      method: 'DELETE',
+    });
 
-    try {
-      await this.api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/tags/${key}/`,
-        {
-          method: 'DELETE',
-        }
-      );
-
-      const tags = [...this.state.tags];
-      tags.splice(idx, 1);
-      this.setState({tags});
-    } catch (error) {
-      this.setState({error: true, loading: false});
-    }
-  };
-
-  renderBody() {
-    const {project} = this.props;
-    const {tags} = this.state;
-    const isEmpty = !tags || !tags.length;
-
-    return (
-      <Fragment>
-        <SettingsPageHeader title={t('Tags')} />
-        <TextBlock>
-          {tct(
-            `Each event in Sentry may be annotated with various tags (key and value pairs).
-                 Learn how to [link:add custom tags].`,
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags/" />
-              ),
-            }
-          )}
-        </TextBlock>
-
-        <PermissionAlert project={project} />
-        <Panel>
-          <PanelHeader>{t('Tags')}</PanelHeader>
-          <PanelBody>
-            {isEmpty ? (
-              <EmptyMessage>
-                {tct('There are no tags, [link:learn how to add tags]', {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/enrich-data/" />
-                  ),
-                })}
-              </EmptyMessage>
-            ) : (
-              <Access access={['project:write']} project={project}>
-                {({hasAccess}) =>
-                  tags.map(({key, canDelete}, idx) => {
-                    const enabled = canDelete && hasAccess;
-                    return (
-                      <TagPanelItem key={key} data-test-id="tag-row">
-                        <TagName>{key}</TagName>
-                        <Actions>
-                          <Confirm
-                            message={t('Are you sure you want to remove this tag?')}
-                            onConfirm={this.handleDelete(key, idx)}
-                            disabled={!enabled}
-                          >
-                            <Button
-                              size="xs"
-                              title={
-                                enabled
-                                  ? t('Remove tag')
-                                  : hasAccess
-                                  ? t('This tag cannot be deleted.')
-                                  : t('You do not have permission to remove tags.')
-                              }
-                              aria-label={t('Remove tag')}
-                              icon={<IconDelete size="xs" />}
-                              data-test-id="delete"
-                            />
-                          </Confirm>
-                        </Actions>
-                      </TagPanelItem>
-                    );
-                  })
-                }
-              </Access>
-            )}
-          </PanelBody>
-        </Panel>
-      </Fragment>
+    setApiQueryData<TagWithTopValues[]>(
+      queryClient,
+      [`/projects/${organization.slug}/${projectId}/tags/`],
+      oldTags => oldTags.filter(tag => tag.key !== key)
     );
   }
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  const isEmpty = !tags || !tags.length;
+  return (
+    <Fragment>
+      <SentryDocumentTitle title={routeTitleGen(t('Tags'), projectId, false)} />
+      <SettingsPageHeader title={t('Tags')} />
+      <TextBlock>
+        {tct(
+          `Each event in Sentry may be annotated with various tags (key and value pairs).
+                 Learn how to [link:add custom tags].`,
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags/" />
+            ),
+          }
+        )}
+      </TextBlock>
+
+      <PermissionAlert project={project} />
+      <Panel>
+        <PanelHeader>{t('Tags')}</PanelHeader>
+        <PanelBody>
+          {isEmpty ? (
+            <EmptyMessage>
+              {tct('There are no tags, [link:learn how to add tags]', {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/enrich-data/" />
+                ),
+              })}
+            </EmptyMessage>
+          ) : (
+            <Access access={['project:write']} project={project}>
+              {({hasAccess}) =>
+                tags.map(({key, canDelete}) => {
+                  const enabled = canDelete && hasAccess;
+                  return (
+                    <TagPanelItem key={key} data-test-id="tag-row">
+                      <TagName>{key}</TagName>
+                      <Actions>
+                        <Confirm
+                          message={t('Are you sure you want to remove this tag?')}
+                          onConfirm={() => handleDelete(key)}
+                          disabled={!enabled}
+                        >
+                          <Button
+                            size="xs"
+                            title={
+                              enabled
+                                ? t('Remove tag')
+                                : hasAccess
+                                ? t('This tag cannot be deleted.')
+                                : t('You do not have permission to remove tags.')
+                            }
+                            aria-label={t('Remove tag')}
+                            icon={<IconDelete size="xs" />}
+                            data-test-id="delete"
+                          />
+                        </Confirm>
+                      </Actions>
+                    </TagPanelItem>
+                  );
+                })
+              }
+            </Access>
+          )}
+        </PanelBody>
+      </Panel>
+    </Fragment>
+  );
 }
 
 export default ProjectTags;
