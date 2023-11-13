@@ -97,6 +97,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         assert isinstance(user_callbacks, list)
         assert len(user_callbacks) == 1
 
+    @with_feature("organizations:eventuser-from-snuba")
     def test_serialize_row(self):
         processor = IssuesByTagProcessor(
             project_id=self.project.id,
