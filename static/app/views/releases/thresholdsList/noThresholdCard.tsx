@@ -34,6 +34,7 @@ export default function NoThresholdCard({
         setTempError={setTempError}
         project={project}
         newGroup
+        onFormClose={() => setCreateNew(false)}
       />
     </StyledPanelTable>
   ) : (
