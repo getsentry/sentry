@@ -1,3 +1,4 @@
+import atexit
 from typing import Optional
 from unittest import mock
 
@@ -51,7 +52,7 @@ def test_accountant(mock_time: mock.Mock) -> None:
     record("resource_1", "feature_1", 100, UsageUnit.BYTES)
     record("resource_1", "feature_2", 100, UsageUnit.BYTES)
 
-    accountant._accountant_backend.flush()
+    atexit._run_exitfuncs()
 
     msg1 = broker.consume(Partition(topic, 0), 0)
     assert_msg(
