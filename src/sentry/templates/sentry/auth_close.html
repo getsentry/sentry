@@ -1,23 +1,22 @@
-{% load sentry_helpers %}
-{% load sentry_assets %}
-<!DOCTYPE html>
+{% load sentry_helpers %} {% load sentry_assets %}
+<!doctype html>
 <html>
-<head>
-  <title></title>
-</head>
-<body>
-  {% script %}
-  <script>
-  // sends message to window that opened this popup if user is authenticated and closes the window
+  <head>
+    <title></title>
+  </head>
+  <body>
+    {% script %}
+    <script>
+      // sends message to window that opened this popup if user is authenticated and closes the window
 
-  (function checkAuthChange() {
-    var loggedIn = '{{ logged_in }}';
-    if (window.opener && loggedIn === 'True') {
-      window.opener.postMessage('user_authenticated', '{% system_origin %}');
-    }
-    window.close();
-  })();
-  </script>
-  {% endscript %}
-</body>
+      (function checkAuthChange() {
+        var loggedIn = '{{ logged_in }}';
+        if (window.opener && loggedIn === 'True') {
+          window.opener.postMessage('user_authenticated', '{% system_origin %}');
+        }
+        window.close();
+      })();
+    </script>
+    {% endscript %}
+  </body>
 </html>

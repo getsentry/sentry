@@ -1,9 +1,7 @@
 {
   "_fingerprinting_rules": [
     {
-      "matchers": [
-        ["function", "main"]
-      ],
+      "matchers": [["function", "main"]],
       "fingerprint": ["{{ type }}", "{{ module }}", "{{ function }}"]
     }
   ],

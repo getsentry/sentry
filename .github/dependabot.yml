@@ -17,7 +17,7 @@ updates:
       # The name of the group, it will be used in PR titles and branch
       babel-dependencies:
         patterns:
-          - "@babel/*"
+          - '@babel/*'
     ignore:
       # For all packages, ignore all patch updates
       - dependency-name: '*'
