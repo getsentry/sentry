@@ -57,7 +57,7 @@ from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
-    feedback_decorator,
+    feedback_filter_decorator,
     post_process_group,
     process_event,
 )
@@ -2423,7 +2423,7 @@ class PostProcessGroupFeedbackTest(
             "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
             {
                 GroupCategory.FEEDBACK: [
-                    feedback_decorator(mock_process_func),
+                    feedback_filter_decorator(mock_process_func),
                 ]
             },
         ):
@@ -2448,7 +2448,7 @@ class PostProcessGroupFeedbackTest(
             "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
             {
                 GroupCategory.FEEDBACK: [
-                    feedback_decorator(mock_process_func),
+                    feedback_filter_decorator(mock_process_func),
                 ]
             },
         ):

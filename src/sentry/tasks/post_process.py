@@ -1218,7 +1218,7 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     )
 
 
-def feedback_decorator(func):
+def feedback_filter_decorator(func):
     def wrapper(job):
         if not should_postprocess_feedback(job):
             return
@@ -1259,9 +1259,9 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_replay_link,
     ],
     GroupCategory.FEEDBACK: [
-        feedback_decorator(process_snoozes),
-        feedback_decorator(process_inbox_adds),
-        feedback_decorator(process_rules),
+        feedback_filter_decorator(process_snoozes),
+        feedback_filter_decorator(process_inbox_adds),
+        feedback_filter_decorator(process_rules),
     ],
 }
 
