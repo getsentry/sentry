@@ -129,7 +129,14 @@ def process_event(message: IngestMessage, project: Project) -> None:
         cache_key = event_processing_store.store(data)
 
     try:
-        app_feature = data.get("type")
+        event_type = data.get("type")
+        if event_type == "error":
+            app_feature = "errors"
+        elif event_type == "transaction":
+            app_feature = "transactions"
+        else:
+            app_feature = None
+
         if app_feature is not None:
             record(RESOURCE_ID, app_feature, len(payload), UsageUnit.BYTES)
     except Exception:
