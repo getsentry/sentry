@@ -100,7 +100,7 @@ def fix_for_issue_platform(event_data):
 
 
 def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
-    metrics.incr("feedback.created", tags={"referrer": source.value})
+    metrics.incr("feedback.created", tags={"referrer": source.value}, sample_rate=1.0)
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
