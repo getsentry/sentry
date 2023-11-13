@@ -133,7 +133,6 @@ def parse_mri_field(field: str, allow_private: bool = False) -> MetricField:
 
 
 def parse_public_field(field: str) -> MetricField:
-
     matches = PUBLIC_EXPRESSION_REGEX.match(field)
 
     try:
@@ -142,6 +141,7 @@ def parse_public_field(field: str) -> MetricField:
     except (TypeError, IndexError):
         operation = None
         metric_name = field
+
     return MetricField(operation, get_mri(metric_name))
 
 
