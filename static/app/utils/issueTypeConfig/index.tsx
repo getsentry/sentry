@@ -28,6 +28,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   attachments: {enabled: false},
   events: {enabled: true},
   mergedIssues: {enabled: false},
+  regression: {enabled: false},
   replays: {enabled: false},
   stats: {enabled: true},
   similarIssues: {enabled: false},

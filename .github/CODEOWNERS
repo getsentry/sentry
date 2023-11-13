@@ -90,10 +90,18 @@ Makefile                                                 @getsentry/owners-sentr
 /static/app/components/sidebar/index.tsx                 @getsentry/open-source
 
 ## Relocation - getsentry/team-ospo#153
+/src/sentry/api/endpoints/relocation/                    @getsentry/open-source
 /src/sentry/backup/                                      @getsentry/open-source
-/src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
 /src/sentry/runner/commands/backup.py                    @getsentry/open-source
+/src/sentry/services/hybrid-cloud/import_export/         @getsentry/open-source
+/src/sentry/tasks/relocation.py                          @getsentry/open-source
 /src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
+/src/sentry/utils/relocation.py                          @getsentry/open-source
+/tests/sentry/api/endpoints/relocation                   @getsentry/open-source
+/tests/sentry/tasks/test_relocation.py                   @getsentry/open-source
+/tests/sentry/utils/test_relocation.py                   @getsentry/open-source
+/tests/sentry/backup/                                    @getsentry/open-source
+/tests/sentry/runner/commands/test_backup.py             @getsentry/open-source
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
@@ -405,6 +413,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
 /src/sentry/models/release_threshold                                    @getsentry/enterprise
 /src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
+/src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
 ## End of Enterprise
 
 
@@ -449,6 +458,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
 /src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_data.py                     @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_details.py                  @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_tag_details.py              @getsentry/telemetry-experience
@@ -471,16 +481,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
+/static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 ## End of Telemetry Experience
-
-
-## Growth
-/src/sentry/api/endpoints/organization_onboarding*              @getsentry/growth
-/src/sentry/web/frontend/auth_login.py                          @getsentry/growth
-/static/app/utils/analytics.tsx                                 @getsentry/growth
-/static/app/utils/routeAnalytics*                               @getsentry/growth
-/static/app/views/onboarding*                                   @getsentry/growth
-## End of Growth
 
 
 ## Issues
@@ -503,4 +505,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/actionable_items.py                @getsentry/issues
 /src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
 /static/app/components/events/interfaces/crashContent/exception/actionableItems   @getsentry/issues
+/static/app/utils/analytics.tsx                                 @getsentry/issues
+/static/app/utils/routeAnalytics*                               @getsentry/issues
 ## End of Issues

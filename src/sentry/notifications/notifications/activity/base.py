@@ -108,6 +108,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
     def get_unsubscribe_key(self) -> UnsubscribeContext | None:
         return UnsubscribeContext(
+            organization=self.group.organization,
             key="issue",
             resource_id=self.group.id,
         )

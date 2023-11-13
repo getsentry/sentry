@@ -393,7 +393,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if team_query.exists():
             team = team_query[0]
         else:
-            team = Team.objects.create(organization_id=organization_id, slug=new_team_slug)
+            team = Team.objects.create(
+                organization_id=organization_id, slug=new_team_slug, name=new_team_slug
+            )
         return serialize_rpc_team(team)
 
     def get_or_create_team_member(

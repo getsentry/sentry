@@ -45,10 +45,15 @@ export type SpanStringFields =
   | 'span.description'
   | 'span.module'
   | 'span.action'
+  | 'span.domain'
   | 'span.group'
   | 'project.id'
   | 'transaction'
   | 'transaction.method';
+
+export type SpanMetricsQueryFilters = {
+  [Field in SpanStringFields]?: string;
+};
 
 export type SpanStringArrayFields = 'span.domain';
 

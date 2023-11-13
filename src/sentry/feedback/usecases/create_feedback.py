@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from enum import Enum
 from typing import Any, TypedDict
 from uuid import uuid4
 
@@ -14,10 +15,19 @@ from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received
+from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
+
+
+class FeedbackCreationSource(Enum):
+    NEW_FEEDBACK_ENVELOPE = "new_feedback_envelope"
+    NEW_FEEDBACK_DJANGO_ENDPOINT = "new_feedback_sentry_django_endpoint"
+    USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
+    USER_REPORT_ENVELOPE = "user_report_envelope"
+    CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
 
 
 def make_evidence(feedback):
@@ -49,6 +59,8 @@ def fix_for_issue_platform(event_data):
         datetime.fromtimestamp(event_data["timestamp"])
     ).isoformat()
 
+    ret_event["received"] = event_data["received"]
+
     ret_event["project_id"] = event_data["project_id"]
 
     ret_event["contexts"] = event_data.get("contexts", {})
@@ -65,7 +77,7 @@ def fix_for_issue_platform(event_data):
     ret_event["tags"] = event_data.get("tags", [])
 
     ret_event["platform"] = event_data.get("platform", "other")
-    ret_event["level"] = event_data.get("level", "error")
+    ret_event["level"] = event_data.get("level", "info")
 
     ret_event["environment"] = event_data.get("environment", "production")
     if event_data.get("sdk"):
@@ -73,10 +85,22 @@ def fix_for_issue_platform(event_data):
     ret_event["request"] = event_data.get("request", {})
 
     ret_event["user"] = event_data.get("user", {})
+
+    if event_data.get("dist") is not None:
+        del event_data["dist"]
+    if event_data.get("user", {}).get("name") is not None:
+        del event_data["user"]["name"]
+    if event_data.get("user", {}).get("isStaff") is not None:
+        del event_data["user"]["isStaff"]
+
+    if event_data.get("user", {}).get("id") is not None:
+        event_data["user"]["id"] = str(event_data["user"]["id"])
+
     return ret_event
 
 
-def create_feedback_issue(event, project_id):
+def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
+    metrics.incr("feedback.created", tags={"referrer": source.value})
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
@@ -96,14 +120,13 @@ def create_feedback_issue(event, project_id):
         type=FeedbackGroup,
         detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
-        level="info",  # TODO: severity based on input?
+        level=event.get("level", "info"),
     )
     now = datetime.now()
 
     event_data = {
         "project_id": project_id,
         "received": now.isoformat(),
-        "level": "info",
         "tags": event.get("tags", {}),
         **event,
     }
@@ -137,9 +160,16 @@ class UserReportShimDict(TypedDict):
     name: str
     email: str
     comments: str
+    event_id: str
+    level: str
 
 
-def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project):
+def shim_to_feedback(
+    report: UserReportShimDict,
+    event: Event,
+    project: Project,
+    source: FeedbackCreationSource,
+):
     """
     takes user reports from the legacy user report form/endpoint and
     user reports that come from relay envelope ingestion and
@@ -159,7 +189,7 @@ def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project)
         }
 
         if event:
-            feedback_event["contexts"]["feedback"]["crash_report_event_id"] = event.event_id
+            feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
             if get_path(event.data, "contexts", "replay", "replay_id"):
                 feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
@@ -167,14 +197,18 @@ def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project)
                     "replay"
                 ]["replay_id"]
             feedback_event["timestamp"] = event.datetime.timestamp()
-
+            feedback_event["level"] = event.data["level"]
             feedback_event["platform"] = event.platform
-
+            feedback_event["level"] = event.data["level"]
         else:
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
+            feedback_event["level"] = report.get("level", "info")
 
-        create_feedback_issue(feedback_event, project.id)
+            if report.get("event_id"):
+                feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
+
+        create_feedback_issue(feedback_event, project.id, source)
     except Exception:
         logger.exception(
             "Error attempting to create new User Feedback from Shiming old User Report"

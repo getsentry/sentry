@@ -6,6 +6,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import SearchBar, {SearchBarProps} from 'sentry/components/performance/searchBar';
 import EventView from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 describe('SearchBar', () => {
   let eventsMock;
@@ -162,5 +163,38 @@ describe('SearchBar', () => {
 
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onSearch).toHaveBeenCalledWith('transaction:"GET /my-endpoint"');
+  });
+
+  it('appends additional filters', async () => {
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
+      },
+    });
+
+    render(
+      <SearchBar
+        {...testProps}
+        additionalConditions={new MutableSearch(['transaction.op:ui.load'])}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.paste('proje');
+    expect(screen.getByRole('textbox')).toHaveValue('proje');
+
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'transaction.op:ui.load transaction:*proje* event.type:transaction',
+        }),
+      })
+    );
+
+    expect(screen.getByText(textWithMarkupMatcher('clients.call'))).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('clients.fetch'))).toBeInTheDocument();
   });
 });

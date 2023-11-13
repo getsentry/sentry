@@ -129,8 +129,10 @@ def queue_comment_task_if_needed(
     retry_backoff_max=60 * 60 * 3,  # 3 hours
     retry_jitter=False,
     silo_mode=SiloMode.REGION,
+    bind=True,
 )
 def process_commit_context(
+    self,
     event_id,
     event_platform,
     event_frames,
@@ -211,7 +213,7 @@ def process_commit_context(
             if munged:
                 frames = munged[1]
 
-            in_app_frames = [f for f in frames if f.get("in_app", False)][::-1]
+            in_app_frames = [f for f in frames if f and f.get("in_app", False)][::-1]
             # First frame in the stacktrace that is "in_app"
             frame = next(iter(in_app_frames), None)
 
@@ -256,6 +258,7 @@ def process_commit_context(
                 return
 
             if features.has("organizations:suspect-commits-all-frames", project.organization):
+                metrics.incr("tasks.process_commit_context_all_frames.start")
                 blame = None
                 installation = None
                 try:
@@ -266,13 +269,15 @@ def process_commit_context(
                         project_id=project_id,
                         extra=basic_logging_details,
                     )
-                except Exception as e:
-                    logger.exception(e, extra=basic_logging_details)
+                except ApiError:
+                    logger.info(
+                        "process_commit_context_all_frames.retry",
+                        extra={**basic_logging_details, "retry_count": self.request.retries},
+                    )
+                    metrics.incr("tasks.process_commit_context_all_frames.retry")
+                    self.retry()
 
                 if not blame or not installation:
-                    # Debounces the task for 1 day.
-                    # This is temporary to match the current behavior, but should be removed in https://github.com/getsentry/sentry/issues/57438
-                    cache.set(cache_key, True, timedelta(days=7).total_seconds())
                     # Fall back to the release logic if we can't find a commit for any of the frames
                     process_suspect_commits.delay(
                         event_id=event_id,
@@ -480,6 +485,7 @@ def process_commit_context(
     except UnableToAcquireLock:
         pass
     except MaxRetriesExceededError:
+        metrics.incr("tasks.process_commit_context.max_retries_exceeded")
         logger.info(
             "process_commit_context.max_retries_exceeded",
             extra={

@@ -11,7 +11,7 @@ from sentry.backup.dependencies import (
     get_model_name,
     sorted_dependencies,
 )
-from sentry.backup.helpers import Filter, create_encrypted_export_tarball
+from sentry.backup.helpers import Encryptor, Filter, create_encrypted_export_tarball
 from sentry.backup.scopes import ExportScope
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcExportError,
@@ -44,7 +44,7 @@ def _export(
     dest: BinaryIO,
     scope: ExportScope,
     *,
-    encrypt_with: BinaryIO | None = None,
+    encryptor: Encryptor | None = None,
     indent: int = 2,
     filter_by: Filter | None = None,
     printer=click.echo,
@@ -52,7 +52,9 @@ def _export(
     """
     Exports core data for the Sentry installation.
 
-    It is generally preferable to avoid calling this function directly, as there are certain combinations of input parameters that should not be used together. Instead, use one of the other wrapper functions in this file, named `export_in_XXX_scope()`.
+    It is generally preferable to avoid calling this function directly, as there are certain
+    combinations of input parameters that should not be used together. Instead, use one of the other
+    wrapper functions in this file, named `export_in_XXX_scope()`.
     """
 
     # Import here to prevent circular module resolutions.
@@ -132,21 +134,21 @@ def _export(
         for json_model in json.loads(result.json_data):
             json_export.append(json_model)
 
-    # If no `encrypt_with` argument was passed in, this is an unencrypted export, so we can just
-    # dump the JSON into the `dest` file and exit early.
-    if encrypt_with is None:
+    # If no `encryptor` argument was passed in, this is an unencrypted export, so we can just dump
+    # the JSON into the `dest` file and exit early.
+    if encryptor is None:
         dest_wrapper = io.TextIOWrapper(dest, encoding="utf-8", newline="")
         json.dump(json_export, dest_wrapper)
         dest_wrapper.detach()
         return
 
-    dest.write(create_encrypted_export_tarball(json_export, encrypt_with).getvalue())
+    dest.write(create_encrypted_export_tarball(json_export, encryptor).getvalue())
 
 
 def export_in_user_scope(
     dest: BinaryIO,
     *,
-    encrypt_with: BinaryIO | None = None,
+    encryptor: Encryptor | None = None,
     user_filter: set[str] | None = None,
     indent: int = 2,
     printer=click.echo,
@@ -162,7 +164,7 @@ def export_in_user_scope(
     return _export(
         dest,
         ExportScope.User,
-        encrypt_with=encrypt_with,
+        encryptor=encryptor,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         indent=indent,
         printer=printer,
@@ -172,7 +174,7 @@ def export_in_user_scope(
 def export_in_organization_scope(
     dest: BinaryIO,
     *,
-    encrypt_with: BinaryIO | None = None,
+    encryptor: Encryptor | None = None,
     org_filter: set[str] | None = None,
     indent: int = 2,
     printer=click.echo,
@@ -189,7 +191,7 @@ def export_in_organization_scope(
     return _export(
         dest,
         ExportScope.Organization,
-        encrypt_with=encrypt_with,
+        encryptor=encryptor,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         indent=indent,
         printer=printer,
@@ -199,7 +201,7 @@ def export_in_organization_scope(
 def export_in_config_scope(
     dest: BinaryIO,
     *,
-    encrypt_with: BinaryIO | None = None,
+    encryptor: Encryptor | None = None,
     indent: int = 2,
     printer=click.echo,
 ):
@@ -214,7 +216,7 @@ def export_in_config_scope(
     return _export(
         dest,
         ExportScope.Config,
-        encrypt_with=encrypt_with,
+        encryptor=encryptor,
         filter_by=Filter(User, "pk", import_export_service.get_all_globally_privileged_users()),
         indent=indent,
         printer=printer,
@@ -224,7 +226,7 @@ def export_in_config_scope(
 def export_in_global_scope(
     dest: BinaryIO,
     *,
-    encrypt_with: BinaryIO | None = None,
+    encryptor: Encryptor | None = None,
     indent: int = 2,
     printer=click.echo,
 ):
@@ -235,7 +237,7 @@ def export_in_global_scope(
     return _export(
         dest,
         ExportScope.Global,
-        encrypt_with=encrypt_with,
+        encryptor=encryptor,
         indent=indent,
         printer=printer,
     )

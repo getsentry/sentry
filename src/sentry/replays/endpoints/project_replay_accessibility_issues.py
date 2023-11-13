@@ -45,7 +45,7 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         try:
-            replay_id = str(uuid.UUID(replay_id))
+            replay_id = str(uuid.UUID(replay_id)).replace("-", "")
         except ValueError:
             return Response(status=404)
 
@@ -78,7 +78,7 @@ class ReplayAccessibilityPaginator:
 
         return CursorResult(
             data,
-            hits=data["meta"]["total"],
+            hits=data.pop("meta")["total"],
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, False),
         )
