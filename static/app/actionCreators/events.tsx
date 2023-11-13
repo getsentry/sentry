@@ -54,7 +54,6 @@ type Options = {
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
-  useOnDemandMetrics?: boolean;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
 };
