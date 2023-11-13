@@ -1535,7 +1535,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            f"Requested interval of timedelta of {timedelta(minutes=5)} with statsPeriod "
+            f"Requested intervals (288) of timedelta of {timedelta(minutes=5)} with statsPeriod "
             f"timedelta of {timedelta(hours=24)} is too granular "
             f"for a per_page of 51 elements. Increase your interval, decrease your statsPeriod, "
             f"or decrease your per_page parameter."
@@ -1567,6 +1567,31 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
 
+    def test_transaction_status_unknown_error(self):
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction.status": "unknown"},
+            value=10.0,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=f"sum({TransactionMetricKey.DURATION.value})",
+            query="transaction.status:unknown_error",
+            statsPeriod="1h",
+            interval="1h",
+            per_page=1,
+            useCase="transactions",
+        )
+        groups = response.data["groups"]
+        assert groups == [
+            {
+                "by": {},
+                "series": {"sum(transaction.duration)": [10.0]},
+                "totals": {"sum(transaction.duration)": 10.0},
+            }
+        ]
+
     def test_gauges(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -1581,7 +1606,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         gauge_2 = {
             "min": 2.0,
             "max": 21.0,
-            "sum": 25.0,
+            "sum": 21.0,
             "count": 3,
             "last": 4.0,
         }
@@ -1597,6 +1622,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 f"max({mri})",
                 f"last({mri})",
                 f"sum({mri})",
+                f"avg({mri})",
             ],
             query="",
             statsPeriod="1h",
@@ -1617,14 +1643,16 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     "max(g:custom/page_load@millisecond)": [20.0, 21.0],
                     "min(g:custom/page_load@millisecond)": [1.0, 2.0],
                     "last(g:custom/page_load@millisecond)": [20.0, 4.0],
-                    "sum(g:custom/page_load@millisecond)": [21.0, 25.0],
+                    "sum(g:custom/page_load@millisecond)": [21.0, 21.0],
+                    "avg(g:custom/page_load@millisecond)": [10.5, 7.0],
                 },
                 "totals": {
                     "count(g:custom/page_load@millisecond)": 5,
                     "max(g:custom/page_load@millisecond)": 21.0,
                     "min(g:custom/page_load@millisecond)": 1.0,
                     "last(g:custom/page_load@millisecond)": 4.0,
-                    "sum(g:custom/page_load@millisecond)": 46.0,
+                    "sum(g:custom/page_load@millisecond)": 42.0,
+                    "avg(g:custom/page_load@millisecond)": 8.4,
                 },
             }
         ]

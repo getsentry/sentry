@@ -8,6 +8,8 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
+
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
@@ -16,8 +18,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import useUrlParams from 'sentry/utils/useUrlParams';
-import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import {space} from 'sentry/styles/space';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -26,6 +27,16 @@ const cellMeasurer = {
   fixedWidth: true,
   minHeight: 24,
 };
+
+function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
+  return (
+    <Wrapper>
+      <img src={waitingForEventImg} alt="No feedback found spot illustration" />
+      <EmptyMessage>{title}</EmptyMessage>
+      <p>{subtitle}</p>
+    </Wrapper>
+  );
+}
 
 export default function FeedbackList() {
   const {
@@ -40,9 +51,6 @@ export default function FeedbackList() {
     loadMoreRows,
     hits,
   } = useFetchFeedbackInfiniteListData();
-
-  const {setParamValue} = useUrlParams('query');
-  const clearSearchTerm = () => setParamValue('');
 
   const checkboxState = useListItemCheckboxState({
     hits,
@@ -108,12 +116,10 @@ export default function FeedbackList() {
                     isFetching ? (
                       <LoadingIndicator />
                     ) : (
-                      <NoRowRenderer
-                        unfilteredItems={issues}
-                        clearSearchTerm={clearSearchTerm}
-                      >
-                        {t('No feedback received')}
-                      </NoRowRenderer>
+                      <NoFeedback
+                        title={t('Inbox Zero')}
+                        subtitle={t('You have two options: take a nap or be productive.')}
+                      />
                     )
                   }
                   onRowsRendered={onRowsRendered}
@@ -156,4 +162,29 @@ const OverflowPanelItem = styled(PanelItem)`
 const FloatingContainer = styled('div')`
   position: absolute;
   justify-self: center;
+`;
+
+const Wrapper = styled('div')`
+  display: flex;
+  padding: ${space(4)} ${space(4)};
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: ${p => p.theme.subText};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    font-size: ${p => p.theme.fontSizeMedium};
+  }
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+`;
+
+const EmptyMessage = styled('div')`
+  font-weight: 600;
+  color: ${p => p.theme.gray400};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    font-size: ${p => p.theme.fontSizeExtraLarge};
+  }
 `;

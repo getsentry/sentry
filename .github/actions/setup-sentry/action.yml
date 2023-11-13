@@ -34,7 +34,7 @@ inputs:
   python-version:
     description: 'python version to install'
     required: false
-    default: '3.8.16'
+    default: '3.8.18'
   pg-version:
     description: 'PostgreSQL version to use'
     default: '14'

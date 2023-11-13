@@ -1461,14 +1461,13 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             url=f"https://discord.com/api/v10/channels/{channel_id}",
             json=metadata,
         )
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            action = create_alert_rule_trigger_action(
-                self.trigger,
-                type,
-                target_type,
-                target_identifier=channel_id,
-                integration_id=integration.id,
-            )
+        action = create_alert_rule_trigger_action(
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=channel_id,
+            integration_id=integration.id,
+        )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
@@ -1832,14 +1831,13 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            action = update_alert_rule_trigger_action(
-                self.action,
-                type,
-                target_type,
-                target_identifier=channel_id,
-                integration_id=integration.id,
-            )
+        action = update_alert_rule_trigger_action(
+            self.action,
+            type,
+            target_type,
+            target_identifier=channel_id,
+            integration_id=integration.id,
+        )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
@@ -1870,15 +1868,14 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(method=responses.GET, url=f"{base_url}/channels/{channel_id}", status=404)
 
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            with pytest.raises(InvalidTriggerActionError):
-                update_alert_rule_trigger_action(
-                    self.action,
-                    type,
-                    target_type,
-                    target_identifier=channel_id,
-                    integration_id=integration.id,
-                )
+        with pytest.raises(InvalidTriggerActionError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
 
     @responses.activate
     def test_discord_bad_response(self):
@@ -1905,30 +1902,28 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             method=responses.GET, url=f"{base_url}/channels/{channel_id}", body="Error", status=500
         )
 
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            with pytest.raises(InvalidTriggerActionError):
-                update_alert_rule_trigger_action(
-                    self.action,
-                    type,
-                    target_type,
-                    target_identifier=channel_id,
-                    integration_id=integration.id,
-                )
+        with pytest.raises(InvalidTriggerActionError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
 
     @responses.activate
     def test_discord_no_integration(self):
         channel_id = "channel-id"
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            with pytest.raises(InvalidTriggerActionError):
-                update_alert_rule_trigger_action(
-                    self.action,
-                    type,
-                    target_type,
-                    target_identifier=channel_id,
-                    integration_id=None,
-                )
+        with pytest.raises(InvalidTriggerActionError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=None,
+            )
 
     @responses.activate
     @mock.patch("sentry.integrations.discord.utils.channel.validate_channel_id")
@@ -1963,15 +1958,14 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            with pytest.raises(ChannelLookupTimeoutError):
-                update_alert_rule_trigger_action(
-                    self.action,
-                    type,
-                    target_type,
-                    target_identifier=channel_id,
-                    integration_id=integration.id,
-                )
+        with pytest.raises(ChannelLookupTimeoutError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
 
     @responses.activate
     def test_discord_channel_not_in_guild(self):
@@ -2004,15 +1998,14 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            with pytest.raises(InvalidTriggerActionError):
-                update_alert_rule_trigger_action(
-                    self.action,
-                    type,
-                    target_type,
-                    target_identifier=channel_id,
-                    integration_id=integration.id,
-                )
+        with pytest.raises(InvalidTriggerActionError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
 
     @responses.activate
     def test_discord_unsupported_type(self):
@@ -2045,15 +2038,14 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            with pytest.raises(InvalidTriggerActionError):
-                update_alert_rule_trigger_action(
-                    self.action,
-                    type,
-                    target_type,
-                    target_identifier=channel_id,
-                    integration_id=integration.id,
-                )
+        with pytest.raises(InvalidTriggerActionError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
 
 
 class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):

@@ -30,6 +30,7 @@ class OrderedTask(Enum):
     VALIDATING_POLL = 7
     VALIDATING_COMPLETE = 8
     IMPORTING = 9
+    COMPLETED = 10
 
 
 # The file type for a relocation export tarball of any kind.
@@ -179,16 +180,15 @@ IMPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "import"
       - "$scope"
       - "/in/$tarfile"
-      - "--findings-file"
-      - "/findings/import-$jsonfile"
       - "--decrypt-with-gcp-kms"
       - "/in/kms-config.json"
+      - "--findings-file"
+      - "/findings/import-$jsonfile"
       $args
     timeout: 30s
     """
 )
 
-# TODO(getsentry/team-ospo#203): Encrypt outgoing as well.
 EXPORT_VALIDATION_STEP_TEMPLATE = Template(
     """
   - name: "gcr.io/cloud-builders/docker"
@@ -208,7 +208,9 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "web"
       - "export"
       - "$scope"
-      - "/out/$jsonfile"
+      - "/out/$tarfile"
+      - "--encrypt-with-gcp-kms"
+      - "/in/kms-config.json"
       - "--findings-file"
       - "/findings/export-$jsonfile"
       $args
@@ -216,7 +218,21 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
     """
 )
 
-# TODO(getsentry/team-ospo#203): Encrypt right side as well.
+COPY_OUT_DIR_TEMPLATE = Template(
+    """
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: copy-out-dir
+    waitFor:
+      $wait_for
+    args:
+      - 'cp'
+      - '-r'
+      - '/workspace/out'
+      - '$bucket_root/relocations/runs/$uuid/out'
+    timeout: 30s
+    """
+)
+
 COMPARE_VALIDATION_STEP_TEMPLATE = Template(
     """
   - name: "gcr.io/cloud-builders/docker"
@@ -234,13 +250,16 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
       - "-v"
       - "/workspace/findings:/findings"
       - "web"
+      - "backup"
       - "compare"
       - "/in/$tarfile"
-      - "/out/$jsonfile"
-      - "--findings-file"
-      - "/findings/compare-$jsonfile"
+      - "/out/$tarfile"
       - "--decrypt-left-with-gcp-kms"
       - "/in/kms-config.json"
+      - "--decrypt-right-with-gcp-kms"
+      - "/in/kms-config.json"
+      - "--findings-file"
+      - "/findings/compare-$jsonfile"
       $args
     timeout: 30s
     """
@@ -347,10 +366,10 @@ def retry_task_or_fail_relocation(
         # `FAILURE`.
         if attempts_left == 0:
             fail_relocation(relocation, task, reason)
-            return
+        else:
+            logger_data["reason"] = reason
+            logger.info("Task retried", extra=logger_data)
 
-        logger_data["reason"] = reason
-        logger.info("Task retried", extra=logger_data)
         raise e
     else:
         logger.info("Task finished", extra=logger_data)
@@ -461,6 +480,11 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             wait_for=["export-colliding-users"],
             kind=RelocationFile.Kind.RAW_USER_DATA,
             args=filter_org_slugs_args,
+        ),
+        COPY_OUT_DIR_TEMPLATE.substitute(
+            bucket_root=bucket_root,
+            uuid=relocation.uuid,
+            wait_for=["export-raw-relocation-data"],
         ),
         create_cloudbuild_validation_step(
             id="compare-baseline-config",

@@ -13,7 +13,6 @@ import AlertsContainer from 'sentry/views/alerts';
 import IncidentsList from 'sentry/views/alerts/list/incidents';
 
 describe('IncidentsList', () => {
-  let projectMock: jest.Mock;
   const projects1 = ['a', 'b', 'c'];
   const projects2 = ['c', 'd'];
 
@@ -74,10 +73,6 @@ describe('IncidentsList', () => {
       TestStubs.Project({slug: 'd'}),
     ];
 
-    projectMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: projects,
-    });
     act(() => ProjectsStore.loadInitialData(projects));
   });
 
@@ -94,15 +89,6 @@ describe('IncidentsList', () => {
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByText('First incident')).toBeInTheDocument();
     expect(within(items[1]).getByText('Second incident')).toBeInTheDocument();
-
-    expect(projectMock).toHaveBeenCalledTimes(1);
-
-    expect(projectMock).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({query: 'slug:a slug:b slug:c'}),
-      })
-    );
 
     const projectBadges = screen.getAllByTestId('badge-display-name');
     expect(within(projectBadges[0]).getByText('a')).toBeInTheDocument();

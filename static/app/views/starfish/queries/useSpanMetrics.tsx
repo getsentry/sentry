@@ -14,6 +14,7 @@ const {SPAN_GROUP} = SpanMetricsField;
 
 export type SpanSummaryQueryFilters = {
   release?: string;
+  'resource.render_blocking_status'?: 'blocking' | 'non-blocking' | '!blocking' | '';
   'transaction.method'?: string;
   transactionName?: string;
 };

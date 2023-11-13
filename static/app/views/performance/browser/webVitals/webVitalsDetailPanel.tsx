@@ -191,7 +191,6 @@ export function WebVitalsDetailPanel({
                 webVital,
               },
             }}
-            onClick={onClose}
           >
             {row.transaction}
           </Link>
@@ -201,10 +200,12 @@ export function WebVitalsDetailPanel({
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  const webVitalScore = projectScore[`${webVital}Score`];
+
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
-        {webVital && (
+        {webVital && webVitalScore !== null && (
           <WebVitalDescription
             value={
               webVital !== 'cls'
@@ -219,7 +220,7 @@ export function WebVitalsDetailPanel({
                   )
             }
             webVital={webVital}
-            score={projectScore[`${webVital}Score`]}
+            score={webVitalScore}
           />
         )}
         <ChartContainer>

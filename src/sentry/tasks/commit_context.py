@@ -213,7 +213,7 @@ def process_commit_context(
             if munged:
                 frames = munged[1]
 
-            in_app_frames = [f for f in frames if f.get("in_app", False)][::-1]
+            in_app_frames = [f for f in frames if f and f.get("in_app", False)][::-1]
             # First frame in the stacktrace that is "in_app"
             frame = next(iter(in_app_frames), None)
 
@@ -258,6 +258,7 @@ def process_commit_context(
                 return
 
             if features.has("organizations:suspect-commits-all-frames", project.organization):
+                metrics.incr("tasks.process_commit_context_all_frames.start")
                 blame = None
                 installation = None
                 try:
@@ -270,10 +271,10 @@ def process_commit_context(
                     )
                 except ApiError:
                     logger.info(
-                        "process_commit_context.retry",
+                        "process_commit_context_all_frames.retry",
                         extra={**basic_logging_details, "retry_count": self.request.retries},
                     )
-                    metrics.incr("tasks.process_commit_context.retry")
+                    metrics.incr("tasks.process_commit_context_all_frames.retry")
                     self.retry()
 
                 if not blame or not installation:
