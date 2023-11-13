@@ -29,6 +29,9 @@ import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/invi
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
   allowedRoles: OrgRole[];
+  // the API response returns {integration: "github", users: []}
+  // but we only ever return Github missing members at the moment
+  // so we can simplify the props and state to only store the users (missingMembers)
   missingMembers: MissingMember[];
   organization: Organization;
 }

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -74,27 +74,28 @@ export function InviteBanner({
     });
   }, [allowedRoles, missingMembers, organization, onModalClose]);
 
+  const fetchMissingMembers = useCallback(async () => {
+    try {
+      const data = await api.requestPromise(
+        `/organizations/${organization.slug}/missing-members/`,
+        {
+          method: 'GET',
+        }
+      );
+      const githubMissingMembers = data?.filter(
+        integrationMissingMembers => integrationMissingMembers.integration === 'github'
+      )[0];
+      setMissingMembers(githubMissingMembers?.users);
+    } catch (err) {
+      if (err.status !== 403) {
+        addErrorMessage(t('Unable to fetching missing commit authors'));
+      }
+    }
+  }, [api, organization]);
+
   useEffect(() => {
     if (!isEligibleForBanner) {
       return;
-    }
-    async function fetchMissingMembers() {
-      try {
-        const data = await api.requestPromise(
-          `/organizations/${organization.slug}/missing-members/`,
-          {
-            method: 'GET',
-          }
-        );
-        const githubMissingMembers = data?.filter(
-          integrationMissingMembers => integrationMissingMembers.integration === 'github'
-        )[0];
-        setMissingMembers(githubMissingMembers?.users);
-      } catch (err) {
-        if (err.status !== 403) {
-          addErrorMessage(t('Unable to fetching missing commit authors'));
-        }
-      }
     }
     fetchMissingMembers();
     promptsCheck(api, {
@@ -103,7 +104,7 @@ export function InviteBanner({
     }).then(prompt => {
       setShowBanner(!promptIsDismissed(prompt));
     });
-  }, [api, organization, promptsFeature, isEligibleForBanner]);
+  }, [api, organization, promptsFeature, isEligibleForBanner, fetchMissingMembers]);
 
   useEffect(() => {
     const {inviteMissingMembers} = qs.parse(location.search);
@@ -162,49 +163,6 @@ export function InviteBanner({
     setSendingInvite(false);
   };
 
-  const cards = missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).map(member => {
-    const username = member.externalId.split(':').pop();
-    return (
-      <MemberCard
-        key={member.externalId}
-        data-test-id={`member-card-${member.externalId}`}
-      >
-        <MemberCardContent>
-          <MemberCardContentRow>
-            <IconGithub size="sm" />
-            {/* TODO(cathy): create mapping from integration to lambda external link function */}
-            <StyledExternalLink href={`https://github.com/${username}`}>
-              @{username}
-            </StyledExternalLink>
-          </MemberCardContentRow>
-          <MemberCardContentRow>
-            <IconCommit size="xs" />
-            {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
-          </MemberCardContentRow>
-          <MemberEmail>{member.email}</MemberEmail>
-        </MemberCardContent>
-        <Button
-          size="sm"
-          onClick={() => handleSendInvite(member.email)}
-          data-test-id="invite-missing-member"
-          icon={<IconMail />}
-          analyticsEventName="Github Invite Banner: Invite"
-          analyticsEventKey="github_invite_banner.invite"
-        >
-          {t('Invite')}
-        </Button>
-      </MemberCard>
-    );
-  });
-
-  cards.push(
-    <SeeMoreCard
-      key="see-more"
-      missingMembers={missingMembers}
-      openInviteModal={openInviteModal}
-    />
-  );
-
   return (
     <StyledCard>
       <CardTitleContainer>
@@ -243,20 +201,65 @@ export function InviteBanner({
           />
         </ButtonBar>
       </CardTitleContainer>
-      <Carousel>{cards}</Carousel>
+      <Carousel>
+        <MemberCards
+          missingMembers={missingMembers}
+          handleSendInvite={handleSendInvite}
+          openInviteModal={openInviteModal}
+        />
+      </Carousel>
     </StyledCard>
   );
 }
 
 export default withOrganization(InviteBanner);
 
-type SeeMoreCardProps = {
+type MemberCardsProps = {
+  handleSendInvite: (email: string) => void;
   missingMembers: MissingMember[];
   openInviteModal: () => void;
 };
 
-function SeeMoreCard({missingMembers, openInviteModal}: SeeMoreCardProps) {
-  return (
+function MemberCards({
+  missingMembers,
+  handleSendInvite,
+  openInviteModal,
+}: MemberCardsProps) {
+  const cards = missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).map(member => {
+    const username = member.externalId.split(':').pop();
+    return (
+      <MemberCard
+        key={member.externalId}
+        data-test-id={`member-card-${member.externalId}`}
+      >
+        <MemberCardContent>
+          <MemberCardContentRow>
+            <IconGithub size="sm" />
+            {/* TODO(cathy): create mapping from integration to lambda external link function */}
+            <StyledExternalLink href={`https://github.com/${username}`}>
+              @{username}
+            </StyledExternalLink>
+          </MemberCardContentRow>
+          <MemberCardContentRow>
+            <IconCommit size="xs" />
+            {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
+          </MemberCardContentRow>
+          <MemberEmail>{member.email}</MemberEmail>
+        </MemberCardContent>
+        <Button
+          size="sm"
+          onClick={() => handleSendInvite(member.email)}
+          data-test-id="invite-missing-member"
+          icon={<IconMail />}
+          analyticsEventName="Github Invite Banner: Invite"
+          analyticsEventKey="github_invite_banner.invite"
+        >
+          {t('Invite')}
+        </Button>
+      </MemberCard>
+    );
+  });
+  cards.push(
     <MemberCard data-test-id="see-more-card">
       <MemberCardContent>
         <MemberCardContentRow>
@@ -283,6 +286,8 @@ function SeeMoreCard({missingMembers, openInviteModal}: SeeMoreCardProps) {
       </Button>
     </MemberCard>
   );
+
+  return <Fragment>{cards}</Fragment>;
 }
 
 const StyledCard = styled(Card)`
