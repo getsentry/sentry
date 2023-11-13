@@ -901,7 +901,16 @@ class MetricsDatasetConfig(DatasetConfig):
         if value == "unknown_error":
             value = "unknown"
 
-        return Condition(self.builder.resolve_column("transaction.status"), Op(operator), value)
+        lhs = self.builder.resolve_column("transaction.status")
+
+        if search_filter.value.is_wildcard():
+            return Condition(
+                Function("match", [lhs, f"(?i){value}"]),
+                Op(operator),
+                1,
+            )
+
+        return Condition(lhs, Op(operator), value)
 
     # Query Functions
     def _resolve_count_if(
