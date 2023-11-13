@@ -14,6 +14,7 @@ interface UseProfileEventsStatsOptions<F> {
   referrer: string;
   yAxes: readonly F[];
   datetime?: PageFilters['datetime'];
+  enabled?: boolean;
   interval?: string;
   query?: string;
 }
@@ -25,6 +26,7 @@ export function useProfileEventsStats<F extends string>({
   query,
   referrer,
   yAxes,
+  enabled = true,
 }: UseProfileEventsStatsOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -57,6 +59,7 @@ export function useProfileEventsStats<F extends string>({
   };
 
   const {data, ...rest} = useApiQuery<any>([path, endpointOptions], {
+    enabled,
     staleTime: Infinity,
   });
 

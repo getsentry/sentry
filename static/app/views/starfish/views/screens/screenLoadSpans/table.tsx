@@ -25,12 +25,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
@@ -49,12 +49,20 @@ export function ScreenLoadSpansTable({
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  const routingContext = useRoutingContext();
+
+  const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
+  const truncatedPrimary = centerTruncate(primaryRelease ?? '', 15);
+  const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 15);
 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
     `transaction:${transaction}`,
-    'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
+    'has:span.description',
+    ...(spanOp
+      ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
+      : [
+          'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
+        ]),
   ]);
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
@@ -102,10 +110,16 @@ export function ScreenLoadSpansTable({
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    'count()': DataTitles.count,
-    'time_spent_percentage()': DataTitles.timeSpent,
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t('Duration (Release 1)'),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t('Duration  (Release 2)'),
+    'count()': t('Total Count'),
+    'time_spent_percentage()': t('Total Time Spent'),
+    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
+      'Duration (%s)',
+      truncatedPrimary
+    ),
+    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
+      'Duration (%s)',
+      truncatedSecondary
+    ),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -116,7 +130,7 @@ export function ScreenLoadSpansTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = `${routingContext.baseURL}/pageload/spans/`;
+      const pathname = `/organizations/${organization.slug}/performance/mobile/screens/spans/`;
       const query = {
         ...location.query,
         transaction,
@@ -189,6 +203,11 @@ export function ScreenLoadSpansTable({
 
   return (
     <Fragment>
+      <SpanOpSelector
+        primaryRelease={primaryRelease}
+        transaction={transaction}
+        secondaryRelease={secondaryRelease}
+      />
       <GridEditable
         isLoading={isLoading}
         data={data?.data as TableDataRow[]}

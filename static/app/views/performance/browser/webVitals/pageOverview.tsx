@@ -7,18 +7,17 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Tag} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -34,7 +33,7 @@ import {
   PageSamplePerformanceTable,
   TransactionSampleRowWithScoreAndExtra,
 } from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
@@ -60,14 +59,16 @@ const LANDING_DISPLAYS = [
 const SAMPLES_COLUMN_ORDER: GridColumnOrder<
   keyof TransactionSampleRowWithScoreAndExtra
 >[] = [
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
   {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
   {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
   {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
   {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
+  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
-  {key: 'view', width: COL_WIDTH_UNDEFINED, name: 'View'},
 ];
 
 function getCurrentTabSelection(selectedTab) {
@@ -98,10 +99,11 @@ export default function PageOverview() {
   // TODO: When visiting page overview from a specific webvital detail panel in the landing page,
   // we should automatically default this webvital state to the respective webvital so the detail
   // panel in this page opens automatically.
-  const [state, setState] = useState<{webVital: WebVitals | null; tag?: Tag}>({
+  const [state, setState] = useState<{webVital: WebVitals | null}>({
     webVital: (location.query.webVital as WebVitals) ?? null,
-    tag: undefined,
   });
+
+  const query = decodeScalar(location.query.query);
 
   const {data: pageData, isLoading} = useProjectWebVitalsQuery({transaction});
 
@@ -126,13 +128,7 @@ export default function PageOverview() {
 
   const projectScore = isLoading
     ? undefined
-    : calculatePerformanceScore({
-        lcp: pageData?.data[0]['p75(measurements.lcp)'] as number,
-        fcp: pageData?.data[0]['p75(measurements.fcp)'] as number,
-        cls: pageData?.data[0]['p75(measurements.cls)'] as number,
-        ttfb: pageData?.data[0]['p75(measurements.ttfb)'] as number,
-        fid: pageData?.data[0]['p75(measurements.fid)'] as number,
-      });
+    : calculatePerformanceScoreFromTableDataRow(pageData?.data[0]);
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
@@ -170,7 +166,6 @@ export default function PageOverview() {
             <Layout.Title>
               {transaction && project && <ProjectAvatar project={project} size={24} />}
               {transaction ?? t('Page Loads')}
-              <FeatureBadge type="alpha" />
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
@@ -210,6 +205,7 @@ export default function PageOverview() {
                 )}
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
               </TopMenuContainer>
@@ -234,7 +230,8 @@ export default function PageOverview() {
                 <PageSamplePerformanceTable
                   transaction={transaction}
                   columnOrder={SAMPLES_COLUMN_ORDER}
-                  limit={9}
+                  limit={15}
+                  search={query}
                 />
               </PageSamplePerformanceTableContainer>
             </Layout.Main>
@@ -242,6 +239,7 @@ export default function PageOverview() {
               <PageOverviewSidebar
                 projectScore={projectScore}
                 transaction={transaction}
+                projectScoreIsLoading={isLoading}
               />
             </Layout.Side>
           </Layout.Body>
@@ -283,5 +281,5 @@ const PageSamplePerformanceTableContainer = styled('div')`
 `;
 
 const WebVitalMetersContainer = styled('div')`
-  margin: ${space(1)} 0 ${space(1)} 0;
+  margin: ${space(2)} 0 ${space(1)} 0;
 `;

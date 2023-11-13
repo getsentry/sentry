@@ -17,11 +17,10 @@ import {
   AssigneeTargetType,
   IssueAlertActionType,
   IssueAlertConditionType,
+  IssueAlertConfiguration,
   IssueAlertFilterType,
   IssueAlertRuleAction,
-  IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
-  IssueAlertRuleConditionTemplate,
   MailActionTargetType,
 } from 'sentry/types/alerts';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
@@ -236,7 +235,7 @@ interface Props {
   project: Project;
   incompatibleBanner?: boolean;
   incompatibleRule?: boolean;
-  node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
+  node?: IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null;
   ownership?: null | IssueOwnership;
 }
 

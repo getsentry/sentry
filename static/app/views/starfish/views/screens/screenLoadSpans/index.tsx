@@ -19,14 +19,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
-import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   ScreenCharts,
   YAxis,
 } from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
+import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
-import {ScreenLoadSpansSidebar} from 'sentry/views/starfish/views/screens/screenLoadSpans/sidebar';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
 
 type Query = {
@@ -42,13 +42,16 @@ type Query = {
 function ScreenLoadSpans() {
   const location = useLocation<Query>();
   const organization = useOrganization();
-  const routingContext = useRoutingContext();
   const router = useRouter();
 
   const screenLoadModule: LocationDescriptor = {
-    pathname: `${routingContext.baseURL}/pageload/`,
+    pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
     query: {
-      ...omit(location.query, [QueryParameterNames.SPANS_SORT, 'transaction']),
+      ...omit(location.query, [
+        QueryParameterNames.SPANS_SORT,
+        'transaction',
+        SpanMetricsField.SPAN_OP,
+      ]),
     },
   };
 
@@ -83,14 +86,17 @@ function ScreenLoadSpans() {
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
-            <Layout.Main>
+            <Layout.Main fullWidth>
               <PageErrorAlert />
               <StarfishPageFiltersContainer>
                 <Container>
-                  <PageFilterBar condensed>
-                    <DatePageFilter />
-                  </PageFilterBar>
-                  <ReleaseComparisonSelector />
+                  <FilterContainer>
+                    <PageFilterBar condensed>
+                      <DatePageFilter />
+                    </PageFilterBar>
+                    <ReleaseComparisonSelector />
+                  </FilterContainer>
+                  <ScreenMetricsRibbon />
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreenCharts
@@ -121,9 +127,6 @@ function ScreenLoadSpans() {
                 />
               )}
             </Layout.Main>
-            <Layout.Side>
-              <ScreenLoadSpansSidebar transaction={transactionName} />
-            </Layout.Side>
           </Layout.Body>
         </PageErrorProvider>
       </Layout.Page>
@@ -135,12 +138,19 @@ export default ScreenLoadSpans;
 
 const Container = styled('div')`
   display: grid;
-  grid-template-rows: auto auto auto;
-  gap: ${space(2)};
-  padding-bottom: ${space(2)};
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr;
+  column-gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(100px, max-content);
   }
+`;
+
+const FilterContainer = styled('div')`
+  display: grid;
+  column-gap: ${space(1)};
+  grid-template-rows: auto;
+  grid-template-columns: auto 1fr;
 `;

@@ -74,7 +74,7 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         )
         run_metrics_query.assert_called_once()
 
-    def test_query_with_transactions_metric(self):
+    def test_compare_query_with_transactions_metric(self):
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             tags={"transaction": "/hello", "platform": "ios"},
@@ -83,16 +83,15 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
 
         responses = []
         for flag_value in False, True:
-            with self.feature({"organizations:metrics-api-new-metrics-layer": flag_value}):
-                response = self.get_response(
-                    self.project.organization.slug,
-                    field=f"sum({TransactionMRI.DURATION.value})",
-                    useCase="transactions",
-                    useNewMetricsLayer="true" if flag_value else "false",
-                    statsPeriod="1h",
-                    interval="1h",
-                )
-                responses.append(response)
+            response = self.get_response(
+                self.project.organization.slug,
+                field=f"sum({TransactionMRI.DURATION.value})",
+                useCase="transactions",
+                useNewMetricsLayer="true" if flag_value else "false",
+                statsPeriod="1h",
+                interval="1h",
+            )
+            responses.append(response)
 
         response_old = responses[0].data
         response_new = responses[1].data
@@ -1536,7 +1535,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            f"Requested interval of timedelta of {timedelta(minutes=5)} with statsPeriod "
+            f"Requested intervals (288) of timedelta of {timedelta(minutes=5)} with statsPeriod "
             f"timedelta of {timedelta(hours=24)} is too granular "
             f"for a per_page of 51 elements. Increase your interval, decrease your statsPeriod, "
             f"or decrease your per_page parameter."
@@ -1567,6 +1566,31 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             includeTotals="0",
         )
         assert response.status_code == 400
+
+    def test_transaction_status_unknown_error(self):
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction.status": "unknown"},
+            value=10.0,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=f"sum({TransactionMetricKey.DURATION.value})",
+            query="transaction.status:unknown_error",
+            statsPeriod="1h",
+            interval="1h",
+            per_page=1,
+            useCase="transactions",
+        )
+        groups = response.data["groups"]
+        assert groups == [
+            {
+                "by": {},
+                "series": {"sum(transaction.duration)": [10.0]},
+                "totals": {"sum(transaction.duration)": 10.0},
+            }
+        ]
 
     def test_gauges(self):
         mri = "g:custom/page_load@millisecond"
