@@ -30,7 +30,6 @@ def record(
     usage_type: UsageUnit,
 ) -> None:
     global _accountant_backend
-
     if resource_id not in get("shared_resources_accounting_enabled"):
         return
 
