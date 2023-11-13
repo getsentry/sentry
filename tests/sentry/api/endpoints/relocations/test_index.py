@@ -6,7 +6,8 @@ from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.backup.helpers import create_encrypted_export_tarball
+from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
+from sentry.backup.helpers import LocalFileEncryptor, create_encrypted_export_tarball
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
@@ -19,7 +20,7 @@ FRESH_INSTALL_PATH = get_fixture_path("backup", "fresh-install.json")
 
 @region_silo_test
 class RelocationCreateTest(APITestCase):
-    endpoint = "sentry-api-0-relocation"
+    endpoint = "sentry-api-0-relocations-index"
 
     def setUp(self):
         super().setUp()
@@ -53,14 +54,15 @@ class RelocationCreateTest(APITestCase):
             with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    url = reverse("sentry-api-0-relocation")
                     response = self.client.post(
-                        url,
+                        reverse(self.endpoint),
                         {
                             "owner": self.owner.username,
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                             "orgs": ["testing", "foo"],
@@ -71,7 +73,7 @@ class RelocationCreateTest(APITestCase):
         assert response.status_code == 201
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
-        assert uploading_complete_mock.called == 1
+        assert uploading_complete_mock.call_count == 1
 
     def test_success_relocation_for_same_owner_already_completed(self):
         Relocation.objects.create(
@@ -96,14 +98,15 @@ class RelocationCreateTest(APITestCase):
             with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    url = reverse("sentry-api-0-relocation")
                     response = self.client.post(
-                        url,
+                        reverse(self.endpoint),
                         {
                             "owner": self.owner.username,
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                             "orgs": ["testing", "foo"],
@@ -121,14 +124,15 @@ class RelocationCreateTest(APITestCase):
             with open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    url = reverse("sentry-api-0-relocation")
                     response = self.client.post(
-                        url,
+                        reverse(self.endpoint),
                         {
                             "owner": self.owner.username,
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                             "orgs": ["testing", "foo"],
@@ -137,14 +141,15 @@ class RelocationCreateTest(APITestCase):
                     )
 
         assert response.status_code == 400
+        assert response.data.get("detail") is not None
+        assert response.data.get("detail") == ERR_FEATURE_DISABLED
 
     def test_fail_missing_file(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
             with self.feature("relocation:enabled"):
-                url = reverse("sentry-api-0-relocation")
                 response = self.client.post(
-                    url,
+                    reverse(self.endpoint),
                     {
                         "owner": self.owner.username,
                         "orgs": ["testing", "foo"],
@@ -162,14 +167,15 @@ class RelocationCreateTest(APITestCase):
             with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    url = reverse("sentry-api-0-relocation")
                     response = self.client.post(
-                        url,
+                        reverse(self.endpoint),
                         {
                             "owner": self.owner.username,
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                         },
@@ -186,13 +192,14 @@ class RelocationCreateTest(APITestCase):
             with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    url = reverse("sentry-api-0-relocation")
                     response = self.client.post(
-                        url,
+                        reverse(self.endpoint),
                         {
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                             "orgs": ["testing", "foo"],
@@ -210,14 +217,15 @@ class RelocationCreateTest(APITestCase):
             with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    url = reverse("sentry-api-0-relocation")
                     response = self.client.post(
-                        url,
+                        reverse(self.endpoint),
                         {
                             "owner": "doesnotexist",
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                             "orgs": ["testing", "foo"],
@@ -242,15 +250,14 @@ class RelocationCreateTest(APITestCase):
             with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
-                    url = reverse("sentry-api-0-relocation")
                     simple_file = SimpleUploadedFile(
                         "export.tar",
-                        create_encrypted_export_tarball(data, p).getvalue(),
+                        create_encrypted_export_tarball(data, LocalFileEncryptor(p)).getvalue(),
                         content_type="application/tar",
                     )
                     simple_file.name = None
                     response = self.client.post(
-                        url,
+                        reverse(self.endpoint),
                         {
                             "owner": self.owner.username,
                             "file": simple_file,

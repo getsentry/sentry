@@ -8,6 +8,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {formatMetricsUsingUnitAndOp, parseMRI} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,7 +36,7 @@ export function SummaryTable({
   sort?: SortState;
 }) {
   const {selection} = usePageFilters();
-  const {slug} = useOrganization();
+  const organization = useOrganization();
 
   const hasActions = series.some(s => s.release || s.transaction);
 
@@ -46,6 +47,11 @@ export function SummaryTable({
 
   const changeSort = useCallback(
     (name: SortState['name']) => {
+      trackAnalytics('ddm.widget.sort', {
+        organization,
+        by: name,
+        order: sort.order,
+      });
       if (sort.name === name) {
         if (sort.order === 'desc') {
           onSortChange(DEFAULT_SORT_STATE as SortState);
@@ -67,12 +73,14 @@ export function SummaryTable({
         });
       }
     },
-    [sort, onSortChange]
+    [sort, onSortChange, organization]
   );
 
   const releaseTo = (release: string) => {
     return {
-      pathname: `/organizations/${slug}/releases/${encodeURIComponent(release)}/`,
+      pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+        release
+      )}/`,
       query: {
         pageStart: start,
         pageEnd: end,
@@ -85,7 +93,7 @@ export function SummaryTable({
 
   const transactionTo = (transaction: string) =>
     transactionSummaryRouteWithQuery({
-      orgSlug: slug,
+      orgSlug: organization.slug,
       transaction,
       projectID: selection.projects.map(p => String(p)),
       query: {

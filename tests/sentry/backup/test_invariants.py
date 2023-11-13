@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from django.db.models.fields.related import ManyToManyField
 
-from sentry.backup.dependencies import ModelRelations, dependencies, get_model_name
+from sentry.backup.dependencies import (
+    ModelRelations,
+    NormalizedModelName,
+    dependencies,
+    get_model,
+    get_model_name,
+)
 from sentry.backup.helpers import get_exportable_sentry_models, get_final_derivations_of
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BaseModel
@@ -99,3 +105,20 @@ def test_all_exported_model_slug_fields_are_unique():
                 raise AssertionError(
                     f"The model {model_name} has a `slug` field, but this field is neither marked `unique=True` nor included in a `Meta.unique_together` declaration."
                 )
+
+
+def test_merging_models_only_fk_into_user():
+    # We have a mode that allows `User`s to be merged. We assume that related `User*` models
+    # `UserIP`, `UserEmail`, and `UserPermission` only reference `User` as a dependency when we do
+    # this merging.
+    useremail = dependencies()[NormalizedModelName("sentry.useremail")]
+    assert len(useremail.foreign_keys) == 1
+    assert useremail.foreign_keys["user"].model == get_model(NormalizedModelName("sentry.user"))
+
+    userip = dependencies()[NormalizedModelName("sentry.userip")]
+    assert len(userip.foreign_keys) == 1
+    assert userip.foreign_keys["user"].model == get_model(NormalizedModelName("sentry.user"))
+
+    userperm = dependencies()[NormalizedModelName("sentry.userpermission")]
+    assert len(userperm.foreign_keys) == 1
+    assert userperm.foreign_keys["user"].model == get_model(NormalizedModelName("sentry.user"))
