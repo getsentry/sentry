@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -39,6 +40,10 @@ function DDM() {
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
                 <FeatureFeedback featureName="DDM" buttonProps={{size: 'sm'}} />
+                <GithubFeedbackButton
+                  href="https://github.com/getsentry/sentry/discussions/58584"
+                  label={t('Discussion')}
+                />
               </ButtonBar>
             </Layout.HeaderActions>
           </Layout.Header>
