@@ -7,6 +7,7 @@ import {
   ProfilingBreadcrumbs,
   ProfilingBreadcrumbsProps,
 } from 'sentry/components/profiling/profilingBreadcrumbs';
+import ProfilingFeedbackButton from 'sentry/components/profiling/profilingFeedbackButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
@@ -85,16 +86,23 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
           <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
         </SmallerProfilingBreadcrumbsWrapper>
       </SmallerHeaderContent>
-      <Layout.HeaderActions>
+      <StyledHeaderActions>
+        <ProfilingFeedbackButton />
         {transactionTarget && (
           <Button size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
             {t('Go to Transaction')}
           </Button>
         )}
-      </Layout.HeaderActions>
+      </StyledHeaderActions>
     </SmallerLayoutHeader>
   );
 }
+
+const StyledHeaderActions = styled(Layout.HeaderActions)`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+`;
 
 const SmallerHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: ${space(1.5)};
