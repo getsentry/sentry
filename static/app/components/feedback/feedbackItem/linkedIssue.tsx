@@ -18,15 +18,13 @@ interface Props {
 
 export default function LinkedIssue({groupID, organization}: Props) {
   const issueEndpoint = `/organizations/${organization.slug}/issues/${groupID}/`;
-  const {
-    data: groupData,
-    isLoading,
-    isFetching,
-  } = useApiQuery<Group>([issueEndpoint], {staleTime: 0});
+  const {data: groupData, isLoading} = useApiQuery<Group>([issueEndpoint], {
+    staleTime: 0,
+  });
 
   return (
     <Section icon={<IconIssues size="xs" />} title={t('Linked Issue')}>
-      {isFetching || isLoading ? (
+      {isLoading ? (
         <Placeholder height="92px" />
       ) : groupData ? (
         <ErrorBoundary mini>
