@@ -1,11 +1,5 @@
-{% extends "sentry/bases/modal.html" %}
-
-{% load crispy_forms_tags %}
-{% load i18n %}
-
-{% block wrapperclass %}narrow auth org-login{% endblock %}
-
-{% block content %}
+{% extends "sentry/bases/modal.html" %} {% load crispy_forms_tags %} {% load i18n %} {%
+block wrapperclass %}narrow auth org-login{% endblock %} {% block content %}
 <div class="pattern-bg"></div>
 
 <div class="box">
@@ -16,14 +10,9 @@
   </div>
   <section class="org-login">
     {% block auth_container %}
-      <div class="auth-container p-y-2">
-        {% block auth_main %}{% endblock %}
-      </div>
+    <div class="auth-container p-y-2">{% block auth_main %}{% endblock %}</div>
     {% endblock %}
   </section>
 </div>
 
-{% endblock %}
-
-{% block footer %}
-{% endblock %}
+{% endblock %} {% block footer %} {% endblock %}

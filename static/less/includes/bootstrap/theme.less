@@ -25,7 +25,9 @@
 .btn-warning,
 .btn-danger {
   text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.2);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 1px rgba(0, 0, 0, 0.075);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 1px 1px rgba(0, 0, 0, 0.075);
 
   // Reset the shadow
   &:active,
@@ -147,7 +149,9 @@
   );
   background-repeat: repeat-x;
   border-radius: @navbar-border-radius;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 5px rgba(0, 0, 0, 0.075);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 1px 5px rgba(0, 0, 0, 0.075);
 
   .navbar-nav > .open > a,
   .navbar-nav > .active > a {
@@ -222,7 +226,9 @@
 // Common styles
 .alert {
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 // Mixin for generating new styles
@@ -347,5 +353,7 @@
   background-image: linear-gradient(to bottom, darken(@well-bg, 5%) 0%, @well-bg 100%);
   background-repeat: repeat-x;
   border-color: darken(@well-bg, 10%);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.1);
 }

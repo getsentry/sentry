@@ -1,10 +1,19 @@
 {% load sentry_assets %}
 
-<div style="padding: 20px; border-bottom: 1px solid #ddd; background: #fff; margin-bottom: 20px;">
-  <div style="width: 600; margin: 0 auto; display: flex;">
-    {% if preview.subject %}<h1>{{ preview.subject }}</h1>{% endif %}
+<div
+  style="
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+    background: #fff;
+    margin-bottom: 20px;
+  "
+>
+  <div style="width: 600; margin: 0 auto; display: flex">
+    {% if preview.subject %}
+    <h1>{{ preview.subject }}</h1>
+    {% endif %}
     <label for="event" style="margin-right: 10px">Selection:</label>
-    <select id="event" style="width: 200px; margin-right: 20px;">
+    <select id="event" style="width: 200px; margin-right: 20px">
       <option></option>
       <optgroup label="Activity">
         <option value="mail/assigned/">Assigned</option>
@@ -16,17 +25,27 @@
         <option value="mail/regression/release/">Regression (w/ Release)</option>
         <option value="mail/resolved/">Resolved</option>
         <option value="mail/resolved-in-release/">Resolved In Release</option>
-        <option value="mail/resolved-in-release/upcoming/">Resolved In Release (Upcoming)</option>
+        <option value="mail/resolved-in-release/upcoming/">
+          Resolved In Release (Upcoming)
+        </option>
         <option value="mail/unassigned/">Unassigned</option>
         <option value="mail/new-user-feedback/">New User Feedback</option>
         <option value="mail/new-processing-issues/">New Processing Issues</option>
-        <option value="mail/new-processing-issues-no-reprocessing/">New Processing Issues (No Reprocessing)</option>
+        <option value="mail/new-processing-issues-no-reprocessing/">
+          New Processing Issues (No Reprocessing)
+        </option>
       </optgroup>
       <optgroup label="Alerts">
         <option value="mail/error-alert/">Error Alert</option>
-        <option value="mail/performance-alert/transaction-n-plus-one">N+1 Database Query Alert</option>
-        <option value="mail/performance-alert/transaction-n-plus-one-api-call">N+1 API Call Alert</option>
-        <option value="mail/performance-alert/transaction-render-blocking-asset">Render Blocking Asset Alert</option>
+        <option value="mail/performance-alert/transaction-n-plus-one">
+          N+1 Database Query Alert
+        </option>
+        <option value="mail/performance-alert/transaction-n-plus-one-api-call">
+          N+1 API Call Alert
+        </option>
+        <option value="mail/performance-alert/transaction-render-blocking-asset">
+          Render Blocking Asset Alert
+        </option>
         <option value="mail/generic-alert/">Generic Alert</option>
         <option value="mail/digest/">Digest</option>
         <option value="mail/incident-trigger">Metric Alert Trigger</option>
@@ -69,9 +88,11 @@
     <label for="format" style="margin-right: 10px">Format:</label>
     <select id="format" style="width: 100px">
       <option value="html">HTML</option>
-      <option value="txt" {% if format == 'txt' %} selected="selected"{% endif %}>Plaintext</option>
+      <option value="txt" {% if format="" ="txt" %} selected="selected" {% endif %}>
+        Plaintext
+      </option>
     </select>
-    <form action="" method="post" style="margin-left: auto; margin-block-end: 0;">
+    <form action="" method="post" style="margin-left: auto; margin-block-end: 0">
       <button type="submit">Send</button>
     </form>
   </div>
@@ -79,28 +100,26 @@
 
 {% script type="text/javascript" %}
 <script>
-function selectEmail(e) {
-  var value = e.target.value;
-  window.location.href = '/debug/' + value;
-}
+  function selectEmail(e) {
+    var value = e.target.value;
+    window.location.href = '/debug/' + value;
+  }
 
-function selectFormat(e) {
-  var value = e.target.value;
-  window.location.href = window.location.pathname + '?format=' + value;
-}
+  function selectFormat(e) {
+    var value = e.target.value;
+    window.location.href = window.location.pathname + '?format=' + value;
+  }
 
-var eventSelect = document.getElementById('event');
-eventSelect.addEventListener('change', selectEmail);
+  var eventSelect = document.getElementById('event');
+  eventSelect.addEventListener('change', selectEmail);
 
-var formatSelect = document.getElementById('format');
-formatSelect.addEventListener('change', selectFormat);
+  var formatSelect = document.getElementById('format');
+  formatSelect.addEventListener('change', selectFormat);
 </script>
 {% endscript %}
 
 <div id="preview">
   {% if format == 'txt' %}
-    <pre>{{ preview.text_body|safe }}</pre>
-  {% else %}
-    {{ preview.html_body|safe }}
-  {% endif %}
+  <pre>{{ preview.text_body|safe }}</pre>
+  {% else %} {{ preview.html_body|safe }} {% endif %}
 </div>

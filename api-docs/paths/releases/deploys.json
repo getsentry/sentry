@@ -108,7 +108,7 @@
                 "description": "The optional list of projects to deploy.",
                 "items": {
                   "type": "string"
-                },
+                }
               },
               "dateStarted": {
                 "type": "string",

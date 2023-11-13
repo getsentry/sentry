@@ -4,11 +4,7 @@
   "environment": "prod",
   "platform": "python",
   "logger": "",
-  "fingerprint": [
-    "celery",
-    "SoftTimeLimitExceeded",
-    "sentry.tasks.store.process_event"
-  ],
+  "fingerprint": ["celery", "SoftTimeLimitExceeded", "sentry.tasks.store.process_event"],
   "exception": {
     "values": [
       {
@@ -302,9 +298,7 @@
               ],
               "module": "concurrent.futures._base",
               "filename": "concurrent/futures/_base.py",
-              "post_context": [
-                "        return False"
-              ],
+              "post_context": ["        return False"],
               "in_app": false,
               "context_line": "        self.shutdown(wait=True)",
               "lineno": 666
@@ -321,9 +315,7 @@
               ],
               "module": "concurrent.futures.thread",
               "filename": "concurrent/futures/thread.py",
-              "post_context": [
-                "    shutdown.__doc__ = _base.Executor.shutdown.__doc__"
-              ],
+              "post_context": ["    shutdown.__doc__ = _base.Executor.shutdown.__doc__"],
               "in_app": false,
               "context_line": "                t.join(sys.maxint)",
               "lineno": 159
@@ -386,13 +378,7 @@
               ],
               "module": "billiard.pool",
               "filename": "billiard/pool.py",
-              "post_context": [
-                "",
-                "#",
-                "# Code run by worker processes",
-                "#",
-                ""
-              ],
+              "post_context": ["", "#", "# Code run by worker processes", "#", ""],
               "in_app": false,
               "context_line": "    raise SoftTimeLimitExceeded()",
               "lineno": 231

@@ -3,9 +3,7 @@
   "event_id": "1681423f1d224701a900633267818086",
   "platform": "javascript",
   "logger": "",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {

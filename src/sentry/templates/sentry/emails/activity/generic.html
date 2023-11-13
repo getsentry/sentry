@@ -1,41 +1,15 @@
-{% extends "sentry/emails/base.html" %}
+{% extends "sentry/emails/base.html" %} {% load sentry_helpers %} {% load sentry_assets %}
+{% block header %} {% block action %}
+<a href="{{ link }}" class="btn">View on Sentry</a>
+{% endblock %} {{ block.super }} {% endblock %} {% block preheader %} {% if group %} {%
+include "sentry/emails/_group.html" %} {% else %} {{ block.super }} {% endif %} {%
+endblock %} {% block main %} {% block activity %}
 
-{% load sentry_helpers %}
-{% load sentry_assets %}
+<h2>{{ title }}</h2>
 
-{% block header %}
-  {% block action %}
-    <a href="{{ link }}" class="btn">View on Sentry</a>
-  {% endblock %}
-  {{ block.super }}
-{% endblock %}
+<p>{{ html_description }}</p>
 
-{% block preheader %}
-  {% if group %}
-    {% include "sentry/emails/_group.html" %}
-  {% else %}
-    {{ block.super }}
-  {% endif %}
-{% endblock %}
-
-{% block main %}
-
-  {% block activity %}
-
-    <h2>{{ title }}</h2>
-
-    <p>{{ html_description }}</p>
-
-  {% endblock %}
-
-  {% if group and not enhanced_privacy %}
-    {% include "sentry/emails/group_header.html" %}
-  {% endif %}
-
-  {% if reason %}
-    <p class="via">
-      You are receiving this email because you {{ reason }}.
-    </p>
-  {% endif %}
-
-{% endblock %}
+{% endblock %} {% if group and not enhanced_privacy %} {% include
+"sentry/emails/group_header.html" %} {% endif %} {% if reason %}
+<p class="via">You are receiving this email because you {{ reason }}.</p>
+{% endif %} {% endblock %}

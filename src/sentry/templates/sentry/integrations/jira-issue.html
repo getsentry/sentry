@@ -1,13 +1,11 @@
-<!DOCTYPE html>
-{% load i18n %}
-{% load sentry_assets %}
+<!doctype html>
+{% load i18n %} {% load sentry_assets %}
 <html lang="en">
   <head>
-    {% script src=ac_js_src %}{% endscript %}
-    {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
-    {% script src=jquery_url %}{% endscript %}
-    {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %}
-    {% script src=aui_js_url %}{% endscript %}
+    {% script src=ac_js_src %}{% endscript %} {% asset_url 'sentry'
+    'vendor/jquery.2.2.4.min.js' as jquery_url %} {% script src=jquery_url %}{% endscript
+    %} {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %} {% script
+    src=aui_js_url %}{% endscript %}
     <link
       rel="stylesheet"
       href="{% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.css' %}"
@@ -43,9 +41,7 @@
         <h2>Issue not linked</h2>
         <p>{% trans "This Sentry issue is not linked to a Jira issue" %}</p>
       </div>
-      {% else %}
-
-      {% for group in groups %}
+      {% else %} {% for group in groups %}
       <div>
         <h2>{{ group.type }}</h2>
         <p><a href="{{ group.title_url }}" target="_blank">{{ group.title }}</a></p>
@@ -59,7 +55,7 @@
         </div>
 
         <div class="aui-group">
-          <div class="aui-item" >
+          <div class="aui-item">
             <span>{% trans "Last 24 hours:" %}</span>
             <aui-badge>{{ group.stats_24hr }}</aui-badge>
           </div>
@@ -80,7 +76,7 @@
       </div>
 
       <div class="aui-group">
-        <div class="aui-item" style="width:75px;">
+        <div class="aui-item" style="width: 75px">
           <span class="left-grid">{% trans "Date:" %}</span>
         </div>
         <div class="aui-item">
@@ -90,12 +86,14 @@
 
       {% if group.first_release %}
       <div class="aui-group">
-        <div class="aui-item" style="width:75px;">
+        <div class="aui-item" style="width: 75px">
           <span class="left-grid">{% trans "Release:" %}</span>
         </div>
         <div class="aui-item">
           <span class="right-grid">
-            <a href="{{ group.first_release_url }}" target="_blank">{{ group.first_release }}</a>
+            <a href="{{ group.first_release_url }}" target="_blank"
+              >{{ group.first_release }}</a
+            >
           </span>
         </div>
       </div>
@@ -109,7 +107,7 @@
       </div>
 
       <div class="aui-group">
-        <div class="aui-item" style="width:75px;">
+        <div class="aui-item" style="width: 75px">
           <span class="left-grid">{% trans "Date:" %}</span>
         </div>
         <div class="aui-item">
@@ -119,24 +117,23 @@
 
       {% if group.last_release %}
       <div class="aui-group">
-        <div class="aui-item" style="width:75px;">
+        <div class="aui-item" style="width: 75px">
           <span class="left-grid">{% trans "Release:" %}</span>
         </div>
         <div class="aui-item">
           <span class="right-grid">
-            <a href="{{ group.last_release_url }}" target="_blank">{{ group.last_release }}</a>
+            <a href="{{ group.last_release_url }}" target="_blank"
+              >{{ group.last_release }}</a
+            >
           </span>
         </div>
       </div>
       {% endif %}
 
-      <br/>
+      <br />
       {% if not forloop.last %}
-      <hr style="opacity:0.5;" />
-      {% endif %}
-
-      {% endfor %}
-      {% endif %}
+      <hr style="opacity: 0.5" />
+      {% endif %} {% endfor %} {% endif %}
     </div>
   </body>
 </html>
