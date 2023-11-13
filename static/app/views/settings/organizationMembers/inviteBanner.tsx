@@ -260,7 +260,7 @@ function MemberCards({
     );
   });
   cards.push(
-    <MemberCard data-test-id="see-more-card">
+    <MemberCard data-test-id="see-more-card" key="see-more">
       <MemberCardContent>
         <MemberCardContentRow>
           <SeeMore>
