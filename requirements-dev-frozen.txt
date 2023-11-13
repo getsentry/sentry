@@ -125,7 +125,7 @@ progressbar2==3.41.0
 proto-plus==1.22.2
 protobuf==4.21.6
 psutil==5.9.2
-psycopg2-binary==2.8.6
+psycopg2-binary==2.9.7
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pycodestyle==2.11.0
