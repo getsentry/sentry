@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -16,7 +17,7 @@ class OrganizationSentryFunctionBase(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.code = "exports.yourFunction = (req, res) => {\n\tlet message = req.query.message || req.body.message || 'Hello World!';\n\tconsole.log('Query: ' + req.query);\n\tconsole.log('Body: ' + req.body);\n\tres.status(200).send(message);\n};"
-        self.data = {
+        self.data: dict[str, Any] = {
             "name": "foo",
             "author": "bar",
             "code": self.code,
