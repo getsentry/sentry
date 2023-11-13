@@ -20,7 +20,7 @@ from typing import (
     Mapping,
     MutableSequence,
     Optional,
-    TypeVar,
+    Union,
     overload,
 )
 from urllib.parse import urlparse
