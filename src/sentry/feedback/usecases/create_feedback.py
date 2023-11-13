@@ -24,13 +24,13 @@ logger = logging.getLogger(__name__)
 
 class FeedbackCreationSource(Enum):
     NEW_FEEDBACK_ENVELOPE = "new_feedback_envelope"
-    NEW_FEEDBACK_DJANGO_ENDPOINT = "new_feedback_sentry_django_endpoint"
+    NEW_FEEDBACK_DJANGO_ENDPOINT = "new_feedback_sentry_django_endpoint"  # TODO: delete this once feedback_ingest API deprecated
     USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
     USER_REPORT_ENVELOPE = "user_report_envelope"
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
 
 
-def make_evidence(feedback):
+def make_evidence(feedback, source: FeedbackCreationSource):
     evidence_data = {}
     evidence_display = []
     if feedback.get("contact_email"):
@@ -46,6 +46,9 @@ def make_evidence(feedback):
     if feedback.get("name"):
         evidence_data["name"] = feedback["name"]
         evidence_display.append(IssueEvidence(name="name", value=feedback["name"], important=False))
+
+    evidence_data["source"] = source.value
+    evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
 
     return evidence_data, evidence_display
 
@@ -100,11 +103,11 @@ def fix_for_issue_platform(event_data):
 
 
 def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
-    metrics.incr("feedback.created", tags={"referrer": source.value})
+    metrics.incr("feedback.created", tags={"referrer": source.value}, sample_rate=1.0)
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
-    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"])
+    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
