@@ -177,20 +177,20 @@ OP_TO_SNUBA_FUNCTION = {
         "min_timestamp": "minIf",
         "max_timestamp": "maxIf",
     },
-    "metrics_gauges": {
-        "min": "minIf",
-        "max": "maxIf",
-        "sum": "sumIf",
-        "count": "countIf",
-        "last": "lastIf",
-        # TODO; avg will have to be supported as a derived operation.
-    },
 }
 GENERIC_OP_TO_SNUBA_FUNCTION = {
     "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
     "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
     "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
-    "generic_metrics_gauges": OP_TO_SNUBA_FUNCTION["metrics_gauges"],
+    # Gauges are not supported by non-generic metrics.
+    "generic_metrics_gauges": {
+        "min": "minIf",
+        "max": "maxIf",
+        "sum": "sumIf",
+        "count": "countIf",
+        "last": "lastIf",
+        "avg": "avg",
+    },
 }
 
 # This set contains all the operations that require the "rhs" condition to be resolved
