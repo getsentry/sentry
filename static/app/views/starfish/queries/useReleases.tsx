@@ -1,61 +1,76 @@
-import {Release} from 'sentry/types';
+import {NewQuery, Release} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 export function useReleases(searchTerm?: string) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {environments, projects} = selection;
 
-  const result = useApiQuery<Release[]>(
+  const releaseResults = useApiQuery<Release[]>(
     [
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
           project: projects,
-          per_page: 50,
+          per_page: 100,
           environment: environments,
           query: searchTerm,
-          health: 1,
-          sort: 'sessions',
-          flatten: 1,
+          sort: 'date',
         },
       },
     ],
     {staleTime: Infinity}
   );
 
+  const newQuery: NewQuery = {
+    name: '',
+    fields: ['release', 'count()'],
+    query: `transaction.op:ui.load ${searchTerm ? `release:*${searchTerm}*` : ''}`,
+    dataset: DiscoverDatasets.METRICS,
+    version: 2,
+    projects: selection.projects,
+  };
+  const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
+  const {data: metricsResult, isLoading: isMetricsStatsLoading} = useTableQuery({
+    eventView,
+    limit: 100,
+    staleTime: Infinity,
+  });
+
+  const metricsStats: {[version: string]: {count: number}} = {};
+  metricsResult?.data?.forEach(release => {
+    metricsStats[release.release] = {count: release['count()'] as number};
+  });
+
   const releaseStats: {
     dateCreated: string;
-    platform: string;
-    projectSlug: string;
-    'sum(session)': number | undefined;
     version: string;
+    count?: number;
   }[] =
-    result.data && result.data.length
-      ? result.data.map(release => {
+    releaseResults.data && releaseResults.data.length && !isMetricsStatsLoading
+      ? releaseResults.data.flatMap(release => {
           const releaseVersion = release.version;
-          const releaseProject = release.projects[0];
           const dateCreated = release.dateCreated;
-
-          const projectSlug = releaseProject.slug;
-          const platform = releaseProject.platform;
-          const sessionCount = releaseProject.healthData?.totalSessions;
-          return {
-            projectSlug,
-            'sum(session)': sessionCount,
-            platform,
-            dateCreated,
-            version: releaseVersion,
-          };
+          if (metricsStats[releaseVersion]?.count) {
+            return {
+              dateCreated,
+              version: releaseVersion,
+              count: metricsStats[releaseVersion]?.count,
+            };
+          }
+          return [];
         })
       : [];
 
   return {
-    ...result,
+    ...releaseResults,
     data: releaseStats,
   };
 }

@@ -32,7 +32,7 @@ export default function WebVitalRingMeters({onClick, projectScore}: Props) {
           <WebVitalScoreRing
             backgroundColor={ringBackgroundColors[0]}
             color={ringSegmentColors[0]}
-            score={projectScore.lcpScore}
+            score={projectScore.lcpScore ?? 0}
             webVital="lcp"
             onClick={() => onClick?.('lcp')}
             onHover={() => setHoveredVital('lcp')}
@@ -44,7 +44,7 @@ export default function WebVitalRingMeters({onClick, projectScore}: Props) {
           <WebVitalScoreRing
             backgroundColor={ringBackgroundColors[1]}
             color={ringSegmentColors[1]}
-            score={projectScore.fcpScore}
+            score={projectScore.fcpScore ?? 0}
             webVital="fcp"
             onClick={() => onClick?.('fcp')}
             onHover={() => setHoveredVital('fcp')}
@@ -56,7 +56,7 @@ export default function WebVitalRingMeters({onClick, projectScore}: Props) {
           <WebVitalScoreRing
             backgroundColor={ringBackgroundColors[2]}
             color={ringSegmentColors[2]}
-            score={projectScore.fidScore}
+            score={projectScore.fidScore ?? 0}
             webVital="fid"
             onClick={() => onClick?.('fid')}
             onHover={() => setHoveredVital('fid')}
@@ -68,7 +68,7 @@ export default function WebVitalRingMeters({onClick, projectScore}: Props) {
           <WebVitalScoreRing
             backgroundColor={ringBackgroundColors[3]}
             color={ringSegmentColors[3]}
-            score={projectScore.clsScore}
+            score={projectScore.clsScore ?? 0}
             webVital="cls"
             onClick={() => onClick?.('cls')}
             onHover={() => setHoveredVital('cls')}
@@ -80,7 +80,7 @@ export default function WebVitalRingMeters({onClick, projectScore}: Props) {
           <WebVitalScoreRing
             backgroundColor={ringBackgroundColors[4]}
             color={ringSegmentColors[4]}
-            score={projectScore.ttfbScore}
+            score={projectScore.ttfbScore ?? 0}
             webVital="ttfb"
             onClick={() => onClick?.('ttfb')}
             onHover={() => setHoveredVital('ttfb')}
@@ -170,7 +170,7 @@ const WebVitalText = styled('div')`
 `;
 
 const Container = styled('div')`
-  margin: ${space(2)} 0;
+  margin: 48px 0;
 `;
 
 const Flex = styled('div')<{gap?: number}>`

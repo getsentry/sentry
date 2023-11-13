@@ -19,6 +19,7 @@ from typing import (
     cast,
 )
 
+import sentry_sdk
 from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
@@ -64,6 +65,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "transaction": "transaction",
     "platform": "platform",
     "platform.name": "platform",
+    "level": "level",
+    "logger": "logger",
     # Top-level structures ("interfaces")
     "user.email": "user.email",
     "user.id": "user.id",
@@ -76,10 +79,13 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "geo.subdivision": "user.geo.subdivision",
     "http.method": "request.method",
     "http.url": "request.url",
+    # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
+    "url": "request.url",
     "sdk.name": "sdk.name",
     "sdk.version": "sdk.version",
     # Subset of context fields
     "app.in_foreground": "contexts.app.in_foreground",
+    "device": "contexts.device.model",
     "device.arch": "contexts.device.arch",
     "device.battery_level": "contexts.device.battery_level",
     "device.brand": "contexts.device.brand",
@@ -109,6 +115,28 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "release.build": "release.build",
     "release.package": "release.package",
     "release.version": "release.version.short",
+    # Known tags that have to be mapped to fields that Relay can extract
+    "tags[level]": "level",
+    "tags[logger]": "logger",
+    "tags[environment]": "environment",
+    "tags[transaction]": "transaction",
+    "tags[release]": "release",
+    "tags[dist]": "dist",
+    # These match the mapping in sentry/interfaces/contexts.py
+    "tags[app.device]": "device_app_hash",
+    "tags[device]": "device.model",
+    "tags[device.family]": "device.family",
+    "tags[runtime]": "runtime",
+    "tags[runtime.name]": "runtime.name",
+    "tags[browser]": "browser",
+    "tags[browser.name]": "browser.name",
+    "tags[os]": "os",
+    "tags[os.name]": "os.name",
+    "tags[os.rooted]": "os.rooted",
+    "tags[gpu.vendor]": "gpu.vendor_name",
+    "tags[gpu.name]": "gpu.name",
+    "tags[monitor.id]": "monitor.id",
+    "tags[monitor.slug]": "monitor.slug",
     # Tags, measurements, and breakdowns are mapped by the converter
 }
 
@@ -285,6 +313,53 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
+def _transform_search_filter(search_filter: SearchFilter) -> SearchFilter:
+    # If we have `message:something` we convert it to `message:*something*` since we want to perform `contains` matching
+    # exactly how discover does it.
+    if search_filter.key.name == "message":
+        return SearchFilter(
+            key=SearchKey(name=search_filter.key.name),
+            operator=search_filter.operator,
+            value=SearchValue(raw_value=f"*{search_filter.value.raw_value}*"),
+        )
+
+    # If we have `transaction.status:unknown_error` we convert it to `transaction.status:unknown` since we need to be
+    # backward compatible.
+    if (
+        search_filter.key.name == "transaction.status"
+        and search_filter.value.raw_value == "unknown_error"
+    ):
+        return SearchFilter(
+            key=SearchKey(name=search_filter.key.name),
+            operator=search_filter.operator,
+            value=SearchValue(raw_value="unknown"),
+        )
+
+    return search_filter
+
+
+def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    transformed_query: List[QueryToken] = []
+
+    for token in query:
+        if isinstance(token, SearchFilter):
+            transformed_query.append(_transform_search_filter(token))
+        elif isinstance(token, ParenExpression):
+            transformed_query.append(ParenExpression(_transform_search_query(token.children)))
+        else:
+            transformed_query.append(token)
+
+    return transformed_query
+
+
+def _parse_search_query(query: Optional[str]) -> Sequence[QueryToken]:
+    """
+    Parses a search query with the discover grammar and performs some transformations on the AST in order to account for
+    edge cases.
+    """
+    return _transform_search_query(event_search.parse_search_query(query))
+
+
 @dataclass(frozen=True)
 class SupportedBy:
     """Result of a check for standard and on-demand metric support."""
@@ -312,9 +387,11 @@ def should_use_on_demand_metrics(
     dataset: Optional[Union[str, Dataset]],
     aggregate: str,
     query: Optional[str],
+    groupbys: Optional[Sequence[str]] = None,
     prefilling: bool = False,
 ) -> bool:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
+    groupbys = groupbys or []
     supported_datasets = [Dataset.PerformanceMetrics]
     # In case we are running a prefill, we want to support also transactions, since our goal is to start extracting
     # metrics that will be needed after a query is converted from using transactions to metrics.
@@ -326,8 +403,11 @@ def should_use_on_demand_metrics(
 
     aggregate_supported_by = _get_aggregate_supported_by(aggregate)
     query_supported_by = _get_query_supported_by(query)
+    groupbys_supported_by = _get_groupbys_support(groupbys)
 
-    supported_by = SupportedBy.combine(aggregate_supported_by, query_supported_by)
+    supported_by = SupportedBy.combine(
+        aggregate_supported_by, query_supported_by, groupbys_supported_by
+    )
 
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
@@ -344,7 +424,7 @@ def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
 
         function, _, args, _ = query_builder.parse_function(match)
         function_support = _get_function_support(function, args)
-        args_support = _get_args_support(function, args)
+        args_support = _get_args_support(args, function)
 
         return SupportedBy.combine(function_support, args_support)
     except InvalidSearchQuery:
@@ -397,25 +477,34 @@ def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
     return None
 
 
-def _get_args_support(function: str, args: Sequence[str]) -> SupportedBy:
-    if len(args) == 0:
+def _get_field_support(field: str) -> SupportedBy:
+    standard_metrics = _is_standard_metrics_field(field)
+    on_demand_metrics = _is_on_demand_supported_field(field)
+    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
+
+
+def _get_args_support(fields: Sequence[str], used_in_function: Optional[str] = None) -> SupportedBy:
+    if len(fields) == 0:
         return SupportedBy.both()
 
-    # apdex can have two variations, either apdex() or apdex(value).
-    if function == "apdex":
+    if used_in_function == "apdex":
+        # apdex can have two variations, either apdex() or apdex(value).
         return SupportedBy(on_demand_metrics=True, standard_metrics=False)
 
-    arg = args[0]
+    arg = fields[0]
+    return _get_field_support(arg)
 
-    standard_metrics = _is_standard_metrics_field(arg)
-    on_demand_metrics = _is_on_demand_supported_field(arg)
 
-    return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
+def _get_groupbys_support(groupbys: Sequence[str]) -> SupportedBy:
+    if len(groupbys) == 0:
+        return SupportedBy.both()
+
+    return SupportedBy.combine(*[_get_field_support(groupby) for groupby in groupbys])
 
 
 def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
     try:
-        parsed_query = event_search.parse_search_query(query)
+        parsed_query = _parse_search_query(query)
 
         standard_metrics = _is_standard_metrics_query(parsed_query)
         on_demand_metrics = _is_on_demand_supported_query(parsed_query)
@@ -468,8 +557,10 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
         if not _SEARCH_TO_RELAY_OPERATORS.get(token.operator):
             return False
 
-        return not _is_excluding_transactions(token) and _is_on_demand_supported_field(
-            token.key.name
+        return (
+            not _is_excluding_transactions(token)
+            and not _is_error_field(token.key.name)
+            and _is_on_demand_supported_field(token.key.name)
         )
 
     if isinstance(token, ParenExpression):
@@ -479,11 +570,13 @@ def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
 
 
 def _is_excluding_transactions(token: SearchFilter) -> bool:
-    return (
-        token.key.name == "event.type"
-        and token.operator == "!="
-        and token.value.raw_value == "transaction"
-    )
+    if token.key.name != "event.type":
+        return False
+
+    is_not_transaction = token.operator == "!=" and token.value.raw_value == "transaction"
+    is_error_or_default = token.operator == "=" and token.value.raw_value in ["error", "default"]
+
+    return is_not_transaction or is_error_or_default
 
 
 def _is_standard_metrics_field(field: str) -> bool:
@@ -493,6 +586,10 @@ def _is_standard_metrics_field(field: str) -> bool:
         or is_span_op_breakdown(field)
         or field == "transaction.duration"
     )
+
+
+def _is_error_field(token: str) -> bool:
+    return token.startswith("error.")
 
 
 def _is_standard_metrics_search_term(field: str) -> bool:
@@ -525,7 +622,7 @@ def to_standard_metrics_query(query: str) -> str:
         "transaction.duration:>=1s AND browser.version:1" -> ""
     """
     try:
-        tokens = event_search.parse_search_query(query)
+        tokens = _parse_search_query(query)
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         raise
@@ -817,6 +914,7 @@ class OnDemandMetricSpec:
     # Base fields from outside.
     field: str
     query: str
+    groupbys: Sequence[str]
 
     # Public fields.
     op: MetricOperationType
@@ -825,9 +923,17 @@ class OnDemandMetricSpec:
     _metric_type: str
     _arguments: Sequence[str]
 
-    def __init__(self, field: str, query: str, environment: Optional[str] = None):
+    def __init__(
+        self,
+        field: str,
+        query: str,
+        environment: Optional[str] = None,
+        groupbys: Optional[Sequence[str]] = None,
+    ):
         self.field = field
         self.query = query
+        # Removes field if passed in selected_columns
+        self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
         # For now, we just support the environment as extra, but in the future we might need more complex ways to
         # combine extra values that are outside the query string.
         self.environment = environment
@@ -860,10 +966,22 @@ class OnDemandMetricSpec:
         return f"{self._metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
 
     @cached_property
-    def query_hash(self) -> str:
+    def _query_str_for_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
         str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()}"
-        return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+        if self.groupbys:
+            # For compatibility with existing deployed metrics, leave existing hash untouched unless conditions are now
+            # included in the spec.
+            return f"{str_to_hash};{self._groupbys_for_hash()}"
+        return str_to_hash
+
+    @cached_property
+    def query_hash(self) -> str:
+        str_to_hash = self._query_str_for_hash
+        hash = hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+        with sentry_sdk.start_span(op="OnDemandMetricSpec.query_hash", description=hash) as span:
+            span.set_tag("str_to_hash", str_to_hash)
+        return hash
 
     def _field_for_hash(self) -> Optional[str]:
         # Since derived metrics are a special case, we want to make sure that the hashing is different from the other
@@ -899,6 +1017,10 @@ class OnDemandMetricSpec:
         # In case we have `None` condition, we will use `None` string for hashing, so it's a sentinel value.
         return str(_deep_sorted(self.condition))
 
+    def _groupbys_for_hash(self):
+        # A sorted list of group-bys for the hash, since groupbys will be unique per on_demand metric.
+        return str(sorted(self.groupbys))
+
     @cached_property
     def condition(self) -> Optional[RuleCondition]:
         """Returns a parent condition containing a list of other conditions which determine whether of not the metric
@@ -913,11 +1035,27 @@ class OnDemandMetricSpec:
 
         return tags_specs_generator(project, self._arguments)
 
+    def _tag_for_groupby(self, groupby: str) -> TagSpec:
+        """Returns a TagSpec for a groupby"""
+        field = _map_field_name(groupby)
+
+        return {
+            "key": groupby,
+            "field": field,
+        }
+
+    def tags_groupbys(self, groupbys: Sequence[str]) -> List[TagSpec]:
+        """Returns a list of tag specs generate for added groupbys, as they need to be stored separately for queries to work."""
+        return [self._tag_for_groupby(groupby) for groupby in groupbys]
+
     def to_metric_spec(self, project: Project) -> MetricSpec:
         """Converts the OndemandMetricSpec into a MetricSpec that Relay can understand."""
         # Tag conditions are always computed based on the project.
         extended_tags_conditions = self.tags_conditions(project).copy()
         extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash})
+
+        tag_from_groupbys = self.tags_groupbys(self.groupbys)
+        extended_tags_conditions.extend(tag_from_groupbys)
 
         metric_spec: MetricSpec = {
             "category": DataCategory.TRANSACTION.api_name(),
@@ -1050,7 +1188,11 @@ class OnDemandMetricSpec:
                 raise InvalidSearchQuery(f"Invalid characters in field {value}")
 
             function, _, arguments, alias = query_builder.parse_function(match)
-            return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+
+            if function:
+                return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+            column = query_builder.resolve_column(value)
+            return column
         except InvalidSearchQuery as e:
             raise Exception(f"Unable to parse the field '{value}' in on demand spec: {e}")
 
@@ -1058,7 +1200,7 @@ class OnDemandMetricSpec:
     def _parse_query(value: str) -> QueryParsingResult:
         """Parse query string into our internal AST format."""
         try:
-            conditions = event_search.parse_search_query(value)
+            conditions = _parse_search_query(value)
             clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
             return QueryParsingResult(conditions=clean_conditions)
         except InvalidSearchQuery as e:

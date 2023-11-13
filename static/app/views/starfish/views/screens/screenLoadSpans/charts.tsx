@@ -6,7 +6,6 @@ import Color from 'color';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -172,7 +171,9 @@ export function ScreenCharts({yAxes, additionalFilters, chartHeight}: Props) {
           name: deviceClass,
           value: row[YAXIS_COLUMNS[val]],
           itemStyle: {
-            color: isPrimary ? theme.gray300 : Color(theme.gray300).lighten(0.5).string(),
+            color: isPrimary
+              ? theme.charts.getColorPalette(1)[0]
+              : Color(theme.charts.getColorPalette(1)[0]).lighten(0.5).string(),
           },
         } as SeriesDataUnit;
       });
@@ -224,6 +225,7 @@ export function ScreenCharts({yAxes, additionalFilters, chartHeight}: Props) {
                 xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
               };
             })}
+            chartKey="spansChart"
             chartHeight={chartHeight ?? 180}
             isLoading={isDeviceClassEventsLoading}
           />
@@ -234,22 +236,15 @@ export function ScreenCharts({yAxes, additionalFilters, chartHeight}: Props) {
 
   return (
     <div data-test-id="starfish-mobile-view">
-      <StyledRow minSize={200}>
-        <ChartsContainer>{renderCharts()}</ChartsContainer>
-      </StyledRow>
+      <StyledRow>{renderCharts()}</StyledRow>
     </div>
   );
 }
 
-const StyledRow = styled(PerformanceLayoutBodyRow)`
-  margin-bottom: ${space(2)};
-`;
-
-const ChartsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(2)};
+const StyledRow = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-column-gap: ${space(2)};
 `;
 
 const ChartsContainerItem = styled('div')`

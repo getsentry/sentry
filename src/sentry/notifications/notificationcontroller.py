@@ -36,6 +36,7 @@ from sentry.types.integrations import (
 )
 
 Recipient = Union[RpcActor, Team, RpcUser, User]
+TEAM_NOTIFICATION_PROVIDERS = [ExternalProviderEnum.SLACK]
 
 
 def sort_settings_by_scope(setting: NotificationSettingOption | NotificationSettingProvider) -> int:
@@ -288,6 +289,15 @@ class NotificationController:
             )
         )
 
+        org = (
+            serialize_organization_mapping(
+                OrganizationMapping.objects.filter(organization_id=self.organization_id).first()
+            )
+            if self.organization_id
+            else None
+        )
+        has_team_workflow = org and features.has("organizations:team-workflow-notifications", org)
+
         for recipient in self.recipients:
             # get the settings for this user/team
             filter_kwargs = kwargs.copy()
@@ -320,8 +330,8 @@ class NotificationController:
                 for provider_str in PERSONAL_NOTIFICATION_PROVIDERS:
                     provider = ExternalProviderEnum(provider_str)
                     if provider not in most_specific_recipient_providers[type]:
-                        # TODO: fix so team defaults don't have different logic
-                        if recipient_is_team(recipient):
+                        # TODO(jangjodi): Remove this once the flag is removed
+                        if recipient_is_team(recipient) and (not has_team_workflow):
                             most_specific_recipient_providers[type][
                                 provider
                             ] = NotificationSettingsOptionEnum.NEVER
@@ -527,10 +537,6 @@ class NotificationController:
             RpcActor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
         ] = defaultdict(dict)
         for recipient, setting_map in combined_settings.items():
-            # TODO: make work for teams
-            if not recipient_is_user(recipient):
-                continue
-
             actor = RpcActor.from_object(recipient)
             provider_map = setting_map[self.type]
             user_to_providers[actor] = {

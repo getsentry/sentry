@@ -11,7 +11,7 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_GROUP} = SpanMetricsField;
+const {SPAN_GROUP, RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetricsField;
 
 export type SpanMetrics = {
   interval: number;
@@ -36,7 +36,6 @@ export const useSpanMetricsSeries = (
   const enabled =
     Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
 
-  // TODO: Add referrer
   const result = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
@@ -68,18 +67,26 @@ function getEventView(
   yAxis: string[],
   queryFilters: SpanSummaryQueryFilters
 ) {
+  const query = [
+    `${SPAN_GROUP}:${group}`,
+    ...(queryFilters?.transactionName
+      ? [`transaction:"${queryFilters?.transactionName}"`]
+      : []),
+    ...(queryFilters?.['transaction.method']
+      ? [`transaction.method:${queryFilters?.['transaction.method']}`]
+      : []),
+    ...(queryFilters?.release ? [`release:${queryFilters?.release}`] : []),
+    ...(queryFilters?.[RESOURCE_RENDER_BLOCKING_STATUS]
+      ? [
+          `${RESOURCE_RENDER_BLOCKING_STATUS}:${queryFilters[RESOURCE_RENDER_BLOCKING_STATUS]}`,
+        ]
+      : []),
+  ].join(' ');
+
   return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query: `${SPAN_GROUP}:${group}${
-        queryFilters?.transactionName
-          ? ` transaction:"${queryFilters?.transactionName}"`
-          : ''
-      }${
-        queryFilters?.['transaction.method']
-          ? ` transaction.method:${queryFilters?.['transaction.method']}`
-          : ''
-      }`,
+      query,
       fields: [],
       yAxis,
       dataset: DiscoverDatasets.SPANS_METRICS,

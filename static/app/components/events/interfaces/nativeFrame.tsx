@@ -302,6 +302,7 @@ function NativeFrame({
                 title={frame.absPath}
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
+                isHoverable
               >
                 <FileName>
                   {'('}

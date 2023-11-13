@@ -1,5 +1,5 @@
 import logging
-from typing import cast
+from typing import ClassVar, cast
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -149,7 +149,7 @@ class FeatureAdoptionRedisBackend:
         return True
 
 
-class FeatureAdoptionManager(BaseManager):
+class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
 
     cache_backend: FeatureAdoptionRedisBackend = cast(
         FeatureAdoptionRedisBackend,
@@ -235,7 +235,7 @@ class FeatureAdoption(Model):
     applicable = models.BooleanField(default=True)  # Is this feature applicable to this team?
     data = JSONField()
 
-    objects = FeatureAdoptionManager()
+    objects: ClassVar[FeatureAdoptionManager] = FeatureAdoptionManager()
 
     __repr__ = sane_repr("organization_id", "feature_id", "complete", "applicable")
 

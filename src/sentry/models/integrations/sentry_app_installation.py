@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Collection, List, Mapping
+from typing import TYPE_CHECKING, Any, ClassVar, Collection, List, Mapping
 
 from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
@@ -35,7 +35,7 @@ def default_uuid():
     return str(uuid.uuid4())
 
 
-class SentryAppInstallationForProviderManager(ParanoidManager):
+class SentryAppInstallationForProviderManager(ParanoidManager["SentryAppInstallation"]):
     def get_organization_filter_kwargs(self, organization_ids: List[int]):
         return {
             "organization_id__in": organization_ids,
@@ -146,7 +146,9 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
 
-    objects = SentryAppInstallationForProviderManager()
+    objects: ClassVar[
+        SentryAppInstallationForProviderManager
+    ] = SentryAppInstallationForProviderManager()
 
     class Meta:
         app_label = "sentry"

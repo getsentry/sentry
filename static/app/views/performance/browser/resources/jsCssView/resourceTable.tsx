@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -8,15 +7,18 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
+import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 const {
   SPAN_DESCRIPTION,
@@ -26,6 +28,8 @@ const {
   PROJECT_ID,
   SPAN_GROUP,
 } = SpanMetricsField;
+
+const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 const {SPM} = SpanFunction;
 
@@ -40,34 +44,42 @@ type Row = {
   'span.group': string;
   'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
   'spm()': number;
+  'sum(span.self_time)': number;
+  'time_spent_percentage()': number;
 };
 
 type Column = GridColumnHeader<keyof Row>;
 
 type Props = {
   sort: ValidSort;
+  defaultResourceTypes?: string[];
 };
 
-function ResourceTable({sort}: Props) {
+function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
-    defaultResourceTypes: ['resource.script', 'resource.css'],
+    defaultResourceTypes,
   });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
-    {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: 'Resource name'},
-    {key: SPAN_OP, width: COL_WIDTH_UNDEFINED, name: 'Type'},
-    {key: `avg(${SPAN_SELF_TIME})`, width: COL_WIDTH_UNDEFINED, name: 'Avg Duration'},
+    {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: t('Resource Description')},
+    {key: SPAN_OP, width: COL_WIDTH_UNDEFINED, name: t('Type')},
     {
       key: `${SPM}()`,
       width: COL_WIDTH_UNDEFINED,
-      name: t('Throughput'),
+      name: getThroughputTitle('http'),
+    },
+    {key: `avg(${SPAN_SELF_TIME})`, width: COL_WIDTH_UNDEFINED, name: DataTitles.avg},
+    {
+      key: `${TIME_SPENT_PERCENTAGE}()`,
+      width: COL_WIDTH_UNDEFINED,
+      name: DataTitles.timeSpent,
     },
     {
       key: `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
       width: COL_WIDTH_UNDEFINED,
-      name: t('Avg Resource size'),
+      name: DataTitles['avg(http.response_content_length)'],
     },
   ];
   const tableData: Row[] = data.length
@@ -92,10 +104,10 @@ function ResourceTable({sort}: Props) {
       );
     }
     if (key === 'spm()') {
-      return <ThroughputCell rate={row[key] * 60} unit={RateUnits.PER_SECOND} />;
+      return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(http.response_content_length)') {
-      return <FileSize bytes={row[key]} />;
+      return <ResourceSize bytes={row[key]} />;
     }
     if (key === `avg(span.self_time)`) {
       return <DurationCell milliseconds={row[key]} />;
@@ -117,6 +129,11 @@ function ResourceTable({sort}: Props) {
         row['http.response_content_length'] ===
         row['http.decoded_response_content_length'];
       return <span>{isUncompressed ? t('true') : t('false')}</span>;
+    }
+    if (key === 'time_spent_percentage()') {
+      return (
+        <TimeSpentCell percentage={row[key]} total={row[`sum(${SPAN_SELF_TIME})`]} />
+      );
     }
     return <span>{row[key]}</span>;
   };

@@ -10,7 +10,6 @@ from django.utils.datastructures import OrderedSet
 
 from sentry import analytics
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.github.client import GitHubApproachingRateLimit
 from sentry.integrations.mixins.commit_context import (
     CommitContextMixin,
     FileBlameInfo,
@@ -173,36 +172,39 @@ def find_commit_context_for_event(
         install = integration.get_installation(organization_id=code_mapping.organization_id)
         if installation is None and install is not None:
             installation = install
-        try:
-            commit_context = install.get_commit_context(
-                code_mapping.repository, src_path, code_mapping.default_branch, frame
-            )
-        except ApiError as e:
-            commit_context = None
-
-            if e.code == 429:
-                metrics.incr("sentry.integrations.github.get_blame_for_file.rate_limit")
-            if e.code in (401, 403, 404, 429):
-                logger.warning(
-                    "process_commit_context.failed_to_fetch_commit_context.api_error",
-                    extra={**log_info, "code": e.code, "error_message": e.text},
+        with metrics.timer(
+            "tasks.process_commit_context.get_commit_context",
+            tags={"provider": integration.provider},
+        ):
+            try:
+                commit_context = install.get_commit_context(
+                    code_mapping.repository, src_path, code_mapping.default_branch, frame
                 )
-            # Only create Sentry errors for status codes that aren't expected
-            else:
-                logger.exception(
-                    "process_commit_context.failed_to_fetch_commit_context.api_error",
-                    extra={**log_info, "code": e.code, "error_message": e.text},
-                )
+            except ApiError as e:
+                metrics.incr("tasks.process_commit_context.api_error", tags={"status": e.code})
+                commit_context = None
 
-            analytics.record(
-                "integrations.failed_to_fetch_commit_context",
-                organization_id=code_mapping.organization_id,
-                project_id=code_mapping.project.id,
-                group_id=extra["group"],
-                code_mapping_id=code_mapping.id,
-                provider=integration.provider,
-                error_message=e.text,
-            )
+                if e.code in (401, 403, 404, 429):
+                    logger.warning(
+                        "process_commit_context.failed_to_fetch_commit_context.api_error",
+                        extra={**log_info, "code": e.code, "error_message": e.text},
+                    )
+                # Only create Sentry errors for status codes that aren't expected
+                else:
+                    logger.exception(
+                        "process_commit_context.failed_to_fetch_commit_context.api_error",
+                        extra={**log_info, "code": e.code, "error_message": e.text},
+                    )
+
+                analytics.record(
+                    "integrations.failed_to_fetch_commit_context",
+                    organization_id=code_mapping.organization_id,
+                    project_id=code_mapping.project.id,
+                    group_id=extra["group"],
+                    code_mapping_id=code_mapping.id,
+                    provider=integration.provider,
+                    error_message=e.text,
+                )
 
         # Only return suspect commits that are less than a year old
         if commit_context and is_date_less_than_year(commit_context["committedDate"]):
@@ -374,35 +376,53 @@ def _get_blames_from_all_integrations(
         )
         if not integration:
             continue
+        log_info = {
+            **extra,
+            "project_id": project_id,
+            "provider": integration.provider,
+            "integration_id": integration.id,
+        }
         install = integration.get_installation(organization_id=organization_id)
         if not isinstance(install, CommitContextMixin):
+            logger.info("process_commit_context_all_frames.unsupported_integration", extra=log_info)
             continue
         integration_to_install_mapping[integration_organization_id] = (
             install,
             integration.provider,
         )
-        try:
-            blames = install.get_commit_context_all_frames(files)
-            file_blames.extend(blames)
-        except Exception as e:
-            log_info = {
-                **extra,
-                "project_id": project_id,
-                "provider": integration.provider,
-                "integration_id": integration.id,
-            }
-            if isinstance(e, GitHubApproachingRateLimit):
-                logger.exception(
-                    "process_commit_context.get_commit_context_all_frames.rate_limit",
-                    extra=log_info,
+        with metrics.timer(
+            "tasks.process_commit_context_all_frames.get_commit_context",
+            tags={"provider": integration.provider},
+        ):
+            try:
+                blames = install.get_commit_context_all_frames(files, extra=extra)
+                file_blames.extend(blames)
+            except ApiError as e:
+                metrics.incr(
+                    "tasks.process_commit_context_all_frames.api_error", tags={"status": e.code}
                 )
-            elif isinstance(e, ApiError):
+                if e.code in (401, 403, 404):
+                    # Expected errors statuses should not be retried
+                    logger.warning(
+                        "process_commit_context_all_frames.get_commit_context_all_frames.api_error",
+                        extra={**log_info, "code": e.code, "error_message": e.text},
+                    )
+                else:
+                    if e.code == 429:
+                        logger.exception(
+                            "process_commit_context_all_frames.get_commit_context_all_frames.rate_limit",
+                            extra={**log_info, "error_message": e.text},
+                        )
+                    else:
+                        logger.exception(
+                            "process_commit_context_all_frames.get_commit_context_all_frames.api_error",
+                            extra={**log_info, "code": e.code, "error_message": e.text},
+                        )
+                    # Rate limit and other API errors should be raised to the task to trigger a retry
+                    raise e
+            except Exception:
                 logger.exception(
-                    "process_commit_context.get_commit_context_all_frames.api_error", extra=log_info
-                )
-            else:
-                logger.exception(
-                    "process_commit_context.get_commit_context_all_frames.unknown_error",
+                    "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
                     extra=log_info,
                 )
 
@@ -421,9 +441,12 @@ def _record_commit_context_all_frames_analytics(
     selected_provider: Optional[str],
 ):
     if not selected_blame:
-        reason = "commit_too_old" if most_recent_blame else "no_commit_found"
+        reason = _get_failure_reason(
+            num_successfully_mapped_frames=num_successfully_mapped_frames,
+            has_old_blames=most_recent_blame and not selected_blame,
+        )
         metrics.incr(
-            "sentry.tasks.process_commit_context.aborted",
+            "tasks.process_commit_context_all_frames.aborted",
             tags={"detail": reason},
         )
         logger.info(
@@ -477,3 +500,11 @@ def _record_commit_context_all_frames_analytics(
         selected_provider=selected_provider,
         selected_code_mapping_id=selected_blame.code_mapping.id,
     )
+
+
+def _get_failure_reason(num_successfully_mapped_frames: int, has_old_blames: bool):
+    if num_successfully_mapped_frames < 1:
+        return "no_successful_code_mapping"
+    if has_old_blames:
+        return "commit_too_old"
+    return "no_commit_found"

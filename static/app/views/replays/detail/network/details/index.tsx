@@ -114,7 +114,7 @@ const CloseButtonWrapper = styled('div')`
   right: 0;
   height: 100%;
   padding: ${space(1)};
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: ${p => p.theme.zIndex.initial + 1};
   display: flex;
   align-items: center;
 `;

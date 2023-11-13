@@ -3,12 +3,13 @@ from __future__ import annotations
 import logging
 from dataclasses import asdict
 from datetime import timezone
-from typing import Dict, Optional, Sequence, TypedDict
+from typing import Any, Dict, Mapping, Optional, Sequence, TypedDict
 
 from django.utils.datastructures import OrderedSet
 from isodate import parse_datetime
 
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.utils import json
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -49,9 +50,7 @@ FilePathMapping = Dict[str, Dict[str, OrderedSet]]
 GitHubRepositoryResponse = Dict[str, GitHubRefResponse]
 
 
-def generate_file_path_mapping(
-    files: Sequence[SourceLineInfo],
-) -> FilePathMapping:
+def generate_file_path_mapping(files: Sequence[SourceLineInfo]) -> FilePathMapping:
     """
     Generates a nested mapping of repo -> ref -> file paths.
     This map is used to dedupe matching repos, refs, and file paths and only query
@@ -67,7 +66,7 @@ def generate_file_path_mapping(
     return file_path_mapping
 
 
-def create_blame_query(file_path_mapping: FilePathMapping) -> str:
+def create_blame_query(file_path_mapping: FilePathMapping, extra: Mapping[str, Any]) -> str:
     """
     Create a GraphQL query to get blame information for a list of files
     """
@@ -86,11 +85,21 @@ def create_blame_query(file_path_mapping: FilePathMapping) -> str:
         try:
             [repo_owner, repo_name] = full_repo_name.split("/", maxsplit=1)
         except ValueError:
+            logger.exception(
+                "get_blame_for_files.create_blame_query.invalid_repo_name",
+                extra={**extra, "repo_name": full_repo_name},
+            )
             continue
 
         repo_queries += _make_repo_query(repo_name, repo_owner, ref_queries, repo_index)
 
-    return f"""query {{{repo_queries}\n}}"""
+    query = f"""query {{{repo_queries}\n}}"""
+
+    logger.info(
+        "get_blame_for_files.create_blame_query.created_query", extra={**extra, "query": query}
+    )
+
+    return query
 
 
 def extract_commits_from_blame_response(
@@ -105,6 +114,10 @@ def extract_commits_from_blame_response(
     back to the correct file.
     """
     file_blames: list[FileBlameInfo] = []
+    logger.info(
+        "get_blame_for_files.extract_commits_from_blame.missing_repository",
+        extra={**extra, "response": json.dumps(response)},
+    )
     for repo_index, (full_repo_name, ref_mapping) in enumerate(file_path_mapping.items()):
         repo_mapping: Optional[GitHubRepositoryResponse] = response.get("data", {}).get(
             f"repository{repo_index}"
@@ -138,77 +151,108 @@ def extract_commits_from_blame_response(
                         },
                     )
                     continue
-                matching_file, blame_info = _get_matching_file_and_blame(
-                    files=files,
-                    blame_ranges=blame.get("ranges", []),
-                    path=file_path,
-                    repo_name=full_repo_name,
-                    ref=ref_name,
-                )
-                if not blame_info:
-                    logger.error(
-                        "get_blame_for_files.extract_commits_from_blame.missing_line_blame",
-                        extra={
-                            **extra,
-                            "file_lineno": matching_file.lineno,
-                            "file_path": matching_file.path,
-                            "branch_name": matching_file.ref,
-                            "repo_name": full_repo_name,
-                        },
+                matching_files = [
+                    f
+                    for f in files
+                    if f.path == file_path and f.repo.name == full_repo_name and f.ref == ref_name
+                ]
+                for file in matching_files:
+                    log_info = {
+                        **extra,
+                        "file_lineno": file.lineno,
+                        "file_path": file.path,
+                        "branch_name": file.ref,
+                        "repo_name": full_repo_name,
+                    }
+                    blame_info = _get_matching_file_blame(
+                        file=file,
+                        blame_ranges=blame.get("ranges", []),
+                        extra=log_info,
                     )
-                    continue
-                file_blames.append(blame_info)
+                    if not blame_info:
+                        continue
+                    file_blames.append(blame_info)
     return file_blames
 
 
-def _get_matching_file_and_blame(
-    files: Sequence[SourceLineInfo],
+def _get_matching_file_blame(
+    file: SourceLineInfo,
     blame_ranges: Sequence[GitHubFileBlameRange],
-    path: str,
-    repo_name: str,
-    ref: str,
-) -> tuple[SourceLineInfo, Optional[FileBlameInfo]]:
+    extra: dict[str, str | int | None],
+) -> Optional[FileBlameInfo]:
     """
-    Generates a FileBlameInfo object for the given file path, repo name, and ref.
-    Combines matching objects from the initial file list and the blame range
-    returned from the GraphQL response to create the FileBlameInfo.
+    Generates a FileBlameInfo object for the given file. Searches the given blame range
+    and validates that the commit is valid before creating the FileBlameInfo object.
     """
-    matching_file = [
-        f for f in files if f.path == path and f.repo.name == repo_name and f.ref == ref
-    ][0]
     matching_blame_range = next(
-        iter(
-            [
-                r
-                for r in blame_ranges
-                if r["startingLine"] <= matching_file.lineno <= r["endingLine"]
-            ]
-        ),
+        iter([r for r in blame_ranges if r["startingLine"] <= file.lineno <= r["endingLine"]]),
         None,
     )
     if not matching_blame_range:
-        return matching_file, None
+        logger.error(
+            "get_blame_for_files.extract_commits_from_blame.no_matching_blame_range",
+            extra=extra,
+        )
+        return None
 
     commit: Optional[GitHubFileBlameCommit] = matching_blame_range.get("commit", None)
     if not commit:
-        return matching_file, None
-    committed_date = commit.get("committedDate")
-    if not committed_date:
-        return matching_file, None
+        logger.error(
+            "get_blame_for_files.extract_commits_from_blame.no_commit_data",
+            extra=extra,
+        )
+        return None
+
+    committed_date_str = commit.get("committedDate")
+    commit_id = commit.get("oid")
+
+    if not commit_id:
+        logger.error(
+            "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
+            extra={
+                **extra,
+                "reason": "Missing property oid",
+            },
+        )
+        return None
+    if not committed_date_str:
+        logger.error(
+            "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
+            extra={
+                **extra,
+                "commit_id": commit_id,
+                "reason": "Missing property committedDate",
+            },
+        )
+        return None
+
+    try:
+        committed_date = parse_datetime(committed_date_str).astimezone(timezone.utc)
+    except Exception:
+        logger.exception(
+            "get_blame_for_files.extract_commits_from_blame.invalid_commit_response",
+            extra={
+                **extra,
+                "commit_id": commit_id,
+                "committed_date": committed_date_str,
+                "reason": "Failed to convert committed date to datetime.",
+            },
+        )
+        return None
 
     author = commit.get("author")
     blame = FileBlameInfo(
-        **asdict(matching_file),
+        **asdict(file),
         commit=CommitInfo(
-            commitId=commit.get("oid"),
+            commitId=commit_id,
             commitAuthorName=author.get("name") if author else None,
             commitAuthorEmail=author.get("email") if author else None,
             commitMessage=commit.get("message"),
-            committedDate=parse_datetime(committed_date).astimezone(timezone.utc),
+            committedDate=committed_date,
         ),
     )
 
-    return matching_file, blame
+    return blame
 
 
 def _make_ref_query(ref: str, blame_queries: str, index: int) -> str:
@@ -223,7 +267,7 @@ def _make_ref_query(ref: str, blame_queries: str, index: int) -> str:
 
 def _make_blame_query(path: str, index: int) -> str:
     return f"""
-                    blame{index}: blame(path: "{path}") {{
+                    blame{index}: blame(path: "{path.strip('/')}") {{
                         ranges {{
                             commit {{
                                 oid

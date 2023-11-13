@@ -17,7 +17,7 @@ from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
-from sentry.utils.linksign import generate_signed_link
+from sentry.utils.linksign import generate_signed_unsubscribe_link
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +62,13 @@ def get_subject_with_prefix(
 
 
 def get_unsubscribe_link(user_id: int, data: UnsubscribeContext) -> str:
-    signed_link: str = generate_signed_link(
-        user_id,
-        f"sentry-account-email-unsubscribe-{data.key}",
-        data.referrer,
-        kwargs={f"{data.key}_id": data.resource_id},
+    return generate_signed_unsubscribe_link(
+        organization=data.organization,
+        user_id=user_id,
+        resource=data.key,
+        referrer=data.referrer,
+        resource_id=data.resource_id,
     )
-    return signed_link
 
 
 def _log_message(notification: BaseNotification, recipient: RpcActor) -> None:

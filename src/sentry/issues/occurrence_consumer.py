@@ -13,7 +13,7 @@ from sentry import nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType
@@ -116,6 +116,8 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "level": payload.get("level", DEFAULT_LEVEL),
             }
 
+            process_occurrence_data(occurrence_data)
+
             if payload.get("event_id"):
                 occurrence_data["event_id"] = UUID(payload["event_id"]).hex
 
@@ -172,6 +174,9 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         "occurrence_ingest.event_payload_invalid",
                         sample_rate=1.0,
                         tags={"occurrence_type": occurrence_data["type"]},
+                    )
+                    logger.exception(
+                        "Error validating event payload, falling back to legacy validation"
                     )
                     try:
                         jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
@@ -261,11 +266,19 @@ def _process_message(
         sampled=True,
     ) as txn:
         try:
-            if message.get("payload_type") == PayloadType.OCCURRENCE.value:
-                return process_occurrence_message(message, txn)
-            elif message.get("payload_type") == PayloadType.STATUS_CHANGE.value:
+            # Assume messaged without a payload type are of type OCCURRENCE
+            payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
+            if payload_type == PayloadType.STATUS_CHANGE.value:
                 group = process_status_change_message(message, txn)
                 return None, GroupInfo(group=group, is_new=False, is_regression=False)
+            elif payload_type == PayloadType.OCCURRENCE.value:
+                return process_occurrence_message(message, txn)
+            else:
+                metrics.incr(
+                    "occurrence_consumer._process_message.dropped_invalid_payload_type",
+                    sample_rate=1.0,
+                    tags={"payload_type": payload_type},
+                )
         except (ValueError, KeyError) as e:
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)

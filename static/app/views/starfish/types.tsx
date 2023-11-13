@@ -45,10 +45,15 @@ export type SpanStringFields =
   | 'span.description'
   | 'span.module'
   | 'span.action'
+  | 'span.domain'
   | 'span.group'
   | 'project.id'
   | 'transaction'
   | 'transaction.method';
+
+export type SpanMetricsQueryFilters = {
+  [Field in SpanStringFields]?: string;
+};
 
 export type SpanStringArrayFields = 'span.domain';
 
@@ -94,6 +99,7 @@ export enum SpanIndexedField {
   SPAN_DOMAIN = 'span.domain',
   TIMESTAMP = 'timestamp',
   PROJECT = 'project',
+  PROFILE_ID = 'profile_id',
 }
 
 export type SpanIndexedFieldTypes = {
@@ -111,6 +117,7 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.SPAN_DOMAIN]: string[];
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
+  [SpanIndexedField.PROFILE_ID]: string;
 };
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];

@@ -7,8 +7,9 @@ import time
 import traceback
 import uuid
 from datetime import datetime, timedelta
+from hashlib import md5
 from random import Random
-from typing import Any, MutableMapping
+from typing import Any, Generator
 from unittest import mock
 from urllib.parse import urlencode
 
@@ -33,12 +34,12 @@ from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.mail.notifications import get_builder_args
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
@@ -50,6 +51,7 @@ from sentry.notifications.utils import (
     get_issue_replay_link,
     get_rules,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
 from sentry.testutils.helpers.notifications import (  # NOQA:S007
     SAMPLE_TO_OCCURRENCE_MAP,
@@ -101,18 +103,18 @@ COMMIT_EXAMPLE = """[
 ]"""
 
 
-def get_random(request):
+def get_random(request) -> Random:
     seed = request.GET.get("seed", str(time.time()))
     return Random(seed)
 
 
-def make_message(random, length=None):
+def make_message(random: Random, length: int | None = None) -> str:
     if length is None:
         length = int(random.weibullvariate(8, 3))
     return " ".join(random.choice(loremipsum.words) for _ in range(length))
 
 
-def make_culprit(random):
+def make_culprit(random: Random) -> str:
     def make_module_path_components(min, max):
         for _ in range(random.randint(min, max)):
             yield "".join(
@@ -124,7 +126,7 @@ def make_culprit(random):
     )
 
 
-def make_group_metadata(random, group):
+def make_group_metadata(random: Random) -> dict[str, Any]:
     return {
         "type": "error",
         "metadata": {
@@ -138,15 +140,15 @@ def make_group_metadata(random, group):
     }
 
 
-def make_group_generator(random, project):
-    epoch = to_timestamp(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc))
+def make_group_generator(random: Random, project: Project) -> Generator[Group, None, None]:
+    epoch = int(to_timestamp(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc)))
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
         times_seen = 98765
 
         culprit = make_culprit(random)
-        level = random.choice(list(LOG_LEVELS.keys()))
+        level = random.choice(tuple(LOG_LEVELS))
         message = make_message(random)
 
         group = Group(
@@ -164,26 +166,26 @@ def make_group_generator(random, project):
         )
         group.has_replays = lambda: random.choice((True, False))  # type: ignore[method-assign]
         if random.random() < 0.8:
-            group.data = make_group_metadata(random, group)
+            group.data = make_group_metadata(random)
 
         yield group
 
 
-def make_error_event(request, project, platform):
+def make_error_event(request, project: Project, platform):
     group = next(make_group_generator(get_random(request), project))
 
-    data = dict(load_data(platform))
-    data["message"] = group.message
-    data.pop("logentry", None)
-    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
-    data["environment"] = "prod"
-    data["tags"] = [
+    data_dct = dict(load_data(platform))
+    data_dct["message"] = group.message
+    data_dct.pop("logentry", None)
+    data_dct["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+    data_dct["environment"] = "prod"
+    data_dct["tags"] = [
         ("logger", "javascript"),
         ("environment", "prod"),
         ("level", "error"),
         ("device", "Other"),
     ]
-    event_manager = EventManager(data)
+    event_manager = EventManager(data_dct)
     event_manager.normalize()
     data = event_manager.get_data()
     event = event_manager.save(project.id)
@@ -195,7 +197,7 @@ def make_error_event(request, project, platform):
     return event
 
 
-def make_performance_event(project, sample_name: str):
+def make_performance_event(project: Project, sample_name: str):
     timestamp = datetime(2017, 9, 6, 0, 0)
     start_timestamp = timestamp - timedelta(seconds=3)
     event_id = "44f1419e73884cd2b45c79918f4b6dc4"
@@ -212,18 +214,23 @@ def make_performance_event(project, sample_name: str):
             occurrence_data,
             perf_data,
         )
+    assert group_info is not None
     generic_group = group_info.group
     group_event = generic_group.get_latest_event()
     # Prevent CI screenshot from constantly changing
+    assert group_event is not None
     group_event.data["timestamp"] = timestamp.timestamp()
     group_event.data["start_timestamp"] = start_timestamp.timestamp()
     return group_event
 
 
-def make_generic_event(project):
+def make_generic_event(project: Project):
     event_id = uuid.uuid4().hex
     occurrence_data = TEST_ISSUE_OCCURRENCE.to_dict()
     occurrence_data["event_id"] = event_id
+    occurrence_data["fingerprint"] = [
+        md5(part.encode("utf-8")).hexdigest() for part in occurrence_data["fingerprint"]
+    ]
     occurrence, group_info = process_event_and_issue_occurrence(
         occurrence_data,
         {
@@ -232,11 +239,12 @@ def make_generic_event(project):
             "timestamp": before_now(minutes=1).isoformat(),
         },
     )
+    assert group_info is not None
     generic_group = group_info.group
     return generic_group.get_latest_event()
 
 
-def get_shared_context(rule, org, project, group, event):
+def get_shared_context(rule, org, project: Project, group, event):
     rules = get_rules([rule], org, project)
     snooze_alert = len(rules) > 0
     snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
@@ -346,7 +354,7 @@ class MailPreviewAdapter(MailPreview):
 class ActivityMailPreview:
     def __init__(self, request, activity):
         self.request = request
-        self.email = EMAIL_CLASSES_BY_TYPE.get(activity.type)(activity)
+        self.email = EMAIL_CLASSES_BY_TYPE[activity.type](activity)
 
     def get_context(self):
         context = self.email.get_base_context()
@@ -382,11 +390,11 @@ class ActivityMailDebugView(View):
 
         group = next(make_group_generator(get_random(request), project))
 
-        data = dict(load_data("python"))
-        data["message"] = group.message
-        data.pop("logentry", None)
+        data_dct = dict(load_data("python"))
+        data_dct["message"] = group.message
+        data_dct.pop("logentry", None)
 
-        event_manager = EventManager(data)
+        event_manager = EventManager(data_dct)
         event_manager.normalize()
         data = event_manager.get_data()
         event_type = get_event_type(data)
@@ -485,16 +493,16 @@ def digest(request):
         for _ in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
 
-            data = dict(load_data("python"))
-            data["message"] = group.message
-            data.pop("logentry", None)
+            data_dct = dict(load_data("python"))
+            data_dct["message"] = group.message
+            data_dct.pop("logentry", None)
 
-            event_manager = EventManager(data)
+            event_manager = EventManager(data_dct)
             event_manager.normalize()
             data = event_manager.get_data()
 
             data["timestamp"] = random.randint(
-                to_timestamp(group.first_seen), to_timestamp(group.last_seen)
+                int(to_timestamp(group.first_seen)), int(to_timestamp(group.last_seen))
             )
 
             event = eventstore.backend.create_event(
@@ -514,8 +522,8 @@ def digest(request):
                 )
             )
 
-            state["event_counts"][group.id] = random.randint(10, 1e4)
-            state["user_counts"][group.id] = random.randint(10, 1e4)
+            state["event_counts"][group.id] = random.randint(10, 10000)
+            state["user_counts"][group.id] = random.randint(10, 10000)
 
     # add in performance issues
     for i in range(random.randint(1, 3)):
@@ -539,8 +547,8 @@ def digest(request):
             )
         )
         state["groups"][perf_group.id] = perf_group
-        state["event_counts"][perf_group.id] = random.randint(10, 1e4)
-        state["user_counts"][perf_group.id] = random.randint(10, 1e4)
+        state["event_counts"][perf_group.id] = random.randint(10, 10000)
+        state["user_counts"][perf_group.id] = random.randint(10, 10000)
 
     # add in generic issues
     for i in range(random.randint(1, 3)):
@@ -563,10 +571,11 @@ def digest(request):
             )
         )
         state["groups"][generic_group.id] = generic_group
-        state["event_counts"][generic_group.id] = random.randint(10, 1e4)
-        state["user_counts"][generic_group.id] = random.randint(10, 1e4)
+        state["event_counts"][generic_group.id] = random.randint(10, 10000)
+        state["user_counts"][generic_group.id] = random.randint(10, 10000)
 
-    digest = build_digest(project, records, state)[0]
+    digest, _ = build_digest(project, records, state)
+    assert digest is not None
     start, end, counts = get_digest_metadata(digest)
 
     rule_details = get_rules(list(rules.values()), org, project)
@@ -708,6 +717,28 @@ def recover_account(request):
 
 
 @login_required
+def relocate_account(request):
+    password_hash, __ = LostPasswordHash.objects.get_or_create(user_id=request.user.id)
+    return MailPreview(
+        html_template="sentry/emails/relocate_account.html",
+        text_template="sentry/emails/relocate_account.txt",
+        context={
+            "user": request.user,
+            "url": absolute_uri(
+                reverse(
+                    "sentry-account-relocate-confirm",
+                    args=[request.user.id, password_hash.hash],
+                )
+            ),
+            "domain": get_server_hostname(),
+            "ip_address": request.META["REMOTE_ADDR"],
+            "datetime": timezone.now(),
+            "orgs": ["testsentry", "testgetsentry"],
+        },
+    ).render(request)
+
+
+@login_required
 def org_delete_confirm(request):
     from sentry.models.auditlogentry import AuditLogEntry
 
@@ -730,8 +761,8 @@ def org_delete_confirm(request):
 
 # Used to generate debug email views from a notification
 def render_preview_email_for_notification(
-    notification: BaseNotification, recipient: User | Team
-) -> MutableMapping[str, Any]:
+    notification: BaseNotification, recipient: RpcActor
+) -> HttpResponse:
     shared_context = notification.get_context()
     basic_args = get_builder_args(notification, recipient, shared_context)
     # remove unneeded fields

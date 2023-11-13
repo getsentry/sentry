@@ -2611,14 +2611,30 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
             "start": iso_format(self.three_days_ago),
             "end": iso_format(self.one_day_ago),
             "interval": "1d",
-            "yAxis": "cpm()",
+            "yAxis": ["cpm()", "p95(function.duration)"],
         }
 
         response = self.client.get(self.url, data=data, format="json")
         assert response.status_code == 200, response.content
-        assert sum(row[1][0]["count"] for row in response.data["data"]) == pytest.approx(
+
+        assert sum(row[1][0]["count"] for row in response.data["cpm()"]["data"]) == pytest.approx(
             100 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
         )
+        assert any(
+            row[1][0]["count"] > 0 for row in response.data["p95(function.duration)"]["data"]
+        )
+
+        for y_axis in ["cpm()", "p95(function.duration)"]:
+            assert response.data[y_axis]["meta"]["fields"] == {
+                "time": "date",
+                "cpm": "number",
+                "p95_function_duration": "duration",
+            }
+            assert response.data[y_axis]["meta"]["units"] == {
+                "time": None,
+                "cpm": None,
+                "p95_function_duration": "nanosecond",
+            }
 
 
 @region_silo_test
@@ -2667,7 +2683,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
             "field": ["function", "count()"],
             "start": iso_format(self.three_days_ago),
             "end": iso_format(self.one_day_ago),
-            "yAxis": "cpm()",
+            "yAxis": ["cpm()", "p95(function.duration)"],
             "interval": "1d",
             "topEvents": 2,
             "excludeOther": 1,
@@ -2675,9 +2691,20 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 
         response = self.client.get(self.url, data=data, format="json")
         assert response.status_code == 200, response.content
-        assert sum(row[1][0]["count"] for row in response.data["foo"]["data"]) == pytest.approx(
+        assert sum(
+            row[1][0]["count"] for row in response.data["foo"]["cpm()"]["data"]
+        ) == pytest.approx(
             100 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
         )
-        assert sum(row[1][0]["count"] for row in response.data["bar"]["data"]) == pytest.approx(
+        assert sum(
+            row[1][0]["count"] for row in response.data["bar"]["cpm()"]["data"]
+        ) == pytest.approx(
             10 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
+        )
+
+        assert any(
+            row[1][0]["count"] > 0 for row in response.data["foo"]["p95(function.duration)"]["data"]
+        )
+        assert any(
+            row[1][0]["count"] > 0 for row in response.data["bar"]["p95(function.duration)"]["data"]
         )

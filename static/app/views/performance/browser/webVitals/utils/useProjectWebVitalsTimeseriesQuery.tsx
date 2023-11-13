@@ -17,6 +17,15 @@ type Props = {
   transaction?: string;
 };
 
+export type WebVitalsScoreBreakdown = {
+  cls: SeriesDataUnit[];
+  fcp: SeriesDataUnit[];
+  fid: SeriesDataUnit[];
+  lcp: SeriesDataUnit[];
+  total: SeriesDataUnit[];
+  ttfb: SeriesDataUnit[];
+};
+
 export const useProjectWebVitalsTimeseriesQuery = ({transaction, tag}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -70,14 +79,7 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction, tag}: Props) =>
     },
   });
 
-  const data: {
-    cls: SeriesDataUnit[];
-    fcp: SeriesDataUnit[];
-    fid: SeriesDataUnit[];
-    lcp: SeriesDataUnit[];
-    total: SeriesDataUnit[];
-    ttfb: SeriesDataUnit[];
-  } = {
+  const data: WebVitalsScoreBreakdown = {
     lcp: [],
     fcp: [],
     cls: [],
@@ -104,27 +106,27 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction, tag}: Props) =>
       });
 
     data.total.push({
-      value: totalScore,
+      value: totalScore ?? 0,
       name: interval[0] * 1000,
     });
     data.cls.push({
-      value: clsScore,
+      value: clsScore ?? 0,
       name: interval[0] * 1000,
     });
     data.lcp.push({
-      value: lcpScore,
+      value: lcpScore ?? 0,
       name: interval[0] * 1000,
     });
     data.fcp.push({
-      value: fcpScore,
+      value: fcpScore ?? 0,
       name: interval[0] * 1000,
     });
     data.ttfb.push({
-      value: ttfbScore,
+      value: ttfbScore ?? 0,
       name: interval[0] * 1000,
     });
     data.fid.push({
-      value: fidScore,
+      value: fidScore ?? 0,
       name: interval[0] * 1000,
     });
   });
