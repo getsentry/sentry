@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import router
 from django.test import override_settings
 
-from sentry.models import OrganizationMapping
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloLimit, SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase

@@ -4,16 +4,15 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
+from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
-from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import BasePermission
@@ -27,7 +26,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -58,11 +57,9 @@ __all__ = [
     "StatsMixin",
     "control_silo_endpoint",
     "region_silo_endpoint",
-    "pending_silo_endpoint",
 ]
 
 from ..services.hybrid_cloud import rpcmetrics
-from ..services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
@@ -90,13 +87,6 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-DEFAULT_SLUG_PATTERN = r"^[a-z0-9_\-]+$"
-NON_NUMERIC_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
-DEFAULT_SLUG_ERROR_MESSAGE = _(
-    "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
-    "It cannot be entirely numeric."
-)
-
 
 def allow_cors_options(func):
     """
@@ -118,38 +108,50 @@ def allow_cors_options(func):
         else:
             response = func(self, request, *args, **kwargs)
 
-        allow = ", ".join(self._allowed_methods())
-        response["Allow"] = allow
-        response["Access-Control-Allow-Methods"] = allow
-        response["Access-Control-Allow-Headers"] = (
-            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
-            "Content-Type, Authentication, Authorization, Content-Encoding, "
-            "sentry-trace, baggage, X-CSRFToken"
+        return apply_cors_headers(
+            request=request, response=response, allowed_methods=self._allowed_methods()
         )
-        response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
-
-        if request.META.get("HTTP_ORIGIN") == "null":
-            # if ORIGIN header is explicitly specified as 'null' leave it alone
-            origin: str | None = "null"
-        else:
-            origin = origin_from_request(request)
-
-        if origin is None or origin == "null":
-            response["Access-Control-Allow-Origin"] = "*"
-        else:
-            response["Access-Control-Allow-Origin"] = origin
-
-        # If the requesting origin is a subdomain of
-        # the application's base-hostname we should allow cookies
-        # to be sent.
-        basehost = options.get("system.base-hostname")
-        if basehost and origin:
-            if origin.endswith(("://" + basehost, "." + basehost)):
-                response["Access-Control-Allow-Credentials"] = "true"
-
-        return response
 
     return allow_cors_options_wrapper
+
+
+def apply_cors_headers(
+    request: HttpRequest, response: HttpResponse, allowed_methods: list[str] | None = None
+) -> HttpResponse:
+    if allowed_methods is None:
+        allowed_methods = []
+    allow = ", ".join(allowed_methods)
+    response["Allow"] = allow
+    response["Access-Control-Allow-Methods"] = allow
+    response["Access-Control-Allow-Headers"] = (
+        "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+        "Content-Type, Authentication, Authorization, Content-Encoding, "
+        "sentry-trace, baggage, X-CSRFToken"
+    )
+    response["Access-Control-Expose-Headers"] = (
+        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, " "Endpoint, Retry-After, Link"
+    )
+
+    if request.META.get("HTTP_ORIGIN") == "null":
+        # if ORIGIN header is explicitly specified as 'null' leave it alone
+        origin: str | None = "null"
+    else:
+        origin = origin_from_request(request)
+
+    if origin is None or origin == "null":
+        response["Access-Control-Allow-Origin"] = "*"
+    else:
+        response["Access-Control-Allow-Origin"] = origin
+
+    # If the requesting origin is a subdomain of
+    # the application's base-hostname we should allow cookies
+    # to be sent.
+    basehost = options.get("system.base-hostname")
+    if basehost and origin:
+        if origin.endswith(("://" + basehost, "." + basehost)):
+            response["Access-Control-Allow-Credentials"] = "true"
+
+    return response
 
 
 class Endpoint(APIView):
@@ -165,33 +167,6 @@ class Endpoint(APIView):
         str, dict[RateLimitCategory, RateLimit]
     ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
-
-    def get_authenticators(self) -> List[BaseAuthentication]:
-        """
-        Instantiates and returns the list of authenticators that this view can use.
-        Aggregates together authenticators that should be called cross silo, while
-        leaving methods that should be run locally.
-        """
-
-        # TODO: Increase test coverage and get this working for monolith mode.
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return super().get_authenticators()
-
-        last_api_authenticator = RpcAuthentication([])
-        result: List[BaseAuthentication] = []
-        for authenticator_cls in self.authentication_classes:
-            auth_type = RpcAuthenticatorType.from_authenticator(authenticator_cls)
-            if auth_type is not None:
-                last_api_authenticator.types.append(auth_type)
-            else:
-                if last_api_authenticator.types:
-                    result.append(last_api_authenticator)
-                    last_api_authenticator = RpcAuthentication([])
-                result.append(authenticator_cls())
-
-        if last_api_authenticator.types:
-            result.append(last_api_authenticator)
-        return result
 
     def build_link_header(self, request: Request, path: str, rel: str):
         # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
@@ -603,17 +578,6 @@ class ReleaseAnalyticsMixin:
         )
 
 
-class PreventNumericSlugMixin:
-    def validate_slug(self, slug: str) -> str:
-        """
-        Validates that the slug is not entirely numeric. Requires a feature flag
-        to be turned on.
-        """
-        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
-            raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
-        return slug
-
-
 def resolve_region(request: HttpRequest) -> Optional[str]:
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
@@ -685,14 +649,6 @@ Apply to endpoints that exist in REGION silo.
 If a request is received and the application is not in REGION
 mode 404s will be returned.
 """
-
-# Use this decorator to mark endpoints that still need to be marked as either
-# control_silo_endpoint or region_silo_endpoint. Marking a class with
-# pending_silo_endpoint keeps it from tripping SiloLimitCoverageTest, while ensuring
-# that the test will fail if a new endpoint is added with no decorator at all.
-# Eventually we should replace all instances of this decorator and delete it.
-pending_silo_endpoint = EndpointSiloLimit()
-
 
 all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
 """

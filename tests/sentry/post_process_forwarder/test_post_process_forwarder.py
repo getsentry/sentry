@@ -19,7 +19,6 @@ from sentry.utils.batching_kafka_consumer import wait_for_topics
 pytestmark = [requires_kafka]
 
 SENTRY_KAFKA_HOSTS = os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")
-SENTRY_ZOOKEEPER_HOSTS = os.environ.get("SENTRY_ZOOKEEPER_HOSTS", "127.0.0.1:2181")
 settings.KAFKA_CLUSTERS["default"] = {"common": {"bootstrap.servers": SENTRY_KAFKA_HOSTS}}
 
 
@@ -105,7 +104,7 @@ class PostProcessForwarderTest(TestCase):
         commit_log_producer.produce(
             self.commit_log_topic,
             key=f"{self.events_topic}:0:{synchronize_commit_group}".encode(),
-            value=f"{1}".encode(),
+            value=b'{"orig_message_ts": 123456, "offset": 1}',
         )
         assert (
             commit_log_producer.flush(5) == 0

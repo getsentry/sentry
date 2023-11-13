@@ -1,17 +1,18 @@
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.rules import rules
 from sentry.utils import json
 
 ValidationError = serializers.ValidationError
 
 
-@extend_schema_field(dict)
+@extend_schema_field(field=OpenApiTypes.OBJECT)
 class RuleNodeField(serializers.Field):
     def __init__(self, type):
         super().__init__()

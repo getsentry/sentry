@@ -29,11 +29,17 @@ function renderedComponent(
     />
   );
 }
-describe('with stacktrace improvements feature flag enabled', function () {
-  const organization = TestStubs.Organization({
-    features: ['issue-details-stacktrace-improvements'],
+describe('Native StackTrace', function () {
+  beforeEach(() => {
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
   });
-
   it('does not render non in app tags', function () {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: false};
@@ -44,7 +50,6 @@ describe('with stacktrace improvements feature flag enabled', function () {
     };
 
     renderedComponent({
-      organization,
       data: newData,
     });
 
@@ -61,7 +66,6 @@ describe('with stacktrace improvements feature flag enabled', function () {
     };
 
     renderedComponent({
-      organization,
       data: newData,
       includeSystemFrames: false,
     });
@@ -83,7 +87,6 @@ describe('with stacktrace improvements feature flag enabled', function () {
     };
 
     renderedComponent({
-      organization,
       data: newData,
       includeSystemFrames: false,
     });
@@ -105,7 +108,6 @@ describe('with stacktrace improvements feature flag enabled', function () {
     };
 
     renderedComponent({
-      organization,
       data: newData,
       includeSystemFrames: false,
     });

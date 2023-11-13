@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {Location} from 'history';
 
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
@@ -43,6 +43,7 @@ function AllEventsTable(props: Props) {
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
   const {fields, columnTitles} = getColumns(group, organization);
+  const now = useMemo(() => Date.now(), []);
 
   const endpointUrl = makeGroupPreviewRequestUrl({
     groupId: group.id,
@@ -84,10 +85,11 @@ function AllEventsTable(props: Props) {
   if (group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked) {
     idQuery = `performance.issue_ids:${issueId} event.type:transaction`;
   } else if (
-    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
+    (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+      group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION) &&
     groupIsOccurrenceBacked
   ) {
-    const {transaction, aggregateRange2, breakpoint, requestEnd} =
+    const {transaction, aggregateRange2, breakpoint} =
       data?.occurrence?.evidenceData ?? {};
 
     // Surface the "bad" events that occur after the breakpoint
@@ -99,7 +101,7 @@ function AllEventsTable(props: Props) {
 
     eventView.dataset = DiscoverDatasets.DISCOVER;
     eventView.start = new Date(breakpoint * 1000).toISOString();
-    eventView.end = new Date(requestEnd * 1000).toISOString();
+    eventView.end = new Date(now).toISOString();
     eventView.statsPeriod = undefined;
   }
   eventView.project = [parseInt(group.project.id, 10)];

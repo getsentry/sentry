@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -12,7 +13,7 @@ import {RouteContext} from 'sentry/views/routeContext';
 
 function initialize(project, query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: [project],
   });

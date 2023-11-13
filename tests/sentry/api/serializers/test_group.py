@@ -4,23 +4,27 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.models import (
-    Group,
-    GroupLink,
-    GroupResolution,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    NotificationSetting,
-    UserOption,
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.options.user_option import UserOption
+from sentry.notifications.types import (
+    NotificationScopeEnum,
+    NotificationSettingEnum,
+    NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
+    NotificationSettingTypes,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 pytestmark = [requires_snuba]
 
@@ -152,23 +156,6 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["isSubscribed"]
         assert result["subscriptionDetails"] == {"reason": "unknown"}
 
-    @with_feature("organizations:notification-settings-v2")
-    def test_subscribed_v2(self):
-        user = self.create_user()
-        group = self.create_group()
-
-        GroupSubscription.objects.create(
-            user_id=user.id, group=group, project=group.project, is_active=True
-        )
-
-        result = serialize(group, user)
-        assert result["isSubscribed"]
-        assert result["subscriptionDetails"] == {"reason": "unknown"}
-
-        group_2 = self.create_group()
-        result = serialize(group_2, user)
-        assert result["isSubscribed"]
-
     def test_explicit_unsubscribed(self):
         user = self.create_user()
         group = self.create_group()
@@ -188,80 +175,80 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         combinations = (
             # (default, project, subscribed, has_details)
             (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.DEFAULT,
+                NotificationSettingsOptionEnum.ALWAYS,
+                None,
                 True,
                 False,
             ),
             (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingsOptionEnum.ALWAYS,
+                NotificationSettingsOptionEnum.ALWAYS,
                 True,
                 False,
             ),
             (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.ALWAYS,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
                 False,
                 False,
             ),
             (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.NEVER,
+                NotificationSettingsOptionEnum.ALWAYS,
+                NotificationSettingsOptionEnum.NEVER,
                 False,
                 True,
             ),
             (
-                NotificationSettingOptionValues.DEFAULT,
-                NotificationSettingOptionValues.DEFAULT,
+                None,
+                None,
                 False,
                 False,
             ),
             (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.DEFAULT,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                None,
                 False,
                 False,
             ),
             (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.ALWAYS,
                 True,
                 False,
             ),
             (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
                 False,
                 False,
             ),
             (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.NEVER,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.NEVER,
                 False,
                 True,
             ),
             (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.DEFAULT,
+                NotificationSettingsOptionEnum.NEVER,
+                None,
                 False,
                 True,
             ),
             (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingsOptionEnum.NEVER,
+                NotificationSettingsOptionEnum.ALWAYS,
                 True,
                 False,
             ),
             (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.NEVER,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
                 False,
                 False,
             ),
             (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.NEVER,
+                NotificationSettingsOptionEnum.NEVER,
+                NotificationSettingsOptionEnum.NEVER,
                 False,
                 True,
             ),
@@ -271,20 +258,71 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
             UserOption.objects.clear_local_cache()
 
             with assume_test_silo_mode(SiloMode.CONTROL):
-                for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-                    NotificationSetting.objects.update_settings(
-                        provider,
-                        NotificationSettingTypes.WORKFLOW,
-                        default_value,
-                        user_id=user.id,
-                    )
-                    NotificationSetting.objects.update_settings(
-                        provider,
-                        NotificationSettingTypes.WORKFLOW,
-                        project_value,
-                        user_id=user.id,
-                        project=group.project,
-                    )
+                for provider in [
+                    ExternalProviderEnum.EMAIL.value,
+                    ExternalProviderEnum.SLACK.value,
+                ]:
+                    if default_value is None:
+                        NotificationSettingOption.objects.filter(
+                            scope_type=NotificationScopeEnum.USER.value,
+                            scope_identifier=user.id,
+                            user_id=user.id,
+                            type=NotificationSettingEnum.WORKFLOW.value,
+                        ).delete()
+                        NotificationSettingProvider.objects.filter(
+                            type=NotificationSettingEnum.WORKFLOW.value,
+                            user_id=user.id,
+                            scope_type=NotificationScopeEnum.USER.value,
+                            scope_identifier=user.id,
+                            provider=provider,
+                        ).delete()
+                    else:
+                        NotificationSettingOption.objects.update_or_create(
+                            scope_type=NotificationScopeEnum.USER.value,
+                            scope_identifier=user.id,
+                            user_id=user.id,
+                            type=NotificationSettingEnum.WORKFLOW.value,
+                            defaults={"value": default_value.value},
+                        )
+                        NotificationSettingProvider.objects.update_or_create(
+                            provider=provider,
+                            type=NotificationSettingEnum.WORKFLOW.value,
+                            user_id=user.id,
+                            scope_type=NotificationScopeEnum.USER.value,
+                            scope_identifier=user.id,
+                            defaults={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+                        )
+
+                    if project_value is None:
+                        NotificationSettingOption.objects.filter(
+                            scope_type=NotificationScopeEnum.PROJECT.value,
+                            scope_identifier=group.project.id,
+                            type=NotificationSettingEnum.WORKFLOW.value,
+                            user_id=user.id,
+                        ).delete()
+                        NotificationSettingProvider.objects.filter(
+                            scope_type=NotificationScopeEnum.PROJECT.value,
+                            scope_identifier=group.project.id,
+                            type=NotificationSettingEnum.WORKFLOW.value,
+                            user_id=user.id,
+                            provider=provider,
+                        ).delete()
+                    else:
+                        NotificationSettingOption.objects.update_or_create(
+                            scope_type=NotificationScopeEnum.PROJECT.value,
+                            scope_identifier=group.project.id,
+                            user_id=user.id,
+                            type=NotificationSettingEnum.WORKFLOW.value,
+                            defaults={"value": project_value.value},
+                        )
+                        NotificationSettingProvider.objects.update_or_create(
+                            provider=provider,
+                            type=NotificationSettingEnum.WORKFLOW.value,
+                            user_id=user.id,
+                            scope_type=NotificationScopeEnum.PROJECT.value,
+                            scope_identifier=group.project.id,
+                            defaults={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+                        )
 
             result = serialize(group, user)
             subscription_details = result.get("subscriptionDetails")
@@ -319,6 +357,14 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                 user_id=user.id,
             )
 
+            NotificationSettingOption.objects.create_or_update(
+                scope_type=NotificationScopeEnum.USER.value,
+                scope_identifier=user.id,
+                type=NotificationSettingEnum.WORKFLOW.value,
+                value=NotificationSettingsOptionEnum.NEVER.value,
+                user_id=user.id,
+            )
+
         result = serialize(group, user)
         assert not result["isSubscribed"]
         assert result["subscriptionDetails"] == {"disabled": True}
@@ -348,13 +394,20 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                 project=group.project,
             )
 
+            NotificationSettingOption.objects.create_or_update(
+                scope_type=NotificationScopeEnum.PROJECT.value,
+                scope_identifier=group.project.id,
+                type=NotificationSettingEnum.WORKFLOW.value,
+                value=NotificationSettingsOptionEnum.NEVER.value,
+                user_id=user.id,
+            )
+
         result = serialize(group, user)
         assert not result["isSubscribed"]
         assert result["subscriptionDetails"] == {"disabled": True}
 
     def test_no_user_unsubscribed(self):
         group = self.create_group()
-
         result = serialize(group)
         assert not result["isSubscribed"]
 

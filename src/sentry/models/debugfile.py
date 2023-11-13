@@ -52,7 +52,7 @@ from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class BadDif(Exception):
     pass
 
 
-class ProjectDebugFileManager(BaseManager):
+class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
     def find_missing(self, checksums: Iterable[str], project: Project) -> List[str]:
         if not checksums:
             return []
@@ -147,7 +147,7 @@ class ProjectDebugFile(Model):
     data = JSONField(null=True)
     date_accessed = models.DateTimeField(default=timezone.now)
 
-    objects = ProjectDebugFileManager()
+    objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()
 
     difcache: ClassVar[DIFCache]
 

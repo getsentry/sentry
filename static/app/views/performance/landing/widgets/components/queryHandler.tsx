@@ -3,6 +3,7 @@ import {Fragment, useEffect} from 'react';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {
   getIsMetricsDataFromResults,
+  getIsOnDemandDataFromResults,
   useMEPDataContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
@@ -104,7 +105,12 @@ function QueryResultSaver<T extends WidgetDataConstraint>(
       results,
       props.queryProps.fields[0]
     );
+    const isOnDemandData = getIsOnDemandDataFromResults(
+      results,
+      props.queryProps.fields[0]
+    );
     mepContext.setIsMetricsData(isMetricsData);
+    mepContext.setIsOnDemandData(isOnDemandData);
     props.setWidgetDataForKey(query.queryKey, transformed);
   }, [transformed?.hasData, transformed?.isLoading, transformed?.isErrored]);
   return <Fragment />;

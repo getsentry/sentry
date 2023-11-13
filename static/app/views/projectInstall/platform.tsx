@@ -14,10 +14,8 @@ import {
   platformProductAvailability,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
-import {
-  performance as performancePlatforms,
-  Platform,
-} from 'sentry/data/platformCategories';
+import {performance as performancePlatforms} from 'sentry/data/platformCategories';
+import {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -133,15 +131,8 @@ export function ProjectInstallPlatform({location, params}: Props) {
     projectAlertRulesIsError,
   ]);
 
-  // This is a feature flag that is currently only enabled for a subset of internal users until the feature is fully implemented,
-  // but the purpose of the feature is to make the product selection feature in documents available to all users
-  // and guide them to upgrade to a plan if one of the products is not available on their current plan.
-  const gettingStartedDocWithProductSelection = !!organization?.features.includes(
-    'getting-started-doc-with-product-selection'
-  );
-
   const platform: Platform = {
-    key: currentPlatformKey as PlatformKey,
+    key: currentPlatformKey,
     id: currentPlatform?.id,
     name: currentPlatform?.name,
     link: currentPlatform?.link,
@@ -179,7 +170,6 @@ export function ProjectInstallPlatform({location, params}: Props) {
   const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
-    gettingStartedDocWithProductSelection &&
     (platformProductAvailability[platform.key] ?? []).length > 0;
 
   return (

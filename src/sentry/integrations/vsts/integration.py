@@ -24,14 +24,11 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
-from sentry.models import Integration as IntegrationModel
-from sentry.models import (
-    IntegrationExternalProject,
-    Organization,
-    OrganizationIntegration,
-    Repository,
-    generate_token,
-)
+from sentry.models.apitoken import generate_token
+from sentry.models.integrations.integration import Integration as IntegrationModel
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
@@ -279,8 +276,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             },
         ]
 
-        organization = Organization.objects.get(id=self.organization_id)
-        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+        has_issue_sync = features.has("organizations:integrations-issue-sync", self.organization)
         if not has_issue_sync:
             for field in fields:
                 field["disabled"] = True

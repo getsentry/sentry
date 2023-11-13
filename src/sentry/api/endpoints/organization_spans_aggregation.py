@@ -1,7 +1,7 @@
 import hashlib
 from collections import defaultdict, namedtuple
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, TypedDict
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, TypedDict
 
 import sentry_sdk
 from rest_framework import status
@@ -13,7 +13,7 @@ from sentry import eventstore, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -60,6 +60,7 @@ AggregateSpanRow = TypedDict(
         "avg(absolute_offset)": float,
         "avg(relative_offset)": float,
         "count()": int,
+        "samples": Set[Tuple[Optional[str], str]],
     },
 )
 
@@ -69,6 +70,7 @@ NULL_GROUP = "00"
 class BaseAggregateSpans:
     def __init__(self) -> None:
         self.aggregated_tree: Dict[str, AggregateSpanRow] = {}
+        self.current_transaction: Optional[str] = None
 
     def fingerprint_nodes(
         self,
@@ -102,7 +104,6 @@ class BaseAggregateSpans:
             the md5 hash of the value A-C-D and for span E would be md5 hash of the value A-C1-E.
         """
         key = span_tree["key"]
-        description = span_tree["description"]
         start_timestamp = span_tree["start_timestamp_ms"]
         if root_prefix is None:
             prefix = key
@@ -140,15 +141,16 @@ class BaseAggregateSpans:
                 else node["avg(relative_offset)"]
             )
             node["count()"] += 1
+            if len(node["samples"]) < 5:
+                node["samples"].add((self.current_transaction, span_tree["span_id"]))
         else:
+            sample = {(self.current_transaction, span_tree["span_id"])}
             self.aggregated_tree[node_fingerprint] = {
                 "node_fingerprint": node_fingerprint,
                 "parent_node_fingerprint": parent_node_fingerprint,
                 "group": span_tree["group"],
                 "op": span_tree["op"],
-                "description": f"<<unparametrized>> {description}"
-                if span_tree["group"] == NULL_GROUP
-                else description,
+                "description": "" if span_tree["group"] == NULL_GROUP else span_tree["description"],
                 "start_timestamp": start_timestamp,
                 "start_ms": start_timestamp,  # TODO: Remove after updating frontend, duplicated for backward compatibility
                 "avg(exclusive_time)": span_tree["exclusive_time"],
@@ -161,6 +163,7 @@ class BaseAggregateSpans:
                 if parent_node
                 else start_timestamp - parent_timestamp,
                 "count()": 1,
+                "samples": sample,
             }
 
         # Handles sibling spans that have the same group
@@ -186,6 +189,7 @@ class AggregateIndexedSpans(BaseAggregateSpans):
             root_span_id = None
             spans = event["spans"]
 
+            self.current_transaction = event["transaction_id"]
             for span_ in spans:
                 span = EventSpan(*span_)
                 span_id = getattr(span, "span_id")
@@ -227,6 +231,7 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
             event = event_.data.data
             span_tree = {}
 
+            self.current_transaction = event["event_id"]
             root_span_id = event["contexts"]["trace"]["span_id"]
             span_tree[root_span_id] = {
                 "span_id": root_span_id,
@@ -254,10 +259,10 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                         "span_id": span["span_id"],
                         "is_segment": False,
                         "parent_span_id": span["parent_span_id"],
-                        "group": span.get("data", {}).get("span.group", NULL_GROUP),
+                        "group": span.get("sentry_tags", {}).get("group")
+                        or span.get("data", {}).get("span.group", NULL_GROUP),
                         "group_raw": span["hash"],
-                        "description": span.get("data", {}).get("span.description")
-                        or span.get("description", ""),
+                        "description": span.get("sentry_tags", {}).get("description", ""),
                         "op": span.get("op", ""),
                         "start_timestamp_ms": span["start_timestamp"]
                         * 1000,  # timestamp is unix timestamp, convert to ms
@@ -266,11 +271,9 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                         "exclusive_time": span["exclusive_time"],
                         "children": [],
                     }
-                    # Fallback to if sentry/suspect spans scrubbed group (group_raw here) if group doesn't exist.
-                    # Note this is a different implementation from what we do for indexed spans. Because if starfish
-                    # isn't enabled for the org, we won't have the starfish scrubbed description at all.
+                    # Fallback to op if group doesn't exist for now
                     spans_dict["key"] = (
-                        spans_dict["group_raw"]
+                        spans_dict["op"]
                         if spans_dict["group"] == NULL_GROUP
                         else spans_dict["group"]
                     )
@@ -309,6 +312,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         transaction = request.query_params.get("transaction", None)
+        http_method = request.query_params.get("http.method", None)
         if transaction is None:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Transaction not provided"}
@@ -320,12 +324,16 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Backend not supported"}
             )
 
+        query = f"transaction:{transaction}"
+        if http_method is not None:
+            query += f" transaction.method:{http_method}"
+
         if backend == "indexedSpans":
             builder = SpansIndexedQueryBuilder(
                 dataset=Dataset.SpansIndexed,
                 params=params,
                 selected_columns=["transaction_id", "count()"],
-                query=f"transaction:{transaction}",
+                query=query,
                 limit=100,
             )
 
@@ -364,9 +372,13 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
 
             return Response(data=aggregated_tree)
 
+        conditions = [["transaction", "=", transaction]]
+        if http_method is not None:
+            conditions.append(["http.method", "=", http_method])
+
         events = eventstore.backend.get_events(
             filter=eventstore.Filter(
-                conditions=[["transaction", "=", transaction]],
+                conditions=conditions,
                 start=params["start"],
                 end=params["end"],
                 project_ids=params["project_id"],

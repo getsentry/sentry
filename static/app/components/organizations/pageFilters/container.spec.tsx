@@ -1,5 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/actionCreators/pageFilters';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -32,6 +34,10 @@ describe('PageFiltersContainer', function () {
   const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views']},
     projects: [
+      {
+        id: '1',
+        slug: 'project-1',
+      },
       {
         id: '2',
         slug: 'project-2',
@@ -350,6 +356,7 @@ describe('PageFiltersContainer', function () {
       organization: {
         features: ['global-views'],
       },
+      projects: [TestStubs.Project({id: 1}), TestStubs.Project({id: 2})],
       router: {
         // we need this to be set to make sure org in context is same as
         // current org in URL
@@ -405,8 +412,6 @@ describe('PageFiltersContainer', function () {
     await waitFor(() =>
       expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']))
     );
-
-    expect(screen.getByRole('button', {name: 'Restore old values'})).toBeInTheDocument();
   });
 
   it('does not update local storage when disablePersistence is true', async function () {
@@ -562,7 +567,7 @@ describe('PageFiltersContainer', function () {
         })
       );
       const project = TestStubs.Project({id: '3', isMember: false});
-      const org = TestStubs.Organization({projects: [project]});
+      const org = Organization({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);
 
@@ -589,7 +594,7 @@ describe('PageFiltersContainer', function () {
 
     it('selects first project if none (i.e. all) is requested', function () {
       const project = TestStubs.Project({id: '3'});
-      const org = TestStubs.Organization({projects: [project]});
+      const org = Organization({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);
 
@@ -913,7 +918,7 @@ describe('PageFiltersContainer', function () {
         // forceProject generally starts undefined
         const {rerender} = renderForGlobalView(
           {shouldForceProject: true},
-          changeQuery(initialData.routerContext, {project: 321})
+          changeQuery(initialData.routerContext, {project: 2})
         );
 
         rerender({forceProject: initialData.projects[1]});

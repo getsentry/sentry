@@ -230,7 +230,8 @@ def get_delegated_constructors(
     """
 
     def delegator() -> ServiceInterface:
-        from sentry.models import Organization, User
+        from sentry.models.organization import Organization
+        from sentry.models.user import User
 
         return cast(
             ServiceInterface,

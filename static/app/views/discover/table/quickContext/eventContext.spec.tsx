@@ -1,4 +1,5 @@
 import type {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -42,7 +43,7 @@ const dataRow: EventData = {
 };
 
 const renderEventContext = (location?: Location, eventView?: EventView) => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <EventContext

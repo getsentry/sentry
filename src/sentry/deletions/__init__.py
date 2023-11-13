@@ -10,7 +10,7 @@ because of a new relation or database failure.
 Celery Tasks
 ------------
 
-Every 15 minutes `sentry.tasks.deletion.run_scheduled_deletion()` runs. This task queries for jobs
+Every 15 minutes `sentry.tasks.deletion.run_scheduled_deletions()` runs. This task queries for jobs
 that were scheduled to be run in the past that are not already in progress. Tasks are spawned for
 each deletion that needs to be processed.
 
@@ -23,7 +23,7 @@ Scheduling Deletions
 The entrypoint into deletions for the majority of application code is via the ``ScheduledDeletion``
 model. This model lets you create deletion jobs that are run in the future.
 
->>> from sentry.models import ScheduledDeletion
+>>> from sentry.models.scheduledeltion import ScheduledDeletion
 >>> ScheduledDeletion.schedule(organization, days=1, hours=2)
 
 The above would schedule an organization to be deleted in 1 day and 2 hours.

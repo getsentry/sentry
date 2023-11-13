@@ -1,6 +1,6 @@
 from django.utils import timezone
 
-from sentry.models import ProjectPlatform
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.tasks.collect_project_platforms import collect_project_platforms
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test

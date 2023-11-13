@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -11,7 +12,7 @@ import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {OrganizationContext} from '../organizationContext';
 
 describe('Dashboards > Dashboard', () => {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['dashboards-basic', 'dashboards-edit'],
   });
   const mockDashboard = {

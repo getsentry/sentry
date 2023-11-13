@@ -12,7 +12,8 @@ from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
+    from sentry.monitors.models import Monitor
 
 
 @unique
@@ -217,6 +218,9 @@ class Quota(Service):
         "get_quotas",
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
+        "assign_monitor_seat",
+        "check_accept_monitor_checkin",
+        "update_monitor_slug",
     )
 
     def __init__(self, **options):
@@ -411,7 +415,8 @@ class Quota(Service):
                 )
 
     def get_project_quota(self, project):
-        from sentry.models import Organization, OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
+        from sentry.models.organization import Organization
 
         if not project.is_field_cached("organization"):
             project.set_cached_field_value(
@@ -434,7 +439,7 @@ class Quota(Service):
         return (quota, window)
 
     def get_organization_quota(self, organization):
-        from sentry.models import OrganizationOption
+        from sentry.models.options.organization_option import OrganizationOption
 
         account_limit = _limit_from_settings(
             OrganizationOption.objects.get_value(
@@ -490,4 +495,28 @@ class Quota(Service):
 
         :param organization_id: The organization id.
         :param volume: The volume of transaction of the given project.
+        """
+
+    def assign_monitor_seat(
+        self,
+        monitor: Monitor,
+    ) -> int:
+        """
+        Determines if a monitor seat assignment is accepted or rate limited.
+        """
+        from sentry.utils.outcomes import Outcome
+
+        return Outcome.ACCEPTED
+
+    def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
+        """
+        Will return a `PermitCheckInStatus`.
+        """
+        from sentry.monitors.constants import PermitCheckInStatus
+
+        return PermitCheckInStatus.ACCEPT
+
+    def update_monitor_slug(self, previous_slug: str, new_slug: str, project_id: int):
+        """
+        Updates a monitor seat assignment's slug.
         """

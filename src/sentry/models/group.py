@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
 
 from django.core.cache import cache
 from django.db import models
@@ -39,6 +39,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
 from sentry.types.group import (
@@ -52,7 +53,8 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Environment, Team
+    from sentry.models.environment import Environment
+    from sentry.models.team import Team
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -119,7 +121,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
     try:
         return getter(**params), False
     except Group.DoesNotExist as error:
-        from sentry.models import GroupRedirect
+        from sentry.models.groupredirect import GroupRedirect
 
         if short_id:
             params = {
@@ -293,7 +295,7 @@ def get_recommended_event_for_environments(
     return None
 
 
-class GroupManager(BaseManager):
+class GroupManager(BaseManager["Group"]):
     use_for_related_fields = True
 
     def by_qualified_short_id(self, organization_id: int, short_id: str):
@@ -386,7 +388,8 @@ class GroupManager(BaseManager):
         organizations: Sequence[Organization],
         external_issue_key: str,
     ) -> QuerySet:
-        from sentry.models import ExternalIssue, GroupLink
+        from sentry.models.grouplink import GroupLink
+        from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.services.hybrid_cloud.integration import integration_service
 
         external_issue_subquery = ExternalIssue.objects.get_for_integration(
@@ -419,39 +422,41 @@ class GroupManager(BaseManager):
         send_activity_notification: bool = True,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
-        from sentry.models import Activity
+        from sentry.models.activity import Activity
 
-        to_be_updated = self.filter(id__in=[g.id for g in groups]).exclude(
+        modified_groups_list = []
+        selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
             status=status, substatus=substatus
         )
 
-        for group in to_be_updated:
+        for group in selected_groups:
             group.status = status
             group.substatus = substatus
+            modified_groups_list.append(group)
 
-        self.bulk_update(to_be_updated, ["status", "substatus"])
+        Group.objects.bulk_update(modified_groups_list, ["status", "substatus"])
 
-        for group in to_be_updated:
-            group.status = status
-            group.substatus = substatus
+        for group in modified_groups_list:
             Activity.objects.create_group_activity(
                 group,
                 activity_type,
                 data=activity_data,
                 send_notification=send_activity_notification,
             )
+
             record_group_history_from_activity_type(group, activity_type.value)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
             raise Group.DoesNotExist
 
-        from sentry.models import GroupShare
+        from sentry.models.groupshare import GroupShare
 
         return self.get(id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1])
 
     def filter_to_team(self, team):
-        from sentry.models import GroupAssignee, Project
+        from sentry.models.groupassignee import GroupAssignee
+        from sentry.models.project import Project
 
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         user_ids = list(team.member_set.values_list("user_id", flat=True))
@@ -537,7 +542,7 @@ class Group(Model):
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
-    objects = GroupManager(cache_fields=("id",))
+    objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
 
     class Meta:
         app_label = "sentry"
@@ -553,7 +558,8 @@ class Group(Model):
             ("project", "status", "substatus", "last_seen", "id"),
             ("project", "status", "substatus", "type", "last_seen", "id"),
             ("project", "status", "substatus", "id"),
-            ("status", "substatus", "id"),
+            ("status", "substatus", "id"),  # TODO: Remove this
+            ("status", "substatus", "first_seen"),
         ]
         unique_together = (
             ("project", "short_id"),
@@ -591,13 +597,24 @@ class Group(Model):
         # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.
         organization = self.organization
-        path = f"/organizations/{organization.slug}/issues/{self.id}/"
-        if event_id:
-            path += f"events/{event_id}/"
-        query = None
-        if params:
+
+        if self.issue_category == GroupCategory.FEEDBACK:
+            path = f"/organizations/{organization.slug}/feedback/"
+            slug = {"feedbackSlug": f"{self.project.slug}:{self.id}"}
+            params = {
+                **(params or {}),
+                **slug,
+            }
             query = urlencode(params)
-        return organization.absolute_url(path, query=query)
+            return organization.absolute_url(path, query=query)
+        else:
+            path = f"/organizations/{organization.slug}/issues/{self.id}/"
+            if event_id:
+                path += f"events/{event_id}/"
+            query = None
+            if params:
+                query = urlencode(params)
+            return organization.absolute_url(path, query=query)
 
     @property
     def qualified_short_id(self):
@@ -686,7 +703,7 @@ class Group(Model):
 
     def get_status(self):
         # XXX(dcramer): GroupSerializer reimplements this logic
-        from sentry.models import GroupSnooze
+        from sentry.models.groupsnooze import GroupSnooze
 
         status = self.status
 
@@ -704,7 +721,7 @@ class Group(Model):
         return status
 
     def get_share_id(self):
-        from sentry.models import GroupShare
+        from sentry.models.groupshare import GroupShare
 
         try:
             return GroupShare.objects.filter(group_id=self.id).values_list("uuid", flat=True)[0]
@@ -756,7 +773,7 @@ class Group(Model):
         )
 
     def get_first_release(self) -> str | None:
-        from sentry.models import Release
+        from sentry.models.release import Release
 
         if self.first_release_id is None:
             return Release.objects.get_group_release_version(self.project_id, self.id)
@@ -764,7 +781,7 @@ class Group(Model):
         return self.first_release.version
 
     def get_last_release(self, use_cache: bool = True) -> str | None:
-        from sentry.models import Release
+        from sentry.models.release import Release
 
         return Release.objects.get_group_release_version(
             project_id=self.project_id,
@@ -829,19 +846,16 @@ class Group(Model):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
 
     def get_assignee(self) -> Team | RpcUser | None:
-        from sentry.models import GroupAssignee
+        from sentry.models.groupassignee import GroupAssignee
 
         try:
             group_assignee = GroupAssignee.objects.get(group=self)
         except GroupAssignee.DoesNotExist:
             return None
 
-        assigned_actor = group_assignee.assigned_actor()
+        assigned_actor: RpcActor = group_assignee.assigned_actor()
 
-        try:
-            return assigned_actor.resolve()
-        except assigned_actor.type.DoesNotExist:
-            return None
+        return assigned_actor.resolve()
 
     @property
     def times_seen_with_pending(self) -> int:

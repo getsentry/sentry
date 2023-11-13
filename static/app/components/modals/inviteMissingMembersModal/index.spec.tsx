@@ -1,6 +1,7 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {MissingMembers} from 'sentry-fixture/missingMembers';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -28,7 +29,7 @@ const roles = [
 
 describe('InviteMissingMembersModal', function () {
   const team = TestStubs.Team();
-  const org = TestStubs.Organization({access: ['member:write'], teams: [team]});
+  const org = Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
   const missingMembers = {integration: 'github', users: MissingMembers()};
 
@@ -39,7 +40,7 @@ describe('InviteMissingMembersModal', function () {
     Footer: styledWrapper(),
     closeModal: () => {},
     CloseButton: makeCloseButton(() => {}),
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     missingMembers: {integration: 'github', users: []},
     allowedRoles: [],
   };
@@ -62,7 +63,7 @@ describe('InviteMissingMembersModal', function () {
   });
 
   it('does not render without org:write', function () {
-    const organization = TestStubs.Organization({access: []});
+    const organization = Organization({access: []});
     render(<InviteMissingMembersModal {...modalProps} organization={organization} />);
 
     expect(
@@ -124,7 +125,7 @@ describe('InviteMissingMembersModal', function () {
     render(
       <InviteMissingMembersModal
         {...modalProps}
-        organization={TestStubs.Organization({defaultRole: 'member'})}
+        organization={Organization({defaultRole: 'member'})}
         missingMembers={missingMembers}
         allowedRoles={roles}
       />
@@ -160,7 +161,7 @@ describe('InviteMissingMembersModal', function () {
     render(
       <InviteMissingMembersModal
         {...modalProps}
-        organization={TestStubs.Organization({defaultRole: 'member', teams: [team]})}
+        organization={Organization({defaultRole: 'member', teams: [team]})}
         missingMembers={missingMembers}
         allowedRoles={roles}
       />

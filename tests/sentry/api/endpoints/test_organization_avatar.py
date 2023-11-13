@@ -1,6 +1,6 @@
 from base64 import b64encode
 
-from sentry.models import OrganizationAvatar
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -20,6 +20,7 @@ class OrganizationAvatarTest(OrganizationAvatarTestBase):
         assert response.data["id"] == str(self.organization.id)
         assert response.data["avatar"]["avatarType"] == "letter_avatar"
         assert response.data["avatar"]["avatarUuid"] is None
+        assert response.data["avatar"]["avatarUrl"] is None
 
 
 @region_silo_test(stable=True)

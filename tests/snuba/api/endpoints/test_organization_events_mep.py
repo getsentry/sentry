@@ -12,6 +12,7 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 from sentry.search.events import constants
+from sentry.search.utils import map_device_class_level
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
@@ -1142,6 +1143,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "count_web_vitals(measurements.fcp, meh)",
                     "count_web_vitals(measurements.fid, meh)",
                     "count_web_vitals(measurements.cls, good)",
+                    "count_web_vitals(measurements.lcp, any)",
                 ],
                 "query": "event.type:transaction",
                 "dataset": "metricsEnhanced",
@@ -1159,6 +1161,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["count_web_vitals(measurements.fcp, meh)"] == 1
         assert data[0]["count_web_vitals(measurements.fid, meh)"] == 1
         assert data[0]["count_web_vitals(measurements.cls, good)"] == 1
+        assert data[0]["count_web_vitals(measurements.lcp, any)"] == 1
 
         assert meta["isMetricsData"]
         assert field_meta["count_web_vitals(measurements.lcp, good)"] == "integer"
@@ -1166,6 +1169,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["count_web_vitals(measurements.fcp, meh)"] == "integer"
         assert field_meta["count_web_vitals(measurements.fid, meh)"] == "integer"
         assert field_meta["count_web_vitals(measurements.cls, good)"] == "integer"
+        assert field_meta["count_web_vitals(measurements.lcp, any)"] == "integer"
 
     def test_measurement_rating_that_does_not_exist(self):
         self.store_transaction_metric(
@@ -1616,6 +1620,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["p50(transaction.duration)"] == 1
         assert meta["isMetricsData"]
 
+    @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
     def test_environment_query(self):
         self.create_environment(self.project, name="staging")
         self.store_transaction_metric(
@@ -2484,6 +2489,100 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert meta["dataset"] == "metrics"
             assert meta["fields"][function_name] == "percent_change"
 
+    def test_avg_if(self):
+        self.store_transaction_metric(
+            100,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_transaction_metric(
+            200,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_transaction_metric(
+            10,
+            timestamp=self.min_ago,
+            tags={"release": "bar"},
+        )
+
+        response = self.do_request(
+            {
+                "field": ["avg_if(transaction.duration, release, foo)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["avg_if(transaction.duration, release, foo)"] == 150
+
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"]["avg_if(transaction.duration, release, foo)"] == "duration"
+
+    def test_device_class(self):
+        self.store_transaction_metric(
+            100,
+            timestamp=self.min_ago,
+            tags={"device.class": "1"},
+        )
+        self.store_transaction_metric(
+            200,
+            timestamp=self.min_ago,
+            tags={"device.class": "2"},
+        )
+        self.store_transaction_metric(
+            300,
+            timestamp=self.min_ago,
+            tags={"device.class": ""},
+        )
+        response = self.do_request(
+            {
+                "field": ["device.class", "p95()"],
+                "query": "",
+                "orderby": "p95()",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 3
+        # Need to actually check the dict since the level for 1 isn't guaranteed to stay `low` or `medium`
+        assert data[0]["device.class"] == map_device_class_level("1")
+        assert data[1]["device.class"] == map_device_class_level("2")
+        assert data[2]["device.class"] == "Unknown"
+        assert meta["fields"]["device.class"] == "string"
+
+    def test_device_class_filter(self):
+        self.store_transaction_metric(
+            300,
+            timestamp=self.min_ago,
+            tags={"device.class": "1"},
+        )
+        # Need to actually check the dict since the level for 1 isn't guaranteed to stay `low`
+        level = map_device_class_level("1")
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": f"device.class:{level}",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == level
+        assert meta["fields"]["device.class"] == "string"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -2512,3 +2611,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_avg_compare(self):
         super().test_avg_compare()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_if(self):
+        super().test_avg_if()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_device_class(self):
+        super().test_device_class()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_device_class_filter(self):
+        super().test_device_class_filter()

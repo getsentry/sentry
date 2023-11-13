@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, Mapping, Optional
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,11 +12,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import IntegrationSerializer, serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
-from sentry.models import Integration, Project, RepositoryProjectPathConfig
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -141,52 +143,6 @@ def set_tags(scope: Scope, result: JSONData) -> None:
     scope.set_tag("stacktrace_link.has_integration", len(result["integrations"]) > 0)
 
 
-def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConfig]:
-    """
-    Returns the code mapping config list for a project sorted based on precedence.
-    User generated code mappings are evaluated before Sentry generated code mappings.
-    Code mappings with more defined stack trace roots are evaluated before less defined stack trace
-    roots.
-
-    `project`: The project to get the list of sorted code mapping configs for
-    """
-
-    # xxx(meredith): if there are ever any changes to this query, make
-    # sure that we are still ordering by `id` because we want to make sure
-    # the ordering is deterministic
-    # codepath mappings must have an associated integration for stacktrace linking.
-    configs = RepositoryProjectPathConfig.objects.filter(
-        project=project, organization_integration_id__isnull=False
-    )
-
-    sorted_configs: list[RepositoryProjectPathConfig] = []
-
-    try:
-        for config in configs:
-            inserted = False
-            for index, sorted_config in enumerate(sorted_configs):
-                # This check will ensure that all user defined code mappings will come before Sentry generated ones
-                if (
-                    sorted_config.automatically_generated and not config.automatically_generated
-                ) or (  # Insert more defined stack roots before less defined ones
-                    (sorted_config.automatically_generated == config.automatically_generated)
-                    and config.stack_root.startswith(sorted_config.stack_root)
-                ):
-                    sorted_configs.insert(index, config)
-                    inserted = True
-                    break
-            if not inserted:
-                # Insert the code mapping at the back if it's Sentry generated or at the front if it is user defined
-                if config.automatically_generated:
-                    sorted_configs.insert(len(sorted_configs), config)
-                else:
-                    sorted_configs.insert(0, config)
-    except Exception:
-        logger.exception("There was a failure sorting the code mappings")
-
-    return sorted_configs
-
-
 @region_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     publish_status = {
@@ -216,35 +172,37 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
         result: JSONData = {"config": None, "sourceUrl": None}
 
-        integrations = Integration.objects.filter(
-            organizationintegration__organization_id=project.organization_id
-        )
+        integrations = integration_service.get_integrations(organization_id=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
+        serializer = IntegrationSerializer()
         result["integrations"] = [
-            serialize(i, request.user)
+            serialize(i, request.user, serializer)
             for i in integrations
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
-        configs = get_code_mapping_configs(project)
+        configs = get_sorted_code_mapping_configs(project)
 
         current_config = None
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
             for config in configs:
-                # If all code mappings fail to match a stack_root it means that there's no working code mapping
-                if not filepath.startswith(config.stack_root):
-                    # This may be overwritten if a valid code mapping is found
-                    result["error"] = "stack_root_mismatch"
-                    continue
-
                 outcome = {}
                 munging_outcome = {}
+
                 # Munging is required for get_link to work with mobile platforms
                 if ctx["platform"] in ["java", "cocoa", "other"]:
                     munging_outcome = try_path_munging(config, filepath, ctx)
+                    if munging_outcome.get("error") == "stack_root_mismatch":
+                        result["error"] = "stack_root_mismatch"
+                        continue
+
                 if not munging_outcome:
+                    if not filepath.startswith(config.stack_root):
+                        # This may be overwritten if a valid code mapping is found
+                        result["error"] = "stack_root_mismatch"
+                        continue
                     outcome = get_link(config, filepath, ctx["commit_id"])
                     # XXX: I want to remove this whole block logic as I believe it is wrong
                     # In some cases the stack root matches and it can either be that we have
@@ -254,6 +212,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                         if munging_outcome:
                             # Report errors to Sentry for investigation
                             logger.error("We should never be able to reach this code.")
+
                 # Keep the original outcome if munging failed
                 if munging_outcome:
                     outcome = munging_outcome

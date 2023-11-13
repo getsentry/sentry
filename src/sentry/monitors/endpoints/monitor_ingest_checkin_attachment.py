@@ -4,9 +4,11 @@ from django.core.files.uploadedfile import UploadedFile
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.models import File
+from sentry.models.files.file import File
 
 from .base import MonitorIngestEndpoint
 
@@ -15,8 +17,10 @@ MAX_ATTACHMENT_SIZE = 1024 * 100  # 100kb
 
 @region_silo_endpoint
 class MonitorIngestCheckinAttachmentEndpoint(MonitorIngestEndpoint):
-    # TODO(davidenwang): Add documentation after uploading feature is complete
-    private = True
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.CRONS
 
     def post(self, request: Request, project, monitor, checkin) -> Response:
         """

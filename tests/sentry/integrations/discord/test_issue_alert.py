@@ -6,13 +6,14 @@ from django.core.exceptions import ValidationError
 
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
-from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.client import MESSAGE_URL
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
 from sentry.integrations.message_builder import build_attachment_title, build_footer, get_title_link
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.shared_integrations.exceptions import ApiTimeoutError
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
@@ -58,7 +59,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
         responses.add(
             method=responses.POST,
-            url=f"{DiscordClient.MESSAGE_URL.format(channel_id=self.channel_id)}",
+            url=f"{MESSAGE_URL.format(channel_id=self.channel_id)}",
             status=200,
         )
 
@@ -71,8 +72,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         )
         assert len(results) == 1
 
-        with self.feature("organizations:integrations-discord-notifications"):
-            results[0].callback(self.event, futures=[])
+        results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
@@ -137,8 +137,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
 
-        with self.feature("organizations:integrations-discord-notifications"):
-            results[0].callback(self.event, futures=[])
+        results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
@@ -165,8 +164,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
 
-        with self.feature("organizations:integrations-discord-notifications"):
-            results[0].callback(self.event, futures=[])
+        results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
@@ -193,8 +191,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
 
-        with self.feature("organizations:integrations-discord-notifications"):
-            results[0].callback(self.event, futures=[])
+        results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
@@ -216,12 +213,9 @@ class DiscordIssueAlertTest(RuleTestCase):
     def test_feature_flag_disabled(self):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
-        with self.feature("organizations:integrations-discord-notifications"):
-            results[0].callback(self.event, futures=[])
+        results[0].callback(self.event, futures=[])
 
-        responses.assert_call_count(
-            f"{DiscordClient.MESSAGE_URL.format(channel_id=self.channel_id)}", 0
-        )
+        responses.assert_call_count(f"{MESSAGE_URL.format(channel_id=self.channel_id)}", 0)
 
     @responses.activate
     def test_integration_removed(self):
@@ -230,7 +224,10 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert len(results) == 0
 
     @responses.activate
-    @mock.patch("sentry.integrations.discord.actions.issue_alert.form.validate_channel_id")
+    @mock.patch(
+        "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
+        return_value=None,
+    )
     def test_get_form_instance(self, mock_validate_channel_id):
         form = self.rule.get_form_instance()
         form.full_clean()
@@ -238,6 +235,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert int(form.cleaned_data["server"]) == self.discord_integration.id
         assert form.cleaned_data["channel_id"] == self.channel_id
         assert form.cleaned_data["tags"] == self.tags
+        assert mock_validate_channel_id.call_count == 1
 
     @responses.activate
     def test_label(self):
@@ -330,6 +328,24 @@ class DiscordNotifyServiceFormTest(TestCase):
             data={
                 "server": self.discord_integration.id,
                 "channel_id": self.channel_id,
+            },
+            integrations=self.integrations,
+        )
+
+        form.full_clean()
+        assert not form.is_valid()
+        assert mock_validate_channel_id.call_count == 1
+
+    @mock.patch(
+        "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
+        side_effect=ApiTimeoutError("Discord channel lookup timed out"),
+    )
+    def test_channel_id_lookup_timeout(self, mock_validate_channel_id):
+        form = DiscordNotifyServiceForm(
+            data={
+                "server": self.discord_integration.id,
+                "channel_id": self.channel_id,
+                "tags": "environment",
             },
             integrations=self.integrations,
         )

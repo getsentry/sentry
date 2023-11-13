@@ -7,7 +7,7 @@ from pytest import raises
 
 from sentry.auth.password_validation import validate_password
 from sentry.conf.server import AUTH_PASSWORD_VALIDATORS
-from sentry.models import User
+from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 
 PWNED_PASSWORDS_RESPONSE_MOCK = """4145D488EF49819E75E71019A6E8EA21905:1

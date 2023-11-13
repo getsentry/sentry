@@ -2,9 +2,10 @@ from unittest.mock import patch
 
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_configs
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import Integration, OrganizationIntegration
+from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -202,7 +203,7 @@ class ProjectStacktraceLinksTest(APITestCase):
         code_mapping2 = self.setup_code_mapping("foo/bar", "bar")
 
         # this is the code mapping order that will be tried
-        assert get_code_mapping_configs(self.project) == [code_mapping2, code_mapping1]
+        assert get_sorted_code_mapping_configs(self.project) == [code_mapping2, code_mapping1]
 
         with patch.object(
             ExampleIntegration, "get_stacktrace_link", side_effect=[None, "https://sourceurl.com"]
@@ -287,7 +288,7 @@ class ProjectStacktraceLinksTest(APITestCase):
         code_mapping6 = self.setup_code_mapping("baz", "")
 
         # this is the code mapping order that will be tried
-        assert get_code_mapping_configs(self.project) == [
+        assert get_sorted_code_mapping_configs(self.project) == [
             code_mapping6,
             code_mapping5,
             code_mapping4,

@@ -10,7 +10,7 @@ from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.base import Endpoint, EndpointSiloLimit, resolve_region
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.models import ApiKey
+from sentry.models.apikey import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -39,7 +39,7 @@ class DummyErroringEndpoint(Endpoint):
     # `as_view` requires that any init args passed to it match attributes already on the
     # class, so even though they're really meant to be instance attributes, we have to
     # add them here as class attributes first
-    error = None
+    error = NotImplementedError()
     handler_context_arg = None
     scope_arg = None
 
@@ -130,7 +130,10 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert "Access-Control-Allow-Credentials" not in response
 
@@ -155,7 +158,10 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
@@ -180,7 +186,10 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
@@ -236,7 +245,10 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
     @mock.patch("sentry.api.base.Endpoint.convert_args")
@@ -431,21 +443,21 @@ class EndpointJSONBodyTest(APITestCase):
         self.request.META["CONTENT_TYPE"] = "application/json"
 
     def test_json(self):
-        self.request._body = '{"foo":"bar"}'
+        self.request._body = b'{"foo":"bar"}'
 
         Endpoint().load_json_body(self.request)
 
         assert self.request.json_body == {"foo": "bar"}
 
     def test_invalid_json(self):
-        self.request._body = "hello"
+        self.request._body = b"hello"
 
         Endpoint().load_json_body(self.request)
 
         assert not self.request.json_body
 
     def test_empty_request_body(self):
-        self.request._body = ""
+        self.request._body = b""
 
         Endpoint().load_json_body(self.request)
 

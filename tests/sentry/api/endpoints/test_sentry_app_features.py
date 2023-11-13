@@ -1,7 +1,10 @@
 from django.urls import reverse
 
-from sentry.models import IntegrationFeature
-from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
+from sentry.models.integrations.integration_feature import (
+    Feature,
+    IntegrationFeature,
+    IntegrationTypes,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 

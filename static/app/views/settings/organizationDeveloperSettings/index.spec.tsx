@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -231,7 +232,7 @@ describe('Organization Developer Settings', function () {
   });
 
   describe('without Owner permissions', () => {
-    const newOrg = TestStubs.Organization({access: ['org:read']});
+    const newOrg = Organization({access: ['org:read']});
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${newOrg.slug}/sentry-apps/`,

@@ -1,10 +1,11 @@
+from datetime import datetime, timezone
 from unittest import mock
 from unittest.mock import patch
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.models import ProjectCodeOwners
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -50,17 +51,23 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 204
         assert not ProjectCodeOwners.objects.filter(id=str(self.codeowners.id)).exists()
 
-    def test_basic_update(self):
+    @patch("django.utils.timezone.now")
+    def test_basic_update(self, mock_timezone_now):
         self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
         self.create_external_team(external_name="@getsentry/docs", integration=self.integration)
+        date = datetime(2023, 10, 3, tzinfo=timezone.utc)
+        mock_timezone_now.return_value = date
+        raw = "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n"
         data = {
-            "raw": "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n"
+            "raw": raw,
         }
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
         assert response.status_code == 200
         assert response.data["id"] == str(self.codeowners.id)
-        assert response.data["raw"] == data["raw"].strip()
+        assert response.data["raw"] == raw.strip()
+        codeowner = ProjectCodeOwners.objects.filter(id=self.codeowners.id)[0]
+        assert codeowner.date_updated == date
 
     def test_wrong_codeowners_id(self):
         self.url = reverse(

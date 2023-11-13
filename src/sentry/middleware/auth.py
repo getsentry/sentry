@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
@@ -16,9 +14,7 @@ from sentry.api.authentication import (
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
 )
-from sentry.models import UserIP
-from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
-from sentry.silo import SiloMode
+from sentry.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
 
@@ -51,40 +47,7 @@ def get_user(request):
     return request._cached_user
 
 
-class AuthenticationMiddleware(MiddlewareMixin):
-    @property
-    def impl(self) -> Any:
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return RequestAuthenticationMiddleware(self.get_response)
-        return HybridCloudAuthenticationMiddleware(self.get_response)
-
-    def process_request(self, request: HttpRequest) -> None:
-        request.user_from_signed_request = False
-
-        if request.path.startswith("/api/0/internal/rpc/"):
-            # Avoid doing RPC authentication when we're already
-            # in an RPC request.
-            request.user = AnonymousUser()
-            return
-
-        # If there is a valid signature on the request we override the
-        # user with the user contained within the signature.
-        user = process_signature(request)
-
-        if user is not None:
-            request.user = user
-            request.user_from_signed_request = True
-            return
-
-        return self.impl.process_request(request)
-
-    def process_exception(
-        self, request: HttpRequest, exception: Exception
-    ) -> HttpResponseBase | None:
-        return self.impl.process_exception(request, exception)
-
-
-class RequestAuthenticationMiddleware(MiddlewareMixin):
+class SessionAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request: HttpRequest) -> None:
         auth = get_authorization_header(request).split()
 
@@ -122,27 +85,23 @@ class RequestAuthenticationMiddleware(MiddlewareMixin):
             return None
 
 
-class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
+class AuthenticationMiddleware(SessionAuthenticationMiddleware):
     def process_request(self, request: HttpRequest) -> None:
-        from sentry.web.frontend.accounts import expired
+        request.user_from_signed_request = False
 
-        auth_result = auth_service.authenticate(request=authentication_request_from(request))
-
-        # Simulate accessing attributes on the session to trigger side effects related to doing so.
-        for attr in auth_result.accessed:
-            request.session[attr]
-
-        if auth_result.auth is not None:
-            request.auth = auth_result.auth
-        if auth_result.expired:
-            return expired(request, auth_result.user)
-        elif auth_result.user is not None:
-            request.user = auth_result.user
-            UserIP.log(auth_result.user, request.META["REMOTE_ADDR"])
-        else:
+        if request.path.startswith("/api/0/internal/rpc/"):
+            # Avoid doing RPC authentication when we're already
+            # in an RPC request.
             request.user = AnonymousUser()
+            return
 
-    def process_exception(
-        self, request: HttpRequest, exception: Exception
-    ) -> HttpResponseBase | None:
-        pass
+        # If there is a valid signature on the request we override the
+        # user with the user contained within the signature.
+        user = process_signature(request)
+
+        if user is not None:
+            request.user = user
+            request.user_from_signed_request = True
+            return
+
+        return super().process_request(request)

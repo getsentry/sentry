@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, ClassVar, Sequence
 
 from django.db import router, transaction
 from django.db.models.signals import post_delete, post_save
@@ -14,10 +14,10 @@ from sentry.db.models import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Team
+    from sentry.models.team import Team
 
 
-class ProjectTeamManager(BaseManager):
+class ProjectTeamManager(BaseManager["ProjectTeam"]):
     def get_for_teams_with_org_cache(self, teams: Sequence["Team"]) -> Sequence["ProjectTeam"]:
         project_teams = (
             self.filter(team__in=teams, project__status=ObjectStatus.ACTIVE)
@@ -44,7 +44,7 @@ class ProjectTeam(Model):
     project = FlexibleForeignKey("sentry.Project")
     team = FlexibleForeignKey("sentry.Team")
 
-    objects = ProjectTeamManager()
+    objects: ClassVar[ProjectTeamManager] = ProjectTeamManager()
 
     class Meta:
         app_label = "sentry"
@@ -55,7 +55,8 @@ class ProjectTeam(Model):
 
 
 def process_resource_change(instance, **kwargs):
-    from sentry.models import Organization, Project
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
     def _spawn_task():

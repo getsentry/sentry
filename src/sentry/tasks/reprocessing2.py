@@ -6,7 +6,7 @@ from django.db import router, transaction
 
 from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -226,7 +226,9 @@ def handle_remaining_events(
     soft_time_limit=60 * 5,
 )
 def finish_reprocessing(project_id, group_id):
-    from sentry.models import Activity, Group, GroupRedirect
+    from sentry.models.activity import Activity
+    from sentry.models.group import Group
+    from sentry.models.groupredirect import GroupRedirect
 
     with transaction.atomic(router.db_for_write(Group)):
         group = Group.objects.get(id=group_id)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
 
 from django.conf import settings
 from django.db import models
@@ -24,11 +24,12 @@ from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
 
 if TYPE_CHECKING:
-    from sentry.models import Group, User
+    from sentry.models.group import Group
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
-class ActivityManager(BaseManager):
+class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
@@ -99,7 +100,7 @@ class Activity(Model):
     datetime = models.DateTimeField(default=timezone.now)
     data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(null=True)
 
-    objects = ActivityManager()
+    objects: ClassVar[ActivityManager] = ActivityManager()
 
     class Meta:
         app_label = "sentry"
@@ -114,7 +115,7 @@ class Activity(Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from sentry.models import Release
+        from sentry.models.release import Release
 
         # XXX(dcramer): fix for bad data
         if self.type in (ActivityType.RELEASE.value, ActivityType.DEPLOY.value) and isinstance(
@@ -134,7 +135,7 @@ class Activity(Model):
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value:
-            from sentry.models import Group
+            from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") + 1)
             post_save.send_robust(
@@ -146,7 +147,7 @@ class Activity(Model):
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value:
-            from sentry.models import Group
+            from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") - 1)
             post_save.send_robust(

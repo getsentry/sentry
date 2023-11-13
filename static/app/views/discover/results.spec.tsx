@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -204,6 +205,13 @@ function renderMockRequests() {
     },
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+    method: 'GET',
+    statusCode: 204,
+    body: '',
+  });
+
   return {
     eventsStatsMock,
     eventsMetaMock,
@@ -223,7 +231,7 @@ describe('Results', function () {
   describe('Events', function () {
     const features = ['discover-basic'];
     it('loads data when moving from an invalid to valid EventView', function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -267,7 +275,7 @@ describe('Results', function () {
     });
 
     it('pagination cursor should be cleared when making a search', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -335,7 +343,7 @@ describe('Results', function () {
     });
 
     it('renders a y-axis selector', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -372,7 +380,7 @@ describe('Results', function () {
     });
 
     it('renders a display selector', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -409,7 +417,7 @@ describe('Results', function () {
     });
 
     it('excludes top5 options when plan does not include discover-query', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -445,7 +453,7 @@ describe('Results', function () {
     });
 
     it('needs confirmation on long queries', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -481,7 +489,7 @@ describe('Results', function () {
     });
 
     it('needs confirmation on long query with explicit projects', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -523,7 +531,7 @@ describe('Results', function () {
     });
 
     it('does not need confirmation on short queries', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -559,7 +567,7 @@ describe('Results', function () {
     });
 
     it('does not need confirmation with to few projects', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -601,7 +609,7 @@ describe('Results', function () {
     });
 
     it('creates event view from saved query', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
         slug: 'org-slug',
       });
@@ -660,7 +668,7 @@ describe('Results', function () {
     });
 
     it('overrides saved query params with location query params', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
         slug: 'org-slug',
       });
@@ -705,7 +713,7 @@ describe('Results', function () {
     });
 
     it('updates chart whenever yAxis parameter changes', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -782,7 +790,7 @@ describe('Results', function () {
     });
 
     it('updates chart whenever display parameter changes', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -859,7 +867,7 @@ describe('Results', function () {
     });
 
     it('updates chart whenever display and yAxis parameters change', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -940,7 +948,7 @@ describe('Results', function () {
     });
 
     it('appends tag value to existing query when clicked', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -992,7 +1000,7 @@ describe('Results', function () {
     });
 
     it('respects pinned filters for prebuilt queries', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: [...features, 'global-views'],
       });
 
@@ -1032,13 +1040,13 @@ describe('Results', function () {
 
       const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
 
-      expect(projectPageFilter).toHaveTextContent('Pinned Project');
+      expect(projectPageFilter).toHaveTextContent('All Projects');
     });
 
     it('displays tip when events response contains a tip', async function () {
       renderMockRequests();
 
-      const eventsResultsMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         body: {
           meta: {
@@ -1049,7 +1057,7 @@ describe('Results', function () {
         },
       });
 
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features,
       });
 
@@ -1073,15 +1081,11 @@ describe('Results', function () {
         {context: initialData.routerContext, organization}
       );
 
-      await waitFor(() => {
-        expect(eventsResultsMock).toHaveBeenCalled();
-      });
-
-      expect(screen.getByText('this is a tip')).toBeInTheDocument();
+      expect(await screen.findByText('this is a tip')).toBeInTheDocument();
     });
 
     it('renders metric fallback alert', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -1118,7 +1122,7 @@ describe('Results', function () {
     });
 
     it('renders unparameterized data banner', async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic'],
       });
 
@@ -1159,7 +1163,7 @@ describe('Results', function () {
         statusCode: 200,
       });
 
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1225,7 +1229,7 @@ describe('Results', function () {
           orderby: '-user.display',
         },
       });
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1286,7 +1290,7 @@ describe('Results', function () {
         statusCode: 200,
         body: {...TRANSACTION_VIEWS[0], name: ''},
       });
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1346,7 +1350,7 @@ describe('Results', function () {
     });
 
     it('links back to the homepage through the Discover breadcrumb', async () => {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1382,7 +1386,7 @@ describe('Results', function () {
     });
 
     it('links back to the Saved Queries through the Saved Queries breadcrumb', async () => {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1416,7 +1420,7 @@ describe('Results', function () {
     });
 
     it('allows users to Set As Default on the All Events query', async () => {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
 
@@ -1457,7 +1461,7 @@ describe('Results', function () {
     });
 
     it("doesn't render sample data alert", async function () {
-      const organization = TestStubs.Organization({
+      const organization = Organization({
         features: ['discover-basic', 'discover-query'],
       });
       const initialData = initializeOrg({

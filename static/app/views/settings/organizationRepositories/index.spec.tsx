@@ -1,12 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationRepositoriesContainer from 'sentry/views/settings/organizationRepositories';
 
 describe('OrganizationRepositoriesContainer', function () {
-  const context = TestStubs.routerContext();
-  const organization = TestStubs.Organization();
-  const router = TestStubs.router();
-
+  const {routerContext} = initializeOrg();
   beforeEach(function () {
     MockApiClient.clearMockResponses();
   });
@@ -24,20 +22,7 @@ describe('OrganizationRepositoriesContainer', function () {
     });
 
     it('is loading when initially rendering', function () {
-      render(
-        <OrganizationRepositoriesContainer
-          router={router}
-          routes={router.routes}
-          params={router.params}
-          routeParams={router.params}
-          route={router.routes[0]}
-          location={router.location}
-          organization={organization}
-        />,
-        {
-          context,
-        }
-      );
+      render(<OrganizationRepositoriesContainer />, {context: routerContext});
     });
   });
 });

@@ -9,7 +9,7 @@ from sentry.loader.browsersdkversion import (
     get_selected_browser_sdk_version,
 )
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 
 
 class RateLimit(TypedDict):
@@ -23,6 +23,7 @@ class DSN(TypedDict):
     csp: str
     security: str
     minidump: str
+    nel: str
     unreal: str
     cdn: str
 
@@ -85,6 +86,7 @@ class ProjectKeySerializer(Serializer):
                 "csp": obj.csp_endpoint,
                 "security": obj.security_endpoint,
                 "minidump": obj.minidump_endpoint,
+                "nel": obj.nel_endpoint,
                 "unreal": obj.unreal_endpoint,
                 "cdn": obj.js_sdk_loader_cdn_url,
             },

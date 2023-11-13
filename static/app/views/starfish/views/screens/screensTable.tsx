@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
+import * as qs from 'query-string';
 
-import {getInterval} from 'sentry/components/charts/utils';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {NewQuery} from 'sentry/types';
 import {
   TableData,
   TableDataRow,
@@ -14,80 +14,81 @@ import {
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
-export function ScreensTable() {
-  const {selection} = usePageFilters();
+type Props = {
+  data: TableData | undefined;
+  eventView: EventView;
+  isLoading: boolean;
+  pageLinks: string | undefined;
+};
+
+export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const {query} = location;
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const truncatedPrimary = centerTruncate(primaryRelease ?? '', 15);
+  const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 15);
 
-  const searchQuery = new MutableSearch([
-    'event.type:transaction',
-    'transaction.op:ui.load',
-  ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
-
-  const orderby = decodeScalar(query.sort, `-count`);
-  const newQuery: NewQuery = {
-    name: '',
-    fields: [
-      'transaction',
-      'avg(measurements.time_to_initial_display)', // TODO: Update these to avgIf with primary release when available
-      `avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`,
-      'avg(measurements.time_to_full_display)',
-      `avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`,
-      'count()',
-    ],
-    topEvents: '6',
-    query: queryStringPrimary,
-    dataset: DiscoverDatasets.METRICS,
-    version: 2,
-    projects: selection.projects,
-    interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
-  };
-  newQuery.orderby = orderby;
-  const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
-
-  const {data, isLoading, pageLinks} = useScreensList({
-    eventView,
-    enabled: !isReleasesLoading,
-  });
   const eventViewColumns = eventView.getColumns();
 
   const columnNameMap = {
     transaction: t('Screen'),
-    'avg(measurements.time_to_initial_display)': DataTitles.ttid,
-    'avg(measurements.time_to_full_display)': DataTitles.ttfd,
-    'count()': DataTitles.count,
-    [`avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`]:
-      DataTitles.change,
-    [`avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`]:
-      DataTitles.change,
+    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
+      'TTID (%s)',
+      truncatedPrimary
+    ),
+    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
+      'TTID (%s)',
+      truncatedSecondary
+    ),
+    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
+      'TTFD (%s)',
+      truncatedPrimary
+    ),
+    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
+      'TTFD (%s)',
+      truncatedSecondary
+    ),
+    'count()': t('Total Count'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
       return row[column.key];
+    }
+
+    const index = data.data.indexOf(row);
+
+    const field = String(column.key);
+
+    if (field === 'transaction') {
+      return (
+        <Fragment>
+          <TopResultsIndicator count={TOP_SCREENS} index={index} />
+          <Link
+            to={`/organizations/${
+              organization.slug
+            }/performance/mobile/screens/spans/?${qs.stringify({
+              ...location.query,
+              project: row['project.id'],
+              transaction: row.transaction,
+              primaryRelease,
+              secondaryRelease,
+            })}`}
+            style={{display: `block`, width: `100%`}}
+          >
+            {row.transaction}
+          </Link>
+        </Fragment>
+      );
     }
 
     const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
@@ -145,9 +146,15 @@ export function ScreensTable() {
       <GridEditable
         isLoading={isLoading}
         data={data?.data as TableDataRow[]}
-        columnOrder={eventViewColumns.map((col: TableColumn<React.ReactText>) => {
-          return {...col, name: columnNameMap[col.key]};
-        })}
+        columnOrder={eventViewColumns
+          .filter(
+            (col: TableColumn<React.ReactText>) =>
+              col.name !== SpanMetricsField.PROJECT_ID &&
+              !col.name.startsWith('avg_compare')
+          )
+          .map((col: TableColumn<React.ReactText>) => {
+            return {...col, name: columnNameMap[col.key]};
+          })}
         columnSortBy={[
           {
             key: 'count()',
@@ -165,17 +172,21 @@ export function ScreensTable() {
   );
 }
 
-export function useScreensList({
+export function useTableQuery({
   eventView,
   enabled,
   referrer,
   initialData,
+  limit,
+  staleTime,
 }: {
   eventView: EventView;
   enabled?: boolean;
   excludeOther?: boolean;
   initialData?: TableData;
+  limit?: number;
   referrer?: string;
+  staleTime?: number;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -184,11 +195,12 @@ export function useScreensList({
     eventView,
     location,
     orgSlug: organization.slug,
-    limit: 10,
+    limit: limit ?? 25,
     referrer,
     options: {
       refetchOnWindowFocus: false,
       enabled,
+      staleTime,
     },
   });
 

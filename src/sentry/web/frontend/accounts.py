@@ -13,15 +13,20 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from sentry.models import LostPasswordHash, NotificationSetting, Project, User, UserEmail
+from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.models.project import Project
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.security import capture_security_activity
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.signals import email_verified
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import auth
 from sentry.web.decorators import login_required, set_referrer_policy, signed_auth_required
-from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm
+from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
@@ -102,14 +107,18 @@ def recover_confirm(request, user_id, hash, mode="recover"):
             password_hash.delete()
             raise LostPasswordHash.DoesNotExist
         user = password_hash.user
-
     except LostPasswordHash.DoesNotExist:
         return render_to_response(get_template(mode, "failure"), {}, request)
 
+    # TODO(getsentry/team-ospo#190): Clean up ternary logic and only show relocation form if user is unclaimed
+    form = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm
     if request.method == "POST":
-        form = ChangePasswordRecoverForm(request.POST, user=user)
+        form = form(request.POST, user=user)
         if form.is_valid():
             with transaction.atomic(router.db_for_write(User)):
+                if mode == "relocate":
+                    user.username = form.cleaned_data["username"]
+                    user.is_unclaimed = False
                 user.set_password(form.cleaned_data["password"])
                 user.refresh_session_nonce(request)
                 user.save()
@@ -134,7 +143,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
             return login_redirect(request)
     else:
-        form = ChangePasswordRecoverForm(user=user)
+        form = form(user=user)
 
     return render_to_response(get_template(mode, "confirm"), {"form": form}, request)
 
@@ -142,6 +151,11 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 # Set password variation of password recovery
 set_password_confirm = partial(recover_confirm, mode="set_password")
 set_password_confirm = update_wrapper(set_password_confirm, recover)
+
+
+# Relocation variation of password recovery
+relocate_confirm = partial(recover_confirm, mode="relocate")
+relocate_confirm = update_wrapper(relocate_confirm, recover)
 
 
 @login_required
@@ -163,7 +177,7 @@ def start_confirm_email(request):
     if "primary-email" in request.POST:
         email = request.POST.get("email")
         try:
-            email_to_send = UserEmail.objects.get(user=request.user, email=email)
+            email_to_send = UserEmail.objects.get(user_id=request.user.id, email=email)
         except UserEmail.DoesNotExist:
             msg = _("There was an error confirming your email.")
             level = messages.ERROR
@@ -238,14 +252,13 @@ def email_unsubscribe_project(request, project_id):
 
     if request.method == "POST":
         if "cancel" not in request.POST:
-            with transaction.atomic(router.db_for_write(NotificationSetting)):
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.EMAIL,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
-                    user_id=request.user.id,
-                    project=project,
-                )
+            notifications_service.update_settings(
+                external_provider=ExternalProviders.EMAIL,
+                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+                setting_option=NotificationSettingOptionValues.NEVER,
+                actor=RpcActor.from_object(request.user),
+                project_id=project.id,
+            )
         return HttpResponseRedirect(auth.get_login_url())
 
     context = csrf(request)

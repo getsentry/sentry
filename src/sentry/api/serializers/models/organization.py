@@ -23,7 +23,7 @@ from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
 from sentry import features, onboarding_tasks, quotas, roles
-from sentry.api.base import PreventNumericSlugMixin
+from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -60,17 +60,13 @@ from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.models import (
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationAvatar,
-    OrganizationOnboardingTask,
-    OrganizationOption,
-    OrganizationStatus,
-    Project,
-    Team,
-    TeamStatus,
-)
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
@@ -100,15 +96,16 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
 }
 
 
-class BaseOrganizationSerializer(serializers.Serializer, PreventNumericSlugMixin):
+class BaseOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
 
-    # The slug pattern consists of the following:
-    # [a-zA-Z0-9]   - The slug must start with a letter or number
-    # [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
-    # (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
-    slug = serializers.RegexField(
-        r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$",
+    # XXX: Sentry org slugs are different from other resource slugs. See
+    # SentrySlugField for the full regex pattern. In short, they differ b/c
+    # 1. cannot contain underscores
+    # 2. must start with a number or letter
+    # 3. cannot end with a dash
+    slug = SentrySlugField(
+        org_slug=True,
         max_length=50,
         error_messages={
             "invalid": _(
@@ -140,7 +137,6 @@ class BaseOrganizationSerializer(serializers.Serializer, PreventNumericSlugMixin
             raise serializers.ValidationError(
                 f'The slug "{value}" should not contain any whitespace.'
             )
-        value = super().validate_slug(value)
         return value
 
 
@@ -267,9 +263,10 @@ class OrganizationSerializer(Serializer):
             avatar = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:
-            avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
+            avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
 
         status = OrganizationStatus(obj.status)
 

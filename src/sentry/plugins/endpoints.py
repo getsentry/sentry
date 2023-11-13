@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import GroupMeta
+from sentry.models.groupmeta import GroupMeta
 
 
 class PluginProjectEndpoint(ProjectEndpoint):

@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from django.utils import timezone
 
-from sentry.models import CustomDynamicSamplingRule
+from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -31,6 +31,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod",
         )
 
         end2 = timezone.now() + timedelta(hours=1)
@@ -38,18 +39,18 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             condition=condition,
             start=timezone.now() + timedelta(minutes=1),
             end=end2,
-            project_ids=[self.second_project.id],
+            project_ids=[self.project.id],
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod",
         )
 
         assert rule.id == updated_rule.id
         projects = updated_rule.projects.all()
 
-        assert len(projects) == 2
+        assert len(projects) == 1
         assert self.project in projects
-        assert self.second_project in projects
 
         assert updated_rule.end_date >= end1
         assert updated_rule.end_date >= end2
@@ -65,6 +66,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
                 organization_id=self.organization.id,
                 num_samples=100,
                 sample_rate=0.5,
+                query=f"environment:prod{env_idx}",
             )
 
         rule_ids = set()
@@ -117,6 +119,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
                 organization_id=self.organization.id,
                 num_samples=100,
                 sample_rate=0.5,
+                query=f"environment:prod{idx}",
             )
 
         for i in range(10):
@@ -148,7 +151,9 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         condition = {"op": "equals", "name": "environment", "value": "prod"}
 
         # check empty result
-        rule = CustomDynamicSamplingRule.get_rule_for_org(condition, self.organization.id)
+        rule = CustomDynamicSamplingRule.get_rule_for_org(
+            condition, self.organization.id, [self.project.id]
+        )
         assert rule is None
 
         new_rule = CustomDynamicSamplingRule.update_or_create(
@@ -159,9 +164,12 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod",
         )
 
-        rule = CustomDynamicSamplingRule.get_rule_for_org(condition, self.organization.id)
+        rule = CustomDynamicSamplingRule.get_rule_for_org(
+            condition, self.organization.id, [self.project.id]
+        )
         assert rule == new_rule
 
     def test_get_project_rules(self):
@@ -201,6 +209,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
                 organization_id=org_id,
                 num_samples=100,
                 sample_rate=0.5,
+                query=f"environment:prod{idx[0]}",
             )
 
         valid_project_rule = create_rule([self.project.id, self.second_project.id])
@@ -223,3 +232,44 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         assert len(rules) == 2
         assert valid_project_rule in rules
         assert valid_org_rule in rules
+
+    def test_separate_projects_create_different_rules(self):
+        """
+        Tests that same condition for different projects create different rules
+        """
+        condition = {"op": "equals", "name": "environment", "value": "prod"}
+
+        end1 = timezone.now() + timedelta(hours=1)
+
+        rule = CustomDynamicSamplingRule.update_or_create(
+            condition=condition,
+            start=timezone.now(),
+            end=end1,
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+            num_samples=100,
+            sample_rate=0.5,
+            query="environment:prod",
+        )
+
+        end2 = timezone.now() + timedelta(hours=1)
+        second_rule = CustomDynamicSamplingRule.update_or_create(
+            condition=condition,
+            start=timezone.now() + timedelta(minutes=1),
+            end=end2,
+            project_ids=[self.second_project.id],
+            organization_id=self.organization.id,
+            num_samples=100,
+            sample_rate=0.5,
+            query="environment:prod",
+        )
+
+        assert rule.id != second_rule.id
+
+        first_projects = rule.projects.all()
+        assert len(first_projects) == 1
+        assert self.project == first_projects[0]
+
+        second_projects = second_rule.projects.all()
+        assert len(second_projects) == 1
+        assert self.second_project == second_projects[0]

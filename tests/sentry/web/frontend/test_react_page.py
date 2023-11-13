@@ -2,7 +2,7 @@ from fnmatch import fnmatch
 
 from django.urls import URLResolver, get_resolver, reverse
 
-from sentry.models import OrganizationStatus
+from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
@@ -338,3 +338,30 @@ class ReactPageViewTest(TestCase):
                 ("http://testserver/organizations/new/", 302),
             ]
             assert "activeorg" not in self.client.session
+
+    def test_document_policy_header_when_flag_is_enabled(self):
+        org = self.create_organization(owner=self.user)
+
+        self.login_as(self.user)
+
+        with self.feature({"organizations:profiling-browser": [org.slug]}):
+            response = self.client.get(
+                "/issues/",
+                SERVER_NAME=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.headers["Document-Policy"] == "js-profiling"
+
+    def test_document_policy_header_when_flag_is_disabled(self):
+        org = self.create_organization(owner=self.user)
+
+        self.login_as(self.user)
+
+        response = self.client.get(
+            "/issues/",
+            SERVER_NAME=f"{org.slug}.testserver",
+            follow=True,
+        )
+        assert response.status_code == 200
+        assert "Document-Policy" not in response.headers

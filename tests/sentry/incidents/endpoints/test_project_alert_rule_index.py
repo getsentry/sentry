@@ -6,7 +6,7 @@ import requests
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase

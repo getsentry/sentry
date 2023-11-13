@@ -1,8 +1,10 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {doEventsRequest} from 'sentry/actionCreators/events';
 
 describe('Events ActionCreator', function () {
   const api = new MockApiClient();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const project = TestStubs.Project();
   const opts = {
     organization,
@@ -113,6 +115,25 @@ describe('Events ActionCreator', function () {
           environment: [],
           start: '2017-10-08T00:00:00',
           end: '2017-10-17T00:00:00',
+        }),
+      })
+    );
+  });
+
+  it('spreads query extras', async function () {
+    await doEventsRequest(api, {
+      ...opts,
+      queryExtras: {useOnDemandMetrics: 'true'},
+      partial: true,
+    });
+
+    expect(mock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [project.id],
+          environment: [],
+          useOnDemandMetrics: 'true',
         }),
       })
     );

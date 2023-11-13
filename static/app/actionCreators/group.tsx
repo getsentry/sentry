@@ -188,7 +188,7 @@ export function updateNote(
   id: string,
   oldText: string
 ) {
-  GroupStore.updateActivity(group.id, id, {data: {text: note.text}});
+  GroupStore.updateActivity(group.id, id, {text: note.text});
 
   const promise = api.requestPromise(
     `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
@@ -198,7 +198,7 @@ export function updateNote(
     }
   );
 
-  promise.catch(() => GroupStore.updateActivity(group.id, id, {data: {text: oldText}}));
+  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
 
   return promise;
 }
@@ -413,11 +413,11 @@ export type GroupTagsResponse = GroupTagResponseItem[];
 
 type FetchIssueTagsParameters = {
   environment: string[];
-  limit: number;
   orgSlug: string;
-  readable: boolean;
   groupId?: string;
   isStatisticalDetector?: boolean;
+  limit?: number;
+  readable?: boolean;
   statisticalDetectorParameters?: {
     durationBaseline: number;
     end: string;
@@ -487,6 +487,7 @@ type FetchIssueTagValuesParameters = {
   groupId: string;
   orgSlug: string;
   tagKey: string;
+  cursor?: string;
   environment?: string[];
   sort?: string | string[];
 };
@@ -497,9 +498,10 @@ export const makeFetchIssueTagValuesQueryKey = ({
   tagKey,
   environment,
   sort,
+  cursor,
 }: FetchIssueTagValuesParameters): ApiQueryKey => [
   `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/values/`,
-  {query: {environment, sort}},
+  {query: {environment, sort, cursor}},
 ];
 
 export function useFetchIssueTagValues(

@@ -1,10 +1,14 @@
 import pytest
 
 from sentry.constants import DataCategory
-from sentry.models import OrganizationOption, ProjectKey
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.projectkey import ProjectKey
+from sentry.monitors.constants import PermitCheckInStatus
+from sentry.monitors.models import Monitor, MonitorObjectStatus, MonitorType
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.outcomes import Outcome
 
 
 @region_silo_test(stable=True)
@@ -89,6 +93,33 @@ class QuotaTest(TestCase):
     def test_get_blended_sample_rate(self):
         org = self.create_organization()
         assert self.backend.get_blended_sample_rate(organization_id=org.id) is None
+
+    def test_assign_monitor_seat(self):
+        monitor = Monitor.objects.create(
+            slug="test-monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="test monitor",
+            status=MonitorObjectStatus.ACTIVE,
+            type=MonitorType.CRON_JOB,
+        )
+        assert self.backend.assign_monitor_seat(monitor) == Outcome.ACCEPTED
+
+    def test_check_accept_monitor_checkin(self):
+        monitor = Monitor.objects.create(
+            slug="test-monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="test monitor",
+            status=MonitorObjectStatus.ACTIVE,
+            type=MonitorType.CRON_JOB,
+        )
+        assert (
+            self.backend.check_accept_monitor_checkin(
+                monitor_slug=monitor.slug, project_id=monitor.project_id
+            )
+            == PermitCheckInStatus.ACCEPT
+        )
 
 
 @pytest.mark.parametrize(

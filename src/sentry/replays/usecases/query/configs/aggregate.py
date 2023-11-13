@@ -12,12 +12,11 @@ acts as a validation step as must as a type coercion step.
 """
 from __future__ import annotations
 
-from typing import Union
-
-from sentry.replays.lib.new_query.conditions import IntegerScalar, StringScalar
+from sentry.replays.lib.new_query.conditions import IntegerScalar, UUIDScalar
 from sentry.replays.lib.new_query.fields import (
     ColumnField,
     CountField,
+    FieldProtocol,
     StringColumnField,
     SumField,
     SumLengthField,
@@ -72,7 +71,7 @@ def array_string_field(column_name: str) -> StringColumnField:
     return StringColumnField(column_name, parse_str, SumOfStringArray)
 
 
-search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
+search_config: dict[str, FieldProtocol] = {
     "activity": ComputedField(parse_int, AggregateActivityScalar),
     "browser.name": string_field("browser_name"),
     "browser.version": string_field("browser_version"),
@@ -108,7 +107,7 @@ search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "info_ids": ComputedField(parse_uuid, SumOfInfoIdScalar),
     # Backwards Compat: We pass a simple string to the UUID column. Older versions of ClickHouse
     # do not understand the UUID type.
-    "id": ColumnField("replay_id", lambda x: str(parse_uuid(x)), StringScalar),
+    "id": ColumnField("replay_id", parse_uuid, UUIDScalar),
     "os.name": string_field("os_name"),
     "os.version": string_field("os_version"),
     "platform": string_field("platform"),

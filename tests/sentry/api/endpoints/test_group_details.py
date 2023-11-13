@@ -4,25 +4,23 @@ from unittest import mock
 from django.test import override_settings
 from django.utils import timezone
 
-from sentry import tsdb
+from sentry import buffer, tsdb
+from sentry.buffer.redis import RedisBuffer
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
-from sentry.models import (
-    Activity,
-    ApiKey,
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupMeta,
-    GroupResolution,
-    GroupSeen,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    Release,
-)
+from sentry.models.activity import Activity
+from sentry.models.apikey import ApiKey
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.release import Release
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
 from sentry.silo import SiloMode
@@ -130,7 +128,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.backend.get_range) as get_range:
+        with mock.patch(
+            "sentry.tsdb.backend.get_range", side_effect=tsdb.backend.get_range
+        ) as get_range:
             response = self.client.get(url, {"environment": "production"}, format="json")
             assert response.status_code == 200
             assert get_range.call_count == 2
@@ -266,6 +266,34 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         # With collapse param, tags should not be present
         response = self.client.get(url, {"collapse": ["tags"]})
         assert "tags" not in response.data
+
+    def test_count_with_buffer(self):
+        """Test that group count includes the count from the buffer."""
+        self.login_as(user=self.user)
+
+        redis_buffer = RedisBuffer()
+        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.backend.incr", redis_buffer.incr
+        ):
+            event = self.store_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            group = event.group
+            event.group.update(times_seen=1)
+            buffer.backend.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
+
+            url = f"/api/0/issues/{group.id}/"
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["id"] == str(group.id)
+            assert response.data["count"] == "16"
+
+            url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+            response = self.client.get(url, format="json")
+
+            assert response.status_code == 200, response.content
+            assert response.data["id"] == str(group.id)
+            assert response.data["count"] == "16"
 
 
 @region_silo_test(stable=True)

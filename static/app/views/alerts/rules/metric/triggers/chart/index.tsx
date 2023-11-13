@@ -34,6 +34,7 @@ import type {
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
@@ -86,7 +87,6 @@ const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
   [TimePeriod.THREE_DAYS]: t('Last 3 days'),
   [TimePeriod.SEVEN_DAYS]: t('Last 7 days'),
   [TimePeriod.FOURTEEN_DAYS]: t('Last 14 days'),
-  [TimePeriod.THIRTY_DAYS]: t('Last 30 days'),
 };
 
 /**
@@ -97,7 +97,6 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
   TimePeriod.THREE_DAYS,
   TimePeriod.SEVEN_DAYS,
   TimePeriod.FOURTEEN_DAYS,
-  TimePeriod.THIRTY_DAYS,
 ];
 
 /**
@@ -121,9 +120,8 @@ const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
     TimePeriod.THREE_DAYS,
     TimePeriod.SEVEN_DAYS,
     TimePeriod.FOURTEEN_DAYS,
-    TimePeriod.THIRTY_DAYS,
   ],
-  [TimeWindow.ONE_DAY]: [TimePeriod.THIRTY_DAYS],
+  [TimeWindow.ONE_DAY]: [TimePeriod.FOURTEEN_DAYS],
 };
 
 const TIME_WINDOW_TO_SESSION_INTERVAL = {
@@ -282,6 +280,7 @@ class TriggersChart extends PureComponent<Props, State> {
       timeWindow,
       aggregate,
       comparisonType,
+      organization,
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
@@ -291,12 +290,13 @@ class TriggersChart extends PureComponent<Props, State> {
       ? errored || errorMessage
       : errored || errorMessage || !isQueryValid;
 
-    const isExtrapolatedChartData =
+    const showExtrapolatedChartData =
+      shouldShowOnDemandMetricAlertUI(organization) &&
       seriesAdditionalInfo?.[timeseriesData[0]?.seriesName]?.isExtrapolatedData;
 
     const totalCountLabel = isSessionAggregate(aggregate)
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
-      : isExtrapolatedChartData
+      : showExtrapolatedChartData
       ? t('Estimated Transactions')
       : t('Total Transactions');
 
@@ -327,7 +327,7 @@ class TriggersChart extends PureComponent<Props, State> {
             thresholdType={thresholdType}
             aggregate={aggregate}
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-            isExtrapolatedData={isExtrapolatedChartData}
+            isExtrapolatedData={showExtrapolatedChartData}
           />
         )}
 

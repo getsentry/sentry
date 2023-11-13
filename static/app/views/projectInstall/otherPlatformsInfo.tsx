@@ -49,7 +49,7 @@ export function OtherPlatformsInfo({
       </CodeSnippet>
       <Suggestion>
         {t(
-          'Since it can be a lot work creating a Sentry SDK from scratch, we suggest you review the following SDKs which are applicable for a wide variety of applications:'
+          'Since it can be a lot of work creating a Sentry SDK from scratch, we suggest you review the following SDKs which are applicable for a wide variety of applications:'
         )}
         <List symbol="bullet">
           <ListItem>
@@ -86,6 +86,14 @@ export function OtherPlatformsInfo({
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/#community-supported" />
             ),
+          }
+        )}
+      </div>
+      <div>
+        {tct(
+          'Your favorite language or framework still cannot be found? Then we encourage you to consider [link:writing your own SDK].',
+          {
+            link: <ExternalLink href="https://develop.sentry.dev/sdk" />,
           }
         )}
       </div>

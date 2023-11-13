@@ -1,15 +1,20 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import moment from 'moment';
 
-import {getInterval} from 'sentry/components/charts/utils';
+import {ApiResult} from 'sentry/api';
+import {
+  DateTimeObject,
+  getDiffInMinutes,
+  getInterval,
+} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {PageFilters} from '../types/core';
+import {DateString, PageFilters} from '../types/core';
 
 // TODO(ddm): reuse from types/metrics.tsx
 type MetricMeta = {
@@ -63,7 +68,7 @@ type MetricTag = {
 
 export function useMetricsTags(mri: string, projects: PageFilters['projects']) {
   const {slug} = useOrganization();
-  const useCase = getUseCaseFromMri(mri);
+  const useCase = getUseCaseFromMRI(mri);
   return useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/`,
@@ -81,7 +86,7 @@ export function useMetricsTagValues(
   projects: PageFilters['projects']
 ) {
   const {slug} = useOrganization();
-  const useCase = getUseCaseFromMri(mri);
+  const useCase = getUseCaseFromMRI(mri);
   return useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/${tag}/`,
@@ -95,16 +100,13 @@ export function useMetricsTagValues(
 }
 
 export type MetricsQuery = {
+  datetime: PageFilters['datetime'];
+  environments: PageFilters['environments'];
   mri: string;
+  projects: PageFilters['projects'];
   groupBy?: string[];
   op?: string;
   query?: string;
-};
-
-export type MetricsDataProps = MetricsQuery & {
-  datetime: PageFilters['datetime'];
-  environments: PageFilters['environments'];
-  projects: PageFilters['projects'];
 };
 
 // TODO(ddm): reuse from types/metrics.tsx
@@ -132,12 +134,12 @@ export function useMetricsData({
   environments,
   query,
   groupBy,
-}: MetricsDataProps) {
-  const {slug} = useOrganization();
-  const useCase = getUseCaseFromMri(mri);
+}: MetricsQuery) {
+  const {slug, features} = useOrganization();
+  const useCase = getUseCaseFromMRI(mri);
   const field = op ? `${op}(${mri})` : mri;
 
-  const interval = getInterval(datetime, 'metrics');
+  const interval = getMetricsInterval(datetime, mri);
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
@@ -149,10 +151,14 @@ export function useMetricsData({
     interval,
     groupBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
-
     // max result groups
     per_page: 20,
+    useNewMetricsLayer: false,
   };
+
+  if (features.includes('metrics-api-new-metrics-layer')) {
+    queryToSend.useNewMetricsLayer = true;
+  }
 
   return useApiQuery<MetricsData>(
     [`/organizations/${slug}/metrics/data/`, {query: queryToSend}],
@@ -161,16 +167,94 @@ export function useMetricsData({
       staleTime: 0,
       refetchOnReconnect: true,
       refetchOnWindowFocus: true,
-      // auto refetch every 60 seconds
-      refetchInterval: data => {
-        // don't refetch if the request failed
-        if (!data) {
-          return false;
-        }
-        return 60 * 1000;
-      },
+      refetchInterval: data => getRefetchInterval(data, interval),
     }
   );
+}
+
+function getRefetchInterval(
+  data: ApiResult | undefined,
+  interval: string
+): number | false {
+  // no data means request failed - don't refetch
+  if (!data) {
+    return false;
+  }
+  if (interval === '10s') {
+    // refetch every 10 seconds
+    return 10 * 1000;
+  }
+  // refetch every 60 seconds
+  return 60 * 1000;
+}
+
+// Wraps useMetricsData and provides two additional features:
+// 1. return data is undefined only during the initial load
+// 2. provides a callback to trim the data to a specific time range when chart zoom is used
+export function useMetricsDataZoom(props: MetricsQuery) {
+  const [metricsData, setMetricsData] = useState<MetricsData | undefined>();
+  const {data: rawData, isLoading, isError, error} = useMetricsData(props);
+
+  useEffect(() => {
+    if (rawData) {
+      setMetricsData(rawData);
+    }
+  }, [rawData]);
+
+  const trimData = (start, end): MetricsData | undefined => {
+    if (!metricsData) {
+      return metricsData;
+    }
+    // find the index of the first interval that is greater than the start time
+    const startIndex = metricsData.intervals.findIndex(interval => interval >= start) - 1;
+    const endIndex = metricsData.intervals.findIndex(interval => interval >= end);
+
+    if (startIndex === -1 || endIndex === -1) {
+      return metricsData;
+    }
+
+    return {
+      ...metricsData,
+      intervals: metricsData.intervals.slice(startIndex, endIndex),
+      groups: metricsData.groups.map(group => ({
+        ...group,
+        series: Object.fromEntries(
+          Object.entries(group.series).map(([seriesName, series]) => [
+            seriesName,
+            series.slice(startIndex, endIndex),
+          ])
+        ),
+      })),
+    };
+  };
+
+  return {
+    data: metricsData,
+    isLoading,
+    isError,
+    error,
+    onZoom: (start: DateString, end: DateString) => {
+      setMetricsData(trimData(start, end));
+    },
+  };
+}
+
+// Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
+function getMetricsInterval(dateTimeObj: DateTimeObject, mri: string) {
+  const interval = getInterval(dateTimeObj, 'metrics');
+
+  if (interval !== '1m') {
+    return interval;
+  }
+
+  const diffInMinutes = getDiffInMinutes(dateTimeObj);
+  const useCase = getUseCaseFromMRI(mri);
+
+  if (diffInMinutes <= 60 && useCase === 'custom') {
+    return '10s';
+  }
+
+  return interval;
 }
 
 function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
@@ -180,16 +264,6 @@ function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
 }
 
 type UseCase = 'sessions' | 'transactions' | 'custom';
-
-export function getUseCaseFromMri(mri?: string): UseCase {
-  if (mri?.includes('custom/')) {
-    return 'custom';
-  }
-  if (mri?.includes('transactions/')) {
-    return 'transactions';
-  }
-  return 'sessions';
-}
 
 const metricTypeToReadable = {
   c: t('counter'),
@@ -206,16 +280,34 @@ export function getReadableMetricType(type) {
 
 const noUnit = 'none';
 
-export function getUnitFromMRI(mri?: string) {
+export function parseMRI(mri?: string) {
   if (!mri) {
-    return noUnit;
+    return null;
   }
 
-  return mri.split('@').pop() ?? noUnit;
+  const cleanMRI = mri.match(/[cdegs]:[\w/.@]+/)?.[0] ?? mri;
+
+  const name = cleanMRI.match(/^[a-z]:\w+\/(.+)(?:@\w+)$/)?.[1] ?? mri;
+  const unit = cleanMRI.split('@').pop() ?? noUnit;
+
+  const useCase = getUseCaseFromMRI(cleanMRI);
+
+  return {
+    name,
+    unit,
+    mri: cleanMRI,
+    useCase,
+  };
 }
 
-export function getNameFromMRI(mri: string) {
-  return mri.match(/^[a-z]:\w+\/(.+)(?:@\w+)$/)?.[1] ?? mri;
+export function getUseCaseFromMRI(mri?: string): UseCase {
+  if (mri?.includes('custom/')) {
+    return 'custom';
+  }
+  if (mri?.includes('transactions/')) {
+    return 'transactions';
+  }
+  return 'sessions';
 }
 
 export function formatMetricUsingUnit(value: number | null, unit: string) {
@@ -301,5 +393,12 @@ export function updateQuery(router: InjectedRouter, partialQuery: Record<string,
       ...router.location.query,
       ...partialQuery,
     },
+  });
+}
+
+export function clearQuery(router: InjectedRouter) {
+  router.push({
+    ...router.location,
+    query: {},
   });
 }

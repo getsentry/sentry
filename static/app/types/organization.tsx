@@ -1,3 +1,4 @@
+import {Project} from 'sentry/types/project';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
@@ -77,6 +78,11 @@ export interface Organization extends OrganizationSummary {
   orgRole?: string;
 }
 
+export interface DetailedOrganization extends Organization {
+  projects: Project[];
+  teams: Team[];
+}
+
 export interface Team {
   access: Scope[];
   avatar: Avatar;
@@ -124,6 +130,7 @@ export interface Member {
     'idp:provisioned': boolean;
     'idp:role-restricted': boolean;
     'member-limit:restricted': boolean;
+    'partnership:restricted': boolean;
     'sso:invalid': boolean;
     'sso:linked': boolean;
   };
@@ -286,6 +293,7 @@ export type EventsStatsSeries<F extends string> = {
   data: {
     axis: F;
     values: number[];
+    label?: string;
   }[];
   meta: {
     dataset: string;
@@ -318,6 +326,8 @@ export enum SessionFieldWithOperation {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
   DURATION = 'p50(session.duration)',
+  CRASH_FREE_RATE_USERS = 'crash_free_rate(user)',
+  CRASH_FREE_RATE_SESSIONS = 'crash_free_rate(session)',
 }
 
 export enum SessionStatus {

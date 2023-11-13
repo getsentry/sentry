@@ -14,12 +14,14 @@ from sentry import features, options
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken, AuthenticationContext
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo.base import SiloMode
 from sentry.types.region import find_all_multitenant_region_names, get_region_by_name
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
@@ -111,21 +113,25 @@ def _delete_activeorg(session):
         del session["activeorg"]
 
 
-def _resolve_last_org(session, user):
-    last_org_slug = session["activeorg"] if session and "activeorg" in session else None
-    if not last_org_slug:
-        return None
-    if user is not None and not isinstance(user, AnonymousUser):
-        org_context = organization_service.get_organization_by_slug(
-            slug=last_org_slug, only_visible=False, user_id=user.id
-        )
-        if org_context and org_context.member:
-            return org_context.organization
+def _resolve_last_org(session, user, org_context=None):
+    if org_context is None:
+        last_org_slug = session["activeorg"] if session and "activeorg" in session else None
+        if not last_org_slug:
+            return None
+
+        if user is not None and not isinstance(user, AnonymousUser):
+            org_context = organization_service.get_organization_by_slug(
+                slug=last_org_slug, only_visible=False, user_id=user.id
+            )
+
+    if org_context and org_context.member:
+        return org_context.organization
+
     return None
 
 
 class _ClientConfig:
-    def __init__(self, request=None) -> None:
+    def __init__(self, request=None, org_context=None) -> None:
         self.request = request
         if request is not None:
             self.user = getattr(request, "user", None) or AnonymousUser()
@@ -134,7 +140,7 @@ class _ClientConfig:
             self.user = None
             self.session = None
 
-        self.last_org = _resolve_last_org(self.session, self.user)
+        self.last_org = _resolve_last_org(self.session, self.user, org_context)
 
     @property
     def last_org_slug(self) -> str | None:
@@ -162,6 +168,8 @@ class _ClientConfig:
             self.last_org and features.has("organizations:customer-domains", self.last_org)
         ):
             yield "organizations:customer-domains"
+        if options.get("hybrid_cloud.multi-region-selector"):
+            yield "organizations:multi-region-selector"
 
     @property
     def needs_upgrade(self) -> bool:
@@ -214,12 +222,22 @@ class _ClientConfig:
         return self.request is not None and self.user is not None and self.user.is_superuser
 
     @property
-    def links(self) -> Iterable[Tuple[str, str]]:
+    def links(self) -> Iterable[Tuple[str, str | None]]:
         organization_url = (
             generate_organization_url(self.last_org_slug) if self.last_org_slug else None
         )
+        region_url = None
+        if self.last_org:
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                organization_mapping = OrganizationMapping.objects.get(
+                    organization_id=self.last_org.id
+                )
+                region_url = generate_region_url(organization_mapping.region_name)
+            else:
+                region_url = generate_region_url()
+
         yield "organizationUrl", organization_url
-        yield "regionUrl", generate_region_url() if self.last_org_slug else None
+        yield "regionUrl", region_url
         yield "sentryUrl", options.get("system.url-prefix")
 
         if self._is_superuser() and superuser.ORG_ID is not None:
@@ -333,12 +351,12 @@ class _ClientConfig:
         }
 
 
-def get_client_config(request=None) -> MutableMapping[str, Any]:
+def get_client_config(request=None, org_context=None) -> MutableMapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.
     """
 
-    config = _ClientConfig(request)
+    config = _ClientConfig(request, org_context)
     if request is not None and config.last_org is None:
         _delete_activeorg(config.session)
     return config.get_context()

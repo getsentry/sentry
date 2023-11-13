@@ -2,12 +2,14 @@ import {ComponentProps} from 'react';
 import omit from 'lodash/omit';
 import {EventIdQueryResult} from 'sentry-fixture/eventIdQueryResult';
 import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
 import {ShortIdQueryResult} from 'sentry-fixture/shortIdQueryResult';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ApiSource} from 'sentry/components/search/sources/apiSource';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('ApiSource', function () {
   const {organization, router} = initializeOrg();
@@ -17,6 +19,7 @@ describe('ApiSource', function () {
   let membersMock;
   let shortIdMock;
   let eventIdMock;
+  let configState;
 
   const defaultProps: ComponentProps<typeof ApiSource> = {
     query: '',
@@ -32,12 +35,12 @@ describe('ApiSource', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'test-org'})],
+      body: [Organization({slug: 'test-org'})],
     });
 
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'foo-org'})],
+      body: [Organization({slug: 'foo-org'})],
     });
     projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -83,6 +86,11 @@ describe('ApiSource', function () {
       url: '/organizations/org-slug/shortids/foo-t/',
       body: [],
     });
+    configState = ConfigStore.getState();
+  });
+
+  afterEach(function () {
+    ConfigStore.loadInitialData(configState);
   });
 
   it('queries all API endpoints', function () {
@@ -99,6 +107,33 @@ describe('ApiSource', function () {
     expect(membersMock).toHaveBeenCalled();
     expect(shortIdMock).not.toHaveBeenCalled();
     expect(eventIdMock).not.toHaveBeenCalled();
+  });
+
+  it('queries multiple regions for organization lists', function () {
+    const mock = jest.fn().mockReturnValue(null);
+    ConfigStore.loadInitialData({
+      ...configState,
+      regions: [
+        {name: 'us', url: 'https://us.sentry.io'},
+        {name: 'de', url: 'https://de.sentry.io'},
+      ],
+    });
+
+    render(
+      <ApiSource {...defaultProps} query="foo">
+        {mock}
+      </ApiSource>
+    );
+
+    expect(orgsMock).toHaveBeenCalledTimes(2);
+    expect(orgsMock).toHaveBeenCalledWith(
+      '/organizations/',
+      expect.objectContaining({host: 'https://us.sentry.io'})
+    );
+    expect(orgsMock).toHaveBeenCalledWith(
+      '/organizations/',
+      expect.objectContaining({host: 'https://de.sentry.io'})
+    );
   });
 
   it('only queries for shortids when query matches shortid format', async function () {

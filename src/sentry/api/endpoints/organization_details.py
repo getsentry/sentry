@@ -26,22 +26,36 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
-from sentry.datascrubbing import validate_pii_config_update
+from sentry.constants import (
+    ACCOUNT_RATE_LIMIT_DEFAULT,
+    AI_SUGGESTED_SOLUTION,
+    ALERTS_MEMBER_WRITE_DEFAULT,
+    ATTACHMENTS_ROLE_DEFAULT,
+    DEBUG_FILES_ROLE_DEFAULT,
+    EVENTS_MEMBER_ADMIN_DEFAULT,
+    GITHUB_COMMENT_BOT_DEFAULT,
+    JOIN_REQUESTS_DEFAULT,
+    LEGACY_RATE_LIMIT_OPTIONS,
+    PROJECT_RATE_LIMIT_DEFAULT,
+    REQUIRE_SCRUB_DATA_DEFAULT,
+    REQUIRE_SCRUB_DEFAULTS_DEFAULT,
+    REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+    SAFE_FIELDS_DEFAULT,
+    SCRAPE_JAVASCRIPT_DEFAULT,
+    SENSITIVE_FIELDS_DEFAULT,
+)
+from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
     STORE_CRASH_REPORTS_MAX,
     convert_crashreport_count,
 )
-from sentry.models import (
-    Organization,
-    OrganizationAvatar,
-    OrganizationOption,
-    OrganizationStatus,
-    RegionScheduledDeletion,
-    UserEmail,
-)
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.organization import organization_service
@@ -71,28 +85,28 @@ ORG_OPTIONS = (
         "projectRateLimit",
         "sentry:project-rate-limit",
         int,
-        org_serializers.PROJECT_RATE_LIMIT_DEFAULT,
+        PROJECT_RATE_LIMIT_DEFAULT,
     ),
     (
         "accountRateLimit",
         "sentry:account-rate-limit",
         int,
-        org_serializers.ACCOUNT_RATE_LIMIT_DEFAULT,
+        ACCOUNT_RATE_LIMIT_DEFAULT,
     ),
-    ("dataScrubber", "sentry:require_scrub_data", bool, org_serializers.REQUIRE_SCRUB_DATA_DEFAULT),
-    ("sensitiveFields", "sentry:sensitive_fields", list, org_serializers.SENSITIVE_FIELDS_DEFAULT),
-    ("safeFields", "sentry:safe_fields", list, org_serializers.SAFE_FIELDS_DEFAULT),
+    ("dataScrubber", "sentry:require_scrub_data", bool, REQUIRE_SCRUB_DATA_DEFAULT),
+    ("sensitiveFields", "sentry:sensitive_fields", list, SENSITIVE_FIELDS_DEFAULT),
+    ("safeFields", "sentry:safe_fields", list, SAFE_FIELDS_DEFAULT),
     (
         "scrapeJavaScript",
         "sentry:scrape_javascript",
         bool,
-        org_serializers.SCRAPE_JAVASCRIPT_DEFAULT,
+        SCRAPE_JAVASCRIPT_DEFAULT,
     ),
     (
         "dataScrubberDefaults",
         "sentry:require_scrub_defaults",
         bool,
-        org_serializers.REQUIRE_SCRUB_DEFAULTS_DEFAULT,
+        REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     ),
     (
         "storeCrashReports",
@@ -104,58 +118,58 @@ ORG_OPTIONS = (
         "attachmentsRole",
         "sentry:attachments_role",
         str,
-        org_serializers.ATTACHMENTS_ROLE_DEFAULT,
+        ATTACHMENTS_ROLE_DEFAULT,
     ),
     (
         "debugFilesRole",
         "sentry:debug_files_role",
         str,
-        org_serializers.DEBUG_FILES_ROLE_DEFAULT,
+        DEBUG_FILES_ROLE_DEFAULT,
     ),
     (
         "eventsMemberAdmin",
         "sentry:events_member_admin",
         bool,
-        org_serializers.EVENTS_MEMBER_ADMIN_DEFAULT,
+        EVENTS_MEMBER_ADMIN_DEFAULT,
     ),
     (
         "alertsMemberWrite",
         "sentry:alerts_member_write",
         bool,
-        org_serializers.ALERTS_MEMBER_WRITE_DEFAULT,
+        ALERTS_MEMBER_WRITE_DEFAULT,
     ),
     (
         "scrubIPAddresses",
         "sentry:require_scrub_ip_address",
         bool,
-        org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+        REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ),
     ("relayPiiConfig", "sentry:relay_pii_config", str, None),
-    ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
+    ("allowJoinRequests", "sentry:join_requests", bool, JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
     (
         "aiSuggestedSolution",
         "sentry:ai_suggested_solution",
         bool,
-        org_serializers.AI_SUGGESTED_SOLUTION,
+        AI_SUGGESTED_SOLUTION,
     ),
     (
         "githubPRBot",
         "sentry:github_pr_bot",
         bool,
-        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
+        GITHUB_COMMENT_BOT_DEFAULT,
     ),
     (
         "githubOpenPRBot",
         "sentry:github_open_pr_bot",
         bool,
-        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
+        GITHUB_COMMENT_BOT_DEFAULT,
     ),
     (
         "githubNudgeInvite",
         "sentry:github_nudge_invite",
         bool,
-        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
+        GITHUB_COMMENT_BOT_DEFAULT,
     ),
 )
 
@@ -236,7 +250,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_safeFields(self, value):
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
-        return value
+        return validate_pii_selectors(value)
 
     def validate_attachmentsRole(self, value):
         try:
@@ -588,23 +602,21 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
+            slug_change_requested = "slug" in request.data and request.data["slug"]
+
+            # Attempt slug change first as it's a more complex, control-silo driven workflow.
+            if slug_change_requested:
+                slug = request.data["slug"]
+                try:
+                    organization_provisioning_service.change_organization_slug(
+                        organization_id=organization.id, slug=slug
+                    )
+                except OrganizationSlugCollisionException:
+                    return self.respond(
+                        {"slug": ["An organization with this slug already exists."]},
+                        status=status.HTTP_409_CONFLICT,
+                    )
             with transaction.atomic(router.db_for_write(Organization)):
-                slug_change_requested = "slug" in request.data and request.data["slug"]
-
-                # Start with the slug change first, as this may fail independent of
-                # the remaining organization changes.
-                if slug_change_requested:
-                    slug = request.data["slug"]
-                    try:
-                        organization_provisioning_service.modify_organization_slug(
-                            organization_id=organization.id, slug=slug
-                        )
-                    except OrganizationSlugCollisionException:
-                        return self.respond(
-                            {"slug": ["An organization with this slug already exists."]},
-                            status=status.HTTP_409_CONFLICT,
-                        )
-
                 organization, changed_data = serializer.save()
 
             if was_pending_deletion:

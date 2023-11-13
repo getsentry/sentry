@@ -1,23 +1,38 @@
-import {OrganizationIntegrations} from 'sentry-fixture/organizationIntegrations';
-import {UserIdentity} from 'sentry-fixture/userIdentity';
+import selectEvent from 'react-select-event';
+import {NotificationDefaults} from 'sentry-fixture/notificationDefaults';
+import {Organization} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {Organization as TOrganization} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
-import {NotificationSettingsObject} from 'sentry/views/settings/account/notifications/constants';
-import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
-import {Identity} from 'sentry/views/settings/account/notifications/types';
 
-function renderMockRequests(
-  notificationSettings: NotificationSettingsObject,
-  identities: Identity[] = [],
-  organizationIntegrations: OrganizationIntegration[] = []
-) {
+import {NotificationOptionsObject, NotificationProvidersObject} from './constants';
+import NotificationSettingsByType from './notificationSettingsByType';
+import {Identity} from './types';
+
+function renderMockRequests({
+  notificationOptions = [],
+  notificationProviders = [],
+  identities = [],
+  organizationIntegrations = [],
+}: {
+  identities?: Identity[];
+  notificationOptions?: NotificationOptionsObject[];
+  notificationProviders?: NotificationProvidersObject[];
+  organizationIntegrations?: OrganizationIntegration[];
+}) {
   MockApiClient.addMockResponse({
-    url: '/users/me/notification-settings/',
+    url: '/users/me/notification-options/',
     method: 'GET',
-    body: notificationSettings,
+    body: notificationOptions,
+  });
+
+  MockApiClient.addMockResponse({
+    url: '/users/me/notification-providers/',
+    method: 'GET',
+    body: notificationProviders,
   });
 
   MockApiClient.addMockResponse({
@@ -33,21 +48,48 @@ function renderMockRequests(
   });
 
   MockApiClient.addMockResponse({
-    url: `/projects/`,
+    url: `/organizations/org-slug/projects/`,
     method: 'GET',
-    body: [],
+    body: [
+      {
+        id: '4',
+        slug: 'foo',
+        name: 'foo',
+      },
+    ],
   });
 }
 
-function renderComponent(
-  notificationSettings: NotificationSettingsObject,
-  identities: Identity[] = [],
-  organizationIntegrations: OrganizationIntegration[] = []
-) {
-  const org = TestStubs.Organization();
-  renderMockRequests(notificationSettings, identities, organizationIntegrations);
+function renderComponent({
+  notificationOptions = [],
+  notificationProviders = [],
+  identities = [],
+  organizationIntegrations = [],
+  organizations = [],
+  notificationType = 'alerts',
+}: {
+  identities?: Identity[];
+  notificationOptions?: NotificationOptionsObject[];
+  notificationProviders?: NotificationProvidersObject[];
+  notificationType?: string;
+  organizationIntegrations?: OrganizationIntegration[];
+  organizations?: TOrganization[];
+}) {
+  const org = Organization();
+  renderMockRequests({
+    notificationOptions,
+    notificationProviders,
+    identities,
+    organizationIntegrations,
+  });
+  organizations = organizations.length ? organizations : [org];
 
-  render(<NotificationSettingsByType notificationType="alerts" organizations={[org]} />);
+  return render(
+    <NotificationSettingsByType
+      notificationType={notificationType}
+      organizations={organizations}
+    />
+  );
 }
 
 describe('NotificationSettingsByType', function () {
@@ -55,10 +97,25 @@ describe('NotificationSettingsByType', function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/notification-defaults/',
+      method: 'GET',
+      body: NotificationDefaults(),
+    });
+  });
 
-  it('should render when everything is disabled', function () {
+  it('should render when default is disabled', function () {
     renderComponent({
-      alerts: {user: {me: {email: 'never', slack: 'never'}}},
+      notificationOptions: [
+        {
+          id: '1',
+          scopeIdentifier: '2',
+          scopeType: 'user',
+          type: 'alerts',
+          value: 'never',
+        },
+      ],
     });
 
     // There is only one field and it is the default and it is set to "off".
@@ -66,60 +123,9 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Off')).toBeInTheDocument();
   });
 
-  it('should render when notification settings are enabled', function () {
-    renderComponent({
-      alerts: {user: {me: {email: 'always', slack: 'always'}}},
-    });
-
-    expect(screen.getByRole('textbox', {name: 'Issue Alerts'})).toBeInTheDocument();
-    expect(screen.getByText('On')).toBeInTheDocument(); // Select Value
-
-    expect(screen.getByRole('textbox', {name: 'Delivery Method'})).toBeInTheDocument();
-    expect(screen.getByText('Email')).toBeInTheDocument(); // Select Value
-    expect(screen.getByText('Slack')).toBeInTheDocument(); // Select Value
-  });
-
-  it('should render warning modal when identity not linked', function () {
-    const org = TestStubs.Organization();
-
-    renderComponent(
-      {
-        alerts: {user: {me: {email: 'always', slack: 'always'}}},
-      },
-      [],
-      [OrganizationIntegrations()]
-    );
-
-    expect(
-      screen.getByText(
-        /You've selected Slack as your delivery method, but do not have a linked account for the following organizations/
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('listitem')).toHaveTextContent(org.slug);
-  });
-
-  it('should not render warning modal when identity is linked', function () {
-    const org = TestStubs.Organization();
-
-    renderComponent(
-      {
-        alerts: {user: {me: {email: 'always', slack: 'always'}}},
-      },
-      [UserIdentity()],
-      [OrganizationIntegrations({organizationId: org.id})]
-    );
-
-    expect(
-      screen.queryByText(
-        /You've selected Slack as your delivery method, but do not have a linked account for the following organizations/
-      )
-    ).not.toBeInTheDocument();
-  });
-
   it('should default to the subdomain org', async function () {
-    const organization = TestStubs.Organization();
-    const otherOrganization = TestStubs.Organization({
+    const organization = Organization();
+    const otherOrganization = Organization({
       id: '2',
       slug: 'other-org',
       name: 'other org',
@@ -128,25 +134,129 @@ describe('NotificationSettingsByType', function () {
       ...ConfigStore.get('customerDomain')!,
       subdomain: otherOrganization.slug,
     });
-    renderMockRequests({
-      alerts: {user: {me: {email: 'always', slack: 'always'}}},
-    });
+    // renderMockRequests({
+    //   alerts: {user: {me: {email: 'always', slack: 'always'}}},
+    // });
     const projectsMock = MockApiClient.addMockResponse({
-      url: '/projects/',
-      query: {
-        organizationId: otherOrganization.id,
-      },
+      url: `/organizations/${otherOrganization.slug}/projects/`,
       method: 'GET',
       body: [],
     });
-
-    render(
-      <NotificationSettingsByType
-        notificationType="alerts"
-        organizations={[organization, otherOrganization]}
-      />
-    );
+    renderComponent({organizations: [organization, otherOrganization]});
     expect(await screen.findByText(otherOrganization.name)).toBeInTheDocument();
     expect(projectsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders all the quota subcatories', async function () {
+    renderComponent({notificationType: 'quota'});
+
+    // check for all the quota subcategories
+    expect(
+      await screen.findByText(
+        'Receive notifications when your organization exceeds the following limits.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText('Receive notifications about your error quotas.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+  });
+  it('adds a project override and removes it', async function () {
+    renderComponent({});
+
+    await selectEvent.select(screen.getByText('Project\u2026'), 'foo');
+    await selectEvent.select(screen.getByText('Value\u2026'), 'On');
+
+    const addSettingMock = MockApiClient.addMockResponse({
+      url: `/users/me/notification-options/`,
+      method: 'PUT',
+      body: {
+        id: '7',
+        scopeIdentifier: '4',
+        scopeType: 'project',
+        type: 'alerts',
+        value: 'always',
+      },
+    });
+
+    // click the add button
+    await userEvent.click(screen.getByRole('button', {name: 'Add override'}));
+    expect(addSettingMock).toHaveBeenCalledTimes(1);
+
+    // check it hits delete
+    const deleteSettingMock = MockApiClient.addMockResponse({
+      url: `/users/me/notification-options/7/`,
+      method: 'DELETE',
+      body: {},
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+    expect(deleteSettingMock).toHaveBeenCalledTimes(1);
+  });
+  it('edits a project override', async function () {
+    renderComponent({
+      notificationOptions: [
+        {
+          id: '7',
+          scopeIdentifier: '4',
+          scopeType: 'project',
+          type: 'alerts',
+          value: 'always',
+        },
+      ],
+    });
+    const editSettingMock = MockApiClient.addMockResponse({
+      url: `/users/me/notification-options/`,
+      method: 'PUT',
+      body: {
+        id: '7',
+        scopeIdentifier: '4',
+        scopeType: 'project',
+        type: 'alerts',
+        value: 'never',
+      },
+    });
+
+    expect(await screen.findByText('foo')).toBeInTheDocument();
+    await selectEvent.select(screen.getAllByText('On')[1], 'Off');
+
+    expect(editSettingMock).toHaveBeenCalledTimes(1);
+    expect(editSettingMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          id: '7',
+          scopeIdentifier: '4',
+          scopeType: 'project',
+          type: 'alerts',
+          value: 'never',
+        },
+      })
+    );
+  });
+  it('renders and sets the provider options', async function () {
+    renderComponent({
+      notificationProviders: [
+        {
+          id: '1',
+          type: 'alerts',
+          scopeType: 'user',
+          scopeIdentifier: '1',
+          provider: 'email',
+          value: 'never',
+        },
+      ],
+    });
+    const changeProvidersMock = MockApiClient.addMockResponse({
+      url: `/users/me/notification-providers/`,
+      method: 'PUT',
+      body: [],
+    });
+    const multiSelect = screen.getByRole('textbox', {name: 'Delivery Method'});
+    await selectEvent.select(multiSelect, ['Email']);
+    expect(changeProvidersMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -15,7 +15,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
-from sentry.apidocs.parameters import GlobalParams, VisibilityParams
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -74,9 +74,9 @@ ALLOWED_EVENTS_REFERRERS = {
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
 
-RATE_LIMIT = 15
+RATE_LIMIT = 30
 RATE_LIMIT_WINDOW = 1
-CONCURRENT_RATE_LIMIT = 10
+CONCURRENT_RATE_LIMIT = 15
 
 DEFAULT_RATE_LIMIT = 50
 DEFAULT_RATE_LIMIT_WINDOW = 1
@@ -170,7 +170,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT,
+            OrganizationParams.PROJECT,
             GlobalParams.START,
             GlobalParams.STATS_PERIOD,
             VisibilityParams.FIELD,
@@ -238,9 +238,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:dashboards-mep", False)
         )
 
-        on_demand_metrics_enabled = batch_features.get(
-            "organizations:on-demand-metrics-extraction", False
-        ) and batch_features.get("organizations:on-demand-metrics-extraction-experimental", False)
+        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
+        on_demand_metrics_enabled = (
+            batch_features.get("organizations:on-demand-metrics-extraction", False)
+            and use_on_demand_metrics
+        )
 
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}

@@ -3,7 +3,9 @@ from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 
-from sentry.models import Activity, Group, GroupInbox, GroupInboxReason
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -13,8 +15,8 @@ from sentry.types.activity import ActivityType
 pytestmark = [requires_snuba]
 
 
+@region_silo_test(stable=True)
 @freeze_time()
-@region_silo_test
 class ProjectRulePreviewEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-preview"
     method = "post"

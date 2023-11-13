@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, Mock, patch
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.testutils.skips import requires_snuba

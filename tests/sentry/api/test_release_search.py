@@ -5,7 +5,7 @@ import pytest
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ReleaseStages
+from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.search.events.constants import RELEASE_ALIAS, RELEASE_STAGE_ALIAS, SEMVER_ALIAS
 
 

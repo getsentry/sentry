@@ -23,7 +23,7 @@ from django.db.models.manager import BaseManager
 from django.utils import timezone
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models import TombstoneBase
+from sentry.models.tombstone import TombstoneBase
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics, redis
@@ -92,7 +92,7 @@ def _chunk_watermark_batch(
 
 @instrumented_task(
     name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
-    queue="cleanup",
+    queue="cleanup.control",
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )
@@ -284,6 +284,9 @@ def _process_tombstone_reconciliation(
 
         elif field.on_delete == "SET_NULL":
             model.objects.filter(id__in=to_delete_ids).update(**{field.name: None})
+            set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
+
+        elif field.on_delete == "DO_NOTHING":
             set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
 
         else:

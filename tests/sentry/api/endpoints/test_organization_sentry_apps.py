@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import SentryApp
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -64,6 +64,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     ],
                     "popularity": SentryApp._meta.get_field("popularity").default,
                     "avatars": [],
+                    "metadata": {},
                 }
             ],
         )

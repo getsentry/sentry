@@ -1,7 +1,8 @@
 from datetime import datetime
 
 from sentry.issues.attributes import GroupValues, _retrieve_group_values, _retrieve_snapshot_values
-from sentry.models import GroupAssignee, GroupOwner, GroupOwnerType
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 

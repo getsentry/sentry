@@ -10,7 +10,7 @@ from sentry.api.bases.organization_integrations import RegionOrganizationIntegra
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 

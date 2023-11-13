@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.relay import projectconfig_cache
 
 
@@ -29,9 +29,9 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
             except Exception:
                 raise Http404
 
-        project_key = request.GET.get("projectKey")
-        if project_key is not None:
-            project_keys.append(project_key)
+        project_key_param = request.GET.get("projectKey")
+        if project_key_param is not None:
+            project_keys.append(project_key_param)
 
         configs = {}
         for key in project_keys:

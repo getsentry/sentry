@@ -6,13 +6,16 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconDownload, IconStack, IconTag} from 'sentry/icons';
+import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseCursor} from 'sentry/utils/cursor';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {downloadAsCsv} from '../utils';
 
@@ -87,6 +90,7 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
     </DataExport>
   );
 }
+
 // Placate eslint proptype checking
 
 function renderEditButton(canEdit: boolean, props: Props) {
@@ -98,13 +102,14 @@ function renderEditButton(canEdit: boolean, props: Props) {
         disabled={!canEdit}
         onClick={onClick}
         data-test-id="grid-edit-enable"
-        icon={<IconStack size="xs" />}
+        icon={<IconSliders size="xs" />}
       >
         {t('Columns')}
       </Button>
     </GuideAnchor>
   );
 }
+
 // Placate eslint proptype checking
 
 function renderSummaryButton({onChangeShowTags, showTags}: Props) {
@@ -148,9 +153,20 @@ function FeatureWrapper(props: FeatureWrapperProps) {
   );
 }
 
-function HeaderActions(props: Props) {
+function TableActions(props: Props) {
+  const location = useLocation();
+  const cursor = location?.query?.cursor;
+  const cursorOffset = parseCursor(cursor)?.offset ?? 0;
+  const numSamples = props.tableData?.data?.length ?? null;
+  const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
   return (
     <Fragment>
+      <InvestigationRuleCreation
+        {...props}
+        buttonProps={{size: 'sm'}}
+        numSamples={totalNumSamples}
+        key="investigationRuleCreation"
+      />
       <FeatureWrapper {...props} key="edit">
         {renderEditButton}
       </FeatureWrapper>
@@ -162,4 +178,4 @@ function HeaderActions(props: Props) {
   );
 }
 
-export default HeaderActions;
+export default TableActions;

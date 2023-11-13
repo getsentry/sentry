@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -58,7 +60,7 @@ export const EVENTS_TABLE_RESPONSE_FIELDS = [
 
 function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: [TestStubs.Project()],
   });
@@ -89,7 +91,7 @@ describe('Performance GridEditable Table', function () {
     t('timestamp'),
   ];
   let fields = EVENTS_TABLE_RESPONSE_FIELDS;
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const transactionName = 'transactionName';
   let data;
 

@@ -1,7 +1,11 @@
 import logging
 
 from sentry import features
-from sentry.api.endpoints.organization_missing_org_members import _get_missing_organization_members
+from sentry.api.endpoints.organization_missing_org_members import (
+    _format_external_id,
+    _get_missing_organization_members,
+    _get_shared_email_domain,
+)
 from sentry.constants import ObjectStatus
 from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
@@ -73,8 +77,13 @@ def send_nudge_email(org_id):
         )
         return
 
+    shared_domain = _get_shared_email_domain(organization)
+
     commit_author_query = _get_missing_organization_members(
-        organization, provider="github", integration_ids=[i.id for i in integrations]
+        organization,
+        provider="github",
+        integration_ids=[i.id for i in integrations],
+        shared_domain=shared_domain,
     )
 
     if not commit_author_query.exists():  # don't email if no missing commit authors
@@ -85,17 +94,19 @@ def send_nudge_email(org_id):
         return
 
     commit_authors = []
-    for commit_author in commit_author_query:
+    for commit_author in commit_author_query[:3]:
+        formatted_external_id = _format_external_id(commit_author.external_id)
+
         commit_authors.append(
             {
                 "email": commit_author.email,
-                "external_id": commit_author.external_id,
+                "external_id": formatted_external_id,
                 "commit_count": commit_author.commit__count,
             }
         )
 
     notification = MissingMembersNudgeNotification(
-        organization=organization, commit_authors=commit_authors[:3], provider="github"
+        organization=organization, commit_authors=commit_authors, provider="github"
     )
 
     logger.info(

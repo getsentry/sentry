@@ -7,7 +7,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.project_release_file_details import ReleaseFileDetailsMixin
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Release
+from sentry.models.release import Release
 
 
 class ReleaseFileSerializer(serializers.Serializer):

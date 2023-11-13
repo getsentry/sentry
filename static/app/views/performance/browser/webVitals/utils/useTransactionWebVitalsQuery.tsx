@@ -1,23 +1,38 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
 import {
   RowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
+  defaultSort?: Sort;
   limit?: number;
   orderBy?: WebVitals | null;
+  sortName?: string;
+  transaction?: string | null;
 };
 
-export const useTransactionWebVitalsQuery = ({orderBy, limit}: Props) => {
+export const useTransactionWebVitalsQuery = ({
+  orderBy,
+  limit,
+  transaction,
+  defaultSort,
+  sortName = 'sort',
+}: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+
+  const sort = useWebVitalsSort({sortName, defaultSort});
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -33,12 +48,15 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit}: Props) => {
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload (transaction:/performance* or transaction:/discover* or transaction:/dashboards*)',
-      orderby: mapWebVitalToOrderBy(orderBy),
+        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
+      orderby: mapWebVitalToOrderBy(orderBy, 'p75') ?? '-count',
       version: 2,
+      dataset: DiscoverDatasets.METRICS,
     },
     pageFilters.selection
   );
+
+  eventView.sorts = [sort];
 
   const {data, isLoading, ...rest} = useDiscoverQuery({
     eventView,
@@ -75,12 +93,12 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit}: Props) => {
               });
             return {
               ...row,
-              score: totalScore,
-              clsScore,
-              fcpScore,
-              lcpScore,
-              ttfbScore,
-              fidScore,
+              score: totalScore ?? 0,
+              clsScore: clsScore ?? 0,
+              fcpScore: fcpScore ?? 0,
+              lcpScore: lcpScore ?? 0,
+              ttfbScore: ttfbScore ?? 0,
+              fidScore: fidScore ?? 0,
             };
           })
       : [];
@@ -90,21 +108,4 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit}: Props) => {
     isLoading,
     ...rest,
   };
-};
-
-const mapWebVitalToOrderBy = (webVital?: WebVitals | null) => {
-  switch (webVital) {
-    case 'lcp':
-      return '-p75_measurements_lcp';
-    case 'fcp':
-      return '-p75_measurements_fcp';
-    case 'cls':
-      return '-p75_measurements_cls';
-    case 'ttfb':
-      return '-p75_measurements_ttfb';
-    case 'fid':
-      return '-p75_measurements_fid';
-    default:
-      return '-count';
-  }
 };

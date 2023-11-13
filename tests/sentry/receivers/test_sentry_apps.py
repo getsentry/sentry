@@ -6,7 +6,12 @@ from unittest.mock import patch
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import Activity, Commit, GroupAssignee, GroupLink, Release, Repository
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouplink import GroupLink
+from sentry.models.release import Release
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
@@ -507,7 +512,7 @@ class TestComments(APITestCase):
         note = Activity.objects.get(
             group=self.issue, project=self.project, type=ActivityType.NOTE.value
         )
-        data = {
+        comment_data = {
             "comment_id": note.id,
             "timestamp": note.datetime,
             "comment": "hello world",
@@ -518,7 +523,7 @@ class TestComments(APITestCase):
             issue_id=self.issue.id,
             type="comment.created",
             user_id=self.user.id,
-            data=data,
+            data=comment_data,
         )
 
     def test_comment_updated(self, delay):
@@ -584,19 +589,19 @@ class TestCommentsSentryFunctions(APITestCase):
             note = Activity.objects.get(
                 group=self.issue, project=self.project, type=ActivityType.NOTE.value
             )
-            data = {
+            comment_data = {
                 "comment_id": note.id,
                 "timestamp": note.datetime,
                 "comment": "hello world",
                 "project_slug": self.project.slug,
             }
             with assume_test_silo_mode(SiloMode.CONTROL):
-                data["user"] = serialize(self.user)
+                comment_data["user"] = serialize(self.user)
             delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "comment.created",
                 self.issue.id,
-                _as_serialized(data),
+                _as_serialized(comment_data),
             )
 
     def test_comment_updated(self, delay):

@@ -119,6 +119,7 @@ const ALLOWED_ANON_PAGES = [
   /^\/share\//,
   /^\/auth\/login\//,
   /^\/join-request\//,
+  /^\/unsubscribe\//,
 ];
 
 /**
@@ -275,6 +276,13 @@ export type RequestOptions = RequestCallbacks & {
    * Query parameters to add to the requested URL.
    */
   query?: Record<string, any>;
+  /**
+   * By default, requests will be aborted anytime api.clear() is called,
+   * which is commonly used on unmounts. When skipAbort is true, the
+   * request is opted out of this behavior. Useful for when you still
+   * want to cache a request on unmount.
+   */
+  skipAbort?: boolean;
 };
 
 type ClientOptions = {
@@ -483,23 +491,25 @@ export class Client {
 
     // AbortController is optional, though most browser should support it.
     const aborter =
-      typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+      typeof AbortController !== 'undefined' && !options.skipAbort
+        ? new AbortController()
+        : undefined;
 
     // GET requests may not have a body
     const body = method !== 'GET' ? data : undefined;
 
-    const headers = new Headers(this.headers);
+    const requestHeaders = new Headers({...this.headers, ...options.headers});
 
     // Do not set the X-CSRFToken header when making a request outside of the
     // current domain. Because we use subdomains we loosely compare origins
     if (!csrfSafeMethod(method) && isSimilarOrigin(fullUrl, window.location.origin)) {
-      headers.set('X-CSRFToken', getCsrfToken());
+      requestHeaders.set('X-CSRFToken', getCsrfToken());
     }
 
     const fetchRequest = fetch(fullUrl, {
       method,
       body,
-      headers,
+      headers: requestHeaders,
       credentials: this.credentials,
       signal: aborter?.signal,
     });
@@ -535,6 +545,8 @@ export class Client {
 
           const responseContentType = response.headers.get('content-type');
           const isResponseJSON = responseContentType?.includes('json');
+          const wasExpectingJson =
+            requestHeaders.get('Accept') === Client.JSON_HEADERS.Accept;
 
           const isStatus3XX = status >= 300 && status < 400;
           if (status !== 204 && !isStatus3XX) {
@@ -550,6 +562,16 @@ export class Client {
                 // this should be an error.
                 ok = false;
                 errorReason = 'JSON parse error';
+              } else if (
+                // Empty responses from POST 201 requests are valid
+                responseText?.length > 0 &&
+                wasExpectingJson &&
+                error instanceof SyntaxError
+              ) {
+                // Was expecting json but was returned something else. Possibly HTML.
+                // Ideally this would not be a 200, but we should reject the promise
+                ok = false;
+                errorReason = 'JSON parse error. Possibly returned HTML';
               }
             }
           }
@@ -707,6 +729,10 @@ export function resolveHostname(path: string, hostname?: string): string {
 }
 
 function detectControlSiloPath(path: string): boolean {
+  // We sometimes include querystrings in paths.
+  // Using URL() to avoid handrolling URL parsing
+  const url = new URL(path, 'https://sentry.io');
+  path = url.pathname;
   path = path.startsWith('/') ? path.substring(1) : path;
   for (const pattern of controlsilopatterns) {
     if (pattern.test(path)) {

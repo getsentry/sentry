@@ -8,14 +8,9 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import (
-    DEFAULT_SLUG_ERROR_MESSAGE,
-    DEFAULT_SLUG_PATTERN,
-    EnvironmentMixin,
-    PreventNumericSlugMixin,
-    region_silo_endpoint,
-)
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
+from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
@@ -25,25 +20,23 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.signals import project_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
-class ProjectPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
+class ProjectPostSerializer(serializers.Serializer):
     name = serializers.CharField(
         help_text="The name for the project.", max_length=50, required=True
     )
-    slug = serializers.RegexField(
-        DEFAULT_SLUG_PATTERN,
+    slug = SentrySlugField(
         help_text="""Uniquely identifies a project and is used for the interface.
         If not provided, it is automatically generated from the name.""",
         max_length=50,
         required=False,
         allow_null=True,
-        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
     )
     platform = serializers.CharField(
         help_text="The platform for the project.", required=False, allow_blank=True, allow_null=True

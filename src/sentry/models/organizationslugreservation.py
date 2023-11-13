@@ -32,7 +32,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
     replication_version = 1
 
     slug = models.SlugField(unique=True, null=False)
-    organization_id = HybridCloudForeignKey("sentry.organization", null=False, on_delete="cascade")
+    organization_id = HybridCloudForeignKey("sentry.organization", null=False, on_delete="CASCADE")
     user_id = BoundedBigIntegerField(db_index=True, null=False)
     region_name = models.CharField(max_length=REGION_NAME_LENGTH, null=False)
     reservation_type = BoundedBigIntegerField(
@@ -47,7 +47,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         db_table = "sentry_organizationslugreservation"
         unique_together = (("organization_id", "reservation_type"),)
 
-    __repr__ = sane_repr("slug", "organization_id")
+    __repr__ = sane_repr("slug", "organization_id", "reservation_type")
 
     def save(self, *args: Any, **kwds: Any) -> None:
         assert kwds.get(
@@ -69,7 +69,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         return [self.region_name]
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.organization_provisioning.serial import (
+        from sentry.hybridcloud.rpc_services.control_organization_provisioning.serial import (
             serialize_slug_reservation,
         )
         from sentry.services.hybrid_cloud.replica import region_replica_service

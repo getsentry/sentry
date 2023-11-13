@@ -7,7 +7,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import InviteStatus, OrganizationMemberTeam
+from sentry.models.organizationmember import InviteStatus
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
 
 @register(OrganizationMemberTeam)

@@ -7,22 +7,21 @@ import pick from 'lodash/pick';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
+import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -47,6 +46,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
+import Header from '../components/header';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
 
@@ -75,6 +75,7 @@ type State = {
 class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
+  hasV2ReleaseUIEnabled = this.props.organization.features.includes('release-ui-v2');
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
@@ -100,10 +101,10 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
     const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
-        'releases',
-        `/organizations/${organization.slug}/releases/`,
-        {query},
-        {disableEntireQuery: true},
+        'releases', // stateKey
+        `/organizations/${organization.slug}/releases/`, // endpoint
+        {query}, // params
+        {disableEntireQuery: true}, // options
       ],
     ];
 
@@ -502,7 +503,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, selection} = this.props;
+    const {organization, selection, router} = this.props;
     const {releases, reloading, error} = this.state;
 
     const activeSort = this.getSort();
@@ -520,19 +521,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return (
       <PageFiltersContainer showAbsolute={false}>
         <NoProjectMessage organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Layout.Title>
-                {t('Releases')}
-                <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io/product/releases/"
-                  title={t(
-                    'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
-                  )}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
+          <Header router={router} hasV2ReleaseUIEnabled={this.hasV2ReleaseUIEnabled} />
 
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -544,9 +533,8 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                 </GuideAnchor>
                 <EnvironmentPageFilter />
                 <DatePageFilter
-                  alignDropdown="left"
                   disallowArbitraryRelativeRanges
-                  hint={t(
+                  menuFooterMessage={t(
                     'Changing this date range will recalculate the release metrics.'
                   )}
                 />

@@ -9,30 +9,27 @@ from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.dynamic_sampling import ProjectBoostedReleases
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Environment,
-    ExternalIssue,
-    Group,
-    GroupInbox,
-    GroupInboxReason,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.release import (
     Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseHeadCommit,
     ReleaseProject,
-    ReleaseProjectEnvironment,
     ReleaseProjectModelManager,
     ReleaseStatus,
-    Repository,
-    add_group_to_inbox,
     follows_semver_versioning_scheme,
 )
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCase
@@ -310,6 +307,7 @@ class SetCommitsTestCase(TestCase):
 
         commit_c = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="c" * 40)
         assert commit_c
+        assert commit_c.message is not None
         assert "fixes" in commit_c.message
         assert commit_c.author_id == author.id
 

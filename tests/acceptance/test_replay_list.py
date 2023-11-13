@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import ReplaysAcceptanceTestCase
 from sentry.testutils.silo import no_silo_test

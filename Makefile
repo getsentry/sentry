@@ -125,17 +125,43 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
+# COV_ARGS controls extra args passed to pytest to generate covereage
+# It's used in test-python-ci. Typically generated an XML coverage file
+# Except in .github/workflows/codecov_per_test_coverage.yml
+# When it's dynamically changed to include --cov-context=test flag
+# See that workflow for more info
+COV_ARGS = --cov-report="xml:.artifacts/python.coverage.xml"
+
 test-python-ci: create-db
 	@echo "--> Running CI Python tests"
 	pytest \
-		tests/integration \
-		tests/relay_integration \
-		tests/sentry \
-		tests/sentry_plugins \
-		tests/symbolicator \
-		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
+		tests \
+		--ignore tests/acceptance \
+		--ignore tests/apidocs \
+		--ignore tests/js \
+		--ignore tests/tools \
+		--cov . $(COV_ARGS)
 	@echo ""
 
+# it's not possible to change settings.DATABASE after django startup, so
+# unfortunately these tests must be run in a separate pytest process. References:
+#   * https://docs.djangoproject.com/en/4.2/topics/testing/tools/#overriding-settings
+#   * https://code.djangoproject.com/ticket/19031
+#   * https://github.com/pombredanne/django-database-constraints/blob/master/runtests.py#L61-L77
+test-monolith-dbs: create-db
+	@echo "--> Running CI Python tests (SENTRY_USE_MONOLITH_DBS=1)"
+	SENTRY_LEGACY_TEST_SUITE=1 \
+	SENTRY_USE_MONOLITH_DBS=1 \
+	pytest \
+	  tests/sentry/backup/test_exhaustive.py \
+	  tests/sentry/backup/test_exports.py \
+	  tests/sentry/backup/test_imports.py \
+	  tests/sentry/backup/test_releases.py \
+	  tests/sentry/runner/commands/test_backup.py \
+	  --cov . \
+	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
+	;
+	@echo ""
 
 test-snuba: create-db
 	@echo "--> Running snuba tests"
@@ -163,7 +189,7 @@ test-tools:
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
-# Running Locally: Run `sentry devservices up kafka zookeeper` before starting these tests
+# Running Locally: Run `sentry devservices up kafka` before starting these tests
 test-symbolicator: create-db
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"

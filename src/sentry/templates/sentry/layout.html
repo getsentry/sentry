@@ -50,23 +50,21 @@
   </script>
   {% endscript %}
 
-  {% script %}
-    {% include "sentry/partial/preload-data.html" %}
-  {% endscript %}
+  {% include "sentry/partial/preload-data.html" %}
 
   {% block scripts %}
   {% block scripts_main_entrypoint %}
     {% frontend_app_asset_url "sentry" "entrypoints/app.js" as asset_url %}
-    {% script src=asset_url data-entry="true" %}{% endscript %}
+    {% script src=asset_url crossorigin="anonymous" data-entry="true" %}{% endscript %}
   {% endblock %}
 
   {% injected_script_assets as injected_assets %}
   {% for asset_url in injected_assets %}
-    {% script src=asset_url %}{% endscript %}
+    {% script src=asset_url crossorigin="anonymous" %}{% endscript %}
   {% endfor %}
 
   {% asset_url 'sentry' 'js/ads.js' as asset_url %}
-  {% script src=asset_url %}{% endscript %}
+  {% script src=asset_url crossorigin="anonymous" %}{% endscript %}
   {% endblock %}
 </head>
 

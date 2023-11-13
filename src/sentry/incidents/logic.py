@@ -9,12 +9,13 @@ from uuid import uuid4
 
 from django.db import router, transaction
 from django.db.models.signals import post_save
+from django.forms import ValidationError
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -36,15 +37,22 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Actor, Integration, OrganizationIntegration, Project
+from sentry.models.actor import Actor
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationaction import ActionService, ActionTarget
+from sentry.models.project import Project
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
-from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiTimeoutError,
+    DuplicateDisplayNameError,
+    IntegrationError,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -537,6 +545,8 @@ def create_alert_rule(
             include_all_projects=include_all_projects,
             owner=actor,
             comparison_delta=comparison_delta,
+            user_id=actor.user_id if actor else None,
+            team_id=actor.team_id if actor else None,
         )
 
         if user:
@@ -586,6 +596,9 @@ def snapshot_alert_rule(alert_rule, user=None):
         alert_rule_snapshot.id = None
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
+        if alert_rule.owner:
+            alert_rule_snapshot.user_id = alert_rule.owner.user_id
+            alert_rule_snapshot.team_id = alert_rule.owner.team_id
         alert_rule_snapshot.save()
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule_snapshot,
@@ -694,6 +707,8 @@ def update_alert_rule(
         if owner is not None and not isinstance(owner, Actor):
             owner = owner.resolve_to_actor()
         updated_fields["owner"] = owner
+        updated_fields["team_id"] = owner.team_id if owner else None
+        updated_fields["user_id"] = owner.user_id if owner else None
     if comparison_delta is not NOT_SET:
         resolution = DEFAULT_ALERT_RULE_RESOLUTION
         if comparison_delta is not None:
@@ -1131,21 +1146,16 @@ def create_alert_rule_trigger_action(
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
-        # Avoids the case where the discord feature flag is off and the action type is discord
-        if type != AlertRuleTriggerAction.Type.DISCORD.value or features.has(
-            "organizations:integrations-discord-metric-alerts", trigger.alert_rule.organization
-        ):
-            target_identifier, target_display = get_target_identifier_display_for_integration(
-                type.value,
-                target_identifier,
-                trigger.alert_rule.organization,
-                integration_id,
-                use_async_lookup=use_async_lookup,
-                input_channel_id=input_channel_id,
-                integrations=integrations,
-            )
-        else:
-            raise InvalidTriggerActionError("Discord metric alerts not enabled")
+        target_identifier, target_display = get_target_identifier_display_for_integration(
+            type.value,
+            target_identifier,
+            trigger.alert_rule.organization,
+            integration_id,
+            use_async_lookup=use_async_lookup,
+            input_channel_id=input_channel_id,
+            integrations=integrations,
+        )
+
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
             trigger.alert_rule.organization, sentry_app_id, installations
@@ -1206,22 +1216,16 @@ def update_alert_rule_trigger_action(
             integration_id = updated_fields.get("integration_id", trigger_action.integration_id)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
-            # Avoids the case where the discord feature flag is off and the action type is discord
-            if type != AlertRuleTriggerAction.Type.DISCORD.value or features.has(
-                "organizations:integrations-discord-metric-alerts", organization
-            ):
-                target_identifier, target_display = get_target_identifier_display_for_integration(
-                    type,
-                    target_identifier,
-                    organization,
-                    integration_id,
-                    use_async_lookup=use_async_lookup,
-                    input_channel_id=input_channel_id,
-                    integrations=integrations,
-                )
-                updated_fields["target_display"] = target_display
-            else:
-                raise InvalidTriggerActionError("Discord metric alerts not enabled")
+            target_identifier, target_display = get_target_identifier_display_for_integration(
+                type,
+                target_identifier,
+                organization,
+                integration_id,
+                use_async_lookup=use_async_lookup,
+                input_channel_id=input_channel_id,
+                integrations=integrations,
+            )
+            updated_fields["target_display"] = target_display
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
             sentry_app_id = updated_fields.get("sentry_app_id", trigger_action.sentry_app_id)
@@ -1257,8 +1261,9 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
         )
 
     elif type == AlertRuleTriggerAction.Type.DISCORD.value:
-        # Since we don't have a name associated with Discord channels, identifier and value are both the channel id
-        target_identifier = target_value
+        target_identifier = get_alert_rule_trigger_action_discord_channel_id(
+            target_value, *args, **kwargs
+        )
 
     # target_value is the ID of the PagerDuty service
     elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
@@ -1314,6 +1319,38 @@ def get_alert_rule_trigger_action_slack_channel_id(
         )
 
     return channel_id
+
+
+def get_alert_rule_trigger_action_discord_channel_id(
+    name,
+    organization,
+    integration_id,
+    use_async_lookup=False,
+    input_channel_id=None,
+    integrations=None,
+):
+    from sentry.integrations.discord.utils.channel import validate_channel_id
+
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        raise InvalidTriggerActionError("Discord integration not found.")
+    try:
+        validate_channel_id(
+            channel_id=name,
+            guild_id=integration.external_id,
+            integration_id=integration.id,
+            guild_name=integration.name,
+        )
+    except ValidationError as e:
+        raise InvalidTriggerActionError(e.message)
+    except IntegrationError:
+        raise InvalidTriggerActionError("Bad response from Discord channel lookup")
+    except ApiTimeoutError:
+        raise ChannelLookupTimeoutError(
+            "Could not find channel %s. We have timed out trying to look for it." % name
+        )
+
+    return name
 
 
 def get_alert_rule_trigger_action_msteams_channel_id(
@@ -1381,7 +1418,8 @@ def get_alert_rule_trigger_action_opsgenie_team(
     )
     try:
         client.authorize_integration(type="sentry")
-    except ApiError:
+    except ApiError as e:
+        logger.info("opsgenie.authorization_error", extra={"error": str(e)})
         raise InvalidTriggerActionError("Invalid integration key.")
     return team["id"], team["team"]
 
@@ -1413,22 +1451,23 @@ def get_actions_for_trigger(trigger):
     return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
 
 
-def get_available_action_integrations_for_org(organization):
+def get_available_action_integrations_for_org(organization) -> List[RpcIntegration]:
     """
     Returns a list of integrations that the organization has installed. Integrations are
     filtered by the list of registered providers.
     :param organization:
     """
-    # Avoids the case where the discord feature flag is off and the action type is discord
+
     providers = [
         registration.integration_provider
         for registration in AlertRuleTriggerAction.get_registered_types()
         if registration.integration_provider is not None
-        if registration.type != AlertRuleTriggerAction.Type.DISCORD
-        or features.has("organizations:integrations-discord-metric-alerts", organization)
     ]
-    return Integration.objects.get_active_integrations(organization.id).filter(
-        provider__in=providers
+    return integration_service.get_integrations(
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        organization_id=organization.id,
+        providers=providers,
     )
 
 
@@ -1601,7 +1640,11 @@ def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Pro
 
     alert_snuba_query = alert_rule.snuba_query
     should_use_on_demand = should_use_on_demand_metrics(
-        alert_snuba_query.dataset, alert_snuba_query.aggregate, alert_snuba_query.query, prefilling
+        alert_snuba_query.dataset,
+        alert_snuba_query.aggregate,
+        alert_snuba_query.query,
+        None,
+        prefilling,
     )
     if should_use_on_demand:
         for project in projects:

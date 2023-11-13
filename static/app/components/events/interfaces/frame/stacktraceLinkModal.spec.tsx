@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
@@ -16,7 +17,7 @@ import * as analytics from 'sentry/utils/analytics';
 jest.mock('sentry/utils/analytics');
 
 describe('StacktraceLinkModal', () => {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const project = TestStubs.Project();
   const integration = TestStubs.GitHubIntegration();
   const filename = '/sentry/app.py';

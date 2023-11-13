@@ -25,6 +25,7 @@ import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types
 import {defined, objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   explodeField,
@@ -57,6 +58,7 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
+import {hasThresholdMaxValue} from '../utils';
 import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
@@ -137,6 +139,8 @@ interface State {
   queryConditionsValid: boolean;
   title: string;
   userHasModified: boolean;
+  dataType?: string;
+  dataUnit?: string;
   description?: string;
   errors?: Record<string, any>;
   selectedDashboard?: DashboardDetails['id'];
@@ -209,6 +213,7 @@ function WidgetBuilder({
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
     getDatasetConfig(WidgetType.DISCOVER)
   );
+  const defaultThresholds: ThresholdsConfig = {max_values: {}, unit: null};
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
@@ -217,10 +222,12 @@ function WidgetBuilder({
         DisplayType.TABLE,
       interval: '5m',
       queries: [],
-      thresholds: null,
+      thresholds: defaultThresholds,
       limit: limit ? Number(limit) : undefined,
       errors: undefined,
       description: undefined,
+      dataType: undefined,
+      dataUnit: undefined,
       loading: !!notDashboardsOrigin,
       userHasModified: false,
       prebuiltWidgetId: null,
@@ -318,7 +325,7 @@ function WidgetBuilder({
         errors: undefined,
         loading: false,
         userHasModified: false,
-        thresholds: widgetFromDashboard.thresholds,
+        thresholds: widgetFromDashboard.thresholds ?? defaultThresholds,
         dataSet: widgetFromDashboard.widgetType
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
@@ -672,6 +679,8 @@ function WidgetBuilder({
       );
     }
 
+    newState.thresholds = defaultThresholds;
+
     setState(newState);
   }
 
@@ -762,6 +771,10 @@ function WidgetBuilder({
 
   async function handleSave() {
     const widgetData: Widget = assignTempId(currentWidget);
+
+    if (widgetData.thresholds && !hasThresholdMaxValue(widgetData.thresholds)) {
+      widgetData.thresholds = null;
+    }
 
     if (widgetToBeUpdated) {
       widgetData.layout = widgetToBeUpdated?.layout;
@@ -913,21 +926,46 @@ function WidgetBuilder({
       if (value === '') {
         delete newState.thresholds?.max_values[maxKey];
 
-        if (
-          newState.thresholds &&
-          Object.keys(newState.thresholds.max_values).length === 0
-        ) {
-          newState.thresholds = null;
+        if (newState.thresholds && !hasThresholdMaxValue(newState.thresholds)) {
+          newState.thresholds.max_values = {};
         }
       } else {
-        if (!newState.thresholds) {
-          newState.thresholds = {
-            max_values: {},
-            unit: null,
-          };
+        if (newState.thresholds) {
+          newState.thresholds.max_values[maxKey] = Number(value);
         }
+      }
 
-        newState.thresholds.max_values[maxKey] = Number(value);
+      return newState;
+    });
+  }
+
+  function handleThresholdUnitChange(unit: string) {
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+
+      if (newState.thresholds) {
+        newState.thresholds.unit = unit;
+      }
+
+      return newState;
+    });
+  }
+
+  function handleWidgetDataFetched(tableData: TableDataWithTitle[]) {
+    const tableMeta = {...tableData[0].meta};
+    const keys = Object.keys(tableMeta);
+    const field = keys[0];
+    const dataType = tableMeta[field];
+    const dataUnit = tableMeta.units?.[field];
+
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+
+      newState.dataType = dataType;
+      newState.dataUnit = dataUnit;
+
+      if (newState.thresholds && !newState.thresholds.unit) {
+        newState.thresholds.unit = dataUnit ?? null;
       }
 
       return newState;
@@ -1062,6 +1100,7 @@ function WidgetBuilder({
                               </NameWidgetStep>
                               <VisualizationStep
                                 location={location}
+                                onDataFetched={handleWidgetDataFetched}
                                 widget={currentWidget}
                                 dashboardFilters={dashboard.filters}
                                 organization={organization}
@@ -1160,12 +1199,17 @@ function WidgetBuilder({
                                 />
                               )}
                               {state.displayType === 'big_number' &&
+                                state.dataType !== 'date' &&
                                 organization.features.includes(
                                   'dashboard-widget-indicators'
                                 ) && (
                                   <ThresholdsStep
-                                    onChange={handleThresholdChange}
+                                    onThresholdChange={handleThresholdChange}
+                                    onUnitChange={handleThresholdUnitChange}
                                     thresholdsConfig={state.thresholds ?? null}
+                                    dataType={state.dataType}
+                                    dataUnit={state.dataUnit}
+                                    errors={state.errors?.thresholds}
                                   />
                                 )}
                             </BuildSteps>

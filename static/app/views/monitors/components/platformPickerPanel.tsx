@@ -7,7 +7,6 @@ import {Button} from 'sentry/components/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey} from 'sentry/types';
 
 import {NewMonitorButton} from './newMonitorButton';
 
@@ -17,7 +16,11 @@ export type SupportedPlatform =
   | 'php-laravel'
   | 'python'
   | 'node'
-  | 'go';
+  | 'go'
+  | 'java'
+  | 'java-spring-boot'
+  | 'ruby'
+  | 'ruby-rails';
 
 interface SDKPlatformInfo {
   label: string;
@@ -31,10 +34,14 @@ export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
   {platform: 'python', label: 'Python'},
   {platform: 'node', label: 'Node'},
   {platform: 'go', label: 'Go'},
+  {platform: 'java', label: 'Java'},
+  {platform: 'java-spring-boot', label: 'Spring Boot'},
+  {platform: 'ruby', label: 'Ruby'},
+  {platform: 'ruby-rails', label: 'Rails'},
 ];
 
 interface Props {
-  onSelect: (platform: PlatformKey) => void;
+  onSelect: (platform: SupportedPlatform | null) => void;
 }
 
 export function PlatformPickerPanel({onSelect}: Props) {
@@ -89,6 +96,7 @@ const SectionTitle = styled('h5')`
 const Actions = styled('div')`
   display: flex;
   gap: ${space(2)};
+  flex-wrap: wrap;
 `;
 
 const PlatformButton = styled(Button)`

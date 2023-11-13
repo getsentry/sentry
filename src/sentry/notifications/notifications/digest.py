@@ -17,7 +17,7 @@ from sentry.digests.utils import (
 from sentry.eventstore.models import Event
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, UnsubscribeContext
 from sentry.notifications.utils import (
     NotificationRuleDetails,
     get_email_link_extra_params,
@@ -35,7 +35,8 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.dates import to_timestamp
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +61,13 @@ class DigestNotification(ProjectNotification):
         self.target_identifier = target_identifier
         self.fallthrough_choice = fallthrough_choice
 
-    def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
-        return "project", self.project.id, "alert_digest"
+    def get_unsubscribe_key(self) -> UnsubscribeContext | None:
+        return UnsubscribeContext(
+            organization=self.project.organization,
+            key="project",
+            resource_id=self.project.id,
+            referrer="alert_digest",
+        )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         if not context:
@@ -180,14 +186,12 @@ class DigestNotification(ProjectNotification):
         )
 
         # Get every actor ID for every provider as a set.
-        actor_ids = set()
         team_ids = set()
         user_ids = set()
         combined_participants_by_provider = defaultdict(set)
         for participants_by_provider in participants_by_provider_by_event.values():
             for provider, participants in participants_by_provider.items():
                 for participant in participants:
-                    actor_ids.add(participant.actor_id)
                     if participant.actor_type == ActorType.TEAM:
                         team_ids.add(participant.id)
                     elif participant.actor_type == ActorType.USER:
@@ -203,9 +207,9 @@ class DigestNotification(ProjectNotification):
                 "project_id": self.project.id,
                 "target_type": self.target_type.value,
                 "target_identifier": self.target_identifier,
-                "actor_ids": actor_ids,
                 "team_ids": team_ids,
                 "user_ids": user_ids,
+                "notification_uuid": self.notification_uuid,
             },
         )
 

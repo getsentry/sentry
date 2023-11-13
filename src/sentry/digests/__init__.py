@@ -10,7 +10,8 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.services import LazyServiceWrapper
 
 if TYPE_CHECKING:
-    from sentry.models import Rule, Group
+    from sentry.models.group import Group
+    from sentry.models.rule import Rule
 
 from .backends.base import Backend
 from .backends.dummy import DummyBackend

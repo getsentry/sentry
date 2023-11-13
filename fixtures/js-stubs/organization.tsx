@@ -1,8 +1,10 @@
 import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
 
-import type {Organization as TOrganization} from 'sentry/types';
+import type {DetailedOrganization} from 'sentry/types';
 
-export function Organization(params: Partial<TOrganization> = {}): TOrganization {
+export function Organization(
+  params: Partial<DetailedOrganization> = {}
+): DetailedOrganization {
   const slug = params.slug ?? 'org-slug';
   return {
     id: '3',
@@ -44,6 +46,7 @@ export function Organization(params: Partial<TOrganization> = {}): TOrganization
     avatar: {
       avatarType: 'default',
       avatarUuid: null,
+      avatarUrl: null,
     },
     codecovAccess: false,
     dataScrubber: false,
@@ -74,6 +77,8 @@ export function Organization(params: Partial<TOrganization> = {}): TOrganization
     sensitiveFields: [],
     storeCrashReports: 0,
     trustedRelays: [],
+    teams: [],
+    projects: [],
     ...params,
 
     orgRoleList: OrgRoleList(),

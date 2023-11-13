@@ -53,7 +53,10 @@ from sentry.discover.arithmetic import (
     strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import Environment, Organization, Project, Team
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.search.events import constants, fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.datasets.base import DatasetConfig
@@ -64,10 +67,7 @@ from sentry.search.events.datasets.profile_functions import ProfileFunctionsData
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
-from sentry.search.events.datasets.spans_metrics import (
-    SpansMetricsDatasetConfig,
-    SpansMetricsLayerDatasetConfig,
-)
+from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -359,10 +359,11 @@ class BaseQueryBuilder:
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.spans_metrics_builder:
-                if self.builder_config.use_metrics_layer:
-                    self.config = SpansMetricsLayerDatasetConfig(self)
-                else:
-                    self.config = SpansMetricsDatasetConfig(self)
+                # For now, we won't support the metrics layer for spans since it needs some work,
+                # but once the work will be done, we will have to add:
+                # if self.builder_config.use_metrics_layer:
+                #     self.config = SpansMetricsLayerDatasetConfig(self)
+                self.config = SpansMetricsDatasetConfig(self)
             elif self.builder_config.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
             else:
@@ -545,7 +546,7 @@ class BaseQueryBuilder:
     def resolve_boolean_condition(
         self, term: event_filter.ParsedTerm
     ) -> Tuple[List[WhereType], List[WhereType]]:
-        if isinstance(term, event_filter.ParenExpression):
+        if isinstance(term, event_search.ParenExpression):
             return self.resolve_boolean_conditions(term.children)
 
         where, having = [], []
@@ -847,6 +848,8 @@ class BaseQueryBuilder:
                     resolved_orderby = bare_orderby
                 # Allow ordering equations directly with the raw alias (ie. equation|a + b)
                 elif is_equation(bare_orderby):
+                    if not strip_equation(bare_orderby):
+                        raise InvalidSearchQuery("Cannot sort by an empty equation")
                     resolved_orderby = self.equation_alias_map[strip_equation(bare_orderby)]
                     bare_orderby = resolved_orderby.alias
                 else:

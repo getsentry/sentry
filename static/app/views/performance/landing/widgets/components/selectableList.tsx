@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import {getConfigureIntegrationsDocsLink} from 'sentry/utils/docs';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {NoDataDueToOldSDKMessage} from 'sentry/views/performance/database/noDataDueToOldSDKMessage';
+import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -96,8 +96,7 @@ export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
     <StyledEmptyStateWarning>
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
       <SecondaryMessage>
-        {t('Spans may not be listed due to the filters above.')}{' '}
-        <NoDataDueToOldSDKMessage Wrapper={Fragment} />
+        <NoDataMessage Wrapper={Fragment} />
       </SecondaryMessage>
     </StyledEmptyStateWarning>
   );
@@ -166,22 +165,29 @@ const StyledIconClose = styled(IconClose)`
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  min-height: 300px;
   justify-content: center;
   display: flex;
   align-items: center;
   flex-direction: column;
+  flex: 1;
+  padding: ${space(1)} ${space(2)} ${space(4)} ${space(2)};
+
+  svg {
+    margin-bottom: ${space(1)};
+    height: 30px;
+    width: 30px;
+  }
 `;
 
 const PrimaryMessage = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray300};
   font-weight: 600;
   margin: 0 auto ${space(1)};
 `;
 
 const SecondaryMessage = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   max-width: 300px;
 `;

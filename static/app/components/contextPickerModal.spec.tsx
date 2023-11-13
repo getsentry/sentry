@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -22,9 +23,9 @@ describe('ContextPickerModal', function () {
     MockApiClient.clearMockResponses();
 
     project = TestStubs.Project();
-    org = TestStubs.Organization({projects: [project]});
+    org = Organization({projects: [project]});
     project2 = TestStubs.Project({slug: 'project2'});
-    org2 = TestStubs.Organization({
+    org2 = Organization({
       slug: 'org2',
       id: '21',
     });

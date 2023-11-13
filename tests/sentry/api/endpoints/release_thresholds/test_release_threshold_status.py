@@ -1,11 +1,17 @@
 from datetime import datetime, timedelta
 
-from django.urls import reverse
-
-from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProjectEnvironment
-from sentry.models.release_threshold.constants import ReleaseThresholdType
+from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
+    EnrichedThreshold,
+    is_error_count_healthy,
+)
+from sentry.api.serializers import serialize
+from sentry.models.environment import Environment
+from sentry.models.release import Release
+from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
-from sentry.testutils.cases import APITestCase
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.testutils.cases import APITestCase, TestCase
 
 
 class ReleaseThresholdStatusTest(APITestCase):
@@ -29,14 +35,18 @@ class ReleaseThresholdStatusTest(APITestCase):
         )
 
         # release created for proj1, and proj2
-        self.release1 = Release.objects.create(version="1", organization=self.organization)
+        self.release1 = Release.objects.create(version="v1", organization=self.organization)
         # add_project get_or_creates a ReleaseProject
         self.release1.add_project(self.project1)
         self.release1.add_project(self.project2)
 
         # release created for proj1
-        self.release2 = Release.objects.create(version="2", organization=self.organization)
+        self.release2 = Release.objects.create(version="v2", organization=self.organization)
         self.release2.add_project(self.project1)
+
+        # release created for proj3
+        self.release3 = Release.objects.create(version="v3", organization=self.organization)
+        self.release3.add_project(self.project3)
 
         # Not sure what Release Environments are for...
         # project superfluous/deprecated in ReleaseEnvironment
@@ -111,100 +121,93 @@ class ReleaseThresholdStatusTest(APITestCase):
             project=self.project2,
             environment=self.canary_environment,
         )
+        # threshold for project3 with no environment
+        # NOTE: project 3 is also the only project for which a release was created with NO environment
+        ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            trigger_type=1,
+            value=100,
+            window_in_seconds=100,
+            project=self.project3,
+        )
 
         self.login_as(user=self.user)
-        self.url = reverse(
-            "sentry-api-0-organization-release-threshold-statuses",
-            kwargs={"organization_slug": self.organization.slug},
-        )
 
     def test_get_success(self):
         """
         Tests fetching all thresholds (env+project agnostic) within the past 24hrs.
 
         Set up creates
-        - 2 releases
+        - 3 releases
             - release1 - canary # env only matters for how we filter releases
                 - r1-proj1-canary # NOTE: is it possible to have a ReleaseProjectEnvironment without a corresponding ReleaseEnvironment??
                 - r1-proj2-canary
             - release2 - prod # env only matters for how we filter releases
                 - r2-proj1-prod
+            - release3 - None
         - 4 thresholds
-            - project1 canary
-            - project1 canary
-            - project1 prod
-            - project2 canary
+            - project1 canary error_counts
+            - project1 canary new_issues
+            - project1 prod error_counts
+            - project2 canary error_counts
+            - project3 no environment error_counts
 
         so response should look like
         {
-            [release1]: {
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary, threshold-p1-prod]
-                [p2.id]: [threshold-p2-canary]
-            }
-            [release2]: [
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary, threshold-p1-prod]
-            ]
+            {p1.slug}-{canary}-{release1.version}: [threshold1, threshold2]
+            {p1.slug}-{prod}-{release1.version}: [threshold]
+            {p2.slug}-{canary}-{release1.version}: [threshold]
+            {p1.slug}-{prod}-{release2.version}: [threshold, threshold]
+            {p1.slug}-{prod}-{release2.version}: [threshold]
+            {p1.slug}-None-{release3.version}: [threshold]
         }
         """
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
         last_week = str(datetime.now() - timedelta(days=7))
         release_old = Release.objects.create(
-            version="0", organization=self.organization, date_added=last_week
+            version="old_version", organization=self.organization, date_added=last_week
         )
 
         response = self.get_success_response(self.organization.slug, start=yesterday, end=now)
 
-        assert len(response.data) == 2  # 2 releases
-        assert release_old.id not in response.data  # old release is filtered out of response
-        assert len(response.data.get(self.release1.id)) == 2  # 2 projects (p1 & p2) in release 1
+        assert len(response.data.keys()) == 6
+        for key in response.data.keys():
+            # NOTE: special characters *can* be included in release versions or environment names
+            assert release_old.version not in key  # old release is filtered out of response
+        data = response.data
+        # release1
+        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
+        assert len(r1_keys) == 3  # 3 keys produced in release 1 (p1-canary, p1-prod, p2-canary)
 
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project1.id)) == 3
-        )  # p1 2x canary, 1x prod
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[2]
-            .get("environment", {})
-            .get("name")
-            == self.production_environment.name
-        )  # assert environment is 'production'
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project2.id)) == 1
-        )  # p2 1x canary
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project2.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
-
-        assert len(response.data.get(self.release2.id)) == 1  # 1 project (p1) in release 2
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project1.id)) == 3
-        )  # p1 2x canary, 1x prod
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[2]
-            .get("environment", {})
-            .get("name")
-            == self.production_environment.name
-        )  # assert environment is 'production'
+        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 2
+        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
+        temp_key = (
+            f"{self.project1.slug}-{self.production_environment.name}-{self.release1.version}"
+        )
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
+        # release2
+        r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
+        assert len(r2_keys) == 2  # 2 keys produced in release 2 (p1-canary, p1-prod)
+        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release2.version}"
+        assert temp_key in r2_keys
+        assert len(data[temp_key]) == 2
+        temp_key = (
+            f"{self.project1.slug}-{self.production_environment.name}-{self.release2.version}"
+        )
+        assert temp_key in r2_keys
+        assert len(data[temp_key]) == 1
+        # release3
+        r3_keys = [k for k, v in data.items() if k.split("-")[2] == self.release3.version]
+        assert len(r3_keys) == 1  # 1 key produced in release 3 (p1-None)
+        temp_key = f"{self.project3.slug}-None-{self.release3.version}"
+        assert temp_key in r3_keys
+        assert len(data[temp_key]) == 1
 
     def test_get_success_environment_filter(self):
         """
@@ -213,22 +216,20 @@ class ReleaseThresholdStatusTest(APITestCase):
         Set up creates
         - 2 releases
             - release1 - canary # env only matters for how we filter releases
-                - r1-proj1-canary # NOTE: is it possible to have a ReleaseProjectEnvironment without a corresponding ReleaseEnvironment??
+                - r1-proj1-canary
                 - r1-proj2-canary
             - release2 - prod # env only matters for how we filter releases
                 - r2-proj1-prod
         - 4 thresholds
-            - project1 canary
-            - project1 canary
-            - project1 prod
-            - project2 canary
+            - project1 canary error_counts
+            - project1 canary new_issues
+            - project1 prod error_counts
+            - project2 canary error_counts
 
         We'll filter for _only_ canary releases, so the response should look like
         {
-            [release1]: {
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary]
-                [p2.id]: [threshold-p2-canary]
-            }
+            {p1.slug}-{canary}-{release1.version}: [threshold1, threshold2]
+            {p2.slug}-{canary}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -237,151 +238,579 @@ class ReleaseThresholdStatusTest(APITestCase):
             self.organization.slug, start=yesterday, end=now, environment=["canary"]
         )
 
-        assert len(response.data) == 1  # only the canary release
-        assert len(response.data.get(self.release1.id)) == 2  # 2 projects (p1 & p2) in release 1
+        assert len(response.data.keys()) == 2
+        data = response.data
+        # release1
+        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
+        assert len(r1_keys) == 2  # 2 keys produced in release 1 (p1-canary, p2-canary)
 
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project1.id)) == 2
-        )  # p1 2x canary
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project2.id)) == 1
-        )  # p2 1x canary
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project2.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
+        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 2
 
-        assert (
-            len(response.data.get(self.release2.id, {})) == 0
-        )  # release2 should not exist in the response
+        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
 
-    def test_get_success_release_id_filter(self):
+    def test_get_success_release_filter(self):
         """
-        Tests fetching thresholds within the past 24hrs filtered on release_id's
+        Tests fetching thresholds within the past 24hrs filtered on release versions
 
         Set up creates
         - 2 releases
             - release1 - canary # env only matters for how we filter releases
-                - r1-proj1-canary # NOTE: is it possible to have a ReleaseProjectEnvironment without a corresponding ReleaseEnvironment??
+                - r1-proj1-canary
                 - r1-proj2-canary
             - release2 - prod # env only matters for how we filter releases
                 - r2-proj1-prod
         - 4 thresholds
-            - project1 canary
-            - project1 canary
-            - project1 prod
-            - project2 canary
+            - project1 canary error_counts
+            - project1 canary new_issues
+            - project1 prod error_counts
+            - project2 canary error_counts
 
         We'll filter for _only_ release1, so the response should look like
         {
-            [release1]: {
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary, threshold-p1-prod]
-                [p2.id]: [threshold-p2-canary]
-            }
+            {p1.slug}-{canary}-{release1.version}: [threshold1, threshold2]
+            {p1.slug}-{prod}-{release1.version}: [threshold]
+            {p2.slug}-{canary}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
         response = self.get_success_response(
-            self.organization.slug, start=yesterday, end=now, release_id=[self.release1.id]
+            self.organization.slug, start=yesterday, end=now, release=[self.release1.version]
         )
 
-        assert len(response.data) == 1  # only fetched release1
-        assert len(response.data.get(self.release1.id)) == 2  # 2 projects (p1 & p2) in release 1
+        assert len(response.data.keys()) == 3
+        data = response.data
+        # release1
+        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
+        assert len(r1_keys) == 3  # 3 keys produced in release 1 (p1-canary, p1-prod, p2-canary)
 
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project1.id)) == 3
-        )  # p1 2x canary, 1x prod
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[2]
-            .get("environment", {})
-            .get("name")
-            == self.production_environment.name
-        )  # assert environment is 'production'
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project2.id)) == 1
-        )  # p2 1x canary
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project2.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
+        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 2
+        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
+        temp_key = (
+            f"{self.project1.slug}-{self.production_environment.name}-{self.release1.version}"
+        )
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
 
-        assert (
-            len(response.data.get(self.release2.id, {})) == 0
-        )  # release2 should not exist in the response
+        # release2
+        r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
+        assert len(r2_keys) == 0
 
-    def test_get_success_project_id_filter(self):
+    def test_get_success_project_slug_filter(self):
         """
-        Tests fetching thresholds within the past 24hrs filtered on project_id's
-        NOTE: in order to determine *release* health, we still need all projects (& thresholds) associated with that release
+        Tests fetching thresholds within the past 24hrs filtered on project_slug's
+        NOTE: Because releases may have multiple projects, filtering by project is _not_ adequate to
+        return accurate release health
         So - filtering on project will give us all the releases associated with that project
         but we still need all the other projects associated with the release to determine health status
 
         Set up creates
         - 2 releases
             - release1 - canary # env only matters for how we filter releases
-                - r1-proj1-canary # NOTE: is it possible to have a ReleaseProjectEnvironment without a corresponding ReleaseEnvironment??
+                - r1-proj1-canary
                 - r1-proj2-canary
             - release2 - prod # env only matters for how we filter releases
                 - r2-proj1-prod
         - 4 thresholds
-            - project1 canary
-            - project1 canary
-            - project1 prod
-            - project2 canary
+            - project1 canary error_counts
+            - project1 canary new_issues
+            - project1 prod error_counts
+            - project2 canary error_counts
+
 
         We'll filter for _only_ project2, so the response should look like
         since project2 was only ever added to release1
         {
-            [release1]: { # NOTE: fetches only the releases that include p2
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary, threshold-p1-prod]
-                [p2.id]: [threshold-p2-canary]
-            }
+            {p2.slug}-{canary}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
         response = self.get_success_response(
-            self.organization.slug, start=yesterday, end=now, project=[self.project2.id]
+            self.organization.slug, start=yesterday, end=now, project=[self.project2.slug]
         )
 
-        assert len(response.data) == 1  # only fetched release1
-        assert (
-            len(response.data.get(self.release1.id)) == 1
-        )  # p1 has been filtered out of the response
+        assert len(response.data.keys()) == 1
+        data = response.data
+        # release1
+        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
+        assert len(r1_keys) == 1  # 1 key produced in release 1 (p2-canary)
 
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project2.id)) == 1
-        )  # p2 1x canary
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project2.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
+        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key not in r1_keys
+        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
+        temp_key = (
+            f"{self.project1.slug}-{self.production_environment.name}-{self.release1.version}"
+        )
+        assert temp_key not in r1_keys
 
-        assert (
-            len(response.data.get(self.release2.id, {})) == 0
-        )  # release2 should not exist in the response
+        # release2
+        r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
+        assert len(r2_keys) == 0
+
+
+class ErrorCountThresholdCheckTest(TestCase):
+    def setUp(self):
+        # 3 projects
+        self.project1 = self.create_project(name="foo", organization=self.organization)
+        self.project2 = self.create_project(name="bar", organization=self.organization)
+
+        self.canary_environment = Environment.objects.create(
+            organization_id=self.organization.id, name="canary"
+        )
+
+        # release created for proj1, and proj2
+        self.release1 = Release.objects.create(version="v1", organization=self.organization)
+        # add_project get_or_creates a ReleaseProject
+        self.release1.add_project(self.project1)
+        self.release1.add_project(self.project2)
+
+        # release created for proj1
+        self.release2 = Release.objects.create(version="v2", organization=self.organization)
+        # add_project get_or_creates a ReleaseProject
+        self.release2.add_project(self.project1)
+
+    def test_threshold_within_timeseries(self):
+        """
+        construct a timeseries with:
+        - a single release
+        - a single project
+        - no environment
+        - multiple timestamps both before and after our threshold window
+        """
+        now = datetime.utcnow()
+        timeseries = [
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=3)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=2)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=1)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": now.isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+        ]
+
+        # current threshold within series
+        current_threshold_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 4,  # error counts _not_ be over threshold value
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=current_threshold_healthy, timeseries=timeseries)
+
+        # threshold equal to count
+        threshold_at_limit_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 1,  # error counts equal to threshold limit value
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=threshold_at_limit_healthy, timeseries=timeseries)
+
+        # past healthy threshold within series
+        past_threshold_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=2),
+            "end": now - timedelta(minutes=1),
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 2,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=past_threshold_healthy, timeseries=timeseries)
+
+        # threshold within series but trigger is under
+        threshold_under_unhealthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.UNDER_STR,
+            "value": 4,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert not is_error_count_healthy(
+            ethreshold=threshold_under_unhealthy, timeseries=timeseries
+        )
+
+        # threshold within series but end is in future
+        threshold_unfinished: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now + timedelta(minutes=5),
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 4,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=threshold_unfinished, timeseries=timeseries)
+
+    def test_multiple_releases_within_timeseries(self):
+        now = datetime.utcnow()
+        timeseries = [
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=3)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release2.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=3)).isoformat(),
+                "environment": None,
+                "count()": 2,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=2)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release2.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=2)).isoformat(),
+                "environment": None,
+                "count()": 2,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=1)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release2.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=1)).isoformat(),
+                "environment": None,
+                "count()": 2,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": now.isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release2.version,
+                "project_id": self.project1.id,
+                "time": now.isoformat(),
+                "environment": None,
+                "count()": 2,
+            },
+        ]
+
+        # base threshold within series
+        threshold_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 4,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+
+        # threshold within series but separate unhealthy release
+        threshold_unhealthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release2.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 1,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+
+    def test_multiple_projects_within_timeseries(self):
+        now = datetime.utcnow()
+        timeseries = [
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=3)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project2.id,
+                "time": (now - timedelta(minutes=3)).isoformat(),
+                "environment": None,
+                "count()": 2,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=2)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project2.id,
+                "time": (now - timedelta(minutes=2)).isoformat(),
+                "environment": None,
+                "count()": 2,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=1)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project2.id,
+                "time": (now - timedelta(minutes=1)).isoformat(),
+                "environment": None,
+                "count()": 2,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": now.isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project2.id,
+                "time": now.isoformat(),
+                "environment": None,
+                "count()": 2,
+            },
+        ]
+
+        # base threshold within series
+        # unhealthy means error count OVER 4 over 1m window
+        threshold_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 4,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+
+        # threshold within series but separate unhealthy project
+        threshold_unhealthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project2),
+            "project_id": self.project2.id,
+            "project_slug": self.project2.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 1,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+
+    def test_multiple_environments_within_timeseries(self):
+        now = datetime.utcnow()
+        timeseries = [
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=3)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=3)).isoformat(),
+                "environment": "canary",
+                "count()": 2,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=2)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=2)).isoformat(),
+                "environment": "canary",
+                "count()": 2,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=1)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=1)).isoformat(),
+                "environment": "canary",
+                "count()": 2,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": now.isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": now.isoformat(),
+                "environment": "canary",
+                "count()": 2,
+            },
+        ]
+
+        # base threshold within series
+        threshold_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 2,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+
+        # threshold within series but separate unhealthy environment
+        threshold_unhealthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": serialize(self.canary_environment),
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 1,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)

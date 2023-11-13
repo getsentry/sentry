@@ -10,9 +10,9 @@ from django.urls import re_path
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from sentry.api.base import control_silo_endpoint, region_silo_endpoint
+import sentry.api.urls as api_urls
+from sentry.api.base import Endpoint, control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
-from sentry.api.endpoints.rpc import RpcServiceEndpoint
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, clear_global_regions
@@ -35,6 +35,14 @@ class RegionEndpoint(OrganizationEndpoint):
         return Response({"proxy": False})
 
 
+@region_silo_endpoint
+class NoOrgRegionEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        return Response({"proxy": False})
+
+
 urlpatterns = [
     re_path(
         r"^organizations/(?P<organization_slug>[^\/]+)/control/$",
@@ -46,12 +54,7 @@ urlpatterns = [
         RegionEndpoint.as_view(),
         name="region-endpoint",
     ),
-    re_path(
-        r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
-        RpcServiceEndpoint.as_view(),
-        name="sentry-api-0-rpc-service",
-    ),
-]
+] + api_urls.urlpatterns
 
 
 def verify_request_body(body, headers):
@@ -116,9 +119,9 @@ def provision_middleware():
 @override_settings(ROOT_URLCONF=__name__)
 class ApiGatewayTestCase(APITestCase):
     _REGION = Region(
-        name="region",
+        name="us",
         snowflake_id=1,
-        address="http://region.internal.sentry.io",
+        address="http://us.internal.sentry.io",
         category=RegionCategory.MULTI_TENANT,
     )
 

@@ -74,40 +74,33 @@ from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.producer import produce_occurrence_to_kafka
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
-from sentry.models import (
-    CRASH_REPORT_TYPES,
-    Activity,
-    Environment,
-    EventAttachment,
-    EventDict,
-    EventUser,
-    File,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    Organization,
-    Project,
-    ProjectKey,
-    PullRequest,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    UserReport,
-    get_crashreport_key,
-)
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.event import EventDict
+from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
+from sentry.models.eventuser import EventUser
+from sentry.models.files.file import File
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.release import follows_semver_versioning_scheme
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.pullrequest import PullRequest
+from sentry.models.release import Release, ReleaseProject, follows_semver_versioning_scheme
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
@@ -138,6 +131,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+from sentry.utils.tag_normalization import normalize_sdk_tag
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -183,6 +177,26 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
 
 def is_sample_event(job):
     return get_tag(job["data"], "sample_event") == "yes"
+
+
+def normalized_sdk_tag_from_event(event: Event) -> str:
+    """
+     Normalize tags coming from SDKs to more manageable canonical form, by:
+
+     - combining synonymous tags (`sentry.react` -> `sentry.javascript.react`),
+     - ignoring framework differences (`sentry.python.flask` and `sentry.python.django` -> `sentry.python`)
+     - collapsing all community/third-party SDKs into a single `other` category
+
+    Note: Some platforms may keep their framework-specific values, as needed for analytics.
+
+    This is done to reduce the cardinality of the `sdk.name` tag, while keeping
+    the ones interesinting to us as granual as possible.
+    """
+    try:
+        return normalize_sdk_tag((event.data.get("sdk") or {}).get("name") or "other")
+    except Exception:
+        logger.warning("failed to get SDK name", exc_info=True)
+        return "other"
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
@@ -380,7 +394,7 @@ class EventManager:
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
-        if pre_normalize_type == "generic":
+        if pre_normalize_type in ("generic", "feedback"):
             self._data["type"] = pre_normalize_type
 
     def get_data(self) -> CanonicalKeyDict:
@@ -430,7 +444,12 @@ class EventManager:
 
         projects = {project.id: project}
 
-        job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
+        job: dict[str, Any] = {
+            "data": self._data,
+            "project_id": project.id,
+            "raw": raw,
+            "start_time": start_time,
+        }
 
         # After calling _pull_out_data we get some keys in the job like the platform
         with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
@@ -453,7 +472,10 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
-            metric_tags = {"platform": job["event"].platform or "unknown"}
+            metric_tags = {
+                "platform": job["event"].platform or "unknown",
+                "sdk": normalized_sdk_tag_from_event(job["event"]),
+            }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
@@ -778,7 +800,7 @@ def _auto_update_grouping(project: Project) -> None:
             "sentry:secondary_grouping_expiry": expiry,
             "sentry:grouping_config": new_grouping,
         }
-        for (key, value) in changes.items():
+        for key, value in changes.items():
             project.update_option(key, value)
         create_system_audit_entry(
             organization=project.organization,
@@ -788,11 +810,17 @@ def _auto_update_grouping(project: Project) -> None:
         )
 
 
-@metrics.wraps("event_manager.background_grouping")
+# TODO: this seems to be dead code, validate and remove
 def _calculate_background_grouping(
     project: Project, event: Event, config: GroupingConfig
 ) -> CalculatedHashes:
-    return _calculate_event_grouping(project, event, config)
+    metric_tags: MutableTags = {
+        "grouping_config": config["id"],
+        "platform": event.platform or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
+    }
+    with metrics.timer("event_manager.background_grouping", tags=metric_tags):
+        return _calculate_event_grouping(project, event, config)
 
 
 def _run_background_grouping(project: Project, job: Job) -> None:
@@ -1583,7 +1611,6 @@ def _save_aggregate(
     kwargs["data"]["last_received"] = received_timestamp
 
     if existing_grouphash is None:
-
         if killswitch_matches_context(
             "store.load-shed-group-creation-projects",
             {
@@ -1623,7 +1650,6 @@ def _save_aggregate(
                 root_hierarchical_grouphash = None
 
             if existing_grouphash is None:
-
                 group = _create_group(project, event, **kwargs)
 
                 if (
@@ -1656,7 +1682,10 @@ def _save_aggregate(
                 metrics.incr(
                     "group.created",
                     skip_internal=True,
-                    tags={"platform": event.platform or "unknown"},
+                    tags={
+                        "platform": event.platform or "unknown",
+                        "sdk": normalized_sdk_tag_from_event(event),
+                    },
                 )
 
                 # This only applies to events with stacktraces
@@ -1667,6 +1696,7 @@ def _save_aggregate(
                         sample_rate=1.0,
                         tags={
                             "platform": event.platform or "unknown",
+                            "sdk": normalized_sdk_tag_from_event(event),
                             "frame_mix": frame_mix,
                         },
                     )
@@ -1828,7 +1858,9 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     except OperationalError:
         metrics.incr(
             "next_short_id.timeout",
-            tags={"platform": event.platform or "unknown"},
+            tags={
+                "platform": event.platform or "unknown"
+            },  # TODO: remove this tag, it's nor relevant
         )
         sentry_sdk.capture_message("short_id.timeout")
         raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
@@ -2108,6 +2140,12 @@ def _get_severity_score(event: Event) -> float | None:
         # we should update the model to account for three values: True, False, and None
         "handled": 0 if is_handled(event.data) is False else 1,
     }
+
+    if options.get("processing.severity-backlog-test.timeout"):
+        payload["trigger_timeout"] = True
+    if options.get("processing.severity-backlog-test.error"):
+        payload["trigger_error"] = True
+
     logger_data["payload"] = payload
 
     with metrics.timer(op):
@@ -2203,7 +2241,10 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     metrics.incr(
         "events.discarded",
         skip_internal=True,
-        tags={"platform": job["platform"]},
+        tags={
+            "platform": job["platform"],
+            "sdk": normalized_sdk_tag_from_event(job["event"]),
+        },
     )
 
 
@@ -2451,7 +2492,6 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event_metrics"] = event_metrics
 
 
-@metrics.wraps("save_event.calculate_event_grouping")
 def _calculate_event_grouping(
     project: Project, event: Event, grouping_config: GroupingConfig
 ) -> CalculatedHashes:
@@ -2462,40 +2502,42 @@ def _calculate_event_grouping(
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
     }
 
-    with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
-        with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-            event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
+    with metrics.timer("save_event.calculate_event_grouping", tags=metric_tags):
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
+            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
+                event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
 
-    # Detect & set synthetic marker if necessary
-    detect_synthetic_exception(event.data, grouping_config)
+        # Detect & set synthetic marker if necessary
+        detect_synthetic_exception(event.data, grouping_config)
 
-    with metrics.timer("event_manager.apply_server_fingerprinting"):
-        # The active grouping config was put into the event in the
-        # normalize step before.  We now also make sure that the
-        # fingerprint was set to `'{{ default }}' just in case someone
-        # removed it from the payload.  The call to get_hashes will then
-        # look at `grouping_config` to pick the right parameters.
-        event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
-        apply_server_fingerprinting(
-            event.data.data,
-            get_fingerprinting_config_for_project(project),
-            allow_custom_title=True,
-        )
+        with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
+            # The active grouping config was put into the event in the
+            # normalize step before.  We now also make sure that the
+            # fingerprint was set to `'{{ default }}' just in case someone
+            # removed it from the payload.  The call to get_hashes will then
+            # look at `grouping_config` to pick the right parameters.
+            event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
+            apply_server_fingerprinting(
+                event.data.data,
+                get_fingerprinting_config_for_project(project),
+                allow_custom_title=True,
+            )
 
-    with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-        # Here we try to use the grouping config that was requested in the
-        # event. If that config has since been deleted (because it was an
-        # experimental grouping config) we fall back to the default.
-        try:
-            hashes = event.get_hashes(grouping_config)
-        except GroupingConfigNotFound:
-            event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-            hashes = event.get_hashes()
+        with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
+            # Here we try to use the grouping config that was requested in the
+            # event. If that config has since been deleted (because it was an
+            # experimental grouping config) we fall back to the default.
+            try:
+                hashes = event.get_hashes(grouping_config)
+            except GroupingConfigNotFound:
+                event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
+                hashes = event.get_hashes()
 
-    hashes.write_to_event(event.data)
-    return hashes
+        hashes.write_to_event(event.data)
+        return hashes
 
 
 @metrics.wraps("save_event.calculate_span_grouping")
@@ -2514,7 +2556,10 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
             metrics.incr(
                 "save_event.transaction.span_group_count.default",
                 amount=len(unique_default_hashes),
-                tags={"platform": job["platform"] or "unknown"},
+                tags={
+                    "platform": job["platform"] or "unknown",
+                    "sdk": normalized_sdk_tag_from_event(event),
+                },
             )
         except Exception:
             sentry_sdk.capture_exception()
@@ -2619,7 +2664,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                 level=job["level"],
             )
 
-            produce_occurrence_to_kafka(occurrence)
+            produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
 
 
 @metrics.wraps("event_manager.save_transaction_events")

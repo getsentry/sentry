@@ -4,15 +4,12 @@ from collections import defaultdict
 from typing import Iterable, List, MutableMapping, Set
 
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Team,
-    TeamStatus,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team, TeamStatus
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationFlags,
@@ -137,6 +134,7 @@ def serialize_rpc_organization(org: Organization) -> RpcOrganization:
         name=org.name,
         status=int(org.status),
         default_role=org.default_role,
+        date_added=org.date_added,
     )
 
     projects: List[Project] = Project.objects.filter(organization=org)

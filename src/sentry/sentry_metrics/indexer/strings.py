@@ -89,6 +89,19 @@ TRANSACTION_METRICS_NAMES = {
     "s:transactions/alert@none": PREFIX + 134,
     "g:transactions/alert@none": PREFIX + 135,
     "d:transactions/duration_light@millisecond": PREFIX + 136,
+    "c:transactions/usage@none": PREFIX + 137,
+    "d:transactions/measurements.score.cls@ratio": PREFIX + 138,
+    "d:transactions/measurements.score.fcp@ratio": PREFIX + 139,
+    "d:transactions/measurements.score.fid@ratio": PREFIX + 140,
+    "d:transactions/measurements.score.lcp@ratio": PREFIX + 141,
+    "d:transactions/measurements.score.ttfb@ratio": PREFIX + 142,
+    "d:transactions/measurements.score.total@ratio": PREFIX + 143,
+    "d:transactions/measurements.score.weight.cls@ratio": PREFIX + 144,
+    "d:transactions/measurements.score.weight.fcp@ratio": PREFIX + 145,
+    "d:transactions/measurements.score.weight.fid@ratio": PREFIX + 146,
+    "d:transactions/measurements.score.weight.lcp@ratio": PREFIX + 147,
+    "d:transactions/measurements.score.weight.ttfb@ratio": PREFIX + 148,
+    # Last possible index: 199
 }
 
 # 200 - 399
@@ -156,6 +169,9 @@ SHARED_TAG_STRINGS = {
     "span.category": PREFIX + 254,
     "span.main_thread": PREFIX + 255,
     "device.class": PREFIX + 256,
+    "resource.render_blocking_status": PREFIX + 257,
+    "ttid": PREFIX + 258,
+    "ttfd": PREFIX + 259,
     # More Transactions
     "has_profile": PREFIX + 260,
     "query_hash": PREFIX + 261,
@@ -179,6 +195,10 @@ SPAN_METRICS_NAMES = {
     "d:spans/exclusive_time_light@millisecond": PREFIX + 406,
     "d:spans/frames_frozen@none": PREFIX + 407,
     "d:spans/frames_slow@none": PREFIX + 408,
+    "d:spans/http.response_content_length@byte": PREFIX + 409,
+    "d:spans/http.decoded_response_content_length@byte": PREFIX + 410,
+    "d:spans/http.response_transfer_size@byte": PREFIX + 411,
+    "c:spans/count_per_op@none": PREFIX + 412,
 }
 
 # 500-599

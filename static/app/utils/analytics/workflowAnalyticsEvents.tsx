@@ -37,6 +37,7 @@ export type BaseEventAnalyticsParams = {
   error_has_replay?: boolean;
   error_has_user_feedback?: boolean;
   event_errors?: string;
+  event_mechanism?: string;
   event_platform?: string;
   event_runtime?: string;
   event_type?: string;
@@ -111,8 +112,13 @@ export type TeamInsightsEventParameters = {
   };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
+    suspect_commit_calculation: string;
+    suspect_commit_index: number;
   };
-  'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert;
+  'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert & {
+    suspect_commit_calculation: string;
+    suspect_commit_index: number;
+  };
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };

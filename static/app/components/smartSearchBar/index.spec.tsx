@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Organization} from 'sentry-fixture/organization';
 import {Tags} from 'sentry-fixture/tags';
 
 import {
@@ -32,7 +33,7 @@ describe('SmartSearchBar', function () {
       name: 'is',
     };
 
-    const organization = TestStubs.Organization({id: '123'});
+    const organization = Organization({id: '123'});
 
     const location = {
       pathname: '/organizations/org-slug/recent-searches/',

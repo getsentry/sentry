@@ -1,4 +1,4 @@
-import {ReactNode} from 'react';
+import {Fragment, ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -10,6 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
@@ -18,19 +19,22 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
   hasOnDemandMetricAlertFeature,
-  isOnDemandQueryString,
-} from 'sentry/utils/onDemandMetrics';
+  shouldShowOnDemandMetricAlertUI,
+} from 'sentry/utils/onDemandMetrics/features';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -45,6 +49,10 @@ import {
   isValidOnDemandMetricAlert,
 } from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
+import {
+  hasMigrationFeatureFlag,
+  ruleNeedsMigration,
+} from 'sentry/views/alerts/utils/migrationUi';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
@@ -121,6 +129,8 @@ type State = {
   triggers: Trigger[];
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
+  // TODO(telemetry-experiment): remove this state once the migration is complete
+  triggersHaveChanged?: boolean;
   uuid?: string;
 } & DeprecatedAsyncComponent['state'];
 
@@ -464,6 +474,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
+
     const dataset = this.checkOnDemandMetricsDataset(
       this.state.dataset,
       this.state.query
@@ -607,7 +618,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       transaction.setTag('operation', !rule.id ? 'create' : 'edit');
       for (const trigger of sanitizedTriggers) {
         for (const action of trigger.actions) {
-          if (action.type === 'slack') {
+          if (action.type === 'slack' || action.type === 'discord') {
             transaction.setTag(action.type, true);
           }
         }
@@ -636,7 +647,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             : {}),
           // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset: this.state.dataset,
+          dataset: this.determinePerformanceDataset(),
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -695,7 +706,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         clearIndicators();
       }
 
-      return {triggers, triggerErrors};
+      return {triggers, triggerErrors, triggersHaveChanged: true};
     });
   };
 
@@ -791,7 +802,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isExtrapolatedData} = data ?? {};
 
-    this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+    if (shouldShowOnDemandMetricAlertUI(this.props.organization)) {
+      this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+    }
 
     const {dataset, aggregate, query} = this.state;
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
@@ -809,6 +822,22 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       return dataset;
     }
     return Dataset.GENERIC_METRICS;
+  };
+
+  // We are not allowing the creation of new transaction alerts
+  determinePerformanceDataset = () => {
+    // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
+    // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
+    const {dataset} = this.state;
+    const {organization} = this.props;
+    const hasMetricsFeatureFlags =
+      organization.features.includes('mep-rollout-flag') ||
+      hasOnDemandMetricAlertFeature(organization);
+
+    if (hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+      return Dataset.GENERIC_METRICS;
+    }
+    return dataset;
   };
 
   renderLoading() {
@@ -836,6 +865,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
     } = this.state;
 
+    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
+    const isMigration = this.props.location?.query?.migration === '1';
+
     const chartProps = {
       organization,
       projects: [project],
@@ -843,7 +875,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
       query: this.chartQuery,
       aggregate,
-      dataset,
+      // If the alert is being migrated, we want to use the generic metrics dataset to allow users to edit their thresholds
+      dataset: isMigration ? Dataset.GENERIC_METRICS : dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
       timeWindow,
       environment,
@@ -886,6 +919,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       router,
       disableProjectSelector,
       eventView,
+      location,
     } = this.props;
     const {
       name,
@@ -904,9 +938,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       alertType,
       isExtrapolatedChartData,
+      triggersHaveChanged,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
+    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
+    const isMigration = location?.query?.migration === '1';
 
     const triggerForm = (disabled: boolean) => (
       <Triggers
@@ -915,6 +952,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         errors={this.state.triggerErrors}
         triggers={triggers}
         aggregate={aggregate}
+        isMigration={isMigration}
         resolveThreshold={resolveThreshold}
         thresholdPeriod={thresholdPeriod}
         thresholdType={thresholdType}
@@ -950,6 +988,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const hasAlertWrite = hasEveryAccess(['alerts:write'], {organization, project});
     const formDisabled = loading || !hasAlertWrite;
     const submitDisabled = formDisabled || !this.state.isQueryValid;
+
+    const showMigrationWarning =
+      !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
 
     return (
       <Main fullWidth>
@@ -999,12 +1040,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               </Confirm>
             ) : null
           }
-          submitLabel={t('Save Rule')}
+          submitLabel={
+            isMigration && !triggersHaveChanged ? t('Looks good to me!') : t('Save Rule')
+          }
         >
           <List symbol="colored-numeric">
             <RuleConditionsForm
               project={project}
               organization={organization}
+              isMigration={isMigration}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}
@@ -1024,8 +1068,34 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
+            {showMigrationWarning && (
+              <Alert type="warning" showIcon>
+                {tct(
+                  'Check the chart above and make sure the current thresholds are still valid, given that this alert is now based on [tooltip:total events].',
+                  {
+                    tooltip: (
+                      <Tooltip
+                        showUnderline
+                        isHoverable
+                        title={
+                          <Fragment>
+                            {t(
+                              'Performance alerts are based on all the events you send to Sentry, not just the ones that are stored'
+                            )}
+                            <br />
+                            <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/">
+                              {t('Learn more')}
+                            </ExternalLink>
+                          </Fragment>
+                        }
+                      />
+                    ),
+                  }
+                )}
+              </Alert>
+            )}
             {triggerForm(formDisabled)}
-            {ruleNameOwnerForm(formDisabled)}
+            {isMigration ? <Fragment /> : ruleNameOwnerForm(formDisabled)}
           </List>
         </Form>
       </Main>

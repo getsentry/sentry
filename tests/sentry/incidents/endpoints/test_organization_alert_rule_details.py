@@ -25,7 +25,9 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.client import SlackClient
-from sentry.models import AuditLogEntry, Integration, OrganizationMemberTeam
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration import Integration
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
@@ -1210,6 +1212,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         project = self.create_project(name="boo", organization=self.organization, teams=[team])
         alert_rule = self.create_alert_rule(projects=[project])
         alert_rule.owner = team.actor
+        alert_rule.team_id = team.id
         alert_rule.save()
 
         other_user = self.create_user()
@@ -1220,6 +1223,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         )
         other_alert_rule = self.create_alert_rule(projects=[other_project])
         other_alert_rule.owner = other_team.actor
+        other_alert_rule.team_id = other_team.id
         other_alert_rule.save()
 
         with self.feature("organizations:incidents"):

@@ -7,7 +7,8 @@ from rest_framework.request import Request
 
 from sentry.api.bases.integration import IntegrationEndpoint, RegionIntegrationEndpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
     RpcIntegration,
     RpcOrganizationIntegration,

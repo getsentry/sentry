@@ -1,6 +1,7 @@
 import logging
 
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -16,7 +17,11 @@ from sentry.api.endpoints.notifications.notification_actions_index import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.notification_action import OutgoingNotificationActionSerializer
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NO_CONTENT
+from sentry.apidocs.examples import notification_examples
+from sentry.apidocs.parameters import GlobalParams, NotificationParams
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
 
@@ -24,11 +29,12 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Alerts"])
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
 
     owner = ApiOwner.ENTERPRISE
@@ -79,18 +85,53 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
 
         return (parsed_args, parsed_kwargs)
 
+    @extend_schema(
+        operation_id="Retrieve a Spike Protection Notification Action",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            NotificationParams.ACTION_ID,
+        ],
+        request=None,
+        responses={200: OutgoingNotificationActionSerializer},
+        examples=notification_examples.GET_NOTIFICATION_ACTION,
+    )
     def get(
         self, request: Request, organization: Organization, action: NotificationAction
     ) -> Response:
+        """
+        Returns a serialized Spike Protection Notification Action object.
+
+        Notification Actions notify a set of members when an action has been triggered through a notification service such as Slack or Sentry.
+        For example, organization owners and managers can receive an email when a spike occurs.
+        """
         logger.info(
             "notification_action.get_one",
             extra={"organization_id": organization.id, "action_id": action.id},
         )
         return Response(serialize(action, request.user))
 
+    @extend_schema(
+        operation_id="Update a Spike Protection Notification Action",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            NotificationParams.ACTION_ID,
+        ],
+        request=NotificationActionSerializer,
+        responses={
+            202: OutgoingNotificationActionSerializer,
+            400: RESPONSE_BAD_REQUEST,
+        },
+        examples=notification_examples.UPDATE_NOTIFICATION_ACTION,
+    )
     def put(
         self, request: Request, organization: Organization, action: NotificationAction
     ) -> Response:
+        """
+        Updates a Spike Protection Notification Action.
+
+        Notification Actions notify a set of members when an action has been triggered through a notification service such as Slack or Sentry.
+        For example, organization owners and managers can receive an email when a spike occurs.
+        """
         serializer = NotificationActionSerializer(
             instance=action,
             context={
@@ -117,9 +158,27 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         )
         return Response(serialize(action, user=request.user), status=status.HTTP_202_ACCEPTED)
 
+    @extend_schema(
+        operation_id="Delete a Spike Protection Notification Action",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            NotificationParams.ACTION_ID,
+        ],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+        },
+        examples=notification_examples.DELETE_NOTIFICATION_ACTION,
+    )
     def delete(
         self, request: Request, organization: Organization, action: NotificationAction
     ) -> Response:
+        """
+        Deletes a Spike Protection Notification Action.
+
+        Notification Actions notify a set of members when an action has been triggered through a notification service such as Slack or Sentry.
+        For example, organization owners and managers can receive an email when a spike occurs.
+        """
         logger.info(
             "notification_action.delete",
             extra={"organization_id": organization.id, "action_data": serialize(action)},

@@ -29,7 +29,7 @@ make_counter_payload = lambda use_case, org_id, rand_str: {
     "project_id": 3,
 }
 
-make_dist_payload = lambda use_case, org_id, rand_str: {
+make_dist_payload = lambda use_case, org_id, rand_str, value_len: {
     "name": f"d:{use_case}/duration@second",
     "tags": {
         "environment": "production",
@@ -38,13 +38,13 @@ make_dist_payload = lambda use_case, org_id, rand_str: {
     },
     "timestamp": int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp()),
     "type": "d",
-    "value": [4, 5, 6],
+    "value": [i for i in range(value_len)],
     "org_id": org_id,
     "retention_days": 90,
     "project_id": 3,
 }
 
-make_set_payload = lambda use_case, org_id, rand_str: {
+make_set_payload = lambda use_case, org_id, rand_str, value_len: {
     "name": f"s:{use_case}/error@none",
     "tags": {
         "environment": "production",
@@ -53,7 +53,7 @@ make_set_payload = lambda use_case, org_id, rand_str: {
     },
     "timestamp": int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp()),
     "type": "s",
-    "value": [3],
+    "value": [i for i in range(value_len)],
     "org_id": org_id,
     "retention_days": 90,
     "project_id": 3,
@@ -108,7 +108,7 @@ def produce_msgs(messages, is_generic, host, dryrun):
     producer = KafkaProducer(conf)
     for i, message in enumerate(messages):
         print(f"{i + 1} / {len(messages)}")
-        pprint.pprint(message)
+        # pprint.pprint(message)
         if not dryrun:
             producer.produce(
                 Topic(name=("ingest-performance-metrics" if is_generic else "ingest-metrics")),
@@ -142,14 +142,30 @@ def produce_msgs(messages, is_generic, host, dryrun):
     help="Print the messages without sending them.",
 )
 @click.option(
-    "--org-id",
-    "-o",
-    multiple=True,
-    default=[1],
+    "--start-org-id",
+    default=1,
     show_default=True,
-    help="Specify which org id(s) to send",
+    help="Specify which org id(s) to start from",
 )
-def main(use_cases, rand_str, host, dryrun, org_id):
+@click.option(
+    "--end-org-id",
+    default=1,
+    show_default=True,
+    help="Specify which org id(s) to end with",
+)
+@click.option(
+    "--num-bad-msg",
+    default=0,
+    show_default=True,
+    help="Number of additional badly formatted metric messages to send",
+)
+@click.option(
+    "--value-len",
+    default=6,
+    show_default=True,
+    help="Number of elements for metrics (sets and distributions)",
+)
+def main(use_cases, rand_str, host, dryrun, start_org_id, end_org_id, num_bad_msg, value_len):
     if UseCaseID.SESSIONS.value in use_cases and len(use_cases) > 1:
         click.secho(
             "ERROR: UseCaseID.SESSIONS is in use_cases and there are more than 1 use cases",
@@ -158,20 +174,24 @@ def main(use_cases, rand_str, host, dryrun, org_id):
         )
         exit(1)
 
+    rand_str = rand_str or "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
     is_generic = UseCaseID.SESSIONS.value not in use_cases
 
-    rand_str = rand_str or "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
     messages = list(
         itertools.chain.from_iterable(
             (
                 make_counter_payload(use_case, org, rand_str),
-                make_dist_payload(use_case, org, rand_str),
-                make_set_payload(use_case, org, rand_str),
+                make_dist_payload(use_case, org, rand_str, value_len),
+                make_set_payload(use_case, org, rand_str, value_len),
             )
             for use_case in use_cases
-            for org in org_id
+            for org in range(start_org_id, end_org_id + 1)
         )
     )
+
+    messages.extend([{"BAD_VALUE": rand_str, "idx": i} for i in range(num_bad_msg)])
+
     random.shuffle(messages)
 
     produce_msgs(messages, is_generic, host, dryrun)
@@ -182,7 +202,7 @@ def main(use_cases, rand_str, host, dryrun, org_id):
     print(
         f"Use the following SQL to verify postgres, "
         f"there should be {strs_per_use_case} strings for each use cases, "
-        f"{strs_per_use_case * len(use_cases) * len(org_id)} in total."
+        f"{strs_per_use_case * len(use_cases) * (end_org_id - start_org_id + 1)} in total."
     )
     print(make_psql(rand_str, is_generic))
 
@@ -190,7 +210,7 @@ def main(use_cases, rand_str, host, dryrun, org_id):
         print(
             f"Use the following SQL to verify clickhouse, "
             f"there should be {metrics_per_use_case} metrics for each use cases, "
-            f"{metrics_per_use_case * len(use_cases) * len(org_id)} in total."
+            f"{metrics_per_use_case * len(use_cases) * (end_org_id - start_org_id + 1)} in total."
         )
         print(make_csql(rand_str, is_generic))
 

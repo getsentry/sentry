@@ -28,7 +28,7 @@ def _update_project_configs(
     """Callback for the relay.drop-transaction-metrics kill switch.
     On every change, force a recomputation of the corresponding project configs
     """
-    from sentry.models import Organization
+    from sentry.models.organization import Organization
     from sentry.tasks.relay import schedule_invalidate_project_config
 
     old_project_ids = {ctx["project_id"] for ctx in old_option_value}
@@ -39,7 +39,7 @@ def _update_project_configs(
     changed_project_ids = old_project_ids ^ new_project_ids
 
     if None in changed_project_ids:
-        with click.progressbar(length=Organization.objects.count()) as bar:
+        with click.progressbar(length=Organization.objects.count()) as bar:  # type: ignore[var-annotated]  # pallets/click#2630
             # Since all other invalidations, which would happen anyway, will de-duplicate
             # with these ones the extra load of this is reasonable.  A temporary backlog in
             # the relay_config_bulk queue is just fine.  We have server-side cursors

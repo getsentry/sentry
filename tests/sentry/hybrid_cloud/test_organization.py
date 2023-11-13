@@ -3,15 +3,12 @@ from typing import Any, Callable, List, Optional, Sequence, Tuple
 
 import pytest
 
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Team,
-    TeamStatus,
-    User,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
@@ -26,7 +23,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, region_silo_test
 
 
 def basic_filled_out_org() -> Tuple[Organization, List[User]]:
@@ -289,3 +286,27 @@ class RpcOrganizationMemberTest(TestCase):
         self.create_team(organization=org, slug="baz", members=[user])
         rpc_member = serialize_member(member)
         assert member.get_audit_log_data() == rpc_member.get_audit_log_metadata()
+
+
+@django_db_all(transaction=True)
+@region_silo_test(stable=True)
+def test_org_member():
+    org = Factories.create_organization()
+    user = Factories.create_user(email="test@sentry.io")
+    rpc_member = organization_service.add_organization_member(
+        organization_id=org.id,
+        default_org_role="member",
+        user_id=user.id,
+        invite_status=InviteStatus.APPROVED.value,
+    )
+    member_query = OrganizationMember.objects.all()
+    assert member_query.count() == 1
+    assert member_query[0].role == "member"
+    assert rpc_member.id == member_query[0].id
+
+    organization_service.update_organization_member(
+        organization_id=org.id, member_id=rpc_member.id, attrs=dict(role="manager")
+    )
+    member_query = OrganizationMember.objects.all()
+    assert member_query.count() == 1
+    assert member_query[0].role == "manager"

@@ -31,18 +31,12 @@ from sentry.eventstore.models import GroupEvent
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import (
-    INBOX_REASON_DETAILS,
-    Activity,
-    Group,
-    GroupHistoryStatus,
-    GroupInboxReason,
-    GroupStatus,
-    Organization,
-    Project,
-    add_group_to_inbox,
-    record_group_history,
-)
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import INBOX_REASON_DETAILS, GroupInboxReason, add_group_to_inbox
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -84,6 +78,8 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
     It optimizes the query by guaranteeing that we look at group_ids that are from the same project id.
     This is important for Snuba as the data is stored in blocks related to the project id.
 
+    If the group's issue type does not allow escalation, it will not be included in the query.
+
     We maximize the number of projects and groups to reduce the total number of Snuba queries.
     Each project may not have enough groups in order to reach the max number of returned
     elements (ELEMENTS_PER_SNUBA_PAGE), thus, projects with few groups should be grouped together until
@@ -105,7 +101,7 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
     for g in groups:
         if g.issue_category == GroupCategory.ERROR:
             error_groups.append(g)
-        else:
+        elif g.issue_type.should_detect_escalation(g.organization):
             other_groups.append(g)
 
     all_results += _process_groups(error_groups, start_date, end_date, GroupCategory.ERROR)

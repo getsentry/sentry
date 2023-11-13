@@ -5,7 +5,7 @@ import sentry_sdk
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils import metrics
 
 from .base import ReplacementRule

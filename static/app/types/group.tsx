@@ -73,6 +73,7 @@ export enum IssueType {
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
   PERFORMANCE_HTTP_OVERHEAD = 'performance_http_overhead',
   PERFORMANCE_DURATION_REGRESSION = 'performance_duration_regression',
+  PERFORMANCE_ENDPOINT_REGRESSION = 'performance_p95_endpoint_regression',
 
   // Profile
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
@@ -81,6 +82,7 @@ export enum IssueType {
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
   PROFILE_FRAME_DROP = 'profile_frame_drop',
   PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
+  PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
   PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
 }
 
@@ -99,7 +101,7 @@ export enum IssueTitle {
   PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
 }
 
-export const getIssueTypeFromOccurenceType = (
+export const getIssueTypeFromOccurrenceType = (
   typeId: number | undefined
 ): IssueType | null => {
   const occurrenceTypeToIssueIdMap = {
@@ -520,6 +522,7 @@ interface GroupFiltered {
 export interface GroupStats extends GroupFiltered {
   filtered: GroupFiltered | null;
   id: string;
+  isUnhandled?: boolean;
   // for issue alert previews, the last time a group triggered a rule
   lastTriggered?: string;
   lifetime?: GroupFiltered;
@@ -611,7 +614,6 @@ export interface BaseGroup {
   isBookmarked: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  isUnhandled: boolean;
   issueCategory: IssueCategory;
   issueType: IssueType;
   lastSeen: string;

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from typing import Callable, Type
+from typing import Callable, Literal, Type
 
 from django.db import models
 
 from sentry.backup.dependencies import (
     ModelRelations,
+    NormalizedModelName,
     dependencies,
     get_model_name,
     sorted_dependencies,
 )
-from sentry.backup.exports import DatetimeSafeDjangoJSONEncoder
+from sentry.backup.helpers import DatetimeSafeDjangoJSONEncoder, get_exportable_sentry_models
 
 
 def targets(expected_models: list[Type[models.Model]]):
@@ -101,6 +102,24 @@ def targets(expected_models: list[Type[models.Model]]):
         return wrapped
 
     return decorator
+
+
+def mark(group: set[NormalizedModelName], *marking: Type | Literal["__all__"]):
+    """
+    A function that runs at module load time and marks all models that appear in a given test function.
+
+    Use the sentinel string "__all__" to indicate that all models are expected.
+    """
+
+    all: Literal["__all__"] = "__all__"
+    for model in marking:
+        if model == all:
+            all_models = get_exportable_sentry_models()
+            group.update({get_model_name(c) for c in all_models})
+            return list(all_models)
+
+        group.add(get_model_name(model))
+    return marking
 
 
 def get_matching_exportable_models(

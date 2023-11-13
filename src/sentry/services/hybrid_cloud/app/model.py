@@ -6,7 +6,7 @@
 import datetime
 import hmac
 from hashlib import sha256
-from typing import Any, List, Mapping, Optional, Protocol
+from typing import Any, Dict, List, Mapping, Optional, Protocol
 
 from pydantic.fields import Field
 from typing_extensions import TypedDict
@@ -44,11 +44,13 @@ class RpcSentryApp(RpcModel):
     uuid: str = ""
     events: List[str] = Field(default_factory=list)
     webhook_url: Optional[str] = None
+    is_alertable: bool = False
     is_published: bool = False
     is_unpublished: bool = False
     is_internal: bool = True
     is_publish_request_inprogress: bool = False
     status: str = ""
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
     def show_auth_info(self, access: Any) -> bool:
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
@@ -144,3 +146,5 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
     app_ids: List[int]
     organization_id: int
     uuids: List[str]
+    status: int
+    api_token_id: str

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.repository import RpcRepository
 
 

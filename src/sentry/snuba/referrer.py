@@ -35,15 +35,33 @@ class Referrer(Enum):
     API_DASHBOARDS_WIDGET_AREA_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.area-chart.metrics-enhanced"
     )
+    API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.area-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.area-chart.find-topn.metrics-enhanced.primary"
+    )
     API_DASHBOARDS_WIDGET_AREA_CHART = "api.dashboards.widget.area-chart"
     API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN = "api.dashboards.widget.bar-chart.find-topn"
     API_DASHBOARDS_WIDGET_BAR_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.bar-chart.metrics-enhanced"
     )
+    API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced.primary"
+    )
     API_DASHBOARDS_WIDGET_BAR_CHART = "api.dashboards.widget.bar-chart"
     API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN = "api.dashboards.widget.line-chart.find-topn"
     API_DASHBOARDS_WIDGET_LINE_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.line-chart.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.line-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.line-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
@@ -322,6 +340,9 @@ class Referrer(Enum):
         "api.performance.transaction-summary.vitals-chart"
     )
     API_PERFORMANCE_TRANSACTION_SUMMARY = "api.performance.transaction-summary"
+    API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS = (
+        "api.performance.transactions.statistical-detector-stats"
+    )
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
@@ -348,6 +369,15 @@ class Referrer(Enum):
     )
     API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE = (
         "api.profiling.functions.statistical-detector.example"
+    )
+    API_PROFILING_FUNCTIONS_REGRESSION_EXAMPLES = "api.profiling.functions.regression.examples"
+    API_PROFILING_FUNCTIONS_REGRESSION_LIST = "api.profiling.functions.regression.list"
+    API_PROFILING_FUNCTIONS_REGRESSION_STATS = "api.profiling.functions.regression.stats"
+    API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTIONS = (
+        "api.profiling.functions.regression.transactions"
+    )
+    API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTION_STATS = (
+        "api.profiling.functions.regression.transaction-stats"
     )
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
@@ -445,6 +475,9 @@ class Referrer(Enum):
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
+    DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
+        "dynamic_sampling.tasks.custom_rule_notifications"
+    )
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
@@ -467,6 +500,7 @@ class Referrer(Enum):
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
+    METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
     PREVIEW_GET_EVENTS = "preview.get_events"
@@ -604,6 +638,9 @@ class Referrer(Enum):
     STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES = (
         "statistical_detectors.distributions.fetch_top_transaction_names"
     )
+    STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES = (
+        "statistical_detectors.distributions.fetch_transaction_timeseries"
+    )
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
@@ -671,6 +708,10 @@ class Referrer(Enum):
     WEEKLY_REPORTS_KEY_TRANSACTIONS_LAST_WEEK = "weekly_reports.key_transactions.last_week"
     WEEKLY_REPORTS_KEY_TRANSACTIONS_THIS_WEEK = "weekly_reports.key_transactions.this_week"
     WEEKLY_REPORTS_OUTCOMES = "weekly_reports.outcomes"
+
+    # Referrers used in the migration script for alerts
+    ALERTS_MIGRATION_SCRIPT = "alerts.migration_script"
+    ALERTS_MIGRATION_SCRIPT_METRICS_ENHANCED = "alerts.migration_script.metrics-enhanced"
 
     # Referrers in tests
     API_METRICS_TOTALS = "api.metrics.totals"

@@ -4,6 +4,8 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -342,6 +344,40 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert meta["fields"] == {"time": "date", "sum_transaction_duration": "duration"}
         assert meta["units"] == {"time": None, "sum_transaction_duration": "millisecond"}
 
+    def test_sum_transaction_duration_with_comparison(self):
+        # We store the data for the previous day (in order to have values for the comparison).
+        self.store_transaction_metric(
+            1, timestamp=self.day_ago - timedelta(days=1) + timedelta(minutes=30)
+        )
+        self.store_transaction_metric(
+            2, timestamp=self.day_ago - timedelta(days=1) + timedelta(minutes=30)
+        )
+        # We store the data for today.
+        self.store_transaction_metric(123, timestamp=self.day_ago + timedelta(minutes=30))
+        self.store_transaction_metric(456, timestamp=self.day_ago + timedelta(minutes=30))
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(days=1)),
+                "interval": "1d",
+                "yAxis": "sum(transaction.duration)",
+                "comparisonDelta": 86400,
+                "dataset": "metricsEnhanced",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["isMetricsData"]
+        # For some reason, if all tests run, there is some shared state that makes this test have data in the second
+        # time bucket, which is filled automatically by the zerofilling. In order to avoid this flaky failure, we will
+        # only check that the first bucket contains the actual data.
+        assert [attrs for time, attrs in response.data["data"]][0] == [
+            {"comparisonCount": 3.0, "count": 579.0}
+        ]
+        meta = response.data["meta"]
+        assert meta["isMetricsData"] == response.data["isMetricsData"]
+        assert meta["fields"] == {"time": "date", "sum_transaction_duration": "duration"}
+        assert meta["units"] == {"time": None, "sum_transaction_duration": "millisecond"}
+
     def test_custom_measurement(self):
         self.store_transaction_metric(
             123,
@@ -528,6 +564,31 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             [{"count": 0}],
         ]
 
+    def test_transaction_status_unknown_error(self):
+        self.store_transaction_metric(
+            123,
+            tags={"transaction.status": "unknown"},
+            timestamp=self.day_ago + timedelta(minutes=30),
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "query": "transaction.status:unknown_error",
+                "yAxis": [
+                    "sum(transaction.duration)",
+                ],
+                "dataset": "metricsEnhanced",
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert [attrs for time, attrs in data] == [
+            [{"count": 123}],
+            [{"count": 0}],
+        ]
+
     def test_custom_performance_metric_meta_contains_field_and_unit_data(self):
         self.store_transaction_metric(
             123,
@@ -594,6 +655,61 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert meta == response.data["p99(measurements.custom)"]["meta"]
         assert meta == response.data["p99(measurements.another.custom)"]["meta"]
 
+    def test_no_top_events_with_project_field(self):
+        project = self.create_project()
+        response = self.do_request(
+            data={
+                # make sure to query the project with 0 events
+                "project": project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "count()",
+                "orderby": ["-count()"],
+                "field": ["count()", "project"],
+                "topEvents": 5,
+                "dataset": "metrics",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        # When there are no top events, we do not return an empty dict.
+        # Instead, we return a single zero-filled series for an empty graph.
+        data = response.data["data"]
+        assert [attrs for time, attrs in data] == [[{"count": 0}], [{"count": 0}]]
+
+    def test_top_events_with_transaction(self):
+        transaction_spec = [("foo", 100), ("bar", 200), ("baz", 300)]
+        for offset in range(5):
+            for transaction, duration in transaction_spec:
+                self.store_transaction_metric(
+                    duration,
+                    tags={"transaction": f"{transaction}_transaction"},
+                    timestamp=self.day_ago + timedelta(hours=offset, minutes=30),
+                )
+
+        response = self.do_request(
+            data={
+                # make sure to query the project with 0 events
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "interval": "1h",
+                "yAxis": "p75(transaction.duration)",
+                "orderby": ["-p75(transaction.duration)"],
+                "field": ["p75(transaction.duration)", "transaction"],
+                "topEvents": 5,
+                "dataset": "metrics",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        for position, (transaction, duration) in enumerate(transaction_spec):
+            data = response.data[f"{transaction}_transaction"]
+            chart_data = data["data"]
+            assert data["order"] == 2 - position
+            assert [attrs for time, attrs in chart_data] == [[{"count": duration}]] * 5
+
 
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest
@@ -601,3 +717,250 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
     def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
+
+    def test_counter_custom_metric(self):
+        mri = "c:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            self.store_transaction_metric(
+                value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_counters",
+                timestamp=self.day_ago + timedelta(hours=index),
+                use_case_id=UseCaseID.CUSTOM,
+            )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": [f"sum({mri})"],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        for (_, value), expected_value in zip(data, [10, 20, 30, 40, 50, 60]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+    def test_distribution_custom_metric(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            for multiplier in (1, 2, 3):
+                self.store_transaction_metric(
+                    value * multiplier,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_distributions",
+                    timestamp=self.day_ago + timedelta(hours=index),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": [f"min({mri})", f"max({mri})", f"p90({mri})"],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        min = data[f"min({mri})"]["data"]
+        for (_, value), expected_value in zip(min, [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        max = data[f"max({mri})"]["data"]
+        for (_, value), expected_value in zip(max, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        p90 = data[f"p90({mri})"]["data"]
+        for (_, value), expected_value in zip(p90, [28.0, 56.0, 84.0, 112.0, 140.0, 168.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+    def test_set_custom_metric(self):
+        mri = "s:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            # We store each value a second time, since we want to check the de-duplication of sets.
+            for i in range(0, 2):
+                self.store_transaction_metric(
+                    value,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_sets",
+                    timestamp=self.day_ago + timedelta(hours=index),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": [f"count_unique({mri})"],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        for (_, value), expected_value in zip(data, [1, 1, 1, 1, 1, 1]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+    def test_gauge_custom_metric(self):
+        mri = "g:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            for multiplier in (1, 3):
+                self.store_transaction_metric(
+                    value * multiplier,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_gauges",
+                    # When multiple gauges are merged, in order to make the `last` merge work deterministically it's
+                    # better to have the gauges with different timestamps so that the last value is always the same.
+                    timestamp=self.day_ago + timedelta(hours=index, minutes=multiplier),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": [
+                    f"min({mri})",
+                    f"max({mri})",
+                    f"last({mri})",
+                    f"sum({mri})",
+                    f"count({mri})",
+                ],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        min = data[f"min({mri})"]["data"]
+        for (_, value), expected_value in zip(min, [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        max = data[f"max({mri})"]["data"]
+        for (_, value), expected_value in zip(max, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        last = data[f"last({mri})"]["data"]
+        for (_, value), expected_value in zip(last, [30.0, 60.0, 90.0, 120.0, 150.0, 180.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        sum = data[f"sum({mri})"]["data"]
+        for (_, value), expected_value in zip(sum, [40.0, 80.0, 120.0, 160.0, 200.0, 240.0]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+        count = data[f"count({mri})"]["data"]
+        for (_, value), expected_value in zip(count, [40, 80, 120, 160, 200, 240]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
+
+@region_silo_test
+class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
+    MetricsEnhancedPerformanceTestCase
+):
+    endpoint = "sentry-api-0-organization-events-stats"
+    METRIC_STRINGS = [
+        "foo_transaction",
+        "d:transactions/measurements.datacenter_memory@pebibyte",
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.DEFAULT_METRIC_TIMESTAMP = self.day_ago
+
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+        self.features = {
+            "organizations:performance-use-metrics": True,
+        }
+
+    def do_request(self, data, url=None, features=None):
+        if features is None:
+            features = {"organizations:discover-basic": True}
+        features.update(self.features)
+        with self.feature(features):
+            return self.client.get(self.url if url is None else url, data=data, format="json")
+
+    def test_top_events_with_transaction_on_demand(self):
+        field = "count()"
+        field_two = "count_web_vitals(measurements.lcp, good)"
+        groupbys = ["customtag1", "customtag2"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, groupbys=groupbys, query=query)
+        spec_two = OnDemandMetricSpec(field=field_two, groupbys=groupbys, query=query)
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                hour * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "foo",
+                    "customtag2": "red",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                hour * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "bar",
+                    "customtag2": "blue",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
+
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "query": query,
+                "yAxis": yAxis,
+                "field": [
+                    "count()",
+                    "count_web_vitals(measurements.lcp, good)",
+                    "customtag1",
+                    "customtag2",
+                ],
+                "topEvents": 5,
+                "dataset": "metrics",
+                "useOnDemandMetrics": "true",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        groups = [
+            ("foo,red", "count()", 0.0, 1488.0),
+            ("foo,red", "count_web_vitals(measurements.lcp, good)", 0.0, 0.0),
+            ("bar,blue", "count()", 0.0, 0.0),
+            ("bar,blue", "count_web_vitals(measurements.lcp, good)", 0.0, 1440.0),
+        ]
+        assert len(response.data.keys()) == 2
+        for group_count in groups:
+            group, agg, row1, row2 = group_count
+            row_data = response.data[group][agg]["data"][:2]
+            assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]

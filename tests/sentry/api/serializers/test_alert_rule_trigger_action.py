@@ -4,6 +4,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
+from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import TestCase
 
@@ -45,9 +46,42 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         responses.add(
             method=responses.GET,
             url=f"{base_url}/channels/channel-id",
+            json={"guild_id": "guild_id", "name": "guild_id", "type": ChannelType.GUILD_TEXT.value},
+        )
+
+        alert_rule = self.create_alert_rule()
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id="guild_id",
+            metadata={
+                "guild_id": "guild_id",
+                "name": "guild_name",
+            },
+        )
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
+        action = create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.DISCORD,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="channel-id",
+            integration_id=integration.id,
+        )
+
+        result = serialize(action)
+        self.assert_action_serialized(action, result)
+        assert str(action.target_display) in result["desc"]
+
+    @responses.activate
+    def test_discord_channel_id_none(self):
+        base_url: str = "https://discord.com/api/v10"
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/None",
             json={
                 "guild_id": "guild_id",
                 "name": "guild_id",
+                "type": ChannelType.GUILD_TEXT.value,
             },
         )
 
@@ -62,15 +96,14 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
             },
         )
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        with self.feature("organizations:integrations-discord-metric-alerts"):
-            action = create_alert_rule_trigger_action(
-                trigger,
-                AlertRuleTriggerAction.Type.DISCORD,
-                AlertRuleTriggerAction.TargetType.SPECIFIC,
-                target_identifier="channel-id",
-                integration_id=integration.id,
-            )
+        action = create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.DISCORD,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier=None,
+            integration_id=integration.id,
+        )
 
         result = serialize(action)
         self.assert_action_serialized(action, result)
-        assert str(action.target_display) in result["desc"]
+        assert result["desc"] == "Send a Discord notification to "

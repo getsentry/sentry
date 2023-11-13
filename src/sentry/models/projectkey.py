@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import secrets
-from typing import Any, Optional, Tuple
+from typing import Any, ClassVar, Optional, Tuple
 from urllib.parse import urlparse
 
 import petname
@@ -40,7 +40,7 @@ class ProjectKeyStatus:
     INACTIVE = 1
 
 
-class ProjectKeyManager(BaseManager):
+class ProjectKeyManager(BaseManager["ProjectKey"]):
     def post_save(self, instance, **kwargs):
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_save"
@@ -82,7 +82,7 @@ class ProjectKey(Model):
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
-    objects = ProjectKeyManager(
+    objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),
         # store projectkeys in memcached for longer than other models,
         # specifically to make the relay_projectconfig endpoint faster.
@@ -210,6 +210,12 @@ class ProjectKey(Model):
         return f"{endpoint}/api/{self.project_id}/security/?sentry_key={self.public_key}"
 
     @property
+    def nel_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/nel/?sentry_key={self.public_key}"
+
+    @property
     def minidump_endpoint(self):
         endpoint = self.get_endpoint()
 
@@ -296,11 +302,14 @@ class ProjectKey(Model):
         if not self.secret_key or matching_secret_key:
             self.secret_key = self.generate_api_key()
 
-        (key, created) = ProjectKey.objects.get_or_create(
+        # ProjectKeys for the project are automatically generated at insertion time via a
+        # `post_save()` hook, so the keys for the project should already exist. We simply need to
+        # update them with the correct values here.
+        (key, _) = ProjectKey.objects.get_or_create(
             project=self.project, defaults=model_to_dict(self)
         )
         if key:
             self.pk = key.pk
             self.save()
 
-        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        return (self.pk, ImportKind.Inserted)

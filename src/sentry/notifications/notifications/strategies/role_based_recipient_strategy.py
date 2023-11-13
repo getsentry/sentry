@@ -4,14 +4,14 @@ from abc import ABCMeta
 from typing import TYPE_CHECKING, Iterable, MutableMapping, Optional
 
 from sentry import roles
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.roles.manager import OrganizationRole
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
-    from sentry.models import Organization
+    from sentry.models.organization import Organization
 
 
 class RoleBasedRecipientStrategy(metaclass=ABCMeta):

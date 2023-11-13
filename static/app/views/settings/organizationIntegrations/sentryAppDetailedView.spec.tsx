@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -10,7 +12,7 @@ import {
 import SentryAppDetailedView from 'sentry/views/settings/organizationIntegrations/sentryAppDetailedView';
 
 describe('SentryAppDetailedView', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
 
   const {router} = initializeOrg({
     projects: [

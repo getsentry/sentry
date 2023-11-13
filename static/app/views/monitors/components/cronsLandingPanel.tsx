@@ -1,25 +1,23 @@
-import {useState} from 'react';
+import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
-
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {Button} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import MonitorCreateForm from 'sentry/views/monitors/components/monitorCreateForm';
 import MonitorForm from 'sentry/views/monitors/components/monitorForm';
 import {Monitor} from 'sentry/views/monitors/types';
 
-import {NewMonitorButton} from './newMonitorButton';
 import {
   CRON_SDK_PLATFORMS,
   PlatformPickerPanel,
@@ -28,14 +26,23 @@ import {
 import {
   CeleryBeatAutoDiscovery,
   GoUpsertPlatformGuide,
+  JavaUpsertPlatformGuide,
   LaravelUpsertPlatformGuide,
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
   QuickStartProps,
+  RubyUpsertPlatformGuide,
 } from './quickStartEntries';
+
+enum GuideKey {
+  BEAT_AUTO = 'beat_auto',
+  UPSERT = 'upsert',
+  MANUAL = 'manual',
+}
 
 interface PlatformGuide {
   Guide: React.ComponentType<QuickStartProps>;
+  key: GuideKey;
   title: string;
 }
 
@@ -44,18 +51,21 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
     {
       Guide: CeleryBeatAutoDiscovery,
       title: 'Beat Auto Discovery',
+      key: GuideKey.BEAT_AUTO,
     },
   ],
   php: [
     {
       Guide: PHPUpsertPlatformGuide,
       title: 'Upsert',
+      key: GuideKey.UPSERT,
     },
   ],
   'php-laravel': [
     {
       Guide: LaravelUpsertPlatformGuide,
       title: 'Upsert',
+      key: GuideKey.UPSERT,
     },
   ],
   python: [],
@@ -63,22 +73,83 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
     {
       Guide: NodeJsUpsertPlatformGuide,
       title: 'Upsert',
+      key: GuideKey.UPSERT,
     },
   ],
   go: [
     {
       Guide: GoUpsertPlatformGuide,
       title: 'Upsert',
+      key: GuideKey.UPSERT,
     },
   ],
+  java: [
+    {
+      Guide: JavaUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  'java-spring-boot': [],
+  ruby: [
+    {
+      Guide: RubyUpsertPlatformGuide,
+      title: 'Upsert',
+      key: GuideKey.UPSERT,
+    },
+  ],
+  'ruby-rails': [],
 };
+
+export function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
+  return !!(platform && platform in platformGuides);
+}
+
+export function isValidGuide(guide?: string): guide is GuideKey {
+  return !!(guide && Object.values<string>(GuideKey).includes(guide));
+}
 
 export function CronsLandingPanel() {
   const organization = useOrganization();
-  const [platform, setPlatform] = useState<PlatformKey | null>(null);
+  const location = useLocation();
+  const platform = decodeScalar(location.query?.platform) ?? null;
+  const guide = decodeScalar(location.query?.guide);
 
-  if (!platform) {
-    return <PlatformPickerPanel onSelect={setPlatform} />;
+  useEffect(() => {
+    if (!platform || !guide) {
+      return;
+    }
+
+    trackAnalytics('landing_page.platform_guide.viewed', {
+      organization,
+      platform,
+      guide,
+    });
+  }, [organization, platform, guide]);
+
+  const navigateToPlatformGuide = (
+    selectedPlatform: SupportedPlatform | null,
+    selectedGuide?: string
+  ) => {
+    if (!selectedPlatform) {
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {...location.query, platform: undefined, guide: undefined},
+      });
+      return;
+    }
+
+    if (!selectedGuide) {
+      selectedGuide = platformGuides[selectedPlatform][0]?.key ?? GuideKey.MANUAL;
+    }
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {...location.query, platform: selectedPlatform, guide: selectedGuide},
+    });
+  };
+
+  if (!isValidPlatform(platform) || !isValidGuide(guide)) {
+    return <PlatformPickerPanel onSelect={navigateToPlatformGuide} />;
   }
 
   const platformText = CRON_SDK_PLATFORMS.find(
@@ -92,43 +163,52 @@ export function CronsLandingPanel() {
     browserHistory.push(url);
   }
 
+  const hasNewOnboarding = organization.features.includes('crons-new-monitor-form');
+
   return (
     <Panel>
       <BackButton
         icon={<IconChevron size="sm" direction="left" />}
-        onClick={() => setPlatform(null)}
+        onClick={() => navigateToPlatformGuide(null)}
         borderless
       >
         {t('Back to Platforms')}
       </BackButton>
       <PanelBody withPadding>
         <h3>{t('Get Started with %s', platformText)}</h3>
-        <Tabs>
+        <Tabs
+          onChange={guideKey => navigateToPlatformGuide(platform, guideKey)}
+          value={guide}
+        >
           <TabList>
             {[
-              ...guides.map(({title}) => (
-                <TabList.Item key={title}>{title}</TabList.Item>
+              ...guides.map(({key, title}) => (
+                <TabList.Item key={key}>{title}</TabList.Item>
               )),
-              <TabList.Item key="manual">{t('Manual')}</TabList.Item>,
+              <TabList.Item key={GuideKey.MANUAL}>{t('Manual')}</TabList.Item>,
             ]}
           </TabList>
           <TabPanels>
             {[
-              ...guides.map(({title, Guide}) => (
-                <TabPanels.Item key={title}>
+              ...guides.map(({key, Guide}) => (
+                <TabPanels.Item key={key}>
                   <GuideContainer>
                     <Guide />
                   </GuideContainer>
                 </TabPanels.Item>
               )),
-              <TabPanels.Item key="manual">
+              <TabPanels.Item key={GuideKey.MANUAL}>
                 <GuideContainer>
-                  <MonitorForm
-                    apiMethod="POST"
-                    apiEndpoint={`/organizations/${organization.slug}/monitors/`}
-                    onSubmitSuccess={onCreateMonitor}
-                    submitLabel={t('Next')}
-                  />
+                  {hasNewOnboarding ? (
+                    <MonitorCreateForm />
+                  ) : (
+                    <MonitorForm
+                      apiMethod="POST"
+                      apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+                      onSubmitSuccess={onCreateMonitor}
+                      submitLabel={t('Next')}
+                    />
+                  )}
                 </GuideContainer>
               </TabPanels.Item>,
             ]}
@@ -152,27 +232,4 @@ const GuideContainer = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   padding-top: ${space(2)};
-`;
-
-export function OldCronsLandingPanel() {
-  return (
-    <OnboardingPanel image={<img src={onboardingImg} />}>
-      <h3>{t('Let Sentry monitor your recurring jobs')}</h3>
-      <p>
-        {t(
-          "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
-        )}
-      </p>
-      <OnboardingActions gap={1}>
-        <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
-        <LinkButton href="https://docs.sentry.io/product/crons" external>
-          {t('Read docs')}
-        </LinkButton>
-      </OnboardingActions>
-    </OnboardingPanel>
-  );
-}
-
-const OnboardingActions = styled(ButtonBar)`
-  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;

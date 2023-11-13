@@ -14,7 +14,7 @@ from sentry.ratelimits.cardinality import (
     Timestamp,
 )
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
-from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
+from sentry.sentry_metrics.consumers.indexer.common import BrokerMeta
 from sentry.sentry_metrics.use_case_id_registry import (
     USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
     UseCaseID,
@@ -32,7 +32,7 @@ class CardinalityLimiterState:
     _metric_path_key: UseCaseKey
     _grants: Optional[Sequence[GrantedQuota]]
     _timestamp: Optional[Timestamp]
-    keys_to_remove: Sequence[PartitionIdxOffset]
+    keys_to_remove: Sequence[BrokerMeta]
 
 
 def _build_quota_key(use_case_id: UseCaseID, org_id: OrgId) -> str:
@@ -56,13 +56,12 @@ def _construct_quotas(use_case_id: UseCaseID) -> Optional[Quota]:
             "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
         )
 
-    if quota_args:
-        if len(quota_args) > 1:
-            raise ValueError("multiple quotas are actually unsupported")
+    if not quota_args:
+        raise ValueError("quotas cannot be empty")
+    if len(quota_args) > 1:
+        raise ValueError("multiple quotas are actually unsupported")
 
-        return Quota(**quota_args[0])
-
-    return None
+    return Quota(**quota_args[0])
 
 
 class InboundMessage(TypedDict):
@@ -81,10 +80,10 @@ class TimeseriesCardinalityLimiter:
         self.backend: CardinalityLimiter = rate_limiter
 
     def check_cardinality_limits(
-        self, metric_path_key: UseCaseKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
+        self, metric_path_key: UseCaseKey, messages: Mapping[BrokerMeta, InboundMessage]
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
-        hash_to_offset: Mapping[str, Dict[int, PartitionIdxOffset]] = defaultdict(dict)
+        hash_to_meta: Mapping[str, Dict[int, BrokerMeta]] = defaultdict(dict)
         prefix_to_quota = {}
 
         # this works by applying one cardinality limiter rollout option
@@ -110,7 +109,7 @@ class TimeseriesCardinalityLimiter:
                 16,
             )
             prefix = _build_quota_key(message["use_case_id"], org_id)
-            hash_to_offset[prefix][message_hash] = key
+            hash_to_meta[prefix][message_hash] = key
             request_hashes[prefix].add(message_hash)
             configured_quota = _construct_quotas(message["use_case_id"])
 
@@ -145,10 +144,10 @@ class TimeseriesCardinalityLimiter:
 
         timestamp, grants = self.backend.check_within_quotas(requested_quotas)
 
-        keys_to_remove = hash_to_offset
-        # make sure that hash_to_offset is no longer used, as the underlying
+        keys_to_remove = hash_to_meta
+        # make sure that hash_to_broker_meta is no longer used, as the underlying
         # dict will be mutated
-        del hash_to_offset
+        del hash_to_meta
 
         for grant in grants:
             for hash in grant.granted_unit_hashes:
@@ -156,7 +155,6 @@ class TimeseriesCardinalityLimiter:
 
             substrings = grant.request.prefix.split("-")
             grant_use_case_id = substrings[3]
-            grant_org_id = substrings[-1]
 
             metrics.incr(
                 "sentry_metrics.indexer.process_messages.dropped_message",
@@ -164,7 +162,6 @@ class TimeseriesCardinalityLimiter:
                 tags={
                     "reason": "cardinality_limit",
                     "use_case_id": grant_use_case_id,
-                    "org_id": grant_org_id,
                 },
             )
 

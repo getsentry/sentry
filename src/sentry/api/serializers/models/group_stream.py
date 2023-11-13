@@ -8,7 +8,7 @@ from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
 
-from sentry import release_health, tsdb
+from sentry import features, release_health, tsdb
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupSerializer,
@@ -18,7 +18,8 @@ from sentry.api.serializers.models.group import (
 )
 from sentry.constants import StatsPeriod
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Environment, Group
+from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.snuba.dataset import Dataset
@@ -212,10 +213,21 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             attrs = super().get_attrs(item_list, user)
         else:
             seen_stats = self._get_seen_stats(item_list, user)
+
             if seen_stats:
                 attrs = {item: seen_stats.get(item, {}) for item in item_list}
             else:
                 attrs = {item: {} for item in item_list}
+            if len(item_list) > 0 and features.has(
+                "organizations:issue-stream-performance", item_list[0].project.organization
+            ):
+                unhandled_stats = self._get_group_snuba_stats(item_list, seen_stats)
+
+                if unhandled_stats is not None:
+                    for item in item_list:
+                        attrs[item]["is_unhandled"] = bool(
+                            unhandled_stats.get(item.id, {}).get("unhandled")
+                        )
 
         if self.stats_period and not self._collapse("stats"):
             partial_get_stats = functools.partial(
@@ -305,6 +317,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             }
             if "times_seen" in attrs:
                 result.update(self._convert_seen_stats(attrs))
+            if "is_unhandled" in attrs:
+                result["isUnhandled"] = attrs["is_unhandled"]
 
         if not self._collapse("stats"):
             if self.stats_period:

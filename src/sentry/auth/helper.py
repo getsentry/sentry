@@ -35,7 +35,10 @@ from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import AuthIdentity, AuthProvider, User, outbox_context
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.outbox import outbox_context
+from sentry.models.user import User
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.services.hybrid_cloud.organization import (
@@ -242,7 +245,7 @@ class AuthIdentityHandler:
         # from the invite token and member id in the session) OR an existing invite exists on this
         # organization for the email provided by the identity provider.
         invite_helper = ApiInviteHelper.from_session_or_email(
-            request=request, organization_id=organization.id, email=user.email
+            request=request, organization_id=organization.id, email=user.email, logger=logger
         )
 
         # If we are able to accept an existing invite for the user for this

@@ -8,7 +8,9 @@ from rest_framework.response import Response
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations import IntegrationInstallation
-from sentry.models import ExternalIssue, GroupLink, Integration
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
@@ -106,4 +108,6 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             )
             return
         response = installation.create_issue(data)
-        create_link(integration, installation, event, response)
+
+        if not event.get_tag("sample_event") == "yes":
+            create_link(integration, installation, event, response)

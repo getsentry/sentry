@@ -1,10 +1,12 @@
 from django.urls import reverse
 
-from sentry.models import Organization, OrganizationStatus, RegionScheduledDeletion
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.silo import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import PermissionTestCase, TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -26,7 +28,7 @@ class RestoreOrganizationPermissionTest(PermissionTestCase):
         self.assert_owner_can_access(self.path)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class RemoveOrganizationTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -124,7 +126,8 @@ class RemoveOrganizationTest(TestCase):
 
         assert Organization.objects.filter(id=org_id).count() == 0
 
-        resp = self.client.post(self.path, follow=True)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            resp = self.client.post(self.path, follow=True)
 
         assert resp.status_code == 200
         assert resp.redirect_chain == [("/auth/login/", 302), ("/organizations/new/", 302)]

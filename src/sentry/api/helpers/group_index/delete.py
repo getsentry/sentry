@@ -10,9 +10,12 @@ from rest_framework.response import Response
 from sentry import eventstream
 from sentry.api.base import audit_logger
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Group, GroupHash, GroupInbox, GroupStatus, Project
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupinbox import GroupInbox
+from sentry.models.project import Project
 from sentry.signals import issue_deleted
-from sentry.tasks.deletion import delete_groups as delete_groups_task
+from sentry.tasks.deletion.groups import delete_groups as delete_groups_task
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction

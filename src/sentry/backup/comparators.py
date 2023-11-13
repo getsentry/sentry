@@ -657,8 +657,8 @@ ComparatorMap = Dict[str, ComparatorList]
 def get_default_comparators():
     """Helper function executed at startup time which builds the static default comparators map."""
 
-    from sentry.models.team import Team
-    from sentry.models.user import User
+    from sentry.models.actor import Actor
+    from sentry.models.organization import Organization
 
     # Some comparators (like `DateAddedComparator`) we can automatically assign by inspecting the
     # `Field` type on the Django `Model` definition. Others, like the ones in this map, we must
@@ -666,9 +666,9 @@ def get_default_comparators():
     default_comparators: ComparatorMap = defaultdict(
         list,
         {
-            # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
-            "sentry.actor": [ForeignKeyComparator({"team": Team, "user_id": User})],
-            "sentry.apitoken": [HashObfuscatingComparator("refresh_token", "token")],
+            "sentry.apitoken": [
+                HashObfuscatingComparator("refresh_token", "token", "token_last_characters")
+            ],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
             "sentry.alertrule": [DateUpdatedComparator("date_modified")],
@@ -701,6 +701,8 @@ def get_default_comparators():
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
+            # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
+            "sentry.team": [ForeignKeyComparator({"actor": Actor, "organization": Organization})],
             "sentry.user": [
                 AutoSuffixComparator("username"),
                 DateUpdatedComparator("last_active", "last_password_change"),

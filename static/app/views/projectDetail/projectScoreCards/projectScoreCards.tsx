@@ -8,6 +8,7 @@ import {
   Project,
   SessionFieldWithOperation,
 } from 'sentry/types';
+import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
 
 import {ProjectAnrScoreCard} from './projectAnrScoreCard';
 import ProjectApdexScoreCard from './projectApdexScoreCard';
@@ -43,7 +44,7 @@ function ProjectScoreCards({
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
         query={query}
-        field={SessionFieldWithOperation.SESSIONS}
+        field={SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS}
       />
 
       <ProjectStabilityScoreCard
@@ -52,7 +53,7 @@ function ProjectScoreCards({
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
         query={query}
-        field={SessionFieldWithOperation.USERS}
+        field={SessionFieldWithOperation.CRASH_FREE_RATE_USERS}
       />
 
       <ProjectVelocityScoreCard
@@ -62,7 +63,7 @@ function ProjectScoreCards({
         query={query}
       />
 
-      {organization.features.includes('anr-rate') && project?.platform === 'android' ? (
+      {isPlatformANRCompatible(project?.platform) ? (
         <ProjectAnrScoreCard
           organization={organization}
           selection={selection}

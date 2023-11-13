@@ -13,11 +13,14 @@ from django.utils import timezone
 from sentry import newsletter
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import AuthProvider, OrganizationMember, User
+from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
 from sentry.receivers import create_default_projects
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -68,6 +71,16 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.context["login_form"].errors["__all__"] == [
             "Please enter a correct username and password. Note that both fields may be case-sensitive."
         ]
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_login_ratelimited_ip_gets(self):
+        url = reverse("sentry-login")
+
+        with freeze_time("2000-01-01"):
+            for _ in range(25):
+                self.client.get(url)
+            resp = self.client.get(url)
+            assert resp.status_code == 429
 
     def test_login_ratelimited_user(self):
         self.client.get(self.path)

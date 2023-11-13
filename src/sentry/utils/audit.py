@@ -6,19 +6,17 @@ from typing import Any
 from django.http.request import HttpRequest
 
 from sentry import audit_log
-from sentry.models import (
-    ApiKey,
-    AuditLogEntry,
-    DeletedEntry,
-    DeletedOrganization,
-    DeletedProject,
-    DeletedTeam,
-    Organization,
-    Project,
-    Team,
-    User,
-)
+from sentry.models.apikey import ApiKey
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.deletedentry import DeletedEntry
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.deletedproject import DeletedProject
+from sentry.models.deletedteam import DeletedTeam
+from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.log import log_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcAuditLogEntryActor

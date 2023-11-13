@@ -32,20 +32,26 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.nonmember_commit_author1 = self.create_commit_author(
             project=self.project, email="c@example.com"
         )
-        self.nonmember_commit_author1.external_id = "c"
+        self.nonmember_commit_author1.external_id = "github:c"
         self.nonmember_commit_author1.save()
 
         self.nonmember_commit_author2 = self.create_commit_author(
             project=self.project, email="d@example.com"
         )
-        self.nonmember_commit_author2.external_id = "d"
+        self.nonmember_commit_author2.external_id = "github:d"
         self.nonmember_commit_author2.save()
 
         nonmember_commit_author_invalid_char = self.create_commit_author(
             project=self.project, email="hi+1@example.com"
         )
-        nonmember_commit_author_invalid_char.external_id = "hi+1"
+        nonmember_commit_author_invalid_char.external_id = "github:hi+1"
         nonmember_commit_author_invalid_char.save()
+
+        nonmember_commit_author_invalid_domain = self.create_commit_author(
+            project=self.project, email="gmail@gmail.com"
+        )
+        nonmember_commit_author_invalid_domain.external_id = "github:gmail"
+        nonmember_commit_author_invalid_domain.save()
 
         self.integration = self.create_integration(
             organization=self.organization, provider="github", name="Github", external_id="github:1"
@@ -57,11 +63,13 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author2)
+        self.create_commit(repo=self.repo, author=nonmember_commit_author_invalid_char)
+        self.create_commit(repo=self.repo, author=nonmember_commit_author_invalid_domain)
 
         not_shared_domain_author = self.create_commit_author(
             project=self.project, email="a@exampletwo.com"
         )
-        not_shared_domain_author.external_id = "not"
+        not_shared_domain_author.external_id = "github:not"
         not_shared_domain_author.save()
         self.create_commit(repo=self.repo, author=not_shared_domain_author)
 
@@ -151,7 +159,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         noreply_email_author = self.create_commit_author(
             project=self.project, email="hi@noreply.github.com"
         )
-        noreply_email_author.external_id = "hi"
+        noreply_email_author.external_id = "github:hi"
         noreply_email_author.save()
         self.create_commit(
             repo=self.repo,
@@ -195,25 +203,6 @@ class OrganizationMissingMembersTestCase(APITestCase):
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
-        ]
-
-    def test_query_on_author_email_and_external_id(self):
-        # self.nonmember_commit_author1 matches on email
-        # the below matches on external id
-        nonmember_commit_author = self.create_commit_author(
-            project=self.project, email="c2@example.com"
-        )
-        nonmember_commit_author.external_id = "c@example.com"
-        nonmember_commit_author.save()
-
-        self.create_commit(repo=self.repo, author=nonmember_commit_author)
-
-        response = self.get_success_response(self.organization.slug, query="c@example.com")
-
-        assert response.data[0]["integration"] == "github"
-        assert response.data[0]["users"] == [
-            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
-            {"email": "c2@example.com", "externalId": "c@example.com", "commitCount": 1},
         ]
 
     def test_no_github_integration(self):
@@ -283,7 +272,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
             nonmember_commit_author = self.create_commit_author(
                 project=self.project, email=str(i) + "@example.com"
             )
-            nonmember_commit_author.external_id = str(i)
+            nonmember_commit_author.external_id = "github:" + str(i)
             nonmember_commit_author.save()
             self.create_commit(repo=repo, author=nonmember_commit_author)
 

@@ -23,7 +23,7 @@ type Options = {
 
 const DEFAULT_SORT_PARAMETER_NAME = 'sort';
 
-const {SPAN_SELF_TIME} = SpanMetricsField;
+const {SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
 const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = SpanFunction;
 
 export const SORTABLE_FIELDS = new Set([
@@ -36,8 +36,8 @@ export const SORTABLE_FIELDS = new Set([
   `${SPS}()`,
   `${SPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
-  `${TIME_SPENT_PERCENTAGE}(local)`,
   `${HTTP_ERROR_COUNT}()`,
+  `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
 ]);
 
 export const renderHeadCell = ({column, location, sort, sortParameterName}: Options) => {

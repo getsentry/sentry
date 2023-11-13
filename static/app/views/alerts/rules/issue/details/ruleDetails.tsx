@@ -20,9 +20,8 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -461,13 +460,12 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                   )}
             </Alert>
           )}
-          <StyledPageTimeRangeSelector
-            organization={organization}
+          <StyledTimeRangeSelector
             relative={period ?? ''}
             start={start ?? null}
             end={end ?? null}
             utc={utc ?? null}
-            onUpdate={handleUpdateDatetime}
+            onChange={handleUpdateDatetime}
           />
           <ErrorBoundary>
             <IssueAlertDetailsChart
@@ -500,7 +498,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
 
 export default AlertRuleDetails;
 
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   margin-bottom: ${space(2)};
 `;
 

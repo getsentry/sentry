@@ -1,175 +1,96 @@
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import PerformanceScoreRing from 'sentry/views/performance/browser/webVitals/components/performanceScoreRing';
-import {
-  PERFORMANCE_SCORE_WEIGHTS,
-  ProjectScore,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
+import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsTimeseriesQuery';
-import Chart from 'sentry/views/starfish/components/chart';
+
+import PerformanceScoreRingWithTooltips from './components/performanceScoreRingWithTooltips';
 
 type Props = {
-  projectScore: ProjectScore;
+  isProjectScoreLoading?: boolean;
+  projectScore?: ProjectScore;
+  transaction?: string;
   webVital?: WebVitals | null;
 };
 
-const {
-  lcp: LCP_WEIGHT,
-  fcp: FCP_WEIGHT,
-  fid: FID_WEIGHT,
-  cls: CLS_WEIGHT,
-  ttfb: TTFB_WEIGHT,
-} = PERFORMANCE_SCORE_WEIGHTS;
+export const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
 
-export function PerformanceScoreChart({projectScore, webVital}: Props) {
+export function PerformanceScoreChart({
+  projectScore,
+  webVital,
+  transaction,
+  isProjectScoreLoading,
+}: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
 
-  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery();
-  const score = webVital ? projectScore[`${webVital}Score`] : projectScore.totalScore;
-  const {lcpScore, fcpScore, fidScore, clsScore, ttfbScore} = projectScore;
+  const score = projectScore
+    ? webVital
+      ? projectScore[`${webVital}Score`]
+      : projectScore.totalScore
+    : undefined;
 
-  const segmentColors = theme.charts.getColorPalette(3);
-  const backgroundColors = segmentColors.map(color => `${color}33`);
+  let ringSegmentColors = theme.charts.getColorPalette(3);
+  let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
+
+  if (webVital) {
+    const index = ORDER.indexOf(webVital);
+    ringSegmentColors = ringSegmentColors.map((color, i) => {
+      return i === index ? color : theme.gray200;
+    });
+    ringBackgroundColors = ringBackgroundColors.map((color, i) => {
+      return i === index ? color : `${theme.gray200}33`;
+    });
+  }
 
   const period = pageFilters.selection.datetime.period;
-  const performanceScoreSubtext =
-    period && Object.keys(DEFAULT_RELATIVE_PERIODS).includes(period)
-      ? DEFAULT_RELATIVE_PERIODS[period]
-      : '';
+  const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
+
   return (
     <Flex>
       <PerformanceScoreLabelContainer>
         <PerformanceScoreLabel>
           {t('Performance Score')}
-          <IconChevron size="xs" direction="down" style={{top: 1}} />
+          <StyledQuestionTooltip
+            isHoverable
+            size="sm"
+            title={
+              <span>
+                {t('The overall performance rating of this page.')}
+                <br />
+                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                  {t('How is this calculated?')}
+                </ExternalLink>
+              </span>
+            }
+          />
         </PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-        <ProgressRingContainer>
-          <svg height={180} width={220}>
-            <ProgressRingText x={160} y={30}>
-              LCP
-            </ProgressRingText>
-            <ProgressRingText x={175} y={140}>
-              FCP
-            </ProgressRingText>
-            <ProgressRingText x={20} y={140}>
-              FID
-            </ProgressRingText>
-            <ProgressRingText x={10} y={60}>
-              CLS
-            </ProgressRingText>
-            <ProgressRingText x={50} y={20}>
-              TTFB
-            </ProgressRingText>
-            <PerformanceScoreRing
-              values={[
-                lcpScore * LCP_WEIGHT * 0.01,
-                fcpScore * FCP_WEIGHT * 0.01,
-                fidScore * FID_WEIGHT * 0.01,
-                clsScore * CLS_WEIGHT * 0.01,
-                ttfbScore * TTFB_WEIGHT * 0.01,
-              ]}
-              maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
-              text={score}
-              size={140}
-              barWidth={14}
-              textCss={() => css`
-                font-size: 32px;
-                font-weight: bold;
-                color: ${theme.textColor};
-              `}
-              segmentColors={segmentColors}
-              backgroundColors={backgroundColors}
-              x={40}
-              y={20}
-            />
-          </svg>
-        </ProgressRingContainer>
+        {!isProjectScoreLoading && projectScore && (
+          <PerformanceScoreRingWithTooltips
+            projectScore={projectScore}
+            text={score}
+            width={220}
+            height={180}
+            ringBackgroundColors={ringBackgroundColors}
+            ringSegmentColors={ringSegmentColors}
+          />
+        )}
+        {!isProjectScoreLoading && !projectScore && (
+          <EmptyStateWarning>
+            <p>{t('No Web Vitals found')}</p>
+          </EmptyStateWarning>
+        )}
       </PerformanceScoreLabelContainer>
-      <ChartContainer>
-        <PerformanceScoreLabel>
-          {t('Score Breakdown')}
-          <IconChevron size="xs" direction="down" style={{top: 1}} />
-        </PerformanceScoreLabel>
-        <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-        <Chart
-          stacked
-          height={180}
-          data={[
-            {
-              data: data?.lcp.map(({name, value}) => ({
-                name,
-                value: value * LCP_WEIGHT * 0.01,
-              })),
-              seriesName: 'LCP',
-              color: segmentColors[0],
-            },
-            {
-              data: data?.fcp.map(
-                ({name, value}) => ({
-                  name,
-                  value: value * FCP_WEIGHT * 0.01,
-                }),
-                []
-              ),
-              seriesName: 'FCP',
-              color: segmentColors[1],
-            },
-            {
-              data: data?.fid.map(
-                ({name, value}) => ({
-                  name,
-                  value: value * FID_WEIGHT * 0.01,
-                }),
-                []
-              ),
-              seriesName: 'FID',
-              color: segmentColors[2],
-            },
-            {
-              data: data?.cls.map(
-                ({name, value}) => ({
-                  name,
-                  value: value * CLS_WEIGHT * 0.01,
-                }),
-                []
-              ),
-              seriesName: 'CLS',
-              color: segmentColors[3],
-            },
-            {
-              data: data?.ttfb.map(
-                ({name, value}) => ({
-                  name,
-                  value: value * TTFB_WEIGHT * 0.01,
-                }),
-                []
-              ),
-              seriesName: 'TTFB',
-              color: segmentColors[4],
-            },
-          ]}
-          disableXAxis
-          loading={isLoading}
-          utc={false}
-          grid={{
-            left: 5,
-            right: 5,
-            top: 5,
-            bottom: 0,
-          }}
-          dataMax={100}
-          chartColors={segmentColors}
-        />
-      </ChartContainer>
+      <PerformanceScoreBreakdownChart transaction={transaction} />
     </Flex>
   );
 }
@@ -179,15 +100,8 @@ const Flex = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  gap: ${space(2)};
-  margin-top: ${space(2)};
-`;
-
-const ChartContainer = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  flex: 1;
-  border: 1px solid ${p => p.theme.gray200};
-  border-radius: ${p => p.theme.borderRadius};
+  gap: ${space(1)};
+  margin-top: ${space(1)};
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
@@ -205,7 +119,6 @@ const PerformanceScoreLabel = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
   font-weight: bold;
-  margin-right: ${space(1)};
 `;
 
 const PerformanceScoreSubtext = styled('div')`
@@ -215,10 +128,8 @@ const PerformanceScoreSubtext = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const ProgressRingContainer = styled('div')``;
-
-const ProgressRingText = styled('text')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.textColor};
-  font-weight: bold;
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  position: relative;
+  margin-left: ${space(0.5)};
+  top: ${space(0.25)};
 `;

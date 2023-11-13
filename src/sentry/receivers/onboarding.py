@@ -7,13 +7,13 @@ from django.db.models import F
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
-from sentry.models import (
+from sentry.models.organization import Organization
+from sentry.models.organizationonboardingtask import (
     OnboardingTask,
     OnboardingTaskStatus,
-    Organization,
     OrganizationOnboardingTask,
-    Project,
 )
+from sentry.models.project import Project
 from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
@@ -21,12 +21,14 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration, integration
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
+    cron_monitor_created,
     event_processed,
     first_cron_checkin_received,
     first_cron_monitor_created,
     first_event_pending,
     first_event_received,
     first_event_with_minified_stack_trace_received,
+    first_feedback_received,
     first_profile_received,
     first_replay_received,
     first_transaction_received,
@@ -40,6 +42,7 @@ from sentry.signals import (
 )
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry")
 
@@ -147,6 +150,7 @@ def record_first_event(project, event, **kwargs):
         project_platform=project.platform,
         url=dict(event.tags).get("url", None),
         has_minified_stack_trace=has_event_minified_stack_trace(event),
+        sdk_name=get_path(event, "sdk", "name"),
     )
 
     if rows_affected or created:
@@ -251,6 +255,19 @@ def record_first_replay(project, **kwargs):
         try_mark_onboarding_complete(project.organization_id)
 
 
+@first_feedback_received.connect(weak=False)
+def record_first_feedback(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_feedbacks))
+
+    analytics.record(
+        "first_feedback.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
+
+
 @first_cron_monitor_created.connect(weak=False)
 def record_first_cron_monitor(project, user, from_upsert, **kwargs):
     updated = project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
@@ -263,6 +280,17 @@ def record_first_cron_monitor(project, user, from_upsert, **kwargs):
             project_id=project.id,
             from_upsert=from_upsert,
         )
+
+
+@cron_monitor_created.connect(weak=False)
+def record_cron_monitor_created(project, user, from_upsert, **kwargs):
+    analytics.record(
+        "cron_monitor.created",
+        user_id=user.id if user else project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        from_upsert=from_upsert,
+    )
 
 
 @first_cron_checkin_received.connect(weak=False)

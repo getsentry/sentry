@@ -25,11 +25,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {
-  getOnDemandKeys,
-  hasOnDemandMetricAlertFeature,
-  isOnDemandQueryString,
-} from 'sentry/utils/onDemandMetrics';
+import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
@@ -77,6 +74,7 @@ type Props = {
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
   isExtrapolatedChartData?: boolean;
+  isMigration?: boolean;
   loadingProjects?: boolean;
 };
 
@@ -378,6 +376,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       allowChangeEventTypes,
       dataset,
       isExtrapolatedChartData,
+      isMigration,
     } = this.props;
     const {environments} = this.state;
 
@@ -395,144 +394,156 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
-        {isExtrapolatedChartData && (
-          <OnDemandMetricAlert
-            message={t(
-              'The chart data above is an estimate based on the stored transactions that match the filters specified.'
+        {isMigration ? (
+          <Fragment>
+            <Spacer />
+            <HiddenListItem />
+            <HiddenListItem />
+          </Fragment>
+        ) : (
+          <Fragment>
+            {isExtrapolatedChartData && (
+              <OnDemandMetricAlert
+                message={t(
+                  'The chart data above is an estimate based on the stored transactions that match the filters specified.'
+                )}
+              />
             )}
-          />
-        )}
-        {this.renderInterval()}
-        <StyledListItem>{t('Filter events')}</StyledListItem>
-        <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
-          {this.renderProjectSelector()}
-          <SelectField
-            name="environment"
-            placeholder={t('All Environments')}
-            style={{
-              ...this.formElemBaseStyle,
-              minWidth: 230,
-              flex: 1,
-            }}
-            styles={{
-              singleValue: (base: any) => ({
-                ...base,
-              }),
-              option: (base: any) => ({
-                ...base,
-              }),
-            }}
-            options={environmentOptions}
-            isDisabled={disabled || this.state.environments === null}
-            isClearable
-            inline={false}
-            flexibleControlStateSize
-          />
-          {allowChangeEventTypes && this.renderEventTypeFilter()}
-        </FormRow>
-        <FormRow>
-          <FormField
-            name="query"
-            inline={false}
-            style={{
-              ...this.formElemBaseStyle,
-              flex: '6 0 500px',
-            }}
-            flexibleControlStateSize
-          >
-            {({onChange, onBlur, onKeyDown, initialData, value}) => {
-              return (
-                <SearchContainer>
-                  <StyledSearchBar
-                    disallowWildcard={dataset === Dataset.SESSIONS}
-                    invalidMessages={{
-                      [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
-                        'The wildcard operator is not supported here.'
-                      ),
-                    }}
-                    customInvalidTagMessage={item => {
-                      if (
-                        ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)
-                      ) {
-                        return null;
-                      }
-                      return (
-                        <SearchInvalidTag
-                          message={tct(
-                            "The field [field] isn't supported for performance alerts.",
+            {this.renderInterval()}
+            <StyledListItem>{t('Filter events')}</StyledListItem>
+            <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
+              {this.renderProjectSelector()}
+              <SelectField
+                name="environment"
+                placeholder={t('All Environments')}
+                style={{
+                  ...this.formElemBaseStyle,
+                  minWidth: 230,
+                  flex: 1,
+                }}
+                styles={{
+                  singleValue: (base: any) => ({
+                    ...base,
+                  }),
+                  option: (base: any) => ({
+                    ...base,
+                  }),
+                }}
+                options={environmentOptions}
+                isDisabled={disabled || this.state.environments === null}
+                isClearable
+                inline={false}
+                flexibleControlStateSize
+              />
+              {allowChangeEventTypes && this.renderEventTypeFilter()}
+            </FormRow>
+            <FormRow>
+              <FormField
+                name="query"
+                inline={false}
+                style={{
+                  ...this.formElemBaseStyle,
+                  flex: '6 0 500px',
+                }}
+                flexibleControlStateSize
+              >
+                {({onChange, onBlur, onKeyDown, initialData, value}) => {
+                  return (
+                    <SearchContainer>
+                      <StyledSearchBar
+                        disallowWildcard={dataset === Dataset.SESSIONS}
+                        invalidMessages={{
+                          [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                            'The wildcard operator is not supported here.'
+                          ),
+                        }}
+                        customInvalidTagMessage={item => {
+                          if (
+                            ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
+                              dataset
+                            )
+                          ) {
+                            return null;
+                          }
+                          return (
+                            <SearchInvalidTag
+                              message={tct(
+                                "The field [field] isn't supported for performance alerts.",
+                                {
+                                  field: <code>{item.desc}</code>,
+                                }
+                              )}
+                              docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
+                            />
+                          );
+                        }}
+                        searchSource="alert_builder"
+                        defaultQuery={initialData?.query ?? ''}
+                        {...getSupportedAndOmittedTags(dataset, organization)}
+                        includeSessionTagsValues={dataset === Dataset.SESSIONS}
+                        disabled={disabled}
+                        useFormWrapper={false}
+                        organization={organization}
+                        placeholder={this.searchPlaceholder}
+                        onChange={onChange}
+                        query={initialData.query}
+                        // We only need strict validation for Transaction queries, everything else is fine
+                        highlightUnsupportedTags={
+                          organization.features.includes('alert-allow-indexed') ||
+                          (hasOnDemandMetricAlertFeature(organization) &&
+                            isOnDemandQueryString(initialData.query))
+                            ? false
+                            : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
+                                dataset
+                              )
+                        }
+                        onKeyDown={e => {
+                          /**
+                           * Do not allow enter key to submit the alerts form since it is unlikely
+                           * users will be ready to create the rule as this sits above required fields.
+                           */
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+
+                          onKeyDown?.(e);
+                        }}
+                        onClose={(query, {validSearch}) => {
+                          onFilterSearch(query, validSearch);
+                          onBlur(query);
+                        }}
+                        onSearch={query => {
+                          onFilterSearch(query, true);
+                          onChange(query, {});
+                        }}
+                        hasRecentSearches={dataset !== Dataset.SESSIONS}
+                      />
+                      {isExtrapolatedChartData && isOnDemandQueryString(value) && (
+                        <OnDemandWarningIcon
+                          color="gray500"
+                          msg={tct(
+                            `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
                             {
-                              field: <code>{item.desc}</code>,
+                              fields: (
+                                <strong>
+                                  {getOnDemandKeys(value)
+                                    .map(key => `"${key}"`)
+                                    .join(', ')}
+                                </strong>
+                              ),
+                              strong: <strong />,
                             }
                           )}
-                          docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
                         />
-                      );
-                    }}
-                    searchSource="alert_builder"
-                    defaultQuery={initialData?.query ?? ''}
-                    {...getSupportedAndOmittedTags(dataset, organization)}
-                    includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                    disabled={disabled}
-                    useFormWrapper={false}
-                    organization={organization}
-                    placeholder={this.searchPlaceholder}
-                    onChange={onChange}
-                    query={initialData.query}
-                    // We only need strict validation for Transaction queries, everything else is fine
-                    highlightUnsupportedTags={
-                      organization.features.includes('alert-allow-indexed') ||
-                      (hasOnDemandMetricAlertFeature(organization) &&
-                        isOnDemandQueryString(initialData.query))
-                        ? false
-                        : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
-                            dataset
-                          )
-                    }
-                    onKeyDown={e => {
-                      /**
-                       * Do not allow enter key to submit the alerts form since it is unlikely
-                       * users will be ready to create the rule as this sits above required fields.
-                       */
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }
-
-                      onKeyDown?.(e);
-                    }}
-                    onClose={(query, {validSearch}) => {
-                      onFilterSearch(query, validSearch);
-                      onBlur(query);
-                    }}
-                    onSearch={query => {
-                      onFilterSearch(query, true);
-                      onChange(query, {});
-                    }}
-                    hasRecentSearches={dataset !== Dataset.SESSIONS}
-                  />
-                  {isExtrapolatedChartData && isOnDemandQueryString(value) && (
-                    <OnDemandWarningIcon
-                      color="gray500"
-                      msg={tct(
-                        `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
-                        {
-                          fields: (
-                            <strong>
-                              {getOnDemandKeys(value)
-                                .map(key => `"${key}"`)
-                                .join(', ')}
-                            </strong>
-                          ),
-                          strong: <strong />,
-                        }
                       )}
-                    />
-                  )}
-                </SearchContainer>
-              );
-            }}
-          </FormField>
-        </FormRow>
+                    </SearchContainer>
+                  );
+                }}
+              </FormField>
+            </FormRow>
+          </Fragment>
+        )}
       </Fragment>
     );
   }
@@ -543,6 +554,20 @@ const StyledListTitle = styled('div')`
   span {
     margin-left: ${space(1)};
   }
+`;
+
+// This is a temporary hacky solution to hide list items without changing the numbering of the rest of the list
+// TODO(telemetry-experience): Remove this once the migration is complete
+const HiddenListItem = styled(ListItem)`
+  position: absolute;
+  width: 0px;
+  height: 0px;
+  opacity: 0;
+  pointer-events: none;
+`;
+
+const Spacer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const ChartPanel = styled(Panel)`

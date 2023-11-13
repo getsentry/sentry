@@ -9,6 +9,7 @@ from typing import (
     List,
     Mapping,
     MutableMapping,
+    Optional,
     Sequence,
     Tuple,
     Union,
@@ -17,30 +18,27 @@ from typing import (
 from django.db.models import Q
 
 from sentry import features
-from sentry.models import (
-    ActorTuple,
-    Group,
-    GroupAssignee,
-    GroupSubscription,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Release,
-    Rule,
-    Team,
-    User,
-)
+from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.release import Release
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_values_by_provider_by_type,
     should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
 )
-from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
@@ -58,7 +56,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
 from sentry.utils import metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
@@ -216,16 +214,19 @@ def get_participants_for_release(
 
     actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
     if should_use_notifications_v2(organization):
+        # don't pass in projects since the settings are scoped to the organization only for now
         providers_by_recipient = notifications_service.get_participants(
+            type=NotificationSettingEnum.DEPLOY,
             recipients=actors,
             organization_id=organization.id,
-            type=NotificationSettingTypes.DEPLOY,
         )
 
         users_to_reasons_by_provider = ParticipantMap()
         for actor in actors:
-            settings = providers_by_recipient[actor.id]
-            for provider, val in settings.items():
+            settings = providers_by_recipient.get(actor.id, {})
+            for provider_str, val_str in settings.items():
+                provider = ExternalProviders(provider_str)
+                val = NotificationSettingsOptionEnum(val_str)
                 reason = get_reason(actor, val, commited_user_ids)
                 if reason:
                     users_to_reasons_by_provider.add(provider, actor, reason)
@@ -391,9 +392,7 @@ def determine_eligible_recipients(
         ).first()
         if group_assignee:
             outcome = "match"
-            assignee_actor = RpcActor.from_orm_actor(
-                group_assignee.assigned_actor().resolve_to_actor()
-            )
+            assignee_actor = group_assignee.assigned_actor()
             suggested_assignees.append(assignee_actor)
 
         suspect_commit_users = None
@@ -571,6 +570,28 @@ def combine_recipients_by_provider(
     return recipients_by_provider
 
 
+def get_notification_recipients_v2(
+    recipients: Iterable[RpcActor],
+    type: NotificationSettingEnum,
+    organization_id: Optional[int] = None,
+    project_ids: Optional[List[int]] = None,
+    actor_type: Optional[ActorType] = None,
+) -> Mapping[ExternalProviders, set[RpcActor]]:
+    recipients_by_provider = notifications_service.get_notification_recipients(
+        recipients=list(recipients),
+        type=type,
+        organization_id=organization_id,
+        project_ids=project_ids,
+        actor_type=actor_type,
+    )
+    # ensure we use a defaultdict here in case someone tries to access a provider that has no recipients
+    out = defaultdict(set)
+    for provider, actors in recipients_by_provider.items():
+        key = get_provider_enum_from_string(provider)
+        out[key] = actors
+    return out
+
+
 def get_recipients_by_provider(
     project: Project,
     recipients: Iterable[RpcActor],
@@ -583,17 +604,16 @@ def get_recipients_by_provider(
 
     # First evaluate the teams.
     setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
-    controller = None
     teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+
     if should_use_notifications_v2(project.organization):
-        controller = NotificationController(
-            recipients=users,
+        # get by team
+        teams_by_provider = get_notification_recipients_v2(
+            recipients=teams,
+            type=setting_type,
             organization_id=project.organization_id,
             project_ids=[project.id],
-            type=setting_type,
-        )
-        teams_by_provider = controller.get_notification_recipients(
-            type=setting_type, actor_type=ActorType.TEAM
+            actor_type=ActorType.TEAM,
         )
     else:
         teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
@@ -613,15 +633,13 @@ def get_recipients_by_provider(
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     if should_use_notifications_v2(project.organization):
-        if not controller:
-            controller = NotificationController(
-                recipients=users,
-                organization_id=project.organization_id,
-                project_ids=[project.id],
-                type=setting_type,
-            )
-        users_by_provider = controller.get_notification_recipients(
-            type=setting_type, actor_type=ActorType.USER
+        # convert from string to enum
+        users_by_provider = get_notification_recipients_v2(
+            recipients=users,
+            type=setting_type,
+            organization_id=project.organization_id,
+            project_ids=[project.id],
+            actor_type=ActorType.USER,
         )
     else:
         users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(

@@ -12,21 +12,26 @@ from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import ProjectTransactionThreshold, ReleaseStages
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.transaction_threshold import (
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
 from sentry.search.events import constants
-from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    PerformanceIssueTestCase,
+    ProfilesSnubaTestCase,
+    SnubaTestCase,
+)
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
 from sentry.utils import json
 from sentry.utils.samples import load_data
-from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
@@ -96,33 +101,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["meta"] == {
             "tips": {"query": "Need at least one valid project to query."}
         }
-
-    def test_api_key_request(self):
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "environment": "staging",
-                "timestamp": self.ten_mins_ago_iso,
-            },
-            project_id=self.project.id,
-        )
-
-        # Project ID cannot be inferred when using an org API key, so that must
-        # be passed in the parameters
-        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
-        query = {"field": ["project.name", "environment"], "project": [self.project.id]}
-
-        url = self.reverse_url()
-        response = self.client_get(
-            url,
-            query,
-            format="json",
-            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
-        )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project.name"] == self.project.slug
 
     def test_environment_filter(self):
         self.create_environment(self.project, name="production")
@@ -309,32 +287,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
-
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_snql_query):
-        self.create_project()
-
-        mock_snql_query.side_effect = RateLimitExceeded("test")
-
-        query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == constants.TIMEOUT_ERROR_MESSAGE
-
-        mock_snql_query.side_effect = QueryExecutionError("test")
-
-        query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
-        response = self.do_request(query)
-        assert response.status_code == 500, response.content
-        assert response.data["detail"] == "Internal error. Your query failed to run."
-
-        mock_snql_query.side_effect = QueryIllegalTypeOfArgument("test")
-
-        query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
-        response = self.do_request(query)
-
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == "Invalid query. Argument to function is wrong type."
 
     def test_out_of_retention(self):
         self.create_project()
@@ -3159,6 +3111,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(data) == 1
         assert data[0]["count(id)"] == 1
 
+    @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
     def test_not_has_transaction_status(self):
         self.store_event(self.transaction_data, project_id=self.project.id)
 
@@ -4151,71 +4104,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         query = {"field": ["id", "timestamp"], "statsPeriod": "90d", "query": ""}
         self.do_request(query)
         assert len(mock_quantize.mock_calls) == 2
-
-    @mock.patch("sentry.snuba.discover.query")
-    def test_valid_referrer(self, mock):
-        mock.return_value = {}
-
-        query = {
-            "field": ["user"],
-            "referrer": "api.performance.transaction-summary",
-            "project": [self.project.id],
-        }
-        self.do_request(query)
-        _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
-
-    @mock.patch("sentry.snuba.discover.query")
-    def test_invalid_referrer(self, mock):
-        mock.return_value = {}
-
-        query = {
-            "field": ["user"],
-            "referrer": "api.performance.invalid",
-            "project": [self.project.id],
-        }
-        self.do_request(query)
-        _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], self.referrer)
-
-    @mock.patch("sentry.snuba.discover.query")
-    def test_empty_referrer(self, mock):
-        mock.return_value = {}
-
-        query = {
-            "field": ["user"],
-            "project": [self.project.id],
-        }
-        self.do_request(query)
-        _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], self.referrer)
-
-    @mock.patch("sentry.snuba.discover.query")
-    def test_api_token_referrer(self, mock):
-        mock.return_value = {}
-        # Project ID cannot be inferred when using an org API key, so that must
-        # be passed in the parameters
-        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
-
-        query = {
-            "field": ["project.name", "environment"],
-            "project": [self.project.id],
-        }
-
-        features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        url = self.reverse_url()
-
-        with self.feature(features):
-            self.client_get(
-                url,
-                query,
-                format="json",
-                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
-            )
-
-        _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], "api.auth-token.events")
 
     def test_limit_number_of_fields(self):
         self.create_project()
@@ -5384,20 +5272,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         }
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
-        query = {
-            "field": ["transaction"],
-            "project": [self.project.id],
-        }
-        with freeze_time("2000-01-01"):
-            for _ in range(15):
-                self.do_request(query, features={"organizations:discover-events-rate-limit": True})
-            response = self.do_request(
-                query, features={"organizations:discover-events-rate-limit": True}
-            )
-            assert response.status_code == 429, response.content
-
-    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_no_ratelimit(self):
         query = {
             "field": ["transaction"],
@@ -5862,106 +5736,36 @@ class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTe
 
 
 @region_silo_test
-class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEndpointTestBase):
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
-    def test_functions_dataset_simple(self, mock_snql_query):
-        mock_snql_query.side_effect = [
-            {
-                "data": [
-                    {
-                        "function": "foo_fn",
-                        "transaction": "foo_tx",
-                        "is_application": 1,
-                        "project": "python",
-                        "release": "backend@1",
-                        "platform.name": "python",
-                        "package": "lib_foo",
-                        "environment": "development",
-                        "p50()": 34695708.0,
-                        "p75()": 45980969.0,
-                        "p95()": 92592143.6,
-                        "p99()": 103764495.12000002,
-                        "avg()": 51235123.0,
-                        "sum()": 951283182.0,
-                        "examples()": [
-                            "6919e4076b4a46bbaf1f3ef1f0666147",
-                            "b04bafc378ea421b83b8680fd1caea52",
-                            "ceac40e40a0c44adb7f7b1e07f02586f",
-                            "6919e4076b4a46bbaf1f3ef1f0666147",
-                            "68acd0a8bdea46a59ba23907152b1ce5",
-                            "8ad2946586694c1b83d817fab3bccbc1",
-                        ],
-                        "count()": 12,
-                    },
-                ],
-                "meta": [
-                    {
-                        "name": "function",
-                        "type": "String",
-                    },
-                    {
-                        "name": "transaction",
-                        "type": "String",
-                    },
-                    {
-                        "name": "is_application",
-                        "type": "UInt8",
-                    },
-                    {
-                        "name": "project",
-                        "type": "String",
-                    },
-                    {
-                        "name": "release",
-                        "type": "String",
-                    },
-                    {
-                        "name": "platform.name",
-                        "type": "String",
-                    },
-                    {
-                        "name": "package",
-                        "type": "String",
-                    },
-                    {
-                        "name": "environment",
-                        "type": "String",
-                    },
-                    {
-                        "name": "p50()",
-                        "type": "Float64",
-                    },
-                    {
-                        "name": "p75()",
-                        "type": "Float64",
-                    },
-                    {
-                        "name": "p95()",
-                        "type": "Float64",
-                    },
-                    {
-                        "name": "p99()",
-                        "type": "Float64",
-                    },
-                    {
-                        "name": "avg()",
-                        "type": "Float64",
-                    },
-                    {
-                        "name": "sum()",
-                        "type": "Float64",
-                    },
-                    {
-                        "name": "examples()",
-                        "type": "Array(String)",
-                    },
-                    {
-                        "name": "count()",
-                        "type": "UInt64",
-                    },
-                ],
-            }
-        ]
+class OrganizationEventsProfileFunctionsDatasetEndpointTest(
+    OrganizationEventsEndpointTestBase, ProfilesSnubaTestCase
+):
+    def test_functions_dataset_simple(self):
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [100 for _ in range(100)],
+                    "package": "foo",
+                    "function": "bar",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=before_now(hours=3),
+        )
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [150 for _ in range(100)],
+                    "package": "foo",
+                    "function": "bar",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=before_now(hours=1),
+        )
+
+        mid = before_now(hours=2)
 
         fields = [
             "transaction",
@@ -5980,14 +5784,18 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
             "p99()",
             "avg()",
             "sum()",
+            f"regression_score(function.duration, 0.95, {int(mid.timestamp())})",
         ]
 
-        query = {
-            "field": fields,
-            "project": [self.project.id],
-            "dataset": "profileFunctions",
-        }
-        response = self.do_request(query, features={"organizations:profiling": True})
+        response = self.do_request(
+            {
+                "field": fields,
+                "statsPeriod": "4h",
+                "project": [self.project.id],
+                "dataset": "profileFunctions",
+            },
+            features={"organizations:profiling": True},
+        )
         assert response.status_code == 200, response.content
 
         # making sure the response keys are in the form we expect and not aliased
@@ -6014,6 +5822,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
             "p99()": "nanosecond",
             "avg()": "nanosecond",
             "sum()": "nanosecond",
+            f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": None,
         }
 
 

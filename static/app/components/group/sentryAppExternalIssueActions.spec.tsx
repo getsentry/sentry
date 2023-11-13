@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 
@@ -45,7 +46,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={TestStubs.Event()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -89,7 +90,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={TestStubs.Event()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -131,7 +132,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={TestStubs.Event()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -171,7 +172,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={TestStubs.Event()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         group={group}
         sentryAppComponent={component}
         sentryAppInstallation={install}
@@ -196,7 +197,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={TestStubs.Event()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         group={group}
         sentryAppComponent={component}
         sentryAppInstallation={install}

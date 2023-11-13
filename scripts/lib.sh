@@ -26,7 +26,11 @@ require() {
 configure-sentry-cli() {
     if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
-            curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
+            if [ -f "${venv_name}/bin/pip" ]; then
+                pip-install sentry-cli
+            else
+                curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
+            fi
         fi
     fi
 }
@@ -92,7 +96,7 @@ install-py-dev() {
     echo "--> Installing Sentry (for development)"
 
     # pip doesn't do well with swapping drop-ins
-    pip uninstall -qqy uwsgi
+    pip uninstall -qqy djangorestframework-stubs django-stubs
 
     pip-install -r requirements-dev-frozen.txt
 
@@ -134,7 +138,7 @@ setup-git() {
 
 node-version-check() {
     # Checks to see if node's version matches the one specified in package.json for Volta.
-    node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" ||
+    node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||
         (
             echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'
             echo 'Run `volta install node` and `volta install yarn` to update your toolchain.'
@@ -188,7 +192,7 @@ create-superuser() {
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
         sentry createuser --superuser --email foo@tbd.com --no-password --no-input
     else
-        sentry createuser --superuser --email admin@sentry.io --password admin
+        sentry createuser --superuser --email admin@sentry.io --password admin --no-input
         echo "Password is admin."
     fi
 }

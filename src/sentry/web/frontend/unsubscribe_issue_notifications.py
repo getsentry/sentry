@@ -1,6 +1,7 @@
 from django.http import Http404
 
-from sentry.models import Group, GroupSubscription
+from sentry.models.group import Group
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.web.frontend.unsubscribe_notifications import UnsubscribeBaseView
 
 
@@ -14,7 +15,7 @@ class UnsubscribeIssueNotificationsView(UnsubscribeBaseView):
             raise Http404
         return group
 
-    def build_link(self, instance):
+    def build_link(self, instance) -> str:
         return instance.get_absolute_url()
 
     def unsubscribe(self, instance, user):

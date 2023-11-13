@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.exceptions import CacheNotPopulated
-from sentry.models import GroupMeta
+from sentry.models.groupmeta import GroupMeta
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 

@@ -182,11 +182,9 @@
   color: '8D5494'
 - name: 'Product Area: Performance - Queries'
   color: '8D5494'
-- name: 'Product Area: Starfish'
+- name: 'Product Area: Performance - Interactions'
   color: '8D5494'
-- name: 'Product Area: Starfish - Interactions'
-  color: '8D5494'
-- name: 'Product Area: Starfish - Page Loads'
+- name: 'Product Area: Performance - Web Vitals'
   color: '8D5494'
 - name: 'Product Area: Profiling'
   color: '8D5494'
@@ -205,8 +203,6 @@
 - name: 'Product Area: Releases'
   color: '8D5494'
 - name: 'Product Area: User Feedback'
-  color: '8D5494'
-- name: 'Product Area: Bug Report'
   color: '8D5494'
 - name: 'Product Area: Stats'
   color: '8D5494'
@@ -267,7 +263,7 @@
   color: 'ffa0df'
   description: ''
 
-# Hacktoberfest
+# Bug bash-y Things
 - name: 'Hacktoberfest :jack_o_lantern:'
   color: 'ffa500'
   description: ''
@@ -275,8 +271,11 @@
   color: 'e99695'
   description: Accept for Hacktoberfest - will merge later
 
-# Hackweek
 - name: 'Hackweek :zap:'
+  color: 'F91A8A'
+  description: ''
+
+- name: 'Papercut'
   color: 'F91A8A'
   description: ''
 

@@ -15,8 +15,9 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models import Organization, OrganizationIntegration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.utils import is_response_error, is_response_success
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
 from sentry.utils.audit import create_system_audit_entry
@@ -333,16 +334,29 @@ class BaseApiClient(TrackResponseMixin):
     def delete(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         return self.request("DELETE", *args, **kwargs)
 
+    def get_cache_key(self, path: str, query: str = "", data: str | None = "") -> str:
+        if not data:
+            return self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
+        return self.get_cache_prefix() + md5_text(self.build_url(path), query, data).hexdigest()
+
+    def check_cache(self, cache_key: str) -> BaseApiResponseX | None:
+        return cache.get(cache_key)
+
+    def set_cache(self, cache_key: str, result: BaseApiResponseX, cache_time: int) -> None:
+        cache.set(cache_key, result, cache_time)
+
     def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+        data = kwargs.get("data", None)
         query = ""
         if kwargs.get("params", None):
             query = json.dumps(kwargs.get("params"))
-        key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
 
-        result: BaseApiResponseX | None = cache.get(key)
+        key = self.get_cache_key(path, query, data)
+        result: BaseApiResponseX | None = self.check_cache(key)
         if result is None:
+            cache_time = kwargs.pop("cache_time", None) or self.cache_time
             result = self.request(method, path, *args, **kwargs)
-            cache.set(key, result, self.cache_time)
+            self.set_cache(key, result, cache_time)
         return result
 
     def get_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:

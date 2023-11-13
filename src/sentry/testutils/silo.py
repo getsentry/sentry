@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import inspect
+import os
 import re
 import sys
 from contextlib import contextmanager
@@ -12,6 +13,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Literal,
     MutableMapping,
     MutableSet,
     Sequence,
@@ -42,6 +44,8 @@ from sentry.types.region import Region, RegionCategory
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 TestMethod = Callable[..., None]
+
+SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 _DEFAULT_TEST_REGIONS = (
     Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
@@ -192,8 +196,9 @@ class SiloModeTestDecorator:
             # _silo_modes is used to mark the class as silo decorated in the above validation
             decorated_obj._silo_modes = self.silo_modes
 
-        # Only run non monolith tests when they are marked stable or we are explicitly running for that mode.
-        if not (stable or settings.FORCE_SILOED_TESTS):
+        # Only run non monolith tests when they are marked stable or we are explicitly running for
+        # that mode.
+        if SENTRY_USE_MONOLITH_DBS or (not (stable or settings.FORCE_SILOED_TESTS)):
             # In this case, simply force the current silo mode (monolith)
             return decorated_obj
 
@@ -249,7 +254,7 @@ run twice as both REGION and MONOLITH modes.
 
 
 @contextmanager
-def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
+def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
     test code in a special silo context.
     In monolith mode, this context manager has no effect.
@@ -262,7 +267,7 @@ def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
     given test mode.
     """
     # Only swapping the silo mode if we are already in a silo mode.
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+    if can_be_monolith and SiloMode.get_current_mode() == SiloMode.MONOLITH:
         desired_silo = SiloMode.MONOLITH
 
     overrides: MutableMapping[str, Any] = {}
@@ -437,9 +442,11 @@ def validate_no_cross_silo_deletions(
 
 
 def _is_relation_cross_silo(
-    model: Type[Model],
-    related: Type[Model],
+    model: Type[Model] | Literal["self"],
+    related: Type[Model] | Literal["self"],
 ) -> bool:
+    if model == "self" or related == "self":
+        return False
     for mode in _model_silo_limit(model).modes:
         if mode not in _model_silo_limit(related).modes:
             return True
@@ -447,9 +454,11 @@ def _is_relation_cross_silo(
 
 
 def validate_relation_does_not_cross_silo_foreign_keys(
-    model: Type[Model],
-    related: Type[Model],
+    model: Type[Model] | Literal["self"],
+    related: Type[Model] | Literal["self"],
 ) -> None:
+    if model == "self" or related == "self":
+        return
     for mode in _model_silo_limit(model).modes:
         if mode not in _model_silo_limit(related).modes:
             raise ValueError(

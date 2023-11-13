@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -171,7 +172,7 @@ describe('GroupEventCarousel', () => {
 
   it('links to full event details when org has discover', async () => {
     render(<GroupEventCarousel {...defaultProps} />, {
-      organization: TestStubs.Organization({features: ['discover-basic']}),
+      organization: Organization({features: ['discover-basic']}),
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
@@ -187,7 +188,7 @@ describe('GroupEventCarousel', () => {
     render(<GroupEventCarousel {...defaultProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'JSON (7 B)'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'JSON (7.0 B)'}));
 
     expect(window.open).toHaveBeenCalledWith(
       `/api/0/projects/org-slug/project-slug/events/event-id/json/`

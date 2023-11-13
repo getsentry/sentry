@@ -19,6 +19,7 @@
       }
     },
     "model": "feedback.feedback",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -27,9 +28,6 @@
     "uniques": [
       [
         "feedback_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -48,14 +46,95 @@
       }
     },
     "model": "hybridcloud.apikeyreplica",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "hybridcloud_apikeyreplica",
+    "uniques": []
+  },
+  "hybridcloud.apitokenreplica": {
+    "dangling": false,
+    "foreign_keys": {
+      "apitoken_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.apitoken",
+        "nullable": false
+      },
+      "application_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.apiapplication",
+        "nullable": true
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": false
+      }
+    },
+    "model": "hybridcloud.apitokenreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "hybridcloud_apitokenreplica",
+    "uniques": []
+  },
+  "hybridcloud.externalactorreplica": {
+    "dangling": false,
+    "foreign_keys": {
+      "externalactor_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.externalactor",
+        "nullable": false
+      },
+      "integration": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.integration",
+        "nullable": false
+      },
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      },
+      "team_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      }
+    },
+    "model": "hybridcloud.externalactorreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "hybridcloud_externalactorreplica",
     "uniques": [
       [
-        "id"
+        "external_name",
+        "organization_id",
+        "provider",
+        "team_id"
+      ],
+      [
+        "external_name",
+        "organization_id",
+        "provider",
+        "user_id"
       ]
     ]
   },
@@ -79,15 +158,13 @@
       }
     },
     "model": "hybridcloud.organizationslugreservationreplica",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "hybridcloud_organizationslugreservationreplica",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id",
         "reservation_type"
@@ -100,10 +177,39 @@
       ]
     ]
   },
+  "hybridcloud.orgauthtokenreplica": {
+    "dangling": false,
+    "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      },
+      "orgauthtoken_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.orgauthtoken",
+        "nullable": false
+      }
+    },
+    "model": "hybridcloud.orgauthtokenreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "hybridcloud_orgauthtokenreplica",
+    "uniques": []
+  },
   "hybridcloud.regioncacheversion": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "hybridcloud.regioncacheversion",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -111,27 +217,21 @@
     "table_name": "hybridcloud_regioncacheversion",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "key"
       ]
     ]
   },
   "nodestore.node": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "nodestore.node",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "nodestore_node",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "replays.replayrecordingsegment": {
     "dangling": false,
@@ -148,6 +248,7 @@
       }
     },
     "model": "replays.replayrecordingsegment",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -158,9 +259,6 @@
         "file_id",
         "project_id",
         "replay_id"
-      ],
-      [
-        "id"
       ],
       [
         "project_id",
@@ -189,20 +287,22 @@
       }
     },
     "model": "sentry.activity",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_activity",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.actor": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
       "user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.user",
@@ -210,15 +310,13 @@
       }
     },
     "model": "sentry.actor",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_actor",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "team"
       ],
@@ -228,7 +326,7 @@
     ]
   },
   "sentry.alertrule": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "organization": {
         "kind": "FlexibleForeignKey",
@@ -244,9 +342,20 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.snubaquery",
         "nullable": true
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       }
     },
     "model": "sentry.alertrule",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -254,15 +363,12 @@
     "table_name": "sentry_alertrule",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "snuba_query"
       ]
     ]
   },
   "sentry.alertruleactivity": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "alert_rule": {
         "kind": "FlexibleForeignKey",
@@ -281,16 +387,13 @@
       }
     },
     "model": "sentry.alertruleactivity",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_alertruleactivity",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.alertruleexcludedprojects": {
     "dangling": false,
@@ -307,6 +410,7 @@
       }
     },
     "model": "sentry.alertruleexcludedprojects",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -316,14 +420,11 @@
       [
         "alert_rule",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
   "sentry.alertruletrigger": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "alert_rule": {
         "kind": "FlexibleForeignKey",
@@ -332,6 +433,7 @@
       }
     },
     "model": "sentry.alertruletrigger",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -341,14 +443,11 @@
       [
         "alert_rule",
         "label"
-      ],
-      [
-        "id"
       ]
     ]
   },
   "sentry.alertruletriggeraction": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "alert_rule_trigger": {
         "kind": "FlexibleForeignKey",
@@ -367,16 +466,13 @@
       }
     },
     "model": "sentry.alertruletriggeraction",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_alertruletriggeraction",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.alertruletriggerexclusion": {
     "dangling": false,
@@ -393,6 +489,7 @@
       }
     },
     "model": "sentry.alertruletriggerexclusion",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -402,9 +499,6 @@
       [
         "alert_rule_trigger",
         "query_subscription"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -418,6 +512,7 @@
       }
     },
     "model": "sentry.apiapplication",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
@@ -426,9 +521,6 @@
     "uniques": [
       [
         "client_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -447,6 +539,7 @@
       }
     },
     "model": "sentry.apiauthorization",
+    "relocation_dependencies": [],
     "relocation_scope": [
       "Config",
       "Global"
@@ -459,9 +552,6 @@
       [
         "application",
         "user"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -480,16 +570,13 @@
       }
     },
     "model": "sentry.apigrant",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_apigrant",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.apikey": {
     "dangling": false,
@@ -501,15 +588,13 @@
       }
     },
     "model": "sentry.apikey",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_apikey",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "key"
       ]
@@ -530,6 +615,7 @@
       }
     },
     "model": "sentry.apitoken",
+    "relocation_dependencies": [],
     "relocation_scope": [
       "Config",
       "Global"
@@ -539,9 +625,6 @@
     ],
     "table_name": "sentry_apitoken",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "refresh_token"
       ],
@@ -560,16 +643,13 @@
       }
     },
     "model": "sentry.appconnectbuild",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_appconnectbuild",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.artifactbundle": {
     "dangling": false,
@@ -586,16 +666,13 @@
       }
     },
     "model": "sentry.artifactbundle",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_artifactbundle",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.artifactbundleflatfileindex": {
     "dangling": false,
@@ -607,6 +684,7 @@
       }
     },
     "model": "sentry.artifactbundleflatfileindex",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -617,9 +695,6 @@
         "dist_name",
         "project_id",
         "release_name"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -638,16 +713,13 @@
       }
     },
     "model": "sentry.artifactbundleindex",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_artifactbundleindex",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.assistantactivity": {
     "dangling": false,
@@ -659,6 +731,7 @@
       }
     },
     "model": "sentry.assistantactivity",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -668,9 +741,6 @@
       [
         "guide_id",
         "user"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -699,16 +769,13 @@
       }
     },
     "model": "sentry.auditlogentry",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_auditlogentry",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.authenticator": {
     "dangling": false,
@@ -720,15 +787,13 @@
       }
     },
     "model": "sentry.authenticator",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
     ],
     "table_name": "auth_authenticator",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "type",
         "user"
@@ -750,6 +815,7 @@
       }
     },
     "model": "sentry.authidentity",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
@@ -763,9 +829,6 @@
       [
         "auth_provider",
         "user"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -789,6 +852,7 @@
       }
     },
     "model": "sentry.authidentityreplica",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -805,9 +869,6 @@
       [
         "auth_provider_id",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -821,15 +882,13 @@
       }
     },
     "model": "sentry.authprovider",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_authprovider",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id"
       ]
@@ -850,16 +909,13 @@
       }
     },
     "model": "sentry.authproviderdefaultteams",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_authprovider_default_teams",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.authproviderreplica": {
     "dangling": false,
@@ -876,6 +932,7 @@
       }
     },
     "model": "sentry.authproviderreplica",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -886,27 +943,21 @@
         "auth_provider_id"
       ],
       [
-        "id"
-      ],
-      [
         "organization"
       ]
     ]
   },
   "sentry.broadcast": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.broadcast",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_broadcast",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.broadcastseen": {
     "dangling": false,
@@ -923,6 +974,7 @@
       }
     },
     "model": "sentry.broadcastseen",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -932,9 +984,6 @@
       [
         "broadcast",
         "user"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -958,15 +1007,13 @@
       }
     },
     "model": "sentry.commit",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_commit",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "key",
         "repository_id"
@@ -983,6 +1030,7 @@
       }
     },
     "model": "sentry.commitauthor",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -996,9 +1044,6 @@
       [
         "external_id",
         "organization_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1017,6 +1062,7 @@
       }
     },
     "model": "sentry.commitfilechange",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -1026,31 +1072,26 @@
       [
         "commit",
         "filename"
-      ],
-      [
-        "id"
       ]
     ]
   },
   "sentry.controlfile": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.controlfile",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_controlfile",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.controlfileblob": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.controlfileblob",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -1059,14 +1100,11 @@
     "uniques": [
       [
         "checksum"
-      ],
-      [
-        "id"
       ]
     ]
   },
   "sentry.controlfileblobindex": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "blob": {
         "kind": "FlexibleForeignKey",
@@ -1080,6 +1118,7 @@
       }
     },
     "model": "sentry.controlfileblobindex",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -1090,9 +1129,6 @@
         "blob",
         "file",
         "offset"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1111,6 +1147,7 @@
       }
     },
     "model": "sentry.controlfileblobowner",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -1120,9 +1157,6 @@
       [
         "blob",
         "organization_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1130,6 +1164,7 @@
     "dangling": false,
     "foreign_keys": {},
     "model": "sentry.controloption",
+    "relocation_dependencies": [],
     "relocation_scope": "Config",
     "silos": [
       "Control"
@@ -1137,42 +1172,33 @@
     "table_name": "sentry_controloption",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "key"
       ]
     ]
   },
   "sentry.controloutbox": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.controloutbox",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_controloutbox",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.controltombstone": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.controltombstone",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_controltombstone",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.counter": {
     "dangling": false,
@@ -1184,15 +1210,13 @@
       }
     },
     "model": "sentry.counter",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectcounter",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project"
       ]
@@ -1201,6 +1225,11 @@
   "sentry.customdynamicsamplingrule": {
     "dangling": false,
     "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
@@ -1208,16 +1237,13 @@
       }
     },
     "model": "sentry.customdynamicsamplingrule",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_customdynamicsamplingrule",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.customdynamicsamplingruleproject": {
     "dangling": false,
@@ -1234,6 +1260,7 @@
       }
     },
     "model": "sentry.customdynamicsamplingruleproject",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -1243,9 +1270,6 @@
       [
         "custom_dynamic_sampling_rule",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1264,15 +1288,13 @@
       }
     },
     "model": "sentry.dashboard",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_dashboard",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization",
         "title"
@@ -1294,6 +1316,7 @@
       }
     },
     "model": "sentry.dashboardproject",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -1303,9 +1326,6 @@
       [
         "dashboard",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1319,15 +1339,13 @@
       }
     },
     "model": "sentry.dashboardtombstone",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_dashboardtombstone",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization",
         "slug"
@@ -1344,6 +1362,7 @@
       }
     },
     "model": "sentry.dashboardwidget",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -1353,9 +1372,6 @@
       [
         "dashboard",
         "order"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1369,15 +1385,13 @@
       }
     },
     "model": "sentry.dashboardwidgetquery",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_dashboardwidgetquery",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "order",
         "widget"
@@ -1399,34 +1413,28 @@
       }
     },
     "model": "sentry.debugidartifactbundle",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_debugidartifactbundle",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.deletedorganization": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.deletedorganization",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_deletedorganization",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.deletedproject": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "organization_id": {
         "kind": "ImplicitForeignKey",
@@ -1435,19 +1443,16 @@
       }
     },
     "model": "sentry.deletedproject",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_deletedproject",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.deletedteam": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "organization_id": {
         "kind": "ImplicitForeignKey",
@@ -1456,16 +1461,13 @@
       }
     },
     "model": "sentry.deletedteam",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_deletedteam",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.deploy": {
     "dangling": false,
@@ -1487,16 +1489,13 @@
       }
     },
     "model": "sentry.deploy",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_deploy",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.discoversavedquery": {
     "dangling": false,
@@ -1513,16 +1512,13 @@
       }
     },
     "model": "sentry.discoversavedquery",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_discoversavedquery",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.discoversavedqueryproject": {
     "dangling": false,
@@ -1539,6 +1535,7 @@
       }
     },
     "model": "sentry.discoversavedqueryproject",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -1548,9 +1545,6 @@
       [
         "discover_saved_query",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1569,6 +1563,7 @@
       }
     },
     "model": "sentry.distribution",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -1576,18 +1571,16 @@
     "table_name": "sentry_distribution",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "name",
         "release"
       ]
     ]
   },
   "sentry.docintegration": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.docintegration",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -1595,15 +1588,12 @@
     "table_name": "sentry_docintegration",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "slug"
       ]
     ]
   },
   "sentry.docintegrationavatar": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "control_file_id": {
         "kind": "ImplicitForeignKey",
@@ -1622,6 +1612,7 @@
       }
     },
     "model": "sentry.docintegrationavatar",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -1635,9 +1626,6 @@
         "file_id"
       ],
       [
-        "id"
-      ],
-      [
         "ident"
       ]
     ]
@@ -1646,6 +1634,9 @@
     "dangling": true,
     "foreign_keys": {},
     "model": "sentry.email",
+    "relocation_dependencies": [
+      "sentry.user"
+    ],
     "relocation_scope": "User",
     "silos": [
       "Control"
@@ -1654,9 +1645,6 @@
     "uniques": [
       [
         "email"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1670,15 +1658,13 @@
       }
     },
     "model": "sentry.environment",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_environment",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "name",
         "organization_id"
@@ -1700,6 +1686,7 @@
       }
     },
     "model": "sentry.environmentproject",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -1709,9 +1696,6 @@
       [
         "environment",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1735,6 +1719,7 @@
       }
     },
     "model": "sentry.eventattachment",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -1745,9 +1730,6 @@
         "event_id",
         "file_id",
         "project_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1766,15 +1748,13 @@
       }
     },
     "model": "sentry.eventprocessingissue",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_eventprocessingissue",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "processing_issue",
         "raw_event"
@@ -1791,6 +1771,7 @@
       }
     },
     "model": "sentry.eventuser",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -1800,9 +1781,6 @@
       [
         "hash",
         "project_id"
-      ],
-      [
-        "id"
       ],
       [
         "ident",
@@ -1830,16 +1808,13 @@
       }
     },
     "model": "sentry.exporteddata",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_exporteddata",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.exporteddatablob": {
     "dangling": false,
@@ -1851,6 +1826,7 @@
       }
     },
     "model": "sentry.exporteddatablob",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -1861,9 +1837,6 @@
         "blob_id",
         "data_export",
         "offset"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1892,6 +1865,7 @@
       }
     },
     "model": "sentry.externalactor",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -1909,9 +1883,6 @@
         "organization",
         "provider",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -1930,15 +1901,13 @@
       }
     },
     "model": "sentry.externalissue",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_externalissue",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "integration_id",
         "key",
@@ -1956,6 +1925,7 @@
       }
     },
     "model": "sentry.featureadoption",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -1965,14 +1935,11 @@
       [
         "feature_id",
         "organization"
-      ],
-      [
-        "id"
       ]
     ]
   },
   "sentry.file": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "blob": {
         "kind": "FlexibleForeignKey",
@@ -1981,21 +1948,19 @@
       }
     },
     "model": "sentry.file",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_file",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.fileblob": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.fileblob",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2004,14 +1969,11 @@
     "uniques": [
       [
         "checksum"
-      ],
-      [
-        "id"
       ]
     ]
   },
   "sentry.fileblobindex": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "blob": {
         "kind": "FlexibleForeignKey",
@@ -2025,6 +1987,7 @@
       }
     },
     "model": "sentry.fileblobindex",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2035,9 +1998,6 @@
         "blob",
         "file",
         "offset"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2056,6 +2016,7 @@
       }
     },
     "model": "sentry.fileblobowner",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2065,9 +2026,6 @@
       [
         "blob",
         "organization_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2086,6 +2044,7 @@
       }
     },
     "model": "sentry.flatfileindexstate",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2095,9 +2054,6 @@
       [
         "artifact_bundle",
         "flat_file_index"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2116,15 +2072,13 @@
       }
     },
     "model": "sentry.group",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_groupedmessage",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "id",
         "project"
@@ -2160,6 +2114,7 @@
       }
     },
     "model": "sentry.groupassignee",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2172,9 +2127,6 @@
       [
         "group",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2198,6 +2150,7 @@
       }
     },
     "model": "sentry.groupbookmark",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2208,9 +2161,6 @@
         "group",
         "project",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2229,6 +2179,7 @@
       }
     },
     "model": "sentry.groupcommitresolution",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2238,9 +2189,6 @@
       [
         "commit_id",
         "group_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2259,6 +2207,7 @@
       }
     },
     "model": "sentry.groupemailthread",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2272,9 +2221,6 @@
       [
         "email",
         "msgid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2298,6 +2244,7 @@
       }
     },
     "model": "sentry.groupenvironment",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2307,14 +2254,11 @@
       [
         "environment",
         "group"
-      ],
-      [
-        "id"
       ]
     ]
   },
   "sentry.grouphash": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "group": {
         "kind": "FlexibleForeignKey",
@@ -2333,6 +2277,7 @@
       }
     },
     "model": "sentry.grouphash",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2342,9 +2287,6 @@
       [
         "hash",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2378,16 +2320,13 @@
       }
     },
     "model": "sentry.grouphistory",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_grouphistory",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.groupinbox": {
     "dangling": false,
@@ -2409,6 +2348,7 @@
       }
     },
     "model": "sentry.groupinbox",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2417,9 +2357,6 @@
     "uniques": [
       [
         "group"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2438,6 +2375,7 @@
       }
     },
     "model": "sentry.grouplink",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2448,9 +2386,6 @@
         "group",
         "linked_id",
         "linked_type"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2464,6 +2399,7 @@
       }
     },
     "model": "sentry.groupmeta",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2473,9 +2409,6 @@
       [
         "group",
         "key"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2509,16 +2442,13 @@
       }
     },
     "model": "sentry.groupowner",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_groupowner",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.groupredirect": {
     "dangling": false,
@@ -2535,15 +2465,13 @@
       }
     },
     "model": "sentry.groupredirect",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_groupredirect",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id",
         "previous_project_slug",
@@ -2574,6 +2502,7 @@
       }
     },
     "model": "sentry.grouprelease",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2584,9 +2513,6 @@
         "environment",
         "group_id",
         "release_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2605,6 +2531,7 @@
       }
     },
     "model": "sentry.groupresolution",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2613,9 +2540,6 @@
     "uniques": [
       [
         "group"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2639,6 +2563,7 @@
       }
     },
     "model": "sentry.grouprulestatus",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2648,9 +2573,6 @@
       [
         "group",
         "rule"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2674,6 +2596,7 @@
       }
     },
     "model": "sentry.groupseen",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2683,9 +2606,6 @@
       [
         "group",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2709,6 +2629,7 @@
       }
     },
     "model": "sentry.groupshare",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2717,9 +2638,6 @@
     "uniques": [
       [
         "group"
-      ],
-      [
-        "id"
       ],
       [
         "uuid"
@@ -2736,6 +2654,7 @@
       }
     },
     "model": "sentry.groupsnooze",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2744,9 +2663,6 @@
     "uniques": [
       [
         "group"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2775,6 +2691,7 @@
       }
     },
     "model": "sentry.groupsubscription",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -2788,9 +2705,6 @@
       [
         "group",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2804,15 +2718,13 @@
       }
     },
     "model": "sentry.grouptombstone",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_grouptombstone",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "previous_group_id"
       ]
@@ -2833,6 +2745,7 @@
       }
     },
     "model": "sentry.identity",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -2844,18 +2757,16 @@
         "idp"
       ],
       [
-        "id"
-      ],
-      [
         "idp",
         "user"
       ]
     ]
   },
   "sentry.identityprovider": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.identityprovider",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -2865,9 +2776,6 @@
       [
         "external_id",
         "type"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -2886,15 +2794,13 @@
       }
     },
     "model": "sentry.incident",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_incident",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "identifier",
         "organization"
@@ -2916,16 +2822,13 @@
       }
     },
     "model": "sentry.incidentactivity",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_incidentactivity",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.incidentproject": {
     "dangling": false,
@@ -2942,15 +2845,13 @@
       }
     },
     "model": "sentry.incidentproject",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_incidentproject",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "incident",
         "project"
@@ -2972,15 +2873,13 @@
       }
     },
     "model": "sentry.incidentseen",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_incidentseen",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "incident",
         "user_id"
@@ -3002,15 +2901,13 @@
       }
     },
     "model": "sentry.incidentsnapshot",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_incidentsnapshot",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "incident"
       ]
@@ -3031,15 +2928,13 @@
       }
     },
     "model": "sentry.incidentsubscription",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_incidentsubscription",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "incident",
         "user_id"
@@ -3061,6 +2956,7 @@
       }
     },
     "model": "sentry.incidenttrigger",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -3070,9 +2966,6 @@
       [
         "alert_rule_trigger",
         "incident"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3080,6 +2973,7 @@
     "dangling": false,
     "foreign_keys": {},
     "model": "sentry.integration",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
@@ -3089,9 +2983,6 @@
       [
         "external_id",
         "provider"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3105,6 +2996,7 @@
       }
     },
     "model": "sentry.integrationexternalproject",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -3114,16 +3006,14 @@
       [
         "external_id",
         "organization_integration_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
   "sentry.integrationfeature": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.integrationfeature",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -3134,9 +3024,6 @@
         "feature",
         "target_id",
         "target_type"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3150,15 +3037,13 @@
       }
     },
     "model": "sentry.latestappconnectbuildscheck",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_latestappconnectbuildscheck",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project",
         "source_id"
@@ -3195,6 +3080,7 @@
       }
     },
     "model": "sentry.latestreporeleaseenvironment",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -3204,9 +3090,6 @@
       [
         "environment_id",
         "repository_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3220,6 +3103,7 @@
       }
     },
     "model": "sentry.lostpasswordhash",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -3227,27 +3111,21 @@
     "table_name": "sentry_lostpasswordhash",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "user"
       ]
     ]
   },
   "sentry.metricskeyindexer": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.metricskeyindexer",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_metricskeyindexer",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.monitor": {
     "dangling": false,
@@ -3264,6 +3142,7 @@
       }
     },
     "model": "sentry.monitor",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -3272,9 +3151,6 @@
     "uniques": [
       [
         "guid"
-      ],
-      [
-        "id"
       ],
       [
         "organization_id",
@@ -3307,6 +3183,7 @@
       }
     },
     "model": "sentry.monitorcheckin",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -3315,9 +3192,6 @@
     "uniques": [
       [
         "guid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3336,6 +3210,7 @@
       }
     },
     "model": "sentry.monitorenvironment",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -3345,9 +3220,6 @@
       [
         "environment",
         "monitor"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3376,21 +3248,19 @@
       }
     },
     "model": "sentry.monitorincident",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_monitorincident",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.monitorlocation": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.monitorlocation",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -3399,9 +3269,6 @@
     "uniques": [
       [
         "guid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -3420,16 +3287,13 @@
       }
     },
     "model": "sentry.neglectedrule",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_neglectedrule",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.notificationaction": {
     "dangling": false,
@@ -3451,6 +3315,7 @@
       }
     },
     "model": "sentry.notificationaction",
+    "relocation_dependencies": [],
     "relocation_scope": [
       "Organization",
       "Global"
@@ -3459,11 +3324,7 @@
       "Region"
     ],
     "table_name": "sentry_notificationaction",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.notificationactionproject": {
     "dangling": false,
@@ -3480,6 +3341,7 @@
       }
     },
     "model": "sentry.notificationactionproject",
+    "relocation_dependencies": [],
     "relocation_scope": [
       "Organization",
       "Global"
@@ -3488,14 +3350,10 @@
       "Region"
     ],
     "table_name": "sentry_notificationactionproject",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.notificationsetting": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "target_id": {
         "kind": "HybridCloudForeignKey",
@@ -3514,15 +3372,13 @@
       }
     },
     "model": "sentry.notificationsetting",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_notificationsetting",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "provider",
         "scope_identifier",
@@ -3533,7 +3389,7 @@
     ]
   },
   "sentry.notificationsettingoption": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "team_id": {
         "kind": "HybridCloudForeignKey",
@@ -3547,15 +3403,13 @@
       }
     },
     "model": "sentry.notificationsettingoption",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_notificationsettingoption",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "scope_identifier",
         "scope_type",
@@ -3566,7 +3420,7 @@
     ]
   },
   "sentry.notificationsettingprovider": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "team_id": {
         "kind": "HybridCloudForeignKey",
@@ -3580,15 +3434,13 @@
       }
     },
     "model": "sentry.notificationsettingprovider",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_notificationsettingprovider",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "provider",
         "scope_identifier",
@@ -3603,15 +3455,13 @@
     "dangling": false,
     "foreign_keys": {},
     "model": "sentry.option",
+    "relocation_dependencies": [],
     "relocation_scope": "Config",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_option",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "key"
       ]
@@ -3621,15 +3471,13 @@
     "dangling": false,
     "foreign_keys": {},
     "model": "sentry.organization",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_organization",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "slug"
       ]
@@ -3655,15 +3503,13 @@
       }
     },
     "model": "sentry.organizationaccessrequest",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_organizationaccessrequest",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "member",
         "team"
@@ -3685,6 +3531,7 @@
       }
     },
     "model": "sentry.organizationavatar",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -3693,9 +3540,6 @@
     "uniques": [
       [
         "file_id"
-      ],
-      [
-        "id"
       ],
       [
         "ident"
@@ -3720,15 +3564,13 @@
       }
     },
     "model": "sentry.organizationintegration",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_organizationintegration",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "integration",
         "organization_id"
@@ -3745,15 +3587,13 @@
       }
     },
     "model": "sentry.organizationmapping",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_organizationmapping",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id"
       ],
@@ -3782,6 +3622,7 @@
       }
     },
     "model": "sentry.organizationmember",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -3791,9 +3632,6 @@
       [
         "email",
         "organization"
-      ],
-      [
-        "id"
       ],
       [
         "organization",
@@ -3829,15 +3667,13 @@
       }
     },
     "model": "sentry.organizationmembermapping",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_organizationmembermapping",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id",
         "organizationmember_id"
@@ -3859,15 +3695,13 @@
       }
     },
     "model": "sentry.organizationmemberteam",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_organizationmember_teams",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organizationmember",
         "team"
@@ -3899,15 +3733,13 @@
       }
     },
     "model": "sentry.organizationmemberteamreplica",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_organizationmember_teamsreplica",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id",
         "organizationmember_id",
@@ -3935,15 +3767,13 @@
       }
     },
     "model": "sentry.organizationonboardingtask",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_organizationonboardingtask",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization",
         "task"
@@ -3960,15 +3790,13 @@
       }
     },
     "model": "sentry.organizationoption",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_organizationoptions",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "key",
         "organization"
@@ -3990,15 +3818,13 @@
       }
     },
     "model": "sentry.organizationslugreservation",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_organizationslugreservation",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id",
         "reservation_type"
@@ -4028,15 +3854,13 @@
       }
     },
     "model": "sentry.orgauthtoken",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_orgauthtoken",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "token_hashed"
       ]
@@ -4052,15 +3876,13 @@
       }
     },
     "model": "sentry.pendingincidentsnapshot",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_pendingincidentsnapshot",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "incident"
       ]
@@ -4076,16 +3898,13 @@
       }
     },
     "model": "sentry.perfstringindexer",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_perfstringindexer",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.platformexternalissue": {
     "dangling": false,
@@ -4102,6 +3921,7 @@
       }
     },
     "model": "sentry.platformexternalissue",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -4111,9 +3931,6 @@
       [
         "group",
         "service_type"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4127,6 +3944,7 @@
       }
     },
     "model": "sentry.processingissue",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -4137,9 +3955,6 @@
         "checksum",
         "project",
         "type"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4163,15 +3978,13 @@
       }
     },
     "model": "sentry.proguardartifactrelease",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_proguardartifactrelease",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "proguard_uuid",
         "project_id",
@@ -4189,15 +4002,13 @@
       }
     },
     "model": "sentry.project",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_project",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization",
         "slug"
@@ -4224,16 +4035,13 @@
       }
     },
     "model": "sentry.projectartifactbundle",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectartifactbundle",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.projectavatar": {
     "dangling": false,
@@ -4250,6 +4058,7 @@
       }
     },
     "model": "sentry.projectavatar",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -4258,9 +4067,6 @@
     "uniques": [
       [
         "file_id"
-      ],
-      [
-        "id"
       ],
       [
         "ident"
@@ -4285,15 +4091,13 @@
       }
     },
     "model": "sentry.projectbookmark",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectbookmark",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project",
         "user_id"
@@ -4315,6 +4119,7 @@
       }
     },
     "model": "sentry.projectcodeowners",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -4322,15 +4127,12 @@
     "table_name": "sentry_projectcodeowners",
     "uniques": [
       [
-        "id"
-      ],
-      [
         "repository_project_path_config"
       ]
     ]
   },
   "sentry.projectdebugfile": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "file": {
         "kind": "FlexibleForeignKey",
@@ -4344,16 +4146,13 @@
       }
     },
     "model": "sentry.projectdebugfile",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectdsymfile",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.projectintegration": {
     "dangling": false,
@@ -4370,15 +4169,13 @@
       }
     },
     "model": "sentry.projectintegration",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectintegration",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "integration_id",
         "project"
@@ -4395,15 +4192,13 @@
       }
     },
     "model": "sentry.projectkey",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectkey",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "public_key"
       ],
@@ -4422,15 +4217,13 @@
       }
     },
     "model": "sentry.projectoption",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectoptions",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "key",
         "project"
@@ -4447,15 +4240,13 @@
       }
     },
     "model": "sentry.projectownership",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectownership",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project"
       ]
@@ -4471,15 +4262,13 @@
       }
     },
     "model": "sentry.projectplatform",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectplatform",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "platform",
         "project_id"
@@ -4501,15 +4290,13 @@
       }
     },
     "model": "sentry.projectredirect",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectredirect",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization",
         "redirect_slug"
@@ -4531,15 +4318,13 @@
       }
     },
     "model": "sentry.projectteam",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projectteam",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project",
         "team"
@@ -4566,15 +4351,13 @@
       }
     },
     "model": "sentry.projecttransactionthreshold",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projecttransactionthreshold",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project"
       ]
@@ -4600,15 +4383,13 @@
       }
     },
     "model": "sentry.projecttransactionthresholdoverride",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_projecttransactionthresholdoverride",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project",
         "transaction"
@@ -4635,6 +4416,7 @@
       }
     },
     "model": "sentry.promptsactivity",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -4646,9 +4428,6 @@
         "organization_id",
         "project_id",
         "user_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4672,15 +4451,13 @@
       }
     },
     "model": "sentry.pullrequest",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_pull_request",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "key",
         "repository_id"
@@ -4697,6 +4474,7 @@
       }
     },
     "model": "sentry.pullrequestcomment",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -4706,9 +4484,6 @@
       [
         "comment_type",
         "pull_request"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4727,6 +4502,7 @@
       }
     },
     "model": "sentry.pullrequestcommit",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -4736,9 +4512,6 @@
       [
         "commit",
         "pull_request"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4757,15 +4530,13 @@
       }
     },
     "model": "sentry.querysubscription",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_querysubscription",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "subscription_id"
       ]
@@ -4781,6 +4552,7 @@
       }
     },
     "model": "sentry.rawevent",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -4790,9 +4562,6 @@
       [
         "event_id",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -4811,15 +4580,13 @@
       }
     },
     "model": "sentry.recentsearch",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_recentsearch",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization",
         "query_hash",
@@ -4829,24 +4596,22 @@
     ]
   },
   "sentry.regionoutbox": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.regionoutbox",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_regionoutbox",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.regionscheduleddeletion": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.regionscheduleddeletion",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -4860,40 +4625,32 @@
       ],
       [
         "guid"
-      ],
-      [
-        "id"
       ]
     ]
   },
   "sentry.regiontombstone": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.regiontombstone",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_regiontombstone",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.relay": {
     "dangling": false,
     "foreign_keys": {},
     "model": "sentry.relay",
+    "relocation_dependencies": [],
     "relocation_scope": "Config",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_relay",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "relay_id"
       ]
@@ -4903,15 +4660,13 @@
     "dangling": false,
     "foreign_keys": {},
     "model": "sentry.relayusage",
+    "relocation_dependencies": [],
     "relocation_scope": "Config",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_relayusage",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "relay_id",
         "version"
@@ -4938,15 +4693,13 @@
       }
     },
     "model": "sentry.release",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_release",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization",
         "version"
@@ -4963,16 +4716,13 @@
       }
     },
     "model": "sentry.releaseactivity",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_releaseactivity",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.releaseartifactbundle": {
     "dangling": false,
@@ -4989,16 +4739,13 @@
       }
     },
     "model": "sentry.releaseartifactbundle",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_releaseartifactbundle",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.releasecommit": {
     "dangling": false,
@@ -5025,6 +4772,7 @@
       }
     },
     "model": "sentry.releasecommit",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -5034,9 +4782,6 @@
       [
         "commit",
         "release"
-      ],
-      [
-        "id"
       ],
       [
         "order",
@@ -5069,6 +4814,7 @@
       }
     },
     "model": "sentry.releaseenvironment",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -5079,9 +4825,6 @@
         "environment",
         "organization",
         "release"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5110,15 +4853,13 @@
       }
     },
     "model": "sentry.releasefile",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_releasefile",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "ident",
         "release_id"
@@ -5150,15 +4891,13 @@
       }
     },
     "model": "sentry.releaseheadcommit",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_releaseheadcommit",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "release",
         "repository_id"
@@ -5180,15 +4919,13 @@
       }
     },
     "model": "sentry.releaseproject",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_release_project",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project",
         "release"
@@ -5215,6 +4952,7 @@
       }
     },
     "model": "sentry.releaseprojectenvironment",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -5225,9 +4963,6 @@
         "environment",
         "project",
         "release"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5246,14 +4981,102 @@
       }
     },
     "model": "sentry.releasethreshold",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_releasethreshold",
+    "uniques": []
+  },
+  "sentry.relocation": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.relocation",
+    "relocation_dependencies": [
+      "sentry.user"
+    ],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_relocation",
     "uniques": [
       [
-        "id"
+        "uuid"
+      ]
+    ]
+  },
+  "sentry.relocationfile": {
+    "dangling": false,
+    "foreign_keys": {
+      "file": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.file",
+        "nullable": false
+      },
+      "relocation": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.relocation",
+        "nullable": false
+      }
+    },
+    "model": "sentry.relocationfile",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_relocationfile",
+    "uniques": [
+      [
+        "file",
+        "relocation"
+      ]
+    ]
+  },
+  "sentry.relocationvalidation": {
+    "dangling": false,
+    "foreign_keys": {
+      "relocation": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.relocation",
+        "nullable": false
+      }
+    },
+    "model": "sentry.relocationvalidation",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_relocationvalidation",
+    "uniques": []
+  },
+  "sentry.relocationvalidationattempt": {
+    "dangling": false,
+    "foreign_keys": {
+      "relocation": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.relocation",
+        "nullable": false
+      },
+      "relocation_validation": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.relocationvalidation",
+        "nullable": false
+      }
+    },
+    "model": "sentry.relocationvalidationattempt",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_relocationvalidationattempt",
+    "uniques": [
+      [
+        "build_id"
       ]
     ]
   },
@@ -5272,6 +5095,7 @@
       }
     },
     "model": "sentry.repository",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Region"
@@ -5282,9 +5106,6 @@
         "external_id",
         "organization_id",
         "provider"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5318,15 +5139,13 @@
       }
     },
     "model": "sentry.repositoryprojectpathconfig",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_repositoryprojectpathconfig",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project",
         "stack_root"
@@ -5343,6 +5162,7 @@
       }
     },
     "model": "sentry.reprocessingreport",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -5352,9 +5172,6 @@
       [
         "event_id",
         "project"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5378,16 +5195,13 @@
       }
     },
     "model": "sentry.rule",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_rule",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.ruleactivity": {
     "dangling": false,
@@ -5404,16 +5218,13 @@
       }
     },
     "model": "sentry.ruleactivity",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_ruleactivity",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.rulefirehistory": {
     "dangling": false,
@@ -5435,19 +5246,16 @@
       }
     },
     "model": "sentry.rulefirehistory",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_rulefirehistory",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.rulesnooze": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "alert_rule": {
         "kind": "FlexibleForeignKey",
@@ -5471,6 +5279,7 @@
       }
     },
     "model": "sentry.rulesnooze",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -5482,16 +5291,13 @@
         "user_id"
       ],
       [
-        "id"
-      ],
-      [
         "rule",
         "user_id"
       ]
     ]
   },
   "sentry.savedsearch": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "organization": {
         "kind": "FlexibleForeignKey",
@@ -5505,21 +5311,19 @@
       }
     },
     "model": "sentry.savedsearch",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_savedsearch",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.scheduleddeletion": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {},
     "model": "sentry.scheduleddeletion",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -5533,9 +5337,6 @@
       ],
       [
         "guid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5564,6 +5365,7 @@
       }
     },
     "model": "sentry.sentryapp",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
@@ -5572,9 +5374,6 @@
     "uniques": [
       [
         "application"
-      ],
-      [
-        "id"
       ],
       [
         "proxy_user"
@@ -5604,6 +5403,7 @@
       }
     },
     "model": "sentry.sentryappavatar",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -5615,9 +5415,6 @@
       ],
       [
         "file_id"
-      ],
-      [
-        "id"
       ],
       [
         "ident"
@@ -5634,15 +5431,13 @@
       }
     },
     "model": "sentry.sentryappcomponent",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_sentryappcomponent",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "uuid"
       ]
@@ -5673,6 +5468,7 @@
       }
     },
     "model": "sentry.sentryappinstallation",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Control"
@@ -5684,9 +5480,6 @@
       ],
       [
         "api_token"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5705,15 +5498,13 @@
       }
     },
     "model": "sentry.sentryappinstallationforprovider",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_sentryappinstallationforprovider",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id",
         "provider"
@@ -5735,6 +5526,7 @@
       }
     },
     "model": "sentry.sentryappinstallationtoken",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -5744,9 +5536,6 @@
       [
         "api_token",
         "sentry_app_installation"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5760,6 +5549,7 @@
       }
     },
     "model": "sentry.sentryfunction",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -5768,9 +5558,6 @@
     "uniques": [
       [
         "external_id"
-      ],
-      [
-        "id"
       ],
       [
         "organization",
@@ -5782,7 +5569,7 @@
     ]
   },
   "sentry.servicehook": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "application_id": {
         "kind": "HybridCloudForeignKey",
@@ -5806,6 +5593,7 @@
       }
     },
     "model": "sentry.servicehook",
+    "relocation_dependencies": [],
     "relocation_scope": "Global",
     "silos": [
       "Region"
@@ -5814,9 +5602,6 @@
     "uniques": [
       [
         "guid"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -5835,15 +5620,13 @@
       }
     },
     "model": "sentry.servicehookproject",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_servicehookproject",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project_id",
         "service_hook"
@@ -5860,19 +5643,20 @@
       }
     },
     "model": "sentry.snubaquery",
+    "relocation_dependencies": [
+      "sentry.actor",
+      "sentry.organization",
+      "sentry.project"
+    ],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_snubaquery",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.snubaqueryeventtype": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "snuba_query": {
         "kind": "FlexibleForeignKey",
@@ -5881,15 +5665,13 @@
       }
     },
     "model": "sentry.snubaqueryeventtype",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_snubaqueryeventtype",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "snuba_query",
         "type"
@@ -5906,25 +5688,17 @@
       }
     },
     "model": "sentry.stringindexer",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_stringindexer",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.team": {
     "dangling": false,
     "foreign_keys": {
-      "actor": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
-        "nullable": true
-      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
@@ -5932,6 +5706,7 @@
       }
     },
     "model": "sentry.team",
+    "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -5940,9 +5715,6 @@
     "uniques": [
       [
         "actor"
-      ],
-      [
-        "id"
       ],
       [
         "organization",
@@ -5965,6 +5737,7 @@
       }
     },
     "model": "sentry.teamavatar",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -5973,9 +5746,6 @@
     "uniques": [
       [
         "file_id"
-      ],
-      [
-        "id"
       ],
       [
         "ident"
@@ -6000,15 +5770,13 @@
       }
     },
     "model": "sentry.teamkeytransaction",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_performanceteamkeytransaction",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "project_team",
         "transaction"
@@ -6030,15 +5798,13 @@
       }
     },
     "model": "sentry.teamreplica",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_teamreplica",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "organization_id",
         "slug"
@@ -6049,30 +5815,27 @@
     "dangling": true,
     "foreign_keys": {},
     "model": "sentry.timeseriessnapshot",
+    "relocation_dependencies": [
+      "sentry.incident"
+    ],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_timeseriessnapshot",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.user": {
     "dangling": false,
     "foreign_keys": {},
     "model": "sentry.user",
+    "relocation_dependencies": [],
     "relocation_scope": "User",
     "silos": [
       "Control"
     ],
     "table_name": "auth_user",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "username"
       ]
@@ -6098,6 +5861,7 @@
       }
     },
     "model": "sentry.useravatar",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
@@ -6109,9 +5873,6 @@
       ],
       [
         "file_id"
-      ],
-      [
-        "id"
       ],
       [
         "ident"
@@ -6131,6 +5892,9 @@
       }
     },
     "model": "sentry.useremail",
+    "relocation_dependencies": [
+      "sentry.email"
+    ],
     "relocation_scope": "User",
     "silos": [
       "Control"
@@ -6140,9 +5904,6 @@
       [
         "email",
         "user"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -6156,15 +5917,13 @@
       }
     },
     "model": "sentry.userip",
+    "relocation_dependencies": [],
     "relocation_scope": "User",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_userip",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "ip_address",
         "user"
@@ -6191,15 +5950,13 @@
       }
     },
     "model": "sentry.useroption",
+    "relocation_dependencies": [],
     "relocation_scope": "User",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_useroption",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "key",
         "organization_id",
@@ -6222,15 +5979,13 @@
       }
     },
     "model": "sentry.userpermission",
+    "relocation_dependencies": [],
     "relocation_scope": "Config",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_userpermission",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "permission",
         "user"
@@ -6262,6 +6017,7 @@
       }
     },
     "model": "sentry.userreport",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -6271,9 +6027,6 @@
       [
         "event_id",
         "project_id"
-      ],
-      [
-        "id"
       ]
     ]
   },
@@ -6281,15 +6034,13 @@
     "dangling": false,
     "foreign_keys": {},
     "model": "sentry.userrole",
+    "relocation_dependencies": [],
     "relocation_scope": "Config",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_userrole",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "name"
       ]
@@ -6310,49 +6061,13 @@
       }
     },
     "model": "sentry.userroleuser",
+    "relocation_dependencies": [],
     "relocation_scope": "Config",
     "silos": [
       "Control"
     ],
     "table_name": "sentry_userrole_users",
-    "uniques": [
-      [
-        "id"
-      ]
-    ]
-  },
-  "sessions.session": {
-    "dangling": true,
-    "foreign_keys": {},
-    "model": "sessions.session",
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Monolith"
-    ],
-    "table_name": "django_session",
-    "uniques": [
-      [
-        "session_key"
-      ]
-    ]
-  },
-  "sites.site": {
-    "dangling": true,
-    "foreign_keys": {},
-    "model": "sites.site",
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Monolith"
-    ],
-    "table_name": "django_site",
-    "uniques": [
-      [
-        "domain"
-      ],
-      [
-        "id"
-      ]
-    ]
+    "uniques": []
   },
   "social_auth.usersocialauth": {
     "dangling": false,
@@ -6364,15 +6079,13 @@
       }
     },
     "model": "social_auth.usersocialauth",
+    "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
     ],
     "table_name": "social_auth_usersocialauth",
     "uniques": [
-      [
-        "id"
-      ],
       [
         "provider",
         "uid",

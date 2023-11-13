@@ -241,6 +241,20 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
+                    "last",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
+                    snql_metric_layer=lambda args, alias: Function(
+                        "last",
+                        [
+                            self.resolve_mri(args["column"]),
+                        ],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                ),
+                fields.MetricsFunction(
                     "sum",
                     required_args=[
                         fields.MetricArg("column"),
@@ -301,7 +315,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     snql_metric_layer=lambda args, alias: Function(
                         "count_unique",
                         [
-                            Column(TransactionMRI.USER.value),
+                            self.resolve_mri(args["column"]),
                         ],
                         alias,
                     ),
@@ -338,10 +352,13 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count",
+                    optional_args=[
+                        fields.with_default("transaction.duration", fields.MetricArg("column")),
+                    ],
                     snql_metric_layer=lambda args, alias: Function(
                         "count",
                         [
-                            Column(TransactionMRI.DURATION.value),
+                            self.resolve_mri(args["column"]),
                         ],
                         alias,
                     ),
@@ -358,6 +375,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                                 "measurements.lcp",
                                 "measurements.fid",
                                 "measurements.cls",
+                                "measurements.ttfb",
                             ],
                             allow_custom_measurements=False,
                         ),
@@ -577,19 +595,21 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             "measurements.fp",
             "measurements.fid",
             "measurements.cls",
+            "measurements.ttfb",
         ]:
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 
+        column = Column(constants.METRICS_MAP.get(column, column))
         if quality == "any":
             return Function(
                 "count",
-                [],
+                [column],
                 alias,
             )
 
         return Function(
             "count_web_vitals",
-            [Column(constants.METRICS_MAP.get(column, column)), quality],
+            [column, quality],
             alias,
         )
 

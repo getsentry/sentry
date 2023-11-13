@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -38,8 +40,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        access={new Set(['org:write'])}
-        initialData={TestStubs.Organization()}
+        initialData={Organization()}
         onSave={onSave}
       />
     );
@@ -105,8 +106,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        access={new Set(['org:write'])}
-        initialData={TestStubs.Organization()}
+        initialData={Organization()}
         onSave={onSave}
       />
     );
@@ -141,8 +141,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        access={new Set(['org:write'])}
-        initialData={TestStubs.Organization({codecovAccess: false})}
+        initialData={Organization({codecovAccess: false})}
         onSave={onSave}
       />,
       {

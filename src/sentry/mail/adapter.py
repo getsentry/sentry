@@ -6,7 +6,9 @@ from sentry import digests
 from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
-from sentry.models import NotificationSetting, Project, ProjectOption
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
@@ -58,6 +60,7 @@ class MailAdapter:
             "target_type": target_type.value,
             "target_identifier": target_identifier,
             "fallthrough_choice": fallthrough_choice.value if fallthrough_choice else None,
+            "notification_uuid": notification_uuid,
         }
         log_event = "dispatched"
         for future in futures:

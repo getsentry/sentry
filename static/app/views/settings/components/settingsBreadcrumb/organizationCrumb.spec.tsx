@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +17,7 @@ describe('OrganizationCrumb', function () {
   const {organization, project, routerContext, routerProps} = initializeOrg();
   const organizations = [
     organization,
-    TestStubs.Organization({
+    Organization({
       id: '234',
       slug: 'org-slug2',
     }),
@@ -155,12 +156,13 @@ describe('OrganizationCrumb', function () {
     const route = routes[6];
     const orgs = [
       organization,
-      TestStubs.Organization({
+      Organization({
         id: '234',
         slug: 'acme',
         features: ['customer-domains'],
         links: {
           organizationUrl: 'https://acme.sentry.io',
+          regionUrl: 'https://us.sentry.io',
         },
       }),
     ];
@@ -170,9 +172,8 @@ describe('OrganizationCrumb', function () {
     renderComponent({routes, route});
     await switchOrganization();
 
-    // The double slug doesn't actually show up as we have more routing context present.
     expect(window.location.assign).toHaveBeenCalledWith(
-      'https://acme.sentry.io/settings/acme/api-keys/'
+      'https://acme.sentry.io/settings/api-keys/'
     );
   });
 });

@@ -19,10 +19,10 @@ import omit from 'lodash/omit';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {Choices, SelectValue} from 'sentry/types';
+import type {Choices, SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
 
@@ -116,6 +116,10 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
    */
   inFieldLabel?: string;
   /**
+   * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
+   */
+  isInsideModal?: boolean;
+  /**
    * Maximum width of the menu component. Menu item labels that overflow the
    * menu's boundaries will automatically be truncated.
    */
@@ -167,7 +171,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, maxMenuWidth} = props;
+  const {size, maxMenuWidth, isInsideModal} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -175,7 +179,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   // Unfortunately we cannot use emotions `css` helper here, since react-select
   // *requires* object styles, which the css helper cannot produce.
   const indicatorStyles = useCallback(
-    ({padding: _padding, ...provided}: CSSObject) => ({
+    (provided: CSSObject): CSSObject => ({
       ...provided,
       padding: '4px',
       alignItems: 'center',
@@ -189,12 +193,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     () => ({
       control: (_, state: any) => ({
         display: 'flex',
-        ...{
-          color: theme.formText,
-          background: theme.background,
-          border: `1px solid ${theme.border}`,
-          boxShadow: theme.dropShadowMedium,
-        },
+        color: theme.formText,
+        background: theme.background,
+        border: `1px solid ${theme.border}`,
+        boxShadow: theme.dropShadowMedium,
         borderRadius: theme.borderRadius,
         transition: 'border 0.1s, box-shadow 0.1s',
         alignItems: 'center',
@@ -218,27 +220,17 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ...provided,
         zIndex: theme.zIndex.dropdown,
         background: theme.backgroundElevated,
-        border: `1px solid ${theme.border}`,
         borderRadius: theme.borderRadius,
-        boxShadow: theme.dropShadowHeavy,
+        boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
         width: 'auto',
         minWidth: '100%',
         maxWidth: maxMenuWidth ?? 'auto',
       }),
 
-      menuPortal: () => ({
+      menuPortal: provided => ({
+        ...provided,
         maxWidth: maxMenuWidth ?? '24rem',
-        zIndex: theme.zIndex.dropdown,
-        width: '90%',
-        position: 'fixed',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: theme.backgroundElevated,
-        border: `1px solid ${theme.border}`,
-        borderRadius: theme.borderRadius,
-        boxShadow: theme.dropShadowHeavy,
-        overflow: 'hidden',
+        zIndex: isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
       }),
 
       option: provided => ({
@@ -354,7 +346,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     [theme, size, maxMenuWidth, indicatorStyles]
   );
 
-  const getFieldLabelStyle = (label?: string) => ({
+  const getFieldLabelStyle = (label?: string): CSSObject => ({
     ':before': {
       content: `"${label}"`,
       color: theme.gray300,
@@ -408,7 +400,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   }
 
   // Override the default style with in-field labels if they are provided
-  const inFieldLabelStyles = {
+  const inFieldLabelStyles: StylesConfig = {
     singleValue: (base: CSSObject) => ({
       ...base,
       ...getFieldLabelStyle(inFieldLabel),
@@ -418,14 +410,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...getFieldLabelStyle(inFieldLabel),
     }),
   };
-  const labelOrDefaultStyles = inFieldLabel
+  const labelOrDefaultStyles: StylesConfig = inFieldLabel
     ? mergeStyles(defaultStyles, inFieldLabelStyles)
     : defaultStyles;
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles = styles
+  const mappedStyles: StylesConfig = styles
     ? mergeStyles(labelOrDefaultStyles, styles)
     : labelOrDefaultStyles;
 
@@ -438,6 +430,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     IndicatorSeparator: null,
     Menu,
     Option,
+    ...components,
   };
 
   const filterOptions = createFilter({
@@ -449,7 +442,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     <SelectPicker<OptionType>
       filterOption={filterOptions}
       styles={mappedStyles}
-      components={{...replacedComponents, ...components}}
+      components={replacedComponents}
       async={async}
       creatable={creatable}
       isClearable={clearable}

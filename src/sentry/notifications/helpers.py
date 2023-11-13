@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Subquery
 
-from sentry import features
-from sentry.models.organizationmapping import OrganizationMapping
+from sentry.hybridcloud.models.externalactorreplica import ExternalActorReplica
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.notifications.defaults import (
     NOTIFICATION_SETTING_DEFAULTS,
     NOTIFICATION_SETTINGS_ALL_SOMETIMES,
@@ -33,6 +35,7 @@ from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
+    PERSONAL_NOTIFICATION_PROVIDERS_AS_INT,
     ExternalProviderEnum,
     ExternalProviders,
     get_provider_enum_from_string,
@@ -40,7 +43,14 @@ from sentry.types.integrations import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
+    from sentry.models.group import Group
+    from sentry.models.groupsubscription import GroupSubscription
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.team import Team
+    from sentry.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 def _get_notification_setting_default(
@@ -80,6 +90,36 @@ def get_provider_defaults() -> list[ExternalProviderEnum]:
         if value == NOTIFICATION_SETTINGS_ALL_SOMETIMES:
             provider_defaults.append(ExternalProviderEnum(provider))
     return provider_defaults
+
+
+def get_default_for_provider(
+    type: NotificationSettingEnum,
+    provider: ExternalProviderEnum,
+) -> NotificationSettingsOptionEnum:
+    defaults = PROVIDER_DEFAULTS
+    if provider not in defaults:
+        return NotificationSettingsOptionEnum.NEVER
+
+    # Defaults are defined for the old int enum
+    _type = [key for key, val in NOTIFICATION_SETTING_TYPES.items() if val == type.value]
+    if len(_type) != 1 or _type[0] not in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2:
+        # some keys are missing that we should default to never
+        return NotificationSettingsOptionEnum.NEVER
+
+    try:
+        default_value = NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2[_type[0]]
+        default_enum = NotificationSettingsOptionEnum(
+            NOTIFICATION_SETTING_OPTION_VALUES[default_value]
+        )
+    except KeyError:
+        # If we don't have a default value for the type, then it's never
+        return NotificationSettingsOptionEnum.NEVER
+
+    if type == NotificationSettingEnum.REPORTS and provider != ExternalProviderEnum.EMAIL:
+        # Reports are only sent to email
+        return NotificationSettingsOptionEnum.NEVER
+
+    return default_enum or NotificationSettingsOptionEnum.NEVER
 
 
 def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
@@ -650,10 +690,11 @@ def get_providers_for_recipient(
 
 
 def should_use_notifications_v2(organization: Organization):
-    return features.has("organizations:notification-settings-v2", organization)
+    # TODO: remove function
+    return True
 
 
-def recipient_is_user(recipient: RpcActor | Team | RpcUser) -> bool:
+def recipient_is_user(recipient: RpcActor | Team | RpcUser | User) -> bool:
     from sentry.models.user import User
 
     if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.USER:
@@ -661,7 +702,7 @@ def recipient_is_user(recipient: RpcActor | Team | RpcUser) -> bool:
     return isinstance(recipient, (RpcUser, User))
 
 
-def recipient_is_team(recipient: RpcActor | Team | RpcUser) -> bool:
+def recipient_is_team(recipient: RpcActor | Team | RpcUser | User) -> bool:
     from sentry.models.team import Team
 
     if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.TEAM:
@@ -679,32 +720,49 @@ def get_recipient_from_team_or_user(user_id: int | None, team_id: int | None) ->
     return recipient
 
 
-def is_double_write_enabled(
-    user_id: Optional[int] = None, organization_id_for_team: Optional[int] = None
-):
-    from sentry.services.hybrid_cloud.organization_mapping.serial import (
-        serialize_organization_mapping,
+def team_is_valid_recipient(team: Team | RpcActor) -> bool:
+    """
+    A team is a valid recipient if it has a linked integration (ie. linked Slack channel)
+    for any one of the providers allowed for personal notifications.
+    """
+
+    linked_integration = ExternalActorReplica.objects.filter(
+        team_id=team.id,
+        provider__in=PERSONAL_NOTIFICATION_PROVIDERS_AS_INT,
+    )
+    if linked_integration:
+        return True
+    return False
+
+
+def get_team_members(team: Team | RpcActor) -> list[RpcActor]:
+    if recipient_is_team(team):  # handles type error below
+        team_id = team.id
+    else:  # team is either Team or RpcActor, so if recipient_is_team returns false it is because RpcActor has a different type
+        raise Exception(
+            "RpcActor team has ActorType %s, expected ActorType Team", team.actor_type  # type: ignore
+        )
+
+    # get organization member IDs of all members in the team
+    team_members = OrganizationMemberTeamReplica.objects.filter(team_id=team_id)
+
+    # use the first member to get the org id + determine if there are any members to begin with
+    first_member = team_members.first()
+    if not first_member:
+        return []
+    org_id = first_member.organization_id
+
+    # get user IDs for all members in the team
+    members = OrganizationMemberMapping.objects.filter(
+        organization_id=org_id,
+        organizationmember_id__in=Subquery(team_members.values("organizationmember_id")),
     )
 
-    # all operations are expected to happen in the control siolo
-    if organization_id_for_team is not None:
-        org_ids = [organization_id_for_team]
-    elif user_id is not None:
-        org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
-            "organization_id", flat=True
-        )
-    else:
-        raise ValueError("Need organization_id_for_team or user_id")
-    orgs = list(
-        map(
-            serialize_organization_mapping,
-            OrganizationMapping.objects.filter(organization_id__in=list(org_ids)),
-        )
-    )
-    # if no orgs, then automatically enable the feature
-    if not orgs:
-        return True
-    return any(features.has("organizations:notifications-double-write", org) for org in orgs)
+    return [
+        RpcActor(id=user_id, actor_type=ActorType.USER)
+        for user_id in members.values_list("user_id", flat=True)
+        if user_id
+    ]
 
 
 PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()

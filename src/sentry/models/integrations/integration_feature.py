@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import List, Union
+from typing import ClassVar, List, Union
 
 from django.db import models
 from django.utils import timezone
@@ -118,7 +118,7 @@ INTEGRATION_MODELS_BY_TYPE = {
 }
 
 
-class IntegrationFeatureManager(BaseManager):
+class IntegrationFeatureManager(BaseManager["IntegrationFeature"]):
     def get_by_targets_as_dict(
         self, targets: List[Union[SentryApp, DocIntegration]], target_type: IntegrationTypes
     ):
@@ -182,7 +182,7 @@ class IntegrationFeatureManager(BaseManager):
 class IntegrationFeature(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    objects = IntegrationFeatureManager()
+    objects: ClassVar[IntegrationFeatureManager] = IntegrationFeatureManager()
 
     # the id of the sentry_app or doc_integration
     target_id = BoundedBigIntegerField()
@@ -207,7 +207,8 @@ class IntegrationFeature(Model):
 
     @property
     def description(self):
-        from sentry.models import DocIntegration, SentryApp
+        from sentry.models.integrations.doc_integration import DocIntegration
+        from sentry.models.integrations.sentry_app import SentryApp
 
         if self.user_description:
             return self.user_description

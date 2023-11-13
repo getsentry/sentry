@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Dict, List, NamedTuple, Tuple, Union
 
@@ -5,6 +7,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -384,7 +387,9 @@ class CodeMappingTreesHelper:
 
 
 def create_code_mapping(
-    organization_integration: OrganizationIntegration, project: Project, code_mapping: CodeMapping
+    organization_integration: Union[OrganizationIntegration, RpcOrganizationIntegration],
+    project: Project,
+    code_mapping: CodeMapping,
 ) -> RepositoryProjectPathConfig:
     repository, _ = Repository.objects.get_or_create(
         name=code_mapping.repo.name,
@@ -418,6 +423,52 @@ def create_code_mapping(
         )
 
     return new_code_mapping
+
+
+def get_sorted_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConfig]:
+    """
+    Returns the code mapping config list for a project sorted based on precedence.
+    User generated code mappings are evaluated before Sentry generated code mappings.
+    Code mappings with more defined stack trace roots are evaluated before less defined stack trace
+    roots.
+
+    `project`: The project to get the list of sorted code mapping configs for
+    """
+
+    # xxx(meredith): if there are ever any changes to this query, make
+    # sure that we are still ordering by `id` because we want to make sure
+    # the ordering is deterministic
+    # codepath mappings must have an associated integration for stacktrace linking.
+    configs = RepositoryProjectPathConfig.objects.filter(
+        project=project, organization_integration_id__isnull=False
+    )
+
+    sorted_configs: list[RepositoryProjectPathConfig] = []
+
+    try:
+        for config in configs:
+            inserted = False
+            for index, sorted_config in enumerate(sorted_configs):
+                # This check will ensure that all user defined code mappings will come before Sentry generated ones
+                if (
+                    sorted_config.automatically_generated and not config.automatically_generated
+                ) or (  # Insert more defined stack roots before less defined ones
+                    (sorted_config.automatically_generated == config.automatically_generated)
+                    and config.stack_root.startswith(sorted_config.stack_root)
+                ):
+                    sorted_configs.insert(index, config)
+                    inserted = True
+                    break
+            if not inserted:
+                # Insert the code mapping at the back if it's Sentry generated or at the front if it is user defined
+                if config.automatically_generated:
+                    sorted_configs.insert(len(sorted_configs), config)
+                else:
+                    sorted_configs.insert(0, config)
+    except Exception:
+        logger.exception("There was a failure sorting the code mappings")
+
+    return sorted_configs
 
 
 def _get_code_mapping_source_path(src_file: str, frame_filename: FrameFilename) -> str:

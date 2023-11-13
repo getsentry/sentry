@@ -1,34 +1,46 @@
-import {useQuery} from '@tanstack/react-query';
+import {useMemo} from 'react';
 
-import {ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {EventsStatsSeries} from 'sentry/types';
+import {EventsStatsSeries, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {makeFormatTo} from 'sentry/utils/profiling/units/units';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-interface UseProfileEventStatsOptions<F> {
+interface UseProfileEventsStatsOptions<F> {
+  dataset: 'discover' | 'profiles' | 'profileFunctions';
   referrer: string;
   yAxes: readonly F[];
+  datetime?: PageFilters['datetime'];
+  enabled?: boolean;
   interval?: string;
   query?: string;
 }
 
 export function useProfileEventsStats<F extends string>({
-  yAxes,
+  dataset,
+  datetime,
   interval,
   query,
   referrer,
-}: UseProfileEventStatsOptions<F>) {
-  const api = useApi();
+  yAxes,
+  enabled = true,
+}: UseProfileEventsStatsOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  let dataset: 'profiles' | 'discover' = 'profiles';
-  if (organization.features.includes('profiling-using-transactions')) {
+  // when using the profiles dataset and the feature flag is enabled,
+  // switch over to the discover dataset under the hood
+  if (
+    dataset === 'profiles' &&
+    organization.features.includes('profiling-using-transactions')
+  ) {
     dataset = 'discover';
+  }
+
+  if (dataset === 'discover') {
     query = `has:profile.id ${query ?? ''}`;
   }
 
@@ -39,73 +51,61 @@ export function useProfileEventsStats<F extends string>({
       referrer,
       project: selection.projects,
       environment: selection.environments,
-      ...normalizeDateTimeParams(selection.datetime),
+      ...normalizeDateTimeParams(datetime ?? selection.datetime),
       yAxis: yAxes,
       interval,
       query,
     },
   };
 
-  const queryKey = [path, endpointOptions];
-
-  const queryFn = () =>
-    api
-      .requestPromise(path, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: endpointOptions.query,
-      })
-      .then(response => transformStatsResponse(yAxes, response));
-
-  return useQuery<ApiResponse<EventsStatsSeries<F>>>({
-    queryKey,
-    queryFn,
-    refetchOnWindowFocus: false,
-    retry: false,
+  const {data, ...rest} = useApiQuery<any>([path, endpointOptions], {
+    enabled,
+    staleTime: Infinity,
   });
+
+  const transformed = useMemo(
+    () => data && transformStatsResponse(dataset, yAxes, data),
+    [yAxes, data, dataset]
+  );
+
+  return {
+    data: transformed,
+    ...rest,
+  };
 }
 
-type ApiResponse<F> = [F, string | undefined, ResponseMeta | undefined];
-
-function transformStatsResponse<F extends string>(
+export function transformStatsResponse<F extends string>(
+  dataset: 'discover' | 'profiles' | 'profileFunctions',
   yAxes: readonly F[],
-  rawResponse: ApiResponse<any>
-): ApiResponse<EventsStatsSeries<F>> {
+  rawData: any
+): EventsStatsSeries<F> {
   // the events stats endpoint has a legacy response format so here we transform it
   // into the proposed update for forward compatibility and ease of use
 
   if (yAxes.length === 0) {
-    return [
-      {
-        data: [],
-        meta: {
-          dataset: 'profiles',
-          end: 0,
-          start: 0,
-        },
-        timestamps: [],
+    return {
+      data: [],
+      meta: {
+        dataset,
+        end: 0,
+        start: 0,
       },
-      rawResponse[1],
-      rawResponse[2],
-    ];
+      timestamps: [],
+    };
   }
 
   if (yAxes.length === 1) {
-    const {series, meta, timestamps} = transformSingleSeries(yAxes[0], rawResponse[0]);
-    return [
-      {
-        data: [series],
-        meta,
-        timestamps,
-      },
-      rawResponse[1],
-      rawResponse[2],
-    ];
+    const {series, meta, timestamps} = transformSingleSeries(dataset, yAxes[0], rawData);
+    return {
+      data: [series],
+      meta,
+      timestamps,
+    };
   }
 
   const data: EventsStatsSeries<F>['data'] = [];
   let meta: EventsStatsSeries<F>['meta'] = {
-    dataset: 'profiles',
+    dataset,
     end: -1,
     start: -1,
   };
@@ -114,7 +114,11 @@ function transformStatsResponse<F extends string>(
   let firstAxis = true;
 
   for (const yAxis of yAxes) {
-    const transformed = transformSingleSeries(yAxis, rawResponse[0][yAxis]);
+    const dataForYAxis = rawData[yAxis];
+    if (!defined(dataForYAxis)) {
+      continue;
+    }
+    const transformed = transformSingleSeries(dataset, yAxis, dataForYAxis);
 
     if (firstAxis) {
       meta = transformed.meta;
@@ -136,18 +140,19 @@ function transformStatsResponse<F extends string>(
     firstAxis = false;
   }
 
-  return [
-    {
-      data,
-      meta,
-      timestamps,
-    },
-    rawResponse[1],
-    rawResponse[2],
-  ];
+  return {
+    data,
+    meta,
+    timestamps,
+  };
 }
 
-function transformSingleSeries<F extends string>(yAxis: F, rawSeries: any) {
+export function transformSingleSeries<F extends string>(
+  dataset: 'discover' | 'profiles' | 'profileFunctions',
+  yAxis: F,
+  rawSeries: any,
+  label?: string
+) {
   const type =
     rawSeries.meta.fields[yAxis] ?? rawSeries.meta.fields[getAggregateAlias(yAxis)];
   const formatter =
@@ -158,14 +163,17 @@ function transformSingleSeries<F extends string>(yAxis: F, rawSeries: any) {
             'nanoseconds',
           'milliseconds'
         )
+      : type === 'string'
+      ? value => value || ''
       : value => value;
 
   const series: EventsStatsSeries<F>['data'][number] = {
     axis: yAxis,
     values: [],
+    label,
   };
   const meta: EventsStatsSeries<F>['meta'] = {
-    dataset: 'profiles',
+    dataset,
     end: rawSeries.end,
     start: rawSeries.start,
   };

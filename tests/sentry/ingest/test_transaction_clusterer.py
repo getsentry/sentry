@@ -26,7 +26,8 @@ from sentry.ingest.transaction_clusterer.rules import (
 )
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
@@ -60,6 +61,17 @@ def test_single_leaf():
     ]
     clusterer.add_input(transaction_names)
     assert clusterer.get_rules() == ["/a/*/**"]
+
+
+def test_deep_tree():
+    clusterer = TreeClusterer(merge_threshold=1)
+    transaction_names = [
+        1001 * "/.",
+    ]
+    clusterer.add_input(transaction_names)
+
+    # Does not throw an exception:
+    clusterer.get_rules()
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)

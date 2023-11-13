@@ -16,16 +16,22 @@ from sentry.api.authentication import (
     RpcSignatureAuthentication,
     UserAuthTokenAuthentication,
 )
-from sentry.models import ProjectKeyStatus, Relay
-from sentry.models.apitoken import ApiToken
-from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.auth.system import SystemToken, is_system_auth
+from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
+from sentry.models.apikey import is_api_key_auth
+from sentry.models.apitoken import ApiToken, is_api_token_auth
+from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
+from sentry.models.projectkey import ProjectKeyStatus
+from sentry.models.relay import Relay
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.rpc import (
     RpcAuthenticationSetupException,
     generate_request_signature,
 )
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -50,7 +56,7 @@ class TestClientIdSecretAuthentication(TestCase):
 
         user, _ = self.auth.authenticate(request)
 
-        assert user == self.sentry_app.proxy_user
+        assert user.id == self.sentry_app.proxy_user.id
 
     def test_without_json_body(self):
         request = HttpRequest()
@@ -142,7 +148,9 @@ class TestOrgAuthTokenAuthentication(TestCase):
 
         user, auth = result
         assert user.is_anonymous
-        assert auth == self.org_auth_token
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(
+            self.org_auth_token
+        )
 
     def test_no_match(self):
         request = HttpRequest()
@@ -181,8 +189,8 @@ class TestTokenAuthentication(TestCase):
 
         user, auth = result
         assert user.is_anonymous is False
-        assert user == self.user
-        assert auth == self.api_token
+        assert user.id == self.user.id
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
 
     def test_no_match(self):
         request = HttpRequest()
@@ -313,3 +321,84 @@ class TestRpcSignatureAuthentication(TestCase):
         with override_settings(RPC_SHARED_SECRET=None):
             with pytest.raises(RpcAuthenticationSetupException):
                 self.auth.authenticate(request)
+
+
+@no_silo_test(stable=True)
+class TestAuthTokens(TestCase):
+    def test_system_tokens(self):
+        sys_token = SystemToken()
+        auth_token = AuthenticatedToken.from_token(sys_token)
+
+        assert auth_token.entity_id is None
+        assert auth_token.user_id is None
+        assert is_system_auth(sys_token) and is_system_auth(auth_token)
+        assert auth_token.organization_id is None
+        assert auth_token.application_id is None
+        assert auth_token.allowed_origins == sys_token.get_allowed_origins()
+        assert auth_token.scopes == sys_token.get_scopes()
+        assert auth_token.audit_log_data == sys_token.get_audit_log_data()
+
+    def test_api_tokens(self):
+        app = self.create_sentry_app(user=self.user, organization_id=self.organization.id)
+        app_install = self.create_sentry_app_installation(
+            organization=self.organization, user=self.user, slug=app.slug
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            at = app_install.api_token
+        with assume_test_silo_mode(SiloMode.REGION):
+            atr = ApiTokenReplica.objects.get(apitoken_id=at.id)
+
+        assert at.organization_id
+
+        for token in [at, atr]:
+            auth_token = AuthenticatedToken.from_token(token)
+
+            assert auth_token.entity_id == at.id
+            assert auth_token.user_id == app.proxy_user_id
+            assert is_api_token_auth(token) and is_api_token_auth(auth_token)
+            assert auth_token.organization_id == self.organization.id
+            assert auth_token.application_id == app.application_id
+            assert auth_token.allowed_origins == token.get_allowed_origins()
+            assert auth_token.scopes == token.get_scopes()
+            assert auth_token.audit_log_data == token.get_audit_log_data()
+
+    def test_api_keys(self):
+        ak = self.create_api_key(organization=self.organization, scope_list=["projects:read"])
+        with assume_test_silo_mode(SiloMode.REGION):
+            akr = ApiKeyReplica.objects.get(apikey_id=ak.id)
+
+        for token in [ak, akr]:
+            auth_token = AuthenticatedToken.from_token(token)
+
+            assert auth_token.entity_id == ak.id
+            assert auth_token.user_id is None
+            assert is_api_key_auth(token) and is_api_key_auth(auth_token)
+            assert auth_token.organization_id == self.organization.id
+            assert auth_token.application_id is None
+            assert auth_token.allowed_origins == token.get_allowed_origins()
+            assert auth_token.scopes == token.get_scopes()
+            assert auth_token.audit_log_data == token.get_audit_log_data()
+
+    def test_org_auth_tokens(self):
+        oat = OrgAuthToken.objects.create(
+            organization_id=self.organization.id,
+            name="token 1",
+            token_hashed="ABCDEF",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            oatr = OrgAuthTokenReplica.objects.get(orgauthtoken_id=oat.id)
+
+        for token in [oat, oatr]:
+            auth_token = AuthenticatedToken.from_token(token)
+
+            assert auth_token.entity_id == oat.id
+            assert auth_token.user_id is None
+            assert is_org_auth_token_auth(token) and is_org_auth_token_auth(auth_token)
+            assert auth_token.organization_id == self.organization.id
+            assert auth_token.application_id is None
+            assert auth_token.allowed_origins == token.get_allowed_origins()
+            assert auth_token.scopes == token.get_scopes()
+            assert auth_token.audit_log_data == token.get_audit_log_data()

@@ -11,7 +11,7 @@ import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import {FieldObject, JsonFormObject} from './types';
 
-type Props = {
+export interface FormPanelProps {
   /**
    * List of fields to render
    */
@@ -44,7 +44,7 @@ type Props = {
    * Panel title
    */
   title?: React.ReactNode;
-};
+}
 
 function FormPanel({
   additionalFieldProps = {},
@@ -57,7 +57,7 @@ function FormPanel({
   collapsible,
   initiallyCollapsed = false,
   ...otherProps
-}: Props) {
+}: FormPanelProps) {
   const [collapsed, setCollapse] = useState(initiallyCollapsed);
   const handleCollapseToggle = useCallback(() => setCollapse(current => !current), []);
 
@@ -86,6 +86,10 @@ function FormPanel({
           }
 
           const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
+          const fieldConfig =
+            field.type === 'boolean' || field.type === 'bool'
+              ? field
+              : fieldWithoutDefaultValue;
 
           // Allow the form panel disabled prop to override the fields
           // disabled prop, with fallback to the fields disabled state.
@@ -101,7 +105,7 @@ function FormPanel({
               key={field.name}
               {...otherProps}
               {...additionalFieldProps}
-              field={fieldWithoutDefaultValue}
+              field={fieldConfig}
               highlighted={otherProps.highlighted === `#${field.name}`}
             />
           );

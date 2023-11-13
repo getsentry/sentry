@@ -4,6 +4,7 @@ from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.api.endpoints.organization_spans_aggregation import NULL_GROUP
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -227,7 +228,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
         )
         self.trace_id_1 = uuid4().hex
 
-        self.root_event = self.create_event(
+        self.root_event_1 = self.create_event(
             trace=self.trace_id_1,
             trace_context={
                 "trace_id": self.trace_id_1,
@@ -250,6 +251,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "span.group": "B",
                         "span.description": "connect",
                     },
+                    "sentry_tags": {
+                        "description": "connect",
+                    },
                 },
                 {
                     "same_process_as_parent": True,
@@ -265,6 +269,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "span.group": "C",
                         "span.description": "connect",
                     },
+                    "sentry_tags": {
+                        "description": "connect",
+                    },
                 },
                 {
                     "same_process_as_parent": True,
@@ -279,6 +286,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "offset": 0.057,
                         "span.group": "D",
                         "span.description": "resolve_orderby",
+                    },
+                    "sentry_tags": {
+                        "description": "resolve_orderby",
                     },
                 },
                 {
@@ -306,7 +316,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
         )
         self.trace_id_2 = uuid4().hex
 
-        self.root_event = self.create_event(
+        self.root_event_2 = self.create_event(
             trace=self.trace_id_2,
             trace_context={
                 "trace_id": self.trace_id_2,
@@ -329,6 +339,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "span.group": "B",
                         "span.description": "connect",
                     },
+                    "sentry_tags": {
+                        "description": "connect",
+                    },
                 },
                 {
                     "same_process_as_parent": True,
@@ -343,6 +356,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "offset": 0.015,
                         "span.group": "C",
                         "span.description": "connect",
+                    },
+                    "sentry_tags": {
+                        "description": "connect",
                     },
                 },
                 {
@@ -359,6 +375,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "span.group": "D",
                         "span.description": "resolve_orderby",
                     },
+                    "sentry_tags": {
+                        "description": "resolve_orderby",
+                    },
                 },
                 {
                     "same_process_as_parent": True,
@@ -373,6 +392,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         "offset": 1.055,
                         "span.group": "D",
                         "span.description": "resolve_orderby",
+                    },
+                    "sentry_tags": {
+                        "description": "resolve_orderby",
                     },
                 },
                 {
@@ -418,6 +440,17 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             assert data[root_fingerprint]["count()"] == 2
             assert data[root_fingerprint]["description"] == "api/0/foo"
             assert round(data[root_fingerprint]["avg(duration)"]) == 850
+
+            if backend == "indexedSpans":
+                assert data[root_fingerprint]["samples"] == {
+                    ("80fe542aea4945ffbe612646987ee449", "root_1"),
+                    ("86b21833d1854d9b811000b91e7fccfa", "root_2"),
+                }
+            else:
+                assert data[root_fingerprint]["samples"] == {
+                    (self.root_event_1.event_id, self.span_ids_event_1["A"]),
+                    (self.root_event_2.event_id, self.span_ids_event_2["A"]),
+                }
 
             fingerprint = hashlib.md5(b"e238e6c2e2466b07-B").hexdigest()[:16]
             assert data[fingerprint]["description"] == "connect"
@@ -475,12 +508,56 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
 
             assert response.data
             data = response.data
-            if backend == "indexedSpans":
-                root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-discover.snql").hexdigest()[:16]
-            else:
-                root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-76de16d455e99f9c").hexdigest()[
-                    :16
-                ]
+            root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-discover.snql").hexdigest()[:16]
             assert root_fingerprint in data
-            assert data[root_fingerprint]["description"] == "<<unparametrized>> resolve_columns"
+            assert data[root_fingerprint]["description"] == ""
             assert data[root_fingerprint]["count()"] == 2
+
+    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
+    def test_http_method_filter(self, mock_query):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"transaction": "api/0/foo", "backend": "nodestore", "http.method": "GET"},
+                format="json",
+            )
+
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["count()"] == 2
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"transaction": "api/0/foo", "backend": "nodestore", "http.method": "POST"},
+                format="json",
+            )
+
+        assert response.data == {}
+
+        with self.feature(self.FEATURES):
+            self.client.get(
+                self.url,
+                data={"transaction": "api/0/foo", "backend": "indexedSpans", "http.method": "GET"},
+                format="json",
+            )
+
+            assert (
+                Condition(
+                    lhs=Function(
+                        function="ifNull",
+                        parameters=[
+                            Column(
+                                name="tags[transaction.method]",
+                            ),
+                            "",
+                        ],
+                        alias=None,
+                    ),
+                    op=Op.EQ,
+                    rhs="GET",
+                )
+                in mock_query.mock_calls[0].args[0].query.where
+            )

@@ -1,6 +1,7 @@
 import {Component, Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import iconAndroid from 'sentry-logos/logo-android.svg';
+import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg';
 import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
@@ -110,6 +111,11 @@ const LEGACY_BROWSER_SUBFILTERS = {
     icon: iconAndroid,
     helpText: 'Version 3 and lower',
     title: 'Android',
+  },
+  edge_pre_79: {
+    icon: iconEdgeLegacy,
+    helpText: 'Version 18 and lower',
+    title: 'Edge (Legacy)',
   },
 };
 
@@ -427,6 +433,33 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       label: t('Filter out hydration errors'),
                       help: t(
                         'React falls back to do a full re-render on a page and these errors are often not actionable.'
+                      ),
+                      disabled: !hasAccess,
+                    }}
+                  />
+                </NestedForm>
+              </PanelItem>
+              <PanelItem noPadding>
+                <NestedForm
+                  apiMethod="PUT"
+                  apiEndpoint={projectEndpoint}
+                  initialData={{
+                    'filters:chunk-load-error':
+                      project.options?.['filters:chunk-load-error'],
+                  }}
+                  saveOnBlur
+                  onSubmitSuccess={(
+                    response // This will update our project context
+                  ) => ProjectsStore.onUpdateSuccess(response)}
+                >
+                  <FieldFromConfig
+                    getData={getOptionsData}
+                    field={{
+                      type: 'boolean',
+                      name: 'filters:chunk-load-error',
+                      label: t('Filter out ChunkLoadError(s)'),
+                      help: t(
+                        "ChunkLoadErrors can happen in Webpack-powered applications when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
                       ),
                       disabled: !hasAccess,
                     }}

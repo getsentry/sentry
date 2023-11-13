@@ -1,4 +1,6 @@
 import {EventAttachment} from 'sentry-fixture/eventAttachment';
+import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +15,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('GroupEventAttachments > Screenshots', function () {
   const {organization, routerContext} = initializeOrg({
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     router: {
       params: {orgId: 'org-slug', groupId: 'group-id'},
       location: {query: {types: 'event.screenshot'}},
@@ -23,7 +25,7 @@ describe('GroupEventAttachments > Screenshots', function () {
   let getAttachmentsMock;
 
   beforeEach(function () {
-    project = TestStubs.Project({platform: 'apple-ios'});
+    project = Project({platform: 'apple-ios'});
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
@@ -62,14 +64,14 @@ describe('GroupEventAttachments > Screenshots', function () {
 
   it('calls opens modal when clicking on panel body', async function () {
     renderGroupEventAttachments();
-    await userEvent.click(screen.getByTestId('screenshot-1'));
+    await userEvent.click(await screen.findByTestId('screenshot-1'));
     expect(openModal).toHaveBeenCalled();
   });
 
-  it('links event id to event detail', function () {
+  it('links event id to event detail', async function () {
     renderGroupEventAttachments();
     expect(
-      screen.getByText('12345678901234567890123456789012').closest('a')
+      (await screen.findByText('12345678901234567890123456789012')).closest('a')
     ).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/group-id/events/12345678901234567890123456789012/'
@@ -78,10 +80,19 @@ describe('GroupEventAttachments > Screenshots', function () {
 
   it('links to the download URL', async function () {
     renderGroupEventAttachments();
-    await userEvent.click(screen.getByLabelText('Actions'));
+    await userEvent.click(await screen.findByLabelText('Actions'));
     expect(screen.getByText('Download').closest('a')).toHaveAttribute(
       'href',
       '/api/0/projects/org-slug/project-slug/events/12345678901234567890123456789012/attachments/1/?download=1'
     );
+  });
+
+  it('displays an error message when request fails', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/group-id/attachments/',
+      statusCode: 500,
+    });
+    renderGroupEventAttachments();
+    expect(await screen.findByText(/error loading/i)).toBeInTheDocument();
   });
 });

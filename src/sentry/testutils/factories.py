@@ -43,79 +43,83 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.mediators import token_exchange
-from sentry.models import (
-    Activity,
-    Actor,
-    ArtifactBundle,
-    Commit,
-    CommitAuthor,
-    DocIntegration,
-    DocIntegrationAvatar,
-    Environment,
-    EventAttachment,
-    ExternalActor,
-    ExternalIssue,
-    File,
-    Group,
-    GroupHistory,
-    GroupLink,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    IntegrationFeature,
-    Organization,
-    OrganizationMapping,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    PlatformExternalIssue,
-    Project,
-    ProjectBookmark,
-    ProjectCodeOwners,
-    ProjectDebugFile,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseFile,
-    ReleaseProjectEnvironment,
-    Repository,
-    RepositoryProjectPathConfig,
-    Rule,
-    SavedSearch,
-    SentryAppInstallation,
-    SentryFunction,
-    ServiceHook,
-    Team,
-    User,
-    UserEmail,
-    UserPermission,
-    UserReport,
-)
+from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
+from sentry.models.activity import Activity
+from sentry.models.actor import Actor
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
+from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.grouphistory import GroupHistory
+from sentry.models.grouplink import GroupLink
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.doc_integration import DocIntegration
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_feature import (
+    Feature,
+    IntegrationFeature,
+    IntegrationTypes,
+)
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import (
     ActionService,
     ActionTarget,
     ActionTrigger,
     NotificationAction,
 )
-from sentry.models.releasefile import update_artifact_index
+from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
+from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releasefile import ReleaseFile, update_artifact_index
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
+from sentry.models.savedsearch import SavedSearch
+from sentry.models.sentryfunction import SentryFunction
+from sentry.models.servicehook import ServiceHook
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.models.userpermission import UserPermission
+from sentry.models.userreport import UserReport
 from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.sentry_apps.installations import (
+    SentryAppInstallationCreator,
+    SentryAppInstallationTokenCreator,
+)
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
-from sentry.types.region import Region, get_region_by_name
+from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
@@ -283,14 +287,28 @@ class Factories:
                     yield
 
         with org_creation_context():
-            org = Organization.objects.create(name=name, **kwargs)
+            region_name = region.name if region is not None else get_local_region().name
+            with outbox_context(flush=False):
+                org: Organization = Organization.objects.create(name=name, **kwargs)
 
-        if region is not None:
-            with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
-                using=router.db_for_write(OrganizationMapping)
-            ):
-                mapping = OrganizationMapping.objects.get(organization_id=org.id)
-                mapping.update(region_name=region.name)
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                # Organization mapping creation relies on having a matching org slug reservation
+                OrganizationSlugReservation(
+                    organization_id=org.id,
+                    region_name=region_name,
+                    user_id=owner.id if owner else -1,
+                    slug=org.slug,
+                ).save(unsafe_write=True)
+
+            # Manually replicate org data after adding an org slug reservation
+            org.handle_async_replication(org.id)
+
+            # Flush remaining organization update outboxes accumulated by org create
+            RegionOutbox(
+                shard_identifier=org.id,
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                category=OutboxCategory.ORGANIZATION_UPDATE,
+            ).drain_shard()
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
@@ -1040,8 +1058,7 @@ class Factories:
             if not prevent_token_exchange and (
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
-
-                token_exchange.GrantExchanger.run(
+                GrantExchanger.run(
                     install=rpc_install,
                     code=install.api_grant.code,
                     client_id=install.sentry_app.application.client_id,
@@ -1233,11 +1250,20 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_userreport(group, project=None, event_id=None, **kwargs):
+    def create_userreport(project, event_id=None, **kwargs):
+        event = Factories.store_event(
+            data={
+                "timestamp": iso_format(datetime.utcnow()),
+                "event_id": event_id or "a" * 32,
+                "message": "testing",
+            },
+            project_id=project.id,
+        )
+
         return UserReport.objects.create(
-            group_id=group.id,
-            event_id=event_id or "a" * 32,
-            project_id=project.id if project is not None else group.project.id,
+            group_id=event.group.id,
+            event_id=event.event_id,
+            project_id=project.id,
             name="Jane Bloggs",
             email="jane@example.com",
             comments="the application crashed",

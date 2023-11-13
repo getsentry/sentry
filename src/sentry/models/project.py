@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from itertools import chain
-from typing import TYPE_CHECKING, Collection, Iterable, Mapping
+from typing import TYPE_CHECKING, ClassVar, Collection, Iterable, Mapping
 from uuid import uuid1
 
 import sentry_sdk
@@ -47,7 +47,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
-    from sentry.models import User
+    from sentry.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
@@ -92,6 +92,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "java-spring-boot",
     "javascript",
     "javascript-angular",
+    "javascript-astro",
     "javascript-ember",
     "javascript-gatsby",
     "javascript-nextjs",
@@ -148,7 +149,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
 ]
 
 
-class ProjectManager(BaseManager):
+class ProjectManager(BaseManager["Project"]):
     def get_by_users(self, users: Iterable[User]) -> Mapping[int, Iterable[int]]:
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
@@ -178,7 +179,7 @@ class ProjectManager(BaseManager):
 
     # TODO(dcramer): we might want to cache this per user
     def get_for_user(self, team, user, scope=None, _skip_team_check=False):
-        from sentry.models import Team
+        from sentry.models.team import Team
 
         if not (user and user.is_authenticated):
             return []
@@ -256,6 +257,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This Project has sent replays
         has_replays: bool
 
+        # This project has sent feedbacks
+        has_feedbacks: bool
+
         # spike_protection_error_currently_active
         spike_protection_error_currently_active: bool
 
@@ -274,7 +278,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         bitfield_default = 10
         bitfield_null = True
 
-    objects = ProjectManager(cache_fields=["pk"])
+    objects: ClassVar[ProjectManager] = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:
@@ -290,7 +294,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         return f"{self.name} ({self.slug})"
 
     def next_short_id(self):
-        from sentry.models import Counter
+        from sentry.models.counter import Counter
 
         with sentry_sdk.start_span(op="project.next_short_id") as span, metrics.timer(
             "project.next_short_id"
@@ -339,7 +343,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     @property
     def option_manager(self) -> OptionManager:
-        from sentry.models import ProjectOption
+        from sentry.models.options.project_option import ProjectOption
 
         return ProjectOption.objects
 
@@ -364,7 +368,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     @property
     def member_set(self):
         """:returns a QuerySet of all Users that belong to this Project"""
-        from sentry.models import OrganizationMember
+        from sentry.models.organizationmember import OrganizationMember
 
         return self.organization.member_set.filter(
             id__in=OrganizationMember.objects.filter(
@@ -393,17 +397,14 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     def transfer_to(self, organization):
         from sentry.incidents.models import AlertRule
-        from sentry.models import (
-            Environment,
-            EnvironmentProject,
-            ExternalIssue,
-            RegionScheduledDeletion,
-            ReleaseProject,
-            ReleaseProjectEnvironment,
-            Rule,
-        )
         from sentry.models.actor import ACTOR_TYPES
+        from sentry.models.environment import Environment, EnvironmentProject
+        from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.models.projectteam import ProjectTeam
+        from sentry.models.release import ReleaseProject
+        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+        from sentry.models.rule import Rule
+        from sentry.models.scheduledeletion import RegionScheduledDeletion
         from sentry.monitors.models import Monitor
 
         old_org_id = self.organization_id
@@ -531,8 +532,8 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     def remove_team(self, team):
         from sentry.incidents.models import AlertRule
-        from sentry.models import Rule
         from sentry.models.projectteam import ProjectTeam
+        from sentry.models.rule import Rule
 
         ProjectTeam.objects.filter(project=self, team=team).delete()
         AlertRule.objects.fetch_for_project(self).filter(owner_id=team.actor_id).update(owner=None)
@@ -563,9 +564,11 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
-        from sentry.models import EnvironmentProject, ProjectOption, Rule
+        from sentry.models.environment import EnvironmentProject
+        from sentry.models.options.project_option import ProjectOption
         from sentry.models.projectownership import ProjectOwnership
         from sentry.models.projectteam import ProjectTeam
+        from sentry.models.rule import Rule
 
         model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
 

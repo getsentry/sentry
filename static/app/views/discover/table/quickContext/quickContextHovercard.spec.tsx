@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -16,7 +18,7 @@ const renderQuickContextContent = (
   contextType: ContextType = ContextType.ISSUE,
   eventView?: EventView
 ) => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <QuickContextHoverWrapper
@@ -134,7 +136,9 @@ describe('Quick Context', function () {
 
     it('Renders release header with copy button', async () => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
+        url: `/organizations/org-slug/releases/${encodeURIComponent(
+          'backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76'
+        )}/`,
         body: TestStubs.Release({
           id: '1',
           shortVersion: 'sentry-android-shop@1.2.0',

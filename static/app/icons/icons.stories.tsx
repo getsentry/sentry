@@ -1,9 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
+import {PlatformIcon, platforms} from 'platformicons';
 
 import Input from 'sentry/components/input';
 import {Sticky} from 'sentry/components/sticky';
+import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -20,130 +21,6 @@ type TSection = {
   icons: TIcon[];
   id: string;
   label: string;
-};
-
-// TODO: Let the platformicons package could export this object instead.
-const platformToIcon = {
-  android: 'android',
-  apple: 'apple',
-  bun: 'bun',
-  capacitor: 'capacitor',
-  clojure: 'clojure',
-  cocoa: 'apple',
-  'cocoa-objc': 'apple',
-  'cocoa-swift': 'swift',
-  cordova: 'cordova',
-  cpp: 'cpp',
-  cryengine: 'cryengine',
-  csharp: 'csharp',
-  'csharp-aspnetcore': 'csharp',
-  dart: 'dart',
-  default: 'default',
-  dotnet: 'dotnet',
-  'dotnet-aspnetcore': 'dotnet',
-  'dotnet-aspnet': 'dotnet',
-  'dotnet-awslambda': 'aws',
-  'dotnet-blazor': 'blazor',
-  'dotnet-csharp': 'csharp',
-  'dotnet-gcpfunctions': 'gcp',
-  'dotnet-maui': 'maui',
-  'dotnet-uno': 'uno',
-  'dotnet-xamarin': 'xamarin',
-  dotnetcore: 'dotnetcore',
-  dotnetfx: 'dotnetfx',
-  electron: 'electron',
-  elixir: 'elixir',
-  flutter: 'flutter',
-  fsharp: 'fsharp',
-  git: 'git',
-  go: 'go',
-  'go-echo': 'echo',
-  godot: 'godot',
-  java: 'java',
-  'java-appengine': 'app-engine',
-  'java-android': 'android',
-  'java-log4j': 'java',
-  'java-log4j2': 'java',
-  'java-logback': 'logback',
-  'java-logging': 'java',
-  'java-spring': 'spring',
-  'java-spring-boot': 'springboot',
-  javascript: 'javascript',
-  'javascript-angular': 'angularjs',
-  'javascript-angularjs': 'angularjs',
-  'javascript-backbone': 'backbone',
-  'javascript-browser': 'javascript',
-  'javascript-capacitor': 'capacitor',
-  'javascript-cordova': 'cordova',
-  'javascript-electron': 'electron',
-  'javascript-ember': 'ember',
-  'javascript-gatsby': 'gatsby',
-  'javascript-ionic': 'ionic',
-  'javascript-nextjs': 'nextjs',
-  'javascript-react': 'react',
-  'javascript-remix': 'remix',
-  'javascript-svelte': 'svelte',
-  'javascript-sveltekit': 'svelte',
-  'javascript-vue': 'vue',
-  'javascript-wasm': 'wasm',
-  ionic: 'ionic',
-  kotlin: 'kotlin',
-  'kotlin-android': 'android',
-  linux: 'linux',
-  native: 'nativec',
-  'native-qt': 'qt',
-  node: 'nodejs',
-  'node-awslambda': 'aws',
-  'node-azurefunctions': 'azure',
-  'node-connect': 'nodejs',
-  'node-express': 'express',
-  'node-gcpfunctions': 'gcp',
-  'node-koa': 'koa',
-  'node-serverlesscloud': 'serverless',
-  perl: 'perl',
-  php: 'php',
-  'php-laravel': 'laravel',
-  'php-monolog': 'php',
-  'php-symfony': 'symfony',
-  python: 'python',
-  'python-aiohttp': 'aiohttp',
-  'python-awslambda': 'aws',
-  'python-azurefunctions': 'azure',
-  'python-bottle': 'bottle',
-  'python-celery': 'celery',
-  'python-chalice': 'chalice',
-  'python-django': 'django',
-  'python-falcon': 'falcon',
-  'python-fastapi': 'fastapi',
-  'python-flask': 'flask',
-  'python-gcpfunctions': 'gcp',
-  'python-pylons': 'python',
-  'python-pyramid': 'pyramid',
-  'python-pythonawslambda': 'aws',
-  'python-rq': 'redis',
-  'python-sanic': 'python',
-  'python-serverless': 'serverless',
-  'python-starlette': 'starlette',
-  'python-tornado': 'tornado',
-  'python-tryton': 'tryton',
-  qt: 'qt',
-  'react-native': 'react-native',
-  ruby: 'ruby',
-  'ruby-rack': 'ruby',
-  'ruby-rails': 'rails',
-  'ruby-sinatra': 'sinatra',
-  rust: 'rust',
-  'rust-actix': 'actix',
-  scala: 'scala',
-  stride3d: 'stride3d',
-  swift: 'swift',
-  unity: 'unity',
-  // This will be deprecated in favor of 'unrealengine'
-  ue4: 'unreal',
-  unreal: 'unreal',
-  unrealengine: 'unreal',
-  visualbasic: 'visual-basic',
-  windows: 'windows',
 };
 
 const SECTIONS: TSection[] = [
@@ -1359,6 +1236,9 @@ function Section({section}: {section: TSection}) {
   return (
     <section>
       <SectionHeader>{section.label}</SectionHeader>
+      <p>
+        <code>{"import { ... } from 'sentry/icons';"}</code>
+      </p>
       <Grid style={{gridTemplateColumns: 'repeat(4, 1fr)'}}>
         {section.icons.map(icon => {
           const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
@@ -1368,8 +1248,9 @@ function Section({section}: {section: TSection}) {
           return (
             <Tooltip
               key={icon.id}
-              title={formatObjAsReactStatement(name, props)}
               isHoverable
+              overlayStyle={{maxWidth: 440}}
+              title={<JSXNode name={name} props={props} />}
             >
               <Cell>
                 <Component {...props} />
@@ -1384,24 +1265,30 @@ function Section({section}: {section: TSection}) {
 }
 
 function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
-  const platforms = Object.keys(platformToIcon).filter(platform =>
-    platform.includes(searchTerm)
-  );
+  const filteredPlatforms = platforms.filter(platform => platform.includes(searchTerm));
 
   return (
     <section>
       <SectionHeader>PlatformIcons</SectionHeader>
+      <p>
+        <code>{"import {PlatformIcon} from 'platformicons';"}</code>
+      </p>
       <Grid
         style={{
           gridAutoFlow: 'column',
-          gridTemplateRows: `repeat(${Math.ceil(platforms.length / 4)}, 1fr)`,
+          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
         }}
       >
-        {platforms.map(platform => (
+        {filteredPlatforms.map(platform => (
           <Tooltip
             key={platform}
-            title={formatObjAsReactStatement('PlatformIcon', {platform})}
             isHoverable
+            overlayStyle={{maxWidth: 440}}
+            title={
+              <Fragment>
+                <JSXNode name="PlatformIcon" props={{platform}} />
+              </Fragment>
+            }
           >
             <Cell>
               <PlatformIcon platform={platform} /> {platform}
@@ -1411,13 +1298,6 @@ function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
       </Grid>
     </section>
   );
-}
-
-function formatObjAsReactStatement(name, props: Record<string, unknown>) {
-  const keyValues = Object.entries(props)
-    .map(([prop, val]) => (val === true ? prop : `${prop}=${JSON.stringify(val)}`))
-    .join(' ');
-  return `<${name} ${keyValues} />`;
 }
 
 const StyledSticky = styled(Sticky)`

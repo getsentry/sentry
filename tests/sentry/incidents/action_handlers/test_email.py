@@ -21,7 +21,9 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.models import NotificationSetting, UserEmail, UserOption
+from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.options.user_option import UserOption
+from sentry.models.useremail import UserEmail
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -93,6 +95,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
         )
+
         handler = EmailActionHandler(action, self.incident, self.project)
         self.snooze_rule(user_id=self.user.id, alert_rule=self.incident.alert_rule)
         assert handler.get_targets() == []
@@ -198,7 +201,6 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-
         assert handler.get_targets() == [(self.user.id, new_email)]
 
     def test_team_email_routing(self):

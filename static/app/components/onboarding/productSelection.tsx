@@ -18,6 +18,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+// TODO(aknaus): move to types
 export enum ProductSolution {
   ERROR_MONITORING = 'error-monitoring',
   PERFORMANCE_MONITORING = 'performance-monitoring',
@@ -91,6 +92,7 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
+  capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-ember': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
@@ -99,11 +101,11 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
-  'javascript-remix': [
+  'javascript-svelte': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
-  'javascript-svelte': [
+  'javascript-astro': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
@@ -335,12 +337,15 @@ export function ProductSelection({
   // The package manager info is only shown for javascript platforms
   // until we improve multi snippet suppport
   const showPackageManagerInfo =
-    platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0;
+    (platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0) &&
+    platform !== 'javascript-astro';
+
+  const showAstroInfo = platform === 'javascript-astro';
 
   return (
     <Fragment>
       {showPackageManagerInfo && (
-        <TextBlock>
+        <TextBlock noMargin>
           {lazyLoader
             ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
                 loaderScript: <strong>Loader Script</strong>,
@@ -349,6 +354,13 @@ export function ProductSelection({
                 npm: <strong>npm</strong>,
                 yarn: <strong>yarn</strong>,
               })}
+        </TextBlock>
+      )}
+      {showAstroInfo && (
+        <TextBlock noMargin>
+          {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
+            astrocli: <strong />,
+          })}
         </TextBlock>
       )}
       <Products>
@@ -473,5 +485,5 @@ const TooltipDescription = styled('div')`
 `;
 
 const AlternativeInstallationAlert = styled(Alert)`
-  margin-top: ${space(3)};
+  margin-bottom: 0px;
 `;

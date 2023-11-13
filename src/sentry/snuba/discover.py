@@ -14,7 +14,7 @@ from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
     QueryBuilder,
@@ -57,6 +57,7 @@ __all__ = (
     "histogram_query",
     "check_multihistogram_fields",
 )
+DEFAULT_DATASET_REASON = "unchanged"
 
 
 logger = logging.getLogger(__name__)
@@ -261,7 +262,7 @@ def timeseries_query(
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[Sequence[str]] = None,
+    functions_acl: Optional[List[str]] = None,
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
@@ -411,6 +412,7 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled: bool = False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events

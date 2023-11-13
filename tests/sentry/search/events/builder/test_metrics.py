@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import math
 from datetime import timezone
-from typing import List
+from typing import List, Tuple
 from unittest import mock
 
 import pytest
@@ -16,19 +16,26 @@ from sentry.search.events.builder import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
+    TopMetricsQueryBuilder,
 )
 from sentry.search.events.types import HistogramParams, QueryBuilderConfig
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
+
+
+def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
+    return (miserable_users + constants.MISERY_ALPHA) / (
+        unique_users + constants.MISERY_ALPHA + constants.MISERY_BETA
+    )
 
 
 def _metric_percentile_definition(
@@ -458,6 +465,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         MetricsQueryBuilder(self.params, limit=51)
         # None is ok, defaults to 50
         query = MetricsQueryBuilder(self.params)
+        assert query.limit is not None
         assert query.limit.limit == 50
         # anything higher should throw an error
         with pytest.raises(IncompatibleMetricsQuery):
@@ -925,22 +933,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "project": self.project.id,
             "p95_transaction_duration": 100,
         }
-
-    # TODO: multiple groupby with counter
-
-    def test_run_query_with_tag_orderby(self):
-        with pytest.raises(IncompatibleMetricsQuery):
-            query = MetricsQueryBuilder(
-                self.params,
-                dataset=Dataset.PerformanceMetrics,
-                selected_columns=[
-                    "title",
-                    "project",
-                    "p95(transaction.duration)",
-                ],
-                orderby="title",
-            )
-            query.run_query("test_query")
 
     # TODO: multiple groupby with counter
 
@@ -1613,14 +1605,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):
-        query = TimeseriesMetricQueryBuilder(
+        orig_query = TimeseriesMetricQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
             interval=900,
             query="",
             selected_columns=["p50(transaction.duration)"],
         )
-        snql_query = query.get_snql_query()
+        snql_query = orig_query.get_snql_query()
         assert len(snql_query) == 1
         query = snql_query[0].query
         self.assertCountEqual(
@@ -1983,8 +1975,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_run_query_with_on_demand_count(self):
         field = "count()"
-        query = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>0"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -2000,7 +1992,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
-            query=query,
+            query=query_s,
             selected_columns=[field],
             config=QueryBuilderConfig(
                 on_demand_metrics_enabled=True,
@@ -2037,10 +2029,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_on_demand_distribution(self):
+    def test_run_query_with_on_demand_distribution_and_environment(self):
         field = "p75(measurements.fp)"
-        query = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>0"
+        spec = OnDemandMetricSpec(field=field, query=query_s, environment="prod")
+
+        self.create_environment(project=self.project, name="prod")
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -2053,10 +2047,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
         query = TimeseriesMetricQueryBuilder(
-            self.params,
+            {**self.params, "environment": ["prod"]},  # type:ignore
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
-            query=query,
+            query=query_s,
             selected_columns=[field],
             config=QueryBuilderConfig(
                 on_demand_metrics_enabled=True,
@@ -2095,8 +2089,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_run_query_with_on_demand_failure_count(self):
         field = "failure_count()"
-        query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
         timestamp = self.start
         self.store_transaction_metric(
             value=1,
@@ -2110,7 +2104,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
-            query=query,
+            query=query_s,
             selected_columns=[field],
             config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
@@ -2123,8 +2117,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_run_query_with_on_demand_failure_rate(self):
         field = "failure_rate()"
-        query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
 
         for hour in range(0, 5):
             # 1 per hour failed
@@ -2152,7 +2146,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
-            query=query,
+            query=query_s,
             selected_columns=[field],
             config=QueryBuilderConfig(
                 on_demand_metrics_enabled=True,
@@ -2191,8 +2185,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_run_query_with_on_demand_apdex(self):
         field = "apdex(10)"
-        query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -2218,7 +2212,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
-            query=query,
+            query=query_s,
             selected_columns=[field],
             config=QueryBuilderConfig(
                 on_demand_metrics_enabled=True,
@@ -2255,11 +2249,91 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_run_query_with_on_demand_count_web_vitals(self):
+        field = "count_web_vitals(measurements.lcp, good)"
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
+
+        for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=hour * 10,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash, "measurement_rating": "matches_hash"},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+            # These should not add to the total
+            self.store_transaction_metric(
+                value=hour * 10,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query_s,
+            selected_columns=[field],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
+        )
+
+        assert query._on_demand_metric_spec_map
+        selected_spec = query._on_demand_metric_spec_map[field]
+        metrics_query = query._get_metrics_query_from_on_demand_spec(
+            spec=selected_spec, require_time_range=True
+        )
+
+        assert len(metrics_query.select) == 1
+        assert metrics_query.select[0].op == "on_demand_count_web_vitals"
+
+        assert metrics_query.where
+        assert (
+            metrics_query.where[0].rhs == "d8e708b0"
+        )  # hashed "on_demand_count_web_vitals:measurements.lcp:good;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}"
+
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "count_web_vitals_measurements_lcp_good": 0.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "count_web_vitals_measurements_lcp_good": 10.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "count_web_vitals_measurements_lcp_good": 20.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "count_web_vitals_measurements_lcp_good": 30.0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "count_web_vitals_measurements_lcp_good": 40.0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count_web_vitals_measurements_lcp_good", "type": "Float64"},
+            ],
+        )
+
     def test_run_query_with_on_demand_epm(self):
         """Test events per minute for 1 event within an hour."""
         field = "epm()"
-        query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
         timestamp = self.start
         self.store_transaction_metric(
             value=1,
@@ -2273,7 +2347,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
-            query=query,
+            query=query_s,
             selected_columns=[field],
             config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
@@ -2287,8 +2361,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_eps(self):
         """Test event per second for 1 event within an hour."""
         field = "eps()"
-        query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
         timestamp = self.start
         self.store_transaction_metric(
             value=1,
@@ -2302,7 +2376,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             self.params,
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
-            query=query,
+            query=query_s,
             selected_columns=[field],
             config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
@@ -2312,6 +2386,199 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "time", "type": "DateTime('Universal')"},
             {"name": "eps", "type": "Float64"},
         ]
+
+    def test_run_top_timeseries_query_with_on_demand_columns(self):
+        field = "count()"
+        field_two = "count_web_vitals(measurements.lcp, good)"
+        groupbys = ["customtag1", "customtag2"]
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, groupbys=groupbys, query=query_s)
+        spec_two = OnDemandMetricSpec(field=field_two, groupbys=groupbys, query=query_s)
+
+        for day in range(0, 5):
+            self.store_on_demand_metric(
+                day * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
+                    "customtag2": "red",
+                },
+                timestamp=self.start + datetime.timedelta(days=day),
+            )
+            self.store_on_demand_metric(
+                day * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
+                    "customtag2": "red",
+                },
+                timestamp=self.start + datetime.timedelta(days=day),
+            )
+
+        query = TopMetricsQueryBuilder(
+            Dataset.PerformanceMetrics,
+            self.params,
+            3600 * 24,
+            [{"customtag1": "div > text"}, {"customtag2": "red"}],
+            query=query_s,
+            selected_columns=groupbys,
+            timeseries_columns=[field, field_two],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
+        )
+        assert query._on_demand_metric_spec_map[field]
+        assert query._on_demand_metric_spec_map[field_two]
+
+        mep_query = TopMetricsQueryBuilder(
+            Dataset.PerformanceMetrics,
+            self.params,
+            3600 * 24,
+            [{"customtag1": "div > text"}, {"customtag2": "red"}],
+            query="",
+            selected_columns=groupbys,
+            timeseries_columns=[field, field_two],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=False,
+            ),
+        )
+
+        assert not mep_query._on_demand_metric_spec_map
+        result = query.run_query("test_query")
+
+        assert result["data"]
+
+        assert result["data"][:3] == [
+            {
+                "time": (self.start + datetime.timedelta(days=0, hours=-10)).isoformat(),
+                "count": 0.0,
+                "count_web_vitals_measurements_lcp_good": 0.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+            {
+                "time": (self.start + datetime.timedelta(days=1, hours=-10)).isoformat(),
+                "count": 1488.0,
+                "count_web_vitals_measurements_lcp_good": 1440.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+            {
+                "time": (self.start + datetime.timedelta(days=2, hours=-10)).isoformat(),
+                "count": 2976.0,
+                "count_web_vitals_measurements_lcp_good": 2880.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+        ]
+
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count", "type": "Float64"},
+                {"name": "count_web_vitals_measurements_lcp_good", "type": "Float64"},
+                {"name": "customtag1", "type": "string"},
+                {"name": "customtag2", "type": "string"},
+            ],
+        )
+
+    def test_on_demand_map_with_multiple_selected(self):
+        query_str = "transaction.duration:>=100"
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query_str,
+            selected_columns=["eps()", "epm()", "not_on_demand"],
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+        )
+        assert query._on_demand_metric_spec_map
+        assert query._on_demand_metric_spec_map["eps()"]
+        assert query._on_demand_metric_spec_map["epm()"]
+        assert "not_on_demand" not in query._on_demand_metric_spec_map
+
+    def _test_user_misery(
+        self, user_to_frustration: list[Tuple[str, bool]], expected_user_misery: float
+    ) -> None:
+        threshold = 300
+        field = f"user_misery({threshold})"
+        query_s = "transaction.duration:>=10"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
+
+        for hour in range(0, 2):
+            for name, frustrated in user_to_frustration:
+                tags = (
+                    {"query_hash": spec.query_hash, "satisfaction": "frustrated"}
+                    if frustrated
+                    else {"query_hash": spec.query_hash}
+                )
+                self.store_transaction_metric(
+                    value=name,
+                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                    # It's a set on demand because of using the users field
+                    internal_metric=TransactionMRI.SET_ON_DEMAND.value,
+                    entity=EntityKey.MetricsSets.value,
+                    tags=tags,
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query_s,
+            selected_columns=[field],
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+        )
+        assert query._on_demand_metric_spec_map
+        selected_spec = query._on_demand_metric_spec_map[field]
+        metrics_query = query._get_metrics_query_from_on_demand_spec(
+            spec=selected_spec, require_time_range=True
+        )
+
+        assert len(metrics_query.select) == 1
+        assert metrics_query.select[0].op == "on_demand_user_misery"
+        assert metrics_query.where
+        assert metrics_query.where[0].lhs.name == "query_hash"  # type: ignore
+        # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
+        assert metrics_query.where[0].rhs == "f9a20ff3"
+        assert metrics_query.where[0].rhs == spec.query_hash
+
+        result = query.run_query("test_query")
+        assert result["data"][:3] == [
+            {
+                "time": self.start.isoformat(),
+                "user_misery_300": expected_user_misery,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "user_misery_300": expected_user_misery,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "user_misery_300": 0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "user_misery_300", "type": "Float64"},
+            ],
+        )
+
+    def test_run_query_with_on_demand_user_misery(self) -> None:
+        self._test_user_misery(
+            [("happy user", False), ("sad user", True)],
+            _user_misery_formula(1, 2),
+        )
+
+    def test_run_query_with_on_demand_user_misery_no_miserable_users(self) -> None:
+        self._test_user_misery(
+            [("happy user", False), ("ok user", False)],
+            _user_misery_formula(0, 2),
+        )
 
 
 class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
@@ -2421,8 +2688,8 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
 class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_distribution(self):
         field = "p75(measurements.fp)"
-        query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
 
         self.store_transaction_metric(
             value=200,
@@ -2436,7 +2703,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
-            query=query,
+            query=query_s,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
@@ -2453,44 +2720,59 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "d:transactions/on_demand@none"
 
-    def test_run_query_with_on_demand_count(self):
+    def test_run_query_with_on_demand_count_and_environments(self):
         field = "count(measurements.fp)"
-        query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>=100"
 
-        self.store_transaction_metric(
-            value=100,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-            entity="metrics_counters",
-            tags={"query_hash": spec.query_hash},
-            timestamp=self.start,
-        )
+        self.create_environment(project=self.project, name="prod")
 
-        query = AlertMetricsQueryBuilder(
-            self.params,
-            granularity=3600,
-            query=query,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[field],
-            config=QueryBuilderConfig(
-                use_metrics_layer=False,
-                on_demand_metrics_enabled=True,
-                skip_time_conditions=False,
-            ),
-        )
+        # We want to test also with "dev" that is not in the database, to check that we fallback to avoiding the
+        # environment filter at all.
+        environments = ((None, 100), ("prod", 200), ("dev", 300))
+        specs = []
+        for environment, value in environments:
+            spec = OnDemandMetricSpec(field=field, query=query_s, environment=environment)
+            self.store_transaction_metric(
+                value=value,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash},
+                timestamp=self.start,
+            )
+            specs.append(spec)
 
-        result = query.run_query("test_query")
+        expected_environments = ((None, 100), ("prod", 200), ("dev", 100))
+        for (environment, value), spec in zip(expected_environments, specs):
+            params = (
+                self.params
+                if environment is None
+                else {**self.params, "environment": [environment]}
+            )
+            query = AlertMetricsQueryBuilder(
+                params,
+                granularity=3600,
+                query=query_s,
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    use_metrics_layer=False,
+                    on_demand_metrics_enabled=True,
+                    skip_time_conditions=False,
+                ),
+            )
 
-        assert result["data"] == [{"c:transactions/on_demand@none": 100.0}]
-        meta = result["meta"]
-        assert len(meta) == 1
-        assert meta[0]["name"] == "c:transactions/on_demand@none"
+            result = query.run_query("test_query")
+
+            assert result["data"] == [{"c:transactions/on_demand@none": float(value)}]
+            meta = result["meta"]
+            assert len(meta) == 1
+            assert meta[0]["name"] == "c:transactions/on_demand@none"
 
     def test_run_query_with_on_demand_failure_rate(self):
         field = "failure_rate()"
-        query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
 
         self.store_transaction_metric(
             value=1,
@@ -2513,7 +2795,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
-            query=query,
+            query=query_s,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
@@ -2533,8 +2815,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_run_query_with_on_demand_apdex(self):
         field = "apdex(10)"
-        query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query)
+        query_s = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query_s)
 
         self.store_transaction_metric(
             value=1,
@@ -2557,7 +2839,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
-            query=query,
+            query=query_s,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
@@ -2639,7 +2921,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                                         Column("metric_id"),
                                         indexer.resolve(
                                             UseCaseID.TRANSACTIONS,
-                                            None,
+                                            1,
                                             "d:transactions/on_demand@none",
                                         ),
                                     ],
@@ -2654,7 +2936,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             snql_query.select,
         )
 
-        query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
+        query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, 1, QUERY_HASH_KEY)
 
         query_hash_clause = Condition(
             lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="62b395db"
@@ -2692,7 +2974,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                                 Column("metric_id"),
                                 indexer.resolve(
                                     UseCaseID.TRANSACTIONS,
-                                    None,
+                                    1,
                                     "c:transactions/on_demand@none",
                                 ),
                             ],
@@ -2704,7 +2986,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             snql_query.select,
         )
 
-        query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
+        query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, 1, QUERY_HASH_KEY)
 
         start_time_clause = Condition(lhs=Column(name="timestamp"), op=Op.GTE, rhs=self.start)
         end_time_clause = Condition(lhs=Column(name="timestamp"), op=Op.LT, rhs=self.end)
@@ -2715,3 +2997,147 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert start_time_clause in snql_query.where
         assert end_time_clause in snql_query.where
         assert query_hash_clause in snql_query.where
+
+
+class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
+    def setUp(self):
+        super().setUp()
+
+    def test_distribution_metrics_query(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+        for value in (10, 20, 30):
+            self.store_transaction_metric(
+                value=value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_distributions",
+                tags={},
+                timestamp=self.start,
+                use_case_id=UseCaseID.CUSTOM,
+            )
+
+        query = MetricsQueryBuilder(
+            self.params,
+            granularity=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[f"count({mri})"],
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+
+        result = query.run_query("test_query")
+
+        assert result["data"] == [{"count_d_custom_sentry_process_profile_track_outcome_second": 3}]
+        meta = result["meta"]
+
+        assert len(meta) == 1
+        assert meta[0]["name"] == "count_d_custom_sentry_process_profile_track_outcome_second"
+
+    def test_distribution_timeseries_metrics_query(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            for multiplier in (1, 2, 3):
+                self.store_transaction_metric(
+                    value=value * multiplier,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_distributions",
+                    tags={},
+                    timestamp=self.start + datetime.timedelta(hours=index),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            interval=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[f"sum({mri})"],
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+
+        result = query.run_query("test_query")
+
+        assert result["data"][:6] == [
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 60.0,
+                "time": (self.start + datetime.timedelta(hours=0)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 120.0,
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 180.0,
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 240.0,
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 300.0,
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+            },
+            {
+                "sum_d_custom_sentry_process_profile_track_outcome_second": 360.0,
+                "time": (self.start + datetime.timedelta(hours=5)).isoformat(),
+            },
+        ]
+
+        meta = result["meta"]
+        assert len(meta) == 2
+        assert meta[1]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"
+
+    def test_distribution_query_generation(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+
+        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string=mri)
+        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string="my_tag")
+
+        query = AlertMetricsQueryBuilder(
+            {**self.params, "environment": self.environment.name},
+            granularity=3600,
+            query="my_tag:my_value",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[f"max({mri})"],
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "generic_metrics"
+
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            [
+                Function(
+                    "maxIf",
+                    [
+                        Column("value"),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                indexer.resolve(
+                                    UseCaseID.CUSTOM,
+                                    self.organization.id,
+                                    mri,
+                                ),
+                            ],
+                        ),
+                    ],
+                    "max_d_custom_sentry_process_profile_track_outcome_second",
+                )
+            ],
+            snql_query.select,
+        )
+
+        environment_id = indexer.resolve(UseCaseID.CUSTOM, self.organization.id, "environment")
+        environment_condition = Condition(
+            lhs=Column(name=f"tags_raw[{environment_id}]"), op=Op.EQ, rhs="development"
+        )
+        assert environment_condition in snql_query.where

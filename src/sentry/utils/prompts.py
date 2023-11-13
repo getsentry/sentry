@@ -1,4 +1,4 @@
-from sentry.models import PromptsActivity
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.utils.request_cache import request_cache
 
 DEFAULT_PROMPTS = {

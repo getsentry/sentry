@@ -1,5 +1,6 @@
 import {Location} from 'history';
 import {GlobalSelection} from 'sentry-fixture/globalSelection';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -40,64 +41,8 @@ window.ResizeObserver =
   }));
 
 describe('ProfileSummaryPage', () => {
-  it('renders legacy page', async () => {
-    const organization = TestStubs.Organization({
-      features: [],
-      projects: [TestStubs.Project()],
-    });
-    OrganizationStore.onUpdate(organization);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [TestStubs.Project()],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/profiling/filters/`,
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/profiling/flamegraph/`,
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/profiling/function-trends/`,
-      body: [],
-    });
-
-    render(
-      <ProfileSummaryPage
-        params={{}}
-        selection={GlobalSelection()}
-        location={
-          {
-            query: {transaction: 'fancyservice'},
-          } as unknown as Location
-        }
-      />,
-      {
-        organization,
-        context: TestStubs.routerContext(),
-      }
-    );
-
-    expect(await screen.findByTestId(/profile-summary-legacy/i)).toBeInTheDocument();
-  });
-
   it('renders new page', async () => {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: [],
       projects: [TestStubs.Project()],
     });
@@ -115,7 +60,7 @@ describe('ProfileSummaryPage', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
-      body: [],
+      body: {},
     });
 
     MockApiClient.addMockResponse({
@@ -125,7 +70,9 @@ describe('ProfileSummaryPage', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: [],
+      body: {
+        data: [{'last_seen()': new Date()}],
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -135,6 +82,7 @@ describe('ProfileSummaryPage', () => {
 
     render(
       <ProfileSummaryPage
+        view="flamegraph"
         params={{}}
         selection={GlobalSelection()}
         location={
@@ -144,7 +92,7 @@ describe('ProfileSummaryPage', () => {
         }
       />,
       {
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: ['profiling-summary-redesign'],
         }),
         context: TestStubs.routerContext(),

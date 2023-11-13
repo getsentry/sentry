@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, List, Optional, Union
 
 from django.db import models
 from django.db.models import SET_NULL, Q
@@ -19,7 +19,10 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
 if TYPE_CHECKING:
-    from sentry.models import Group, Release, Team, User
+    from sentry.models.group import Group
+    from sentry.models.release import Release
+    from sentry.models.team import Team
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
@@ -139,9 +142,10 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
 }
 
 
-class GroupHistoryManager(BaseManager):
+class GroupHistoryManager(BaseManager["GroupHistory"]):
     def filter_to_team(self, team):
-        from sentry.models import GroupAssignee, Project
+        from sentry.models.groupassignee import GroupAssignee
+        from sentry.models.project import Project
 
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         user_ids = list(team.member_set.values_list("user_id", flat=True))
@@ -166,7 +170,7 @@ class GroupHistory(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    objects = GroupHistoryManager()
+    objects: ClassVar[GroupHistoryManager] = GroupHistoryManager()
 
     organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
@@ -256,7 +260,8 @@ def record_group_history(
     actor: Optional[Union["User", "RpcUser", "Team"]] = None,
     release: Optional["Release"] = None,
 ):
-    from sentry.models import Team, User
+    from sentry.models.team import Team
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
 
     prev_history = get_prev_history(group, status)
@@ -287,7 +292,8 @@ def bulk_record_group_history(
     actor: Optional[Union["User", "RpcUser", "Team"]] = None,
     release: Optional["Release"] = None,
 ):
-    from sentry.models import Team, User
+    from sentry.models.team import Team
+    from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
 
     def get_prev_history_date(group, status):

@@ -4,7 +4,7 @@ from typing import Any
 
 from django.http.request import HttpRequest
 
-from sentry.models import Authenticator
+from sentry.models.authenticator import Authenticator
 from sentry.utils import json
 from sudo.views import SudoView as BaseSudoView
 

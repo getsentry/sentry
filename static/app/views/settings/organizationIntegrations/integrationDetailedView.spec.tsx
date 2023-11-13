@@ -1,4 +1,5 @@
 import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +7,7 @@ import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrati
 
 describe('IntegrationDetailedView', function () {
   const ENDPOINT = '/organizations/org-slug/';
-  const org = TestStubs.Organization({
+  const org = Organization({
     access: ['org:integrations', 'org:write'],
   });
 
@@ -110,7 +111,7 @@ describe('IntegrationDetailedView', function () {
         params={{integrationSlug: 'bitbucket'}}
         location={TestStubs.location({query: {tab: 'configurations'}})}
       />,
-      {organization: TestStubs.Organization({access: ['org:read']})}
+      {organization: Organization({access: ['org:read']})}
     );
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeDisabled();
@@ -154,7 +155,7 @@ describe('IntegrationDetailedView', function () {
         params={{integrationSlug: 'github'}}
         location={TestStubs.location({query: {tab: 'configurations'}})}
       />,
-      {organization: TestStubs.Organization({access: ['org:read']})}
+      {organization: Organization({access: ['org:read']})}
     );
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();

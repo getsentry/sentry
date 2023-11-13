@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import {Group} from 'sentry-fixture/group';
 import {Tags} from 'sentry-fixture/tags';
 import {TagValues} from 'sentry-fixture/tagvalues';
@@ -7,6 +8,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
@@ -69,6 +71,43 @@ describe('GroupTagValues', () => {
     expect(screen.getByText('16.67%')).toBeInTheDocument();
     // Count column
     expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
+  it('can page through tag values', async () => {
+    const {routerProps, routerContext, project} = init('user');
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValues(),
+      headers: {
+        Link:
+          '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
+          '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
+      },
+    });
+    render(
+      <GroupTagValues
+        environments={[]}
+        group={group}
+        project={project}
+        baseUrl=""
+        {...routerProps}
+      />,
+      {context: routerContext}
+    );
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
+
+    // Clicking next button loads page with query param ?cursor=0:100:0
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await waitFor(() => {
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({query: expect.objectContaining({cursor: '0:100:0'})})
+      );
+    });
   });
 
   it('navigates to issue details events tab with correct query params', async () => {

@@ -2,13 +2,10 @@ from functools import cached_property
 from unittest.mock import patch
 
 from sentry import audit_log
-from sentry.models import (
-    AuditLogEntry,
-    InviteStatus,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationOption,
-)
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature

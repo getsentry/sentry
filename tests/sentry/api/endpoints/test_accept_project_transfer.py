@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba

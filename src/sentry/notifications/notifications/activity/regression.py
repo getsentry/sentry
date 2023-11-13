@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from html import escape
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.types.integrations import ExternalProviders
 
 from .base import GroupActivityNotification
@@ -21,8 +20,8 @@ class RegressionActivityNotification(GroupActivityNotification):
         self.version = self.activity.data.get("version", "")
         self.version_parsed = parse_release(self.version)["description"]
 
-    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
-        message, params, html_params = "{author} marked {an issue} as a regression", {}, {}
+    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
+        text_message, html_message, params = "{author} marked {an issue} as a regression", None, {}
 
         if self.version:
             version_url = self.organization.absolute_url(
@@ -32,11 +31,13 @@ class RegressionActivityNotification(GroupActivityNotification):
                 ),
             )
 
-            message += " in {version}"
-            params["version"] = self.version_parsed
-            html_params["version"] = f'<a href="{version_url}">{escape(self.version_parsed)}</a>'
+            html_message = text_message + ' in <a href="{url}">{version}</a>'
+            text_message += " in {version}"
 
-        return message, params, html_params
+            params["url"] = version_url
+            params["version"] = self.version_parsed
+
+        return text_message, html_message, params
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None

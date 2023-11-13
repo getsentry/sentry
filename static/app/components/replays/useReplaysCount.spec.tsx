@@ -1,11 +1,22 @@
+import {ReactNode} from 'react';
+import {Organization} from 'sentry-fixture/organization';
+
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory} from 'sentry/types';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import useReplaysCount from './useReplaysCount';
 
 jest.mock('sentry/utils/useLocation');
+
+function wrapper({children}: {children?: ReactNode}) {
+  return (
+    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
+  );
+}
 
 describe('useReplaysCount', () => {
   const mockGroupIds = ['123', '456'];
@@ -22,12 +33,13 @@ describe('useReplaysCount', () => {
     key: '',
   });
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['session-replay'],
   });
 
   it('should throw if none of groupIds, replayIds, transactionNames is provided', () => {
     const {result} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
       },
@@ -37,6 +49,7 @@ describe('useReplaysCount', () => {
 
   it('should throw if more than one of groupIds, replayIds, transactionNames are provided', () => {
     const {result: result1} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: [],
@@ -46,6 +59,7 @@ describe('useReplaysCount', () => {
     expect(result1.error).toBeTruthy();
 
     const {result: result2} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: [],
@@ -55,6 +69,7 @@ describe('useReplaysCount', () => {
     expect(result2.error).toBeTruthy();
 
     const {result: result3} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         replayIds: [],
@@ -72,6 +87,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: mockGroupIds,
@@ -102,6 +118,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         issueCategory: IssueCategory.PERFORMANCE,
@@ -135,6 +152,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: mockGroupIds,
@@ -160,6 +178,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: mockGroupIds,
@@ -219,6 +238,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: mockGroupIds,
@@ -264,6 +284,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         replayIds: mockReplayIds,
@@ -296,6 +317,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         replayIds: mockReplayIds,
@@ -321,6 +343,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         transactionNames: mockTransactionNames,
@@ -353,6 +376,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         transactionNames: mockTransactionNames,
@@ -368,5 +392,74 @@ describe('useReplaysCount', () => {
       '/home': 42,
       '/profile': 0,
     });
+  });
+
+  it('should accept start and end times and override statsPeriod', async () => {
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      method: 'GET',
+      body: {},
+    });
+    const mockDate = new Date(Date.now());
+
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
+      initialProps: {
+        organization,
+        transactionNames: mockTransactionNames,
+        datetime: {
+          start: mockDate,
+          end: mockDate,
+        },
+      },
+    });
+
+    expect(result.current).toEqual({});
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `transaction:["/home","/profile"]`,
+          data_source: 'discover',
+          project: -1,
+          start: mockDate,
+          end: mockDate,
+        },
+      })
+    );
+
+    await waitForNextUpdate();
+  });
+
+  it('passes along extra conditions and appends them to the query', async () => {
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
+      initialProps: {
+        organization,
+        transactionNames: mockTransactionNames,
+        extraConditions: 'transaction.duration>:300ms',
+      },
+    });
+
+    expect(result.current).toEqual({});
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `transaction:["/home","/profile"] transaction.duration>:300ms`,
+          data_source: 'discover',
+          project: -1,
+          statsPeriod: '14d',
+        },
+      })
+    );
+
+    await waitForNextUpdate();
   });
 });

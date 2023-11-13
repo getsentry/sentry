@@ -1,5 +1,7 @@
+import {Project} from 'sentry-fixture/project';
+
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, GroupStats, TimeseriesValue} from 'sentry/types';
+import {Group, GroupActivityType, GroupStats, TimeseriesValue} from 'sentry/types';
 
 const MOCK_PROJECT = TestStubs.Project();
 
@@ -225,6 +227,26 @@ describe('GroupStore', function () {
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
         expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1']));
         expect(GroupStore.items[0]).toEqual(assignedGroup);
+      });
+    });
+
+    describe('updateActivity()', function () {
+      it("should update activity data text'", function () {
+        GroupStore.items = [
+          g('1', {
+            activity: [
+              {
+                id: '1',
+                type: GroupActivityType.NOTE,
+                dateCreated: '',
+                project: Project(),
+                data: {text: 'Orginal Text'},
+              },
+            ],
+          }),
+        ];
+        GroupStore.updateActivity('1', '1', {text: 'Updated Text'});
+        expect(GroupStore.items[0].activity[0].data).toEqual({text: 'Updated Text'});
       });
     });
   });

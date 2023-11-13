@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
+import {Organization} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -26,7 +27,7 @@ function getField(role, name) {
 }
 
 describe('projectGeneralSettings', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const project = TestStubs.Project({
     subjectPrefix: '[my-org]',
     resolveAge: 48,
@@ -224,7 +225,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables the form for users without write permissions', function () {
-    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
+    const readOnlyOrg = Organization({access: ['org:read']});
     routerContext.context.organization = readOnlyOrg;
 
     render(
@@ -272,7 +273,7 @@ describe('projectGeneralSettings', function () {
     expect(putMock).toHaveBeenCalled();
 
     // updates ProjectsStore
-    expect(ProjectsStore.itemsById['2'].platform).toBe('javascript');
+    expect(ProjectsStore.getById('2')!.platform).toBe('javascript');
   });
 
   it('changing name updates ProjectsStore', async function () {
@@ -313,7 +314,7 @@ describe('projectGeneralSettings', function () {
 
     // Redirects the user
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
-    expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
+    expect(ProjectsStore.getById('2')!.slug).toBe('new-project');
   });
 
   describe('Non-"save on blur" Field', function () {

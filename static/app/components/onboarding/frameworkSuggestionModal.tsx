@@ -20,7 +20,7 @@ import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Radio from 'sentry/components/radio';
-import categoryList from 'sentry/data/platformCategories';
+import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -55,6 +55,7 @@ export const topJavascriptFrameworks = [
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-remix',
+  'javascript-astro',
 ];
 
 const topPythonFrameworks = [
@@ -113,7 +114,7 @@ export const languageDetails = {
   },
   [SupportedLanguages.DOTNET]: {
     description: t(
-      'Our Dotnet framework SDKs include all the features of our Dotnet SDK with instructions specific to that framework'
+      'Our .NET integrations include all the features of our core .NET SDK with instructions specific to that framework'
     ),
     topFrameworksImage: onboardingFrameworkSelectionDotnet,
   },
@@ -156,7 +157,9 @@ export function FrameworkSuggestionModal({
 
   const frameworks = platforms.filter(
     platform =>
-      platform.type === 'framework' && platform.language === selectedPlatform.key
+      createablePlatforms.has(platform.id) &&
+      platform.type === 'framework' &&
+      platform.language === selectedPlatform.key
   );
 
   const [topFrameworks, otherFrameworks] = partition(frameworks, framework => {
@@ -271,7 +274,7 @@ export function FrameworkSuggestionModal({
                 (framework, index) => {
                   const frameworkCategory =
                     categoryList.find(category => {
-                      return category.platforms.includes(framework.id as never);
+                      return category.platforms?.has(framework.id);
                     })?.id ?? 'all';
 
                   return (

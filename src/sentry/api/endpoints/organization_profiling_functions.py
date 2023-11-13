@@ -4,7 +4,6 @@ from datetime import timedelta
 from enum import Enum
 from typing import Any, List
 
-import sentry_sdk
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,7 +15,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.seer.utils import BreakpointData, detect_breakpoints
@@ -223,17 +221,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             reverse=data["trend"] is TrendType.REGRESSION,
         )
 
-        if data["trend"] is TrendType.REGRESSION:
-            try:
-                if features.has(
-                    "organizations:profile-function-regression-exp-ingest",
-                    organization,
-                    actor=request.user,
-                ):
-                    forward_regression_occurrences(organization, trending_functions, stats_data)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-
         def paginate_trending_events(offset, limit):
             return {"data": trending_functions[offset : limit + offset]}
 
@@ -322,48 +309,3 @@ def get_interval_from_range(date_range: timedelta) -> str:
         return "2h"
 
     return "1h"
-
-
-def forward_regression_occurrences(
-    organization: Organization,
-    regressions: List[BreakpointData],
-    stats_data: Any,
-):
-    payloads = []
-
-    for entry in regressions:
-        project_id = int(entry["project"])
-        fingerprint = int(entry["transaction"])
-
-        profile_id = None
-        examples = (
-            stats_data.get(f"{project_id},{fingerprint}", {}).get("worst()", {}).get("data", [])
-        )
-        for row in reversed(examples):
-            example = row[1][0]["count"]
-            if isinstance(example, str):
-                profile_id = example
-                break
-
-        if profile_id is None:
-            continue
-
-        payloads.append(
-            {
-                "organization_id": organization.id,
-                "project_id": project_id,
-                "profile_id": profile_id,
-                "fingerprint": fingerprint,
-                "absolute_percentage_change": entry["absolute_percentage_change"],
-                "aggregate_range_1": entry["aggregate_range_1"],
-                "aggregate_range_2": entry["aggregate_range_2"],
-                "breakpoint": int(entry["breakpoint"]),
-                "trend_difference": entry["trend_difference"],
-                "trend_percentage": entry["trend_percentage"],
-                "unweighted_p_value": entry["unweighted_p_value"],
-                "unweighted_t_value": entry["unweighted_t_value"],
-            }
-        )
-
-    if payloads:
-        get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)

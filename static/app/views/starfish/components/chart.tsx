@@ -62,10 +62,6 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   [SpanMetricsField.SPAN_SELF_TIME]: {
     outputType: 'duration',
   },
-  // local is only used with `time_spent_percentage` function
-  local: {
-    outputType: 'duration',
-  },
 };
 
 type Props = {
@@ -501,7 +497,7 @@ const StyledTransparentLoadingMask = styled(props => (
   align-items: center;
 `;
 
-function LoadingScreen({loading}: {loading: boolean}) {
+export function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }

@@ -75,7 +75,6 @@ def kafka_options(
     default_max_batch_size: Optional[int] = None,
     default_max_batch_time_ms: Optional[int] = 1000,
 ):
-
     """
     Basic set of Kafka options for a consumer.
     """
@@ -199,34 +198,6 @@ def web(bind, workers, upgrade, with_lock, noinput):
         from sentry.services.http import SentryHTTPServer
 
         SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
-
-
-@run.command()
-@click.option(
-    "--bind",
-    "-b",
-    default=None,
-    help="Bind address.",
-    metavar="ADDRESS",
-    callback=_address_validate,
-)
-@click.option("--upgrade", default=False, is_flag=True, help="Upgrade before starting.")
-@click.option(
-    "--noinput", default=False, is_flag=True, help="Do not prompt the user for input of any kind."
-)
-@configuration
-def smtp(bind, upgrade, noinput):
-    "Run inbound email service."
-    if upgrade:
-        click.echo("Performing upgrade before service startup...")
-        from sentry.runner import call_command
-
-        call_command("sentry.runner.commands.upgrade.upgrade", verbosity=0, noinput=noinput)
-
-    from sentry.services.smtp import SentrySMTPServer
-
-    with managed_bgtasks(role="smtp"):
-        SentrySMTPServer(host=bind[0], port=bind[1]).run()
 
 
 def run_worker(**options):
@@ -387,61 +358,6 @@ def cron(**options):
             # without_heartbeat=True,
             **options
         ).run()
-
-
-@run.command("post-process-forwarder")
-@kafka_options("snuba-post-processor", allow_force_cluster=False)
-@strict_offset_reset_option()
-@click.option(
-    "--topic",
-    type=str,
-    help="Main topic with messages for post processing",
-)
-@click.option(
-    "--commit-log-topic",
-    default="snuba-commit-log",
-    help="Topic that the Snuba writer is publishing its committed offsets to.",
-)
-@click.option(
-    "--synchronize-commit-group",
-    default="snuba-consumers",
-    help="Consumer group that the Snuba writer is committing its offset as.",
-)
-@click.option(
-    "--concurrency",
-    default=5,
-    type=int,
-    help="Thread pool size for post process worker.",
-)
-@click.option(
-    "--entity",
-    type=click.Choice(["errors", "transactions", "search_issues"]),
-    help="The type of entity to process (errors, transactions, search_issues).",
-)
-@log_options()
-@configuration
-def post_process_forwarder(**options):
-    from sentry import eventstream
-    from sentry.eventstream.base import ForwarderNotRequired
-
-    try:
-        # TODO(markus): convert to use run_processor_with_signals -- can't yet because there's a custom shutdown handler
-        eventstream.backend.run_post_process_forwarder(
-            entity=options["entity"],
-            consumer_group=options["group_id"],
-            topic=options["topic"],
-            commit_log_topic=options["commit_log_topic"],
-            synchronize_commit_group=options["synchronize_commit_group"],
-            concurrency=options["concurrency"],
-            initial_offset_reset=options["auto_offset_reset"],
-            strict_offset_reset=options["strict_offset_reset"],
-        )
-    except ForwarderNotRequired:
-        sys.stdout.write(
-            "The configured event stream backend does not need a forwarder "
-            "process to enqueue post-process tasks. Exiting...\n"
-        )
-        return
 
 
 @run.command("query-subscription-consumer")
@@ -624,21 +540,6 @@ def metrics_parallel_consumer(**options):
     run_processor_with_signals(streamer)
 
 
-@run.command("billing-metrics-consumer")
-@log_options()
-@kafka_options("billing-metrics-consumer")
-@strict_offset_reset_option()
-@configuration
-def metrics_billing_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("billing-metrics-consumer", options["group_id"])
-    from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
-
-    consumer = get_metrics_billing_consumer(**options)
-    run_processor_with_signals(consumer)
-
-
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
@@ -704,6 +605,12 @@ def profiles_consumer(**options):
 @click.option(
     "--healthcheck-file-path",
     help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
+)
+@click.option(
+    "--enable-dlq",
+    help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
+    is_flag=True,
+    default=False,
 )
 @click.option(
     "--log-level",
@@ -776,6 +683,7 @@ def dev_consumer(consumer_names):
             max_poll_interval_ms=None,
             synchronize_commit_group=None,
             synchronize_commit_log_topic=None,
+            enable_dlq=False,
             healthcheck_file_path=None,
             validate_schema=True,
         )

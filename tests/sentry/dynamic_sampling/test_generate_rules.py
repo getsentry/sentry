@@ -15,7 +15,11 @@ from sentry.dynamic_sampling.rules.utils import (
     RESERVED_IDS,
     RuleType,
 )
-from sentry.models import CUSTOM_RULE_DATE_FORMAT, CUSTOM_RULE_START, CustomDynamicSamplingRule
+from sentry.models.dynamicsampling import (
+    CUSTOM_RULE_DATE_FORMAT,
+    CUSTOM_RULE_START,
+    CustomDynamicSamplingRule,
+)
 from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
@@ -734,6 +738,7 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
         organization_id=default_old_project.organization.id,
         num_samples=100,
         sample_rate=0.5,
+        query="environment:prod1",
     )
     # and an organization rule
     condition = {"op": "eq", "name": "environment", "value": "prod2"}
@@ -745,6 +750,7 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
         organization_id=default_old_project.organization.id,
         num_samples=100,
         sample_rate=0.5,
+        query="environment:prod2",
     )
 
     rules = generate_rules(default_old_project)
@@ -763,7 +769,7 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
 
     # we have the project rule correctly built
     assert project_rule == {
-        "samplingValue": {"type": "sampleRate", "value": 0.5},
+        "samplingValue": {"type": "reservoir", "limit": 100},
         "type": "transaction",
         "id": CUSTOM_RULE_START + 1,
         "condition": {"op": "eq", "name": "environment", "value": "prod1"},
@@ -771,7 +777,7 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
     }
     # we have the org rule correctly built
     assert org_rule == {
-        "samplingValue": {"type": "sampleRate", "value": 0.5},
+        "samplingValue": {"type": "reservoir", "limit": 100},
         "type": "transaction",
         "id": CUSTOM_RULE_START + 2,
         "condition": {"op": "eq", "name": "environment", "value": "prod2"},

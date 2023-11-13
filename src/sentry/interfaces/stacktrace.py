@@ -193,9 +193,13 @@ class Frame(Interface):
         )
 
     def get_api_context(self, is_public=False, pad_addr=None, platform=None):
-        from sentry.stacktraces.functions import get_function_name_for_frame
+        from sentry.stacktraces.functions import (
+            get_function_name_for_frame,
+            get_source_link_for_frame,
+        )
 
         function = get_function_name_for_frame(self, platform)
+        source_link = get_source_link_for_frame(self)
         data = {
             "filename": self.filename,
             "absPath": self.abs_path,
@@ -219,7 +223,7 @@ class Frame(Interface):
             "trust": self.trust,
             "errors": self.errors,
             "lock": self.lock,
-            "sourceLink": self.source_link,
+            "sourceLink": source_link,
         }
 
         if not is_public:

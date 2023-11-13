@@ -9,15 +9,11 @@ import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.models import (
-    ExternalActor,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    OrganizationIntegration,
-    Rule,
-)
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,

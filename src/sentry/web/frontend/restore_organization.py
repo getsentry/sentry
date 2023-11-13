@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry import audit_log
 from sentry.api import client
-from sentry.models import Organization, OrganizationStatus
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     unmark_organization_as_pending_deletion_with_outbox_message,

@@ -8,10 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Flex} from 'sentry/components/profiling/flex';
-import {
-  Provider as ReplayContextProvider,
-  useReplayContext,
-} from 'sentry/components/replays/replayContext';
+import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -210,12 +207,10 @@ function DetailsInsideContext({
   replayRecord: ReplayRecord | undefined;
 }) {
   const {getLayout} = useReplayLayout();
-  const {replay} = useReplayContext();
 
   return (
     <Page
       orgSlug={orgSlug}
-      frames={replay?.getNavigationFrames()}
       replayRecord={replayRecord}
       projectSlug={projectSlug}
       replayErrors={replayErrors}

@@ -3,23 +3,26 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {Button} from 'sentry/components/button';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, UserReport} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
 
@@ -122,6 +125,7 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
 
     const unresolvedQuery = omit(query, 'status');
     const allIssuesQuery = {...query, status: ''};
+    const hasNewFeedback = organization.features.includes('user-feedback-ui');
 
     return (
       <PageFiltersContainer>
@@ -138,6 +142,32 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
                 />
               </Layout.Title>
             </Layout.HeaderContent>
+            {hasNewFeedback && (
+              <Layout.HeaderActions>
+                <Tooltip
+                  title={t('Go back to the new feedback layout.')}
+                  position="left"
+                  isHoverable
+                >
+                  <Button
+                    size="sm"
+                    priority="default"
+                    to={{
+                      pathname: normalizeUrl(
+                        `/organizations/${organization.slug}/feedback/`
+                      ),
+                      query: {
+                        ...location.query,
+                        query: undefined,
+                        cursor: undefined,
+                      },
+                    }}
+                  >
+                    {t('Go to New User Feedback')}
+                  </Button>
+                </Tooltip>
+              </Layout.HeaderActions>
+            )}
           </Layout.Header>
           <Layout.Body data-test-id="user-feedback">
             <Layout.Main fullWidth>
@@ -145,7 +175,7 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
                 <PageFilterBar>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="right" />
+                  <DatePageFilter position="bottom-end" />
                 </PageFilterBar>
                 <SegmentedControl
                   aria-label={t('Issue Status')}

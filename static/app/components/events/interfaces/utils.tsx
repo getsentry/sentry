@@ -7,7 +7,7 @@ import * as qs from 'query-string';
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import {Frame, PlatformType, StacktraceType} from 'sentry/types';
+import {Frame, PlatformKey, StacktraceType} from 'sentry/types';
 import {Image} from 'sentry/types/debugImage';
 import {EntryRequest, EntryThreads, EntryType, Event, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -124,6 +124,8 @@ export function getCurlCommand(data: EntryRequest['data']) {
   if (defined(data.method) && data.method !== 'GET') {
     result += ' \\\n -X ' + data.method;
   }
+
+  data.headers = data.headers?.filter(defined);
 
   // TODO(benvinegar): just gzip? what about deflate?
   const compressed = data.headers?.find(
@@ -317,7 +319,7 @@ export function parseAssembly(assembly: string | null) {
   return {name, version, culture, publicKeyToken};
 }
 
-export function stackTracePlatformIcon(platform: PlatformType, frames: Frame[]) {
+export function stackTracePlatformIcon(platform: PlatformKey, frames: Frame[]) {
   const fileExtensions = uniq(
     compact(frames.map(frame => getFileExtension(frame.filename ?? '')))
   );
@@ -364,7 +366,7 @@ export function getThreadById(event: Event, tid?: number) {
   return threads?.data.values?.find(thread => thread.id === tid);
 }
 
-export function inferPlatform(event: Event, thread?: Thread): PlatformType {
+export function inferPlatform(event: Event, thread?: Thread): PlatformKey {
   const exception = getThreadException(event, thread);
   let exceptionFramePlatform: Frame | undefined = undefined;
 

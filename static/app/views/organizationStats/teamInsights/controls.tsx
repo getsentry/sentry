@@ -7,9 +7,8 @@ import uniq from 'lodash/uniq';
 import moment from 'moment';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import TeamSelector from 'sentry/components/teamSelector';
+import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DateString, TeamWithProjects} from 'sentry/types';
@@ -21,6 +20,13 @@ import useProjects from 'sentry/utils/useProjects';
 import {dataDatetime} from './utils';
 
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
+
+const relativeOptions = {
+  '14d': t('Last 2 weeks'),
+  '4w': t('Last 4 weeks'),
+  [INSIGHTS_DEFAULT_STATS_PERIOD]: t('Last 8 weeks'),
+  '12w': t('Last 12 weeks'),
+};
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -208,20 +214,16 @@ function TeamStatsControls({
           inFieldLabel={t('Environment:')}
         />
       )}
-      <StyledPageTimeRangeSelector
-        organization={organization}
+      <StyledTimeRangeSelector
         relative={period ?? ''}
         start={start ?? null}
         end={end ?? null}
         utc={utc ?? null}
-        onUpdate={handleUpdateDatetime}
+        onChange={handleUpdateDatetime}
         showAbsolute={false}
-        relativeOptions={{
-          '14d': t('Last 2 weeks'),
-          '4w': t('Last 4 weeks'),
-          [INSIGHTS_DEFAULT_STATS_PERIOD]: t('Last 8 weeks'),
-          '12w': t('Last 12 weeks'),
-        }}
+        relativeOptions={relativeOptions}
+        triggerLabel={period && relativeOptions[period]}
+        triggerProps={{prefix: t('Date Range')}}
       />
     </ControlsWrapper>
   );
@@ -246,7 +248,7 @@ const StyledTeamSelector = styled(TeamSelector)`
   }
 `;
 
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   div {
     min-height: unset;
   }

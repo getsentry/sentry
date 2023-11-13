@@ -6,12 +6,16 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test.utils import override_settings
 
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.constants import ObjectStatus
-from sentry.models import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.models.rule import Rule, RuleSource
+from sentry.monitors.models import (
+    Monitor,
+    MonitorObjectStatus,
+    MonitorStatus,
+    MonitorType,
+    ScheduleType,
+)
 from sentry.testutils.cases import MonitorTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
@@ -49,7 +53,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             monitor_status = getattr(MonitorStatus, status_key)
             # TODO(rjo100): this is precursor to removing the MonitorStatus values from Monitors
             monitor = self._create_monitor(
-                status=ObjectStatus.ACTIVE,
+                status=MonitorObjectStatus.ACTIVE,
                 name=status_key,
             )
             self._create_monitor_environment(
@@ -178,7 +182,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.organization_id == self.organization.id
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
-        assert monitor.status == ObjectStatus.ACTIVE
+        assert monitor.status == MonitorObjectStatus.ACTIVE
         assert monitor.type == MonitorType.CRON_JOB
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,
@@ -192,6 +196,13 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 
+        mock_record.assert_any_call(
+            "cron_monitor.created",
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            from_upsert=False,
+        )
         mock_record.assert_called_with(
             "first_cron_monitor.created",
             user_id=self.user.id,
@@ -212,7 +223,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         assert response.data["slug"] == "my-monitor"
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         data = {
             "project": self.project.slug,
@@ -224,7 +234,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         data = {
             "project": self.project.slug,

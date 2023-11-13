@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -259,7 +260,7 @@ describe('withDomainRequired', function () {
       },
     } as any;
 
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: [],
     });
@@ -308,7 +309,7 @@ describe('withDomainRequired', function () {
       },
     } as any;
 
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: [],
     });
@@ -357,7 +358,7 @@ describe('withDomainRequired', function () {
       },
     } as any;
 
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: [],
     });

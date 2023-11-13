@@ -8,7 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations import IntegrationFeatures
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 
 

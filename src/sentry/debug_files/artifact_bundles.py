@@ -78,7 +78,8 @@ def remove_artifact_bundle_indexing_state(organization_id: int, artifact_bundle_
 
 
 def index_artifact_bundles_for_release(
-    organization_id: int, artifact_bundles: List[ArtifactBundle], release: str, dist: str
+    organization_id: int,
+    artifact_bundles: List[Tuple[ArtifactBundle, ArtifactBundleArchive | None]],
 ) -> None:
     """
     This indexes the contents of `artifact_bundles` into the database, using the given `release` and `dist` pair.
@@ -86,7 +87,7 @@ def index_artifact_bundles_for_release(
     Synchronization is achieved using a mixture of redis cache with transient state and a binary state in the database.
     """
 
-    for artifact_bundle in artifact_bundles:
+    for artifact_bundle, archive in artifact_bundles:
         try:
             if not set_artifact_bundle_being_indexed_if_null(
                 organization_id=organization_id, artifact_bundle_id=artifact_bundle.id
@@ -95,7 +96,7 @@ def index_artifact_bundles_for_release(
                 metrics.incr("artifact_bundle_indexing.bundle_already_being_indexed")
                 continue
 
-            _index_urls_in_bundle(organization_id, artifact_bundle, release, dist)
+            _index_urls_in_bundle(organization_id, artifact_bundle, archive)
         except Exception as e:
             # We want to catch the error and continue execution, since we can try to index the other bundles.
             metrics.incr("artifact_bundle_indexing.index_single_artifact_bundle_error")
@@ -110,11 +111,12 @@ def index_artifact_bundles_for_release(
 def _index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
-    release: str,
-    dist: str,
+    existing_archive: ArtifactBundleArchive | None,
 ):
     # We first open up the bundle and extract all the things we want to index from it.
-    archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
+    archive = existing_archive or ArtifactBundleArchive(
+        artifact_bundle.file.getfile(), build_memory_map=False
+    )
     urls_to_index = []
     try:
         for info in archive.get_files().values():
@@ -137,7 +139,8 @@ def _index_urls_in_bundle(
                     )
                 )
     finally:
-        archive.close()
+        if not existing_archive:
+            archive.close()
 
     # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
     # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.

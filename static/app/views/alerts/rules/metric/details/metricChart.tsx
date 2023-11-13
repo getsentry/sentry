@@ -45,6 +45,7 @@ import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
@@ -315,7 +316,8 @@ class MetricChart extends PureComponent<Props, State> {
       rule,
       incidents,
       selectedIncident,
-      isOnDemandMetricAlert: this.props.isOnDemandAlert,
+      showWaitingForData:
+        shouldShowOnDemandMetricAlertUI(organization) && this.props.isOnDemandAlert,
       handleIncidentClick,
     });
 
@@ -496,8 +498,17 @@ class MetricChart extends PureComponent<Props, State> {
     );
   }
 
-  renderEmptyOnDemandAlert(timeseriesData: Series[] = [], loading?: boolean) {
-    if (loading || !this.props.isOnDemandAlert || !isEmptySeries(timeseriesData[0])) {
+  renderEmptyOnDemandAlert(
+    organization: Organization,
+    timeseriesData: Series[] = [],
+    loading?: boolean
+  ) {
+    if (
+      loading ||
+      !this.props.isOnDemandAlert ||
+      !shouldShowOnDemandMetricAlertUI(organization) ||
+      !isEmptySeries(timeseriesData[0])
+    ) {
       return null;
     }
 
@@ -566,6 +577,7 @@ class MetricChart extends PureComponent<Props, State> {
       location,
       dataset,
       newAlertOrQuery: false,
+      useOnDemandMetrics: isOnDemandAlert,
     });
 
     return isCrashFreeAlert(dataset) ? (
@@ -606,11 +618,10 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
-        useOnDemandMetrics={isOnDemandAlert}
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) => (
           <Fragment>
-            {this.renderEmptyOnDemandAlert(timeseriesData, loading)}
+            {this.renderEmptyOnDemandAlert(organization, timeseriesData, loading)}
             {this.renderChart(
               loading,
               timeseriesData,
