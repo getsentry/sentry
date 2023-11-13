@@ -6,7 +6,7 @@ from email.headerregistry import Address
 from functools import reduce
 from typing import TYPE_CHECKING, Dict, Sequence
 
-from django.db.models import Count, Q, QuerySet
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.request import Request
@@ -20,10 +20,8 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.serializers import Serializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
-from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 
 if TYPE_CHECKING:
@@ -75,38 +73,52 @@ def _get_missing_organization_members(
     integration_ids: Sequence[int],
     shared_domain: str | None,
 ) -> QuerySet[CommitAuthor___commit__count]:
-    member_emails = list(
-        organization.member_set.exclude(email=None).values_list("email", flat=True)
-    ) + list(organization.member_set.exclude(user_email=None).values_list("user_email", flat=True))
-
-    nonmember_authors = CommitAuthor.objects.filter(organization_id=organization.id).exclude(
-        Q(email__in=member_emails) | Q(external_id=None)
-    )
-
+    org_id = organization.id
+    domain_query = ""
     if shared_domain:
-        nonmember_authors = nonmember_authors.filter(email__endswith=shared_domain)
+        domain_query = f"AND sentry_commitauthor.email::text LIKE '%%{shared_domain}'"
     else:
-        for filtered_email in FILTERED_EMAIL_DOMAINS:
-            nonmember_authors = nonmember_authors.exclude(email__endswith=filtered_email)
+        for filtered_email_domain in FILTERED_EMAIL_DOMAINS:
+            domain_query += (
+                f"AND sentry_commitauthor.email::text NOT LIKE '%%{filtered_email_domain}' "
+            )
 
-    for filtered_character in FILTERED_CHARACTERS:
-        nonmember_authors = nonmember_authors.exclude(email__icontains=filtered_character)
+    date_added = (timezone.now() - timedelta(days=30)).strftime("%Y-%m-%d, %H:%M:%S")
 
-    org_repos = Repository.objects.filter(
-        provider="integrations:" + provider,
-        organization_id=organization.id,
-        integration_id__in=integration_ids,
-    ).values_list("id", flat=True)
+    query = f"""
+        SELECT sentry_commitauthor.id, sentry_commitauthor.organization_id, sentry_commitauthor.name, sentry_commitauthor.email, sentry_commitauthor.external_id, COUNT(sentry_commit.id) AS commit__count FROM sentry_commitauthor
+        INNER JOIN (
+            select * from sentry_commit
+            WHERE sentry_commit.organization_id = {org_id}
+            AND date_added >= '{date_added}'
+            order by date_added desc limit 1000
+        ) as sentry_commit ON sentry_commitauthor.id = sentry_commit.author_id
 
-    recent_commits = Commit.objects.filter(
-        repository_id__in=org_repos, date_added__gte=timezone.now() - timedelta(days=30)
-    ).values_list("id", flat=True)
+        WHERE sentry_commit.repository_id IN
+        (
+            select id
+            from sentry_repository
+            where provider = 'integrations:{provider}'
+            and organization_id = {org_id}
+            and integration_id in ({", ".join([str(id) for id in integration_ids])})
+            )
+        AND sentry_commit.author_id IN
+            (select id from sentry_commitauthor
+                WHERE sentry_commitauthor.organization_id = {org_id}
+                AND NOT (
+                    (sentry_commitauthor.email IN (select concat(email, user_email) from sentry_organizationmember where organization_id = {org_id} and (email is not null or user_email is not null)
+                )
+        OR sentry_commitauthor.external_id IS NULL))
+        {domain_query}
+        AND NOT (UPPER(sentry_commitauthor.email::text) LIKE UPPER('%%+%%'))
+        )
 
-    return (
-        nonmember_authors.filter(commit__id__in=recent_commits)
-        .annotate(Count("commit"))
-        .order_by("-commit__count")
+        GROUP BY sentry_commitauthor.id ORDER BY commit__count DESC limit 50
+    """.format(
+        org_id, date_added, provider, integration_ids, domain_query
     )
+
+    return CommitAuthor.objects.raw(query)
 
 
 def _get_shared_email_domain(organization: Organization) -> str | None:
@@ -177,9 +189,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
             missing_members_for_integration = {
                 "integration": integration_provider,
-                "users": serialize(
-                    list(queryset[:50]), request.user, serializer=MissingOrgMemberSerializer()
-                ),
+                "users": serialize(queryset, request.user, serializer=MissingOrgMemberSerializer()),
             }
 
             missing_org_members.append(missing_members_for_integration)
