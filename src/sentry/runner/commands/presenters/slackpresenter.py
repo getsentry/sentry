@@ -28,7 +28,6 @@ class SlackPresenter(OptionsPresenter):
         self.not_writable_options: List[Tuple[str, str]] = []
         self.unregistered_options: List[str] = []
         self.invalid_type_options: List[Tuple[str, type, type]] = []
-        self.options_changed = False
 
     @staticmethod
     def is_slack_enabled():
@@ -38,7 +37,16 @@ class SlackPresenter(OptionsPresenter):
         )
 
     def flush(self) -> None:
-        if not self.options_changed:
+        if (
+            not self.drifted_options
+            and not self.channel_updated_options
+            and not self.updated_options
+            and not self.set_options
+            and not self.unset_options
+            and not self.not_writable_options
+            and not self.unregistered_options
+            and not self.invalid_type_options
+        ):
             return
 
         region: Optional[str] = settings.SENTRY_REGION
@@ -85,30 +93,24 @@ class SlackPresenter(OptionsPresenter):
 
     def set(self, key: str, value: Any) -> None:
         self.set_options.append((key, value))
-        self.options_changed = True
 
     def unset(self, key: str) -> None:
         self.unset_options.append(key)
-        self.options_changed = True
 
     def update(self, key: str, db_value: Any, value: Any) -> None:
         self.updated_options.append((key, db_value, value))
-        self.options_changed = True
 
     def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
     def drift(self, key: str, db_value: Any) -> None:
         self.drifted_options.append((key, db_value))
-        self.options_changed = True
 
     def not_writable(self, key: str, not_writable_reason: str) -> None:
         self.not_writable_options.append((key, not_writable_reason))
-        self.options_changed = True
 
     def unregistered(self, key: str) -> None:
         self.unregistered_options.append(key)
-        self.options_changed = True
 
     def invalid_type(
         self,
@@ -130,6 +132,6 @@ class SlackPresenter(OptionsPresenter):
                 )
                 response.raise_for_status()
             except HTTPError as http_err:
-                raise ConnectionError(f"HTTP error occurred: {http_err}") from None
+                raise ConnectionError(f"HTTP error occurred: {http_err}")
             except RequestException as req_err:
-                raise ConnectionError(f"Network-related error occurred: {req_err}") from None
+                raise ConnectionError(f"Network-related error occurred: {req_err}")

@@ -81,6 +81,19 @@ def test_is_slack_enabled():
 @pytest.mark.django_db
 @responses.activate
 @override_settings(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/", SENTRY_REGION="test_region")
+def test_slack_presenter_empty():
+    responses.add(responses.POST, "https://test/", status=200)
+
+    presenter = SlackPresenter()
+    assert presenter.is_slack_enabled()
+    presenter.flush()
+
+    assert len(responses.calls) == 0
+
+
+@pytest.mark.django_db
+@responses.activate
+@override_settings(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/", SENTRY_REGION="test_region")
 def test_slack_presenter_methods_with_different_types():
     responses.add(responses.POST, "https://test/", status=200)
 
