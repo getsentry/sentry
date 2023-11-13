@@ -577,6 +577,7 @@ class MetricChart extends PureComponent<Props, State> {
       location,
       dataset,
       newAlertOrQuery: false,
+      useOnDemandMetrics: isOnDemandAlert,
     });
 
     return isCrashFreeAlert(dataset) ? (
@@ -617,7 +618,6 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
-        useOnDemandMetrics={isOnDemandAlert}
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) => (
           <Fragment>
