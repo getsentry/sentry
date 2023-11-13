@@ -40,7 +40,7 @@ function DDM() {
               <Layout.Title>
                 {t('DDM')}
                 <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io"
+                  docsUrl="https://develop.sentry.dev/delightful-developer-metrics/"
                   title={t('Delightful Developer Metrics.')}
                 />
                 <FeatureBadge type="alpha" />
