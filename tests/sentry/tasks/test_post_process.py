@@ -2462,7 +2462,9 @@ class PostProcessGroupFeedbackTest(
         # assert mock_process_rules is not called
         assert mock_process_func.call_count == 1
 
-    @pytest.mark.skip(reason="Skip this test since there's no way to have issueless events in the issue platform")
+    @pytest.mark.skip(
+        reason="Skip this test since there's no way to have issueless events in the issue platform"
+    )
     def test_issueless(self):
         ...
 
