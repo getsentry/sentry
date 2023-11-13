@@ -1,3 +1,12 @@
+"""
+This module is meant to manage the lifecycle of the UsageAccumulator
+to record shared resource usage amount.
+
+Since the UsageAccumulator depends on an Arroyo Kafka producer, the
+lifecycle is critical as the Threadpool has to be closed upon exit
+and the producer needs to be flushed to avoid loosing data.
+"""
+
 import atexit
 from typing import Optional
 
@@ -36,6 +45,13 @@ def record(
     amount: int,
     usage_type: UsageUnit,
 ) -> None:
+    """
+    Records usage of a shared feature. It also initializes the UsageAccumulator
+    if one is not ready.
+
+    When the application exits the producer is flushed and closed.
+    """
+
     global _accountant_backend
     if resource_id not in get("shared_resources_accounting_enabled"):
         return

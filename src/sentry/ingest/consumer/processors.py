@@ -129,6 +129,8 @@ def process_event(message: IngestMessage, project: Project) -> None:
         cache_key = event_processing_store.store(data)
 
     try:
+        # Records rc-processing usage broken down by
+        # event type.
         event_type = data.get("type")
         if event_type == "error":
             app_feature = "errors"
