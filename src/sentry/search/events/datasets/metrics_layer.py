@@ -599,16 +599,17 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
         ]:
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 
+        column = Column(constants.METRICS_MAP.get(column, column))
         if quality == "any":
             return Function(
                 "count",
-                [],
+                [column],
                 alias,
             )
 
         return Function(
             "count_web_vitals",
-            [Column(constants.METRICS_MAP.get(column, column)), quality],
+            [column, quality],
             alias,
         )
 
