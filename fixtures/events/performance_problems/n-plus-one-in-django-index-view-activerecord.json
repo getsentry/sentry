@@ -13,7 +13,7 @@
       "status": "ok",
       "type": "trace"
     }
-},
+  },
   "spans": [
     {
       "timestamp": 1661957873.995433,

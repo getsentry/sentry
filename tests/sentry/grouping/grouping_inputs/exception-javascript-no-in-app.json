@@ -4,9 +4,7 @@
   "environment": "prod",
   "platform": "javascript",
   "logger": "",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {
@@ -71,9 +69,7 @@
           "frames": [
             {
               "abs_path": "https://s1.sentry-cdn.com/_static/7929ba007069f1372e3af911f1e947cd/sentry/dist/CreateTeamModal.js",
-              "post_context": [
-                "//# sourceMappingURL=CreateTeamModal.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=CreateTeamModal.js.map"],
               "in_app": false,
               "lineno": 1,
               "colno": 948,
@@ -83,9 +79,7 @@
             {
               "function": "a.onSubmitError",
               "abs_path": "https://s1.sentry-cdn.com/_static/7929ba007069f1372e3af911f1e947cd/sentry/dist/app.js",
-              "post_context": [
-                "//# sourceMappingURL=app.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=app.js.map"],
               "in_app": false,
               "lineno": 1,
               "colno": 137210,

@@ -66,7 +66,11 @@
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/organizations/?member=1"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/?member=1"
+      },
       "hash": "cbc1d1c7a6500a75"
     },
     {
@@ -98,7 +102,11 @@
       "trace_id": "0102834d0bf74d388ce0b1e15329f731",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"http.method": "GET", "type": "fetch", "url": "/api/0/subscriptions/sentry/"},
+      "data": {
+        "http.method": "GET",
+        "type": "fetch",
+        "url": "/api/0/subscriptions/sentry/"
+      },
       "hash": "51a97bb49057facc"
     },
     {

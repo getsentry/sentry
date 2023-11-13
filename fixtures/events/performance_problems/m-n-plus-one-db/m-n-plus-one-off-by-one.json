@@ -7,26 +7,22 @@
   "message": "",
   "datetime": "2022-12-15T13:27:46.944592+00:00",
   "tags": [
-    [
-      "runtime",
-      "ruby ruby 2.7.3p183 (2021-04-05 revision 6847ee089d) [x86_64-linux]"
-    ],
+    ["runtime", "ruby ruby 2.7.3p183 (2021-04-05 revision 6847ee089d) [x86_64-linux]"],
     ["runtime.name", "ruby"]
   ],
-  "_metrics": { "bytes.ingested.event": 75694, "bytes.stored.event": 87003 },
+  "_metrics": {"bytes.ingested.event": 75694, "bytes.stored.event": 87003},
   "breadcrumbs": {
-    "values": [
-    ]
+    "values": []
   },
   "breakdowns": {
     "span_ops": {
-      "ops.db": { "value": 14.699928, "unit": "millisecond" },
-      "total.time": { "value": 539.459936, "unit": "millisecond" }
+      "ops.db": {"value": 14.699928, "unit": "millisecond"},
+      "total.time": {"value": 539.459936, "unit": "millisecond"}
     }
   },
   "contexts": {
-    "browser": { "name": "Chrome", "version": "108.0.0", "type": "browser" },
-    "client_os": { "name": "Windows", "version": "10", "type": "os" },
+    "browser": {"name": "Chrome", "version": "108.0.0", "type": "browser"},
+    "client_os": {"name": "Windows", "version": "10", "type": "os"},
     "runtime": {
       "name": "ruby",
       "version": "ruby 2.7.3p183 (2021-04-05 revision 6847ee089d) [x86_64-linux]",
@@ -64,14 +60,12 @@
     "location": "Members::Controller#index",
     "title": "Members::Controller#index"
   },
-  "modules": {
-  },
+  "modules": {},
   "nodestore_insert": 1671110868.558147,
   "received": 1671110867.040729,
-  "request": {
-  },
-  "sdk": { "name": "sentry.ruby", "version": "5.5.0" },
-  "span_grouping_config": { "id": "default:2022-10-27" },
+  "request": {},
+  "sdk": {"name": "sentry.ruby", "version": "5.5.0"},
+  "span_grouping_config": {"id": "default:2022-10-27"},
   "spans": [
     {
       "timestamp": 1671110866.415889,
@@ -1135,7 +1129,7 @@
   "timestamp": 1671110866.944592,
   "title": "Members::Controller#index",
   "transaction": "Members::Controller#index",
-  "transaction_info": { "source": "view" },
+  "transaction_info": {"source": "view"},
   "type": "transaction",
   "version": "7"
 }

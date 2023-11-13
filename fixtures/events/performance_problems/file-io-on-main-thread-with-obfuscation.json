@@ -7,54 +7,18 @@
   "message": "",
   "datetime": "2022-11-25T22:43:58.519693+00:00",
   "tags": [
-    [
-      "device",
-      "Android SDK built for x86"
-    ],
-    [
-      "device.family",
-      "Android"
-    ],
-    [
-      "environment",
-      "release"
-    ],
-    [
-      "isSideLoaded",
-      "true"
-    ],
-    [
-      "level",
-      "info"
-    ],
-    [
-      "os",
-      "Android 10"
-    ],
-    [
-      "os.name",
-      "Android"
-    ],
-    [
-      "os.rooted",
-      "no"
-    ],
-    [
-      "dist",
-      "2"
-    ],
-    [
-      "release",
-      "io.sentry.samples.android@1.1.0+2"
-    ],
-    [
-      "user",
-      "id:0f38dda2-6ef7-4d9a-b7f4-6bcc80b85b2e"
-    ],
-    [
-      "transaction",
-      "MainActivity.add_attachment"
-    ]
+    ["device", "Android SDK built for x86"],
+    ["device.family", "Android"],
+    ["environment", "release"],
+    ["isSideLoaded", "true"],
+    ["level", "info"],
+    ["os", "Android 10"],
+    ["os.name", "Android"],
+    ["os.rooted", "no"],
+    ["dist", "2"],
+    ["release", "io.sentry.samples.android@1.1.0+2"],
+    ["user", "id:0f38dda2-6ef7-4d9a-b7f4-6bcc80b85b2e"],
+    ["transaction", "MainActivity.add_attachment"]
   ],
   "_metrics": {
     "bytes.ingested.event": 3552,
@@ -160,9 +124,7 @@
       "simulator": true,
       "boot_time": "2022-11-25T21:17:00.121Z",
       "timezone": "Europe/Vienna",
-      "archs": [
-        "x86"
-      ],
+      "archs": ["x86"],
       "id": "0f38dda2-6ef7-4d9a-b7f4-6bcc80b85b2e",
       "language": "en",
       "locale": "en_US",
