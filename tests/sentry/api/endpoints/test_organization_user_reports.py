@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
@@ -138,7 +139,9 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             "email": "",
             "comments": "It broke",
         }
-        save_userreport(self.project_1, report_data)
+        save_userreport(
+            self.project_1, report_data, FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+        )
         response = self.get_response(self.project_1.organization.slug, project=[self.project_1.id])
         assert response.status_code == 200
         assert response.data[0]["comments"] == "It broke"
