@@ -269,6 +269,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This Project has event with minified stack trace
         has_minified_stack_trace: bool
 
+        # This Project has event with sourcemaps
+        has_sourcemaps: bool
+
         # This Project has cron monitors
         has_cron_monitors: bool
 
