@@ -1,23 +1,12 @@
 export type DDMEventParameters = {
-  'ddm.page-view': {
-    organization: string;
-  };
-  'ddm.scratchpad.remove': {
-    organization: string;
-  };
-  'ddm.scratchpad.save': {
-    organization: string;
-  };
-  'ddm.scratchpad.set-default': {
-    organization: string;
-  };
-  'ddm.widget.add': {
-    organization: string;
-  };
+  'ddm.page-view': {};
+  'ddm.scratchpad.remove': {};
+  'ddm.scratchpad.save': {};
+  'ddm.scratchpad.set-default': {};
+  'ddm.widget.add': {};
   'ddm.widget.sort': {
     by: string;
     order: string;
-    organization: string;
   };
 };
 
