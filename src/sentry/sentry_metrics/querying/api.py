@@ -16,6 +16,7 @@ from snuba_sdk import (
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.dsl.dsl import parse_mql
 
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
@@ -462,6 +463,7 @@ def run_metrics_query(
     end: datetime,
     organization: Organization,
     projects: Sequence[Project],
+    environments: Sequence[Environment],
     referrer: str,
 ):
     # Build the basic query that contains the metadata.
@@ -471,6 +473,7 @@ def run_metrics_query(
         scope=MetricsScope(
             org_ids=[organization.id],
             project_ids=[project.id for project in projects],
+            environment_ids=[environment.id for environment in environments],
         ),
     )
 
