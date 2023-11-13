@@ -202,6 +202,7 @@ def test_accountant_transaction(default_project):
     atexit._run_exitfuncs()
 
     msg1 = broker.consume(Partition(topic, 0), 0)
+    assert msg1 is not None
     payload = msg1.payload
     assert payload is not None
     formatted = loads(payload.value.decode("utf-8"))
