@@ -51,6 +51,7 @@ function DDM() {
                 <GithubFeedbackButton
                   href="https://github.com/getsentry/sentry/discussions/58584"
                   label={t('Discussion')}
+                  title={null}
                 />
               </ButtonBar>
             </Layout.HeaderActions>
