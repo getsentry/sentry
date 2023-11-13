@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from snuba_sdk import (
     BooleanCondition,
@@ -201,7 +201,7 @@ class EventUser:
             return EventUser_model.for_tags(project_id, values)
 
         result = {}
-        keyword_filters = {}
+        keyword_filters: Dict[str, Any] = {}
         for value in values:
             key, value = value.split(":", 1)[0], value.split(":", 1)[-1]
             if keyword_filters.get(key):
