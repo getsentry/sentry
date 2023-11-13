@@ -172,7 +172,7 @@ function ReleaseThresholdList({}: Props) {
               ))}
             {projectsWithoutThresholds[0] && (
               <div>
-                <div>Projects without Thresholds</div>
+                <strong>Projects without Thresholds</strong>
                 {projectsWithoutThresholds.map(proj => (
                   <NoThresholdCard
                     key={proj.id}
