@@ -2,7 +2,11 @@ from unittest.mock import patch
 
 import responses
 
-from sentry.tasks.integrations.github.open_pr_comment import get_pr_filenames, safe_for_comment
+from sentry.tasks.integrations.github.open_pr_comment import (
+    get_pr_filenames,
+    get_projects_and_filenames_from_source_file,
+    safe_for_comment,
+)
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.tasks.integrations.github.test_pr_comment import GithubCommentTestCase
@@ -144,7 +148,7 @@ class TestGetFilenames(GithubCommentTestCase):
         self.gh_client = installation.get_client()
 
     @responses.activate
-    def test_simple(self):
+    def test_get_pr_filenames(self):
         responses.add(
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
@@ -157,3 +161,46 @@ class TestGetFilenames(GithubCommentTestCase):
         )
 
         assert set(get_pr_filenames(self.gh_client, self.gh_repo, self.pr)) == {"bar.py", "baz.py"}
+
+    def test_get_projects_and_filenames_from_source_file(self):
+        projects = [self.create_project() for _ in range(4)]
+
+        source_stack_pairs = [
+            ("", "./"),
+            ("src/sentry", "sentry/"),
+            ("src/", ""),
+            ("src/sentry/", "sentry/"),
+        ]
+        for i, pair in enumerate(source_stack_pairs):
+            source_root, stack_root = pair
+            self.create_code_mapping(
+                project=projects[i],
+                repo=self.gh_repo,
+                source_root=source_root,
+                stack_root=stack_root,
+                default_branch="master",
+            )
+
+        source_stack_nonmatches = [
+            ("/src/sentry", "sentry"),
+            ("tests/", "tests/"),
+            ("app/", "static/app"),
+        ]
+        for source_root, stack_root in source_stack_nonmatches:
+            self.create_code_mapping(
+                project=self.create_project(),
+                repo=self.gh_repo,
+                source_root=source_root,
+                stack_root=stack_root,
+                default_branch="master",
+            )
+
+        filename = "src/sentry/tasks/integrations/github/open_pr_comment.py"
+        correct_filenames = [
+            filename.replace(source_root, stack_root)
+            for source_root, stack_root in source_stack_pairs
+        ]
+
+        project_list, sentry_filenames = get_projects_and_filenames_from_source_file(filename)
+        assert project_list == set(projects)
+        assert sentry_filenames == set(correct_filenames)
