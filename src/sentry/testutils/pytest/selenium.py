@@ -1,11 +1,13 @@
 # TODO(dcramer): this heavily inspired by pytest-selenium, and it's possible
 # we could simply inherit from the plugin at this point
+from __future__ import annotations
+
 import logging
 import os
 import sys
 from contextlib import contextmanager
 from datetime import datetime
-from typing import MutableSequence
+from typing import Callable, MutableSequence
 from urllib.parse import urlparse
 
 import pytest
@@ -219,6 +221,7 @@ class Browser:
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
         """
+        condition: Callable[[expected_conditions.AnyDriver], object]
         if selector:
             condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
         elif xpath:
@@ -240,6 +243,7 @@ class Browser:
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
         """
+        condition: Callable[[expected_conditions.AnyDriver], object]
         if selector:
             condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
         elif title:
