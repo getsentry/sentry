@@ -126,7 +126,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
         second_bound = request.GET.get("secondBound")
         upper_bound = request.GET.get("upperBound")
         column = request.GET.get("column", "span.self_time")
-        selected_columns = request.GET.getlist("field", [],) + [
+        selected_columns = request.GET.getlist("additonalFields", []) + [
             "project",
             "transaction.id",
             column,
