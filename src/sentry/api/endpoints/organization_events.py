@@ -244,7 +244,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         except ValueError:
             metric_type_values = [e.value for e in MetricSpecType]
             metric_types = ",".join(metric_type_values)
-            return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
+            return Response({"detail": f"On demand metric type must be one of: {metric_types}"}, status=400)
 
         on_demand_metrics_enabled = (
             batch_features.get("organizations:on-demand-metrics-extraction", False)
