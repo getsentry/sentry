@@ -201,6 +201,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
         use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
+        force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
 
         def get_event_stats(
             query_columns: Sequence[str],
@@ -227,6 +228,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     on_demand_metrics_enabled=use_on_demand_metrics,
                     include_other=include_other,
                 )
+
             return dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
@@ -237,7 +239,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 comparison_delta=comparison_delta,
                 allow_metric_aggregates=allow_metric_aggregates,
                 has_metrics=use_metrics,
-                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                # We want to allow people to force use the new metrics layer in the query builder. We decided to go for
+                # this approach so that we can have only a subset of parts of sentry that use the new metrics layer for
+                # their queries since right now the metrics layer has not full feature parity with the query builder.
+                use_metrics_layer=force_metrics_layer
+                or batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=use_on_demand_metrics
                 and batch_features.get("organizations:on-demand-metrics-extraction", False),
             )
