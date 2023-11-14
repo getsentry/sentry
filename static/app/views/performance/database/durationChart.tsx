@@ -26,7 +26,6 @@ export function DurationChart({series, isLoading}: Props) {
         utc={false}
         chartColors={[AVG_COLOR]}
         isLineChart
-        definedAxisTicks={4}
       />
     </ChartPanel>
   );
