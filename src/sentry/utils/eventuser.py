@@ -36,7 +36,7 @@ SNUBA_KEYWORD_MAP = BidirectionalMapping(
     {
         ("user_id"): "id",
         ("user_name"): "username",
-        ("email"): "email",
+        ("user_email"): "email",
         ("ip_address_v4", "ip_address_v6"): "ip",
     }
 )
@@ -111,21 +111,24 @@ class EventUser:
 
             snuba_column = SNUBA_KEYWORD_MAP.get_key(keyword)
             if isinstance(snuba_column, tuple):
-                keyword_where_conditions.append(
-                    BooleanCondition(
-                        BooleanOp.OR,
-                        [
-                            Condition(
-                                Column(column),
-                                Op.IN,
-                                value
-                                if SNUBA_COLUMN_COALASCE.get(column, None) is None
-                                else Function(SNUBA_COLUMN_COALASCE.get(column), parameters=value),
-                            )
-                            for column in snuba_column
-                        ],
+                for filter_value in value:
+                    keyword_where_conditions.append(
+                        BooleanCondition(
+                            BooleanOp.OR,
+                            [
+                                Condition(
+                                    Column(column),
+                                    Op.IN,
+                                    value
+                                    if SNUBA_COLUMN_COALASCE.get(column, None) is None
+                                    else Function(
+                                        SNUBA_COLUMN_COALASCE.get(column), parameters=[filter_value]
+                                    ),
+                                )
+                                for column in snuba_column
+                            ],
+                        )
                     )
-                )
             else:
                 keyword_where_conditions.append(Condition(Column(snuba_column), Op.IN, value))
 
@@ -142,25 +145,30 @@ class EventUser:
                 keyword_where_conditions,
             )
 
+        columns = [
+            Column("project_id"),
+            Column("group_id"),
+            Column("ip_address_v6"),
+            Column("ip_address_v4"),
+            Column("user_id"),
+            Column("user"),
+            Column("user_name"),
+            Column("user_email"),
+        ]
+
         query = Query(
             match=Entity(EntityKey.Events.value),
             select=[
-                Column("project_id"),
-                Column("group_id"),
-                Column("ip_address_v6"),
-                Column("ip_address_v4"),
-                Column("event_id"),
-                Column("user_id"),
-                Column("user"),
-                Column("user_name"),
-                Column("user_email"),
+                *columns,
+                Function("max", [Column("timestamp")], "latest_timestamp"),
             ],
             where=where_conditions,
+            groupby=[*columns],
+            orderby=[OrderBy(Column("latest_timestamp"), Direction.DESC)],
         )
 
-        if return_all:
+        if not return_all:
             query.set_limit(1)
-            query.set_orderby([OrderBy(Column("timestamp"), Direction.DESC)])
 
         request = Request(
             dataset=Dataset.Events.value,
@@ -169,9 +177,71 @@ class EventUser:
             tenant_ids={"referrer": REFERRER, "organization_id": projects[0].organization.id},
         )
         data_results = raw_snql_query(request, referrer=REFERRER)["data"]
-        results = [EventUser.from_snuba(result) for result in data_results]
+
+        # Return the first matching item from the Snuba results.
+        # All other rows are not needed.
+        # The Snuba results are sorted by descending time.
+        first_matching_items = []
+
+        snuba_keyword_filters = {}
+        for keyword, value in keyword_filters.items():
+            snuba_column = SNUBA_KEYWORD_MAP.get_key(keyword)
+            snuba_keyword_filters[snuba_column] = value
+
+        matches = self._find_matching_items(data_results, snuba_keyword_filters, filter_boolean)
+        first_matching_items.extend(matches.values())
+
+        results = [EventUser.from_snuba(item) for item in first_matching_items]
 
         return results
+
+    def _find_matching_items(snuba_results, filters, filter_boolean):
+        """
+        If the filter boolean is OR, for each of the keyword filters get the first matching item.
+        If the filter boolean is AND, get the first matching item that has all of the keyword filters.
+        """
+        matches = {}
+
+        if filter_boolean == "OR":
+            for key, values in filters.items():
+                for value in values:
+                    matching_item = next(
+                        (
+                            item
+                            for item in snuba_results
+                            if (
+                                item.get(key) == value
+                                if isinstance(key, str)
+                                else any(item.get(sub_key) == value for sub_key in key)
+                            )
+                        ),
+                        None,
+                    )
+
+                    if matching_item:
+                        matches[(key, value)] = matching_item
+
+        if filter_boolean == "AND":
+            matching_item = next(
+                (
+                    item
+                    for item in snuba_results
+                    if all(
+                        (
+                            item.get(k) == v[0]
+                            if isinstance(k, str)
+                            else any(item.get(sub_k) == v[0] for sub_k in k)
+                        )
+                        for k, v in filters.items()
+                    )
+                ),
+                None,
+            )
+            if matching_item:
+                match_key = tuple((key, tuple(value)) for key, value in filters.items())
+                matches[match_key] = matching_item
+
+        return matches
 
     @staticmethod
     def from_snuba(result: Mapping[str, Any]) -> EventUser:
@@ -209,7 +279,10 @@ class EventUser:
             else:
                 keyword_filters[key] = [value]
 
-        eventusers = EventUser.for_projects(projects, keyword_filters, return_all=True)
+        eventusers = EventUser.for_projects(
+            projects, keyword_filters, filter_boolean="OR", return_all=True
+        )
+
         for keyword, values in keyword_filters.items():
             column = KEYWORD_MAP.get_key(keyword)
             for value in values:
