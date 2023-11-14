@@ -19,7 +19,6 @@ import useRouter from 'sentry/utils/useRouter';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {ScreenLoadSampleContainer} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples/samplesContainer';
-import SampleInfo from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleInfo';
 
 type Props = {
   groupId: string;
@@ -107,14 +106,6 @@ export function ScreenLoadSpanSamples({
           </TitleContainer>
         </HeaderContainer>
         <PageErrorAlert />
-
-        <SampleInfo
-          groupId={groupId}
-          transactionName={transactionName}
-          transactionMethod={transactionMethod}
-          displayedMetrics={['count()', 'time_spent_percentage()']}
-        />
-
         <ChartsContainer>
           <ChartsContainerItem key="release1">
             <ScreenLoadSampleContainer
