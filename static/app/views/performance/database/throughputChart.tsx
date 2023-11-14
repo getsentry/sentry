@@ -17,6 +17,12 @@ export function ThroughputChart({series, isLoading}: Props) {
     <ChartPanel title={getThroughputChartTitle('db')}>
       <Chart
         height={CHART_HEIGHT}
+        grid={{
+          left: '0',
+          right: '0',
+          top: '8px',
+          bottom: '0',
+        }}
         data={[series]}
         loading={isLoading}
         utc={false}
