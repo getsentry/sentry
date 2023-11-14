@@ -83,3 +83,9 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         response = self.client.delete(url, format="json")
 
         assert response.status_code == 404
+
+    def test_cannot_delete_partner_app_token(self):
+        self.login_as(user=self.user)
+        self.internal_sentry_app.update(metadata={"partnership_restricted": True})
+        response = self.client.delete(self.url)
+        assert response.status_code == 403

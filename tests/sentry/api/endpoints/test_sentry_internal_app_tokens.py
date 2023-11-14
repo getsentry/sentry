@@ -63,6 +63,12 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         assert response.status_code == 403
         assert response.data == "Cannot generate more than 20 tokens for a single integration"
 
+    def test_cannot_create_partner_app_token(self):
+        self.login_as(user=self.user)
+        self.internal_sentry_app.update(metadata={"partnership_restricted": True})
+        response = self.client.post(self.url, format="json")
+        assert response.status_code == 403
+
 
 @control_silo_test(stable=True)
 class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
