@@ -1,4 +1,3 @@
-import {LinkButton} from 'sentry/components/button';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -276,16 +275,6 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]: {
     title: t('Most Time Consuming Resources'),
     subTitle: t('Render blocking for pages'),
-    ContainerActions: (
-      <div>
-        <LinkButton
-          to={`/organizations/${organization.slug}/performance/browser/resources/`}
-          size="sm"
-        >
-          {t('View All')}
-        </LinkButton>
-      </div>
-    ),
     titleTooltip: getTermHelp(
       organization,
       PerformanceTerm.MOST_TIME_CONSUMING_RESOURCES
