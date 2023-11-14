@@ -10,19 +10,17 @@ from snuba_sdk import (
     Column,
     Condition,
     CurriedFunction,
+    Formula,
     MetricsQuery,
     Request,
+    Timeseries,
 )
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mapping import (
-    get_mri,
-    get_public_name_from_mri,
-    is_private_mri,
-)
+from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
 from sentry.utils import metrics
@@ -132,14 +130,30 @@ GENERIC_ENTITIES = {
 
 def _resolve_use_case_id_str(metrics_query: MetricsQuery) -> str:
     # Automatically resolve the use_case_id if it is not provided
-    # TODO: At the moment only a single Timeseries is allowed. In the future this will need to find
-    # all the Timeseries and ensure they all have the same use case.
-    mri = metrics_query.query.metric.mri
-    parsed_mri = parse_mri(mri)
-    if parsed_mri is None:
-        raise InvalidParams(f"'{mri}' is not a valid MRI")
+    if isinstance(metrics_query.query, Timeseries):
+        mri = metrics_query.query.metric.mri
+        parsed_mri = parse_mri(mri)
+        if parsed_mri is None:
+            raise InvalidParams(f"'{mri}' is not a valid MRI")
 
-    return parsed_mri.namespace
+        return parsed_mri.namespace
+
+    assert isinstance(metrics_query.query, Formula)
+    namespaces = set()
+    for p in metrics_query.query.parameters:
+        if isinstance(p, Timeseries):
+            parsed_mri = parse_mri(p.metric.mri)
+            if parsed_mri is None:
+                raise InvalidParams(f"'{mri}' is not a valid MRI")
+
+            namespaces.add(parsed_mri.namespace)
+
+    if not namespaces:
+        raise InvalidParams("No use case found in formula parameters")
+    if len(namespaces) > 1:
+        raise InvalidParams("Formula parameters must all be from the same use case")
+
+    return namespaces.pop()
 
 
 def _resolve_metrics_entity(mri: str) -> EntityKey:
@@ -188,6 +202,70 @@ def _resolve_granularity(start: datetime, end: datetime, interval: int | None) -
     return min(found_granularities)
 
 
+def _resolve_query_metrics(
+    metrics_query: MetricsQuery,
+    use_case_id: UseCaseID,
+    org_id: int,
+) -> tuple[MetricsQuery, dict[str, str | int]]:
+    """
+    Resolves all the fields of the Metric in the query. Public name -> MRI -> ID -> Entity.
+    Returns a mapping dictionary that shows any resolving that the function did.
+    """
+    assert metrics_query.query is not None
+    if isinstance(metrics_query.query, Timeseries):
+        series, mappings = _resolve_timeseries_metric(metrics_query.query, use_case_id, org_id)
+        metrics_query = metrics_query.set_query(series)
+    elif isinstance(metrics_query.query, Formula):
+        formula, mappings = _resolve_formula_metrics(metrics_query.query, use_case_id, org_id)
+        metrics_query = metrics_query.set_query(formula)
+
+    return metrics_query, mappings
+
+
+def _resolve_timeseries_metric(
+    series: Timeseries, use_case_id: UseCaseID, org_id: int
+) -> tuple[Timeseries, dict[str, str | int]]:
+    metric = series.metric
+    mappings: dict[str, str | int] = {}
+    if not metric.mri and not metric.public_name:
+        raise InvalidParams("Metric must have either an MRI or a public name")
+
+    if not metric.mri and metric.public_name:
+        mri = get_mri(metric.public_name)
+        metric = metric.set_mri(mri)
+        mappings[metric.public_name] = mri
+
+    if metric.id is None:
+        metric_id = resolve_weak(
+            use_case_id, org_id, metric.mri
+        )  # only support raw metrics for now
+        metric = metric.set_id(metric_id)
+        mappings[metric.mri] = metric_id
+
+    if not metric.entity:
+        entity = _resolve_metrics_entity(metric.mri)
+        metric = metric.set_entity(entity.value)
+
+    series = series.set_metric(metric)
+    return series, mappings
+
+
+def _resolve_formula_metrics(
+    formula: Formula, use_case_id: UseCaseID, org_id: int
+) -> tuple[Formula, dict[str, str | int]]:
+    # TODO: This will eventually need to recursively resolve Formulas as Formula becomes a valid paramaeter
+    parameters = formula.parameters
+    formula_mappings = {}
+    for i, p in enumerate(parameters):
+        if isinstance(p, Timeseries):
+            series, mappings = _resolve_timeseries_metric(p, use_case_id, org_id)
+            parameters[i] = series
+            formula_mappings.update(mappings)
+
+    formula = formula.set_parameters(parameters)
+    return formula, mappings
+
+
 def _resolve_metrics_query(
     metrics_query: MetricsQuery,
 ) -> tuple[MetricsQuery, Mapping[str, str | int]]:
@@ -195,24 +273,6 @@ def _resolve_metrics_query(
     Returns an updated metrics query with all the indexer resolves complete. Also returns a mapping
     that shows all the strings that were resolved and what they were resolved too.
     """
-    assert metrics_query.query is not None
-    metric = metrics_query.query.metric
-    mappings: dict[str, str | int] = {}
-    if not metric.public_name and metric.mri:
-        if not is_private_mri(metric.mri):
-            public_name = get_public_name_from_mri(metric.mri)
-            metrics_query = metrics_query.set_query(
-                metrics_query.query.set_metric(
-                    metrics_query.query.metric.set_public_name(public_name)
-                )
-            )
-            mappings[public_name] = metric.mri
-    elif not metric.mri and metric.public_name:
-        mri = get_mri(metric.public_name)
-        metrics_query = metrics_query.set_query(
-            metrics_query.query.set_metric(metrics_query.query.metric.set_mri(mri))
-        )
-        mappings[metric.public_name] = mri
 
     org_id = metrics_query.scope.org_ids[0]
     use_case_id_str = _resolve_use_case_id_str(metrics_query)
@@ -222,34 +282,35 @@ def _resolve_metrics_query(
         )
 
     use_case_id = string_to_use_case_id(use_case_id_str)
-    if metrics_query.query.metric.id is None:
-        metric_id = resolve_weak(
-            use_case_id, org_id, metrics_query.query.metric.mri
-        )  # only support raw metrics for now
+    metrics_query, mappings = _resolve_query_metrics(metrics_query, use_case_id, org_id)
 
-        metrics_query = metrics_query.set_query(
-            metrics_query.query.set_metric(metrics_query.query.metric.set_id(metric_id))
-        )
-    else:
-        metric_id = metrics_query.query.metric.id
-
-    mappings[metrics_query.query.metric.mri] = metric_id
-
-    if not metrics_query.query.metric.entity:
-        entity = _resolve_metrics_entity(metrics_query.query.metric.mri)
-        metrics_query = metrics_query.set_query(
-            metrics_query.query.set_metric(metrics_query.query.metric.set_entity(entity.value))
-        )
-
-    # TODO: Once we support formula queries, we would need to resolve groupby and filters recursively given a Formula object
-    # For now, metrics_query.query will only ever be a Timeseries
     new_groupby, new_mappings = _resolve_groupby(metrics_query.query.groupby, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_groupby(new_groupby))
     mappings.update(new_mappings)
 
+    if isinstance(metrics_query.query, Formula):
+        parameters = metrics_query.query.parameters
+        for i, p in enumerate(parameters):
+            if isinstance(p, Timeseries):
+                new_groupby, new_mappings = _resolve_groupby(p.groupby, use_case_id, org_id)
+                parameters[i] = p.set_groupby(new_groupby)
+                mappings.update(new_mappings)
+
+        metrics_query = metrics_query.set_query(metrics_query.query.set_parameters(parameters))
+
     new_filters, new_mappings = _resolve_filters(metrics_query.query.filters, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_filters(new_filters))
     mappings.update(new_mappings)
+
+    if isinstance(metrics_query.query, Formula):
+        parameters = metrics_query.query.parameters
+        for i, p in enumerate(parameters):
+            if isinstance(p, Timeseries):
+                new_filters, new_mappings = _resolve_filters(p.filters, use_case_id, org_id)
+                parameters[i] = p.set_filters(new_filters)
+                mappings.update(new_mappings)
+
+        metrics_query = metrics_query.set_query(metrics_query.query.set_parameters(parameters))
 
     return metrics_query, mappings
 
