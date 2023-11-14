@@ -244,6 +244,7 @@ default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFea
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:ddm-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:ddm-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:escalating-issues", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-issues-msteams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
