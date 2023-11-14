@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import List
 
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.pullrequest import PullRequest
@@ -67,9 +68,9 @@ def safe_for_comment(
 
 def get_pr_filenames(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-):
+) -> List[str]:
     pr_files = gh_client.get_pullrequest_files(repo=repository.name, pull_number=pull_request.key)
 
     # new files will not have sentry issues associated with them
-    pr_filenames = [file["filename"] for file in pr_files if file["status"] != "added"]
+    pr_filenames: List[str] = [file["filename"] for file in pr_files if file["status"] != "added"]
     return pr_filenames

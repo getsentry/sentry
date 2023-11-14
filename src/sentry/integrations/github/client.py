@@ -231,7 +231,7 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
-    def get_pullrequest(self, repo: str, pull_number: int) -> JSONData:
+    def get_pullrequest(self, repo: str, pull_number: str) -> JSONData:
         """
         https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
 
@@ -239,7 +239,7 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}")
 
-    def get_pullrequest_files(self, repo: str, pull_number: int) -> JSONData:
+    def get_pullrequest_files(self, repo: str, pull_number: str) -> JSONData:
         """
         https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
 
