@@ -86,7 +86,7 @@ jmespath==0.10.0
 jsonschema==3.2.0
 kombu==4.6.11
 lazy-object-proxy==1.7.1
-lxml==4.9.1
+lxml==4.9.3
 lxml-stubs==0.4.0
 markupsafe==2.1.2
 maxminddb==2.3.0

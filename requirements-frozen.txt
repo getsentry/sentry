@@ -64,7 +64,7 @@ isodate==0.6.1
 jmespath==0.10.0
 jsonschema==3.2.0
 kombu==4.6.11
-lxml==4.9.1
+lxml==4.9.3
 maxminddb==2.3.0
 milksnake==0.1.6
 mistune==2.0.4
