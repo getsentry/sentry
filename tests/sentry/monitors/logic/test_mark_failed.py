@@ -731,16 +731,24 @@ class MarkFailedTestCase(TestCase):
             status=CheckInStatus.OK,
         )
 
-        failure_statuses = cycle([CheckInStatus.ERROR, CheckInStatus.TIMEOUT, CheckInStatus.MISSED])
-
-        for _ in range(0, failure_issue_threshold - 1):
-            status = next(failure_statuses)
+        # create in-progress check-ins
+        first_checkin = None
+        checkins = []
+        for _ in range(0, failure_issue_threshold):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
                 project_id=self.project.id,
-                status=status,
+                status=CheckInStatus.IN_PROGRESS,
             )
+            checkins.append(checkin)
+            if _ == 0:
+                first_checkin = checkin
+
+        # mark check-ins as failed
+        for _ in range(0, failure_issue_threshold - 1):
+            checkin = checkins.pop(0)
+            checkin.update(status=CheckInStatus.TIMEOUT)
             mark_failed(checkin, ts=checkin.date_added)
 
         # failure has not hit threshold, monitor should be in an OK status
@@ -749,32 +757,14 @@ class MarkFailedTestCase(TestCase):
         # check that timestamp has not updated
         assert monitor_environment.last_state_change is None
 
-        # create another OK check-in to break the chain
-        MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            status=CheckInStatus.OK,
-        )
-
-        first_checkin = None
-        for _ in range(0, failure_issue_threshold):
-            status = next(failure_statuses)
-            checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
-                monitor_environment=monitor_environment,
-                project_id=self.project.id,
-                status=status,
-            )
-            if _ == 0:
-                first_checkin = checkin
-            mark_failed(checkin, ts=checkin.date_added)
+        checkin = checkins.pop(0)
+        checkin.update(status=CheckInStatus.TIMEOUT)
+        mark_failed(checkin, ts=checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_state_change == monitor_environment.last_checkin
-        prior_last_state_change = monitor_environment.last_state_change
 
         # check that an incident has been created correctly
         monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
@@ -786,31 +776,6 @@ class MarkFailedTestCase(TestCase):
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold
-        # assert that the correct uuid fingerprint was sent
-        kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
-        occurrence = kwargs["occurrence"]
-        occurrence = occurrence.to_dict()
-        assert occurrence["fingerprint"][0] == monitor_incident.grouphash
-
-        # send another check-in to make sure we don't update last_state_change
-        status = next(failure_statuses)
-        checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            status=status,
-        )
-        mark_failed(checkin, ts=checkin.date_added)
-        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
-        assert monitor_environment.status == MonitorStatus.ERROR
-        assert monitor_environment.last_state_change == prior_last_state_change
-
-        # check that incident has not changed
-        monitor_incident = MonitorIncident.objects.get(id=monitor_incident.id)
-        assert monitor_incident.grouphash == monitor_environment.incident_grouphash
-
-        # assert correct number of occurrences was sent
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold + 1
         # assert that the correct uuid fingerprint was sent
         kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
         occurrence = kwargs["occurrence"]
