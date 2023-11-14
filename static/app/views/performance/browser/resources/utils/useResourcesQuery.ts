@@ -45,11 +45,11 @@ export const getResourcesEventViewQuery = (
       : []),
     ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
     ...getDomainFilter(resourceFilters[SPAN_DOMAIN]),
-    ...(resourceFilters['resource.render_blocking_status']
+    ...(resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]
       ? [
-          `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
+          `${RESOURCE_RENDER_BLOCKING_STATUS}:${resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]}`,
         ]
-      : [`!resource.render_blocking_status:blocking`]),
+      : [`!${RESOURCE_RENDER_BLOCKING_STATUS}:blocking`]),
   ];
 };
 
