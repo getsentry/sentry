@@ -109,8 +109,8 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
         with self.tasks():
             clean_custom_rule_notifications()
 
-        expired_rule.refresh_from_db()
-        assert not expired_rule.is_active
-
         self.rule.refresh_from_db()
         assert self.rule.is_active
+
+        expired_rule.refresh_from_db()
+        assert not expired_rule.is_active
