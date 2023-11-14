@@ -1,5 +1,5 @@
-from datetime import timedelta
-from typing import List, Optional
+from datetime import datetime, timedelta
+from typing import List, Optional, Set
 
 from django.utils import timezone
 
@@ -273,3 +273,56 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         second_projects = second_rule.projects.all()
         assert len(second_projects) == 1
         assert self.second_project == second_projects[0]
+
+    def test_deactivate_expired_rules(self):
+        """
+        Tests that expired, and only expired, rules are deactivated
+        """
+
+        def create_rule(env_idx: int, end: datetime, project_ids: List[int]):
+            condition = {"op": "equals", "name": "environment", "value": f"prod{env_idx}"}
+            return CustomDynamicSamplingRule.update_or_create(
+                condition=condition,
+                start=timezone.now() - timedelta(hours=5),
+                end=end,
+                project_ids=project_ids,
+                organization_id=self.organization.id,
+                num_samples=100,
+                sample_rate=0.5,
+                query=f"environment:prod{env_idx}",
+            )
+
+        env_idx = 1
+        expired_rules: Set[int] = set()
+        active_rules: Set[int] = set()
+
+        for projects in [
+            [self.project],
+            [self.second_project],
+            [self.third_project],
+            [self.project, self.second_project, self.third_project],
+            [],
+        ]:
+            # create some expired rules
+            rule = create_rule(env_idx, timezone.now() - timedelta(minutes=5), projects)
+            expired_rules.add(rule.id)
+            env_idx += 1
+
+            # create some active rules
+            rule = create_rule(env_idx, timezone.now() + timedelta(minutes=5), projects)
+            active_rules.add(rule.id)
+            env_idx += 1
+
+        # check that all rules are active before deactivation
+        for rule in CustomDynamicSamplingRule.objects.all():
+            assert rule.is_active
+
+        CustomDynamicSamplingRule.deactivate_expired_rules()
+
+        # check that all expired rules are inactive and all active rules are still active
+        for rule in CustomDynamicSamplingRule.objects.all():
+            if rule.id in expired_rules:
+                assert not rule.is_active
+            else:
+                assert rule.is_active
+                assert rule.id in active_rules

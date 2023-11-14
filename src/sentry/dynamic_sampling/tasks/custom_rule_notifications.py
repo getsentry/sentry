@@ -10,7 +10,10 @@ from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.tasks.common import TimedIterator, to_context_iterator
 from sentry.dynamic_sampling.tasks.constants import MAX_TASK_SECONDS
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    dynamic_sampling_task_with_context,
+)
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.user import User
 from sentry.silo import SiloMode
@@ -161,3 +164,17 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: List[int]) -
         f"/organizations/{rule.organization.slug}/discover/results/", query=query_string
     )
     return discover_url
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=2 * 60 * 60,  # 2hours
+    time_limit=2 * 60 * 60 + 5,
+    silo_mode=SiloMode.REGION,
+)
+@dynamic_sampling_task
+def clean_custom_rule_notifications() -> None:
+    CustomDynamicSamplingRule.deactivate_old_rules()

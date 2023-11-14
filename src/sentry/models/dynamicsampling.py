@@ -292,3 +292,12 @@ class CustomDynamicSamplingRule(Model):
             metrics.incr("dynamic_sampling.custom_rules.overflow")
 
         return rules[:MAX_CUSTOM_RULES_PER_PROJECT]
+
+    @staticmethod
+    def deactivate_expired_rules():
+        """
+        Deactivates all rules that have expired
+        """
+        CustomDynamicSamplingRule.objects.filter(
+            end_date__lt=timezone.now(), is_active=True
+        ).update(is_active=False)
