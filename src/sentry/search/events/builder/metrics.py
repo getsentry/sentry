@@ -53,7 +53,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
-    MetricSpecType,
     OnDemandMetricSpec,
     should_use_on_demand_metrics,
 )
