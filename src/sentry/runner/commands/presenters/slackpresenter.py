@@ -30,48 +30,31 @@ class SlackPresenter(OptionsPresenter):
 
     @staticmethod
     def is_slack_enabled():
-
-        if not (
+        return (
             options.get("options_automator_slack_webhook_enabled")
             and settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL
-        ):
-            return False
-        try:
-            test_payload: dict = {
-                "drifted_options": [],
-                "updated_options": [],
-                "set_options": [],
-                "unset_options": [],
-                "not_writable_options": [],
-                "unregistered_options": [],
-                "invalid_type_options": [],
-            }
-
-            response = requests.post(
-                settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, json=test_payload
-            )
-            if response.status_code == 200:
-                return True
-
-            # Retry the call once to ensure reliability
-            response = requests.post(
-                settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL, json=test_payload
-            )
-            if response.status_code == 200:
-                return True
-            raise ConnectionError(
-                f"Slack integration webhook failed. Status code: {response.status_code}"
-            )
-        except Exception:
-            raise
+        )
 
     def flush(self) -> None:
+        if (
+            not self.drifted_options
+            and not self.channel_updated_options
+            and not self.updated_options
+            and not self.set_options
+            and not self.unset_options
+            and not self.not_writable_options
+            and not self.unregistered_options
+            and not self.invalid_type_options
+        ):
+            return
+
         region: Optional[str] = settings.SENTRY_REGION
         if not region:
             region = settings.CUSTOMER_ID
 
         json_data = {
             "region": region,
+            "source": "options-automator",
             "drifted_options": [
                 {"option_name": key, "option_value": self.truncate_value(value)}
                 for key, value in self.drifted_options
@@ -144,4 +127,4 @@ class SlackPresenter(OptionsPresenter):
                 settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL,
                 data=json.dumps(json_data),
                 headers=headers,
-            )
+            ).raise_for_status()
