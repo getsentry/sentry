@@ -199,6 +199,28 @@ def normalized_sdk_tag_from_event(event: Event) -> str:
         return "other"
 
 
+def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
+    """
+    Returns a dictionary of SDK metadata from an event, normalizing the SDK name.
+    Returns {} when event type of event is known to not be SDK generated.
+    """
+
+    if event.get_event_type() in SECURITY_REPORT_INTERFACES:
+        return {}
+
+    if not (sdk_metadata := event.data.get("sdk")):
+        return {}
+    try:
+        if sdk_metadata.get("name"):
+            sdk_metadata = copy.deepcopy(sdk_metadata)  # don't mutate the original event
+            sdk_metadata["name_normalized"] = normalized_sdk_tag_from_event(event)
+
+        return {"sdk": sdk_metadata}
+    except Exception:
+        logger.warning("failed to set normalized SDK name", exc_info=True)
+        return {}
+
+
 def plugin_is_regression(group: Group, event: Event) -> bool:
     project = event.project
     for plugin in plugins.for_project(project):
@@ -1875,7 +1897,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     group_data = kwargs.pop("data", {})
 
     # add sdk tag to metadata
-    group_data.setdefault("metadata", {})["sdk"] = normalized_sdk_tag_from_event(event)
+    group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
     # get severity score for use in alerting
     if features.has("projects:first-event-severity-calculation", event.project):
