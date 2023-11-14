@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterable, Optional, Tuple, Union
 import sentry_sdk
 
 try:
-    from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop  # type: ignore
+    from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
 
     have_minimetrics = True
 except ImportError:
@@ -111,7 +111,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
     def _to_minimetrics_unit(unit: Optional[str], default: Optional[str] = None) -> str:
         if unit is None and default is None:
             return "none"
-        elif unit is None:
+        elif unit is None and default is not None:
             return default
         else:
             return unit
