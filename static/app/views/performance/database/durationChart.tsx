@@ -1,5 +1,6 @@
 import {Series} from 'sentry/types/echarts';
 import {DurationAggregateSelector} from 'sentry/views/performance/database/durationAggregateSelector';
+import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -24,5 +25,3 @@ export function DurationChart({series, isLoading}: Props) {
     </ChartPanel>
   );
 }
-
-const CHART_HEIGHT = 160;
