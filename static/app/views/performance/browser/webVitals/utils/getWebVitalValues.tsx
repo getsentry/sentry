@@ -17,8 +17,7 @@ export function getWebVitalsFromTableData(data: TableDataRow) {
   const hasFcp = hasWebVital(data, 'fcp');
   const hasCls = hasWebVital(data, 'cls');
   const hasFid = hasWebVital(data, 'fid');
-  // TODO: waiting for backend to allowlist ttfb
-  const hasTtfb = true;
+  const hasTtfb = hasWebVital(data, 'ttfb');
 
   return {
     lcp: hasLcp ? getWebVital(data, 'lcp') : null,
