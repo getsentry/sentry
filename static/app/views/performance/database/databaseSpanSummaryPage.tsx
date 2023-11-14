@@ -11,15 +11,14 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {RateUnits} from 'sentry/utils/discover/fields';
-import {formatRate} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationAggregateSelector} from 'sentry/views/performance/database/durationAggregateSelector';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
@@ -31,7 +30,6 @@ import {
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {getThroughputChartTitle} from 'sentry/views/starfish/views/spans/types';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -169,24 +167,10 @@ function SpanSummaryPage({params}: Props) {
 
           <BlockContainer>
             <Block>
-              <ChartPanel
-                title={getThroughputChartTitle(span?.[SpanMetricsField.SPAN_OP])}
-              >
-                <Chart
-                  height={CHART_HEIGHT}
-                  data={[throughputData['spm()']]}
-                  loading={isThroughputDataLoading}
-                  utc={false}
-                  chartColors={[THROUGHPUT_COLOR]}
-                  isLineChart
-                  definedAxisTicks={4}
-                  aggregateOutputFormat="rate"
-                  rateUnit={RateUnits.PER_MINUTE}
-                  tooltipFormatterOptions={{
-                    valueFormatter: value => formatRate(value, RateUnits.PER_MINUTE),
-                  }}
-                />
-              </ChartPanel>
+              <ThroughputChart
+                series={throughputData['spm()']}
+                isLoading={isThroughputDataLoading}
+              />
             </Block>
 
             <Block>
