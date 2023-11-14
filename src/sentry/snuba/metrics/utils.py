@@ -92,6 +92,7 @@ MetricOperationType = Literal[
     "team_key_transaction",
     "sum_if_column",
     "uniq_if_column",
+    "avg_if_column",
     "min_timestamp",
     "max_timestamp",
     "last",
@@ -311,6 +312,7 @@ DERIVED_OPERATIONS = (
     "transform_null_to_unparameterized",
     "sum_if_column",
     "uniq_if_column",
+    "avg_if_column",
     "min_timestamp",
     "max_timestamp",
     # Custom operations used for on demand derived metrics.

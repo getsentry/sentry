@@ -44,6 +44,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_users,
     anr_users,
     apdex,
+    avg_if_column_snql,
     complement,
     count_transaction_name_snql_factory,
     count_web_vitals_snql_factory,
@@ -1808,6 +1809,12 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="uniq_if_column",
             can_orderby=True,
             snql_func=uniq_if_column_snql,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="avg_if_column",
+            can_orderby=True,
+            snql_func=avg_if_column_snql,
             default_null_value=0,
         ),
         DerivedOp(

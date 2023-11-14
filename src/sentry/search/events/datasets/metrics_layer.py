@@ -94,6 +94,29 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "avg_if",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    snql_distribution=lambda args, alias: Function(
+                        "avg_if_column",
+                        [self.resolve_mri(args["column"]), args["if_col"], args["if_val"]],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
                     "count_miserable",
                     required_args=[
                         fields.MetricArg(

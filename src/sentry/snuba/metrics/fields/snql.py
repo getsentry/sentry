@@ -865,6 +865,19 @@ def uniq_if_column_snql(
     )
 
 
+def avg_if_column_snql(
+    aggregate_filter: Function,
+    org_id: int,
+    use_case_id: UseCaseID,
+    if_column: str,
+    if_value: str,
+    alias: Optional[str] = None,
+) -> Function:
+    return operation_if_column_snql(
+        "avgIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
+    )
+
+
 def min_timestamp(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str] = None
 ) -> Function:
