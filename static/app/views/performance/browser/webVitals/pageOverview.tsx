@@ -128,7 +128,7 @@ export default function PageOverview() {
 
   const projectScore = isLoading
     ? undefined
-    : calculatePerformanceScoreFromTableDataRow(pageData?.data[0]);
+    : calculatePerformanceScoreFromTableDataRow(pageData?.data?.[0]);
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>

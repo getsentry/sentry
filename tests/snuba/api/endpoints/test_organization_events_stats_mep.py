@@ -4,8 +4,9 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry.models.environment import Environment
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.extraction import OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -904,16 +905,13 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
     MetricsEnhancedPerformanceTestCase
 ):
     endpoint = "sentry-api-0-organization-events-stats"
-    METRIC_STRINGS = [
-        "foo_transaction",
-        "d:transactions/measurements.datacenter_memory@pebibyte",
-    ]
 
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.DEFAULT_METRIC_TIMESTAMP = self.day_ago
+        Environment.get_or_create(self.project, "production")
 
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
@@ -930,13 +928,66 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
+    def test_top_events_wrong_on_demand_type(self):
+        query = "transaction.duration:>=100"
+        yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "environment": "production",
+                "query": query,
+                "yAxis": yAxis,
+                "field": [
+                    "count()",
+                ],
+                "topEvents": 5,
+                "dataset": "metrics",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "not_real",
+            },
+        )
+
+        assert response.status_code == 400, response.content
+
+    def test_top_events_works_without_on_demand_type(self):
+        query = "transaction.duration:>=100"
+        yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "environment": "production",
+                "query": query,
+                "yAxis": yAxis,
+                "field": [
+                    "count()",
+                ],
+                "topEvents": 5,
+                "dataset": "metrics",
+                "useOnDemandMetrics": "true",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
     def test_top_events_with_transaction_on_demand(self):
         field = "count()"
         field_two = "count_web_vitals(measurements.lcp, good)"
         groupbys = ["customtag1", "customtag2"]
         query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, groupbys=groupbys, query=query)
-        spec_two = OnDemandMetricSpec(field=field_two, groupbys=groupbys, query=query)
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
 
         for hour in range(0, 5):
             self.store_on_demand_metric(
@@ -945,6 +996,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 additional_tags={
                     "customtag1": "foo",
                     "customtag2": "red",
+                    "environment": "production",
                 },
                 timestamp=self.day_ago + timedelta(hours=hour),
             )
@@ -954,6 +1006,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 additional_tags={
                     "customtag1": "bar",
                     "customtag2": "blue",
+                    "environment": "production",
                 },
                 timestamp=self.day_ago + timedelta(hours=hour),
             )
@@ -967,6 +1020,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
                 "orderby": ["-count()"],
+                "environment": "production",
                 "query": query,
                 "yAxis": yAxis,
                 "field": [
@@ -978,6 +1032,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 "topEvents": 5,
                 "dataset": "metrics",
                 "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
             },
         )
 
