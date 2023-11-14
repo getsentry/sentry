@@ -45,7 +45,6 @@ export function useEventsStatsQuery({
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: Infinity,
     },
     referrer,
   });
