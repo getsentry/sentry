@@ -229,17 +229,23 @@ class GitHubClientMixin(GithubProxyClient):
 
         Returns the merged pull request that introduced the commit to the repository. If the commit is not present in the default branch, will only return open pull requests associated with the commit.
         """
-        pullrequest: JSONData = self.get(f"/repos/{repo}/commits/{sha}/pulls")
-        return pullrequest
+        return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
     def get_pullrequest(self, repo: str, pull_number: int) -> JSONData:
         """
-        https://docs.github.com/en/free-pro-team@latest/rest/pulls/pulls?apiVersion=2022-11-28#get-a-pull-request
+        https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
 
         Returns the pull request details
         """
-        pullrequest: JSONData = self.get(f"/repos/{repo}/pulls/{pull_number}")
-        return pullrequest
+        return self.get(f"/repos/{repo}/pulls/{pull_number}")
+
+    def get_pullrequest_files(self, repo: str, pull_number: int) -> JSONData:
+        """
+        https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
+
+        Returns up to 30 files associated with a pull request. Responses are paginated.
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
 
     def get_repo(self, repo: str) -> JSONData:
         """
