@@ -135,12 +135,17 @@ class MetricsQueryBuilder(QueryBuilder):
             if self.params.environments:
                 environment = self.params.environments[0].name
 
+            if not self.builder_config.on_demand_metrics_type:
+                raise InvalidSearchQuery(
+                    "Must include on demand metrics type when querying on demand"
+                )
+
             return OnDemandMetricSpec(
                 field=field,
                 query=self.query,
                 environment=environment,
                 groupbys=groupby_columns,
-                spec_type=self.builder_config.on_demand_metrics_type or MetricSpecType.SIMPLE_QUERY,
+                spec_type=self.builder_config.on_demand_metrics_type,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -241,6 +246,9 @@ class MetricsQueryBuilder(QueryBuilder):
                 rhs=spec.query_hash,
             ),
         ]
+
+        if spec.spec_type == MetricSpecType.DYNAMIC_QUERY:
+            where.append(Condition(lhs=Column("environment"), op=Op.EQ, rhs=spec.environment))
 
         if additional_where:
             where.extend(additional_where)

@@ -943,6 +943,7 @@ class OnDemandMetricSpec:
         self.field = field
         self.query = query
         self.spec_type = spec_type
+
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
         # For now, we just support the environment as extra, but in the future we might need more complex ways to
@@ -957,6 +958,10 @@ class OnDemandMetricSpec:
         self.op = op
         self._metric_type = metric_type
         self._arguments = arguments or []
+
+        sentry_sdk.start_span(
+            op="OnDemandMetricSpec.spec_type", description=self.spec_type
+        ).finish()
 
     @property
     def field_to_extract(self):

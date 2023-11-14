@@ -1976,7 +1976,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_count(self):
         field = "count()"
         query_s = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -1996,6 +1996,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=[field],
             config=QueryBuilderConfig(
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
             ),
         )
         result = query.run_query("test_query")
@@ -2092,7 +2093,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_failure_count(self):
         field = "failure_count()"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
         timestamp = self.start
         self.store_transaction_metric(
             value=1,
@@ -2108,7 +2109,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query_s,
             selected_columns=[field],
-            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
+            ),
         )
         result = query.run_query("test_query")
         assert result["data"][:1] == [{"time": timestamp.isoformat(), "failure_count": 1.0}]
@@ -2120,7 +2123,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_failure_rate(self):
         field = "failure_rate()"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
 
         for hour in range(0, 5):
             # 1 per hour failed
@@ -2152,6 +2155,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=[field],
             config=QueryBuilderConfig(
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
             ),
         )
         result = query.run_query("test_query")
@@ -2188,7 +2192,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_apdex(self):
         field = "apdex(10)"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -2218,6 +2222,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=[field],
             config=QueryBuilderConfig(
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
             ),
         )
         result = query.run_query("test_query")
@@ -2254,7 +2259,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_count_web_vitals(self):
         field = "count_web_vitals(measurements.lcp, good)"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -2283,6 +2288,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=[field],
             config=QueryBuilderConfig(
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
             ),
         )
 
@@ -2335,7 +2341,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         """Test events per minute for 1 event within an hour."""
         field = "epm()"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
         timestamp = self.start
         self.store_transaction_metric(
             value=1,
@@ -2351,7 +2357,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query_s,
             selected_columns=[field],
-            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
+            ),
         )
         result = query.run_query("test_query")
         assert result["data"][:1] == [{"time": timestamp.isoformat(), "epm": 1 / 60}]
@@ -2364,7 +2372,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         """Test event per second for 1 event within an hour."""
         field = "eps()"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
         timestamp = self.start
         self.store_transaction_metric(
             value=1,
@@ -2380,7 +2388,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query_s,
             selected_columns=[field],
-            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
+            ),
         )
         result = query.run_query("test_query")
         assert result["data"][:1] == [{"time": timestamp.isoformat(), "eps": 1 / 60 / 60}]
@@ -2427,6 +2437,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             timeseries_columns=[field, field_two],
             config=QueryBuilderConfig(
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
             ),
         )
         assert query._on_demand_metric_spec_map[field]
@@ -2485,6 +2496,225 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_on_demand_top_timeseries_simple_metric_spec_with_environment_set(self):
+        field = "count()"
+        groupbys = ["customtag1", "customtag2"]
+        query_s = "transaction.duration:>=100"
+        self.create_environment(project=self.project, name="prod")
+        self.create_environment(project=self.project, name="dev")
+
+        spec = OnDemandMetricSpec(
+            field=field,
+            groupbys=groupbys,
+            query=query_s,
+            environment="prod",
+            spec_type=MetricSpecType.SIMPLE_QUERY,
+        )
+
+        for day in range(0, 5):
+            self.store_on_demand_metric(
+                day * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
+                    "customtag2": "red",
+                },
+                timestamp=self.start + datetime.timedelta(days=day),
+            )
+
+        params = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+            "start": self.start,
+            "end": self.end,
+            "environment": "dev",
+        }
+
+        def create_query_builder(params):
+            return TopMetricsQueryBuilder(
+                Dataset.PerformanceMetrics,
+                params,
+                3600 * 24,
+                [{"customtag1": "div > text"}, {"customtag2": "red"}],
+                query=query_s,
+                selected_columns=groupbys,
+                timeseries_columns=[field],
+                config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
+                ),
+            )
+
+        query_builder = create_query_builder(params)
+
+        assert query_builder._on_demand_metric_spec_map[field]
+        spec_from_query = query_builder._on_demand_metric_spec_map[field]
+        assert spec_from_query.spec_type == MetricSpecType.SIMPLE_QUERY
+        assert (
+            spec_from_query._query_str_for_hash
+            == "None;{'inner': [{'op': 'eq', 'name': 'event.environment', 'value': 'dev'}, {'op': 'gte', 'name': 'event.duration', 'value': 100.0}], 'op': 'and'};['customtag1', 'customtag2']"
+        )
+
+        empty_result = query_builder.run_query("test_query")
+        assert empty_result["data"] == []
+
+        params["environment"] = "prod"
+        query_builder = create_query_builder(params)
+
+        # Asserting hash remains the same
+        assert query_builder._on_demand_metric_spec_map[field]
+        spec_from_query = query_builder._on_demand_metric_spec_map[field]
+        assert spec_from_query.spec_type == MetricSpecType.SIMPLE_QUERY
+        assert (
+            spec_from_query._query_str_for_hash
+            == "None;{'inner': [{'op': 'eq', 'name': 'event.environment', 'value': 'prod'}, {'op': 'gte', 'name': 'event.duration', 'value': 100.0}], 'op': 'and'};['customtag1', 'customtag2']"
+        )
+
+        result = query_builder.run_query("correct_query")
+
+        assert result["data"]
+
+        assert result["data"][:3] == [
+            {
+                "time": (self.start + datetime.timedelta(days=0, hours=-10)).isoformat(),
+                "count": 0.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+            {
+                "time": (self.start + datetime.timedelta(days=1, hours=-10)).isoformat(),
+                "count": 1488.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+            {
+                "time": (self.start + datetime.timedelta(days=2, hours=-10)).isoformat(),
+                "count": 2976.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+        ]
+
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count", "type": "Float64"},
+                {"name": "customtag1", "type": "string"},
+                {"name": "customtag2", "type": "string"},
+            ],
+        )
+
+    def test_on_demand_top_timeseries_dynamic_metric_spec_with_environment_set(self):
+        field = "count()"
+        groupbys = ["customtag1", "customtag2"]
+        query_s = "transaction.duration:>=100"
+        self.create_environment(project=self.project, name="prod")
+        self.create_environment(project=self.project, name="dev")
+
+        spec = OnDemandMetricSpec(
+            field=field,
+            groupbys=groupbys,
+            query=query_s,
+            environment="prod",
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        for day in range(0, 5):
+            self.store_on_demand_metric(
+                day * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
+                    "customtag2": "red",
+                    "environment": "prod",
+                },
+                timestamp=self.start + datetime.timedelta(days=day),
+            )
+
+        params = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+            "start": self.start,
+            "end": self.end,
+            "environment": "dev",
+        }
+
+        def create_query_builder(params):
+            return TopMetricsQueryBuilder(
+                Dataset.PerformanceMetrics,
+                params,
+                3600 * 24,
+                [{"customtag1": "div > text"}, {"customtag2": "red"}],
+                query=query_s,
+                selected_columns=groupbys,
+                timeseries_columns=[field],
+                config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
+                ),
+            )
+
+        query_builder = create_query_builder(params)
+
+        assert query_builder._on_demand_metric_spec_map[field]
+        spec_from_query = query_builder._on_demand_metric_spec_map[field]
+        assert spec_from_query.spec_type == MetricSpecType.DYNAMIC_QUERY
+        assert (
+            spec_from_query._query_str_for_hash
+            == "None;{'name': 'event.duration', 'op': 'gte', 'value': 100.0};['customtag1', 'customtag2']"
+        )
+
+        empty_result = query_builder.run_query("test_query")
+        assert empty_result["data"] == []
+
+        params["environment"] = "prod"
+        query_builder = create_query_builder(params)
+
+        # Asserting hash remains the same
+        assert query_builder._on_demand_metric_spec_map[field]
+        spec_from_query = query_builder._on_demand_metric_spec_map[field]
+        assert spec_from_query.spec_type == MetricSpecType.DYNAMIC_QUERY
+        assert (
+            spec_from_query._query_str_for_hash
+            == "None;{'name': 'event.duration', 'op': 'gte', 'value': 100.0};['customtag1', 'customtag2']"
+        )
+
+        result = query_builder.run_query("correct_query")
+
+        assert result["data"]
+
+        assert result["data"][:3] == [
+            {
+                "time": (self.start + datetime.timedelta(days=0, hours=-10)).isoformat(),
+                "count": 0.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+            {
+                "time": (self.start + datetime.timedelta(days=1, hours=-10)).isoformat(),
+                "count": 1488.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+            {
+                "time": (self.start + datetime.timedelta(days=2, hours=-10)).isoformat(),
+                "count": 2976.0,
+                "customtag1": "div > text",
+                "customtag2": "red",
+            },
+        ]
+
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count", "type": "Float64"},
+                {"name": "customtag1", "type": "string"},
+                {"name": "customtag2", "type": "string"},
+            ],
+        )
+
     def test_on_demand_map_with_multiple_selected(self):
         query_str = "transaction.duration:>=100"
         query = TimeseriesMetricQueryBuilder(
@@ -2493,7 +2723,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query_str,
             selected_columns=["eps()", "epm()", "not_on_demand"],
-            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
+            ),
         )
         assert query._on_demand_metric_spec_map
         assert query._on_demand_metric_spec_map["eps()"]
@@ -2506,7 +2738,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         threshold = 300
         field = f"user_misery({threshold})"
         query_s = "transaction.duration:>=10"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
 
         for hour in range(0, 2):
             for name, frustrated in user_to_frustration:
@@ -2531,7 +2763,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query_s,
             selected_columns=[field],
-            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
+            ),
         )
         assert query._on_demand_metric_spec_map
         selected_spec = query._on_demand_metric_spec_map[field]
@@ -2691,7 +2925,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_distribution(self):
         field = "p75(measurements.fp)"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
 
         self.store_transaction_metric(
             value=200,
@@ -2711,6 +2945,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             config=QueryBuilderConfig(
                 use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
             ),
         )
@@ -2780,7 +3015,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_failure_rate(self):
         field = "failure_rate()"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
 
         self.store_transaction_metric(
             value=1,
@@ -2809,6 +3044,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             config=QueryBuilderConfig(
                 use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
             ),
         )
@@ -2824,7 +3060,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_apdex(self):
         field = "apdex(10)"
         query_s = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(field=field, query=query_s)
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
 
         self.store_transaction_metric(
             value=1,
@@ -2853,6 +3089,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             config=QueryBuilderConfig(
                 use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
             ),
         )
@@ -2880,6 +3117,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             config=QueryBuilderConfig(
                 use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We set here the skipping of conditions, since this is true for alert subscriptions, but we want to verify
                 # whether our secondary error barrier works.
                 skip_time_conditions=True,
@@ -2905,6 +3143,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             config=QueryBuilderConfig(
                 use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We want to test the snql generation when a time range is not supplied, which is the case for alert
                 # subscriptions.
                 skip_time_conditions=True,
@@ -2962,6 +3201,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             config=QueryBuilderConfig(
                 use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We want to test the snql generation when a time range is supplied.
                 skip_time_conditions=False,
             ),
