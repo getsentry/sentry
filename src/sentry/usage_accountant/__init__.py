@@ -1,3 +1,3 @@
 from sentry.usage_accountant.accountant import record  # NOQA
 
-__all__ = "record"
+__all__ = ["record"]
