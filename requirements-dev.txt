@@ -36,7 +36,7 @@ sentry-forked-djangorestframework-stubs>=3.14.4.post2
 lxml-stubs
 msgpack-types>=0.2.0
 mypy>=1.6.1
-sentry-devenv>=1.1.1
+sentry-devenv>=1.1.2
 types-beautifulsoup4
 types-cachetools
 types-croniter
