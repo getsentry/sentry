@@ -227,7 +227,9 @@ class CustomDynamicSamplingRule(Model):
 
                 # set the projects if not org level
                 for project in projects:
-                    rule.projects.add(project)
+                    CustomDynamicSamplingRuleProject.objects.create(
+                        custom_dynamic_sampling_rule=rule, project=project
+                    )
                 return rule
 
     def assign_rule_id(self) -> int:
