@@ -104,7 +104,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     if (key === SPAN_DESCRIPTION) {
       return (
         <DescriptionWrapper>
-          <PlatformIcon platform={opPlatformMap[row[SPAN_OP]] || 'javascript'} />
+          <PlatformIcon platform={opPlatformMap[row[SPAN_OP]] || 'unknown'} />
           <SpanDescriptionCell
             moduleName={ModuleName.HTTP}
             projectId={row[PROJECT_ID]}
