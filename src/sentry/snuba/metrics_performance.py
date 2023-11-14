@@ -17,6 +17,7 @@ from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ def query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
     granularity: Optional[int] = None,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
@@ -68,6 +70,7 @@ def query(
                 transform_alias_to_input_format=transform_alias_to_input_format,
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             ),
         )
         metrics_referrer = referrer + ".metrics-enhanced"
@@ -92,6 +95,7 @@ def bulk_timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
     groupby: Optional[Column] = None,
     apply_formatting: Optional[bool] = True,
 ) -> SnubaTSResult:
@@ -193,6 +197,7 @@ def timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
     groupby: Optional[Column] = None,
 ) -> SnubaTSResult:
     """
@@ -216,6 +221,7 @@ def timeseries_query(
                     allow_metric_aggregates=allow_metric_aggregates,
                     use_metrics_layer=use_metrics_layer,
                     on_demand_metrics_enabled=on_demand_metrics_enabled,
+                    on_demand_metrics_type=on_demand_metrics_type,
                 ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
@@ -330,6 +336,8 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled=False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
 ):
     if top_events is None:
         top_events = query(
@@ -342,6 +350,8 @@ def top_events_timeseries(
             referrer=referrer,
             auto_aggregations=True,
             use_aggregate_conditions=True,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
+            on_demand_metrics_type=on_demand_metrics_type,
         )
 
     top_events_builder = TopMetricsQueryBuilder(
@@ -355,6 +365,8 @@ def top_events_timeseries(
         timeseries_columns=timeseries_columns,
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
+            on_demand_metrics_type=on_demand_metrics_type,
         ),
     )
     if len(top_events["data"]) == limit and include_other:
@@ -367,6 +379,10 @@ def top_events_timeseries(
             query=user_query,
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
+            ),
         )
 
         # TODO: use bulk_snql_query

@@ -7,8 +7,8 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {RateUnits} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
@@ -104,7 +104,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       );
     }
     if (key === 'spm()') {
-      return <ThroughputCell rate={row[key] * 60} unit={RateUnits.PER_SECOND} />;
+      return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(http.response_content_length)') {
       return <ResourceSize bytes={row[key]} />;

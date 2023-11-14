@@ -50,12 +50,12 @@ class DiscordRequestParserTest(TestCase):
         integration = parser.get_integration_from_request()
         assert integration == self.integration
         with patch.object(
-            parser, "get_response_from_control_silo"
-        ) as mock_response_from_control, assume_test_silo_mode(
+            parser, "get_response_from_first_region"
+        ) as get_response_from_first_region, assume_test_silo_mode(
             SiloMode.CONTROL, can_be_monolith=False
         ):
             parser.get_response()
-            assert mock_response_from_control.called
+            assert get_response_from_first_region.called
 
     def test_interactions_endpoint_routing_command(self):
         data = {"guild_id": self.integration.external_id, "type": int(DiscordRequestTypes.COMMAND)}

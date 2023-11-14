@@ -1,5 +1,5 @@
 ---
-created: '2023-10-31T20:53:56.260180Z'
+created: '2023-11-08T18:50:27.519701Z'
 creator: sentry
 source: tests/sentry/tasks/test_relocation.py
 ---
@@ -120,10 +120,10 @@ steps:
   - import
   - config
   - /in/baseline-config.tar
-  - --findings-file
-  - /findings/import-baseline-config.json
   - --decrypt-with-gcp-kms
   - /in/kms-config.json
+  - --findings-file
+  - /findings/import-baseline-config.json
   - --overwrite-configs
   id: import-baseline-config
   name: gcr.io/cloud-builders/docker
@@ -149,10 +149,10 @@ steps:
   - import
   - users
   - /in/colliding-users.tar
-  - --findings-file
-  - /findings/import-colliding-users.json
   - --decrypt-with-gcp-kms
   - /in/kms-config.json
+  - --findings-file
+  - /findings/import-colliding-users.json
   - --filter-usernames
   - importing
   id: import-colliding-users
@@ -180,10 +180,10 @@ steps:
   - import
   - organizations
   - /in/raw-relocation-data.tar
-  - --findings-file
-  - /findings/import-raw-relocation-data.json
   - --decrypt-with-gcp-kms
   - /in/kms-config.json
+  - --findings-file
+  - /findings/import-raw-relocation-data.json
   - --filter-org-slugs
   - testing
   id: import-raw-relocation-data
@@ -212,7 +212,9 @@ steps:
   - web
   - export
   - config
-  - /out/baseline-config.json
+  - /out/baseline-config.tar
+  - --encrypt-with-gcp-kms
+  - /in/kms-config.json
   - --findings-file
   - /findings/export-baseline-config.json
   id: export-baseline-config
@@ -239,7 +241,9 @@ steps:
   - web
   - export
   - users
-  - /out/colliding-users.json
+  - /out/colliding-users.tar
+  - --encrypt-with-gcp-kms
+  - /in/kms-config.json
   - --findings-file
   - /findings/export-colliding-users.json
   - --filter-usernames
@@ -268,7 +272,9 @@ steps:
   - web
   - export
   - organizations
-  - /out/raw-relocation-data.json
+  - /out/raw-relocation-data.tar
+  - --encrypt-with-gcp-kms
+  - /in/kms-config.json
   - --findings-file
   - /findings/export-raw-relocation-data.json
   - --filter-org-slugs
@@ -279,6 +285,16 @@ steps:
   waitFor:
   - import-raw-relocation-data
   - export-colliding-users
+- args:
+  - cp
+  - -r
+  - /workspace/out
+  - gs://<BUCKET>/relocations/runs/<UUID>/out
+  id: copy-out-dir
+  name: gcr.io/cloud-builders/gsutil
+  timeout: 30s
+  waitFor:
+  - export-raw-relocation-data
 - args:
   - compose
   - -f
@@ -295,13 +311,16 @@ steps:
   - -v
   - /workspace/findings:/findings
   - web
+  - backup
   - compare
   - /in/baseline-config.tar
-  - /out/baseline-config.json
-  - --findings-file
-  - /findings/compare-baseline-config.json
+  - /out/baseline-config.tar
   - --decrypt-left-with-gcp-kms
   - /in/kms-config.json
+  - --decrypt-right-with-gcp-kms
+  - /in/kms-config.json
+  - --findings-file
+  - /findings/compare-baseline-config.json
   id: compare-baseline-config
   name: gcr.io/cloud-builders/docker
   timeout: 30s
@@ -324,13 +343,16 @@ steps:
   - -v
   - /workspace/findings:/findings
   - web
+  - backup
   - compare
   - /in/colliding-users.tar
-  - /out/colliding-users.json
-  - --findings-file
-  - /findings/compare-colliding-users.json
+  - /out/colliding-users.tar
   - --decrypt-left-with-gcp-kms
   - /in/kms-config.json
+  - --decrypt-right-with-gcp-kms
+  - /in/kms-config.json
+  - --findings-file
+  - /findings/compare-colliding-users.json
   id: compare-colliding-users
   name: gcr.io/cloud-builders/docker
   timeout: 30s

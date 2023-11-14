@@ -24,7 +24,7 @@ import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/compo
 import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {
   Row,
   RowWithScore,
@@ -66,13 +66,7 @@ export function WebVitalsDetailPanel({
 
   const {data: projectData} = useProjectWebVitalsQuery({transaction});
 
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-  });
+  const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   const {data, isLoading} = useTransactionWebVitalsQuery({
     transaction,
@@ -200,10 +194,12 @@ export function WebVitalsDetailPanel({
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  const webVitalScore = projectScore[`${webVital}Score`];
+
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
-        {webVital && (
+        {webVital && webVitalScore !== null && (
           <WebVitalDescription
             value={
               webVital !== 'cls'
@@ -218,24 +214,27 @@ export function WebVitalsDetailPanel({
                   )
             }
             webVital={webVital}
-            score={projectScore[`${webVital}Score`]}
+            score={webVitalScore}
           />
         )}
         <ChartContainer>
           {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
         </ChartContainer>
+
         {!transaction && (
-          <GridEditable
-            data={dataByOpportunity}
-            isLoading={isLoading}
-            columnOrder={columnOrder}
-            columnSortBy={[sort]}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-            }}
-            location={location}
-          />
+          <TableContainer>
+            <GridEditable
+              data={dataByOpportunity}
+              isLoading={isLoading}
+              columnOrder={columnOrder}
+              columnSortBy={[sort]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+              location={location}
+            />
+          </TableContainer>
         )}
         <PageErrorAlert />
       </DetailPanel>
@@ -283,4 +282,8 @@ const AlignCenter = styled('span')`
 
 const OpportunityHeader = styled('span')`
   ${p => p.theme.tooltipUnderline()};
+`;
+
+const TableContainer = styled('div')`
+  margin-bottom: 80px;
 `;

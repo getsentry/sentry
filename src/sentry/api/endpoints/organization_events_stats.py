@@ -20,6 +20,7 @@ from sentry.snuba import (
     spans_indexed,
     spans_metrics,
 )
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaTSResult
 
@@ -200,7 +201,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
-        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
+        try:
+            use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
+        except ValueError:
+            metric_type_values = [e.value for e in MetricSpecType]
+            metric_types = ",".join(metric_type_values)
+            return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         def get_event_stats(
             query_columns: Sequence[str],
@@ -224,6 +230,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
+                    on_demand_metrics_enabled=use_on_demand_metrics,
+                    on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                 )
             return dataset.timeseries_query(
@@ -239,6 +247,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=use_on_demand_metrics
                 and batch_features.get("organizations:on-demand-metrics-extraction", False),
+                on_demand_metrics_type=on_demand_metrics_type,
             )
 
         try:

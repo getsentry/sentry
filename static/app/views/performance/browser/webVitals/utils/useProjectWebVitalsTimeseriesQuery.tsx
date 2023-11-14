@@ -88,12 +88,13 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction, tag}: Props) =>
     total: [],
   };
 
-  result?.data?.['p75(measurements.lcp)'].data.forEach((interval, index) => {
-    const lcp: number = result?.data?.['p75(measurements.lcp)'].data[index][1][0].count;
-    const fcp: number = result?.data?.['p75(measurements.fcp)'].data[index][1][0].count;
-    const cls: number = result?.data?.['p75(measurements.cls)'].data[index][1][0].count;
-    const ttfb: number = result?.data?.['p75(measurements.ttfb)'].data[index][1][0].count;
-    const fid: number = result?.data?.['p75(measurements.fid)'].data[index][1][0].count;
+  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
+    const lcp: number = result?.data?.['p75(measurements.lcp)']?.data[index][1][0].count;
+    const fcp: number = result?.data?.['p75(measurements.fcp)']?.data[index][1][0].count;
+    const cls: number = result?.data?.['p75(measurements.cls)']?.data[index][1][0].count;
+    const ttfb: number =
+      result?.data?.['p75(measurements.ttfb)']?.data[index][1][0].count;
+    const fid: number = result?.data?.['p75(measurements.fid)']?.data[index][1][0].count;
     // This is kinda jank, but since events-stats zero fills, we need to assume that 0 values mean no data.
     // 0 value for a webvital is low frequency, but not impossible. We may need to figure out a better way to handle this in the future.
     const {totalScore, lcpScore, fcpScore, fidScore, clsScore, ttfbScore} =
@@ -106,27 +107,27 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction, tag}: Props) =>
       });
 
     data.total.push({
-      value: totalScore,
+      value: totalScore ?? 0,
       name: interval[0] * 1000,
     });
     data.cls.push({
-      value: clsScore,
+      value: clsScore ?? 0,
       name: interval[0] * 1000,
     });
     data.lcp.push({
-      value: lcpScore,
+      value: lcpScore ?? 0,
       name: interval[0] * 1000,
     });
     data.fcp.push({
-      value: fcpScore,
+      value: fcpScore ?? 0,
       name: interval[0] * 1000,
     });
     data.ttfb.push({
-      value: ttfbScore,
+      value: ttfbScore ?? 0,
       name: interval[0] * 1000,
     });
     data.fid.push({
-      value: fidScore,
+      value: fidScore ?? 0,
       name: interval[0] * 1000,
     });
   });

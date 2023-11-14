@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Callable
 
-from mypy.nodes import ARG_POS, TypeInfo
-from mypy.plugin import ClassDefContext, FunctionSigContext, MethodSigContext, Plugin
+from mypy.nodes import ARG_POS
+from mypy.plugin import ClassDefContext, FunctionSigContext, Plugin
 from mypy.plugins.common import add_attribute_to_class
 from mypy.types import AnyType, CallableType, FunctionLike, Instance, NoneType, TypeOfAny, UnionType
 
@@ -49,17 +49,6 @@ _FUNCTION_SIGNATURE_HOOKS = {
 }
 
 
-def field_descriptor_no_overloads(ctx: MethodSigContext) -> FunctionLike:
-    # ignore the class / non-model instance descriptor overloads
-    signature = ctx.default_signature
-    # replace `def __get__(self, inst: Model, owner: Any) -> _GT:`
-    # with `def __get__(self, inst: Any, owner: Any) -> _GT:`
-    if str(signature.arg_types[0]) == "django.db.models.base.Model":
-        return signature.copy_modified(arg_types=[signature.arg_types[1]] * 2)
-    else:
-        return signature
-
-
 def _adjust_http_request_members(ctx: ClassDefContext) -> None:
     if ctx.cls.name == "HttpRequest":
         # added by sentry.api.base and sentry.web.frontend.base
@@ -94,29 +83,6 @@ class SentryMypyPlugin(Plugin):
         self, fullname: str
     ) -> Callable[[FunctionSigContext], FunctionLike] | None:
         return _FUNCTION_SIGNATURE_HOOKS.get(fullname)
-
-    def get_method_signature_hook(
-        self, fullname: str
-    ) -> Callable[[MethodSigContext], FunctionLike] | None:
-        if fullname == "django.db.models.fields.Field":
-            return field_descriptor_no_overloads
-
-        clsname, _, methodname = fullname.rpartition(".")
-        if methodname != "__get__":
-            return None
-
-        clsinfo = self.lookup_fully_qualified(clsname)
-        if clsinfo is None or not isinstance(clsinfo.node, TypeInfo):
-            return None
-
-        fieldinfo = self.lookup_fully_qualified("django.db.models.fields.Field")
-        if fieldinfo is None:
-            return None
-
-        if fieldinfo.node in clsinfo.node.mro:
-            return field_descriptor_no_overloads
-        else:
-            return None
 
     def get_base_class_hook(self, fullname: str) -> Callable[[ClassDefContext], None] | None:
         # XXX: this is a hack -- I don't know if there's a better callback to modify a class

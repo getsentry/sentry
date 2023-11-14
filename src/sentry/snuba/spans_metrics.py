@@ -12,6 +12,7 @@ from sentry.search.events.builder.spans_metrics import TopSpansMetricsQueryBuild
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ def query(
     skip_tag_resolution=False,
     extra_columns=None,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
 ):
     builder = SpansMetricsQueryBuilder(
         dataset=Dataset.PerformanceMetrics,
@@ -83,6 +85,7 @@ def timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
     groupby: Optional[Column] = None,
 ) -> SnubaTSResult:
     """
@@ -147,6 +150,8 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled=False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events

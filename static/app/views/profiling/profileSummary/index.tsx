@@ -26,6 +26,7 @@ import {
   ProfilingBreadcrumbs,
   ProfilingBreadcrumbsProps,
 } from 'sentry/components/profiling/profilingBreadcrumbs';
+import ProfilingFeedbackButton from 'sentry/components/profiling/profilingFeedbackButton';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -154,11 +155,12 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         </Layout.Title>
       </ProfilingHeaderContent>
       {transactionSummaryTarget && (
-        <Layout.HeaderActions>
+        <StyledHeaderActions>
+          <ProfilingFeedbackButton />
           <LinkButton to={transactionSummaryTarget} size="sm">
             {t('View Transaction Summary')}
           </LinkButton>
-        </Layout.HeaderActions>
+        </StyledHeaderActions>
       )}
       <Tabs onChange={props.onViewChange} value={props.view}>
         <TabList hideBorder>
@@ -181,6 +183,13 @@ const ProfilingHeaderContent = styled(Layout.HeaderContent)`
     line-height: normal;
   }
 `;
+
+const StyledHeaderActions = styled(Layout.HeaderActions)`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+`;
+
 const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
