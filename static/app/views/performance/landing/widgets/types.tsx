@@ -146,7 +146,6 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
 
   InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
-  subTitle?: string;
 };
 
 export type GenericPerformanceWithData<T extends WidgetDataConstraint> =
