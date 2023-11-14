@@ -414,7 +414,7 @@ def _get_project_config(
         config["performanceScore"] = {
             "profiles": [
                 {
-                    "name": "Desktop",
+                    "name": "Chrome",
                     "scoreComponents": [
                         {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
                         {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
@@ -427,7 +427,62 @@ def _get_project_config(
                         "name": "event.contexts.browser.name",
                         "value": "Chrome",
                     },
-                }
+                },
+                {
+                    "name": "Firefox",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.30, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "fid", "weight": 0.55, "p10": 100.0, "p50": 300.0},
+                        {"measurement": "ttfb", "weight": 0.15, "p10": 200.0, "p50": 400.0},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Firefox",
+                    },
+                },
+                {
+                    "name": "Safari",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.60, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "ttfb", "weight": 0.40, "p10": 200.0, "p50": 400.0},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Safari",
+                    },
+                },
+                {
+                    "name": "Edge",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
+                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
+                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Edge",
+                    },
+                },
+                {
+                    "name": "Opera",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
+                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
+                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Opera",
+                    },
+                },
             ]
         }
 
