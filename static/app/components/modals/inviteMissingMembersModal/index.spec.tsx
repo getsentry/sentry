@@ -31,7 +31,7 @@ describe('InviteMissingMembersModal', function () {
   const team = TestStubs.Team();
   const org = Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
-  const missingMembers = {integration: 'github', users: MissingMembers()};
+  const missingMembers = MissingMembers();
 
   const styledWrapper = styled(c => c.children);
   const modalProps: InviteMissingMembersModalProps = {
@@ -41,7 +41,7 @@ describe('InviteMissingMembersModal', function () {
     closeModal: () => {},
     CloseButton: makeCloseButton(() => {}),
     organization: Organization(),
-    missingMembers: {integration: 'github', users: []},
+    missingMembers: [],
     allowedRoles: [],
   };
 
@@ -146,7 +146,7 @@ describe('InviteMissingMembersModal', function () {
     // Verify data sent to the backend
     expect(createMemberMock).toHaveBeenCalledTimes(5);
 
-    missingMembers.users.forEach((member, i) => {
+    missingMembers.forEach((member, i) => {
       expect(createMemberMock).toHaveBeenNthCalledWith(
         i + 1,
         `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
