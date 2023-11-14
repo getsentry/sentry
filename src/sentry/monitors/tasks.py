@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from functools import lru_cache
@@ -124,7 +126,7 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
 
     # Find the slowest partition from our sorted set of partitions, where the
     # clock is the score.
-    slowest_partitions = redis_client.zrange(
+    slowest_partitions: list[tuple[str, float]] = redis_client.zrange(
         name=MONITOR_TASKS_PARTITION_CLOCKS,
         withscores=True,
         start=0,
@@ -165,7 +167,8 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
     # close, but in the case of a backlog, this will be much higher
     total_delay = datetime.now().timestamp() - slowest_part_ts
 
-    tick = datetime.fromtimestamp(slowest_part_ts)
+    # Keep tick datetime objects timezone aware
+    tick = timezone.utc.localize(datetime.fromtimestamp(slowest_part_ts))
 
     logger.info("monitors.consumer.clock_tick", extra={"reference_datetime": str(tick)})
     metrics.gauge("monitors.task.clock_delay", total_delay, sample_rate=1.0)
@@ -309,11 +312,13 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
     # Specifically important for interval where it's a function of some
     # starting time.
     #
-    # Trim tzinfo. This is always UTC. ts does not have tzinfo and
-    # get_prev_schedule will fail if the start and reference time have
-    # different tzinfo.
-    start_ts = expected_time.replace(tzinfo=None)
-    most_recent_expected_ts = get_prev_schedule(start_ts, ts, monitor.schedule)
+    # When computing our timestamps MUST be in the correct timezone of the
+    # monitor to compute the previous schedule
+    most_recent_expected_ts = get_prev_schedule(
+        expected_time.astimezone(monitor.timezone),
+        ts.astimezone(monitor.timezone),
+        monitor.schedule,
+    )
 
     mark_failed(checkin, ts=most_recent_expected_ts)
 
@@ -333,7 +338,15 @@ def check_timeout(current_datetime: datetime):
     metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
-        mark_checkin_timeout.delay(checkin.id, current_datetime)
+        # used for temporary debugging
+        kwargs = {
+            "monitor_id": checkin.monitor.id,
+            "monitor_environment_id": checkin.monitor_environment.id,
+            "status": checkin.status,
+            "date_added": checkin.date_added,
+            "timeout_at": checkin.timeout_at,
+        }
+        mark_checkin_timeout.delay(checkin.id, current_datetime, **kwargs)
 
 
 @instrumented_task(
@@ -341,7 +354,7 @@ def check_timeout(current_datetime: datetime):
     max_retries=0,
     record_timing=True,
 )
-def mark_checkin_timeout(checkin_id: int, ts: datetime):
+def mark_checkin_timeout(checkin_id: int, ts: datetime, **kwargs):
     logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
 
     checkin = (
@@ -379,7 +392,10 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime):
         # their configured time-out time.
         #
         # See `test_timeout_using_interval`
-        start_ts = checkin.date_added.replace(tzinfo=None)
-        most_recent_expected_ts = get_prev_schedule(start_ts, ts, monitor.schedule)
+        most_recent_expected_ts = get_prev_schedule(
+            checkin.date_added.astimezone(monitor.timezone),
+            ts.astimezone(monitor.timezone),
+            monitor.schedule,
+        )
 
         mark_failed(checkin, ts=most_recent_expected_ts)

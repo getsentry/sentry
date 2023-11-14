@@ -39,21 +39,19 @@ function ProjectScoreCards({
   return (
     <CardWrapper>
       <ProjectStabilityScoreCard
-        organization={organization}
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
         query={query}
-        field={SessionFieldWithOperation.SESSIONS}
+        field={SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS}
       />
 
       <ProjectStabilityScoreCard
-        organization={organization}
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
         query={query}
-        field={SessionFieldWithOperation.USERS}
+        field={SessionFieldWithOperation.CRASH_FREE_RATE_USERS}
       />
 
       <ProjectVelocityScoreCard

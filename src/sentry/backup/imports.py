@@ -13,7 +13,7 @@ from sentry.backup.dependencies import (
     dependencies,
     get_model_name,
 )
-from sentry.backup.helpers import Filter, ImportFlags, decrypt_encrypted_tarball
+from sentry.backup.helpers import Decryptor, Filter, ImportFlags, decrypt_encrypted_tarball
 from sentry.backup.scopes import ImportScope
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.hybrid_cloud.import_export.model import (
@@ -25,7 +25,6 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcPrimaryKeyMap,
 )
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
-from sentry.services.organization import should_use_control_provisioning
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json
@@ -49,7 +48,7 @@ def _import(
     src: BinaryIO,
     scope: ImportScope,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     filter_by: Filter | None = None,
     printer=click.echo,
@@ -57,7 +56,9 @@ def _import(
     """
     Imports core data for a Sentry installation.
 
-    It is generally preferable to avoid calling this function directly, as there are certain combinations of input parameters that should not be used together. Instead, use one of the other wrapper functions in this file, named `import_in_XXX_scope()`.
+    It is generally preferable to avoid calling this function directly, as there are certain
+    combinations of input parameters that should not be used together. Instead, use one of the other
+    wrapper functions in this file, named `import_in_XXX_scope()`.
     """
 
     # Import here to prevent circular module resolutions.
@@ -98,8 +99,8 @@ def _import(
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
     # footprint when processing super large (>100MB) exports.
     content = (
-        decrypt_encrypted_tarball(src, decrypt_with)
-        if decrypt_with is not None
+        decrypt_encrypted_tarball(src, decryptor)
+        if decryptor is not None
         else src.read().decode("utf-8")
     )
     filters = []
@@ -259,8 +260,7 @@ def _import(
     else:
         do_writes(pk_map)
 
-    if should_use_control_provisioning():
-        resolve_org_slugs_from_pk_map(pk_map)
+    resolve_org_slugs_from_pk_map(pk_map)
 
     if deferred_org_auth_tokens:
         do_write(pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
@@ -269,15 +269,17 @@ def _import(
 def import_in_user_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer=click.echo,
 ):
     """
-    Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will be imported from the provided `src` file.
+    Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will
+    be imported from the provided `src` file.
 
-    The `user_filter` argument allows imports to be filtered by username. If the argument is set to `None`, there is no filtering, meaning all encountered users are imported.
+    The `user_filter` argument allows imports to be filtered by username. If the argument is set to
+    `None`, there is no filtering, meaning all encountered users are imported.
     """
 
     # Import here to prevent circular module resolutions.
@@ -286,7 +288,7 @@ def import_in_user_scope(
     return _import(
         src,
         ImportScope.User,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
@@ -296,7 +298,7 @@ def import_in_user_scope(
 def import_in_organization_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     org_filter: set[str] | None = None,
     printer=click.echo,
@@ -317,7 +319,7 @@ def import_in_organization_scope(
     return _import(
         src,
         ImportScope.Organization,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
@@ -327,7 +329,7 @@ def import_in_organization_scope(
 def import_in_config_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer=click.echo,
@@ -349,7 +351,7 @@ def import_in_config_scope(
     return _import(
         src,
         ImportScope.Config,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
@@ -359,7 +361,7 @@ def import_in_config_scope(
 def import_in_global_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     printer=click.echo,
 ):
@@ -367,13 +369,14 @@ def import_in_global_scope(
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh
     Sentry instance, some behaviors in this scope are different from the others. In particular,
-    superuser privileges are not sanitized. This method can be thought of as a "pure" backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
+    superuser privileges are not sanitized. This method can be thought of as a "pure"
+    backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
     """
 
     return _import(
         src,
         ImportScope.Global,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         printer=printer,
     )

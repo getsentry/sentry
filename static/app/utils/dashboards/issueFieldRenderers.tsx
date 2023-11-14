@@ -6,7 +6,7 @@ import {Location} from 'history';
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
-import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';

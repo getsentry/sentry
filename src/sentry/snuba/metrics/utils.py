@@ -23,7 +23,6 @@ from sentry.snuba.dataset import EntityKey
 __all__ = (
     "MAX_POINTS",
     "GRANULARITY",
-    "TS_COL_QUERY",
     "TS_COL_GROUP",
     "TAG_REGEX",
     "MetricOperationType",
@@ -66,7 +65,6 @@ __all__ = (
 #: Max number of data points per time series:
 MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
-TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
 METRICS_LAYER_GRANULARITIES = [86400, 3600, 60]
 
@@ -96,6 +94,7 @@ MetricOperationType = Literal[
     "uniq_if_column",
     "min_timestamp",
     "max_timestamp",
+    "last",
     # Custom operations used for on demand derived metrics.
     "on_demand_apdex",
     "on_demand_epm",
@@ -138,6 +137,7 @@ MetricType = Literal[
     "generic_counter",
     "generic_set",
     "generic_distribution",
+    "generic_gauge",
 ]
 
 MetricEntity = Literal[
@@ -147,6 +147,7 @@ MetricEntity = Literal[
     "generic_metrics_counters",
     "generic_metrics_sets",
     "generic_metrics_distributions",
+    "generic_metrics_gauges",
 ]
 
 OP_TO_SNUBA_FUNCTION = {
@@ -181,6 +182,15 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
     "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
     "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
     "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
+    # Gauges are not supported by non-generic metrics.
+    "generic_metrics_gauges": {
+        "min": "minIf",
+        "max": "maxIf",
+        "sum": "sumIf",
+        "count": "countIf",
+        "last": "lastIf",
+        "avg": "avg",
+    },
 }
 
 # This set contains all the operations that require the "rhs" condition to be resolved
@@ -189,6 +199,15 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
 # in case new operations are added, which is not ideal but given the fact that we already
 # define operations in this file, it is not a deal-breaker.
 REQUIRES_RHS_CONDITION_RESOLUTION = {"transform_null_to_unparameterized"}
+
+
+def get_timestamp_column_name() -> str:
+    """
+    Returns the column name of the timestamp column in Snuba.
+
+    The name of the timestamp column can change based on the entity.
+    """
+    return "timestamp"
 
 
 def require_rhs_condition_resolution(op: MetricOperationType) -> bool:
@@ -202,9 +221,12 @@ def generate_operation_regex():
     """
     Generates a regex of all supported operations defined in OP_TO_SNUBA_FUNCTION
     """
-    operations = []
+    operations = set()
     for item in OP_TO_SNUBA_FUNCTION.values():
-        operations += list(item.keys())
+        operations.update(set(item.keys()))
+    for item in GENERIC_OP_TO_SNUBA_FUNCTION.values():
+        operations.update(set(item.keys()))
+
     return rf"({'|'.join(map(str, operations))})"
 
 
@@ -301,14 +323,7 @@ DERIVED_OPERATIONS = (
     "on_demand_user_misery",
 )
 OPERATIONS = (
-    (
-        "avg",
-        "count_unique",
-        "count",
-        "max",
-        "min",
-        "sum",
-    )
+    ("avg", "count_unique", "count", "max", "min", "sum", "last")
     + OPERATIONS_PERCENTILES
     + DERIVED_OPERATIONS
 )
@@ -326,6 +341,7 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "p99": None,
     "sum": 0,
     "percentage": None,
+    "last": None,
 }
 UNIT_TO_TYPE = {
     "sessions": "count",

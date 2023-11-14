@@ -22,7 +22,7 @@ from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.feedback.models import Feedback
-from sentry.feedback.usecases.create_feedback import create_feedback_issue
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -124,7 +124,7 @@ class FeedbackIngestEndpoint(Endpoint):
                 organization = Organization.objects.get_from_cache(slug=organization_slug)
                 # Try lookup by slug first. This requires organization context since
                 # slugs are unique only to the organization
-            except (Organization.DoesNotExist):
+            except Organization.DoesNotExist:
                 raise ResourceDoesNotExist
 
         project = request.auth.project  # type: ignore
@@ -174,6 +174,18 @@ class FeedbackIngestEndpoint(Endpoint):
         # FOR NOW CREATE BOTH A FEEDBACK ISSUE AND A FEEDBACK OBJECT
         # WE MAY NOT END UP NEEDING A FEEDBACK OBJECT, BUT IT'S HERE FOR NOW
         Feedback.objects.create(**result)
-        create_feedback_issue(request.data, project.id)
+
+        _convert_feedback_to_context(request.data)
+        create_feedback_issue(
+            request.data, project.id, FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT
+        )
 
         return self.respond(status=201)
+
+
+def _convert_feedback_to_context(event):
+    if event.get("feedback"):
+        if "contexts" not in event:
+            event["contexts"] = {}
+        event["contexts"]["feedback"] = event["feedback"]
+        del event["feedback"]

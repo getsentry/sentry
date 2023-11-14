@@ -1,22 +1,35 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 
+import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
+import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePageQuery';
 import {useResourceSummarySort} from 'sentry/views/performance/browser/resources/utils/useResourceSummarySort';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+
+const {RESOURCE_RENDER_BLOCKING_STATUS, SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} =
+  SpanMetricsField;
 
 type Row = {
+  'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
+  'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
   'spm()': number;
   transaction: string;
 };
@@ -27,31 +40,56 @@ function ResourceSummaryTable() {
   const location = useLocation();
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
-  const {data, isLoading} = useResourcePagesQuery(groupId, {sort});
+  const filters = useResourceModuleFilters();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {
+    sort,
+    cursor,
+    renderBlockingStatus: filters[RESOURCE_RENDER_BLOCKING_STATUS],
+  });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
     {
       key: 'spm()',
       width: COL_WIDTH_UNDEFINED,
-      name: 'Throughput',
+      name: getThroughputTitle('http'),
     },
     {
-      key: 'avg(span.self_time)',
+      key: `avg(${SPAN_SELF_TIME})`,
       width: COL_WIDTH_UNDEFINED,
-      name: 'Avg Duration',
+      name: t('Avg Duration'),
+    },
+    {
+      key: `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+      width: COL_WIDTH_UNDEFINED,
+      name: DataTitles[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
+    },
+    {
+      key: RESOURCE_RENDER_BLOCKING_STATUS,
+      width: COL_WIDTH_UNDEFINED,
+      name: t('Render Blocking'),
     },
   ];
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
     if (key === 'spm()') {
-      return <ThroughputCell rate={row[key] * 60} unit={RateUnits.PER_SECOND} />;
+      return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(span.self_time)') {
       return <DurationCell milliseconds={row[key]} />;
     }
+    if (key === 'avg(http.response_content_length)') {
+      return <FileSize bytes={row[key]} />;
+    }
     if (key === 'transaction') {
+      const blockingStatus = row['resource.render_blocking_status'];
+      let query = `!has:${RESOURCE_RENDER_BLOCKING_STATUS}`;
+      if (blockingStatus) {
+        query = `${RESOURCE_RENDER_BLOCKING_STATUS}:${blockingStatus}`;
+      }
+
       return (
         <Link
           to={{
@@ -59,6 +97,7 @@ function ResourceSummaryTable() {
             query: {
               ...location.query,
               transaction: row[key],
+              query: [query],
             },
           }}
         >
@@ -66,7 +105,24 @@ function ResourceSummaryTable() {
         </Link>
       );
     }
+    if (key === RESOURCE_RENDER_BLOCKING_STATUS) {
+      const value = row[key];
+      if (value === 'blocking') {
+        return <span>{t('Yes')}</span>;
+      }
+      if (value === 'non-blocking') {
+        return <span>{t('No')}</span>;
+      }
+      return <span>{'-'}</span>;
+    }
     return <span>{row[key]}</span>;
+  };
+
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
+    });
   };
 
   return (
@@ -92,6 +148,7 @@ function ResourceSummaryTable() {
         }}
         location={location}
       />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }

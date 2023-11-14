@@ -14,6 +14,7 @@ import type {API_ACCESS_SCOPES} from 'sentry/constants';
 export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
   avatarUuid: string | null;
+  avatarUrl?: string | null;
   color?: boolean;
 };
 

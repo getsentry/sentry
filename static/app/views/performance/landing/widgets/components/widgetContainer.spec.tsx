@@ -890,6 +890,50 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('Best Page Opportunities widget', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES}
+        />
+      </MEPSettingProvider>
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Best Page Opportunities'
+    );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+          environment: ['prod'],
+          field: [
+            'transaction',
+            'transaction.op',
+            'project.id',
+            'p75(measurements.lcp)',
+            'p75(measurements.fcp)',
+            'p75(measurements.cls)',
+            'p75(measurements.ttfb)',
+            'p75(measurements.fid)',
+            'count()',
+          ],
+          per_page: QUERY_LIMIT_PARAM,
+          project: ['-42'],
+          query: 'transaction.op:pageload',
+          sort: '-count()',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
   it('Most regressed trends widget', async function () {
     const data = initializeData();
 

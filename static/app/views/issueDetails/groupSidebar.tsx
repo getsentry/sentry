@@ -6,6 +6,7 @@ import type {OnAssignCallback} from 'sentry/components/assigneeSelectorDropdown'
 import AvatarList from 'sentry/components/avatar/avatarList';
 import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
@@ -40,6 +41,7 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isMobilePlatform} from 'sentry/utils/platform';
+import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {getGroupDetailsQueryData} from 'sentry/views/issueDetails/utils';
@@ -92,7 +94,6 @@ export default function GroupSidebar({
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
-      project_id: parseInt(project.id, 10),
       action_type: 'assign',
       assigned_type: type,
       assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
@@ -101,6 +102,7 @@ export default function GroupSidebar({
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
       ...getAnalyticsDataForGroup(group),
+      ...getAnalyicsDataForProject(project),
     });
   };
 
@@ -307,9 +309,13 @@ export default function GroupSidebar({
           tagFormatter={TAGS_FORMATTER}
           project={project}
           isStatisticalDetector={
-            group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+            group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+            group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION
           }
         />
+      )}
+      {issueTypeConfig.regression.enabled && event && (
+        <EventThroughput event={event} group={group} />
       )}
       {renderParticipantData()}
       {renderSeenByList()}

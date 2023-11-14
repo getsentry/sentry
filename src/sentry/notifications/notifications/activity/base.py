@@ -11,7 +11,7 @@ from django.utils.safestring import SafeString
 from sentry.db.models import Model
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingTypes, UnsubscribeContext
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_group
@@ -106,8 +106,12 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         """This is overridden by the activity subclasses."""
         return get_participants_for_group(self.group, self.activity.user_id)
 
-    def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
-        return "issue", self.group.id, None
+    def get_unsubscribe_key(self) -> UnsubscribeContext | None:
+        return UnsubscribeContext(
+            organization=self.group.organization,
+            key="issue",
+            resource_id=self.group.id,
+        )
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         return {

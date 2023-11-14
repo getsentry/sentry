@@ -61,6 +61,7 @@ from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
+from .importchunk import *  # NOQA
 from .integrations import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
@@ -103,6 +104,7 @@ from .releaseenvironment import *  # NOQA
 from .releasefile import *  # NOQA
 from .releaseheadcommit import *  # NOQA
 from .releaseprojectenvironment import *  # NOQA
+from .relocation import *  # NOQA
 from .repository import *  # NOQA
 from .reprocessingreport import *  # NOQA
 from .rule import *  # NOQA

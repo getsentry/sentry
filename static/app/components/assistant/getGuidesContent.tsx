@@ -188,21 +188,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'new_project_filter',
-      requiredTargets: ['new_project_filter'],
-      dateThreshold: new Date('2023-09-29'),
-      steps: [
-        {
-          title: t('Improved project selector'),
-          target: 'new_project_filter',
-          description: t(
-            'Rather than the prior "lock" experience, we now remember your selections across pages so you don\'t have to.'
-          ),
-          nextText: t('Sounds good'),
-        },
-      ],
-    },
-    {
       guide: 'releases_widget',
       requiredTargets: ['releases_widget'],
       dateThreshold: new Date('2022-06-22'),

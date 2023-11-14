@@ -6,6 +6,7 @@ from sentry import audit_log, deletions
 from sentry.constants import SentryAppStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -157,6 +158,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             ],
             "popularity": self.popularity,
             "avatars": [],
+            "metadata": {},
         }
 
     def test_update_unpublished_app(self):
@@ -434,6 +436,22 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             ]
         }
 
+    def test_cannot_update_partner_apps(self):
+        self.login_as(user=self.user)
+        self.published_app.update(metadata={"partnership_restricted": True})
+        response = self.client.put(
+            self.url,
+            data={
+                "name": self.published_app.name,
+                "author": "A Company",
+                "webhookUrl": "https://newurl.com",
+                "redirectUrl": "https://newredirecturl.com",
+                "isAlertable": True,
+            },
+            format="json",
+        )
+        assert response.status_code == 403
+
 
 @control_silo_test(stable=True)
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
@@ -453,9 +471,31 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             sentry_app=self.unpublished_app.slug,
         )
 
+    def test_delete_unpublished_app_with_installs(self):
+        installation = self.create_sentry_app_installation(
+            organization=self.organization,
+            slug=self.unpublished_app.slug,
+            user=self.user,
+        )
+        self.login_as(user=self.superuser, superuser=True)
+        url = reverse("sentry-api-0-sentry-app-details", args=[self.unpublished_app.slug])
+        response = self.client.delete(url)
+        assert response.status_code == 204
+
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SENTRY_APP_REMOVE")
+        ).exists()
+        assert not SentryAppInstallation.objects.filter(id=installation.id).exists()
+
     def test_cannot_delete_published_app(self):
         self.login_as(user=self.superuser, superuser=True)
         url = reverse("sentry-api-0-sentry-app-details", args=[self.published_app.slug])
         response = self.client.delete(url)
         assert response.status_code == 403
         assert response.data == {"detail": ["Published apps cannot be removed."]}
+
+    def test_cannot_delete_partner_apps(self):
+        self.login_as(user=self.user)
+        self.published_app.update(metadata={"partnership_restricted": True})
+        response = self.client.delete(self.url)
+        assert response.status_code == 403

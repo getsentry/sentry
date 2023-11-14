@@ -78,6 +78,7 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.sliding_window": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
     "sentry.dynamic_sampling.tasks.collect_orgs": 0.2,
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -421,6 +422,7 @@ def configure_sdk():
     exclude_beat_tasks = [
         "flush-buffers",
         "sync-options",
+        "sync-options-control",
         "schedule-digests",
         "check-symbolicator-lpq-project-eligibility",  # defined in getsentry
     ]

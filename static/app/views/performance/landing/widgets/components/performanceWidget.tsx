@@ -123,7 +123,7 @@ export function DataDisplay<T extends WidgetDataConstraint>(
         hasData={hasData}
         errorComponent={<DefaultErrorComponent height={totalHeight} />}
         dataComponents={Visualizations.map((Visualization, index) => (
-          <ContentContainer
+          <ContentBodyContainer
             key={index}
             noPadding={Visualization.noPadding}
             bottomPadding={Visualization.bottomPadding}
@@ -143,7 +143,7 @@ export function DataDisplay<T extends WidgetDataConstraint>(
               ),
               fixed: <Placeholder height={`${chartHeight}px`} />,
             })}
-          </ContentContainer>
+          </ContentBodyContainer>
         ))}
         loadingComponent={
           <LoadingWrapper height={totalHeight}>
@@ -181,6 +181,10 @@ const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boo
   padding-left: ${p => (p.noPadding ? space(0) : space(2))};
   padding-right: ${p => (p.noPadding ? space(0) : space(2))};
   padding-bottom: ${p => (p.bottomPadding ? space(1) : space(0))};
+`;
+
+const ContentBodyContainer = styled(ContentContainer)`
+  height: 100%;
 `;
 
 const PerformanceWidgetPlaceholder = styled(Placeholder)`

@@ -17,7 +17,7 @@ from sentry.digests.utils import (
 from sentry.eventstore.models import Event
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, UnsubscribeContext
 from sentry.notifications.utils import (
     NotificationRuleDetails,
     get_email_link_extra_params,
@@ -61,8 +61,13 @@ class DigestNotification(ProjectNotification):
         self.target_identifier = target_identifier
         self.fallthrough_choice = fallthrough_choice
 
-    def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
-        return "project", self.project.id, "alert_digest"
+    def get_unsubscribe_key(self) -> UnsubscribeContext | None:
+        return UnsubscribeContext(
+            organization=self.project.organization,
+            key="project",
+            resource_id=self.project.id,
+            referrer="alert_digest",
+        )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         if not context:
@@ -204,6 +209,7 @@ class DigestNotification(ProjectNotification):
                 "target_identifier": self.target_identifier,
                 "team_ids": team_ids,
                 "user_ids": user_ids,
+                "notification_uuid": self.notification_uuid,
             },
         )
 

@@ -11,12 +11,12 @@ import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
-import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import GroupChart from 'sentry/components/stream/groupChart';
+import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -39,6 +39,7 @@ import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -95,6 +96,7 @@ function BaseGroupRow({
 }: Props) {
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
+  const issueTypeConfig = getConfigForIssueType(group);
 
   const selectedGroups = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroups[id];
@@ -432,28 +434,24 @@ function BaseGroupRow({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
-      {withChart && !displayReprocessingLayout && (
+      {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
         <ChartWrapper narrowGroups={narrowGroups}>
-          {!group.filtered?.stats && !group.stats ? (
-            <Placeholder height="24px" />
-          ) : (
-            <GroupChart
-              statsPeriod={statsPeriod!}
-              data={group}
-              showSecondaryPoints={showSecondaryPoints}
-              showMarkLine
-            />
-          )}
+          <GroupChart
+            statsPeriod={statsPeriod!}
+            data={group}
+            showSecondaryPoints={showSecondaryPoints}
+            showMarkLine
+          />
         </ChartWrapper>
       )}
       {displayReprocessingLayout ? (
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {withColumns.includes('event') && (
+          {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupCount}</EventCountsWrapper>
           )}
-          {withColumns.includes('users') && (
+          {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
           {withColumns.includes('assignee') && (

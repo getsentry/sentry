@@ -1,10 +1,15 @@
 import {CSSProperties} from 'react';
 import {Link} from 'react-router';
+import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconProfiling} from 'sentry/icons/iconProfiling';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -16,13 +21,14 @@ import {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 
 type Keys =
   | 'transaction_id'
+  | 'profile_id'
   | 'timestamp'
   | 'duration'
   | 'p95_comparison'
   | 'avg_comparison';
-type TableColumnHeader = GridColumnHeader<Keys>;
+export type SamplesTableColumnHeader = GridColumnHeader<Keys>;
 
-const COLUMN_ORDER: TableColumnHeader[] = [
+const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
   {
     key: 'transaction_id',
     name: 'Event ID',
@@ -54,6 +60,7 @@ type Props = {
   avg: number;
   data: SpanTableRow[];
   isLoading: boolean;
+  columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
@@ -66,6 +73,7 @@ export function SpanSamplesTable({
   highlightedSpanId,
   onMouseLeaveSample,
   onMouseOverSample,
+  columnOrder,
 }: Props) {
   const location = useLocation();
 
@@ -116,6 +124,25 @@ export function SpanSamplesTable({
       );
     }
 
+    if (column.key === 'profile_id') {
+      return (
+        <IconWrapper>
+          {row.profile_id ? (
+            <Tooltip title={t('View Profile')}>
+              <LinkButton
+                to={`/profiling/profile/${row.project}/${row.profile_id}/flamechart/`}
+                size="xs"
+              >
+                <IconProfiling size="xs" />
+              </LinkButton>
+            </Tooltip>
+          ) : (
+            <div {...commonProps}>(no value)</div>
+          )}
+        </IconWrapper>
+      );
+    }
+
     if (column.key === 'duration') {
       return (
         <DurationCell containerProps={commonProps} milliseconds={row['span.self_time']} />
@@ -140,7 +167,7 @@ export function SpanSamplesTable({
       <GridEditable
         isLoading={isLoading}
         data={data}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={columnOrder ?? DEFAULT_COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
           renderHeadCell,
@@ -151,3 +178,9 @@ export function SpanSamplesTable({
     </div>
   );
 }
+
+const IconWrapper = styled('div')`
+  text-align: right;
+  width: 100%;
+  height: 26px;
+`;

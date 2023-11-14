@@ -26,17 +26,11 @@ from sentry.services.organization import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.types.region import get_local_region
 
 
 class TestControlOrganizationProvisioningBase(TestCase):
-    @pytest.fixture(autouse=True)
-    def _enable_control_provisioning_option(self):
-        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
-            yield
-
     def setUp(self):
         self.provision_user = self.create_user()
         self.provisioning_args = self.generate_provisioning_args(
@@ -145,7 +139,6 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
         assert self.provisioning_args.provision_options.slug in new_org_slug_reservation.slug
         assert new_org_slug_reservation.slug != self.provisioning_args.provision_options.slug
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_rewrites_numeric_slug_if_prevent_numeric_option_enabled(self):
         numeric_slug = "123456"
         self.provisioning_args.provision_options.slug = numeric_slug

@@ -11,11 +11,12 @@ from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.signals import event_accepted
-from sentry.tasks.store import preprocess_event, save_event_transaction
+from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
@@ -104,7 +105,6 @@ def process_event(message: IngestMessage, project: Project) -> None:
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
     data = json.loads(payload, use_rapid_json=True)
-
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
             "internal.captured.ingest_consumer.parsed",
@@ -145,6 +145,15 @@ def process_event(message: IngestMessage, project: Project) -> None:
             event_id=event_id,
             project_id=project_id,
         )
+    elif data.get("type") == "feedback":
+        if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+            save_event_feedback.delay(
+                cache_key=None,  # no need to cache as volume is low
+                data=data,
+                start_time=start_time,
+                event_id=event_id,
+                project_id=project_id,
+            )
     else:
         # Preprocess this event, which spawns either process_event or
         # save_event. Pass data explicitly to avoid fetching it again from the
@@ -251,7 +260,12 @@ def process_userreport(message: IngestMessage, project: Project) -> bool:
     feedback = json.loads(message["payload"], use_rapid_json=True)
 
     try:
-        save_userreport(project, feedback, start_time=start_time)
+        save_userreport(
+            project,
+            feedback,
+            FeedbackCreationSource.USER_REPORT_ENVELOPE,
+            start_time=start_time,
+        )
         return True
     except Conflict as e:
         logger.info("Invalid userreport: %s", e)

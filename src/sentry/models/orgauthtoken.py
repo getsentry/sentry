@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import ClassVar, Optional
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
+from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
@@ -57,7 +58,7 @@ class OrgAuthToken(ReplicatedControlModel):
     )
     date_deactivated = models.DateTimeField(null=True, blank=True)
 
-    objects = BaseManager(cache_fields=("token_hashed",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("token_hashed",))
 
     class Meta:
         app_label = "sentry"
@@ -72,7 +73,7 @@ class OrgAuthToken(ReplicatedControlModel):
         return {"name": self.name, "scopes": self.get_scopes()}
 
     def get_allowed_origins(self):
-        return ()
+        return []
 
     def get_scopes(self):
         return self.scope_list
@@ -130,11 +131,12 @@ class OrgAuthToken(ReplicatedControlModel):
 
 def is_org_auth_token_auth(auth: object) -> bool:
     """:returns True when an API token is hitting the API."""
+    from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
     from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "org_auth_token"
-    return isinstance(auth, OrgAuthToken)
+    return isinstance(auth, OrgAuthToken) or isinstance(auth, OrgAuthTokenReplica)
 
 
 def get_org_auth_token_id_from_auth(auth: object) -> int | None:

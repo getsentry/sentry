@@ -14,6 +14,7 @@ from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ def query(
     functions_acl: Optional[List[str]] = None,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -82,6 +84,7 @@ def timeseries_query(
     has_metrics: bool = False,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
 ) -> Any:
     builder = ProfileFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
@@ -94,6 +97,7 @@ def timeseries_query(
         ),
     )
     results = builder.run_query(referrer)
+    results = builder.strip_alias_prefix(results)
 
     return SnubaTSResult(
         {
@@ -136,6 +140,8 @@ def top_events_timeseries(
     include_other=False,
     functions_acl=None,
     result_key_order=None,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
 ):
     assert not include_other, "Other is not supported"  # TODO: support other
 
@@ -214,6 +220,8 @@ def format_top_events_timeseries_results(
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
+        result = query_builder.strip_alias_prefix(result)
+
         span.set_data("result_count", len(result.get("data", [])))
         processed_result = query_builder.process_results(result)
 

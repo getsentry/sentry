@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from enum import Enum
 
 import requests
 from django.utils.translation import gettext_lazy as _
@@ -14,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.client import DiscordClient, DiscordNonProxyClient
 from sentry.integrations.discord.commands import DiscordCommandManager
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -93,20 +94,37 @@ class DiscordIntegration(IntegrationInstallation):
             return
 
 
+class DiscordPermissions(Enum):
+    # https://discord.com/developers/docs/topics/permissions#permissions
+    VIEW_CHANNEL = 1 << 10
+    SEND_MESSAGES = 1 << 11
+    SEND_TTS_MESSAGES = 1 << 12
+    EMBED_LINKS = 1 << 14
+    ATTACH_FILES = 1 << 15
+    MANAGE_THREADS = 1 << 34
+    CREATE_PUBLIC_THREADS = 1 << 35
+    CREATE_PRIVATE_THREADS = 1 << 36
+    SEND_MESSAGES_IN_THREADS = 1 << 38
+
+
 class DiscordIntegrationProvider(IntegrationProvider):
     key = "discord"
     name = "Discord"
     metadata = metadata
     integration_cls = DiscordIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
-    requires_feature_flag = True  # remove this when we remove the discord feature flag
 
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
     oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
 
-    # https://discord.com/developers/docs/topics/permissions#permissions
-    # Permissions value that can Send Messages (0x800), View Channel (0x400), and Embed Links (0x4000):
-    bot_permissions = 0x800 | 0x400 | 0x4000
+    bot_permissions = (
+        DiscordPermissions.VIEW_CHANNEL.value
+        | DiscordPermissions.SEND_MESSAGES.value
+        | DiscordPermissions.EMBED_LINKS.value
+        | DiscordPermissions.CREATE_PUBLIC_THREADS.value
+        | DiscordPermissions.CREATE_PRIVATE_THREADS.value
+        | DiscordPermissions.SEND_MESSAGES_IN_THREADS.value
+    )
 
     setup_dialog_config = {"width": 600, "height": 900}
 
@@ -115,7 +133,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.public_key = options.get("discord.public-key")
         self.bot_token = options.get("discord.bot-token")
         self.client_secret = options.get("discord.client-secret")
-        self.client = DiscordClient()
+        self.client = DiscordNonProxyClient()
         self.setup_url = absolute_uri("extensions/discord/setup/")
         super().__init__()
 
@@ -124,7 +142,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
         guild_id = str(state.get("guild_id"))
-        guild_name = self._get_guild_name(guild_id)
+        guild_name = self.client.get_guild_name(guild_id=guild_id)
         discord_user_id = self._get_discord_user_id(str(state.get("code")))
 
         return {
@@ -141,15 +159,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
     def setup(self) -> None:
         if self._credentials_exist():
             DiscordCommandManager().register_commands()
-
-    def _get_guild_name(self, guild_id: str) -> str:
-        url = self.client.GUILD_URL.format(guild_id=guild_id)
-        headers = {"Authorization": f"Bot {self.bot_token}"}
-        try:
-            response = self.client.get(url, headers=headers)
-            return response["name"]  # type: ignore
-        except (ApiError, AttributeError):
-            return guild_id
 
     def _get_discord_user_id(self, auth_code: str) -> str:
         """

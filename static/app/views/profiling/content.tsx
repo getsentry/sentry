@@ -20,6 +20,7 @@ import {
   ProfilingUpgradeButton,
 } from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
+import ProfilingFeedbackButton from 'sentry/components/profiling/profilingFeedbackButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -164,7 +165,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
           <Layout.Header>
-            <Layout.HeaderContent>
+            <StyledHeaderContent>
               <Layout.Title>
                 {t('Profiling')}
                 <PageHeadingQuestionTooltip
@@ -174,7 +175,8 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   )}
                 />
               </Layout.Title>
-            </Layout.HeaderContent>
+              <ProfilingFeedbackButton />
+            </StyledHeaderContent>
           </Layout.Header>
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -327,6 +329,13 @@ const BASE_FIELDS = [
 const ALL_FIELDS = [...BASE_FIELDS, 'user_misery()'] as const;
 
 type FieldType = (typeof ALL_FIELDS)[number];
+
+const StyledHeaderContent = styled(Layout.HeaderContent)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
+`;
 
 const ActionBar = styled('div')`
   display: grid;

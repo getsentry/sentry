@@ -2115,6 +2115,7 @@ class MetricArg(FunctionArg):
         allowed_columns: Optional[Sequence[str]] = None,
         allow_custom_measurements: Optional[bool] = True,
         validate_only: Optional[bool] = True,
+        allow_mri: bool = True,
     ):
         """
         :param name: The name of the function, this refers to the name to invoke.
@@ -2131,15 +2132,22 @@ class MetricArg(FunctionArg):
         self.allow_custom_measurements = allow_custom_measurements
         # Normalize the value to check if it is valid, but return the value as-is
         self.validate_only = validate_only
+        # Allows the metric argument to be any MRI.
+        self.allow_mri = allow_mri
 
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        from sentry.snuba.metrics.naming_layer.mapping import is_mri
+
+        allowed_column = True
         if self.allowed_columns is not None and len(self.allowed_columns) > 0:
-            if value in self.allowed_columns or (
+            allowed_column = value in self.allowed_columns or (
                 self.allow_custom_measurements and CUSTOM_MEASUREMENT_PATTERN.match(value)
-            ):
-                return value
-            else:
-                raise IncompatibleMetricsQuery(f"{value} is not an allowed column")
+            )
+
+        allowed_mri = self.allow_mri and is_mri(value)
+
+        if not allowed_column and not allowed_mri:
+            raise IncompatibleMetricsQuery(f"{value} is not an allowed column")
 
         return value
 
