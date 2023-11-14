@@ -1504,12 +1504,12 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FeedbackFieldKey.OS_NAME]: {
-    desc: t('Name of the Operating System'),
+    desc: t('Name of the operating system'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [FeedbackFieldKey.OS_VERSION]: {
-    desc: t('Version number of the Operating System'),
+    desc: t('Version number of the operating system'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
