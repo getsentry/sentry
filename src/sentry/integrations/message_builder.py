@@ -7,6 +7,7 @@ from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT
 from sentry.issues.grouptype import GroupCategory
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -73,6 +74,19 @@ def get_title_link(
     other_params = {}
     # add in rule id if we have it
     if rule_id:
+        try:
+            rule = Rule.objects.get(id=rule_id)
+        except Rule.DoesNotExist:
+            rule_env = None
+        else:
+            rule_env = rule.environment_id
+        try:
+            env = Environment.objects.get(id=rule_env)
+        except Environment.DoesNotExist:
+            pass
+        else:
+            other_params["environment"] = env.name
+
         other_params["alert_rule_id"] = rule_id
         # hard code for issue alerts
         other_params["alert_type"] = "issue"

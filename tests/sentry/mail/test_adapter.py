@@ -219,6 +219,31 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             notification_uuid=ANY,
         )
 
+    def test_notification_with_environment(self):
+        environment = self.create_environment(self.project, name="production")
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error", "environment": environment.name},
+            project_id=self.project.id,
+        )
+
+        rule = Rule.objects.create(
+            project=self.project, label="my rule", environment_id=environment.id
+        )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
+        assert msg.subject == "[Sentry] BAR-1 - Hello world"
+        assert isinstance(msg.alternatives[0][0], str)
+        assert "my rule" in msg.alternatives[0][0]
+        assert f"&environment={environment.name}" in msg.body
+        assert "notification_uuid" in msg.body
+
     def test_simple_snooze(self):
         """Test that notification for alert snoozed by user is not send to that user."""
         event = self.store_event(
