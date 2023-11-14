@@ -101,27 +101,56 @@ export enum IssueTitle {
   PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
 }
 
-export const getIssueTypeFromOccurrenceType = (
+const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
+  1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
+  1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+  1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+  1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+  1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+  1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
+  1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+  1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+  1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
+  1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+  1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
+  1017: IssueType.PERFORMANCE_DURATION_REGRESSION,
+  1018: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+  2001: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
+  2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
+  2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
+  2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
+  2008: IssueType.PROFILE_FRAME_DROP,
+  2009: IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL,
+  2010: IssueType.PROFILE_FUNCTION_REGRESSION,
+  2011: IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
+};
+
+const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
+
+export function getIssueTypeFromOccurrenceType(
   typeId: number | undefined
-): IssueType | null => {
-  const occurrenceTypeToIssueIdMap = {
-    1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
-    1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
-    1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-    1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
-    1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
-    1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-    1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
-    1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
-    1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
-    1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
-  };
+): IssueType | null {
   if (!typeId) {
     return null;
   }
-  return occurrenceTypeToIssueIdMap[typeId] ?? null;
-};
+  return OCCURRENCE_TYPE_TO_ISSUE_TYPE[typeId] ?? null;
+}
+
+export function isTransactionBased(typeId: number | undefined): boolean {
+  if (!typeId) {
+    return false;
+  }
+  // the 1xxx type ids are transaction based performance issues
+  return typeId >= 1000 && typeId < 2000;
+}
+
+export function isOccurrenceBased(typeId: number | undefined): boolean {
+  if (!typeId) {
+    return false;
+  }
+  // these are regression type performance issues
+  return !PERFORMANCE_REGRESSION_TYPE_IDS.has(typeId);
+}
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
