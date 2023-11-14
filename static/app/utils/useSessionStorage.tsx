@@ -2,7 +2,15 @@ import {useCallback, useEffect, useState} from 'react';
 
 import sessionStorageWrapper from 'sentry/utils/sessionStorage';
 
-const isBrowser = typeof window !== 'undefined';
+const isBrowser = (() => {
+  const hasWindow = typeof window !== 'undefined';
+  try {
+    hasWindow && window.sessionStorage.getItem('test');
+    return hasWindow;
+  } catch (error) {
+    return false;
+  }
+})();
 
 function readStorageValue<T>(key: string, initialValue: T) {
   const value = sessionStorageWrapper.getItem(key);
