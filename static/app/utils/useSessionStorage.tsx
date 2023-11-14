@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 
 import sessionStorageWrapper from 'sentry/utils/sessionStorage';
 
-const isBrowser = (() => {
+const hasSessionStorageWithAccess = (() => {
   const hasWindow = typeof window !== 'undefined';
   try {
     hasWindow && window.sessionStorage.getItem('test');
@@ -61,7 +61,7 @@ export function useSessionStorage<T>(
     sessionStorageWrapper.removeItem(key);
   }, [key, initialValue]);
 
-  if (!isBrowser) {
+  if (!hasSessionStorageWithAccess) {
     return [initialValue, () => {}, () => {}];
   }
 
