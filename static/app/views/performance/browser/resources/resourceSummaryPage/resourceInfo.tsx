@@ -9,6 +9,7 @@ import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resourc
 import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
@@ -18,6 +19,8 @@ type Props = {
   avgDuration: number;
   avgTransferSize: number;
   throughput: number;
+  timeSpentPercentage: number;
+  timeSpentTotal: number;
 };
 
 function ResourceInfo(props: Props) {
@@ -27,6 +30,8 @@ function ResourceInfo(props: Props) {
     avgDuration,
     avgTransferSize,
     throughput,
+    timeSpentPercentage,
+    timeSpentTotal,
   } = props;
 
   const tooltips = {
@@ -62,6 +67,9 @@ function ResourceInfo(props: Props) {
   return (
     <Fragment>
       <BlockContainer>
+        <Block title={getThroughputTitle('http')}>
+          <ThroughputCell rate={throughput} unit={RESOURCE_THROUGHPUT_UNIT} />
+        </Block>
         <Block title={DataTitles['avg(http.response_content_length)']}>
           <Tooltip
             isHoverable
@@ -95,8 +103,8 @@ function ResourceInfo(props: Props) {
         <Block title={DataTitles.avg}>
           <DurationCell milliseconds={avgDuration} />
         </Block>
-        <Block title={getThroughputTitle('http')}>
-          <ThroughputCell rate={throughput} unit={RESOURCE_THROUGHPUT_UNIT} />
+        <Block title={DataTitles.timeSpent}>
+          <TimeSpentCell percentage={timeSpentPercentage} total={timeSpentTotal} />
         </Block>
       </BlockContainer>
       {hasNoData && (
