@@ -1049,7 +1049,7 @@ class OnDemandMetricSpec:
         parsed_query = self._parse_query(self.query)
         # We extend the parsed query with other conditions that we want to inject externally from the query.
         # We skip adding environment if this is a dynamic query (eg. dashboard query) as environment is a tag.
-        if not self.spec_type == MetricSpecType.DYNAMIC_QUERY:
+        if self.spec_type == MetricSpecType.SIMPLE_QUERY:
             parsed_query = self._extend_parsed_query(parsed_query)
 
         # Second step is to extract the conditions that might be present in the aggregate function (e.g. count_if).
