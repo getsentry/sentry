@@ -42,7 +42,10 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
     ev_type = obj.get_event_type()
     title = obj.title
 
-    if ev_type == "error" and "type" in ev_metadata:
+    if ev_type == "error" and "title" in ev_metadata:
+        title = ev_metadata["title"]
+
+    elif ev_type == "error" and "type" in ev_metadata:
         title = ev_metadata["type"]
 
     elif ev_type == "csp":
@@ -119,8 +122,15 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
         if important:
             return important.value
     elif ev_type == "error":
-        return ev_metadata.get("value") or ev_metadata.get("function")
-
+        parts = []
+        # If there is a title then that was shown as the attachment title
+        # instead of the type so include the type here instead, if available.
+        if "title" in ev_metadata and "type" in ev_metadata:
+            parts.append(ev_metadata.get("type"))
+        text = ev_metadata.get("value") or ev_metadata.get("function")
+        if text:
+            parts.append(text)
+        return ": ".join(parts)
     return None
 
 

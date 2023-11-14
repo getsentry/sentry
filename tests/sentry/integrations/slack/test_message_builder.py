@@ -100,6 +100,43 @@ def build_test_message(
 
 
 @region_silo_test(stable=True)
+class BuildErrorAttachmentTest(TestCase):
+    def test_build_basic_error(self):
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "type": "error",
+                "exception": [{"type": "Foo"}],
+            },
+            project_id=self.project.id,
+        )
+        event.data["metadata"].update({"value": "No error message"})
+        assert event.group is not None
+        attachments = SlackIssuesMessageBuilder(event.group, event.for_group(event.group)).build()
+        assert isinstance(attachments, dict)
+        assert attachments["title"] == "Foo"
+        assert attachments["text"] == "No error message"
+
+    def test_build_error_with_title(self):
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "type": "error",
+                "exception": [{"type": "Foo"}],
+            },
+            project_id=self.project.id,
+        )
+        event.data["metadata"].update({"title": "Bar", "value": "No error message"})
+        assert event.group is not None
+        attachments = SlackIssuesMessageBuilder(event.group, event.for_group(event.group)).build()
+        assert isinstance(attachments, dict)
+        assert attachments["title"] == f"{event.title}"
+        assert attachments["text"] == "Foo: No error message"
+
+
+@region_silo_test(stable=True)
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
