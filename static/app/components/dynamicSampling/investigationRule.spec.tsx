@@ -280,9 +280,8 @@ describe('InvestigationRule', function () {
     const labels = screen.queryAllByText(labelText);
     expect(labels).toHaveLength(0);
     // now the user creates a rule
-    fireEvent.click(button);
+    await userEvent.click((button);
 
-    await tick();
     expect(createRule).toHaveBeenCalledTimes(1);
     // we should show some error that the rule could not be created
     expect(addErrorMessage).toHaveBeenCalledWith(
