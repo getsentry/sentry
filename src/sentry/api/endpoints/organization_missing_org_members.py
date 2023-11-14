@@ -4,9 +4,9 @@ from collections import defaultdict
 from datetime import timedelta
 from email.headerregistry import Address
 from functools import reduce
-from typing import TYPE_CHECKING, Dict, Sequence
+from typing import Any, Dict, List, Sequence
 
-from django.db.models import Q, QuerySet
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.request import Request
@@ -23,12 +23,6 @@ from sentry.integrations.base import IntegrationFeatures
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
-
-if TYPE_CHECKING:
-    # XXX: this should use WithAnnotations but it breaks the cache typeddjango/django-stubs#760
-    class CommitAuthor___commit__count(CommitAuthor):
-        commit__count: int
-
 
 FILTERED_EMAIL_DOMAINS = {
     "gmail.com",
@@ -72,7 +66,7 @@ def _get_missing_organization_members(
     provider: str,
     integration_ids: Sequence[int],
     shared_domain: str | None,
-) -> QuerySet[CommitAuthor___commit__count]:
+) -> List[Any]:
     org_id = organization.id
     domain_query = ""
     if shared_domain:
