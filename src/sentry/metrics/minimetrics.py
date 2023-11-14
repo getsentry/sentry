@@ -3,13 +3,7 @@ from functools import wraps
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 import sentry_sdk
-
-try:
-    from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
-
-    have_minimetrics = True
-except ImportError:
-    have_minimetrics = False
+from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
 
 from sentry import options
 from sentry.metrics.base import MetricsBackend, Tags
@@ -17,9 +11,6 @@ from sentry.utils import metrics
 
 
 def patch_sentry_sdk():
-    if not have_minimetrics:
-        return
-
     real_add = MetricsAggregator.add
     real_emit = MetricsAggregator._emit
 
@@ -98,23 +89,19 @@ def before_emit_metric(key: str, tags: Dict[str, Any]) -> bool:
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):
-    def __init__(self, prefix: Optional[str] = None):
-        super().__init__(prefix=prefix)
-        if not have_minimetrics:
-            raise RuntimeError("Sentry SDK too old (no minimetrics)")
-
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
         return random.random() < sample_rate
 
     @staticmethod
     def _to_minimetrics_unit(unit: Optional[str], default: Optional[str] = None) -> str:
-        if unit is None and default is None:
+        if unit is None:
+            if default is not None:
+                return default
+
             return "none"
-        elif unit is None and default is not None:
-            return default
-        else:
-            return unit
+
+        return unit
 
     def incr(
         self,
