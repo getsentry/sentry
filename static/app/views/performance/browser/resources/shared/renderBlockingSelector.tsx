@@ -11,9 +11,10 @@ const {RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetricsField;
 
 function RenderBlockingSelector({value}: {value?: string}) {
   const location = useLocation();
+  const defaultValue = '';
 
   const options: Option[] = [
-    {value: '', label: 'All'},
+    {value: defaultValue, label: 'All'},
     {value: 'non-blocking', label: t('No')},
     {value: 'blocking', label: t('Yes')},
   ];
@@ -22,7 +23,7 @@ function RenderBlockingSelector({value}: {value?: string}) {
     <SelectControlWithProps
       inFieldLabel={`${t('Blocking')}:`}
       options={options}
-      value={value}
+      value={value || defaultValue}
       onChange={newValue => {
         browserHistory.push({
           ...location,
