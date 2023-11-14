@@ -91,8 +91,7 @@ function DurationChart({
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
-    groupId,
-    filters,
+    {...filters, 'span.group': groupId},
     [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );

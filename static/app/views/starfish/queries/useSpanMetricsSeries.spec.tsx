@@ -67,13 +67,13 @@ describe('useSpanMetricsSeries', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(
-      ({group, filters, yAxis}) => useSpanMetricsSeries(group, filters, yAxis),
+      ({filters, yAxis}) => useSpanMetricsSeries(filters, yAxis),
       {
         wrapper,
         initialProps: {
-          group: '221aa7ebd216',
           filters: {
-            transactionName: '/api/details',
+            'span.group': '221aa7ebd216',
+            transaction: '/api/details',
             release: '0.0.1',
             'resource.render_blocking_status': 'blocking' as const,
           },
@@ -89,7 +89,7 @@ describe('useSpanMetricsSeries', () => {
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
-          query: `span.group:221aa7ebd216 transaction:\"/api/details\" release:0.0.1 resource.render_blocking_status:blocking`,
+          query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1 resource.render_blocking_status:blocking`,
           dataset: 'spansMetrics',
           statsPeriod: '10d',
           referrer: 'span-metrics-series',

@@ -71,8 +71,7 @@ export const useSpanSamples = (options: Options) => {
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
-    groupId,
-    filters,
+    {'span.group': groupId, ...filters},
     [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics'
   );
