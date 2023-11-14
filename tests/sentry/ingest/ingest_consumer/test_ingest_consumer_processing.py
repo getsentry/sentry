@@ -14,10 +14,10 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
+from django.conf import settings
 
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
-    RESOURCE_ID,
     process_attachment_chunk,
     process_event,
     process_individual_attachment,
@@ -165,7 +165,7 @@ def test_accountant_transaction(default_project):
     broker.create_topic(topic, 1)
     producer = broker.get_producer()
 
-    set("shared_resources_accounting_enabled", [RESOURCE_ID])
+    set("shared_resources_accounting_enabled", [settings.EVENT_PROCESSING_STORE])
 
     accountant.init_backend(producer)
 
@@ -206,7 +206,7 @@ def test_accountant_transaction(default_project):
     payload = msg1.payload
     assert payload is not None
     formatted = loads(payload.value.decode("utf-8"))
-    assert formatted["shared_resource_id"] == RESOURCE_ID
+    assert formatted["shared_resource_id"] == settings.EVENT_PROCESSING_STORE
     assert formatted["app_feature"] == "transactions"
     assert formatted["usage_unit"] == "bytes"
     assert formatted["amount"] == len(serialized)
