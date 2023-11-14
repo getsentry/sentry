@@ -37,6 +37,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.types import QueryBuilderConfig, WhereType
+from sentry.search.utils import DEVICE_CLASS
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
@@ -145,10 +146,10 @@ def parse_public_field(field: str) -> MetricField:
     return MetricField(operation, get_mri(metric_name))
 
 
-def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
+def _resolve_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
     """
-    This function transforms any null tag.transaction to '<< unparameterized >>' so that it can be handled
-    as such in any query using that tag value.
+    Resolves any null tag.transaction to '<< unparameterized >>' so that it can be handled as such in any query using
+    that tag value.
 
     The logic behind this query is that ClickHouse will return '' in case tag.transaction is not set and we want to
     transform that '' as '<< unparameterized >>'.
@@ -163,6 +164,25 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
             [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
         ],
         alias=alias,
+    )
+
+
+def _resolve_device_class_for_action_by(use_case_id, org_id, alias=None):
+    """
+    Resolves `device.class` by converting it into numerical values, which is used in the action by clauses to map
+    between numerical and string values.
+    """
+    values: List[str] = []
+    keys: List[str] = []
+
+    for device_key, device_values in DEVICE_CLASS.items():
+        values.extend(device_values)
+        keys.extend([device_key] * len(device_values))
+
+    return Function(
+        "transform",
+        [Column(resolve_tag_key(use_case_id, org_id, "device.class")), values, keys, "Unknown"],
+        alias,
     )
 
 
@@ -345,24 +365,28 @@ def resolve_tags(
                 rhs=rhs_ids,
             )
 
+        # Temporary variables used to perform transformations on the conditions.
+        lhs = input_.lhs
+        op = input_.op
+        rhs = input_.rhs
+
         # Hacky way to apply a transformation for backward compatibility, which converts `unknown_error` to `unknown`
         # for metrics queries.
-        transformed_rhs = input_.rhs
-        if (
-            _refers_to_column(input_.lhs) == "tags[transaction.status]"
-            and input_.rhs == "unknown_error"
-        ):
-            transformed_rhs = "unknown"
+        if _refers_to_column(lhs) == "tags[transaction.status]" and rhs == "unknown_error":
+            rhs = "unknown"
+
+        # Transformation for the `device.class`, from string to integer representation.
+        if _refers_to_column(lhs) == "tags[device.class]" and isinstance(rhs, str):
+            op = Op.IN
+            rhs = list(DEVICE_CLASS[rhs])
 
         return Condition(
-            lhs=resolve_tags(
-                use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
-            ),
-            op=input_.op,
+            lhs=resolve_tags(use_case_id, org_id, lhs, projects, allowed_tag_keys=allowed_tag_keys),
+            op=op,
             rhs=resolve_tags(
                 use_case_id,
                 org_id,
-                transformed_rhs,
+                rhs,
                 projects,
                 is_tag_value=True,
                 allowed_tag_keys=allowed_tag_keys,
@@ -391,7 +415,7 @@ def resolve_tags(
             # If we are getting the column tags.transaction, we want to transform null values to
             # '<< unparameterized >>'.
             if input_.key == "transaction":
-                return transform_null_transaction_to_unparameterized(use_case_id, org_id)
+                return _resolve_null_transaction_to_unparameterized(use_case_id, org_id)
 
             name = input_.key
         else:
@@ -812,9 +836,15 @@ class SnubaQueryBuilder:
             raise InvalidParams("The metric action must either be an order by or group by.")
 
         if isinstance(metric_action_by_field.field, str):
-            # This transformation is currently supported only for group by because OrderBy doesn't support the Function type.
+            # This transformation is currently supported only for group by because OrderBy doesn't support the
+            # Function type.
             if is_group_by and metric_action_by_field.field == "transaction":
-                return transform_null_transaction_to_unparameterized(
+                return _resolve_null_transaction_to_unparameterized(
+                    use_case_id, org_id, metric_action_by_field.alias
+                )
+
+            if metric_action_by_field.field == "device.class":
+                return _resolve_device_class_for_action_by(
                     use_case_id, org_id, metric_action_by_field.alias
                 )
 

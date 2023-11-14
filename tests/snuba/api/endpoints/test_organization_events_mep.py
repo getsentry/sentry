@@ -2490,8 +2490,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert meta["fields"][function_name] == "percent_change"
 
     def test_avg_if(self):
-        self.features["organizations:use-metrics-layer"] = True
-
         self.store_transaction_metric(
             100,
             timestamp=self.min_ago,
@@ -2613,11 +2611,3 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_avg_compare(self):
         super().test_avg_compare()
-
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_device_class(self):
-        super().test_device_class()
-
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_device_class_filter(self):
-        super().test_device_class_filter()

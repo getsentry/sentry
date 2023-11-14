@@ -271,6 +271,7 @@ FILTERABLE_TAGS = {
     "tags[histogram_outlier]",
     "tags[geo.country_code]",
     "tags[http.status_code]",
+    "tags[device.class]",
 }
 
 
