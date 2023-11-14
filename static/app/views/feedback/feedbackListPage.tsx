@@ -40,14 +40,11 @@ export default function FeedbackListPage({}: Props) {
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <Tooltip
-                title={tct(
-                  'View [link:error-associated feedback reports].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
-                    ),
-                  }
-                )}
+                title={tct('View [link:error-associated feedback reports].', {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
+                  ),
+                })}
                 position="left"
                 isHoverable
               >
