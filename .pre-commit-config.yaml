@@ -58,7 +58,6 @@ repos:
       entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b)'
       language: pygrep
       types: [python]
-      exclude: ^src/sentry/metrics/minimetrics.py$
     - id: prevent-push
       name: prevent pushing master
       stages: [pre-push]
