@@ -1048,7 +1048,7 @@ class OnDemandMetricSpec:
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
         # We extend the parsed query with other conditions that we want to inject externally from the query.
-        # We skip adding environment if this is a dynamic query (eg. dashboard query) as environment is a tag.
+        # If it is a simple query, we encode the environment in the query hash, instead of emitting it as a tag of the metric.
         if self.spec_type == MetricSpecType.SIMPLE_QUERY:
             parsed_query = self._extend_parsed_query(parsed_query)
 
