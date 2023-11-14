@@ -225,69 +225,73 @@ function MemberCards({
   handleSendInvite,
   openInviteModal,
 }: MemberCardsProps) {
-  const cards = missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).map(member => {
-    const username = member.externalId.split(':').pop();
-    return (
-      <MemberCard
-        key={member.externalId}
-        data-test-id={`member-card-${member.externalId}`}
-      >
+  return (
+    <Fragment>
+      {missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).map(member => {
+        const username = member.externalId.split(':').pop();
+        return (
+          <MemberCard
+            key={member.externalId}
+            data-test-id={`member-card-${member.externalId}`}
+          >
+            <MemberCardContent>
+              <MemberCardContentRow>
+                <IconGithub size="sm" />
+                {/* TODO(cathy): create mapping from integration to lambda external link function */}
+                <StyledExternalLink href={`https://github.com/${username}`}>
+                  @{username}
+                </StyledExternalLink>
+              </MemberCardContentRow>
+              <MemberCardContentRow>
+                <IconCommit size="xs" />
+                {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
+              </MemberCardContentRow>
+              <MemberEmail>{member.email}</MemberEmail>
+            </MemberCardContent>
+            <Button
+              size="sm"
+              onClick={() => handleSendInvite(member.email)}
+              data-test-id="invite-missing-member"
+              icon={<IconMail />}
+              analyticsEventName="Github Invite Banner: Invite"
+              analyticsEventKey="github_invite_banner.invite"
+            >
+              {t('Invite')}
+            </Button>
+          </MemberCard>
+        );
+      })}
+
+      <MemberCard data-test-id="see-more-card" key="see-more">
         <MemberCardContent>
           <MemberCardContentRow>
-            <IconGithub size="sm" />
-            {/* TODO(cathy): create mapping from integration to lambda external link function */}
-            <StyledExternalLink href={`https://github.com/${username}`}>
-              @{username}
-            </StyledExternalLink>
+            <SeeMore>
+              {tct('See all [missingMembersCount] missing members', {
+                missingMembersCount: missingMembers.length,
+              })}
+            </SeeMore>
           </MemberCardContentRow>
-          <MemberCardContentRow>
-            <IconCommit size="xs" />
-            {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
-          </MemberCardContentRow>
-          <MemberEmail>{member.email}</MemberEmail>
+          <Subtitle>
+            {tct('Accounting for [totalCommits] recent commits', {
+              totalCommits: missingMembers.reduce(
+                (acc, curr) => acc + curr.commitCount,
+                0
+              ),
+            })}
+          </Subtitle>
         </MemberCardContent>
         <Button
           size="sm"
-          onClick={() => handleSendInvite(member.email)}
-          data-test-id="invite-missing-member"
-          icon={<IconMail />}
-          analyticsEventName="Github Invite Banner: Invite"
-          analyticsEventKey="github_invite_banner.invite"
+          priority="primary"
+          onClick={openInviteModal}
+          analyticsEventName="Github Invite Banner: View All"
+          analyticsEventKey="github_invite_banner.view_all"
         >
-          {t('Invite')}
+          {t('View All')}
         </Button>
       </MemberCard>
-    );
-  });
-  cards.push(
-    <MemberCard data-test-id="see-more-card" key="see-more">
-      <MemberCardContent>
-        <MemberCardContentRow>
-          <SeeMore>
-            {tct('See all [missingMembersCount] missing members', {
-              missingMembersCount: missingMembers.length,
-            })}
-          </SeeMore>
-        </MemberCardContentRow>
-        <Subtitle>
-          {tct('Accounting for [totalCommits] recent commits', {
-            totalCommits: missingMembers.reduce((acc, curr) => acc + curr.commitCount, 0),
-          })}
-        </Subtitle>
-      </MemberCardContent>
-      <Button
-        size="sm"
-        priority="primary"
-        onClick={openInviteModal}
-        analyticsEventName="Github Invite Banner: View All"
-        analyticsEventKey="github_invite_banner.view_all"
-      >
-        {t('View All')}
-      </Button>
-    </MemberCard>
+    </Fragment>
   );
-
-  return <Fragment>{cards}</Fragment>;
 }
 
 const StyledCard = styled(Card)`
