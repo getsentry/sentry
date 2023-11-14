@@ -120,6 +120,7 @@ export enum FieldKey {
   USER_USERNAME = 'user.username',
   USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
+  FUNCTION_DURATION = 'function.duration',
 }
 
 export enum FieldValueType {
@@ -1016,6 +1017,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Indicates if the app is in the foreground or background'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
+  },
+  [FieldKey.FUNCTION_DURATION]: {
+    desc: t('Duration of the function'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
   },
 };
 
