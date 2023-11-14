@@ -14,13 +14,11 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DurationAggregateSelector} from 'sentry/views/performance/database/durationAggregateSelector';
+import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
-import {AVG_COLOR} from 'sentry/views/starfish/colours';
-import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {
@@ -174,21 +172,12 @@ function SpanSummaryPage({params}: Props) {
             </Block>
 
             <Block>
-              <ChartPanel title={<DurationAggregateSelector />}>
-                <Chart
-                  height={CHART_HEIGHT}
-                  data={[
-                    durationData[
-                      `${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
-                    ],
-                  ]}
-                  loading={isDurationDataLoading}
-                  utc={false}
-                  chartColors={[AVG_COLOR]}
-                  isLineChart
-                  definedAxisTicks={4}
-                />
-              </ChartPanel>
+              <DurationChart
+                series={
+                  durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
+                }
+                isLoading={isDurationDataLoading}
+              />
             </Block>
           </BlockContainer>
 
@@ -211,8 +200,6 @@ function SpanSummaryPage({params}: Props) {
     </ModulePageProviders>
   );
 }
-
-const CHART_HEIGHT = 160;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
