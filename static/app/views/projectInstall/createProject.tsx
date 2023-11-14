@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useMemo, useState} from 'react';
+import {useCallback, useContext, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -14,6 +14,8 @@ import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
@@ -314,104 +316,99 @@ function CreateProject() {
     };
   }, [gettingStartedWithProjectContext, autoFill]);
 
-  const createProjectForm = (
-    <Fragment>
-      <Layout.Title withMargins>
-        {t('3. Name your project and assign it a team')}
-      </Layout.Title>
-      <CreateProjectForm
-        onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
-          // Prevent the page from reloading
-          event.preventDefault();
-          frameworkSelectionEnabled ? handleProjectCreation() : createProject();
-        }}
-      >
-        <div>
-          <FormLabel>{t('Project name')}</FormLabel>
-          <ProjectNameInputWrap>
-            <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
-            <ProjectNameInput
-              type="text"
-              name="name"
-              placeholder={t('project-name')}
-              autoComplete="off"
-              value={projectName}
-              onChange={e => setProjectName(slugify(e.target.value))}
-            />
-          </ProjectNameInputWrap>
-        </div>
-        {!isOrgMemberWithNoAccess && (
-          <div>
-            <FormLabel>{t('Team')}</FormLabel>
-            <TeamSelectInput>
-              <TeamSelector
-                allowCreate
-                name="select-team"
-                aria-label={t('Select a Team')}
-                menuPlacement="auto"
-                clearable={false}
-                value={team}
-                placeholder={t('Select a Team')}
-                onChange={choice => setTeam(choice.value)}
-                teamFilter={(tm: Team) => tm.access.includes('team:admin')}
-              />
-            </TeamSelectInput>
-          </div>
-        )}
-        <div>
-          <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
-            <Button
-              type="submit"
-              data-test-id="create-project"
-              priority="primary"
-              disabled={!canSubmitForm}
-            >
-              {t('Create Project')}
-            </Button>
-          </Tooltip>
-        </div>
-      </CreateProjectForm>
-    </Fragment>
-  );
-
   return (
     <Access access={canCreateProject ? ['project:read'] : ['project:admin']}>
       <div data-test-id="onboarding-info">
-        <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
-        <HelpText>
-          {tct(
-            'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
-              ),
-            }
-          )}
-        </HelpText>
-        <Layout.Title withMargins>{t('1. Choose your platform')}</Layout.Title>
-        <PlatformPicker
-          platform={platform?.key}
-          defaultCategory={platform?.category}
-          setPlatform={handlePlatformChange}
-          organization={organization}
-          showOther
-          noAutoFilter
-        />
-        <IssueAlertOptions
-          {...alertFrequencyDefaultValues}
-          onChange={updatedData => setAlertRuleConfig(updatedData)}
-        />
-        {createProjectForm}
-
-        {errors && (
-          <Alert type="error">
-            {Object.keys(errors).map(key => (
-              <div key={key}>
-                <strong>{startCase(key)}</strong>: {errors[key]}
+        <List symbol="colored-numeric">
+          <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
+          <HelpText>
+            {tct(
+              'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
+                ),
+              }
+            )}
+          </HelpText>
+          <StyledListItem>{t('Choose your platform')}</StyledListItem>
+          <PlatformPicker
+            platform={platform?.key}
+            defaultCategory={platform?.category}
+            setPlatform={handlePlatformChange}
+            organization={organization}
+            showOther
+            noAutoFilter
+          />
+          <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
+          <IssueAlertOptions
+            {...alertFrequencyDefaultValues}
+            onChange={updatedData => setAlertRuleConfig(updatedData)}
+          />
+          <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>
+          <CreateProjectForm
+            onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
+              // Prevent the page from reloading
+              event.preventDefault();
+              frameworkSelectionEnabled ? handleProjectCreation() : createProject();
+            }}
+          >
+            <div>
+              <FormLabel>{t('Project name')}</FormLabel>
+              <ProjectNameInputWrap>
+                <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
+                <ProjectNameInput
+                  type="text"
+                  name="name"
+                  placeholder={t('project-name')}
+                  autoComplete="off"
+                  value={projectName}
+                  onChange={e => setProjectName(slugify(e.target.value))}
+                />
+              </ProjectNameInputWrap>
+            </div>
+            {!isOrgMemberWithNoAccess && (
+              <div>
+                <FormLabel>{t('Team')}</FormLabel>
+                <TeamSelectInput>
+                  <TeamSelector
+                    allowCreate
+                    name="select-team"
+                    aria-label={t('Select a Team')}
+                    menuPlacement="auto"
+                    clearable={false}
+                    value={team}
+                    placeholder={t('Select a Team')}
+                    onChange={choice => setTeam(choice.value)}
+                    teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+                  />
+                </TeamSelectInput>
               </div>
-            ))}
-          </Alert>
-        )}
+            )}
+            <div>
+              <Tooltip title={submitTooltipText} disabled={formErrorCount === 0}>
+                <Button
+                  type="submit"
+                  data-test-id="create-project"
+                  priority="primary"
+                  disabled={!canSubmitForm}
+                >
+                  {t('Create Project')}
+                </Button>
+              </Tooltip>
+            </div>
+          </CreateProjectForm>
+
+          {errors && (
+            <Alert type="error">
+              {Object.keys(errors).map(key => (
+                <div key={key}>
+                  <strong>{startCase(key)}</strong>: {errors[key]}
+                </div>
+              ))}
+            </Alert>
+          )}
+        </List>
       </div>
     </Access>
   );
@@ -419,13 +416,17 @@ function CreateProject() {
 
 export {CreateProject};
 
+const StyledListItem = styled(ListItem)`
+  margin: ${space(2)} 0 ${space(1)} 0;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
 const CreateProjectForm = styled('form')`
   display: grid;
   grid-template-columns: 300px minmax(250px, max-content) max-content;
   gap: ${space(2)};
   align-items: end;
   padding: ${space(3)} 0;
-  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
   background: ${p => p.theme.background};
 `;
 
