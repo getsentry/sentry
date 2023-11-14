@@ -150,7 +150,6 @@ class EventUser:
             Column("ip_address_v6"),
             Column("ip_address_v4"),
             Column("user_id"),
-            Column("user"),
             Column("user_name"),
             Column("user_email"),
         ]
