@@ -1,12 +1,18 @@
 import {useMemo} from 'react';
 
+import {Button} from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {DataSection} from 'sentry/components/events/styles';
 import {t} from 'sentry/locale';
-import {Event, Group, IssueType, KeyValueListData} from 'sentry/types';
+import {Event, Group, IssueType, KeyValueListData, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import useOrganization from 'sentry/utils/useOrganization';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 
 interface EventRegressionSummaryProps {
   event: Event;
@@ -14,7 +20,12 @@ interface EventRegressionSummaryProps {
 }
 
 export function EventRegressionSummary({event, group}: EventRegressionSummaryProps) {
-  const data = useMemo(() => getKeyValueListData(group, event), [event, group]);
+  const organization = useOrganization();
+
+  const data = useMemo(
+    () => getKeyValueListData(organization, group, event),
+    [organization, event, group]
+  );
 
   if (!defined(data)) {
     return null;
@@ -27,7 +38,11 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
   );
 }
 
-function getKeyValueListData(group: Group, event: Event): KeyValueListData | null {
+function getKeyValueListData(
+  organization: Organization,
+  group: Group,
+  event: Event
+): KeyValueListData | null {
   const evidenceData = event.occurrence?.evidenceData;
   if (!defined(evidenceData)) {
     return null;
@@ -36,11 +51,24 @@ function getKeyValueListData(group: Group, event: Event): KeyValueListData | nul
   switch (group.issueType) {
     case IssueType.PERFORMANCE_DURATION_REGRESSION:
     case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
+      const target = transactionSummaryRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: evidenceData.transaction,
+        query: {},
+        trendFunction: 'p95',
+        projectID: event.projectID,
+        display: DisplayModes.TREND,
+      });
       return [
         {
           key: 'endpoint',
           subject: t('Endpoint Name'),
           value: evidenceData.transaction,
+          actionButton: (
+            <Button size="xs" to={target}>
+              {t('View Transaction')}
+            </Button>
+          ),
         },
         {
           key: 'duration change',

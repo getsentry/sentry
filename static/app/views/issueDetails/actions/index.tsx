@@ -51,6 +51,7 @@ import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAct
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -141,7 +142,6 @@ export function Actions(props: Props) {
     const {alert_date, alert_rule_id, alert_type} = query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
-      project_id: parseInt(project.id, 10),
       action_type: action,
       action_substatus: substatus ?? undefined,
       action_status_details: statusDetailsKey,
@@ -151,6 +151,7 @@ export function Actions(props: Props) {
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
       ...getAnalyticsDataForGroup(group),
+      ...getAnalyicsDataForProject(project),
     });
   };
 
