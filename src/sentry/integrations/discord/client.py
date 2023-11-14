@@ -47,7 +47,7 @@ class DiscordNonProxyClient(ApiClient):
 
     def overwrite_application_commands(self, commands: list[object]) -> None:
         self.put(
-            self.with_base_url(APPLICATION_COMMANDS_URL.format(application_id=self.application_id)),
+            APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
             data=commands,
         )
 
