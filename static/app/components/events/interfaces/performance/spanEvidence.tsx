@@ -9,6 +9,8 @@ import {space} from 'sentry/styles/space';
 import {
   EventTransaction,
   getIssueTypeFromOccurrenceType,
+  isOccurrenceBased,
+  isTransactionBased,
   Organization,
 } from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
@@ -42,9 +44,11 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 
   const hasProfilingFeature = organization.features.includes('profiling');
 
-  const issueType = getIssueTypeFromOccurrenceType(event.occurrence?.type);
+  const typeId = event.occurrence?.type;
+  const issueType = getIssueTypeFromOccurrenceType(typeId);
   const issueTitle = event.occurrence?.issueTitle;
   const sanitizedIssueTitle = issueTitle && sanitizeQuerySelector(issueTitle);
+  const hasSetting = isTransactionBased(typeId) && isOccurrenceBased(typeId);
 
   return (
     <EventDataSection
@@ -54,7 +58,8 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
       actions={
-        issueType && (
+        issueType &&
+        hasSetting && (
           <LinkButton
             data-test-id="span-evidence-settings-btn"
             to={`/settings/projects/${projectSlug}/performance/?issueType=${issueType}#${sanitizedIssueTitle}`}
