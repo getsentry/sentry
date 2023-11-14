@@ -48,6 +48,11 @@ def run_query(request: Request) -> Mapping[str, Any]:
     metrics_query = request.query
     assert isinstance(metrics_query, MetricsQuery)
 
+    # Currently we don't support nested Formula queries. Check to make sure that is what is being passed in.
+    # TODO: This should be removed once we fully support Formulas.
+    if isinstance(metrics_query.query, Formula):
+        metrics_query.query.validate()
+
     assert len(metrics_query.scope.org_ids) == 1  # Initially only allow 1 org id
     organization_id = metrics_query.scope.org_ids[0]
     tenant_ids = request.tenant_ids or {"organization_id": organization_id}
@@ -131,7 +136,10 @@ GENERIC_ENTITIES = {
 def _resolve_use_case_id_str(metrics_query: MetricsQuery) -> str:
     # Automatically resolve the use_case_id if it is not provided
     if isinstance(metrics_query.query, Timeseries):
-        mri = metrics_query.query.metric.mri
+        if metrics_query.query.metric.mri is None:
+            mri = get_mri(metrics_query.query.metric.public_name)
+        else:
+            mri = metrics_query.query.metric.mri
         parsed_mri = parse_mri(mri)
         if parsed_mri is None:
             raise InvalidParams(f"'{mri}' is not a valid MRI")
@@ -142,7 +150,12 @@ def _resolve_use_case_id_str(metrics_query: MetricsQuery) -> str:
     namespaces = set()
     for p in metrics_query.query.parameters:
         if isinstance(p, Timeseries):
-            parsed_mri = parse_mri(p.metric.mri)
+            if p.metric.mri is None:
+                mri = get_mri(p.metric.public_name)
+            else:
+                mri = p.metric.mri
+
+            parsed_mri = parse_mri(mri)
             if parsed_mri is None:
                 raise InvalidParams(f"'{mri}' is not a valid MRI")
 
