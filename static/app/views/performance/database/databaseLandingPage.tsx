@@ -18,15 +18,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
+import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
+import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
+import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
-import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 import {useModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
@@ -36,6 +40,7 @@ function DatabaseLandingPage() {
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
 
+  const {selectedAggregate} = useAvailableDurationAggregates();
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
   const moduleFilters = useModuleFilters();
   const sort = useModuleSort(QueryParameterNames.SPANS_SORT);
@@ -50,6 +55,24 @@ function DatabaseLandingPage() {
       },
     });
   };
+
+  const filters = {
+    'span.module': ModuleName.DB,
+  };
+
+  const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
+    filters,
+    ['spm()'],
+    'api.starfish.span-summary-page-metrics-chart'
+  );
+
+  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
+    filters,
+    [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    'api.starfish.span-summary-page-metrics-chart'
+  );
+
+  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
@@ -89,7 +112,20 @@ function DatabaseLandingPage() {
           )}
           {!onboardingProject && (
             <Fragment>
-              <SpanTimeCharts moduleName={moduleName} appliedFilters={{}} />
+              <ChartContainer>
+                <ThroughputChart
+                  series={throughputData['spm()']}
+                  isLoading={isThroughputDataLoading}
+                />
+                <DurationChart
+                  series={
+                    durationData[
+                      `${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
+                    ]
+                  }
+                  isLoading={isDurationDataLoading}
+                />
+              </ChartContainer>
               <FilterOptionsContainer>
                 <ActionSelector
                   moduleName={moduleName}
@@ -119,6 +155,12 @@ function DatabaseLandingPage() {
 
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const ChartContainer = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  grid-template-columns: 1fr 1fr;
 `;
 
 function AlertBanner(props) {
