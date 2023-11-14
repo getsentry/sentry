@@ -396,9 +396,18 @@ def _convert_aggregate_and_query_to_metric(
 
         return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)
 
-    except ValueError as e:
+    except ValueError:
         # raised by validate_sampling_condition
-        logger.error(e, exc_info=True)
+        logger.error(
+            "Invalid on-demand metric spec",
+            exc_info=True,
+            extra={
+                "dataset": dataset,
+                "aggregate": aggregate,
+                "query": query,
+                "groupbys": groupbys,
+            },
+        )
         return None
 
     except Exception as e:
