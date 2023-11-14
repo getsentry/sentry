@@ -20,7 +20,7 @@ from sentry.types.region import get_region_by_name
 # New usage of these endpoints uses region domains,
 # but existing customers have been using these routes
 # on the main domain for a long time.
-REGION_PINNED_URL_NAMES = (
+REGION_PINNED_URL_NAMES = {
     # These paths have organization scoped aliases
     "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
@@ -41,7 +41,7 @@ REGION_PINNED_URL_NAMES = (
     "sentry-account-email-unsubscribe-incident",
     "sentry-account-email-unsubscribe-issue",
     "sentry-account-email-unsubscribe-project",
-)
+}
 
 SENTRY_APP_REGION_URL_NAMES = (
     "sentry-api-0-sentry-app-installation-external-requests",
