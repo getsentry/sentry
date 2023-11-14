@@ -45,7 +45,7 @@ def test_multiprocessing_strategy():
 
 
 class RecordingTestCaseMixin(TransactionTestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     replay_id = uuid.uuid4().hex
     replay_recording_id = uuid.uuid4().hex

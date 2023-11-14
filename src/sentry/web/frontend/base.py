@@ -524,7 +524,13 @@ class AbstractOrganizationView(BaseView, abc.ABC):
         context["organization"] = organization
         return context
 
-    def has_permission(self, request: HttpRequest, organization: RpcOrganization | Organization, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(
+        self,
+        request: HttpRequest,
+        organization: RpcOrganization | Organization,
+        *args: Any,
+        **kwargs: Any,
+    ) -> bool:
         if organization is None:
             return False
         if self.valid_sso_required:
@@ -570,7 +576,13 @@ class AbstractOrganizationView(BaseView, abc.ABC):
 
         return False
 
-    def handle_permission_required(self, request: HttpRequest, organization: Organization | RpcOrganization | None, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
+    def handle_permission_required(
+        self,
+        request: HttpRequest,
+        organization: Organization | RpcOrganization | None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponse:
         query_params = {
             "referrer": request.GET.get("referrer"),
         }

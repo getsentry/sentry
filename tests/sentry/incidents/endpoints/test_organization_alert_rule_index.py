@@ -35,7 +35,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class AlertRuleBase(APITestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     @cached_property
     def organization(self):
@@ -81,7 +81,7 @@ class AlertRuleBase(APITestCase):
 
 
 class AlertRuleIndexBase(AlertRuleBase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-alert-rules"
 

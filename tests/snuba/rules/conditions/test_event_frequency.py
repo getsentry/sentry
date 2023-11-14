@@ -69,7 +69,7 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
 
 @pytest.mark.snuba_ci
 class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     def add_event(self, data, project_id, timestamp):
         raise NotImplementedError
@@ -222,7 +222,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
 
 
 class EventFrequencyConditionTestCase(StandardIntervalTestBase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     rule_cls = EventFrequencyCondition
 
@@ -241,7 +241,7 @@ class EventFrequencyConditionTestCase(StandardIntervalTestBase):
 
 
 class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     rule_cls = EventUniqueUserFrequencyCondition
 
@@ -262,7 +262,7 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
 
 
 class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     rule_cls = EventFrequencyPercentCondition
 

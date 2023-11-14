@@ -71,7 +71,7 @@ def _validate_rules(project):
     rules = generate_rules(project)
 
     # Generate boilerplate around minimal project config:
-    project_config = {  # type:ignore
+    project_config = {
         "allowedDomains": ["*"],
         "piiConfig": None,
         "trustedRelays": [],

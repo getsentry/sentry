@@ -85,7 +85,7 @@ class ProjectOptionRuleStore:
     def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
         ret = project.get_option(self._storage, default=[])
         # normalize tuple vs. list for json writing
-        return [tuple(lst) for lst in ret]  # type: ignore[misc]
+        return [tuple(lst) for lst in ret]
 
     def read(self, project: Project) -> RuleSet:
         rules = {rule: last_seen for rule, last_seen in self.read_sorted(project)}
