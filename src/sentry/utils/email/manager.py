@@ -4,6 +4,7 @@ import logging
 from typing import Iterable, List, Mapping
 
 from sentry.models.project import Project
+from sentry.services.hybrid_cloud.user.model import UserIdEmailArgs
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 
@@ -30,14 +31,14 @@ def get_email_addresses(
 
         user_id_emails = []
         for option in (o for o in options if o.value and not is_fake_email(o.value)):
-            user_id_emails.append((int(option.user_id), option.value))
+            user_id_emails.append(UserIdEmailArgs(user_id=int(option.user_id), email=option.value))
 
         user_id_emails_exists = user_service.verify_user_emails(user_id_emails=user_id_emails)
 
         for user_id_key in user_id_emails_exists.keys():
             user_id = int(user_id_key)
-            if user_id_emails_exists[user_id_key]["exists"]:
-                results[user_id] = user_id_emails_exists[user_id_key]["email"]
+            if user_id_emails_exists[user_id_key].exists:
+                results[user_id] = user_id_emails_exists[user_id_key].email
                 pending.discard(user_id)
             else:
                 pending.discard(user_id)

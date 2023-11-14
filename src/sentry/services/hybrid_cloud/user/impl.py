@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, List, MutableMapping, Optional, Tuple
+from typing import Any, Callable, Dict, List, MutableMapping, Optional
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -34,6 +34,7 @@ from sentry.services.hybrid_cloud.user import (
     UserSerializeType,
     UserUpdateArgs,
 )
+from sentry.services.hybrid_cloud.user.model import RpcVerifyUserEmail, UserIdEmailArgs
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import UserService
 from sentry.signals import user_signup
@@ -228,15 +229,14 @@ class DatabaseBackedUserService(UserService):
         user.send_confirm_emails(is_new_user=True)
 
     def verify_user_emails(
-        self, *, user_id_emails: List[Tuple[int, str]]
-    ) -> Dict[int, Dict[str, Any]]:
+        self, *, user_id_emails: List[UserIdEmailArgs]
+    ) -> Dict[int, RpcVerifyUserEmail]:
         results = {}
-        for user_id, email in user_id_emails:
+        for user_id_email in user_id_emails:
+            user_id = user_id_email["user_id"]
+            email = user_id_email["email"]
             exists = UserEmail.objects.filter(user_id=user_id, email__iexact=email).exists()
-            results[user_id] = {
-                "email": email,
-                "exists": exists,
-            }
+            results[user_id] = RpcVerifyUserEmail(email=email, exists=exists)
         return results
 
     class _UserFilterQuery(
