@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
@@ -278,3 +279,26 @@ class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
+
+    @patch("sentry.snuba.metrics.datasource")
+    def test_metrics_layer_is_not_used(self, get_series):
+        self.store_span_metric(
+            4,
+            metric="http.response_content_length",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+
+        self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "interval": "1m",
+                "yAxis": "avg(http.response_content_length)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        get_series.assert_not_called()

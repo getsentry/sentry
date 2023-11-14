@@ -7,6 +7,7 @@ from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils.snuba import SnubaTSResult
 
 
@@ -29,6 +30,7 @@ def query(
     functions_acl: Optional[List[str]] = None,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -68,6 +70,7 @@ def timeseries_query(
     has_metrics: bool = False,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
 ) -> Any:
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
