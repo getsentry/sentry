@@ -41,7 +41,7 @@ export default function FeedbackListPage({}: Props) {
             <Layout.HeaderActions>
               <Tooltip
                 title={tct(
-                  'View [link:error-associated feedback reports] from before November 3rd, 2023.',
+                  'View [link:error-associated feedback reports].',
                   {
                     link: (
                       <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
