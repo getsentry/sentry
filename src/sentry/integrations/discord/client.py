@@ -42,9 +42,6 @@ class DiscordNonProxyClient(ApiClient):
         self.application_id = options.get("discord.application-id")
         self.bot_token = options.get("discord.bot-token")
 
-    def with_base_url(self, url: str) -> str:
-        return f"{DISCORD_BASE_URL}{url}"
-
     def overwrite_application_commands(self, commands: list[object]) -> None:
         self.put(
             APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
