@@ -64,10 +64,10 @@ from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 
-FUNCTIONS_PER_PROJECT = 100
+FUNCTIONS_PER_PROJECT = 50
 FUNCTIONS_PER_BATCH = 1_000
 TRANSACTIONS_PER_PROJECT = 50
-TRANSACTIONS_PER_BATCH = 10
+TRANSACTIONS_PER_BATCH = 1_000
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
@@ -273,7 +273,7 @@ def _detect_transaction_change_points(
     trend_function = "p95(transaction.duration)"
 
     for chunk in chunked(
-        query_transactions_timeseries(transactions, start, trend_function), TRANSACTIONS_PER_BATCH
+        query_transactions_timeseries(transactions, start, trend_function), TIMESERIES_PER_BATCH
     ):
         data = {}
         for project_id, transaction_name, result in chunk:
