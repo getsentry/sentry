@@ -656,7 +656,7 @@ class DashboardDetail extends Component<Props, State> {
         }}
       >
         <Layout.Page withPadding>
-          <OnDemandControlProvider>
+          <OnDemandControlProvider location={location}>
             <NoProjectMessage organization={organization}>
               <StyledPageHeader>
                 <Layout.Title>
@@ -777,7 +777,7 @@ class DashboardDetail extends Component<Props, State> {
           }}
         >
           <Layout.Page>
-            <OnDemandControlProvider>
+            <OnDemandControlProvider location={location}>
               <NoProjectMessage organization={organization}>
                 <Layout.Header>
                   <Layout.HeaderContent>

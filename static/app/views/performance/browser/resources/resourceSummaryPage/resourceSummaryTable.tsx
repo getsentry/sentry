@@ -13,6 +13,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
+import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePageQuery';
 import {useResourceSummarySort} from 'sentry/views/performance/browser/resources/utils/useResourceSummarySort';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -39,8 +40,13 @@ function ResourceSummaryTable() {
   const location = useLocation();
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
+  const filters = useResourceModuleFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
-  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {sort, cursor});
+  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {
+    sort,
+    cursor,
+    renderBlockingStatus: filters[RESOURCE_RENDER_BLOCKING_STATUS],
+  });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},

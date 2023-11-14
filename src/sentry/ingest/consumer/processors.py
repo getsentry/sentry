@@ -11,6 +11,7 @@ from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
@@ -259,7 +260,12 @@ def process_userreport(message: IngestMessage, project: Project) -> bool:
     feedback = json.loads(message["payload"], use_rapid_json=True)
 
     try:
-        save_userreport(project, feedback, start_time=start_time)
+        save_userreport(
+            project,
+            feedback,
+            FeedbackCreationSource.USER_REPORT_ENVELOPE,
+            start_time=start_time,
+        )
         return True
     except Conflict as e:
         logger.info("Invalid userreport: %s", e)

@@ -18,10 +18,13 @@ from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.grouptype import (
+    FeedbackGroup,
+    GroupCategory,
     PerformanceDurationRegressionGroupType,
     PerformanceNPlusOneGroupType,
     ProfileFileIOGroupType,
@@ -54,6 +57,7 @@ from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
+    feedback_filter_decorator,
     post_process_group,
     process_event,
 )
@@ -2331,6 +2335,142 @@ class PostProcessGroupGenericTest(
 
         # Make sure we haven't called this again, since we should exit early.
         assert mock_processor.call_count == 1
+
+    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
+    def test_processing_cache_cleared(self):
+        pass
+
+    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
+    def test_processing_cache_cleared_with_commits(self):
+        pass
+
+
+@region_silo_test(stable=True)
+class PostProcessGroupFeedbackTest(
+    TestCase,
+    SnubaTestCase,
+    OccurrenceTestMixin,
+    CorePostProcessGroupTestMixin,
+    InboxTestMixin,
+    RuleProcessorTestMixin,
+    SnoozeTestMixin,
+):
+    def create_event(
+        self,
+        data,
+        project_id,
+        assert_no_errors=True,
+        feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+    ):
+        data["type"] = "generic"
+        event = self.store_event(
+            data=data, project_id=project_id, assert_no_errors=assert_no_errors
+        )
+
+        occurrence_data = self.build_occurrence_data(
+            event_id=event.event_id,
+            project_id=project_id,
+            **{
+                "id": uuid.uuid4().hex,
+                "fingerprint": ["c" * 32],
+                "issue_title": "User Feedback",
+                "subtitle": "it was bad",
+                "culprit": "api/123",
+                "resource_id": "1234",
+                "evidence_data": {
+                    "Test": 123,
+                    "source": feedback_type.value,
+                },
+                "evidence_display": [
+                    {"name": "hi", "value": "bye", "important": True},
+                    {"name": "what", "value": "where", "important": False},
+                ],
+                "type": FeedbackGroup.type_id,
+                "detection_time": datetime.now().timestamp(),
+                "level": "info",
+            },
+        )
+        occurrence, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+        return group_event
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+    ):
+        with self.feature(FeedbackGroup.build_post_process_group_feature_name()):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=None,
+                group_id=event.group_id,
+                occurrence_id=event.occurrence.id,
+                project_id=event.group.project_id,
+            )
+        return cache_key
+
+    def test_not_ran_if_crash_report(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        # assert mock_process_rules is not called
+        assert mock_process_func.call_count == 0
+
+    def test_ran_if_crash_feedback_envelope(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        # assert mock_process_rules is not called
+        assert mock_process_func.call_count == 1
+
+    @pytest.mark.skip(
+        reason="Skip this test since there's no way to have issueless events in the issue platform"
+    )
+    def test_issueless(self):
+        ...
+
+    def test_no_cache_abort(self):
+        # We don't use the cache for generic issues, so skip this test
+        pass
 
     @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
     def test_processing_cache_cleared(self):

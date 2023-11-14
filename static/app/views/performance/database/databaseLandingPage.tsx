@@ -89,8 +89,7 @@ function DatabaseLandingPage() {
           )}
           {!onboardingProject && (
             <Fragment>
-              <SpanTimeCharts moduleName={moduleName} appliedFilters={moduleFilters} />
-
+              <SpanTimeCharts moduleName={moduleName} appliedFilters={{}} />
               <FilterOptionsContainer>
                 <ActionSelector
                   moduleName={moduleName}
@@ -102,7 +101,6 @@ function DatabaseLandingPage() {
                   value={moduleFilters[SpanMetricsField.SPAN_DOMAIN] || ''}
                 />
               </FilterOptionsContainer>
-
               <SearchBarContainer>
                 <SearchBar
                   query={spanDescription}
@@ -110,7 +108,6 @@ function DatabaseLandingPage() {
                   onSearch={handleSearch}
                 />
               </SearchBarContainer>
-
               <SpansTable moduleName={moduleName} sort={sort} limit={LIMIT} />
             </Fragment>
           )}
