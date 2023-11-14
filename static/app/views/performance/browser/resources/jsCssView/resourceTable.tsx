@@ -114,9 +114,9 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     }
     if (key === SPAN_OP) {
       const opNameMap = {
-        'resource.script': t('Javascript'),
+        'resource.script': t('JavaScript'),
         'resource.img': t('Image'),
-        'resource.iframe': t('Javascript (iframe)'),
+        'resource.iframe': t('JavaScript (iframe)'),
         'resource.css': t('Stylesheet'),
         'resource.video': t('Video'),
         'resource.audio': t('Audio'),
