@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -7,6 +9,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
@@ -93,14 +96,22 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
+    const opPlatformMap = {
+      'resource.script': 'javascript',
+      'resource.css': 'css',
+    };
+
     if (key === SPAN_DESCRIPTION) {
       return (
-        <SpanDescriptionCell
-          moduleName={ModuleName.HTTP}
-          projectId={row[PROJECT_ID]}
-          description={row[SPAN_DESCRIPTION]}
-          group={row[SPAN_GROUP]}
-        />
+        <DescriptionWrapper>
+          <PlatformIcon platform={opPlatformMap[row[SPAN_OP]] || 'javascript'} />
+          <SpanDescriptionCell
+            moduleName={ModuleName.HTTP}
+            projectId={row[PROJECT_ID]}
+            description={row[SPAN_DESCRIPTION]}
+            group={row[SPAN_GROUP]}
+          />
+        </DescriptionWrapper>
       );
     }
     if (key === 'spm()') {
@@ -167,3 +178,9 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
 }
 
 export default ResourceTable;
+
+const DescriptionWrapper = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+`;
