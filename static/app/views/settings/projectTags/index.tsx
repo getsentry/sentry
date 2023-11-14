@@ -17,7 +17,13 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {TagWithTopValues} from 'sentry/types';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -27,6 +33,9 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{projectId: string}, {}>;
+
+type DeleteTagResponse = unknown;
+type DeleteTagVariables = {key: TagWithTopValues['key']};
 
 function ProjectTags(props: Props) {
   const organization = useOrganization();
@@ -46,17 +55,20 @@ function ProjectTags(props: Props) {
     {staleTime: 0}
   );
 
-  function handleDelete(key: TagWithTopValues['key']) {
-    api.requestPromise(`/projects/${organization.slug}/${projectId}/tags/${key}/`, {
-      method: 'DELETE',
-    });
+  const {mutate} = useMutation<DeleteTagResponse, RequestError, DeleteTagVariables>({
+    mutationFn: ({key}: DeleteTagVariables) =>
+      api.requestPromise(`/projects/${organization.slug}/${projectId}/tags/${key}/`, {
+        method: 'DELETE',
+      }),
+    onSuccess: (_, {key}) => {
+      setApiQueryData<TagWithTopValues[]>(
+        queryClient,
+        [`/projects/${organization.slug}/${projectId}/tags/`],
+        oldTags => oldTags.filter(tag => tag.key !== key)
+      );
+    },
+  });
 
-    setApiQueryData<TagWithTopValues[]>(
-      queryClient,
-      [`/projects/${organization.slug}/${projectId}/tags/`],
-      oldTags => oldTags.filter(tag => tag.key !== key)
-    );
-  }
   if (isLoading) {
     return <LoadingIndicator />;
   }
@@ -101,7 +113,7 @@ function ProjectTags(props: Props) {
                       <Actions>
                         <Confirm
                           message={t('Are you sure you want to remove this tag?')}
-                          onConfirm={() => handleDelete(key)}
+                          onConfirm={() => mutate({key})}
                           disabled={!enabled}
                         >
                           <Button
