@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Event} from 'sentry/types';
+import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 
 interface EventDifferenialFlamegraphProps {
   event: Event;
@@ -9,7 +10,6 @@ interface EventDifferenialFlamegraphProps {
 
 export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProps) {
   const evidenceData = props.event.occurrence?.evidenceData;
-
   const fingerprint = evidenceData?.fingerprint;
   const breakpoint = evidenceData?.breakpoint;
 
@@ -31,6 +31,16 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
       );
     });
   }, [isValid, fingerprint, breakpoint]);
+
+  const projectID = parseInt(props.event.projectID, 10);
+
+  // @todo use the data to render a flamegraph
+  useDifferentialFlamegraphQuery({
+    projectID: isNaN(projectID) ? -1 : projectID,
+    breakpoint,
+    environments: [],
+    transaction: '',
+  });
 
   if (!isValid) {
     return null;

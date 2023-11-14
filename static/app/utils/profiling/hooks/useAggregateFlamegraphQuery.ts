@@ -6,17 +6,19 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 
+export type AggregateFlamegraphQueryParameters = {
+  datetime: Partial<PageFilters['datetime']>;
+  environments: string[];
+  projects: number[];
+  transaction: string;
+};
+
 export function useAggregateFlamegraphQuery({
   projects,
   datetime,
   environments,
   transaction,
-}: {
-  datetime: Partial<PageFilters['datetime']>;
-  environments: string[];
-  projects: number[];
-  transaction: string;
-}) {
+}: AggregateFlamegraphQueryParameters) {
   const organization = useOrganization();
   const path = `/organizations/${organization.slug}/profiling/flamegraph/`;
 
