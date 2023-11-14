@@ -88,7 +88,9 @@ function ResourceSummary() {
                 <ProjectPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <RenderBlockingSelector value={filters[RESOURCE_RENDER_BLOCKING_STATUS]} />
+              <RenderBlockingSelector
+                value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
+              />
             </FilterOptionsContainer>
             <ResourceInfo
               avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
