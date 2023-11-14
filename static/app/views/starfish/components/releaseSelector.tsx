@@ -16,7 +16,7 @@ import {
   useReleases,
   useReleaseSelection,
 } from 'sentry/views/starfish/queries/useReleases';
-import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 
 type Props = {
   selectorKey: string;
@@ -71,7 +71,9 @@ export function ReleaseSelector({selectorKey, selectorValue}: Props) {
         icon: <IconReleases />,
         title: selectorValue,
       }}
-      triggerLabel={selectorValue ? centerTruncate(selectorValue, 16) : selectorValue}
+      triggerLabel={
+        selectorValue ? formatVersionAndCenterTruncate(selectorValue, 16) : selectorValue
+      }
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
