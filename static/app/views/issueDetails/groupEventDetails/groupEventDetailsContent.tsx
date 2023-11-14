@@ -17,6 +17,7 @@ import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
+import {EventDifferenialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
@@ -231,6 +232,14 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
+        <Feature
+          features={['profiling-differential-flamegraph']}
+          organization={organization}
+        >
+          <ErrorBoundary mini>
+            <EventDifferenialFlamegraph event={event} />
+          </ErrorBoundary>
+        </Feature>
         <ErrorBoundary mini>
           <EventAffectedTransactions event={event} group={group} project={project} />
         </ErrorBoundary>
