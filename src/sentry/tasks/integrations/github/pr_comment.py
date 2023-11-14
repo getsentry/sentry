@@ -18,7 +18,7 @@ from sentry.models.groupowner import GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
+from sentry.models.pullrequest import CommentType, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -63,13 +63,6 @@ SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
 ISSUE_LOCKED_ERROR_MESSAGE = "Unable to create comment because issue is locked."
 
 RATE_LIMITED_MESSAGE = "API rate limit exceeded"
-
-OPEN_PR_METRIC_BASE = "github_open_pr_comment.{key}"
-
-# Caps the number of files that can be modified in a PR to leave a comment
-OPEN_PR_MAX_FILES_CHANGED = 7
-# Caps the number of lines that can be modified in a PR to leave a comment
-OPEN_PR_MAX_LINES_CHANGED = 500
 
 
 def format_comment(issues: List[PullRequestIssue]):
@@ -336,49 +329,3 @@ def github_comment_reactions():
             continue
 
         metrics.incr("github_pr_comment.comment_reactions.success")
-
-
-# TODO(cathy): Change the client typing to allow for multiple SCM Integrations
-def safe_for_comment(
-    gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-) -> bool:
-    try:
-        pullrequest_resp = gh_client.get_pullrequest(
-            repo=repository.name, pull_number=pull_request.key
-        )
-    except ApiError as e:
-        if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-            metrics.incr(
-                OPEN_PR_METRIC_BASE.format(key="api_error"),
-                tags={"type": GithubAPIErrorType.RATE_LIMITED.value, "code": e.code},
-            )
-        elif e.code == 404:
-            metrics.incr(
-                OPEN_PR_METRIC_BASE.format(key="api_error"),
-                tags={"type": GithubAPIErrorType.MISSING_PULL_REQUEST.value, "code": e.code},
-            )
-        else:
-            metrics.incr(
-                OPEN_PR_METRIC_BASE.format(key="api_error"),
-                tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
-            )
-            logger.exception("github.open_pr_comment.unknown_api_error")
-        return False
-
-    safe_to_comment = True
-    if pullrequest_resp["state"] != "open":
-        metrics.incr(
-            OPEN_PR_METRIC_BASE.format(key="rejected_comment"), tags={"reason": "incorrect_state"}
-        )
-        safe_to_comment = False
-    if pullrequest_resp["changed_files"] > OPEN_PR_MAX_FILES_CHANGED:
-        metrics.incr(
-            OPEN_PR_METRIC_BASE.format(key="rejected_comment"), tags={"reason": "too_many_files"}
-        )
-        safe_to_comment = False
-    if pullrequest_resp["additions"] + pullrequest_resp["deletions"] > OPEN_PR_MAX_LINES_CHANGED:
-        metrics.incr(
-            OPEN_PR_METRIC_BASE.format(key="rejected_comment"), tags={"reason": "too_many_lines"}
-        )
-        safe_to_comment = False
-    return safe_to_comment
