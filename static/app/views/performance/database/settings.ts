@@ -1,5 +1,3 @@
-import {t} from 'sentry/locale';
-
 export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.python': '1.29.2',
   'sentry.javascript': '7.63.0',
@@ -13,20 +11,3 @@ export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
 };
 
 export const DEFAULT_DURATION_AGGREGATE = 'avg';
-
-export const AVAILABLE_DURATION_AGGREGATES = ['avg', 'p50', 'p75', 'p95', 'p99']; // TODO: `max` is not a supported aggregate for this dataset on the backend. Why?
-
-const DURATION_AGGREGATE_LABELS = {
-  avg: t('Average Duration'),
-  p50: t('Duration p50'),
-  p75: t('Duration p75'),
-  p95: t('Duration p95'),
-  p99: t('Duration p99'),
-};
-
-export const AVAILABLE_DURATION_AGGREGATE_OPTIONS = AVAILABLE_DURATION_AGGREGATES.map(
-  aggregate => ({
-    value: aggregate,
-    label: DURATION_AGGREGATE_LABELS[aggregate],
-  })
-);
