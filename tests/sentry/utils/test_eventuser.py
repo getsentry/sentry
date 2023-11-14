@@ -71,7 +71,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         mock_record.assert_called_with(
             "eventuser_snuba.query",
             project_ids=[self.project.id],
-            query=f"MATCH (events)\nSELECT project_id, group_id, ip_address_v6, ip_address_v4, user_id, user, user_name, user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, group_id, ip_address_v6, ip_address_v4, user_id, user, user_name, user_email\nWHERE project_id IN array({self.project.id}) AND timestamp < toDateTime('{now.isoformat()}') AND timestamp >= toDateTime('{(now - timedelta(hours=2)).isoformat()}') AND user_id IN array('2')\nORDER BY latest_timestamp DESC",
+            query=f"MATCH (events)\nSELECT project_id, ip_address_v6, ip_address_v4, user_id, user, user_name, user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, ip_address_v6, ip_address_v4, user_id, user, user_name, user_email\nWHERE project_id IN array({self.project.id}) AND timestamp < toDateTime('{now.isoformat()}') AND timestamp >= toDateTime('{(now - timedelta(hours=2)).isoformat()}') AND user_id IN array('2')\nORDER BY latest_timestamp DESC",
             count_rows_returned=1,
             count_rows_filtered=0,
         )
@@ -228,7 +228,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         mock_record.assert_called_with(
             "eventuser_snuba.query",
             project_ids=[self.project.id],
-            query=f"MATCH (events)\nSELECT project_id, group_id, ip_address_v6, ip_address_v4, user_id, user, user_name, user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, group_id, ip_address_v6, ip_address_v4, user_id, user, user_name, user_email\nWHERE project_id IN array({self.project.id}) AND timestamp < toDateTime('{now.isoformat()}') AND timestamp >= toDateTime('{(now - timedelta(hours=2)).isoformat()}') AND user_name IN array('nisanthan', 'minion')\nORDER BY latest_timestamp DESC",
+            query=f"MATCH (events)\nSELECT project_id, ip_address_v6, ip_address_v4, user_id, user, user_name, user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, ip_address_v6, ip_address_v4, user_id, user, user_name, user_email\nWHERE project_id IN array({self.project.id}) AND timestamp < toDateTime('{now.isoformat()}') AND timestamp >= toDateTime('{(now - timedelta(hours=2)).isoformat()}') AND user_name IN array('nisanthan', 'minion')\nORDER BY latest_timestamp DESC",
             count_rows_returned=20,
             count_rows_filtered=18,
         )

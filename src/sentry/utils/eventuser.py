@@ -147,7 +147,6 @@ class EventUser:
 
         columns = [
             Column("project_id"),
-            Column("group_id"),
             Column("ip_address_v6"),
             Column("ip_address_v4"),
             Column("user_id"),
@@ -178,20 +177,7 @@ class EventUser:
         )
         data_results = raw_snql_query(request, referrer=REFERRER)["data"]
 
-        # Return the first matching item from the Snuba results.
-        # All other rows are not needed.
-        # The Snuba results are sorted by descending time.
-        first_matching_items = []
-
-        snuba_keyword_filters = {}
-        for keyword, value in keyword_filters.items():
-            snuba_column = SNUBA_KEYWORD_MAP.get_key(keyword)
-            snuba_keyword_filters[snuba_column] = value
-
-        matches = self._find_matching_items(data_results, snuba_keyword_filters, filter_boolean)
-        first_matching_items.extend(matches.values())
-
-        results = [EventUser.from_snuba(item) for item in first_matching_items]
+        results = self._find_unique(data_results)
 
         analytics.record(
             "eventuser_snuba.query",
@@ -204,59 +190,21 @@ class EventUser:
         return results
 
     @staticmethod
-    def _find_matching_items(
-        snuba_results: List[dict[str, Any]], filters: Mapping[str, Any], filter_boolean: str
-    ):
+    def _find_unique(data_results: List[dict[str, Any]]):
         """
-        If the filter boolean is OR, for each of the keyword filters get the first matching item.
-        If the filter boolean is AND, get the first matching item that has all of the keyword filters.
+        Return the first instance of an EventUser object
+        with a unique tag_value from the Snuba results.
         """
-        matches = {}
+        unique_tag_values = set()
+        unique_event_users = []
 
-        if filter_boolean == "OR":
-            for key, values in filters.items():
-                for value in values:
-                    matching_item = next(
-                        (
-                            item
-                            for item in snuba_results
-                            if (
-                                item.get(key) == value
-                                if isinstance(key, str)
-                                else any(item.get(sub_key) == value for sub_key in key)
-                            )
-                        ),
-                        None,
-                    )
+        for euser in [EventUser.from_snuba(item) for item in data_results]:
+            tag_value = euser.tag_value
+            if tag_value not in unique_tag_values:
+                unique_event_users.append(euser)
+                unique_tag_values.add(tag_value)
 
-                    if matching_item:
-                        matches[(key, value)] = matching_item
-
-        if filter_boolean == "AND":
-            matching_item = next(
-                (
-                    item
-                    for item in snuba_results
-                    if all(
-                        (
-                            item.get(k) == v[0]
-                            if isinstance(k, str)
-                            else any(item.get(sub_k) == v[0] for sub_k in k)
-                        )
-                        for k, v in filters.items()
-                    )
-                ),
-                None,
-            )
-            if matching_item:
-                key, value = (
-                    "+".join(k if isinstance(k, str) else "+".join(k) for k in filters),
-                    tuple(tuple(v) for v in filters.values()),
-                )
-
-                matches[(key, value)] = matching_item
-
-        return matches
+        return unique_event_users
 
     @staticmethod
     def from_snuba(result: Mapping[str, Any]) -> EventUser:
