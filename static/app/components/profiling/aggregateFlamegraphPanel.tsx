@@ -13,15 +13,22 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
 export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
+  const {selection} = usePageFilters();
   const [hideSystemFrames, setHideSystemFrames] = useLocalStorageState(
     'profiling-flamegraph-collapsed-frames',
     true
   );
 
-  const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
+  const {data, isLoading} = useAggregateFlamegraphQuery({
+    transaction,
+    environments: selection.environments,
+    projects: selection.projects,
+    datetime: selection.datetime,
+  });
   const isEmpty = data?.shared.frames.length === 0;
 
   return (
