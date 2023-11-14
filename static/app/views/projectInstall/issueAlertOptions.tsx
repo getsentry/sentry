@@ -333,21 +333,26 @@ const CustomizeAlertsGrid = styled('div')`
   gap: ${space(1)};
   align-items: center;
 `;
+
 const InlineInput = styled(Input)`
   width: 80px;
 `;
+
 const InlineSelectControl = styled(SelectControl)`
   width: 160px;
 `;
+
 const RadioGroupWithPadding = styled(RadioGroup)`
   margin-bottom: ${space(2)};
 `;
+
 const PageHeadingWithTopMargins = styled(Layout.Title)`
   margin-top: 65px;
   margin-bottom: 0;
   padding-bottom: ${space(3)};
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 `;
+
 const RadioItemWrapper = styled('div')`
   min-height: 35px;
   display: flex;
