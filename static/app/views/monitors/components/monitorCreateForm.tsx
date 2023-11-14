@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -14,7 +14,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {timezoneOptions} from 'sentry/data/timezones';
-import {IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -96,7 +95,7 @@ function MockTimelineVisualization({schedule, onError}: Props) {
 
   const errorMessage =
     isError || !isValidConfig(schedule)
-      ? error?.responseJSON?.schedule ?? t('Invalid Schedule')
+      ? error?.responseJSON?.schedule?.[0] ?? t('Invalid Schedule')
       : null;
 
   useEffect(() => {
@@ -114,7 +113,6 @@ function MockTimelineVisualization({schedule, onError}: Props) {
       <TimelineWidthTracker ref={elementRef} />
       {isLoading || !start || !end || !timeWindowConfig || !mockTimestamps ? (
         <Fragment>
-          {/* TODO(davidenwang): Improve loading placeholder */}
           <Placeholder height="40px" />
           {errorMessage ? <Placeholder height="100px" /> : <TimelinePlaceholder />}
         </Fragment>
@@ -173,7 +171,6 @@ export default function MonitorCreateForm() {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
-  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const form = useRef(
     new FormModel({
       transformData: transformMonitorFormData,
@@ -196,6 +193,17 @@ export default function MonitorCreateForm() {
 
   function changeScheduleType(type: ScheduleType) {
     form.current.setValue('config.schedule_type', type);
+  }
+
+  function onTimelineError(error: string) {
+    const model = form.current;
+    const currScheduleType = model.getValue('config.schedule_type');
+
+    if (currScheduleType === ScheduleType.INTERVAL) {
+      model.setError('config.schedule.frequency', error);
+    } else if (currScheduleType === ScheduleType.CRONTAB) {
+      model.setError('config.schedule', error);
+    }
   }
 
   return (
@@ -238,10 +246,12 @@ export default function MonitorCreateForm() {
           <Observer>
             {() => {
               const currScheduleType = form.current.getValue('config.schedule_type');
-              const parsedSchedule = crontabAsText(
-                form.current.getValue('config.schedule')?.toString() ?? ''
-              );
               const selectedCrontab = currScheduleType === ScheduleType.CRONTAB;
+              const parsedSchedule = form.current.getError('config.schedule')
+                ? ''
+                : crontabAsText(
+                    form.current.getValue('config.schedule')?.toString() ?? ''
+                  );
 
               return (
                 <Fragment>
@@ -257,31 +267,25 @@ export default function MonitorCreateForm() {
                           placeholder="* * * * *"
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
                           css={{input: {fontFamily: commonTheme.text.familyMono}}}
-                          required={currScheduleType === ScheduleType.CRONTAB}
+                          required={selectedCrontab}
                           stacked
                           inline={false}
+                          hideControlState={!selectedCrontab}
                         />
                         <StyledSelectField
                           name="config.timezone"
                           defaultValue="UTC"
                           options={timezoneOptions}
-                          required={currScheduleType === ScheduleType.CRONTAB}
+                          required={selectedCrontab}
                           stacked
                           inline={false}
                         />
-                        {currScheduleType === ScheduleType.CRONTAB && scheduleError ? (
-                          <ErrorText>
-                            <IconNot />
-                            {scheduleError}
-                          </ErrorText>
-                        ) : (
-                          <ScheduleDetailText>{parsedSchedule}</ScheduleDetailText>
-                        )}
+                        <CronstrueText>{parsedSchedule}</CronstrueText>
                       </MultiColumnInput>
                     </PanelBody>
                   </SchedulePanel>
                   <SchedulePanel
-                    highlighted={currScheduleType === ScheduleType.INTERVAL}
+                    highlighted={!selectedCrontab}
                     onClick={() => changeScheduleType(ScheduleType.INTERVAL)}
                   >
                     <PanelBody withPadding>
@@ -292,9 +296,10 @@ export default function MonitorCreateForm() {
                           name="config.schedule.frequency"
                           placeholder="e.g. 1"
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalFrequency}
-                          required={currScheduleType === ScheduleType.INTERVAL}
+                          required={!selectedCrontab}
                           stacked
                           inline={false}
+                          hideControlState={selectedCrontab}
                         />
                         <StyledSelectField
                           name="config.schedule.interval"
@@ -304,16 +309,10 @@ export default function MonitorCreateForm() {
                             )
                           )}
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalUnit}
-                          required={currScheduleType === ScheduleType.INTERVAL}
+                          required={!selectedCrontab}
                           stacked
                           inline={false}
                         />
-                        {currScheduleType === ScheduleType.INTERVAL && scheduleError && (
-                          <ErrorText>
-                            <IconNot />
-                            {scheduleError}
-                          </ErrorText>
-                        )}
                       </MultiColumnInput>
                     </PanelBody>
                   </SchedulePanel>
@@ -337,7 +336,7 @@ export default function MonitorCreateForm() {
             };
 
             return (
-              <MockTimelineVisualization schedule={schedule} onError={setScheduleError} />
+              <MockTimelineVisualization schedule={schedule} onError={onTimelineError} />
             );
           }}
         </Observer>
@@ -391,18 +390,11 @@ const MultiColumnInput = styled('div')<{columns?: string}>`
   grid-template-columns: ${p => p.columns};
 `;
 
-const ScheduleDetailText = styled(LabelText)`
+const CronstrueText = styled(LabelText)`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: 1 / -1;
-`;
-
-const ErrorText = styled(ScheduleDetailText)`
-  color: ${p => p.theme.error};
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const StyledNumberField = styled(NumberField)`
