@@ -382,7 +382,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     @responses.activate
     def test_success_single_file(self):
         self.set_up_success_responses()
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
         assert resp == [self.blame_1]
 
@@ -390,30 +390,34 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     def test_success_single_file_cached(self):
         self.set_up_success_responses()
         assert cache.get(self.cache_key) is None
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
         assert resp == [self.blame_1]
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
 
         # Nothing changes if we call it again
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
 
         # Calling again after the cache has been cleared should still work
         cache.delete(self.cache_key)
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
 
     @responses.activate
     def test_success_multiple_files(self):
         self.set_up_success_responses()
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        resp = self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3], extra={}
+        )
         assert resp == [self.blame_1, self.blame_2, self.blame_3]
 
     @responses.activate
     def test_success_multiple_files_cached(self):
         self.set_up_success_responses()
         assert cache.get(self.cache_key) is None
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        resp = self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3], extra={}
+        )
 
         assert resp == [self.blame_1, self.blame_2, self.blame_3]
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
@@ -421,19 +425,25 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         assert cache.get(self.cache_key3) == self.make_blame_response(id="3")
 
         # Nothing changes if we call it again
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        resp = self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3], extra={}
+        )
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
         assert cache.get(self.cache_key2) == self.make_blame_response(id="2")
         assert cache.get(self.cache_key3) == self.make_blame_response(id="3")
 
         # Calling again after the cache has been cleared should still work
         cache.delete(self.cache_key)
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        resp = self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3], extra={}
+        )
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
         assert cache.get(self.cache_key2) == self.make_blame_response(id="2")
         assert cache.get(self.cache_key3) == self.make_blame_response(id="3")
 
-        assert resp != self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2])
+        assert resp != self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2], extra={}
+        )
 
     @mock.patch(
         "sentry.integrations.gitlab.blame.logger.exception",
@@ -441,7 +451,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     @responses.activate
     def test_failure_404(self, mock_logger_exception):
         responses.add(responses.GET, self.make_blame_request(self.file_1), status=404)
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
         assert resp == []
         mock_logger_exception.assert_called_with(
@@ -462,7 +472,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     @responses.activate
     def test_failure_response_type(self, mock_logger_exception):
         responses.add(responses.GET, self.make_blame_request(self.file_1), json={}, status=200)
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
         assert resp == []
         mock_logger_exception.assert_called_with(
@@ -500,7 +510,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
         with pytest.raises(ApiRateLimitedError) as excinfo:
-            self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2])
+            self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
         assert excinfo.value.text == "Approaching GitLab API rate limit"
         mock_logger_exception.assert_called_with(
@@ -532,7 +542,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             json=self.make_blame_response(id="2"),
             status=200,
         )
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
         # Should return the successful response
         assert resp == [self.blame_2]
@@ -581,7 +591,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             status=200,
         )
         resp = self.gitlab_client.get_blame_for_files(
-            files=[self.file_1, self.file_2, self.file_3, self.file_4]
+            files=[self.file_1, self.file_2, self.file_3, self.file_4], extra={}
         )
 
         assert resp == []

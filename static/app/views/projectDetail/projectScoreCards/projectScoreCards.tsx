@@ -39,7 +39,6 @@ function ProjectScoreCards({
   return (
     <CardWrapper>
       <ProjectStabilityScoreCard
-        organization={organization}
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
@@ -48,7 +47,6 @@ function ProjectScoreCards({
       />
 
       <ProjectStabilityScoreCard
-        organization={organization}
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}

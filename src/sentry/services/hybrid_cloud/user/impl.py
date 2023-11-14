@@ -218,6 +218,15 @@ class DatabaseBackedUserService(UserService):
             return True
         return False
 
+    def create_by_username_and_email(self, *, email: str, username: str) -> RpcUser:
+        return serialize_rpc_user(User.objects.create(username=username, email=email))
+
+    def trigger_user_consent_email_if_applicable(self, *, user_id: int) -> None:
+        user = User.objects.get(id=user_id)
+        flag = User.flags.newsletter_consent_prompt
+        user.update(flags=F("flags").bitor(flag))
+        user.send_confirm_emails(is_new_user=True)
+
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
     ):
