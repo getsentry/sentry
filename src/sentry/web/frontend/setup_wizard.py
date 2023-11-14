@@ -22,6 +22,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.project.service import project_service
 from sentry.services.hybrid_cloud.project_key.model import ProjectKeyRole
 from sentry.services.hybrid_cloud.project_key.service import project_key_service
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.security.orgauthtoken_token import (
     SystemUrlPrefixMissingException,
@@ -75,8 +76,8 @@ class SetupWizardView(BaseView):
         # responses, but project names/slugs aren't unique across regions which could confuse some users.
         # Wizard should display region beside project/orgs or have a step to ask which region.
 
-        region_data_map = defaultdict(lambda: defaultdict(list))
         # {'us': {'org_ids': [...], 'projects': [...], 'keys': [...]}}
+        region_data_map = defaultdict(lambda: defaultdict(list))
 
         for mapping in org_mappings:
             region_data_map[mapping.region_name]["org_ids"].append(mapping.organization_id)
@@ -108,25 +109,24 @@ class SetupWizardView(BaseView):
             org_mappings_map[mapping.organization_id] = serialized_mapping
 
         keys_map = defaultdict(list)
-        for key in region_data["keys"]:
-            serialized_key = {
-                "dsn": {"public": key.dsn_public},
-                "isActive": key.is_active,
-            }
-            keys_map[key.project_id].append(serialized_key)
-
         filled_projects = []
-
-        for project in region_data["projects"]:
-            enriched_project = {
-                "slug": project.slug,
-                "id": project.id,
-                "status": STATUS_LABELS.get(project.status, "unknown"),
-            }
-            # The wizard only reads the a few fields so serializing the mapping should work fine
-            enriched_project["organization"] = org_mappings_map[project.organization_id]
-            enriched_project["keys"] = keys_map[project.id]
-            filled_projects.append(enriched_project)
+        for region_name, region_data in region_data_map.items():
+            for key in region_data["keys"]:
+                serialized_key = {
+                    "dsn": {"public": key.dsn_public},
+                    "isActive": key.is_active,
+                }
+                keys_map[key.project_id].append(serialized_key)
+            for project in region_data["projects"]:
+                enriched_project = {
+                    "slug": project.slug,
+                    "id": project.id,
+                    "status": STATUS_LABELS.get(project.status, "unknown"),
+                }
+                # The wizard only reads the a few fields so serializing the mapping should work fine
+                enriched_project["organization"] = org_mappings_map[project.organization_id]
+                enriched_project["keys"] = keys_map[project.id]
+                filled_projects.append(enriched_project)
 
         # Fetching or creating a token
         serialized_token = get_token(org_mappings, request.user)
@@ -140,7 +140,7 @@ class SetupWizardView(BaseView):
         return render_to_response("sentry/setup-wizard.html", context, request)
 
 
-def get_token(mappings: List[OrganizationMapping], user: User):
+def get_token(mappings: List[OrganizationMapping], user: User | RpcUser):
     can_use_org_tokens = len(mappings) == 1
 
     # If only one org, try to generate an org auth token
@@ -164,7 +164,7 @@ def get_token(mappings: List[OrganizationMapping], user: User):
     return serialize(token)
 
 
-def get_org_token(mapping: OrganizationMapping, user: User):
+def get_org_token(mapping: OrganizationMapping, user: User | RpcUser):
     try:
         token_str = generate_token(
             mapping.slug, generate_region_url(region_name=mapping.region_name)
