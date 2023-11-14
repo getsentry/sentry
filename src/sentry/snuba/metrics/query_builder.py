@@ -64,6 +64,7 @@ from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX, MRI_SCHE
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import (
     MetricActionByField,
+    MetricCondition,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
@@ -919,11 +920,18 @@ class SnubaQueryBuilder:
                 f"Unsupported {action_by_name} field: {metric_action_by_field.field}"
             )
 
-    def _build_conditions(self) -> List[Union[BooleanCondition, Condition]]:
+    def _build_conditions(
+        self, conditions: Sequence[MetricCondition]
+    ) -> List[Union[BooleanCondition, Condition]]:
+        """
+        Builds a set of snql conditions given a set of metric conditions.
+        """
+        # Saw snql conditions that are passed to the layer.
         snql_conditions = []
         # Adds filters that do not need to be resolved because they are instances of `MetricConditionField`
         metric_condition_filters = []
-        for condition in self._metrics_query.where:
+
+        for condition in conditions or ():
             if isinstance(condition, MetricConditionField):
                 metric_expression = metric_object_factory(
                     condition.lhs.op, condition.lhs.metric_mri
@@ -948,62 +956,25 @@ class SnubaQueryBuilder:
             else:
                 snql_conditions.append(condition)
 
-        if metric_condition_filters:
-            where.extend(metric_condition_filters)
+        # We resolve all the snql conditions, since they might require some resolution including transformations and
+        # tags conversions.
+        resolved_snql_conditions = resolve_tags(
+            self._use_case_id, self._org_id, snql_conditions, self._projects
+        )
 
-        filter_ = resolve_tags(self._use_case_id, self._org_id, snql_conditions, self._projects)
-        if filter_:
-            where.extend(filter_)
-
-        return where
+        return metric_condition_filters + resolved_snql_conditions
 
     def _build_where(self) -> List[Union[BooleanCondition, Condition]]:
-        where: List[Union[BooleanCondition, Condition]] = [
+        where = [
             Condition(Column("org_id"), Op.EQ, self._org_id),
             Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
-        ]
+        ] + self._build_timeframe()
 
-        where += self._build_timeframe()
-
+        # If we don't have any custom conditions, no need to try and build them.
         if not self._metrics_query.where:
             return where
 
-        snuba_conditions = []
-        # Adds filters that do not need to be resolved because they are instances of `MetricConditionField`
-        metric_condition_filters = []
-        for condition in self._metrics_query.where:
-            if isinstance(condition, MetricConditionField):
-                metric_expression = metric_object_factory(
-                    condition.lhs.op, condition.lhs.metric_mri
-                )
-                try:
-                    metric_condition_filters.append(
-                        Condition(
-                            lhs=metric_expression.generate_where_statements(
-                                use_case_id=self._use_case_id,
-                                params=condition.lhs.params,
-                                projects=self._projects,
-                                alias=condition.lhs.alias,
-                            )[0],
-                            op=condition.op,
-                            rhs=resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
-                            if require_rhs_condition_resolution(condition.lhs.op)
-                            else condition.rhs,
-                        )
-                    )
-                except IndexError:
-                    raise InvalidParams(f"Cannot resolve {condition.lhs} into SnQL")
-            else:
-                snuba_conditions.append(condition)
-
-        if metric_condition_filters:
-            where.extend(metric_condition_filters)
-
-        filter_ = resolve_tags(self._use_case_id, self._org_id, snuba_conditions, self._projects)
-        if filter_:
-            where.extend(filter_)
-
-        return where
+        return where + self._build_conditions(self._metrics_query.where)
 
     def _build_timeframe(self) -> List[Union[BooleanCondition, Condition]]:
         """
@@ -1037,6 +1008,7 @@ class SnubaQueryBuilder:
                     projects=self._projects,
                 )
             )
+
         return groupby_cols
 
     def _build_orderby(self) -> Optional[List[OrderBy]]:
@@ -1065,28 +1037,11 @@ class SnubaQueryBuilder:
         It is assumed that the having clause is a list of simple conditions, where the LHS is an aggregated
         metric e.g. p50(duration) and the RHS is a literal value being compared too.
         """
-        resolved_having = []
+        # If we don't have any custom conditions, no need to try and build them.
         if not self._metrics_query.having:
             return []
 
-        for condition in self._metrics_query.having:
-            lhs_expression = condition.lhs
-            if isinstance(lhs_expression, Function):
-                metric = lhs_expression.parameters[0]
-                assert isinstance(metric, Column)
-                metrics_field_obj = metric_object_factory(lhs_expression.function, metric.name)
-
-                resolved_lhs = metrics_field_obj.generate_select_statements(
-                    projects=self._projects,
-                    use_case_id=self._use_case_id,
-                    alias=lhs_expression.alias,
-                    params=None,
-                )
-                resolved_having.append(Condition(resolved_lhs[0], condition.op, condition.rhs))
-            else:
-                resolved_having.append(condition)
-
-        return resolved_having
+        return self._build_conditions(self._metrics_query.having)
 
     def __build_totals_and_series_queries(
         self,

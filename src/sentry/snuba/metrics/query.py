@@ -8,7 +8,7 @@ from functools import cached_property
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
-from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
+from snuba_sdk.conditions import BooleanCondition, Condition
 
 from sentry.api.utils import InvalidParams
 from sentry.models.project import Project
@@ -158,8 +158,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
     #  instances of MetricConditionField
     start: Optional[datetime] = None
     end: Optional[datetime] = None
-    where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
-    having: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
+    where: Optional[Sequence[MetricCondition]] = None
+    having: Optional[Sequence[MetricCondition]] = None
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[MetricOrderByField]] = None
     limit: Optional[Limit] = None
