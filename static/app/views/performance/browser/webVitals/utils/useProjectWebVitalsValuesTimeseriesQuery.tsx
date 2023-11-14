@@ -98,7 +98,7 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({
     eps: [],
   };
 
-  result?.data?.['p75(measurements.lcp)'].data.forEach((interval, index) => {
+  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
     const map: {key: string; series: SeriesDataUnit[]}[] = [
       {key: 'p75(measurements.cls)', series: data.cls},
       {key: 'p75(measurements.lcp)', series: data.lcp},

@@ -26,7 +26,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {
   Row,
   SORTABLE_FIELDS,
@@ -70,14 +70,7 @@ export function PagePerformanceTable() {
   const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
     useProjectWebVitalsQuery({transaction: query});
 
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-  });
-
+  const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
   const {
     data,
     pageLinks,

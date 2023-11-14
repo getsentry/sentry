@@ -34,7 +34,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalTagsDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {TransactionSampleRowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
@@ -101,13 +101,7 @@ export function PageOverviewWebVitalsTagDetailPanel({
   const {data: chartSeriesData, isLoading: chartSeriesDataIsLoading} =
     useProjectWebVitalsTimeseriesQuery({transaction, tag});
 
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-  });
+  const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   const {
     data: samplesTableData,

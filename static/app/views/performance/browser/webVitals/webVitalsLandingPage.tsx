@@ -51,7 +51,7 @@ export default function WebVitalsLandingPage() {
 
   const {data: projectData, isLoading} = useProjectWebVitalsQuery({transaction});
 
-  const noTransactions = !isLoading && projectData?.data[0]['count()'] === 0;
+  const noTransactions = !isLoading && !!projectData?.data?.[0]['count()'];
 
   const projectScore =
     isLoading || noTransactions
