@@ -19,7 +19,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features
+from sentry import analytics, features
 from sentry.eventstore.models import Event
 from sentry.models.eventuser import EventUser as EventUser_model
 from sentry.models.project import Project
@@ -192,6 +192,14 @@ class EventUser:
         first_matching_items.extend(matches.values())
 
         results = [EventUser.from_snuba(item) for item in first_matching_items]
+
+        analytics.record(
+            "eventuser_snuba.query",
+            project_ids=[p.id for p in projects],
+            query=query.print(),
+            count_rows_returned=len(data_results),
+            count_rows_filtered=len(data_results) - len(results),
+        )
 
         return results
 
