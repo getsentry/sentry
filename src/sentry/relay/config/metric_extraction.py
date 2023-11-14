@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
 
 import sentry_sdk
+from sentry_relay.processing import validate_sampling_condition
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -28,7 +29,7 @@ from sentry.snuba.metrics.extraction import (
 )
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -390,7 +391,16 @@ def _convert_aggregate_and_query_to_metric(
             groupbys=groupbys,
         )
 
+        # TODO: switch to validate_rule_condition
+        validate_sampling_condition(json.dumps(on_demand_spec.condition))
+
         return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)
+
+    except ValueError as e:
+        # raised by validate_sampling_condition
+        logger.error(e, exc_info=True)
+        return None
+
     except Exception as e:
         # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
         # Sentry console.
