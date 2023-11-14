@@ -1160,6 +1160,30 @@
       ]
     ]
   },
+  "sentry.controlimportchunk": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.controlimportchunk",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "sentry_controlimportchunk",
+    "uniques": []
+  },
+  "sentry.controlimportchunkreplica": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.controlimportchunkreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_controlimportchunkreplica",
+    "uniques": []
+  },
   "sentry.controloption": {
     "dangling": false,
     "foreign_keys": {},
@@ -4594,6 +4618,18 @@
         "user_id"
       ]
     ]
+  },
+  "sentry.regionimportchunk": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.regionimportchunk",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_regionimportchunk",
+    "uniques": []
   },
   "sentry.regionoutbox": {
     "dangling": false,
