@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 _accountant_backend: Optional[UsageAccumulator] = None
 
 
-def init_backend(producer: Producer[KafkaPayload]) -> UsageAccumulator:
+def init_backend(producer: Producer[KafkaPayload]) -> None:
     """
     This method should be used externally only in tests to fit a
     mock producer.
@@ -72,6 +72,7 @@ def record(
             )
         )
 
-        init_backend(producer)
+        _accountant_backend = UsageAccumulator(producer=producer)
+        atexit.register(_shutdown)
 
     _accountant_backend.record(resource_id, app_feature, amount, usage_type)
