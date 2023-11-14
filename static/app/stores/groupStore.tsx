@@ -4,6 +4,7 @@ import {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {Activity, BaseGroup, Group, GroupStats} from 'sentry/types';
+import {memoizeVariadicByDeepEquality} from 'sentry/utils/profiling/profile/utils';
 import RequestError from 'sentry/utils/requestError/requestError';
 import toArray from 'sentry/utils/toArray';
 
@@ -25,6 +26,32 @@ type Item = BaseGroup | Group;
 
 type ItemIds = string[] | undefined;
 
+function computeGetAllItems(
+  pendingChanges: Map<ChangeId, Change>,
+  items: Item[]
+): Item[] {
+  // Merge pending changes into the existing group items. This gives the
+  // apperance of optimistic updates
+  const pendingById: Record<string, Change[]> = {};
+
+  pendingChanges.forEach(change => {
+    change.itemIds.forEach(itemId => {
+      const existing = pendingById[itemId] ?? [];
+      pendingById[itemId] = [...existing, change];
+    });
+  });
+
+  // Merge pending changes into the item if it has them
+  return items.map(item =>
+    pendingById[item.id] === undefined
+      ? item
+      : {
+          ...item,
+          ...pendingById[item.id].reduce((a, change) => ({...a, ...change.data}), {}),
+        }
+  );
+}
+
 interface InternalDefinition {
   addActivity: (groupId: string, data: Activity, index?: number) => void;
   indexOfActivity: (groupId: string, id: string) => number;
@@ -43,8 +70,10 @@ interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDe
   addToFront: (items: Item[]) => void;
   clearStatus: (id: string, status: string) => void;
 
+  computeGetAllItems: (pendingChanges: Map<ChangeId, Change>, items: Item[]) => Item[];
   get: (id: string) => Item | undefined;
   getAllItemIds: () => string[];
+
   getAllItems: () => Item[];
 
   hasStatus: (id: string, status: string) => boolean;
@@ -119,7 +148,10 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   mergeItems(items: Item[]) {
-    const itemsById = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+    const itemsById = items.reduce((acc, item) => {
+      acc[item.id] = item;
+      return acc;
+    }, {});
 
     // Merge these items into the store and return a mapping of any that aren't already in the store
     this.items.forEach((item, itemIndex) => {
@@ -142,9 +174,7 @@ const storeConfig: GroupStoreDefinition = {
   add(items) {
     items = toArray(items);
     const newItems = this.mergeItems(items);
-
-    this.items = [...this.items, ...newItems];
-
+    this.items = this.items.concat(newItems);
     this.updateItems(items.map(item => item.id));
   },
 
@@ -154,11 +184,16 @@ const storeConfig: GroupStoreDefinition = {
    */
   addToFront(items) {
     items = toArray(items);
-    const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+    const toUpdateItemIds: ItemIds = [];
 
-    this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
+    const itemMap = items.reduce((acc, item) => {
+      toUpdateItemIds.push(item.id);
+      acc[item.id] = item;
+      return acc;
+    }, {});
 
-    this.updateItems(items.map(item => item.id));
+    this.items = items.concat(this.items.filter(item => !itemMap[item.id]));
+    this.updateItems(toUpdateItemIds);
   },
 
   /**
@@ -272,27 +307,10 @@ const storeConfig: GroupStoreDefinition = {
     return this.items.map(item => item.id);
   },
 
+  computeGetAllItems: memoizeVariadicByDeepEquality(computeGetAllItems),
+
   getAllItems() {
-    // Merge pending changes into the existing group items. This gives the
-    // apperance of optimistic updates
-    const pendingById: Record<string, Change[]> = {};
-
-    this.pendingChanges.forEach(change => {
-      change.itemIds.forEach(itemId => {
-        const existing = pendingById[itemId] ?? [];
-        pendingById[itemId] = [...existing, change];
-      });
-    });
-
-    // Merge pending changes into the item if it has them
-    return this.items.map(item =>
-      pendingById[item.id] === undefined
-        ? item
-        : {
-            ...item,
-            ...pendingById[item.id].reduce((a, change) => ({...a, ...change.data}), {}),
-          }
-    );
+    return this.computeGetAllItems(this.pendingChanges, this.items);
   },
 
   getState() {
@@ -461,11 +479,10 @@ const storeConfig: GroupStoreDefinition = {
   },
 
   onPopulateStats(itemIds, response) {
-    // Organize stats by id
-    const groupStatsMap = response.reduce<Record<string, GroupStats>>(
-      (map, stats) => ({...map, [stats.id]: stats}),
-      {}
-    );
+    const groupStatsMap = response.reduce<Record<string, GroupStats>>((map, stats) => {
+      map[stats.id] = stats;
+      return map;
+    }, {});
 
     this.items.forEach((item, idx) => {
       if (itemIds?.includes(item.id)) {

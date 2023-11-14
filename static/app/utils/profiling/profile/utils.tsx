@@ -154,6 +154,38 @@ export function memoizeVariadicByReference<T extends (...args) => V, V = ReturnT
   };
 }
 
+export function memoizeVariadicByDeepEquality<
+  T extends (...args) => V,
+  V = ReturnType<T>,
+>(fn: T): (...t: Arguments<T>) => V {
+  let cache: Cache<string[], V> | null = null;
+
+  return function memoizeByReferenceCallback(...args: Arguments<T>): V {
+    // If this is the first run then eval the fn and cache the result
+    if (!cache) {
+      // We need to cache the args as a string because we cant do deep equality
+      // on functions which might mutate references as a side effect as it will
+      // also end up mutating the cached reference...
+      cache = {args: args.map(a => JSON.stringify(a)), value: fn(...args)};
+      return cache.value;
+    }
+
+    if (
+      cache.args.length === args.length &&
+      cache.args.length !== 0 &&
+      args.length !== 0 &&
+      args.every((arg, i) => JSON.stringify(arg) === cache?.args[i])
+    ) {
+      return cache.value;
+    }
+
+    // Else eval the fn and store the new value
+    cache.args = args.map(a => JSON.stringify(a));
+    cache.value = fn(...args);
+    return cache.value;
+  };
+}
+
 export function wrapWithSpan<T>(parentSpan: Span | undefined, fn: () => T, options): T {
   if (!defined(parentSpan)) {
     return fn();

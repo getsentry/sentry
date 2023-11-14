@@ -1,6 +1,7 @@
 import {
   createSentrySampleProfileFrameIndex,
   memoizeByReference,
+  memoizeVariadicByDeepEquality,
   memoizeVariadicByReference,
 } from 'sentry/utils/profiling/profile/utils';
 
@@ -116,6 +117,37 @@ describe('memoizeVariadicByReference', () => {
     const result = memoized(a, c);
 
     expect(result).toBe(2);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('memoizeVariadicByDeepEquality', () => {
+  it('doesnt crash w/o args', () => {
+    const spy = jest.fn().mockImplementation(() => 1);
+    const fn = memoizeVariadicByDeepEquality(spy);
+
+    expect(() => fn()).not.toThrow();
+    expect(fn()).toBe(1);
+
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('memoizes when args match by deep equality', () => {
+    const fn = jest.fn().mockImplementation((a, b) => a.count + b.count);
+
+    const memoized = memoizeVariadicByDeepEquality(fn);
+    const a = {count: 0};
+    const b = {count: 1};
+
+    // @ts-expect-error we discard result of first call
+    const _discard = memoized(a, b);
+    const result = memoized(a, b);
+    expect(result).toBe(1);
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    b.count = 2;
+    const result2 = memoized(a, b);
+    expect(result2).toBe(2);
     expect(fn).toHaveBeenCalledTimes(2);
   });
 });
