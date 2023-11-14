@@ -11,6 +11,7 @@ from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import EventsResponse, transform_tips, zerofill
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
 
 
@@ -37,6 +38,7 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -114,6 +116,7 @@ def timeseries_query(
     has_metrics=False,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
