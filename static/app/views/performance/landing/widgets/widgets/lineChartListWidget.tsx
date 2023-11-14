@@ -22,6 +22,9 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/performance/browser/resources/jsCssView';
+import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {getResourcesEventViewQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import DurationChart from 'sentry/views/performance/charts/chart';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
@@ -86,6 +89,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle} = props;
   const pageError = usePageError();
+  const resourceFilters = useResourceModuleFilters();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
@@ -172,6 +176,37 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           mutableSearch.addFilterValue('has', 'span.description');
           mutableSearch.addFilterValue('span.module', 'db');
           eventView.query = mutableSearch.formatString();
+        } else if (
+          props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
+        ) {
+          // Set fields
+          eventView.fields = [
+            {field: SpanMetricsField.SPAN_DESCRIPTION},
+            {field: SpanMetricsField.SPAN_OP},
+            {field: 'project.id'},
+            {field: SpanMetricsField.SPAN_GROUP},
+            {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field},
+          ];
+
+          // Change data set to spansMetrics
+          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          extraQueryParams = {
+            ...extraQueryParams,
+            dataset: DiscoverDatasets.SPANS_METRICS,
+          };
+
+          // Update query
+          const mutableSearch = new MutableSearch(eventView.query);
+          mutableSearch.removeFilter('event.type');
+          mutableSearch.removeFilter('time_spent_percentage()');
+          eventView.additionalConditions.removeFilter('event.type');
+          eventView.additionalConditions.removeFilter('time_spent_percentage()');
+          eventView.query = `${mutableSearch.formatString()} ${getResourcesEventViewQuery(
+            resourceFilters,
+            DEFAULT_RESOURCE_TYPES
+          ).join(' ')}`;
         } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
           eventView.fields = [
@@ -185,7 +220,12 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           eventView.fields = [{field: 'transaction'}, {field: 'project.id'}, {field}];
         }
         // Don't retrieve list items with 0 in the field.
-        if (props.chartSetting !== PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
+        if (
+          ![
+            PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
+            PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+          ].includes(props.chartSetting)
+        ) {
           eventView.additionalConditions.setFilterValues(field, ['>0']);
         }
 
@@ -269,7 +309,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             mutableSearch.removeFilter('transaction.duration');
             eventView.query = mutableSearch.formatString();
           } else if (
-            props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
+            props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES ||
+            props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
           ) {
             // Update request params
             eventView.dataset = DiscoverDatasets.SPANS_METRICS;
@@ -450,28 +491,38 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 </Fragment>
               );
             case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
+            case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES:
               const description: string = listItem[SpanMetricsField.SPAN_DESCRIPTION];
               const group: string = listItem[SpanMetricsField.SPAN_GROUP];
               const projectID: number = listItem['project.id'];
               const timeSpentPercentage: number = listItem[fieldString];
               const totalTime: number =
                 listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`];
+
+              const isQueriesWidget =
+                props.chartSetting ===
+                PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;
+              const moduleName = isQueriesWidget ? ModuleName.DB : ModuleName.HTTP;
+              const timeSpentOp = isQueriesWidget ? 'op' : undefined;
+              const routingContextBaseURL = isQueriesWidget
+                ? '/performance/database'
+                : '/performance/browser/resources';
               return (
-                <RoutingContextProvider value={{baseURL: '/performance/database'}}>
+                <RoutingContextProvider value={{baseURL: routingContextBaseURL}}>
                   <Fragment>
                     <StyledTextOverflow>
                       <SpanDescriptionCell
                         projectId={projectID}
                         group={group}
                         description={description}
-                        moduleName={ModuleName.DB}
+                        moduleName={moduleName}
                       />
                     </StyledTextOverflow>
                     <RightAlignedCell>
                       <TimeSpentCell
                         percentage={timeSpentPercentage}
                         total={totalTime}
-                        op="db"
+                        op={timeSpentOp}
                       />
                     </RightAlignedCell>
                     {!props.withStaticFilters && (
@@ -578,19 +629,20 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       ];
 
   const getContainerActions = provided => {
-    return props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES ? (
+    const route =
+      props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
+        ? 'performance/database/'
+        : 'performance/browser/resources/';
+    return [
+      PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
+      PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+    ].includes(props.chartSetting) ? (
       <Fragment>
         <div>
-          <LinkButton
-            to={`/organizations/${organization.slug}/performance/database/`}
-            size="sm"
-          >
+          <LinkButton to={`/organizations/${organization.slug}/${route}`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>
-        {ContainerActions && (
-          <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
-        )}
       </Fragment>
     ) : (
       ContainerActions && (
