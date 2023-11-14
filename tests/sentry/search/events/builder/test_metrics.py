@@ -2032,7 +2032,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_distribution_and_environment(self):
         field = "p75(measurements.fp)"
         query_s = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query_s, environment="prod", spec_type=MetricSpecType.SIMPLE_QUERY)
+        spec = OnDemandMetricSpec(
+            field=field, query=query_s, environment="prod", spec_type=MetricSpecType.SIMPLE_QUERY
+        )
 
         self.create_environment(project=self.project, name="prod")
 
@@ -2053,8 +2055,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query=query_s,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True,
-                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
+                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
             ),
         )
         result = query.run_query("test_query")
@@ -2733,8 +2734,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         specs = []
         for environment, value in environments:
             spec = OnDemandMetricSpec(
-                field=field, 
-                query=query_s, 
+                field=field,
+                query=query_s,
                 environment=environment,
                 spec_type=MetricSpecType.SIMPLE_QUERY,
             )
