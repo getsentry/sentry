@@ -11,3 +11,5 @@ export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
 };
 
 export const DEFAULT_DURATION_AGGREGATE = 'avg';
+
+export const CHART_HEIGHT = 160;
