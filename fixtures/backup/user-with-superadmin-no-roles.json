@@ -1,17 +1,17 @@
 [
     {
         "model": "sentry.user",
-        "pk": 2,
+        "pk": 4,
         "fields": {
             "password": "pbkdf2_sha256$150000$iEvdIknqYjTr$+QsGn0tfIJ1FZLxQI37mVU1gL2KbL/wqjMtG/dFhsMA=",
             "last_login": null,
-            "username": "min_user",
+            "username": "superadmin_no_roles_user",
             "name": "",
             "email": "testing@example.com",
-            "is_staff": false,
+            "is_staff": true,
             "is_active": true,
-            "is_superuser": false,
-            "is_managed": false,
+            "is_superuser": true,
+            "is_managed": true,
             "is_sentry_app": null,
             "is_password_expired": false,
             "is_unclaimed": false,
@@ -26,9 +26,9 @@
     },
     {
         "model": "sentry.authenticator",
-        "pk": 2,
+        "pk": 4,
         "fields": {
-            "user": 2,
+            "user": 4,
             "created_at": "2023-07-27T16:30:53.325Z",
             "last_used_at": null,
             "type": 1,
@@ -37,9 +37,9 @@
     },
     {
         "model": "sentry.useremail",
-        "pk": 2,
+        "pk": 4,
         "fields": {
-            "user": 2,
+            "user": 4,
             "email": "testing@example.com",
             "validation_hash": "mCnWesSVvYQcq7qXQ36AZHwosAd6cghE",
             "date_hash_added": "2023-06-22T22:59:55.521Z",
@@ -48,9 +48,9 @@
     },
     {
         "model": "sentry.userip",
-        "pk": 2,
+        "pk": 4,
         "fields": {
-            "user": 2,
+            "user": 4,
             "ip_address": "127.0.0.2",
             "country_code": null,
             "region_code": null,
@@ -60,9 +60,9 @@
     },
     {
         "model": "sentry.useroption",
-        "pk": 2,
+        "pk": 4,
         "fields": {
-            "user": 2,
+            "user": 4,
             "project_id": null,
             "organization_id": null,
             "key": "timezone",
