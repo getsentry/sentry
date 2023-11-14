@@ -83,8 +83,6 @@ def test_is_slack_enabled():
 @responses.activate
 @override_settings(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/", SENTRY_REGION="test_region")
 def test_slack_presenter_empty():
-    responses.add(responses.POST, "https://test/", status=200)
-
     presenter = SlackPresenter()
     assert presenter.is_slack_enabled()
     presenter.flush()
