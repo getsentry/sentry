@@ -176,10 +176,10 @@ def _transform_groupby(query_groupby):
     return mq_groupby if len(mq_groupby) > 0 else None, include_series, interval
 
 
-def _get_mq_dict_params_from_where(query_where, is_alerts_query):
+def _get_mq_dict_params_from_filter(query_filter, is_alerts_query, is_having):
     mq_dict = {}
-    where = []
-    for condition in query_where:
+    filter = []
+    for condition in query_filter:
         if not isinstance(condition, Condition):
             # Currently Boolean Condition is not supported
             raise MQBQueryTransformationException("Unsupported condition type in where clause")
@@ -195,7 +195,7 @@ def _get_mq_dict_params_from_where(query_where, is_alerts_query):
                     mq_dict["end"] = condition.rhs
             # In case this is an alerts query, we relax restrictions.
             elif (condition.lhs.name in FILTERABLE_TAGS) or is_alerts_query:
-                where.append(condition)
+                filter.append(condition)
             else:
                 raise MQBQueryTransformationException(f"Unsupported column for where {condition}")
         elif isinstance(condition.lhs, Function):
@@ -204,7 +204,7 @@ def _get_mq_dict_params_from_where(query_where, is_alerts_query):
                     raise MQBQueryTransformationException(
                         f"Cannot filter by function {condition.lhs.function}"
                     )
-                where.append(
+                filter.append(
                     MetricConditionField(
                         lhs=_get_derived_op_metric_field_from_snuba_function(condition.lhs),
                         op=condition.op,
@@ -212,14 +212,18 @@ def _get_mq_dict_params_from_where(query_where, is_alerts_query):
                     )
                 )
             elif condition.lhs.function in FUNCTION_ALLOWLIST:
-                where.append(condition)
+                filter.append(condition)
             else:
                 raise MQBQueryTransformationException(
                     f"Unsupported function '{condition.lhs.function}' in where"
                 )
         else:
-            where.append(condition)
-    mq_dict["where"] = where if len(where) > 0 else None
+            filter.append(condition)
+
+    # We support both having and where here.
+    filter_clause = "having" if is_having else "where"
+    mq_dict[filter_clause] = filter if len(filter) > 0 else None
+
     return mq_dict
 
 
@@ -453,8 +457,8 @@ def transform_mqb_query_to_metrics_query(
         "orderby": _transform_orderby(query.orderby),
         "interval": interval,
         "is_alerts_query": is_alerts_query,
-        "having": query.having,
-        **_get_mq_dict_params_from_where(query.where, is_alerts_query),
+        **_get_mq_dict_params_from_filter(query.having, is_alerts_query, True),
+        **_get_mq_dict_params_from_filter(query.where, is_alerts_query, False),
     }
 
     # This code is just an edge case specific for the team_key_transaction derived operation.

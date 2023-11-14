@@ -919,6 +919,44 @@ class SnubaQueryBuilder:
                 f"Unsupported {action_by_name} field: {metric_action_by_field.field}"
             )
 
+    def _build_conditions(self) -> List[Union[BooleanCondition, Condition]]:
+        snql_conditions = []
+        # Adds filters that do not need to be resolved because they are instances of `MetricConditionField`
+        metric_condition_filters = []
+        for condition in self._metrics_query.where:
+            if isinstance(condition, MetricConditionField):
+                metric_expression = metric_object_factory(
+                    condition.lhs.op, condition.lhs.metric_mri
+                )
+                try:
+                    metric_condition_filters.append(
+                        Condition(
+                            lhs=metric_expression.generate_where_statements(
+                                use_case_id=self._use_case_id,
+                                params=condition.lhs.params,
+                                projects=self._projects,
+                                alias=condition.lhs.alias,
+                            )[0],
+                            op=condition.op,
+                            rhs=resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
+                            if require_rhs_condition_resolution(condition.lhs.op)
+                            else condition.rhs,
+                        )
+                    )
+                except IndexError:
+                    raise InvalidParams(f"Cannot resolve {condition.lhs} into SnQL")
+            else:
+                snql_conditions.append(condition)
+
+        if metric_condition_filters:
+            where.extend(metric_condition_filters)
+
+        filter_ = resolve_tags(self._use_case_id, self._org_id, snql_conditions, self._projects)
+        if filter_:
+            where.extend(filter_)
+
+        return where
+
     def _build_where(self) -> List[Union[BooleanCondition, Condition]]:
         where: List[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, self._org_id),

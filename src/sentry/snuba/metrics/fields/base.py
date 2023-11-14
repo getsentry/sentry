@@ -1753,6 +1753,7 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
         DerivedOp(
             op="rate",
             can_orderby=True,
+            can_filter=True,
             snql_func=rate_snql_factory,
             default_null_value=0,
         ),

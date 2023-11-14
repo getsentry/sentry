@@ -129,6 +129,7 @@ class MetricConditionField:
 
 
 Groupable = Union[str, Literal["project_id"]]
+MetricCondition = Union[BooleanCondition, Condition, MetricConditionField]
 
 
 class MetricsQueryValidationRunner:
@@ -158,7 +159,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     start: Optional[datetime] = None
     end: Optional[datetime] = None
     where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
-    having: Optional[ConditionGroup] = None
+    having: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[MetricOrderByField]] = None
     limit: Optional[Limit] = None
