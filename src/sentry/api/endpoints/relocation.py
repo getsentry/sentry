@@ -60,7 +60,7 @@ class RelocationEndpoint(Endpoint):
 
         logger.info("relocation.start")
         if not features.has("relocation:enabled"):
-            return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=400)
+            return Response({"detail": ERR_FEATURE_DISABLED}, status=400)
 
         serializer = RelocationPostSerializer(data=request.data)
         if not serializer.is_valid():
