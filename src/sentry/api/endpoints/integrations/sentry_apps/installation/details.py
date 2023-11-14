@@ -13,10 +13,7 @@ from sentry.api.serializers.rest_framework import SentryAppInstallationSerialize
 from sentry.mediators import InstallationNotifier
 from sentry.mediators.sentry_app_installations.updater import Updater
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.functional import extract_lazy_object
 
 
 @control_silo_endpoint
@@ -32,12 +29,9 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
 
     def delete(self, request: Request, installation) -> Response:
         installation = SentryAppInstallation.objects.get(id=installation.id)
-        user = extract_lazy_object(request.user)
-        if isinstance(user, RpcUser):
-            user = User.objects.get(id=user.id)
         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
             try:
-                InstallationNotifier.run(install=installation, user=user, action="deleted")
+                InstallationNotifier.run(install=installation, user=request.user, action="deleted")
             # if the error is from a request exception, log the error and continue
             except RequestException as exc:
                 sentry_sdk.capture_exception(exc)
