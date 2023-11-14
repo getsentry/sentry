@@ -203,7 +203,10 @@ class EventUser:
 
         return results
 
-    def _find_matching_items(snuba_results, filters, filter_boolean):
+    @staticmethod
+    def _find_matching_items(
+        snuba_results: List[dict[str, Any]], filters: Mapping[str, Any], filter_boolean: str
+    ):
         """
         If the filter boolean is OR, for each of the keyword filters get the first matching item.
         If the filter boolean is AND, get the first matching item that has all of the keyword filters.
@@ -246,8 +249,12 @@ class EventUser:
                 None,
             )
             if matching_item:
-                match_key = tuple((key, tuple(value)) for key, value in filters.items())
-                matches[match_key] = matching_item
+                key, value = (
+                    "+".join(k if isinstance(k, str) else "+".join(k) for k in filters),
+                    tuple(tuple(v) for v in filters.values()),
+                )
+
+                matches[(key, value)] = matching_item
 
         return matches
 
