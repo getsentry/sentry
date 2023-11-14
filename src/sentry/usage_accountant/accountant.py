@@ -8,6 +8,7 @@ and the producer needs to be flushed to avoid loosing data.
 """
 
 import atexit
+import logging
 from typing import Optional
 
 from arroyo.backends.abstract import Producer
@@ -17,6 +18,8 @@ from usageaccountant import UsageAccumulator, UsageUnit
 
 from sentry.options import get
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+
+logger = logging.getLogger(__name__)
 
 _accountant_backend: Optional[UsageAccumulator] = None
 
@@ -35,8 +38,10 @@ def init_backend(producer: Producer[KafkaPayload]) -> UsageAccumulator:
 
 def _shutdown() -> None:
     global _accountant_backend
-    _accountant_backend.flush()
-    _accountant_backend.close()
+    if _accountant_backend is not None:
+        _accountant_backend.flush()
+        _accountant_backend.close()
+        logger.info("Usage accountant flushed and closed.")
 
 
 def record(
