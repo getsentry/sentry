@@ -1,3 +1,4 @@
+import logging
 import math
 import time
 from datetime import timedelta
@@ -57,6 +58,9 @@ from sentry.tasks.recap_servers import (
 )
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
+
 
 #: Maximum total number of characters in sensitiveFields.
 #: Relay compiles this list into a regex which cannot exceed a certain size.
@@ -744,6 +748,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
 
         if "isSubscribed" in result:
+            logger.info(
+                "project.edit.subscribed",
+                extra={
+                    "project_id": project.id,
+                    "user_id": request.user.id,
+                },
+            )
             notifications_service.update_settings(
                 external_provider=ExternalProviders.EMAIL,
                 notification_type=NotificationSettingTypes.ISSUE_ALERTS,
