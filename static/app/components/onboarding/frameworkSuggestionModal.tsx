@@ -5,13 +5,6 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
-import onboardingFrameworkSelectionDotnet from 'sentry-images/spot/onboarding-framework-selection-dotnet.svg';
-import onboardingFrameworkSelectionGo from 'sentry-images/spot/onboarding-framework-selection-go.svg';
-import onboardingFrameworkSelectionJava from 'sentry-images/spot/onboarding-framework-selection-java.svg';
-import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/onboarding-framework-selection-javascript.svg';
-import onboardingFrameworkSelectionNode from 'sentry-images/spot/onboarding-framework-selection-node.svg';
-import onboardingFrameworkSelectionPython from 'sentry-images/spot/onboarding-framework-selection-python.svg';
-
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
@@ -24,7 +17,12 @@ import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCateg
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedSDK, Organization} from 'sentry/types';
+import {
+  OnboardingSelectedSDK,
+  Organization,
+  PlatformIntegration,
+  PlatformKey,
+} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -37,7 +35,7 @@ export enum SupportedLanguages {
   GO = 'go',
 }
 
-export const topGoFrameworks = [
+const topGoFrameworks: PlatformKey[] = [
   'go-echo',
   'go-fasthttp',
   'go-gin',
@@ -47,7 +45,7 @@ export const topGoFrameworks = [
   'go-negroni',
 ];
 
-export const topJavascriptFrameworks = [
+export const topJavascriptFrameworks: PlatformKey[] = [
   'javascript-react',
   'javascript-nextjs',
   'javascript-vue',
@@ -58,7 +56,7 @@ export const topJavascriptFrameworks = [
   'javascript-astro',
 ];
 
-const topPythonFrameworks = [
+const topPythonFrameworks: PlatformKey[] = [
   'python-django',
   'python-flask',
   'python-fastapi',
@@ -66,7 +64,7 @@ const topPythonFrameworks = [
   'python-aiohttp',
 ];
 
-const topNodeFrameworks = [
+const topNodeFrameworks: PlatformKey[] = [
   'node-express',
   'node-awslambda',
   'node-gcpfunctions',
@@ -74,7 +72,7 @@ const topNodeFrameworks = [
   'node-koa',
 ];
 
-const topDotNetFrameworks = [
+const topDotNetFrameworks: PlatformKey[] = [
   'dotnet-aspnetcore',
   'dotnet-aspnet',
   'dotnet-maui',
@@ -86,50 +84,32 @@ const topDotNetFrameworks = [
   'dotnet-awslambda',
 ];
 
-const topJavaFrameworks = [
+const topJavaFrameworks: PlatformKey[] = [
   'java-spring-boot',
   'java-spring',
   'java-logback',
   'java-log4j2',
 ];
 
-export const languageDetails = {
-  [SupportedLanguages.JAVASCRIPT]: {
-    description: t(
-      'Our JavaScript framework SDKs include all the features of our Browser Javascript SDK with additional features specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionJavascript,
-  },
-  [SupportedLanguages.NODE]: {
-    description: t(
-      'Our Node framework SDKs include all the features of our Node SDK with instructions specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionNode,
-  },
-  [SupportedLanguages.PYTHON]: {
-    description: t(
-      'Our Python framework SDKs include all the features of our Python SDK with instructions specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionPython,
-  },
-  [SupportedLanguages.DOTNET]: {
-    description: t(
-      'Our .NET integrations include all the features of our core .NET SDK with instructions specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionDotnet,
-  },
-  [SupportedLanguages.JAVA]: {
-    description: t(
-      'Our Java framework SDKs include all the features of our Java SDK with instructions specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionJava,
-  },
-  [SupportedLanguages.GO]: {
-    description: t(
-      'Our Go framework SDKs include all the features of our Go SDK with instructions specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionGo,
-  },
+export const languageDescriptions = {
+  [SupportedLanguages.JAVASCRIPT]: t(
+    'Our JavaScript framework SDKs include all the features of our Browser Javascript SDK with additional features specific to that framework'
+  ),
+  [SupportedLanguages.NODE]: t(
+    'Our Node framework SDKs include all the features of our Node SDK with instructions specific to that framework'
+  ),
+  [SupportedLanguages.PYTHON]: t(
+    'Our Python framework SDKs include all the features of our Python SDK with instructions specific to that framework'
+  ),
+  [SupportedLanguages.DOTNET]: t(
+    'Our .NET integrations include all the features of our core .NET SDK with instructions specific to that framework'
+  ),
+  [SupportedLanguages.JAVA]: t(
+    'Our Java framework SDKs include all the features of our Java SDK with instructions specific to that framework'
+  ),
+  [SupportedLanguages.GO]: t(
+    'Our Go framework SDKs include all the features of our Go SDK with instructions specific to that framework'
+  ),
 };
 
 type Props = ModalRenderProps & {
@@ -254,54 +234,50 @@ export function FrameworkSuggestionModal({
     closeModal();
   }, [selectedPlatform, organization, closeModal, onSkip, newOrg]);
 
+  const listEntries = [...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically];
+
   return (
     <Fragment>
       <Header>
         <CloseButton onClick={closeModal} />
       </Header>
       <Body>
-        {languageDetails[selectedPlatform.key].topFrameworksImage && (
-          <TopFrameworksImage
-            src={languageDetails[selectedPlatform.key].topFrameworksImage}
-          />
-        )}
+        <TopFrameworksImage frameworks={listEntries} />
         <Heading>{t('Do you use a framework?')}</Heading>
-        <Description>{languageDetails[selectedPlatform.key].description}</Description>
+        <Description>{languageDescriptions[selectedPlatform.key]}</Description>
         <StyledPanel>
           <StyledPanelBody>
             <Frameworks>
-              {[...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically].map(
-                (framework, index) => {
-                  const frameworkCategory =
-                    categoryList.find(category => {
-                      return category.platforms?.has(framework.id);
-                    })?.id ?? 'all';
+              {listEntries.map((framework, index) => {
+                const frameworkCategory =
+                  categoryList.find(category => {
+                    return category.platforms?.has(framework.id);
+                  })?.id ?? 'all';
 
-                  return (
-                    <Framework key={framework.id}>
-                      <RadioLabel
-                        index={index}
-                        onClick={() =>
-                          setSelectedFramework({
-                            key: framework.id,
-                            type: framework.type,
-                            language: framework.language,
-                            category: frameworkCategory,
-                          })
-                        }
-                      >
-                        <RadioBox
-                          radioSize="small"
-                          checked={selectedFramework?.key === framework.id}
-                          readOnly
-                        />
-                        <FrameworkIcon size={24} platform={framework.id} />
-                        {framework.name}
-                      </RadioLabel>
-                    </Framework>
-                  );
-                }
-              )}
+                return (
+                  <Framework key={framework.id}>
+                    <RadioLabel
+                      index={index}
+                      onClick={() =>
+                        setSelectedFramework({
+                          key: framework.id,
+                          type: framework.type,
+                          language: framework.language,
+                          category: frameworkCategory,
+                        })
+                      }
+                    >
+                      <RadioBox
+                        radioSize="small"
+                        checked={selectedFramework?.key === framework.id}
+                        readOnly
+                      />
+                      <FrameworkIcon size={24} platform={framework.id} />
+                      {framework.name}
+                    </RadioLabel>
+                  </Framework>
+                );
+              })}
             </Frameworks>
           </StyledPanelBody>
         </StyledPanel>
@@ -326,6 +302,33 @@ export function FrameworkSuggestionModal({
   );
 }
 
+function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
+  const top3 = frameworks.slice(0, 3);
+  if (top3.length < 3) {
+    return null;
+  }
+
+  return (
+    <TopFrameworksImageWrapper>
+      <TopFrameworkIcon
+        size={84}
+        platform={top3[1].id}
+        angle={-34}
+        radius={8}
+        offset={-74}
+      />
+      <TopFrameworkIcon
+        size={84}
+        platform={top3[2].id}
+        angle={34}
+        radius={8}
+        offset={+74}
+      />
+      <TopFrameworkIcon size={84} platform={top3[0].id} angle={0} radius={8} offset={0} />
+    </TopFrameworksImageWrapper>
+  );
+}
+
 const Header = styled('header')`
   position: relative;
   height: 30px;
@@ -336,8 +339,20 @@ const Header = styled('header')`
   }
 `;
 
-const TopFrameworksImage = styled('img')`
+const TopFrameworkIcon = styled(PlatformIcon, {
+  shouldForwardProp: prop => prop !== 'angle' && prop !== 'offset',
+})<{angle: number; offset: number}>`
+  transform: translate(calc(-50% + ${p => p.offset}px), -50%) rotate(${p => p.angle}deg);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid ${p => p.theme.gray200};
+`;
+
+const TopFrameworksImageWrapper = styled('div')`
+  position: relative;
   width: 256px;
+  height: 108px;
   margin: 0px auto ${space(2)};
 `;
 
