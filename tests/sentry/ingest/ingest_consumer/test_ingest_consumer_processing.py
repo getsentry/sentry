@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import atexit
 import datetime
 import time
 import uuid
@@ -199,8 +198,7 @@ def test_accountant_transaction(default_project):
         project=default_project,
     )
 
-    atexit._run_exitfuncs()
-
+    accountant._shutdown()
     msg1 = broker.consume(Partition(topic, 0), 0)
     assert msg1 is not None
     payload = msg1.payload
