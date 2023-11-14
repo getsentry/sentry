@@ -24,7 +24,7 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, MetricSpecType, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
@@ -2032,7 +2032,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_distribution_and_environment(self):
         field = "p75(measurements.fp)"
         query_s = "transaction.duration:>0"
-        spec = OnDemandMetricSpec(field=field, query=query_s, environment="prod")
+        spec = OnDemandMetricSpec(field=field, query=query_s, environment="prod", spec_type=MetricSpecType.SIMPLE_QUERY)
 
         self.create_environment(project=self.project, name="prod")
 
@@ -2054,6 +2054,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=[field],
             config=QueryBuilderConfig(
                 on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
             ),
         )
         result = query.run_query("test_query")
@@ -2731,7 +2732,12 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         environments = ((None, 100), ("prod", 200), ("dev", 300))
         specs = []
         for environment, value in environments:
-            spec = OnDemandMetricSpec(field=field, query=query_s, environment=environment)
+            spec = OnDemandMetricSpec(
+                field=field, 
+                query=query_s, 
+                environment=environment,
+                spec_type=MetricSpecType.SIMPLE_QUERY,
+            )
             self.store_transaction_metric(
                 value=value,
                 metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
@@ -2758,6 +2764,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                 config=QueryBuilderConfig(
                     use_metrics_layer=False,
                     on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                     skip_time_conditions=False,
                 ),
             )
