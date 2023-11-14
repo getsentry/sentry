@@ -55,12 +55,12 @@ export default function WebVitalsLandingPage() {
 
   const {data: projectData, isLoading} = useProjectWebVitalsQuery({transaction});
 
-  const noTransactions = !isLoading && !!projectData?.data?.[0]['count()'];
+  const noTransactions = !isLoading && !projectData?.data?.[0]['count()'];
 
   const projectScore =
     isLoading || noTransactions
       ? undefined
-      : calculatePerformanceScoreFromTableDataRow(projectData?.data[0]);
+      : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>

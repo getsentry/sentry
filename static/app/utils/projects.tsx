@@ -531,7 +531,17 @@ async function fetchProjects(
   };
 }
 
-export function getAnalyicsDataForProject(project?: Project | null) {
+interface ProjectAnalyticsData {
+  project_age: number;
+  project_has_minified_stack_trace: boolean;
+  project_has_replay: boolean;
+  project_id: number;
+  project_platform: string;
+}
+
+export function getAnalyicsDataForProject(
+  project?: Project | null
+): ProjectAnalyticsData {
   return {
     project_has_replay: project?.hasReplays ?? false,
     project_has_minified_stack_trace: project?.hasMinifiedStackTrace ?? false,
