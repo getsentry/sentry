@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import backgroundLighthouse from 'sentry-images/spot/background-lighthouse.svg';
-import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/onboarding-framework-selection-javascript.svg';
+import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import JSXNode from 'sentry/components/stories/jsxNode';
