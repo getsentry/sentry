@@ -11,7 +11,7 @@ export default function FeedbackItemLoader() {
   const feedbackId = useCurrentFeedbackId();
   const {issueResult, issueData, tags, eventData} = useFetchFeedbackData({feedbackId});
   const {issues} = useFetchFeedbackInfiniteListData();
-  const inSearch = issues.find(issue => issue.id === feedbackId);
+  const inFeedbackList = issues.find(issue => issue.id === feedbackId);
 
   // There is a case where we are done loading, but we're fetching updates
   // This happens when the user has seen a feedback, clicks around a bit, then
@@ -24,7 +24,7 @@ export default function FeedbackItemLoader() {
     <Placeholder height="100%" />
   ) : issueResult.isError ? (
     <FeedbackErrorDetails error={t('Unable to load feedback')} />
-  ) : !issueData || !inSearch ? (
+  ) : !issueData || !inFeedbackList ? (
     <FeedbackEmptyDetails />
   ) : (
     <FeedbackItem eventData={eventData} feedbackItem={issueData} tags={tags} />
