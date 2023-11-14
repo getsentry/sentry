@@ -289,16 +289,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 TODO: If too many results, then throw an error and request user to narrow their search window
                 """
                 query_window = query_windows_by_type[threshold_type]
-                logger.info(
-                    "querying error counts",
-                    extra={
-                        "start": query_window["start"],
-                        "end": query_window["end"],
-                        "project_ids": project_id_list,
-                        "releases": release_value_list,
-                        "environments": environments_list,
-                    },
-                )
                 error_counts = get_errors_counts_timeseries_by_project_and_release(
                     end=query_window["end"],
                     environments_list=environments_list,
@@ -307,8 +297,18 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     release_value_list=release_value_list,
                     start=query_window["start"],
                 )
+                logger.info(
+                    "querying error counts",
+                    extra={
+                        "start": query_window["start"],
+                        "end": query_window["end"],
+                        "project_ids": project_id_list,
+                        "releases": release_value_list,
+                        "environments": environments_list,
+                        "error_count_data": error_counts,
+                    },
+                )
                 for ethreshold in category_thresholds:
-                    # TODO: filter by environment as well?
                     is_healthy = is_error_count_healthy(ethreshold, error_counts)
                     ethreshold.update({"is_healthy": is_healthy})
                     release_threshold_health[ethreshold["key"]].append(
