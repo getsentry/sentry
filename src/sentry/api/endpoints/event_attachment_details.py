@@ -56,21 +56,15 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
     def download(self, attachment):
         file = File.objects.get(id=attachment.file_id)
-
-        content_type = attachment.content_type or file.headers.get(
-            "content-type", "application/octet-stream"
-        )
-        size = attachment.size or file.size
-
         fp = file.getfile()
         response = StreamingHttpResponse(
             iter(lambda: fp.read(4096), b""),
-            content_type=content_type,
+            content_type=file.headers.get("content-type", "application/octet-stream"),
         )
-
-        response["Content-Length"] = size
-        name = posixpath.basename(" ".join(attachment.name.split()))
-        response["Content-Disposition"] = f'attachment; filename="{name}"'
+        response["Content-Length"] = file.size
+        response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
+            " ".join(attachment.name.split())
+        )
         return response
 
     def get(self, request: Request, project, event_id, attachment_id) -> Response:

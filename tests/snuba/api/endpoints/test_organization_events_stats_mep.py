@@ -564,6 +564,31 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             [{"count": 0}],
         ]
 
+    def test_transaction_status_unknown_error(self):
+        self.store_transaction_metric(
+            123,
+            tags={"transaction.status": "unknown"},
+            timestamp=self.day_ago + timedelta(minutes=30),
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "query": "transaction.status:unknown_error",
+                "yAxis": [
+                    "sum(transaction.duration)",
+                ],
+                "dataset": "metricsEnhanced",
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert [attrs for time, attrs in data] == [
+            [{"count": 123}],
+            [{"count": 0}],
+        ]
+
     def test_custom_performance_metric_meta_contains_field_and_unit_data(self):
         self.store_transaction_metric(
             123,

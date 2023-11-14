@@ -11,6 +11,7 @@ import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 
 import {DatasetConfig} from '../datasetConfig/base';
@@ -72,6 +73,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
   ) => boolean;
   dashboardFilters?: DashboardFilters;
+  forceOnDemand?: boolean;
   limit?: number;
   loading?: boolean;
   mepSetting?: MEPState | null;
@@ -82,6 +84,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     pageLinks,
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
+  onDemandControlContext?: OnDemandControlContext;
 };
 
 type State<SeriesResponse> = {
@@ -173,6 +176,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           !isEqual(widget.interval, prevProps.widget.interval) ||
           !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
           !isEqual(this.props.dashboardFilters, prevProps.dashboardFilters) ||
+          !isEqual(this.props.forceOnDemand, prevProps.forceOnDemand) ||
           !isSelectionEqual(selection, prevProps.selection) ||
           cursor !== prevProps.cursor
     ) {
@@ -230,6 +234,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       cursor,
       afterFetchTableData,
       onDataFetched,
+      onDemandControlContext,
       mepSetting,
     } = this.props;
     const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
@@ -246,9 +251,11 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
         return requestCreator(
           api,
+          widget,
           query,
           organization,
           selection,
+          onDemandControlContext,
           requestLimit,
           cursor,
           getReferrer(widget.displayType),
@@ -302,6 +309,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       afterFetchSeriesData,
       onDataFetched,
       mepSetting,
+      onDemandControlContext,
     } = this.props;
     const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
 
@@ -313,6 +321,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           index,
           organization,
           selection,
+          onDemandControlContext,
           getReferrer(widget.displayType),
           mepSetting
         );

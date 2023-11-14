@@ -6,13 +6,14 @@ import {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
 import {IssuesSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
@@ -158,9 +159,11 @@ export function transformIssuesResponseToTable(
 
 function getTableRequest(
   api: Client,
+  _: Widget,
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,
+  __?: OnDemandControlContext,
   limit?: number,
   cursor?: string
 ) {

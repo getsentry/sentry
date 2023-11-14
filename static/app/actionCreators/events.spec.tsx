@@ -119,4 +119,23 @@ describe('Events ActionCreator', function () {
       })
     );
   });
+
+  it('spreads query extras', async function () {
+    await doEventsRequest(api, {
+      ...opts,
+      queryExtras: {useOnDemandMetrics: 'true'},
+      partial: true,
+    });
+
+    expect(mock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [project.id],
+          environment: [],
+          useOnDemandMetrics: 'true',
+        }),
+      })
+    );
+  });
 });
