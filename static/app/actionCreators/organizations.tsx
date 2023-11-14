@@ -210,6 +210,9 @@ export async function fetchOrganizationDetails(
  *
  * Will perform a fan-out across all multi-tenant regions,
  * and single-tenant regions the user has membership in.
+ *
+ * This function is challenging to type as the structure of the response
+ * from /organizations can vary based on query parameters
  */
 export async function fetchOrganizations(api: Client, query?: Record<string, any>) {
   const regions = ConfigStore.get('regions');

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from enum import Enum
 from typing import Any, TypedDict
 from uuid import uuid4
 
@@ -14,13 +15,24 @@ from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received
+from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
+UNREAL_FEEDBACK_UNATTENDED_MESSAGE = "Sent in the unattended mode"
 
-def make_evidence(feedback):
+
+class FeedbackCreationSource(Enum):
+    NEW_FEEDBACK_ENVELOPE = "new_feedback_envelope"
+    NEW_FEEDBACK_DJANGO_ENDPOINT = "new_feedback_sentry_django_endpoint"  # TODO: delete this once feedback_ingest API deprecated
+    USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
+    USER_REPORT_ENVELOPE = "user_report_envelope"
+    CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
+
+
+def make_evidence(feedback, source: FeedbackCreationSource):
     evidence_data = {}
     evidence_display = []
     if feedback.get("contact_email"):
@@ -36,6 +48,9 @@ def make_evidence(feedback):
     if feedback.get("name"):
         evidence_data["name"] = feedback["name"]
         evidence_display.append(IssueEvidence(name="name", value=feedback["name"], important=False))
+
+    evidence_data["source"] = source.value
+    evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
 
     return evidence_data, evidence_display
 
@@ -89,11 +104,26 @@ def fix_for_issue_platform(event_data):
     return ret_event
 
 
-def create_feedback_issue(event, project_id):
+def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
+    # Right now all unreal error events without a feedback
+    # actually get a sent a feedback with this message
+    # signifying there is no feedback. Let's go ahead and filter these.
+    if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
+        metrics.incr("feedback.filtered", tags={"reason": "unreal.unattended"}, sample_rate=1.0)
+        return True
+
+    return False
+
+
+def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
+    if should_filter_feedback(event, project_id, source):
+        return
+
+    metrics.incr("feedback.created", tags={"referrer": source.value}, sample_rate=1.0)
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
-    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"])
+    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
@@ -153,7 +183,12 @@ class UserReportShimDict(TypedDict):
     level: str
 
 
-def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project):
+def shim_to_feedback(
+    report: UserReportShimDict,
+    event: Event,
+    project: Project,
+    source: FeedbackCreationSource,
+):
     """
     takes user reports from the legacy user report form/endpoint and
     user reports that come from relay envelope ingestion and
@@ -192,7 +227,7 @@ def shim_to_feedback(report: UserReportShimDict, event: Event, project: Project)
             if report.get("event_id"):
                 feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
 
-        create_feedback_issue(feedback_event, project.id)
+        create_feedback_issue(feedback_event, project.id, source)
     except Exception:
         logger.exception(
             "Error attempting to create new User Feedback from Shiming old User Report"

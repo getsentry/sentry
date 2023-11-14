@@ -9,7 +9,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 # max number of custom rules that can be created per organization
 MAX_CUSTOM_RULES = 2000
 CUSTOM_RULE_START = 3000
+MAX_CUSTOM_RULES_PER_PROJECT = 50
 CUSTOM_RULE_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
@@ -274,7 +275,7 @@ class CustomDynamicSamplingRule(Model):
             organization=project.organization,
             end_date__gt=now,
             start_date__lt=now,
-        )
+        )[: MAX_CUSTOM_RULES_PER_PROJECT + 1]
 
         # project rules
         project_rules = CustomDynamicSamplingRule.objects.filter(
@@ -282,6 +283,12 @@ class CustomDynamicSamplingRule(Model):
             projects__in=[project],
             end_date__gt=now,
             start_date__lt=now,
-        )
+        )[: MAX_CUSTOM_RULES_PER_PROJECT + 1]
 
-        return project_rules.union(org_rules)
+        rules = project_rules.union(org_rules)[: MAX_CUSTOM_RULES_PER_PROJECT + 1]
+        rules = list(rules)
+
+        if len(rules) > MAX_CUSTOM_RULES_PER_PROJECT:
+            metrics.incr("dynamic_sampling.custom_rules.overflow")
+
+        return rules[:MAX_CUSTOM_RULES_PER_PROJECT]
