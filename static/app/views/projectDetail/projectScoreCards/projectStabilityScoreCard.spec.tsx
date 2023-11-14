@@ -6,7 +6,6 @@ import {SessionFieldWithOperation} from 'sentry/types';
 import ProjectStabilityScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectStabilityScoreCard';
 
 describe('ProjectDetail > ProjectStability', function () {
-  let endpointMock: jest.Mock;
   const organization = Organization();
 
   const selection = {
@@ -25,7 +24,7 @@ describe('ProjectDetail > ProjectStability', function () {
   });
 
   it('renders crash free users', async function () {
-    endpointMock = MockApiClient.addMockResponse({
+    const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       body: {
         groups: [
@@ -46,11 +45,11 @@ describe('ProjectDetail > ProjectStability', function () {
         selection={selection}
         isProjectStabilized
         query="test-query"
-      />,
-      {
-        organization,
-      }
+      />
     );
+
+    expect(await screen.findByText('Crash Free Users')).toBeInTheDocument();
+    expect(await screen.findByText('99%')).toBeInTheDocument();
 
     expect(endpointMock).toHaveBeenNthCalledWith(
       1,
@@ -66,14 +65,10 @@ describe('ProjectDetail > ProjectStability', function () {
         },
       })
     );
-
-    expect(screen.getByText('Crash Free Users')).toBeInTheDocument();
-
-    expect(await screen.findByText('99%')).toBeInTheDocument();
   });
 
   it('renders crash free sessions', async function () {
-    endpointMock = MockApiClient.addMockResponse({
+    const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       body: {
         groups: [
@@ -94,11 +89,11 @@ describe('ProjectDetail > ProjectStability', function () {
         selection={selection}
         isProjectStabilized
         query="test-query"
-      />,
-      {
-        organization,
-      }
+      />
     );
+
+    expect(await screen.findByText('Crash Free Sessions')).toBeInTheDocument();
+    expect(await screen.findByText('99%')).toBeInTheDocument();
 
     expect(endpointMock).toHaveBeenNthCalledWith(
       1,
@@ -114,14 +109,10 @@ describe('ProjectDetail > ProjectStability', function () {
         },
       })
     );
-
-    expect(screen.getByText('Crash Free Sessions')).toBeInTheDocument();
-
-    expect(await screen.findByText('99%')).toBeInTheDocument();
   });
 
   it('renders without sessions', async function () {
-    endpointMock = MockApiClient.addMockResponse({
+    const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       body: {
         detail: 'test error',
@@ -136,16 +127,12 @@ describe('ProjectDetail > ProjectStability', function () {
         selection={selection}
         isProjectStabilized
         query="test-query"
-      />,
-      {
-        organization,
-      }
+      />
     );
 
-    expect(endpointMock).not.toHaveBeenCalled();
-
-    expect(screen.getByText('Crash Free Sessions')).toBeInTheDocument();
-
+    expect(await screen.findByText('Crash Free Sessions')).toBeInTheDocument();
     expect(await screen.findByText('Start Setup')).toBeInTheDocument();
+
+    expect(endpointMock).not.toHaveBeenCalled();
   });
 });
