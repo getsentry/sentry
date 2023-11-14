@@ -1,3 +1,4 @@
+import {LinkButton} from 'sentry/components/button';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -65,6 +66,7 @@ export enum PerformanceWidgetSetting {
   TIME_TO_INITIAL_DISPLAY = 'time_to_initial_display',
   TIME_TO_FULL_DISPLAY = 'time_to_full_display',
   OVERALL_PERFORMANCE_SCORE = 'overall_performance_score',
+  MOST_TIME_CONSUMING_RESOURCES = 'most_time_consuming_resources',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -267,6 +269,27 @@ export const WIDGET_DEFINITIONS: ({
     title: t('Most Time-Consuming Queries'),
     subTitle: t('Top queries by total duration'),
     titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_TIME_SPENT_DB_QUERIES),
+    fields: [`time_spent_percentage()`],
+    dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]: {
+    title: t('Most Time Consuming Resources'),
+    subTitle: t('Render blocking for pages'),
+    ContainerActions: (
+      <div>
+        <LinkButton
+          to={`/organizations/${organization.slug}/performance/browser/resources/`}
+          size="sm"
+        >
+          {t('View All')}
+        </LinkButton>
+      </div>
+    ),
+    titleTooltip: getTermHelp(
+      organization,
+      PerformanceTerm.MOST_TIME_CONSUMING_RESOURCES
+    ),
     fields: [`time_spent_percentage()`],
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
     chartColor: WIDGET_PALETTE[0],

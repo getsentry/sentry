@@ -4,7 +4,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {
+  ModuleFilters,
+  useResourceModuleFilters,
+} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
@@ -31,6 +34,25 @@ type Props = {
 
 export const DEFAULT_RESOURCE_FILTERS = ['!span.description:"browser-extension://*"'];
 
+export const getResourcesEventViewQuery = (
+  resourceFilters: Partial<ModuleFilters>,
+  defaultResourceTypes: string[] | undefined
+): string[] => {
+  return [
+    ...DEFAULT_RESOURCE_FILTERS,
+    ...(resourceFilters.transaction
+      ? [`transaction:"${resourceFilters.transaction}"`]
+      : []),
+    ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
+    ...getDomainFilter(resourceFilters[SPAN_DOMAIN]),
+    ...(resourceFilters['resource.render_blocking_status']
+      ? [
+          `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
+        ]
+      : [`!resource.render_blocking_status:blocking`]),
+  ];
+};
+
 export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -38,21 +60,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
   const {slug: orgSlug} = useOrganization();
 
   const queryConditions = [
-    ...(!query
-      ? [
-          ...DEFAULT_RESOURCE_FILTERS,
-          ...(resourceFilters.transaction
-            ? [`transaction:"${resourceFilters.transaction}"`]
-            : []),
-          ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
-          ...getDomainFilter(resourceFilters[SPAN_DOMAIN]),
-          ...(resourceFilters['resource.render_blocking_status']
-            ? [
-                `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
-              ]
-            : [`!resource.render_blocking_status:blocking`]),
-        ]
-      : []),
+    ...(!query ? getResourcesEventViewQuery(resourceFilters, defaultResourceTypes) : []),
     query,
   ];
 

@@ -23,6 +23,16 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
     PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES,
     PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE,
   ].includes(chartSetting);
+
+  const isResourcesWidget =
+    chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES;
+
+  const featureBadge = isWebVitalsWidget ? (
+    <FeatureBadge type="new" />
+  ) : isResourcesWidget ? (
+    <FeatureBadge type="alpha" />
+  ) : null;
+
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
@@ -32,7 +42,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
           ) : (
             <TextOverflow>{title}</TextOverflow>
           )}
-          {isWebVitalsWidget && <FeatureBadge type="new" />}
+          {featureBadge}
           <MEPTag />
           {titleTooltip && (
             <QuestionTooltip position="top" size="sm" title={titleTooltip} />
