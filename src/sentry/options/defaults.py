@@ -1171,7 +1171,7 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
-    default=1.0,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
