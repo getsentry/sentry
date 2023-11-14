@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sentry_sdk
+
 from sentry.integrations.discord.client import DiscordNonProxyClient
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils.cache import cache
@@ -43,5 +45,6 @@ class DiscordCommandManager:
             try:
                 DiscordNonProxyClient().overwrite_application_commands(self.COMMANDS)
             except ApiError as e:
+                sentry_sdk.capture_exception(e)
                 logger.error("discord.setup.update_bot_commands_failure", extra={"status": e.code})
                 cache.delete(cache_key)
