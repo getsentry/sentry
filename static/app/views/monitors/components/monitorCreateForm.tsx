@@ -394,7 +394,7 @@ const CronstrueText = styled(LabelText)`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-family: ${p => p.theme.text.familyMono};
-  grid-column: 1 / -1;
+  grid-column: auto / span 2;
 `;
 
 const StyledNumberField = styled(NumberField)`
