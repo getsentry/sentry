@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,8 +11,8 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import PanelTable from 'sentry/components/panels/panelTable';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -22,20 +23,20 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 import Header from '../components/header';
-import {NEW_GROUP_PREFIX} from '../utils/constants';
-import {NewThresholdGroup, Threshold} from '../utils/types';
+import {Threshold} from '../utils/types';
 import useFetchThresholdsListData from '../utils/useFetchThresholdsListData';
 
-import {ThresholdGroupRows} from './thresholdGroupRows';
+import NoThresholdCard from './noThresholdCard';
+import ThresholdGroupTable from './thresholdGroupTable';
 
 type Props = {};
 
 function ReleaseThresholdList({}: Props) {
   const [listError, setListError] = useState<string>('');
+  const [newProjThresholdsPage, setNewProjThresholdsPage] = useState(0);
+  const PAGE_SIZE = 10;
   const router = useRouter();
   const organization = useOrganization();
-  const [newThresholdGroup, setNewThresholdGroup] = useState<NewThresholdGroup[]>([]);
-  const [newGroupIterator, setNewGroupIterator] = useState<number>(0);
   useEffect(() => {
     const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
     if (!hasV2ReleaseUIEnabled) {
@@ -56,12 +57,22 @@ function ReleaseThresholdList({}: Props) {
   });
 
   const selectedProjects: Project[] = useMemo(() => {
-    return projects.filter(project =>
-      selection.projects.some(id => String(id) === project.id || id === -1)
+    return projects.filter(
+      project =>
+        selection.projects.some(id => String(id) === project.id || id === -1) ||
+        !selection.projects.length
     );
   }, [projects, selection.projects]);
 
-  const getAllEnvironments = (): string[] => {
+  const projectsById: {[key: string]: Project} = useMemo(() => {
+    const byId = {};
+    selectedProjects.forEach(proj => {
+      byId[proj.id] = proj;
+    });
+    return byId;
+  }, [selectedProjects]);
+
+  const getAllEnvironmentNames = useMemo((): string[] => {
     const selectedProjectIds = selection.projects.map(id => String(id));
     const {user} = ConfigStore.getState();
     const allEnvSet = new Set(projects.flatMap(project => project.environments));
@@ -94,7 +105,7 @@ function ReleaseThresholdList({}: Props) {
     return Array.from(unSortedEnvs)
       .sort()
       .concat([...envDiff].sort());
-  };
+  }, [projects, selection.projects]);
 
   /**
    * Thresholds filtered by environment selection
@@ -108,23 +119,24 @@ function ReleaseThresholdList({}: Props) {
       })
     : thresholds;
 
-  const thresholdGroups: {[key: string]: {[key: string]: Threshold[]}} = useMemo(() => {
+  const thresholdsByProject: {[key: string]: Threshold[]} = useMemo(() => {
     const byProj = {};
     filteredThresholds.forEach(threshold => {
       const projId = threshold.project.id;
       if (!byProj[projId]) {
-        byProj[projId] = {};
+        byProj[projId] = [];
       }
-      const env = threshold.environment ? threshold.environment.name : '';
-      if (!byProj[projId][env]) {
-        byProj[projId][env] = [];
-      }
-      byProj[projId][env].push(threshold);
+      byProj[projId].push(threshold);
     });
     return byProj;
   }, [filteredThresholds]);
 
-  const tempError = msg => {
+  const projectsWithoutThresholds: Project[] = useMemo(() => {
+    // TODO: limit + paginate list
+    return selectedProjects.filter(proj => !thresholdsByProject[proj.id]);
+  }, [thresholdsByProject, selectedProjects]);
+
+  const setTempError = msg => {
     setListError(msg);
     setTimeout(() => setListError(''), 5000);
   };
@@ -136,39 +148,10 @@ function ReleaseThresholdList({}: Props) {
     return <LoadingIndicator />;
   }
 
-  const createNewThresholdGroup = () => {
-    if (selectedProjects.length === 1) {
-      setNewThresholdGroup([
-        ...newThresholdGroup,
-        {
-          id: `${NEW_GROUP_PREFIX}-${newGroupIterator}`,
-          project: selectedProjects[0],
-          environments: getAllEnvironments(),
-        },
-      ]);
-      setNewGroupIterator(newGroupIterator + 1);
-    } else {
-      tempError('Must select a single project in order to create a new threshold');
-    }
-  };
-
-  const onNewGroupFinished = id => {
-    const newGroups = newThresholdGroup.filter(group => group.id !== id);
-    setNewThresholdGroup(newGroups);
-  };
-
   return (
     <PageFiltersContainer>
       <NoProjectMessage organization={organization}>
-        <Header
-          router={router}
-          hasV2ReleaseUIEnabled
-          newThresholdAction={createNewThresholdGroup}
-          newThresholdDisabled={
-            selection.projects.length !== 1 ||
-            selection.projects.includes(ALL_ACCESS_PROJECTS)
-          }
-        />
+        <Header router={router} hasV2ReleaseUIEnabled />
         <Layout.Body>
           <Layout.Main fullWidth>
             <FilterRow>
@@ -180,49 +163,65 @@ function ReleaseThresholdList({}: Props) {
               </ReleaseThresholdsPageFilterBar>
               <ListError>{listError}</ListError>
             </FilterRow>
-            <StyledPanelTable
-              isLoading={isLoading}
-              isEmpty={
-                filteredThresholds.length === 0 &&
-                newThresholdGroup.length === 0 &&
-                !isError
-              }
-              emptyMessage={t('No thresholds found.')}
-              headers={[
-                t('Project Name'),
-                t('Environment'),
-                t('Window'),
-                t('Condition'),
-                t(' '),
-              ]}
-            >
-              {thresholdGroups &&
-                Object.entries(thresholdGroups).map(([projId, byEnv]) => {
-                  return Object.entries(byEnv).map(([envName, thresholdGroup]) => (
-                    <ThresholdGroupRows
-                      key={`${projId}-${envName}`}
-                      thresholds={thresholdGroup}
+            {thresholdsByProject &&
+              Object.entries(thresholdsByProject).map(([projId, thresholdsByProj]) => (
+                <ThresholdGroupTable
+                  key={projId}
+                  project={projectsById[projId]}
+                  thresholds={thresholdsByProj}
+                  isLoading={isLoading}
+                  isError={isError}
+                  refetch={refetch}
+                  setTempError={setTempError}
+                  allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
+                />
+              ))}
+            {projectsWithoutThresholds.length > 0 && (
+              <div>
+                <strong>Projects without Thresholds</strong>
+                {projectsWithoutThresholds
+                  .slice(
+                    PAGE_SIZE * newProjThresholdsPage,
+                    PAGE_SIZE * newProjThresholdsPage + PAGE_SIZE
+                  )
+                  .map(proj => (
+                    <NoThresholdCard
+                      key={proj.id}
+                      project={proj}
+                      allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
                       refetch={refetch}
-                      orgSlug={organization.slug}
-                      setError={tempError}
-                    />
-                  ));
-                })}
-              {selectedProjects.length === 1 &&
-                newThresholdGroup[0] &&
-                newThresholdGroup
-                  .filter(group => group.project === selectedProjects[0])
-                  .map(group => (
-                    <ThresholdGroupRows
-                      key={group.id}
-                      newGroup={group}
-                      refetch={refetch}
-                      orgSlug={organization.slug}
-                      setError={tempError}
-                      onFormClose={onNewGroupFinished}
+                      setTempError={setTempError}
                     />
                   ))}
-            </StyledPanelTable>
+                <Paginator>
+                  <Button
+                    icon={<IconChevron direction="left" size="sm" />}
+                    aria-label={t('Previous')}
+                    size="sm"
+                    disabled={newProjThresholdsPage === 0}
+                    onClick={() => {
+                      setNewProjThresholdsPage(newProjThresholdsPage - 1);
+                    }}
+                  />
+                  <CurrentPage>
+                    {newProjThresholdsPage + 1} of{' '}
+                    {Math.ceil(projectsWithoutThresholds.length / PAGE_SIZE)}
+                  </CurrentPage>
+                  <Button
+                    icon={<IconChevron direction="right" size="sm" />}
+                    aria-label={t('Next')}
+                    size="sm"
+                    disabled={
+                      PAGE_SIZE * newProjThresholdsPage + PAGE_SIZE >=
+                      projectsWithoutThresholds.length
+                    }
+                    onClick={() => {
+                      setNewProjThresholdsPage(newProjThresholdsPage + 1);
+                    }}
+                  />
+                </Paginator>
+              </div>
+            )}
           </Layout.Main>
         </Layout.Body>
       </NoProjectMessage>
@@ -245,27 +244,17 @@ const ListError = styled('div')`
   justify-content: center;
 `;
 
-const StyledPanelTable = styled(PanelTable)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    overflow: initial;
-  }
-
-  grid-template-columns:
-    minmax(100px, 1fr) minmax(100px, 1fr) minmax(250px, 1fr) minmax(200px, 4fr)
-    minmax(150px, auto);
-  white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeMedium};
-  > * {
-    border-bottom: inherit;
-  }
-  > *:last-child {
-    > *:last-child {
-      border-radius: 0 0 ${p => p.theme.borderRadius} 0;
-      border-bottom: 0;
-    }
-  }
-`;
-
 const ReleaseThresholdsPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
+`;
+
+const Paginator = styled('div')`
+  margin: ${space(2)} 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+`;
+
+const CurrentPage = styled('div')`
+  margin: 0 ${space(1)};
 `;

@@ -18,22 +18,9 @@ export type Threshold = {
   date_added?: string;
 };
 
-export type EditingThreshold = {
-  id: string;
-  project: Project;
-  threshold_type: string;
-  trigger_type: string;
-  value: number;
+export type EditingThreshold = Omit<Threshold, 'environment' | 'window_in_seconds'> & {
   windowSuffix: moment.unitOfTime.DurationConstructor;
   windowValue: number;
-  date_added?: string;
-  environment?: string;
+  environmentName?: string;
   hasError?: boolean;
-  window_in_seconds?: number;
-};
-
-export type NewThresholdGroup = {
-  environments: string[];
-  id: string;
-  project: Project;
 };
