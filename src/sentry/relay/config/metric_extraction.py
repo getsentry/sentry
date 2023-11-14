@@ -398,6 +398,10 @@ def _convert_aggregate_and_query_to_metric(
 
     except ValueError:
         # raised by validate_sampling_condition
+        metrics.incr(
+            "on_demand_metrics.invalid_on_demand_metric_spec",
+            tags={"prefilling": prefilling},
+        )
         logger.error(
             "Invalid on-demand metric spec",
             exc_info=True,
