@@ -79,12 +79,12 @@ def _get_missing_organization_members(
 
     date_added = (timezone.now() - timedelta(days=30)).strftime("%Y-%m-%d, %H:%M:%S")
 
-    query = f"""
+    query = """
         SELECT sentry_commitauthor.id, sentry_commitauthor.organization_id, sentry_commitauthor.name, sentry_commitauthor.email, sentry_commitauthor.external_id, COUNT(sentry_commit.id) AS commit__count FROM sentry_commitauthor
         INNER JOIN (
             select * from sentry_commit
-            WHERE sentry_commit.organization_id = {org_id}
-            AND date_added >= '{date_added}'
+            WHERE sentry_commit.organization_id = %(org_id)s
+            AND date_added >= %(date_added)s
             order by date_added desc limit 1000
         ) as sentry_commit ON sentry_commitauthor.id = sentry_commit.author_id
 
@@ -92,27 +92,35 @@ def _get_missing_organization_members(
         (
             select id
             from sentry_repository
-            where provider = 'integrations:{provider}'
-            and organization_id = {org_id}
-            and integration_id in ({", ".join([str(id) for id in integration_ids])})
+            where provider = %(provider)s
+            and organization_id = %(org_id)s
+            and integration_id in (%(integration_ids)s)
             )
         AND sentry_commit.author_id IN
             (select id from sentry_commitauthor
-                WHERE sentry_commitauthor.organization_id = {org_id}
+                WHERE sentry_commitauthor.organization_id = %(org_id)s
                 AND NOT (
-                    (sentry_commitauthor.email IN (select concat(email, user_email) from sentry_organizationmember where organization_id = {org_id} and (email is not null or user_email is not null)
+                    (sentry_commitauthor.email IN (select concat(email, user_email) from sentry_organizationmember where organization_id = %(org_id)s and (email is not null or user_email is not null)
                 )
         OR sentry_commitauthor.external_id IS NULL))
-        {domain_query}
+    """
+    # adding the extra domain query here prevents django raw from putting extra quotations around it
+    query += domain_query
+    query += """
         AND NOT (UPPER(sentry_commitauthor.email::text) LIKE UPPER('%%+%%'))
         )
 
         GROUP BY sentry_commitauthor.id ORDER BY commit__count DESC limit 50
-    """.format(
-        org_id, date_added, provider, integration_ids, domain_query
-    )
+        """
 
-    return list(CommitAuthor.objects.raw(query))
+    param_dict = {
+        "org_id": org_id,
+        "date_added": date_added,
+        "provider": "integrations:" + provider,
+        "integration_ids": ", ".join([str(id) for id in integration_ids]),
+    }
+
+    return list(CommitAuthor.objects.raw(query, param_dict))
 
 
 def _get_shared_email_domain(organization: Organization) -> str | None:
