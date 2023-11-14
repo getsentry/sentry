@@ -118,7 +118,7 @@ def _get_missing_organization_members(
         org_id, date_added, provider, integration_ids, domain_query
     )
 
-    return CommitAuthor.objects.raw(query)
+    return list(CommitAuthor.objects.raw(query))
 
 
 def _get_shared_email_domain(organization: Organization) -> str | None:
