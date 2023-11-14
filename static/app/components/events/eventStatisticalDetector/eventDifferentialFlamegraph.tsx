@@ -2,7 +2,6 @@ import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Event} from 'sentry/types';
-import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 
 interface EventDifferenialFlamegraphProps {
   event: Event;
@@ -15,8 +14,6 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
   const breakpoint = evidenceData?.breakpoint;
 
   const isValid = fingerprint !== undefined && breakpoint !== undefined;
-
-  useAggregateFlamegraphQuery;
 
   useEffect(() => {
     if (isValid) {
