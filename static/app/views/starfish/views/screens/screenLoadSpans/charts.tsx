@@ -203,11 +203,17 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                 <ScreensBarChart
                   chartOptions={[
                     {
-                      title: t('Comparing Release TTID'),
+                      title: t('TTID by Device Class'),
                       yAxis: YAXIS_COLUMNS[yAxes[0]],
                       series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[0]]]),
                       xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                      subtitle: t('Device Classes'),
+                      subtitle: t(
+                        '%s v. %s',
+                        formatVersionAndCenterTruncate(primaryRelease, 12),
+                        secondaryRelease
+                          ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                          : ''
+                      ),
                     },
                   ]}
                   chartKey="spansChart"
@@ -260,11 +266,17 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                 <ScreensBarChart
                   chartOptions={[
                     {
-                      title: t('Comparing Release TTFD'),
+                      title: t('TTFD by Device Class'),
                       yAxis: YAXIS_COLUMNS[yAxes[1]],
                       series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[1]]]),
                       xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                      subtitle: t('Device Classes'),
+                      subtitle: t(
+                        '%s v. %s',
+                        formatVersionAndCenterTruncate(primaryRelease, 12),
+                        secondaryRelease
+                          ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                          : ''
+                      ),
                     },
                   ]}
                   chartKey="spansChart"
