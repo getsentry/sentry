@@ -778,7 +778,6 @@ CELERY_IMPORTS = (
     "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.dynamic_sampling.tasks.utils",
     "sentry.dynamic_sampling.tasks.custom_rule_notifications",
-    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
