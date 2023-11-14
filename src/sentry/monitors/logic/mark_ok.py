@@ -71,7 +71,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
 
 
 def resolve_incident_group(
-    grouphash: str,
+    fingerprint: str,
     project_id: int,
 ):
     from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -79,7 +79,7 @@ def resolve_incident_group(
     from sentry.models.group import GroupStatus
 
     status_change = StatusChangeMessage(
-        fingerprint=[grouphash],
+        fingerprint=[fingerprint],
         project_id=project_id,
         new_status=GroupStatus.RESOLVED,
         new_substatus=None,
