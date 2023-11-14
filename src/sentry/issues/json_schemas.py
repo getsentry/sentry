@@ -147,7 +147,7 @@ LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                 "segment": {"type": ["string", "null"], "minLength": 1},
                 "username": {"type": ["string", "null"], "minLength": 1},
             },
-            "additionalProperties": False,
+            "additionalProperties": True,
         },
     },
     "required": [

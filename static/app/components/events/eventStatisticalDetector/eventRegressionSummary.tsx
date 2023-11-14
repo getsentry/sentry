@@ -23,8 +23,8 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
   const organization = useOrganization();
 
   const data = useMemo(
-    () => getKeyValueListData(organization, group, event),
-    [organization, event, group]
+    () => getKeyValueListData(organization, group.issueType, event),
+    [organization, event, group.issueType]
   );
 
   if (!defined(data)) {
@@ -38,9 +38,9 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
   );
 }
 
-function getKeyValueListData(
+export function getKeyValueListData(
   organization: Organization,
-  group: Group,
+  issueType: IssueType,
   event: Event
 ): KeyValueListData | null {
   const evidenceData = event.occurrence?.evidenceData;
@@ -48,7 +48,7 @@ function getKeyValueListData(
     return null;
   }
 
-  switch (group.issueType) {
+  switch (issueType) {
     case IssueType.PERFORMANCE_DURATION_REGRESSION:
     case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
       const target = transactionSummaryRouteWithQuery({

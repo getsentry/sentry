@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from enum import Enum, unique
 from uuid import uuid4
 
@@ -11,8 +10,6 @@ from sentry.db.models import BoundedBigIntegerField, region_silo_only_model
 from sentry.db.models.base import DefaultFieldsModel, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.uuid import UUIDField
-
-logger = logging.getLogger(__name__)
 
 
 def default_guid():

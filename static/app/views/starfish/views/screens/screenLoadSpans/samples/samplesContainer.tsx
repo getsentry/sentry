@@ -3,16 +3,20 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import Version from 'sentry/components/version';
+import Link from 'sentry/components/links/link';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   SpanSummaryQueryFilters,
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -33,7 +37,6 @@ export function ScreenLoadSampleContainer({
   groupId,
   transactionName,
   transactionMethod,
-  sectionTitle,
   release,
 }: Props) {
   const router = useRouter();
@@ -66,28 +69,51 @@ export function ScreenLoadSampleContainer({
   const {data: spanMetrics} = useSpanMetrics(
     groupId,
     filters,
-    [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
     'api.starfish.span-summary-panel-samples-table-avg'
   );
 
   return (
     <Fragment>
       <PaddedTitle>
-        {sectionTitle && <SectionTitle>{sectionTitle}</SectionTitle>}
         {release && (
-          <Version organization={organization} version={release} tooltipRawVersion />
+          <SectionTitle>
+            <Tooltip title={release}>
+              <Link
+                to={{
+                  pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+                    release
+                  )}/`,
+                }}
+              >
+                {centerTruncate(release)}
+              </Link>
+            </Tooltip>
+          </SectionTitle>
         )}
       </PaddedTitle>
-      <Block title={DataTitles.avg} alignment="left">
-        <DurationCell
-          containerProps={{
-            style: {
-              textAlign: 'left',
-            },
-          }}
-          milliseconds={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
-        />
-      </Block>
+      <Container>
+        <Block title={DataTitles.avg} alignment="left">
+          <DurationCell
+            containerProps={{
+              style: {
+                textAlign: 'left',
+              },
+            }}
+            milliseconds={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
+          />
+        </Block>
+        <Block title={DataTitles.count} alignment="left">
+          <CountCell
+            containerProps={{
+              style: {
+                textAlign: 'left',
+              },
+            }}
+            count={spanMetrics?.['count()'] ?? 0}
+          />
+        </Block>
+      </Container>
       <DurationChart
         groupId={groupId}
         transactionName={transactionName}
@@ -113,17 +139,17 @@ export function ScreenLoadSampleContainer({
         columnOrder={[
           {
             key: 'transaction_id',
-            name: 'Event ID',
+            name: t('Event ID'),
             width: COL_WIDTH_UNDEFINED,
           },
           {
             key: 'profile_id',
-            name: 'Profile ID',
+            name: t('Profile'),
             width: COL_WIDTH_UNDEFINED,
           },
           {
-            key: 'duration',
-            name: 'Span Duration',
+            key: 'avg_comparison',
+            name: t('Compared to Average'),
             width: COL_WIDTH_UNDEFINED,
           },
         ]}
@@ -138,4 +164,8 @@ const SectionTitle = styled('div')`
 
 const PaddedTitle = styled('div')`
   margin-bottom: ${space(1)};
+`;
+
+const Container = styled('div')`
+  display: flex;
 `;

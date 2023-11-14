@@ -4,7 +4,7 @@ import io
 import tempfile
 from copy import deepcopy
 from datetime import datetime, timedelta
-from functools import cached_property, lru_cache
+from functools import cached_property, cmp_to_key, lru_cache
 from pathlib import Path
 from typing import Tuple
 from unittest.mock import MagicMock
@@ -19,7 +19,7 @@ from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
 from sentry.backup.comparators import ComparatorMap
-from sentry.backup.dependencies import sorted_dependencies
+from sentry.backup.dependencies import NormalizedModelName, get_model, sorted_dependencies
 from sentry.backup.exports import (
     export_in_config_scope,
     export_in_global_scope,
@@ -126,7 +126,9 @@ class ValidationError(Exception):
 
 
 def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> JSONData:
-    """Helper function that exports the current state of the database to the specified file."""
+    """
+    Helper function that exports the current state of the database to the specified file.
+    """
 
     json_file_path = str(path)
     with open(json_file_path, "wb+") as tmp_file:
@@ -249,8 +251,10 @@ def clear_model(model, *, reset_pks: bool):
 
 @assume_test_silo_mode(SiloMode.REGION)
 def clear_database(*, reset_pks: bool = False):
-    """Deletes all models we care about from the database, in a sequence that ensures we get no
-    foreign key errors."""
+    """
+    Deletes all models we care about from the database, in a sequence that ensures we get no
+    foreign key errors.
+    """
 
     # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
     with unguarded_write(using=router.db_for_write(Team)):
@@ -331,8 +335,10 @@ def import_export_from_fixture_then_validate(
     fixture_file_name: str,
     map: ComparatorMap = EMPTY_COMPARATORS_FOR_TESTING,
 ) -> None:
-    """Test helper that validates that data imported from a fixture `.json` file correctly matches
-    the actual outputted export data."""
+    """
+    Test helper that validates that data imported from a fixture `.json` file correctly matches
+    the actual outputted export data.
+    """
 
     fixture_file_path = get_fixture_path("backup", fixture_file_name)
     with open(fixture_file_path) as backup_file:
@@ -348,8 +354,10 @@ def import_export_from_fixture_then_validate(
 
 
 class BackupTestCase(TransactionTestCase):
-    """Instruments a database state that includes an instance of every Sentry model with every field
-    set to a non-default, non-null value. This is useful for exhaustive conformance testing."""
+    """
+    Instruments a database state that includes an instance of every Sentry model with every field
+    set to a non-default, non-null value. This is useful for exhaustive conformance testing.
+    """
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_user(
@@ -665,15 +673,43 @@ class BackupTestCase(TransactionTestCase):
     def json_of_exhaustive_user_with_minimum_privileges(self) -> JSONData:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
+    @cached_property
+    def _json_of_exhaustive_user_with_roles_no_superadmin(self) -> JSONData:
+        with open(get_fixture_path("backup", "user-with-roles-no-superadmin.json")) as backup_file:
+            return json.load(backup_file)
+
+    def json_of_exhaustive_user_with_roles_no_superadmin(self) -> JSONData:
+        return deepcopy(self._json_of_exhaustive_user_with_roles_no_superadmin)
+
+    @cached_property
+    def _json_of_exhaustive_user_with_superadmin_no_roles(self) -> JSONData:
+        with open(get_fixture_path("backup", "user-with-superadmin-no-roles.json")) as backup_file:
+            return json.load(backup_file)
+
+    def json_of_exhaustive_user_with_superadmin_no_roles(self) -> JSONData:
+        return deepcopy(self._json_of_exhaustive_user_with_superadmin_no_roles)
+
     @staticmethod
-    def copy_user(exhaustive_user: JSONData, username: str) -> JSONData:
-        user = deepcopy(exhaustive_user)
+    def sort_in_memory_json(json_data: JSONData) -> JSONData:
+        """
+        Helper function that takes an unordered set of JSON models and sorts them first in
+        dependency order, and then, within each model, by ascending pk number.
+        """
 
-        for model in user:
-            if model["model"] == "sentry.user":
-                model["fields"]["username"] = username
+        def sort_by_model_then_pk(a: JSONData, b: JSONData) -> int:
+            sorted_deps = sorted_dependencies()
+            a_model = get_model(NormalizedModelName(a["model"]))
+            b_model = get_model(NormalizedModelName(b["model"]))
+            model_diff = sorted_deps.index(a_model) - sorted_deps.index(b_model)  # type: ignore
+            if model_diff != 0:
+                return model_diff
 
-        return user
+            return a["pk"] - b["pk"]
+
+        return sorted(
+            json_data,
+            key=cmp_to_key(sort_by_model_then_pk),
+        )
 
     def generate_tmp_users_json(self) -> JSONData:
         """
@@ -681,29 +717,18 @@ class BackupTestCase(TransactionTestCase):
         """
 
         # A user with the maximal amount of "evil" settings.
-        max_user = self.copy_user(
-            self.json_of_exhaustive_user_with_maximum_privileges(), "max_user"
-        )
+        max_user = deepcopy(self.json_of_exhaustive_user_with_maximum_privileges())
 
         # A user with no "evil" settings.
-        min_user = self.copy_user(
-            self.json_of_exhaustive_user_with_minimum_privileges(), "min_user"
-        )
+        min_user = deepcopy(self.json_of_exhaustive_user_with_minimum_privileges())
 
         # A copy of the `min_user`, but with a maximal `UserPermissions` attached.
-        permission_user = self.copy_user(min_user, "permission_user") + deepcopy(
-            list(filter(lambda mod: mod["model"] == "sentry.userpermission", max_user))
-        )
+        roles_user = deepcopy(self.json_of_exhaustive_user_with_roles_no_superadmin())
 
         # A copy of the `min_user`, but with all of the "evil" flags set to `True`.
-        superadmin_user = self.copy_user(min_user, "superadmin_user")
-        for model in superadmin_user:
-            if model["model"] == "sentry.user":
-                model["fields"]["is_managed"] = True
-                model["fields"]["is_staff"] = True
-                model["fields"]["is_superuser"] = True
+        superadmin_user = deepcopy(self.json_of_exhaustive_user_with_superadmin_no_roles())
 
-        return max_user + min_user + permission_user + superadmin_user
+        return self.sort_in_memory_json(max_user + min_user + roles_user + superadmin_user)
 
     def generate_tmp_users_json_file(self, tmp_path: Path) -> JSONData:
         """
