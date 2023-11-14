@@ -118,6 +118,6 @@ class QueryBuilderConfig:
     # of a top events request
     skip_tag_resolution: bool = False
     on_demand_metrics_enabled: bool = False
-    on_demand_metrics_type: Optional[Any] = None
+    on_demand_metrics_type: Optional[Any] = (None,)
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: Optional[bool] = False
