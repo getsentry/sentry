@@ -296,7 +296,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def handle_on_demand(self, request: Request) -> tuple[bool, MetricSpecType]:
         use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
         on_demand_metric_type = MetricSpecType.SIMPLE_QUERY
-        on_demand_metric_type_value = request.GET.get("useOnDemandType")
+        on_demand_metric_type_value = request.GET.get("onDemandType")
         if use_on_demand_metrics and on_demand_metric_type_value:
             on_demand_metric_type = MetricSpecType(on_demand_metric_type_value)
 
