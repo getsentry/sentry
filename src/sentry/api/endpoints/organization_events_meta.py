@@ -126,6 +126,17 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
         second_bound = request.GET.get("secondBound")
         upper_bound = request.GET.get("upperBound")
         column = request.GET.get("column", "span.self_time")
+        selected_columns = request.GET.getlist(
+            "field",
+            [
+                "project",
+                "transaction.id",
+                column,
+                "timestamp",
+                "span_id",
+                "profile_id",
+            ],
+        )
 
         if lower_bound is None or upper_bound is None:
             bound_results = spans_metrics.query(
@@ -174,14 +185,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
             query = request.query_params.get("query")
 
         result = spans_indexed.query(
-            selected_columns=[
-                "project",
-                "transaction.id",
-                column,
-                "timestamp",
-                "span_id",
-                "profile_id",
-            ],
+            selected_columns=selected_columns,
             orderby=["timestamp"],
             params=params,
             query=query,
