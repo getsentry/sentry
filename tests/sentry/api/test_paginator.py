@@ -6,7 +6,7 @@ from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Va
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.timezone import make_aware
-from snuba_sdk import Column, Condition, Entity, Op, Query
+from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query
 
 from sentry.api.paginator import (
     BadPaginationError,
@@ -898,6 +898,8 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
                 Condition(Column("timestamp"), Op.GTE, now - timedelta(days=1)),
                 Condition(Column("timestamp"), Op.LT, now + timedelta(days=1)),
             ],
+            orderby=[OrderBy(Column("event_id"), Direction.ASC)],
+            limit=Limit(3),
         )
         self.referrer = "tests.sentry.api.test_paginator"
 
@@ -907,8 +909,6 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
             dataset="events",
             app_id=self.referrer,
             tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
-            order_by="event_id",
-            max_limit=3,
         )
         first_page = paginator.get_result()
         assert len(first_page.results) == 3
@@ -932,19 +932,58 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
         assert third_page.prev.offset == 1
         assert third_page.prev.has_results
 
-    def test_desc_order(self):
-        paginator = self.cls(
+    def test_raises_error_for_orderby_when_query_already_has(self):
+        with pytest.raises(BadPaginationError):
+            self.cls(
+                query=self.query,
+                dataset="events",
+                app_id=self.referrer,
+                tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
+                order_by="another_column",
+            )
+
+    def test_uses_paginator_orderby_when_none_in_query(self):
+        self.query = self.query._replace("orderby", None)
+        paginator1 = self.cls(
             query=self.query,
             dataset="events",
             app_id=self.referrer,
             tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
             order_by="-event_id",
-            max_limit=5,
         )
-        first_page = paginator.get_result()
-        assert len(first_page.results) == 5
-        assert first_page.results == [{"event_id": str(i) * 32} for i in range(7, 2, -1)]
+        assert paginator1.query.orderby == [OrderBy(Column("event_id"), Direction.DESC)]
+        assert paginator1.get_result().results == [
+            {"event_id": str(i) * 32} for i in range(7, 4, -1)
+        ]
 
-        second_page = paginator.get_result(cursor=first_page.next)
-        assert len(second_page.results) == 3
-        assert second_page.results == [{"event_id": str(i) * 32} for i in range(2, -1, -1)]
+        paginator2 = self.cls(
+            query=self.query,
+            dataset="events",
+            app_id=self.referrer,
+            tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
+            order_by="event_id",
+        )
+        assert paginator2.query.orderby == [OrderBy(Column("event_id"), Direction.ASC)]
+        assert paginator2.get_result().results == [{"event_id": str(i) * 32} for i in range(3)]
+
+    def test_raises_error_for_limit_when_query_already_has(self):
+        with pytest.raises(BadPaginationError):
+            self.cls(
+                query=self.query,
+                dataset="events",
+                app_id=self.referrer,
+                tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
+                limit=10,
+            )
+
+    def test_uses_paginator_limit_when_none_in_query(self):
+        self.query = self.query._replace("limit", None)
+        paginator1 = self.cls(
+            query=self.query,
+            dataset="events",
+            app_id=self.referrer,
+            tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
+            limit=4,
+        )
+        assert paginator1.query.limit.limit == 4
+        assert len(paginator1.get_result().results) == 4

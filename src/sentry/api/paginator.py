@@ -2,14 +2,15 @@ import bisect
 import functools
 import math
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable, Optional, Sequence
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
 from django.db.models.functions import Lower
-from snuba_sdk import Column, Direction, OrderBy, Request
+from snuba_sdk import Column, Direction, OrderBy, Query, Request
 
+from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult, build_cursor
 from sentry.utils.pagination_factory import PaginatorLike
 from sentry.utils.snuba import raw_snql_query
@@ -19,6 +20,7 @@ quote_name = connections["default"].ops.quote_name
 
 MAX_LIMIT = 100
 MAX_HITS_LIMIT = 1000
+MAX_SNUBA_ELEMENTS = 10000
 
 
 def count_hits(queryset, max_hits):
@@ -753,51 +755,66 @@ class ChainPaginator:
 class SnubaRequestPaginator:
     def __init__(
         self,
-        query,
-        dataset,
-        app_id,
-        tenant_ids,
-        order_by=None,
-        max_limit=MAX_LIMIT,
-        on_results=None,
+        query: Query,
+        dataset: Dataset,
+        app_id: str,
+        tenant_ids: dict,
+        order_by: Optional[str] = None,
+        limit: Optional[int] = None,
+        on_results: Optional[Callable[[Sequence[Any]], Any]] = None,
     ):
         self.query = query
         self.dataset = dataset
         self.app_id = app_id
         self.tenant_ids = tenant_ids
-        self.desc = False
-        if order_by.startswith("-"):
-            self.desc = True
-            self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.DESC)])
-        else:
-            self.desc = False
-            self.query = self.query.set_orderby([OrderBy(Column(order_by), Direction.ASC)])
-        self.max_limit = max_limit
+        if order_by and self.query.orderby:
+            raise BadPaginationError("Value provided for order_by when query already has one")
+        elif order_by:
+            if order_by.startswith("-"):
+                self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.DESC)])
+            else:
+                self.query = self.query.set_orderby([OrderBy(Column(order_by), Direction.ASC)])
+        if not self.query.limit:
+            if limit:
+                if limit <= 0:
+                    raise BadPaginationError("Limit must be positive")
+                elif limit > MAX_SNUBA_ELEMENTS:
+                    raise BadPaginationError("Limit too large")
+                self.query = self.query.set_limit(limit)
+            else:
+                self.query = self.query.set_limit(MAX_LIMIT)
+        elif self.query.limit and limit:
+            raise BadPaginationError("Value provided for limit when query already has one")
         self.on_results = on_results
 
-    def set_offset_for_query(self, cursor, query):
-        # offset = "page" number * max number of items per page
-        query = query.set_offset(cursor.offset * cursor.value)
-        return query
-
-    def get_result(self, limit=100, cursor=None):
+    def get_result(self, cursor: Cursor = None):
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
-        limit = min(limit, self.max_limit)
+        limit = self.query.limit.limit
         self.query = self.query.set_limit(
             limit + 1
         )  # +1 to limit so that we can tell if there are more results left after the current page
 
+        # offset = "page" number * max number of items per page
+        offset = cursor.offset * cursor.value
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+        elif offset >= MAX_SNUBA_ELEMENTS:
+            raise BadPaginationError("Pagination offset too large")
+        self.query = self.query.set_offset(offset)
+
         request = Request(
             dataset=self.dataset,
             app_id=self.app_id,
-            query=self.set_offset_for_query(cursor, self.query),
+            query=self.query,
             tenant_ids=self.tenant_ids,
         )
 
         results = raw_snql_query(request, referrer=self.app_id)["data"]
         assert len(results) <= limit + 1
+
+        self.query = self.query.set_limit(limit)  # reset limit to original
 
         next_cursor = Cursor(limit, cursor.offset + 1, False, len(results) > limit)
         prev_cursor = Cursor(limit, cursor.offset - 1, True, cursor.offset > 0)
