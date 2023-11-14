@@ -14,7 +14,8 @@ pytest-rerunfailures>=11
 pytest-sentry>=0.1.11
 pytest-xdist>=3
 responses>=0.23.1
-selenium>=4.3.0
+selenium>=4.11.2
+
 sentry-cli>=2.16.0
 
 # pre-commit dependencies
