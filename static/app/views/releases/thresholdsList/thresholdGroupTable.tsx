@@ -30,23 +30,6 @@ export default function ThresholdGroupTable({
   setTempError,
   thresholds,
 }: Props) {
-  // const thresholdsByEnv: {[key: string]: Threshold[]} = useMemo(() => {
-  //   const byEnv = {};
-  //   thresholds.forEach(threshold => {
-  //     const env = threshold.environment ? threshold.environment.name : '';
-  //     if (!byEnv[env]) {
-  //       byEnv[env] = [];
-  //     }
-  //     byEnv[env].push(threshold);
-  //   });
-  //   return byEnv;
-  // }, [thresholds]);
-
-  // const flattenedThresholds: Threshold[] = useMemo(
-  //   () => Object.values(thresholdsByEnv).flat(),
-  //   [thresholdsByEnv]
-  // );
-
   const sortedThreshold: Threshold[] = useMemo(() => {
     return thresholds.sort((a, b) => {
       const keyA: string = a.environment ? a.environment.name : '';
