@@ -3898,3 +3898,6 @@ SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
+
+# Shared resource ids for accounting
+EVENT_PROCESSING_STORE = "rc_processing_redis"

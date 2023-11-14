@@ -26,8 +26,6 @@ from sentry.utils.snuba import RateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
-RESOURCE_ID = "rc_processing_redis"
-
 CACHE_TIMEOUT = 3600
 
 IngestMessage = Mapping[str, Any]
@@ -141,7 +139,7 @@ def process_event(message: IngestMessage, project: Project) -> None:
             app_feature = None
 
         if app_feature is not None:
-            record(RESOURCE_ID, app_feature, len(payload), UsageUnit.BYTES)
+            record(settings.EVENT_PROCESSING_STORE, app_feature, len(payload), UsageUnit.BYTES)
     except Exception:
         pass
 
