@@ -22,6 +22,7 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
+    MetricSpecType,
     OnDemandMetricSpec,
     RuleCondition,
     should_use_on_demand_metrics,
@@ -270,6 +271,7 @@ def _convert_widget_query_to_metric(
             None,
             prefilling,
             groupbys=widget_query.columns,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
         ):
             _log_on_demand_metric_spec(
                 project_id=project.id,
@@ -371,6 +373,7 @@ def _convert_aggregate_and_query_to_metric(
     query: str,
     environment: Optional[str],
     prefilling: bool,
+    spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
     groupbys: Optional[Sequence[str]] = None,
 ) -> Optional[HashedMetricSpec]:
     """
@@ -388,6 +391,7 @@ def _convert_aggregate_and_query_to_metric(
             query=query,
             environment=environment,
             groupbys=groupbys,
+            spec_type=spec_type,
         )
 
         return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)

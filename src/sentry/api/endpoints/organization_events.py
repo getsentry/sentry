@@ -20,6 +20,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -238,9 +239,19 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:dashboards-mep", False)
         )
 
-        on_demand_metrics_enabled = batch_features.get(
-            "organizations:on-demand-metrics-extraction", False
-        ) and batch_features.get("organizations:on-demand-metrics-extraction-experimental", False)
+        try:
+            use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
+        except ValueError:
+            metric_type_values = [e.value for e in MetricSpecType]
+            metric_types = ",".join(metric_type_values)
+            return Response(
+                {"detail": f"On demand metric type must be one of: {metric_types}"}, status=400
+            )
+
+        on_demand_metrics_enabled = (
+            batch_features.get("organizations:on-demand-metrics-extraction", False)
+            and use_on_demand_metrics
+        )
 
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
@@ -273,6 +284,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 has_metrics=use_metrics,
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
 
         with self.handle_query_errors():

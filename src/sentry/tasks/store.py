@@ -14,7 +14,7 @@ from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
-from sentry.feedback.usecases.create_feedback import create_feedback_issue
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models.activity import Activity
@@ -879,7 +879,7 @@ def save_event_feedback(
     project_id: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    create_feedback_issue(data, project_id)
+    create_feedback_issue(data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
 
 @instrumented_task(

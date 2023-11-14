@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
@@ -20,19 +20,12 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const theme = useTheme();
   const {data: projectData, isLoading} = useProjectWebVitalsQuery();
 
-  const noTransactions = !isLoading && projectData?.data[0]['count()'] === 0;
+  const noTransactions = !isLoading && !!projectData?.data?.[0]['count()'];
 
   const projectScore =
     isLoading || noTransactions
       ? undefined
-      : calculatePerformanceScore({
-          lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-          fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-          cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-          ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-          fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-        });
-
+      : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 

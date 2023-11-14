@@ -74,7 +74,7 @@ export function ScreenLoadSpansTable({
     decodeScalar(location.query[QueryParameterNames.SPANS_SORT])
   )[0] ?? {
     kind: 'desc',
-    field: 'count()',
+    field: 'time_spent_percentage()',
   };
 
   const newQuery: NewQuery = {

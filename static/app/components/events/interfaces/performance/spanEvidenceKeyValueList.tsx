@@ -265,9 +265,11 @@ function MainThreadFunctionEvidence({event, orgSlug}: SpanEvidenceKeyValueListPr
 }
 
 function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
+  const organization = useOrganization();
   const data = useMemo(
-    () => (issueType ? getRegressionIssueKeyValueList(issueType, event) : null),
-    [event, issueType]
+    () =>
+      issueType ? getRegressionIssueKeyValueList(organization, issueType, event) : null,
+    [organization, event, issueType]
   );
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
