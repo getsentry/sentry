@@ -86,7 +86,7 @@ export function ScreenLoadSampleContainer({
                   )}/`,
                 }}
               >
-                {release && centerTruncate(release)}
+                {centerTruncate(release)}
               </Link>
             </Tooltip>
           </SectionTitle>
