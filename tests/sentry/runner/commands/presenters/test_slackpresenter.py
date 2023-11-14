@@ -42,6 +42,7 @@ def test_is_slack_enabled():
 
     expected_json_data = {
         "region": "test_region",
+        "source": "options-automator",
         "drifted_options": [
             {"option_name": "option9", "option_value": "db_value9"},
             {"option_name": "option10", "option_value": "db_value10"},
@@ -113,6 +114,7 @@ def test_slack_presenter_methods_with_different_types():
 
     expected_json_data = {
         "region": "test_region",
+        "source": "options-automator",
         "drifted_options": [{"option_name": "drifted", "option_value": "{'key': 'value'}"}],
         "updated_options": [{"option_name": "updated", "db_value": "1.0", "value": "0.0"}],
         "set_options": [

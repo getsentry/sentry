@@ -55,6 +55,7 @@ class SlackPresenter(OptionsPresenter):
 
         json_data = {
             "region": region,
+            "source": "options-automator",
             "drifted_options": [
                 {"option_name": key, "option_value": self.truncate_value(value)}
                 for key, value in self.drifted_options
