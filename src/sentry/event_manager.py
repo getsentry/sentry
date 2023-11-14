@@ -145,6 +145,8 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>"]
 
+SDK_METADATA_FIELDS_TO_KEEP = ("name", "version", "integrations")
+
 
 @dataclass
 class GroupInfo:
@@ -201,7 +203,7 @@ def normalized_sdk_tag_from_event(event: Event) -> str:
 
 def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
     """
-    Returns a dictionary of SDK metadata from an event, normalizing the SDK name.
+    Returns a metadata dictionary with "sdk" field populated, including a normalized name
     Returns {} when event type of event is known to not be SDK generated.
     """
 
@@ -210,12 +212,14 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
 
     if not (sdk_metadata := event.data.get("sdk")):
         return {}
-    try:
-        if sdk_metadata.get("name"):
-            sdk_metadata = copy.deepcopy(sdk_metadata)  # don't mutate the original event
-            sdk_metadata["name_normalized"] = normalized_sdk_tag_from_event(event)
 
-        return {"sdk": sdk_metadata}
+    metadata = {"sdk": {}}
+    try:
+        for key in SDK_METADATA_FIELDS_TO_KEEP:
+            if sdk_metadata.get(key):
+                metadata["sdk"][key] = sdk_metadata[key]
+        metadata["sdk"]["name_normalized"] = normalized_sdk_tag_from_event(event)
+        return metadata
     except Exception:
         logger.warning("failed to set normalized SDK name", exc_info=True)
         return {}
