@@ -15,34 +15,6 @@ from sentry.silo import SiloMode
 from sentry.silo.base import SiloLimit
 from sentry.types.region import get_region_by_name
 
-# Backwards compatibility for URLs that don't
-# have enough context to route via organization.
-# New usage of these endpoints uses region domains,
-# but existing customers have been using these routes
-# on the main domain for a long time.
-REGION_PINNED_URL_NAMES = {
-    # These paths have organization scoped aliases
-    "sentry-api-0-builtin-symbol-sources",
-    "sentry-api-0-grouping-configs",
-    # These paths are used by relay which is implicitly region scoped
-    "sentry-api-0-relays-index",
-    "sentry-api-0-relay-register-challenge",
-    "sentry-api-0-relay-register-response",
-    "sentry-api-0-relay-projectconfigs",
-    "sentry-api-0-relay-projectids",
-    "sentry-api-0-relay-publickeys",
-    "sentry-api-0-relays-healthcheck",
-    "sentry-api-0-relays-details",
-    # Backwards compatibility for US customers.
-    # New usage of these is region scoped.
-    "sentry-error-page-embed",
-    "sentry-release-hook",
-    "sentry-api-0-projects",
-    "sentry-account-email-unsubscribe-incident",
-    "sentry-account-email-unsubscribe-issue",
-    "sentry-account-email-unsubscribe-project",
-}
-
 SENTRY_APP_REGION_URL_NAMES = (
     "sentry-api-0-sentry-app-installation-external-requests",
     "sentry-api-0-sentry-app-installation-external-issue-actions",
@@ -90,7 +62,10 @@ def proxy_request_if_needed(
         install_uuid = view_kwargs["uuid"]
         return proxy_sentryappinstallation_request(request, install_uuid)
 
-    if request.resolver_match and request.resolver_match.url_name in REGION_PINNED_URL_NAMES:
+    if (
+        request.resolver_match
+        and request.resolver_match.url_name in settings.REGION_PINNED_URL_NAMES
+    ):
         region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
 
         return proxy_region_request(request, region)

@@ -3896,3 +3896,31 @@ SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
+
+# Backwards compatibility for URLs that don't
+# have enough context to route via organization.
+# New usage of these endpoints uses region domains,
+# but existing customers have been using these routes
+# on the main domain for a long time.
+REGION_PINNED_URL_NAMES = {
+    # These paths have organization scoped aliases
+    "sentry-api-0-builtin-symbol-sources",
+    "sentry-api-0-grouping-configs",
+    # These paths are used by relay which is implicitly region scoped
+    "sentry-api-0-relays-index",
+    "sentry-api-0-relay-register-challenge",
+    "sentry-api-0-relay-register-response",
+    "sentry-api-0-relay-projectconfigs",
+    "sentry-api-0-relay-projectids",
+    "sentry-api-0-relay-publickeys",
+    "sentry-api-0-relays-healthcheck",
+    "sentry-api-0-relays-details",
+    # Backwards compatibility for US customers.
+    # New usage of these is region scoped.
+    "sentry-error-page-embed",
+    "sentry-release-hook",
+    "sentry-api-0-projects",
+    "sentry-account-email-unsubscribe-incident",
+    "sentry-account-email-unsubscribe-issue",
+    "sentry-account-email-unsubscribe-project",
+}
