@@ -256,6 +256,37 @@ describe('InvestigationRule', function () {
     await tick();
     expect(createRule).toHaveBeenCalledTimes(1);
     // we should show some error that the rule could not be created
-    expect(addErrorMessage).toHaveBeenCalledTimes(1);
+    expect(addErrorMessage).toHaveBeenCalledWith('Unable to create investigation rule');
+  });
+
+  it('should show notify the user when too many rules have been created', async function () {
+    initComponentEnvironment({hasFeature: true, hasRule: false});
+    const createRule = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      method: 'POST',
+      statusCode: 429,
+      body: {query: ['some-error']},
+    });
+
+    render(
+      <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />,
+      {organization}
+    );
+
+    // wait for the button to appear
+    const button = await screen.findByText(buttonText);
+    expect(button).toBeInTheDocument();
+    // we should  not be showing the label
+    const labels = screen.queryAllByText(labelText);
+    expect(labels).toHaveLength(0);
+    // now the user creates a rule
+    fireEvent.click(button);
+
+    await tick();
+    expect(createRule).toHaveBeenCalledTimes(1);
+    // we should show some error that the rule could not be created
+    expect(addErrorMessage).toHaveBeenCalledWith(
+      'You have reached the maximum number of concurrent investigation rules allowed'
+    );
   });
 });
