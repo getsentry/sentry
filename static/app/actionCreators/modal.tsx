@@ -250,7 +250,7 @@ export async function openInviteMembersModal({
 
 type InviteMissingMembersModalOptions = {
   allowedRoles: OrgRole[];
-  missingMembers: {integration: string; users: MissingMember[]};
+  missingMembers: MissingMember[];
   onClose: () => void;
   organization: Organization;
 };

@@ -1426,6 +1426,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:customer-domains": False,
     # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Enables experimental WIP ddm related features
+    "organizations:ddm-experimental": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -3318,6 +3320,7 @@ KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
 KAFKA_GROUP_ATTRIBUTES = "group-attributes"
+KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 
 # spans
 KAFKA_INGEST_SPANS = "ingest-spans"
@@ -3373,6 +3376,7 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
     KAFKA_INGEST_SPANS: {"cluster": "default"},
     KAFKA_SNUBA_SPANS: {"cluster": "default"},
+    KAFKA_SHARED_RESOURCES_USAGE: {"cluster": "default"},
 }
 
 
@@ -3894,3 +3898,6 @@ SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
+
+# Shared resource ids for accounting
+EVENT_PROCESSING_STORE = "rc_processing_redis"

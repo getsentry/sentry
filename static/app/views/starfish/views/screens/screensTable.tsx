@@ -20,7 +20,7 @@ import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 type Props = {
@@ -34,8 +34,8 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
-  const truncatedPrimary = centerTruncate(primaryRelease ?? '', 15);
-  const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 15);
+  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
+  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
 
   const eventViewColumns = eventView.getColumns();
 
@@ -179,8 +179,10 @@ export function useTableQuery({
   initialData,
   limit,
   staleTime,
+  cursor,
 }: {
   eventView: EventView;
+  cursor?: string;
   enabled?: boolean;
   excludeOther?: boolean;
   initialData?: TableData;
@@ -197,6 +199,7 @@ export function useTableQuery({
     orgSlug: organization.slug,
     limit: limit ?? 25,
     referrer,
+    cursor,
     options: {
       refetchOnWindowFocus: false,
       enabled,

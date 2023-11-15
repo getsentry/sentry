@@ -642,6 +642,9 @@ class Referrer(Enum):
         "statistical_detectors.distributions.fetch_transaction_timeseries"
     )
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
+    SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY_PRIMARY = (
+        "subscription_processor.comparison_query.primary"
+    )
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"

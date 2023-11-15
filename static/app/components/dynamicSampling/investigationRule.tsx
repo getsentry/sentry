@@ -121,7 +121,7 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
   const queryClient = useQueryClient();
   const {mutate} = useMutation<
     CustomDynamicSamplingRule,
-    Error,
+    RequestError,
     CreateCustomRuleVariables
   >({
     mutationFn: (variables: CreateCustomRuleVariables) => {
@@ -145,8 +145,17 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
         success: true,
       });
     },
-    onError: (_error: Error) => {
-      addErrorMessage(t('Unable to create investigation rule'));
+    onError: (_error: RequestError) => {
+      if (_error.status === 429) {
+        addErrorMessage(
+          t(
+            'You have reached the maximum number of concurrent investigation rules allowed'
+          )
+        );
+      } else {
+        addErrorMessage(t('Unable to create investigation rule'));
+      }
+
       trackAnalytics('dynamic_sampling.custom_rule_add', {
         organization: vars.organization,
         projects: vars.projects,
