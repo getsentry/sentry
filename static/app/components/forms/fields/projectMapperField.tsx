@@ -95,11 +95,32 @@ export class RenderField extends Component<RenderProps, State> {
     // prevent a single mapped item from being associated with multiple Sentry projects
     const mappedValuesUsed = new Set(existingValues.map(tuple => tuple[1]));
 
-    const projectOptions = sentryProjects.map(({slug, id}) => ({label: slug, value: id}));
+    const renderIdBadge = ({id, hideName}: {hideName: boolean; id: number | null}) => {
+      const project = sentryProjectsById[id || ''];
+      return (
+        <IdBadge
+          project={project}
+          avatarProps={{consistentWidth: true}}
+          avatarSize={16}
+          disableLink
+          hideName={hideName}
+        />
+      );
+    };
+
+    const projectOptions = sentryProjects.map(({slug, id}) => ({
+      label: slug,
+      value: id,
+      leadingItems: renderIdBadge({id, hideName: true}),
+    }));
 
     const mappedItemsToShow = mappedDropdownItems.filter(
       item => !mappedValuesUsed.has(item.value)
     );
+    const mappedItemOptions = mappedItemsToShow.map(mappedItem => ({
+      ...mappedItem,
+      leadingItems: getIcon(iconType),
+    }));
 
     const handleSelectProject = ({value}: {value: number}) => {
       this.setState({selectedSentryProjectId: value});
@@ -173,69 +194,6 @@ export class RenderField extends Component<RenderProps, State> {
       );
     };
 
-    const customValueContainer = containerProps => {
-      // if no value set, we want to return the default component that is rendered
-      const project = sentryProjectsById[selectedSentryProjectId || ''];
-      if (!project) {
-        return <components.ValueContainer {...containerProps} />;
-      }
-      return (
-        <components.ValueContainer {...containerProps}>
-          <IdBadge
-            project={project}
-            avatarSize={20}
-            displayName={project.slug}
-            avatarProps={{consistentWidth: true}}
-            disableLink
-          />
-        </components.ValueContainer>
-      );
-    };
-
-    const customOptionProject = projectProps => {
-      const project = sentryProjectsById[projectProps.value];
-      // Should never happen for a dropdown item
-      if (!project) {
-        return null;
-      }
-      return (
-        <components.Option {...projectProps}>
-          <IdBadge
-            project={project}
-            avatarSize={20}
-            displayName={project.slug}
-            avatarProps={{consistentWidth: true}}
-            disableLink
-          />
-        </components.Option>
-      );
-    };
-
-    const customMappedValueContainer = containerProps => {
-      // if no value set, we want to return the default component that is rendered
-      const mappedValue = mappedItemsByValue[selectedMappedValue || ''];
-      if (!mappedValue) {
-        return <components.ValueContainer {...containerProps} />;
-      }
-      return (
-        <components.ValueContainer {...containerProps}>
-          <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
-          <OptionLabelWrapper>{mappedValue.label}</OptionLabelWrapper>
-        </components.ValueContainer>
-      );
-    };
-
-    const customOptionMappedValue = optionProps => {
-      return (
-        <components.Option {...optionProps}>
-          <OptionWrapper>
-            <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
-            <OptionLabelWrapper>{optionProps.label}</OptionLabelWrapper>
-          </OptionWrapper>
-        </components.Option>
-      );
-    };
-
     return (
       <Fragment>
         {existingValues.map(renderItem)}
@@ -243,10 +201,18 @@ export class RenderField extends Component<RenderProps, State> {
           <SelectControl
             placeholder={mappedValuePlaceholder}
             name="mappedDropdown"
-            options={mappedItemsToShow}
+            options={mappedItemOptions}
             components={{
-              Option: customOptionMappedValue,
-              ValueContainer: customMappedValueContainer,
+              SingleValue: containerProps => {
+                return (
+                  <components.ValueContainer {...containerProps}>
+                    <MappedValueContainer>
+                      {getIcon(iconType)}
+                      {mappedItemsByValue[selectedMappedValue || ''].label}
+                    </MappedValueContainer>
+                  </components.ValueContainer>
+                );
+              },
             }}
             onChange={handleSelectMappedValue}
             value={selectedMappedValue}
@@ -257,8 +223,13 @@ export class RenderField extends Component<RenderProps, State> {
             name="project"
             options={projectOptions}
             components={{
-              Option: customOptionProject,
-              ValueContainer: customValueContainer,
+              SingleValue: containerProps => {
+                return (
+                  <components.ValueContainer {...containerProps}>
+                    {renderIdBadge({id: selectedSentryProjectId, hideName: false})}
+                  </components.ValueContainer>
+                );
+              },
             }}
             onChange={handleSelectProject}
             value={selectedSentryProjectId}
@@ -370,20 +341,11 @@ const AddProjectWrapper = styled('div')`
   grid-area: manage-project;
 `;
 
-const OptionLabelWrapper = styled('div')`
-  margin-left: ${space(0.5)};
-`;
-
 const StyledFormField = styled(FormField)`
   padding: 0;
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  display: flex;
-`;
-
-const OptionWrapper = styled('div')`
-  align-items: center;
   display: flex;
 `;
 
@@ -404,4 +366,9 @@ const NextButtonWrapper = styled('div')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)};
   align-items: center;
+`;
+
+const MappedValueContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
 `;
