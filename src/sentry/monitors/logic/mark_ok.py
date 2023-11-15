@@ -44,23 +44,25 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
                 for previous_checkin in previous_checkins
             )
         else:
+            # Mark any open incidents as recovering by default
             incident_recovering = True
 
-        # Resolve the incident
+        # Resolve any open incidents
         if incident_recovering:
-            params["last_state_change"] = ts
-            grouphash = monitor_env.incident_grouphash
+            # TODO(rjo100): Check for multiple open incidents due to a logic bug
+            active_incidents = MonitorIncident.objects.filter(
+                monitor_environment=monitor_env,
+                resolving_checkin__isnull=True,
+            )
 
             # Only send an occurrence if we have an active incident
-            affected = MonitorIncident.objects.filter(
-                monitor_environment=monitor_env,
-                grouphash=grouphash,
-            ).update(
+            for grouphash in active_incidents.values_list("grouphash", flat=True):
+                resolve_incident_group(grouphash, checkin.monitor.project_id)
+            if active_incidents.update(
                 resolving_checkin=checkin,
                 resolving_timestamp=checkin.date_added,
-            )
-            if affected:
-                resolve_incident_group(grouphash, checkin.monitor.project_id)
+            ):
+                params["last_state_change"] = ts
         else:
             # Don't update status if incident isn't recovered
             params.pop("status", None)
