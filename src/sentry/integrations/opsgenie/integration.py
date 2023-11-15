@@ -60,6 +60,11 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
+OPSGENIE_BASE_URL_TO_DOMAIN_NAME = {
+    "https://api.opsgenie.com/": "app.opsgenie.com",
+    "https://api.eu.opsgenie.com/": "app.eu.opsgenie.com",
+}
+
 
 class InstallationForm(forms.Form):
     base_url = forms.ChoiceField(
@@ -178,7 +183,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
             "metadata": {
                 "api_key": api_key,
                 "base_url": base_url,
-                "domain_name": f"{name}.app.opsgenie.com",
+                "domain_name": f"{name}.{OPSGENIE_BASE_URL_TO_DOMAIN_NAME[base_url]}",
             },
         }
 
