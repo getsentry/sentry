@@ -42,7 +42,7 @@ pytestmark = [requires_snuba]
 
 
 class AlertRuleDetailsBase(AlertRuleBase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-alert-rule-details"
 

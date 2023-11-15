@@ -24,9 +24,23 @@ type State = {
 class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
   disableErrorReport = false;
 
+  get regionHost(): string | undefined {
+    // Because this route happens outside of OrganizationContext we
+    // need to use initial data to decide which host to send the request to
+    // as `/accept-transfer/` cannot be resolved to a region.
+    const initialData = window.__initialData;
+    let host: string | undefined = undefined;
+    if (initialData && initialData.links?.regionUrl !== initialData.links?.sentryUrl) {
+      host = initialData.links.regionUrl;
+    }
+
+    return host;
+  }
+
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const query = this.props.location.query;
-    return [['transferDetails', '/accept-transfer/', {query}]];
+    const host = this.regionHost;
+    return [['transferDetails', '/accept-transfer/', {query, host}]];
   }
 
   getTitle() {
@@ -36,6 +50,7 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
   handleSubmit = formData => {
     this.api.request('/accept-transfer/', {
       method: 'POST',
+      host: this.regionHost,
       data: {
         data: this.props.location.query.data,
         organization: formData.organization,
