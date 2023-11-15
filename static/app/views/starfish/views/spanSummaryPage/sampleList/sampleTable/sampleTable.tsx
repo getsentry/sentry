@@ -30,6 +30,7 @@ const SpanSamplesTableContainer = styled('div')`
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFields?: string[];
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
@@ -49,6 +50,7 @@ function SampleTable({
   columnOrder,
   release,
   query,
+  additionalFields,
 }: Props) {
   const filters: SpanSummaryQueryFilters = {
     transactionName,
@@ -84,6 +86,7 @@ function SampleTable({
     transactionMethod,
     release,
     query,
+    additionalFields,
   });
 
   const {

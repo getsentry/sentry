@@ -112,6 +112,7 @@ function ResourceSummary() {
             transactionRoute="/performance/browser/pageloads/"
             groupId={groupId}
             transactionName={transaction as string}
+            additionalFields={[HTTP_RESPONSE_CONTENT_LENGTH]}
           />
         </Layout.Main>
       </Layout.Body>
