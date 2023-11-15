@@ -16,6 +16,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -192,6 +193,7 @@ export function useTableQuery({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {isReady: pageFiltersReady} = usePageFilters();
 
   const result = useDiscoverQuery({
     eventView,
@@ -202,7 +204,7 @@ export function useTableQuery({
     cursor,
     options: {
       refetchOnWindowFocus: false,
-      enabled,
+      enabled: enabled && pageFiltersReady,
       staleTime,
     },
   });
