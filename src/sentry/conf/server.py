@@ -1145,6 +1145,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 10 minutes
         "schedule": crontab(minute="*/10"),
     },
+    "clean_custom_rule_notifications": {
+        "task": "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
+        # Run every 7 minutes
+        "schedule": crontab(minute="*/7"),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
