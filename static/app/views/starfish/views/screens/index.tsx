@@ -28,6 +28,7 @@ import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {
@@ -271,12 +272,21 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             <ScreensBarChart
               chartOptions={[
                 {
-                  title: t('Comparing Release %s', CHART_TITLES[yAxes[0]]),
+                  title: t('%s by Top Screen', CHART_TITLES[yAxes[0]]),
                   yAxis: YAXIS_COLUMNS[yAxes[0]],
                   xAxisLabel: topTransactions,
                   series: Object.values(
                     transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]]]
                   ),
+                  subtitle: primaryRelease
+                    ? t(
+                        '%s v. %s',
+                        formatVersionAndCenterTruncate(primaryRelease, 12),
+                        secondaryRelease
+                          ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                          : ''
+                      )
+                    : '',
                 },
               ]}
               chartHeight={chartHeight ?? 180}
@@ -295,12 +305,21 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
               <ScreensBarChart
                 chartOptions={[
                   {
-                    title: t('Comparing Release %s', CHART_TITLES[yAxes[1]]),
+                    title: t('%s by Top Screen', CHART_TITLES[yAxes[1]]),
                     yAxis: YAXIS_COLUMNS[yAxes[1]],
                     xAxisLabel: topTransactions,
                     series: Object.values(
                       transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]]]
                     ),
+                    subtitle: primaryRelease
+                      ? t(
+                          '%s v. %s',
+                          formatVersionAndCenterTruncate(primaryRelease, 12),
+                          secondaryRelease
+                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                            : ''
+                        )
+                      : '',
                   },
                 ]}
                 chartHeight={chartHeight ?? 180}

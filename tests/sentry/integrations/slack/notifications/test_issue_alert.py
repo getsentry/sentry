@@ -193,8 +193,63 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert attachment["title"] == "Hello world"
         notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
+            attachment["title_link"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue"
+        )
+        assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_issue_owners_environment(self, mock_func):
+        """Test that issue alerts are sent to issue owners in Slack with the environment in the query params when the alert rule filters by environment."""
+
+        environment = self.create_environment(self.project, name="production")
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error", "environment": environment.name},
+            project_id=self.project.id,
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "targetIdentifier": "",
+        }
+        rule = Rule.objects.create(
+            project=self.project,
+            label="ja rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
+        rule = self.create_project_rule(
+            project=self.project,
+            action_match=[action_data],
+            name="ja rule",
+            environment_id=environment.id,
+        )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = AlertRuleNotification(
+            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.user.id
+        )
+
+        with self.tasks():
+            notification.send()
+
+        attachment, text = get_attachment()
+
+        assert attachment["title"] == "Hello world"
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
+        assert (
+            attachment["title_link"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&alert_rule_id={rule.id}&alert_type=issue"
+        )
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | {environment.name} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate

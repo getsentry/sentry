@@ -1145,6 +1145,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 10 minutes
         "schedule": crontab(minute="*/10"),
     },
+    "clean_custom_rule_notifications": {
+        "task": "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
+        # Run every 7 minutes
+        "schedule": crontab(minute="*/7"),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
@@ -3320,6 +3325,7 @@ KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
 KAFKA_GROUP_ATTRIBUTES = "group-attributes"
+KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 
 # spans
 KAFKA_INGEST_SPANS = "ingest-spans"
@@ -3375,6 +3381,7 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
     KAFKA_INGEST_SPANS: {"cluster": "default"},
     KAFKA_SNUBA_SPANS: {"cluster": "default"},
+    KAFKA_SHARED_RESOURCES_USAGE: {"cluster": "default"},
 }
 
 
@@ -3896,3 +3903,6 @@ SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
+
+# Shared resource ids for accounting
+EVENT_PROCESSING_STORE = "rc_processing_redis"
