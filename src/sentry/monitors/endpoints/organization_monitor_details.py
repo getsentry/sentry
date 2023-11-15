@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError
@@ -22,7 +23,6 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.models import (
@@ -30,6 +30,7 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorObjectStatus,
     MonitorStatus,
 )
 from sentry.monitors.serializers import MonitorSerializer
@@ -48,6 +49,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.CRONS
 
     @extend_schema(
         operation_id="Retrieve a Monitor",
@@ -210,8 +212,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     )
                     .exclude(
                         monitor__status__in=[
-                            ObjectStatus.PENDING_DELETION,
-                            ObjectStatus.DELETION_IN_PROGRESS,
+                            MonitorObjectStatus.PENDING_DELETION,
+                            MonitorObjectStatus.DELETION_IN_PROGRESS,
                         ]
                     )
                     .exclude(
@@ -225,8 +227,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             else:
                 monitor_objects = Monitor.objects.filter(id=monitor.id).exclude(
                     status__in=[
-                        ObjectStatus.PENDING_DELETION,
-                        ObjectStatus.DELETION_IN_PROGRESS,
+                        MonitorObjectStatus.PENDING_DELETION,
+                        MonitorObjectStatus.DELETION_IN_PROGRESS,
                     ]
                 )
                 event = audit_log.get_event_id("MONITOR_REMOVE")
@@ -242,14 +244,14 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                         )
                         .exclude(
                             status__in=[
-                                ObjectStatus.PENDING_DELETION,
-                                ObjectStatus.DELETION_IN_PROGRESS,
+                                MonitorObjectStatus.PENDING_DELETION,
+                                MonitorObjectStatus.DELETION_IN_PROGRESS,
                             ]
                         )
                         .first()
                     )
                     if rule:
-                        rule.update(status=ObjectStatus.PENDING_DELETION)
+                        rule.update(status=MonitorObjectStatus.PENDING_DELETION)
                         RuleActivity.objects.create(
                             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
                         )
@@ -268,7 +270,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             # create copy of queryset as update will remove objects
             monitor_objects_list = list(monitor_objects)
             if not monitor_objects or not monitor_objects.update(
-                status=ObjectStatus.PENDING_DELETION
+                status=MonitorObjectStatus.PENDING_DELETION
             ):
                 return self.respond(status=404)
 

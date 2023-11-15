@@ -295,13 +295,13 @@ class _TransactionsList extends Component<Props> {
             onChange={opt => handleDropdownChange(opt.value)}
           />
         </div>
-        <div>
+        <InvestigationRuleWrapper>
           <InvestigationRuleCreation
             buttonProps={{size: 'xs'}}
             eventView={eventView}
             numSamples={totalNumSamples}
           />
-        </div>
+        </InvestigationRuleWrapper>
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
@@ -479,6 +479,10 @@ const Header = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
+`;
+
+const InvestigationRuleWrapper = styled('div')`
+  margin-right: ${space(1)};
 `;
 
 function TransactionsList(

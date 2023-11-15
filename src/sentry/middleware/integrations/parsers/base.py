@@ -15,7 +15,7 @@ from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.silo import SiloLimit, SiloMode
-from sentry.silo.client import RegionSiloClient
+from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, get_region_for_organization
 
 logger = logging.getLogger(__name__)
@@ -129,6 +129,28 @@ class BaseRequestParser(abc.ABC):
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
+    def get_response_from_first_region(self):
+        regions = self.get_regions_from_organizations()
+        first_region = regions[0]
+        response_map = self.get_responses_from_region_silos(regions=[first_region])
+        region_result = response_map[first_region.name]
+        if region_result.error is not None:
+            # We want to fail loudly so that devs know this error happened on the region silo (for now)
+            error = SiloClientError(region_result.error)
+            raise SiloClientError(error)
+        return region_result.response
+
+    def get_response_from_all_regions(self):
+        regions = self.get_regions_from_organizations()
+        response_map = self.get_responses_from_region_silos(regions=regions)
+        successful_responses = [
+            result for result in response_map.values() if result.response is not None
+        ]
+        if len(successful_responses) == 0:
+            error_map = {region: result.error for region, result in response_map.items()}
+            raise SiloClientError("No successful region responses", error_map)
+        return successful_responses[0].response
+
     # Required Overrides
 
     def get_response(self) -> HttpResponse:
@@ -158,7 +180,7 @@ class BaseRequestParser(abc.ABC):
         if not integration:
             integration = self.get_integration_from_request()
         if not integration:
-            logger.error("no_integration", extra={"path": self.request.path})
+            logger.info(f"{self.provider}.no_integration", extra={"path": self.request.path})
             return []
         organization_integrations = OrganizationIntegration.objects.filter(
             integration_id=integration.id
@@ -175,7 +197,7 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
         if not organizations:
-            logger.error("no_organizations", extra={"path": self.request.path})
+            logger.info(f"{self.provider}.no_organizations", extra={"path": self.request.path})
             return []
 
         return [get_region_for_organization(organization.slug) for organization in organizations]

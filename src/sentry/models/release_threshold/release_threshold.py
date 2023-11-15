@@ -16,7 +16,7 @@ class ReleaseThreshold(Model):
     trigger_type = BoundedPositiveIntegerField(choices=ReleaseThresholdTriggerType.as_choices())
 
     value = models.IntegerField()
-    window_in_seconds = models.IntegerField()
+    window_in_seconds = models.PositiveIntegerField()
 
     project = FlexibleForeignKey("sentry.Project", db_index=True, related_name="release_thresholds")
     environment = FlexibleForeignKey("sentry.Environment", null=True, db_index=True)

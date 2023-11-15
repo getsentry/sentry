@@ -92,7 +92,7 @@ def _chunk_watermark_batch(
 
 @instrumented_task(
     name="sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
-    queue="cleanup",
+    queue="cleanup.control",
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )

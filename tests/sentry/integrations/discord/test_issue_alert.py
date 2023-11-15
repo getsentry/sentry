@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
-from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.client import MESSAGE_URL
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
 from sentry.integrations.message_builder import build_attachment_title, build_footer, get_title_link
@@ -59,7 +59,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
         responses.add(
             method=responses.POST,
-            url=f"{DiscordClient.MESSAGE_URL.format(channel_id=self.channel_id)}",
+            url=f"{MESSAGE_URL.format(channel_id=self.channel_id)}",
             status=200,
         )
 
@@ -72,8 +72,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         )
         assert len(results) == 1
 
-        with self.feature("organizations:integrations-discord-notifications"):
-            results[0].callback(self.event, futures=[])
+        results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
@@ -138,8 +137,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
 
-        with self.feature("organizations:integrations-discord-notifications"):
-            results[0].callback(self.event, futures=[])
+        results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
@@ -166,8 +164,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
 
-        with self.feature("organizations:integrations-discord-notifications"):
-            results[0].callback(self.event, futures=[])
+        results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
@@ -194,8 +191,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
 
-        with self.feature("organizations:integrations-discord-notifications"):
-            results[0].callback(self.event, futures=[])
+        results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
@@ -217,12 +213,9 @@ class DiscordIssueAlertTest(RuleTestCase):
     def test_feature_flag_disabled(self):
         results = list(self.rule.after(self.event, self.get_state()))
         assert len(results) == 1
-        with self.feature("organizations:integrations-discord-notifications"):
-            results[0].callback(self.event, futures=[])
+        results[0].callback(self.event, futures=[])
 
-        responses.assert_call_count(
-            f"{DiscordClient.MESSAGE_URL.format(channel_id=self.channel_id)}", 0
-        )
+        responses.assert_call_count(f"{MESSAGE_URL.format(channel_id=self.channel_id)}", 0)
 
     @responses.activate
     def test_integration_removed(self):

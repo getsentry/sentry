@@ -55,4 +55,3 @@ class ProjectRuleActionsEndpointTest(APITestCase):
     def test_no_events(self):
         response = self.get_response(self.organization.slug, self.project.slug)
         assert response.status_code == 400
-        assert response.status_code == 400

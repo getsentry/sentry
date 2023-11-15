@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from random import randint
 from typing import Any, Optional, Union
 
@@ -26,6 +27,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.signals import join_request_link_viewed, user_signup
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
     construct_link_with_query,
@@ -42,6 +44,8 @@ from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
+
+logger = logging.getLogger("sentry.auth")
 
 
 # Stores callbacks that are called to get additional template context data before the login page
@@ -72,10 +76,16 @@ class AdditionalContext:
 additional_context = AdditionalContext()
 
 
-# TODO(hybridcloud) Make this view control silo only.
 @control_silo_view
 class AuthLoginView(BaseView):
     auth_required = False
+
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(20, 1),  # 20 GET requests per second per IP
+        }
+    }
 
     @method_decorator(never_cache)
     def handle(self, request: Request, *args, **kwargs) -> HttpResponse:
@@ -266,7 +276,6 @@ class AuthLoginView(BaseView):
             )
             return self.add_to_org_and_redirect_to_next_register_step(request=request, user=user)
         else:
-
             context.update(
                 {
                     "op": "register",
@@ -317,9 +326,7 @@ class AuthLoginView(BaseView):
         """
 
         # Attempt to directly accept any pending invites
-        invite_helper = ApiInviteHelper.from_session(
-            request=request,
-        )
+        invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
         # In single org mode, associate the user to the only organization.
         #
@@ -611,9 +618,7 @@ class AuthLoginView(BaseView):
             request.session.pop("invite_email", None)
 
             # Attempt to directly accept any pending invites
-            invite_helper = ApiInviteHelper.from_session(
-                request=request,
-            )
+            invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
             # In single org mode, associate the user to the only organization.
             #

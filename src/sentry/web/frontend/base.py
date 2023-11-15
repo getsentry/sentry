@@ -45,7 +45,7 @@ from sentry.silo.base import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import construct_link_with_query, is_valid_redirect
-from sentry.utils.http import absolute_uri, is_using_customer_domain
+from sentry.utils.http import absolute_uri, is_using_customer_domain, origin_from_request
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
@@ -524,7 +524,13 @@ class AbstractOrganizationView(BaseView, abc.ABC):
         context["organization"] = organization
         return context
 
-    def has_permission(self, request: HttpRequest, organization: RpcOrganization | Organization, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(
+        self,
+        request: HttpRequest,
+        organization: RpcOrganization | Organization,
+        *args: Any,
+        **kwargs: Any,
+    ) -> bool:
         if organization is None:
             return False
         if self.valid_sso_required:
@@ -570,7 +576,13 @@ class AbstractOrganizationView(BaseView, abc.ABC):
 
         return False
 
-    def handle_permission_required(self, request: HttpRequest, organization: Organization | RpcOrganization | None, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
+    def handle_permission_required(
+        self,
+        request: HttpRequest,
+        organization: Organization | RpcOrganization | None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponse:
         query_params = {
             "referrer": request.GET.get("referrer"),
         }
@@ -757,4 +769,11 @@ class AvatarPhotoView(View):
 
         res = HttpResponse(photo_file, content_type="image/png")
         res["Cache-Control"] = FOREVER_CACHE
+
+        origin = origin_from_request(request)
+        if origin is None or origin == "null":
+            res["Access-Control-Allow-Origin"] = "*"
+        else:
+            res["Access-Control-Allow-Origin"] = origin
+
         return res

@@ -147,7 +147,7 @@ class BitField(BigIntegerField):
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
-        args.insert(0, self._arg_flags)
+        args = [self._arg_flags, *args]
         return name, path, args, kwargs
 
 

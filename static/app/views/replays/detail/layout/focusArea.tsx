@@ -1,12 +1,10 @@
 import styled from '@emotion/styled';
 
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {space} from 'sentry/styles/space';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import A11y from 'sentry/views/replays/detail/accessibility/index';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import Console from 'sentry/views/replays/detail/console';
-import DomMutations from 'sentry/views/replays/detail/domMutations';
 import DomNodesChart from 'sentry/views/replays/detail/domNodesChart';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
@@ -20,7 +18,6 @@ type Props = {};
 
 function FocusArea({}: Props) {
   const {getActiveTab} = useActiveReplayTab();
-  const {replay} = useReplayContext();
 
   switch (getActiveTab()) {
     case TabKey.A11Y:
@@ -33,8 +30,6 @@ function FocusArea({}: Props) {
       return <PerfTable />;
     case TabKey.ERRORS:
       return <ErrorList />;
-    case TabKey.DOM:
-      return <DomMutations />;
     case TabKey.MEMORY:
       return (
         <MemoryTabWrapper>
@@ -48,12 +43,7 @@ function FocusArea({}: Props) {
       return <TagPanel />;
     case TabKey.BREADCRUMBS:
     default: {
-      return (
-        <Breadcrumbs
-          frames={replay?.getChapterFrames()}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
-        />
-      );
+      return <Breadcrumbs />;
     }
   }
 }

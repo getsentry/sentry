@@ -11,6 +11,7 @@ from django.core.cache import cache
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
+from sentry import analytics
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
@@ -842,6 +843,13 @@ class SnubaTagStorage(TagStorage):
                         group_id=issue, key="sentry:user", value=name, **fix_tag_value_data(data)
                     )
                 )
+        for project_id in {eu.project_id for eu in event_users}:
+            analytics.record(
+                "eventuser_endpoint.request",
+                project_id=project_id,
+                endpoint="sentry.tagstore.snuba.backend.SnubaTagStorage.get_group_tag_values_for_users",
+            )
+
         return values
 
     def __get_groups_user_counts(

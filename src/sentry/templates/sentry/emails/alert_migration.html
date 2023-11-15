@@ -1,0 +1,63 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block main %}
+<h3>Performance based alerts just got a lot more accurate.</h3>
+
+<p>
+    Starting from November 30th, alerts will be based on <strong>all the transaction events you send to Sentry</strong>,
+    not just
+    <a href="https://docs.sentry.io/product/performance/retention-priorities/">the ones that are stored.</a>
+</p>
+
+<h4>How does this affect me, and my team?</h4>
+
+<p>
+    Because we're potentially extracting metrics from a significantly larger number of events, existing thresholds could
+    result in a spammy experience. Instead of waiting until November 30th, we recommend that you take action now by
+    reviewing the thresholds of each affected alert. This will allow you to migrate alerts ahead of time with the
+    assurance that they will work as expected.
+</p>
+
+<img src="{% absolute_asset_url 'sentry' 'images/email/alert-migration-lgtm.png' %}" width="100%"/>
+
+<h4>How do I review my thresholds?</h4>
+
+<p>
+    It's pretty simple really, but unfortunately, also pretty tedious (sorry about that)...
+</p>
+<p>
+    We’ve marked all your affected alerts with a "⚠" sign, so that you can quickly identify the ones that need your
+    attention. In order to perform the review:
+</p>
+<ul>
+    <li>open each rule marked with a "⚠" sign and click “Review Thresholds”</li>
+    <li>verify whether current thresholds are still valid or make adjustments as needed</li>
+    <li>save the changes to finish the review</li>
+</ul>
+
+<p>
+    To get the ball rolling, we've included a shortlist of alerts that need review below, but click on "View Performance
+    Alerts" to see the list of affected ones in Sentry.
+</p>
+
+<p><a href="{{ alerts_url }}" class="btn">View Performance Alerts</a></p>
+
+<h5 class="header">Affected Alerts</h5>
+
+<ul>
+    {% for url, name in alerts %}
+    <li>
+        <a href="{{ url }}">{{ name }}</a>
+    </li>
+    {% endfor %}
+</ul>
+
+<hr/>
+
+<p>
+    If you need any assistance, please reply to this email or contact support@sentry.io.
+</p>
+{% endblock %}

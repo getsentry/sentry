@@ -2,7 +2,11 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
+import responses
+
 from fixtures.github import (
+    INSTALLATION_API_RESPONSE,
+    INSTALLATION_EVENT_EXAMPLE,
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
@@ -14,11 +18,12 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.integration import Integration
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -60,10 +65,46 @@ class WebhookTest(APITestCase):
         assert response.status_code == 401
 
 
-@region_silo_test(stable=True)
-class PushEventWebhookTest(APITestCase):
+@control_silo_test(stable=True)
+class InstallationEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
+    def setUp(self):
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def test_installation_created(self, get_jwt):
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/app/installations/2",
+            body=INSTALLATION_API_RESPONSE,
+            status=200,
+            content_type="application/json",
+        )
+
+        response = self.client.post(
+            path=self.url,
+            data=INSTALLATION_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE="sha1=348e46312df2901e8cb945616ee84ce30d9987c9",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
+        integration = Integration.objects.get(external_id=2)
+        assert integration.external_id == "2"
+        assert integration.name == "octocat"
+        assert integration.metadata["sender"]["id"] == 1
+        assert integration.metadata["sender"]["login"] == "octocat"
+        assert integration.status == ObjectStatus.ACTIVE
+
+
+@region_silo_test(stable=True)
+class PushEventWebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"

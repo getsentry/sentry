@@ -14,8 +14,7 @@ function DocIntegrationAvatar({docIntegration, ...props}: Props) {
     <BaseAvatar
       {...props}
       type="upload"
-      uploadPath="doc-integration-avatar"
-      uploadId={docIntegration.avatar.avatarUuid}
+      uploadUrl={docIntegration.avatar.avatarUrl}
       title={docIntegration.name}
     />
   );

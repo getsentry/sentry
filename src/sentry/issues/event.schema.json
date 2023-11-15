@@ -1,0 +1,3777 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Event",
+  "description": " The sentry v7 event structure.",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "breadcrumbs": {
+          "description": " List of breadcrumbs recorded before this event.",
+          "default": null,
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "values"
+          ],
+          "properties": {
+            "values": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Breadcrumb"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "contexts": {
+          "description": " Contexts describing the environment (e.g. device, os or browser).",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Contexts"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "culprit": {
+          "description": " Custom culprit of the event.\n\n This field is deprecated and shall not be set by client SDKs.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "debug_meta": {
+          "description": " Meta data for event processing and debugging.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DebugMeta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dist": {
+          "description": " Program's distribution identifier.\n\n The distribution of the application.\n\n Distributions are used to disambiguate build or deployment variants of the same release of\n an application. For example, the dist can be the build number of an XCode build or the\n version code of an Android build.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "environment": {
+          "description": " The environment name, such as `production` or `staging`.\n\n ```json\n { \"environment\": \"production\" }\n ```",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "errors": {
+          "description": " Errors encountered during processing. Intended to be phased out in favor of\n annotation/metadata system.",
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/EventProcessingError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "event_id": {
+          "description": " Unique identifier of this event.\n\n Hexadecimal string representing a uuid4 value. The length is exactly 32 characters. Dashes\n are not allowed. Has to be lowercase.\n\n Even though this field is backfilled on the server with a new uuid4, it is strongly\n recommended to generate that uuid4 clientside. There are some features like user feedback\n which are easier to implement that way, and debugging in case events get lost in your\n Sentry installation is also easier.\n\n Example:\n\n ```json\n {\n   \"event_id\": \"fc6d8c0c43fc4630ad850ee518f1b9d0\"\n }\n ```",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EventId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exception": {
+          "description": " One or multiple chained (nested) exceptions.",
+          "default": null,
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "values"
+          ],
+          "properties": {
+            "values": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Exception"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "extra": {
+          "description": " Arbitrary extra information set by the user.\n\n ```json\n {\n     \"extra\": {\n         \"my_key\": 1,\n         \"some_other_value\": \"foo bar\"\n     }\n }```",
+          "default": null,
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true
+        },
+        "fingerprint": {
+          "description": " Manual fingerprint override.\n\n A list of strings used to dictate how this event is supposed to be grouped with other\n events into issues. For more information about overriding grouping see [Customize Grouping\n with Fingerprints](https://docs.sentry.io/data-management/event-grouping/).\n\n ```json\n {\n     \"fingerprint\": [\"myrpc\", \"POST\", \"/foo.bar\"]\n }",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Fingerprint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "level": {
+          "description": " Severity level of the event. Defaults to `error`.\n\n Example:\n\n ```json\n {\"level\": \"warning\"}\n ```",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Level"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "logentry": {
+          "description": " Custom parameterized message for this event.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/LogEntry"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "logger": {
+          "description": " Logger that created the event.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "modules": {
+          "description": " Name and versions of all installed modules/packages/dependencies in the current\n environment/application.\n\n ```json\n { \"django\": \"3.0.0\", \"celery\": \"4.2.1\" }\n ```\n\n In Python this is a list of installed packages as reported by `pkg_resources` together with\n their reported version string.\n\n This is primarily used for suggesting to enable certain SDK integrations from within the UI\n and for making informed decisions on which frameworks to support in future development\n efforts.",
+          "default": null,
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "platform": {
+          "description": " Platform identifier of this event (defaults to \"other\").\n\n A string representing the platform the SDK is submitting from. This will be used by the\n Sentry interface to customize various components in the interface, but also to enter or\n skip stacktrace processing.\n\n Acceptable values are: `as3`, `c`, `cfml`, `cocoa`, `csharp`, `elixir`, `haskell`, `go`,\n `groovy`, `java`, `javascript`, `native`, `node`, `objc`, `other`, `perl`, `php`, `python`,\n `ruby`",
+          "type": "string"
+        },
+        "project_id": {
+          "type": "integer"
+        },
+        "received": {
+          "description": " Timestamp when the event has been received by Sentry.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "release": {
+          "description": " The release version of the application.\n\n **Release versions must be unique across all projects in your organization.** This value\n can be the git SHA for the given project, or a product identifier with a semantic version.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "request": {
+          "description": " Information about a web request that occurred during the event.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Request"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sdk": {
+          "description": " Information about the Sentry SDK that generated this event.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ClientSdkInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "server_name": {
+          "description": " Server or device name the event was generated on.\n\n This is supposed to be a hostname.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stacktrace": {
+          "description": " Event stacktrace.\n\n DEPRECATED: Prefer `threads` or `exception` depending on which is more appropriate.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Stacktrace"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": " Custom tags for this event.\n\n A map or list of tags for this event. Each tag must be less than 200 characters.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Tags"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "threads": {
+          "description": " Threads that were active when the event occurred.",
+          "default": null,
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "values"
+          ],
+          "properties": {
+            "values": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Thread"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "time_spent": {
+          "description": " Time since the start of the transaction until the error occurred.",
+          "default": null,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "timestamp": {
+          "description": " Timestamp when the event was created.\n\n Indicates when the event was created in the Sentry SDK. The format is either a string as\n defined in [RFC 3339](https://tools.ietf.org/html/rfc3339) or a numeric (integer or float)\n value representing the number of seconds that have elapsed since the [Unix\n epoch](https://en.wikipedia.org/wiki/Unix_time).\n\n Timezone is assumed to be UTC if missing.\n\n Sub-microsecond precision is not preserved with numeric values due to precision\n limitations with floats (at least in our systems). With that caveat in mind, just send\n whatever is easiest to produce.\n\n All timestamps in the event protocol are formatted this way.\n\n # Example\n\n All of these are the same date:\n\n ```json\n { \"timestamp\": \"2011-05-02T17:41:36Z\" }\n { \"timestamp\": \"2011-05-02T17:41:36\" }\n { \"timestamp\": \"2011-05-02T17:41:36.000\" }\n { \"timestamp\": 1304358096.0 }\n ```",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Timestamp"
+            }
+          ]
+        },
+        "transaction": {
+          "description": " Transaction name of the event.\n\n For example, in a web app, this might be the route name (`\"/users/<username>/\"` or\n `UserView`), in a task queue it might be the function + module name.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transaction_info": {
+          "description": " Additional information about the name of the transaction.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TransactionInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": {
+          "description": " Type of the event. Defaults to `default`.\n\n The event type determines how Sentry handles the event and has an impact on processing, rate\n limiting, and quotas. There are three fundamental classes of event types:\n\n  - **Error monitoring events**: Processed and grouped into unique issues based on their\n    exception stack traces and error messages.\n  - **Security events**: Derived from Browser security violation reports and grouped into\n    unique issues based on the endpoint and violation. SDKs do not send such events.\n  - **Transaction events** (`transaction`): Contain operation spans and collected into traces\n    for performance monitoring.\n\n Transactions must explicitly specify the `\"transaction\"` event type. In all other cases,\n Sentry infers the appropriate event type from the payload and overrides the stated type.\n SDKs should not send an event type other than for transactions.\n\n Example:\n\n ```json\n {\n   \"type\": \"transaction\",\n   \"spans\": []\n }\n ```",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EventType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "user": {
+          "description": " Information about the user who triggered this event.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/User"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "description": " Version",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "event_id",
+        "platform",
+        "project_id",
+        "timestamp"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "definitions": {
+    "Addr": {
+      "type": "string"
+    },
+    "AppContext": {
+      "description": " Application information.\n\n App context describes the application. As opposed to the runtime, this is the actual\n application that was running and carries metadata about the current session.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "app_build": {
+              "description": " Internal build ID as it appears on the platform.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "app_identifier": {
+              "description": " Version-independent application identifier, often a dotted bundle ID.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "app_memory": {
+              "description": " Amount of memory used by the application in bytes.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "app_name": {
+              "description": " Application name as it appears on the platform.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "app_start_time": {
+              "description": " Start time of the app.\n\n Formatted UTC timestamp when the user started the application.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "app_version": {
+              "description": " Application version as it appears on the platform.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "build_type": {
+              "description": " String identifying the kind of build. For example, `testflight`.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "device_app_hash": {
+              "description": " Application-specific device identifier.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "in_foreground": {
+              "description": " A flag indicating whether the app is in foreground or not. An app is in foreground when it's visible to the user.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "view_names": {
+              "description": " The names of the currently visible views.",
+              "default": null,
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "AppleDebugImage": {
+      "description": " Legacy apple debug images (MachO).\n\n This was also used for non-apple platforms with similar debug setups.",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "image_addr",
+            "image_size",
+            "name",
+            "uuid"
+          ],
+          "properties": {
+            "arch": {
+              "description": " CPU architecture target.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cpu_subtype": {
+              "description": " MachO CPU subtype identifier.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "cpu_type": {
+              "description": " MachO CPU type identifier.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "image_addr": {
+              "description": " Starting memory address of the image (required).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "image_size": {
+              "description": " Size of the image in bytes (required).",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "image_vmaddr": {
+              "description": " Loading address in virtual memory.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "name": {
+              "description": " Path and name of the debug image (required).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "uuid": {
+              "description": " The unique UUID of the image.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Breadcrumb": {
+      "description": " The Breadcrumbs Interface specifies a series of application events, or \"breadcrumbs\", that\n occurred before an event.\n\n An event may contain one or more breadcrumbs in an attribute named `breadcrumbs`. The entries\n are ordered from oldest to newest. Consequently, the last entry in the list should be the last\n entry before the event occurred.\n\n While breadcrumb attributes are not strictly validated in Sentry, a breadcrumb is most useful\n when it includes at least a `timestamp` and `type`, `category` or `message`. The rendering of\n breadcrumbs in Sentry depends on what is provided.\n\n The following example illustrates the breadcrumbs part of the event payload and omits other\n attributes for simplicity.\n\n ```json\n {\n   \"breadcrumbs\": {\n     \"values\": [\n       {\n         \"timestamp\": \"2016-04-20T20:55:53.845Z\",\n         \"message\": \"Something happened\",\n         \"category\": \"log\",\n         \"data\": {\n           \"foo\": \"bar\",\n           \"blub\": \"blah\"\n         }\n       },\n       {\n         \"timestamp\": \"2016-04-20T20:55:53.847Z\",\n         \"type\": \"navigation\",\n         \"data\": {\n           \"from\": \"/login\",\n           \"to\": \"/dashboard\"\n         }\n       }\n     ]\n   }\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "category": {
+              "description": " A dotted string indicating what the crumb is or from where it comes. _Optional._\n\n Typically it is a module name or a descriptive string. For instance, _ui.click_ could be\n used to indicate that a click happened in the UI or _flask_ could be used to indicate that\n the event originated in the Flask framework.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "data": {
+              "description": " Arbitrary data associated with this breadcrumb.\n\n Contains a dictionary whose contents depend on the breadcrumb `type`. Additional parameters\n that are unsupported by the type are rendered as a key/value table.",
+              "default": null,
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
+            "event_id": {
+              "description": " Identifier of the event this breadcrumb belongs to.\n\n Sentry events can appear as breadcrumbs in other events as long as they have occurred in the\n same organization. This identifier links to the original event.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/EventId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "level": {
+              "description": " Severity level of the breadcrumb. _Optional._\n\n Allowed values are, from highest to lowest: `fatal`, `error`, `warning`, `info`, and\n `debug`. Levels are used in the UI to emphasize and deemphasize the crumb. Defaults to\n `info`.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Level"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "message": {
+              "description": " Human readable message for the breadcrumb.\n\n If a message is provided, it is rendered as text with all whitespace preserved. Very long\n text might be truncated in the UI.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "timestamp": {
+              "description": " The timestamp of the breadcrumb. Recommended.\n\n A timestamp representing when the breadcrumb occurred. The format is either a string as\n defined in [RFC 3339](https://tools.ietf.org/html/rfc3339) or a numeric (integer or float)\n value representing the number of seconds that have elapsed since the [Unix\n epoch](https://en.wikipedia.org/wiki/Unix_time).\n\n Breadcrumbs are most useful when they include a timestamp, as it creates a timeline leading\n up to an event.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Timestamp"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "description": " The type of the breadcrumb. _Optional_, defaults to `default`.\n\n - `default`: Describes a generic breadcrumb. This is typically a log message or\n   user-generated breadcrumb. The `data` field is entirely undefined and as such, completely\n   rendered as a key/value table.\n\n - `navigation`: Describes a navigation breadcrumb. A navigation event can be a URL change\n   in a web application, or a UI transition in a mobile or desktop application, etc.\n\n   Such a breadcrumb's `data` object has the required fields `from` and `to`, which\n   represent an application route/url each.\n\n - `http`: Describes an HTTP request breadcrumb. This represents an HTTP request transmitted\n   from your application. This could be an AJAX request from a web application, or a\n   server-to-server HTTP request to an API service provider, etc.\n\n   Such a breadcrumb's `data` property has the fields `url`, `method`, `status_code`\n   (integer) and `reason` (string).",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "BrowserContext": {
+      "description": " Web browser information.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": " Display name of the browser application.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "version": {
+              "description": " Version string of the browser.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CError": {
+      "description": " POSIX signal with optional extended data.\n\n Error codes set by Linux system calls and some library functions as specified in ISO C99,\n POSIX.1-2001, and POSIX.1-2008. See\n [`errno(3)`](https://man7.org/linux/man-pages/man3/errno.3.html) for more information.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": " Optional name of the errno constant.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "number": {
+              "description": " The error code as specified by ISO C99, POSIX.1-2001 or POSIX.1-2008.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ClientSdkInfo": {
+      "description": " The SDK Interface describes the Sentry SDK and its configuration used to capture and transmit an event.",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "version"
+          ],
+          "properties": {
+            "integrations": {
+              "description": " List of integrations that are enabled in the SDK. _Optional._\n\n The list should have all enabled integrations, including default integrations. Default\n integrations are included because different SDK releases may contain different default\n integrations.",
+              "default": null,
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "name": {
+              "description": " Unique SDK name. _Required._\n\n The name of the SDK. The format is `entity.ecosystem[.flavor]` where entity identifies the\n developer of the SDK, ecosystem refers to the programming language or platform where the\n SDK is to be used and the optional flavor is used to identify standalone SDKs that are part\n of a major ecosystem.\n\n Official Sentry SDKs use the entity `sentry`, as in `sentry.python` or\n `sentry.javascript.react-native`. Please use a different entity for your own SDKs.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "packages": {
+              "description": " List of installed and loaded SDK packages. _Optional._\n\n A list of packages that were installed as part of this SDK or the activated integrations.\n Each package consists of a name in the format `source:identifier` and `version`. If the\n source is a Git repository, the `source` should be `git`, the identifier should be a\n checkout link and the version should be a Git reference (branch, tag or SHA).",
+              "default": null,
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/ClientSdkPackage"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "version": {
+              "description": " The version of the SDK. _Required._\n\n It should have the [Semantic Versioning](https://semver.org/) format `MAJOR.MINOR.PATCH`,\n without any prefix (no `v` or anything else in front of the major version number).\n\n Examples: `0.1.0`, `1.0.0`, `4.3.12`",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ClientSdkPackage": {
+      "description": " An installed and loaded package as part of the Sentry SDK.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": " Name of the package.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "version": {
+              "description": " Version of the package.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CloudResourceContext": {
+      "description": " Cloud Resource Context.\n\n This context describes the cloud resource the event originated from.\n\n Example:\n\n ```json\n \"cloud_resource\": {\n     \"cloud.account.id\": \"499517922981\",\n     \"cloud.provider\": \"aws\",\n     \"cloud.platform\": \"aws_ec2\",\n     \"cloud.region\": \"us-east-1\",\n     \"cloud.vavailability_zone\": \"us-east-1e\",\n     \"host.id\": \"i-07d3301208fe0a55a\",\n     \"host.type\": \"t2.large\"\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "cloud.account.id": {
+              "description": " The cloud account ID the resource is assigned to.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cloud.availability_zone": {
+              "description": " The zone where the resource is running.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cloud.platform": {
+              "description": " The cloud platform in use.\n The prefix of the service SHOULD match the one specified in cloud_provider.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cloud.provider": {
+              "description": " Name of the cloud provider.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cloud.region": {
+              "description": " The geographical region the resource is running.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "host.id": {
+              "description": " Unique host ID.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "host.type": {
+              "description": " Machine type of the host.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CodeId": {
+      "type": "string"
+    },
+    "Context": {
+      "description": " A context describes environment info (e.g. device, os or browser).",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DeviceContext"
+        },
+        {
+          "$ref": "#/definitions/OsContext"
+        },
+        {
+          "$ref": "#/definitions/RuntimeContext"
+        },
+        {
+          "$ref": "#/definitions/AppContext"
+        },
+        {
+          "$ref": "#/definitions/BrowserContext"
+        },
+        {
+          "$ref": "#/definitions/GpuContext"
+        },
+        {
+          "$ref": "#/definitions/TraceContext"
+        },
+        {
+          "$ref": "#/definitions/ProfileContext"
+        },
+        {
+          "$ref": "#/definitions/ReplayContext"
+        },
+        {
+          "$ref": "#/definitions/MonitorContext"
+        },
+        {
+          "$ref": "#/definitions/ResponseContext"
+        },
+        {
+          "$ref": "#/definitions/OtelContext"
+        },
+        {
+          "$ref": "#/definitions/CloudResourceContext"
+        },
+        {
+          "type": "object",
+          "additionalProperties": true
+        }
+      ]
+    },
+    "ContextInner": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Context"
+        }
+      ]
+    },
+    "Contexts": {
+      "description": " The Contexts interface provides additional context data. Typically, this is data related to the\n current user and the environment. For example, the device or application version. Its canonical\n name is `contexts`.\n\n The `contexts` type can be used to define arbitrary contextual data on the event. It accepts an\n object of key/value pairs. The key is the “alias” of the context and can be freely chosen.\n However, as per policy, it should match the type of the context unless there are two values for\n a type. You can omit `type` if the key name is the type.\n\n Unknown data for the contexts is rendered as a key/value list.\n\n For more details about sending additional data with your event, see the [full documentation on\n Additional Data](https://docs.sentry.io/enriching-error-data/additional-data/).",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/ContextInner"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "Cookies": {
+      "description": " A map holding cookies.",
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": [
+                  {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                ],
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "DebugId": {
+      "type": "string"
+    },
+    "DebugImage": {
+      "description": " A debug information file (debug image).",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AppleDebugImage"
+        },
+        {
+          "$ref": "#/definitions/NativeDebugImage"
+        },
+        {
+          "$ref": "#/definitions/NativeDebugImage"
+        },
+        {
+          "$ref": "#/definitions/NativeDebugImage"
+        },
+        {
+          "$ref": "#/definitions/NativeDebugImage"
+        },
+        {
+          "$ref": "#/definitions/NativeDebugImage"
+        },
+        {
+          "$ref": "#/definitions/ProguardDebugImage"
+        },
+        {
+          "$ref": "#/definitions/NativeDebugImage"
+        },
+        {
+          "$ref": "#/definitions/SourceMapDebugImage"
+        },
+        {
+          "$ref": "#/definitions/JvmDebugImage"
+        },
+        {
+          "type": "object",
+          "additionalProperties": true
+        }
+      ]
+    },
+    "DebugMeta": {
+      "description": " Debugging and processing meta information.\n\n The debug meta interface carries debug information for processing errors and crash reports.\n Sentry amends the information in this interface.\n\n Example (look at field types to see more detail):\n\n ```json\n {\n   \"debug_meta\": {\n     \"images\": [],\n     \"sdk_info\": {\n       \"sdk_name\": \"iOS\",\n       \"version_major\": 10,\n       \"version_minor\": 3,\n       \"version_patchlevel\": 0\n     }\n   }\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "images": {
+              "description": " List of debug information files (debug images).",
+              "default": null,
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/DebugImage"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "sdk_info": {
+              "description": " Information about the system SDK (e.g. iOS SDK).",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SystemSdkInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "DeviceContext": {
+      "description": " Device information.\n\n Device context describes the device that caused the event. This is most appropriate for mobile\n applications.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "arch": {
+              "description": " Native cpu architecture of the device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "battery_level": {
+              "description": " Current battery level in %.\n\n If the device has a battery, this can be a floating point value defining the battery level\n (in the range 0-100).",
+              "default": null,
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "battery_status": {
+              "description": " Status of the device's battery.\n\n For example, `Unknown`, `Charging`, `Discharging`, `NotCharging`, `Full`.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "boot_time": {
+              "description": " Indicator when the device was booted.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "brand": {
+              "description": " Brand of the device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "charging": {
+              "description": " Whether the device was charging or not.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "cpu_description": {
+              "description": " CPU description.\n\n For example, Intel(R) Core(TM)2 Quad CPU Q6600 @ 2.40GHz.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "device_type": {
+              "description": " Kind of device the application is running on.\n\n For example, `Unknown`, `Handheld`, `Console`, `Desktop`.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "device_unique_identifier": {
+              "description": " Unique device identifier.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "external_free_storage": {
+              "description": " Free size of the attached external storage in bytes (eg: android SDK card).",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "external_storage_size": {
+              "description": " Total size of the attached external storage in bytes (eg: android SDK card).",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "family": {
+              "description": " Family of the device model.\n\n This is usually the common part of model names across generations. For instance, `iPhone`\n would be a reasonable family, so would be `Samsung Galaxy`.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "free_memory": {
+              "description": " How much memory is still available in bytes.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "free_storage": {
+              "description": " How much storage is free in bytes.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "locale": {
+              "description": " ISO 639-1 code of the locale the device is set to.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "low_memory": {
+              "description": " Whether the device was low on memory.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "manufacturer": {
+              "description": " Manufacturer of the device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "memory_size": {
+              "description": " Total memory available in bytes.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "model": {
+              "description": " Device model.\n\n This, for example, can be `Samsung Galaxy S3`.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "model_id": {
+              "description": " Device model (internal identifier).\n\n An internal hardware revision to identify the device exactly.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "description": " Name of the device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "online": {
+              "description": " Whether the device was online or not.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "orientation": {
+              "description": " Current screen orientation.\n\n This can be a string `portrait` or `landscape` to define the orientation of a device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "processor_count": {
+              "description": " Number of \"logical processors\".\n\n For example, 8.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "processor_frequency": {
+              "description": " Processor frequency in MHz.\n\n Note that the actual CPU frequency might vary depending on current load and\n power conditions, especially on low-powered devices like phones and laptops.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "screen_density": {
+              "description": " Device screen density.",
+              "default": null,
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "screen_dpi": {
+              "description": " Screen density as dots-per-inch.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "screen_height_pixels": {
+              "description": " Height of the screen in pixels.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "screen_resolution": {
+              "description": " Device screen resolution.\n\n (e.g.: 800x600, 3040x1444)",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "screen_width_pixels": {
+              "description": " Width of the screen in pixels.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "simulator": {
+              "description": " Simulator/prod indicator.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "storage_size": {
+              "description": " Total storage size of the device in bytes.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "supports_accelerometer": {
+              "description": " Whether the accelerometer is available on the device.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "supports_audio": {
+              "description": " Whether audio is available on the device.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "supports_gyroscope": {
+              "description": " Whether the gyroscope is available on the device.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "supports_location_service": {
+              "description": " Whether location support is available on the device.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "supports_vibration": {
+              "description": " Whether vibration is available on the device.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "timezone": {
+              "description": " Timezone of the device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "usable_memory": {
+              "description": " How much memory is usable for the app in bytes.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "uuid": {
+              "description": " UUID of the device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "EventId": {
+      "description": " Wrapper around a UUID with slightly different formatting.",
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        }
+      ]
+    },
+    "EventProcessingError": {
+      "description": " An event processing error.",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "name": {
+              "description": " Affected key or deep path.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "description": " The error kind.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "value": {
+              "description": " The original value causing this error.",
+              "default": null
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "EventType": {
+      "description": "The type of an event.\n\nThe event type determines how Sentry handles the event and has an impact on processing, rate limiting, and quotas. There are three fundamental classes of event types:\n\n- **Error monitoring events** (`default`, `error`): Processed and grouped into unique issues based on their exception stack traces and error messages. - **Security events** (`csp`, `hpkp`, `expectct`, `expectstaple`): Derived from Browser security violation reports and grouped into unique issues based on the endpoint and violation. SDKs do not send such events. - **Transaction events** (`transaction`): Contain operation spans and collected into traces for performance monitoring. - **Feedback events** (`feedback`): Contains user feedbacks",
+      "type": "string",
+      "enum": [
+        "error",
+        "csp",
+        "hpkp",
+        "expectct",
+        "expectstaple",
+        "transaction",
+        "feedback",
+        "default"
+      ]
+    },
+    "Exception": {
+      "description": " A single exception.\n\n Multiple values inside of an [event](#typedef-Event) represent chained exceptions and should be sorted oldest to newest. For example, consider this Python code snippet:\n\n ```python\n try:\n     raise Exception(\"random boring invariant was not met!\")\n except Exception as e:\n     raise ValueError(\"something went wrong, help!\") from e\n ```\n\n `Exception` would be described first in the values list, followed by a description of `ValueError`:\n\n ```json\n {\n   \"exception\": {\n     \"values\": [\n       {\"type\": \"Exception\": \"value\": \"random boring invariant was not met!\"},\n       {\"type\": \"ValueError\", \"value\": \"something went wrong, help!\"},\n     ]\n   }\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mechanism": {
+              "description": " Mechanism by which this exception was generated and handled.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Mechanism"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "module": {
+              "description": " The optional module, or package which the exception type lives in.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stacktrace": {
+              "description": " Stack trace containing frames of this exception.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Stacktrace"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "thread_id": {
+              "description": " An optional value that refers to a [thread](#typedef-Thread).",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ThreadId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "description": " Exception type, e.g. `ValueError`.\n\n At least one of `type` or `value` is required, otherwise the exception is discarded.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "value": {
+              "description": " Human readable display value.\n\n At least one of `type` or `value` is required, otherwise the exception is discarded.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/JsonLenientString"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Fingerprint": {
+      "description": " A fingerprint value.",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "Frame": {
+      "description": " Holds information about a single stacktrace frame.\n\n Each object should contain **at least** a `filename`, `function` or `instruction_addr`\n attribute. All values are optional, but recommended.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "abs_path": {
+              "description": " Absolute path to the source file.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NativeImagePath"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "addr_mode": {
+              "description": " Defines the addressing mode for addresses.\n\n This can be:\n - `\"abs\"` (the default): `instruction_addr` is absolute.\n - `\"rel:$idx\"`: `instruction_addr` is relative to the `debug_meta.image` identified by its index in the list.\n - `\"rel:$uuid\"`: `instruction_addr` is relative to the `debug_meta.image` identified by its `debug_id`.\n\n If one of the `\"rel:XXX\"` variants is given together with `function_id`, the `instruction_addr` is relative\n to the uniquely identified function in the references `debug_meta.image`.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "colno": {
+              "description": " Column number within the source file, starting at 1.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "context_line": {
+              "description": " Source code of the current line (`lineno`).",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "filename": {
+              "description": " The source file name (basename only).",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NativeImagePath"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "function": {
+              "description": " Name of the frame's function. This might include the name of a class.\n\n This function name may be shortened or demangled. If not, Sentry will demangle and shorten\n it for some platforms. The original function name will be stored in `raw_function`.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "function_id": {
+              "description": " (.NET) The function id / index that uniquely identifies a function inside a module.\n\n This is the `MetadataToken` of a .NET `MethodBase`.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "image_addr": {
+              "description": " (C/C++/Native) Start address of the containing code module (image).",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "in_app": {
+              "description": " Override whether this frame should be considered part of application code, or part of\n libraries/frameworks/dependencies.\n\n Setting this attribute to `false` causes the frame to be hidden/collapsed by default and\n mostly ignored during issue grouping.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "instruction_addr": {
+              "description": " (C/C++/Native) An optional instruction address for symbolication.\n\n This should be a string with a hexadecimal number that includes a 0x prefix.\n If this is set and a known image is defined in the\n [Debug Meta Interface]({%- link _documentation/development/sdk-dev/event-payloads/debugmeta.md -%}),\n then symbolication can take place.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lineno": {
+              "description": " Line number within the source file, starting at 1.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "lock": {
+              "description": " A possible lock (java monitor object) held by this frame.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/LockReason"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "module": {
+              "description": " Name of the module the frame is contained in.\n\n Note that this might also include a class name if that is something the\n language natively considers to be part of the stack (for instance in Java).",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "package": {
+              "description": " Name of the package that contains the frame.\n\n For instance this can be a dylib for native languages, the name of the jar\n or .NET assembly.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "platform": {
+              "description": " Which platform this frame is from.\n\n This can override the platform for a single frame. Otherwise, the platform of the event is\n assumed. This can be used for multi-platform stack traces, such as in React Native.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "post_context": {
+              "description": " Source code of the lines after `lineno`.",
+              "default": null,
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "pre_context": {
+              "description": " Source code leading up to `lineno`.",
+              "default": null,
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "raw_function": {
+              "description": " A raw (but potentially truncated) function value.\n\n The original function name, if the function name is shortened or demangled. Sentry shows the\n raw function when clicking on the shortened one in the UI.\n\n If this has the same value as `function` it's best to be omitted.  This exists because on\n many platforms the function itself contains additional information like overload specifies\n or a lot of generics which can make it exceed the maximum limit we provide for the field.\n In those cases then we cannot reliably trim down the function any more at a later point\n because the more valuable information has been removed.\n\n The logic to be applied is that an intelligently trimmed function name should be stored in\n `function` and the value before trimming is stored in this field instead.  However also this\n field will be capped at 256 characters at the moment which often means that not the entire\n original value can be stored.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stack_start": {
+              "description": " Marks this frame as the bottom of a chained stack trace.\n\n Stack traces from asynchronous code consist of several sub traces that are chained together\n into one large list. This flag indicates the root function of a chained stack trace.\n Depending on the runtime and thread, this is either the `main` function or a thread base\n stub.\n\n This field should only be specified when true.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "symbol": {
+              "description": " Potentially mangled name of the symbol as it appears in an executable.\n\n This is different from a function name by generally being the mangled\n name that appears natively in the binary.  This is relevant for languages\n like Swift, C++ or Rust.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "symbol_addr": {
+              "description": " (C/C++/Native) Start address of the frame's function.\n\n We use the instruction address for symbolication, but this can be used to calculate\n an instruction offset automatically.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "vars": {
+              "description": " Mapping of local variables and expression names that were available in this frame.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameVars"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "FrameVars": {
+      "description": " Frame local variables.",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": true
+        }
+      ]
+    },
+    "Geo": {
+      "description": " Geographical location of the end user or device.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "city": {
+              "description": " Human readable city name.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "country_code": {
+              "description": " Two-letter country code (ISO 3166-1 alpha-2).",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "region": {
+              "description": " Human readable region name or code.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "subdivision": {
+              "description": " Human readable subdivision name.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "GpuContext": {
+      "description": " GPU information.\n\n Example:\n\n ```json\n \"gpu\": {\n   \"name\": \"AMD Radeon Pro 560\",\n   \"vendor_name\": \"Apple\",\n   \"memory_size\": 4096,\n   \"api_type\": \"Metal\",\n   \"multi_threaded_rendering\": true,\n   \"version\": \"Metal\",\n   \"npot_support\": \"Full\"\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "api_type": {
+              "description": " The device low-level API type.\n\n Examples: `\"Apple Metal\"` or `\"Direct3D11\"`",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "graphics_shader_level": {
+              "description": " Approximate \"shader capability\" level of the graphics device.\n\n For Example: Shader Model 2.0, OpenGL ES 3.0, Metal / OpenGL ES 3.1, 27 (unknown)",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "description": " The PCI identifier of the graphics device.",
+              "default": null
+            },
+            "max_texture_size": {
+              "description": " Largest size of a texture that is supported by the graphics hardware.\n\n For Example: 16384",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "memory_size": {
+              "description": " The total GPU memory available in Megabytes.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "multi_threaded_rendering": {
+              "description": " Whether the GPU has multi-threaded rendering or not.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "name": {
+              "description": " The name of the graphics device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "npot_support": {
+              "description": " The Non-Power-Of-Two support.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "supports_compute_shaders": {
+              "description": " Whether compute shaders are available on the device.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "supports_draw_call_instancing": {
+              "description": " Whether GPU draw call instancing is supported.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "supports_geometry_shaders": {
+              "description": " Whether geometry shaders are available on the device.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "supports_ray_tracing": {
+              "description": " Whether ray tracing is available on the device.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "vendor_id": {
+              "description": " The PCI vendor identifier of the graphics device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "vendor_name": {
+              "description": " The vendor name as reported by the graphics device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "version": {
+              "description": " The Version of the graphics device.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "HeaderName": {
+      "description": " A \"into-string\" type that normalizes header names.",
+      "anyOf": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "HeaderValue": {
+      "description": " A \"into-string\" type that normalizes header values.",
+      "anyOf": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "Headers": {
+      "description": " A map holding headers.",
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/HeaderValue"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": [
+                  {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/HeaderName"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/HeaderValue"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                ],
+                "maxItems": 2,
+                "minItems": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "InstructionAddrAdjustment": {
+      "description": "Controls the mechanism by which the `instruction_addr` of a [`Stacktrace`] [`Frame`] is adjusted.\n\nThe adjustment tries to transform *return addresses* to *call addresses* for symbolication. Typically, this adjustment needs to be done for all frames but the first, as the first frame is usually taken directly from the cpu context of a hardware exception or a suspended thread and the stack trace is created from that.\n\nWhen the stack walking implementation truncates frames from the top, `\"all\"` frames should be adjusted. In case the stack walking implementation already does the adjustment when producing stack frames, `\"none\"` should be used here.",
+      "type": "string",
+      "enum": [
+        "auto",
+        "all_but_first",
+        "all",
+        "none"
+      ]
+    },
+    "JsonLenientString": {
+      "description": " A \"into-string\" type of value. All non-string values are serialized as JSON.",
+      "anyOf": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "JvmDebugImage": {
+      "description": " A debug image consisting of source files for a JVM based language.\n\n Examples:\n\n ```json\n {\n   \"type\": \"jvm\",\n   \"debug_id\": \"395835f4-03e0-4436-80d3-136f0749a893\"\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "debug_id"
+          ],
+          "properties": {
+            "debug_id": {
+              "description": " Unique debug identifier of the bundle.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DebugId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Level": {
+      "description": "Severity level of an event or breadcrumb.",
+      "type": "string",
+      "enum": [
+        "debug",
+        "info",
+        "warning",
+        "error",
+        "fatal"
+      ]
+    },
+    "LockReason": {
+      "description": " Represents an instance of a held lock (java monitor object) in a thread.",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "address": {
+              "description": " Address of the java monitor object.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "class_name": {
+              "description": " Class name of the java monitor object.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "package_name": {
+              "description": " Package name of the java monitor object.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "thread_id": {
+              "description": " Thread ID that's holding the lock.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ThreadId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "description": " Type of lock on the thread with available options being blocked, waiting, sleeping and locked.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/LockReasonType"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "LockReasonType": {
+      "description": "Possible lock types responsible for a thread's blocked state",
+      "type": "string",
+      "enum": [
+        "locked",
+        "waiting",
+        "sleeping",
+        "blocked"
+      ]
+    },
+    "LogEntry": {
+      "description": " A log entry message.\n\n A log message is similar to the `message` attribute on the event itself but\n can additionally hold optional parameters.\n\n ```json\n {\n   \"message\": {\n     \"message\": \"My raw message with interpreted strings like %s\",\n     \"params\": [\"this\"]\n   }\n }\n ```\n\n ```json\n {\n   \"message\": {\n     \"message\": \"My raw message with interpreted strings like {foo}\",\n     \"params\": {\"foo\": \"this\"}\n   }\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "formatted": {
+              "description": " The formatted message. If `message` and `params` are given, Sentry\n will attempt to backfill `formatted` if empty.\n\n It must not exceed 8192 characters. Longer messages will be truncated.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Message"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "message": {
+              "description": " The log message with parameter placeholders.\n\n This attribute is primarily used for grouping related events together into issues.\n Therefore this really should just be a string template, i.e. `Sending %d requests` instead\n of `Sending 9999 requests`. The latter is much better at home in `formatted`.\n\n It must not exceed 8192 characters. Longer messages will be truncated.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Message"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "params": {
+              "description": " Parameters to be interpolated into the log message. This can be an array of positional\n parameters as well as a mapping of named arguments to their values.",
+              "default": null
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "MachException": {
+      "description": " Mach exception information.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": " The mach exception code.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "exception": {
+              "description": " The mach exception type.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            },
+            "name": {
+              "description": " Optional name of the mach exception.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "subcode": {
+              "description": " The mach exception subcode.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Mechanism": {
+      "description": " The mechanism by which an exception was generated and handled.\n\n The exception mechanism is an optional field residing in the [exception](#typedef-Exception).\n It carries additional information about the way the exception was created on the target system.\n This includes general exception values obtained from the operating system or runtime APIs, as\n well as mechanism-specific values.",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "data": {
+              "description": " Arbitrary extra data that might help the user understand the error thrown by this mechanism.",
+              "default": null,
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
+            "description": {
+              "description": " Optional human-readable description of the error mechanism.\n\n May include a possible hint on how to solve this error.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "exception_id": {
+              "description": " An optional numeric value providing an ID for the exception relative to this specific event.\n It is referenced by the `parent_id` to reconstruct the logical tree of exceptions in an\n exception group.\n\n This should contain an unsigned integer value starting with `0` for the last exception in\n the exception values list, then `1` for the previous exception, etc.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "handled": {
+              "description": " Flag indicating whether this exception was handled.\n\n This is a best-effort guess at whether the exception was handled by user code or not. For\n example:\n\n - Exceptions leading to a 500 Internal Server Error or to a hard process crash are\n   `handled=false`, as the SDK typically has an integration that automatically captures the\n   error.\n\n - Exceptions captured using `capture_exception` (called from user code) are `handled=true`\n   as the user explicitly captured the exception (and therefore kind of handled it)",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "help_link": {
+              "description": " Link to online resources describing this error.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "is_exception_group": {
+              "description": " An optional boolean value, set `true` when the exception is the platform-specific exception\n group type.  Defaults to `false`.\n\n For example, exceptions of type `ExceptionGroup` (Python), `AggregateException` (.NET), and\n `AggregateError` (JavaScript) should have `\"is_exception_group\": true`.  Other exceptions\n can omit this field.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "meta": {
+              "description": " Operating system or runtime meta information.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/MechanismMeta"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "parent_id": {
+              "description": " An optional numeric value pointing at the `exception_id` that is the direct parent of this\n exception, used to reconstruct the logical tree of exceptions in an exception group.\n\n The last exception in the exception values list should omit this field, because it is the\n root exception and thus has no parent.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "source": {
+              "description": " An optional string value describing the source of the exception.\n\n For chained exceptions, this should contain the platform-specific name of the property or\n attribute (on the parent exception) that this exception was acquired from. In the case of\n an array, it should include the zero-based array index as well.\n\n - Python Examples: `\"__context__\"`, `\"__cause__\"`, `\"exceptions[0]\"`, `\"exceptions[1]\"`\n\n - .NET Examples:  `\"InnerException\"`, `\"InnerExceptions[0]\"`, `\"InnerExceptions[1]\"`\n\n - JavaScript Examples: `\"cause\"`, `\"errors[0]\"`, `\"errors[1]\"`",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "synthetic": {
+              "description": " If this is set then the exception is not a real exception but some\n form of synthetic error for instance from a signal handler, a hard\n segfault or similar where type and value are not useful for grouping\n or display purposes.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "type": {
+              "description": " Mechanism type (required).\n\n Required unique identifier of this mechanism determining rendering and processing of the\n mechanism data.\n\n In the Python SDK this is merely the name of the framework integration that produced the\n exception, while for native it is e.g. `\"minidump\"` or `\"applecrashreport\"`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "MechanismMeta": {
+      "description": " Operating system or runtime meta information to an exception mechanism.\n\n The mechanism metadata usually carries error codes reported by the runtime or operating system,\n along with a platform-dependent interpretation of these codes. SDKs can safely omit code names\n and descriptions for well-known error codes, as it will be filled out by Sentry. For\n proprietary or vendor-specific error codes, adding these values will give additional\n information to the user.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "errno": {
+              "description": " Optional ISO C standard error code.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/CError"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mach_exception": {
+              "description": " A Mach Exception on Apple systems comprising a code triple and optional descriptions.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/MachException"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ns_error": {
+              "description": " An NSError on Apple systems comprising code and signal.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NsError"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "signal": {
+              "description": " Information on the POSIX signal.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PosixSignal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Message": {
+      "anyOf": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "MonitorContext": {
+      "description": " Monitor information.",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": true
+        }
+      ]
+    },
+    "NativeDebugImage": {
+      "description": " A generic (new-style) native platform debug information file.\n\n The `type` key must be one of:\n\n - `macho`\n - `elf`: ELF images are used on Linux platforms. Their structure is identical to other native images.\n - `pe`\n\n Examples:\n\n ```json\n {\n   \"type\": \"elf\",\n   \"code_id\": \"68220ae2c65d65c1b6aaa12fa6765a6ec2f5f434\",\n   \"code_file\": \"/lib/x86_64-linux-gnu/libgcc_s.so.1\",\n   \"debug_id\": \"e20a2268-5dc6-c165-b6aa-a12fa6765a6e\",\n   \"image_addr\": \"0x7f5140527000\",\n   \"image_size\": 90112,\n   \"image_vmaddr\": \"0x40000\",\n   \"arch\": \"x86_64\"\n }\n ```\n\n ```json\n {\n   \"type\": \"pe\",\n   \"code_id\": \"57898e12145000\",\n   \"code_file\": \"C:\\\\Windows\\\\System32\\\\dbghelp.dll\",\n   \"debug_id\": \"9c2a902b-6fdf-40ad-8308-588a41d572a0-1\",\n   \"debug_file\": \"dbghelp.pdb\",\n   \"image_addr\": \"0x70850000\",\n   \"image_size\": \"1331200\",\n   \"image_vmaddr\": \"0x40000\",\n   \"arch\": \"x86\"\n }\n ```\n\n ```json\n {\n   \"type\": \"macho\",\n   \"debug_id\": \"84a04d24-0e60-3810-a8c0-90a65e2df61a\",\n   \"debug_file\": \"libDiagnosticMessagesClient.dylib\",\n   \"code_file\": \"/usr/lib/libDiagnosticMessagesClient.dylib\",\n   \"image_addr\": \"0x7fffe668e000\",\n   \"image_size\": 8192,\n   \"image_vmaddr\": \"0x40000\",\n   \"arch\": \"x86_64\",\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "code_file",
+            "debug_id"
+          ],
+          "properties": {
+            "arch": {
+              "description": " CPU architecture target.\n\n Architecture of the module. If missing, this will be backfilled by Sentry.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "code_file": {
+              "description": " Path and name of the image file (required).\n\n The absolute path to the dynamic library or executable. This helps to locate the file if it is missing on Sentry.\n\n - `pe`: The code file should be provided to allow server-side stack walking of binary crash reports, such as Minidumps.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NativeImagePath"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "code_id": {
+              "description": " Optional identifier of the code file.\n\n - `elf`: If the program was compiled with a relatively recent compiler, this should be the hex representation of the `NT_GNU_BUILD_ID` program header (type `PT_NOTE`), or the value of the `.note.gnu.build-id` note section (type `SHT_NOTE`). Otherwise, leave this value empty.\n\n   Certain symbol servers use the code identifier to locate debug information for ELF images, in which case this field should be included if possible.\n\n - `pe`: Identifier of the executable or DLL. It contains the values of the `time_date_stamp` from the COFF header and `size_of_image` from the optional header formatted together into a hex string using `%08x%X` (note that the second value is not padded):\n\n   ```text\n   time_date_stamp: 0x5ab38077\n   size_of_image:           0x9000\n   code_id:           5ab380779000\n   ```\n\n   The code identifier should be provided to allow server-side stack walking of binary crash reports, such as Minidumps.\n\n\n - `macho`: Identifier of the dynamic library or executable. It is the value of the `LC_UUID` load command in the Mach header, formatted as UUID. Can be empty for Mach images, as it is equivalent to the debug identifier.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/CodeId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "debug_checksum": {
+              "description": " The optional checksum of the debug companion file.\n\n - `pe_dotnet`: This is the hash algorithm and hex-formatted checksum of the associated PDB file.\n  This should have the format `$algorithm:$hash`, for example `SHA256:aabbccddeeff...`.\n\n   See: <https://github.com/dotnet/runtime/blob/main/docs/design/specs/PE-COFF.md#pdb-checksum-debug-directory-entry-type-19>",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "debug_file": {
+              "description": " Path and name of the debug companion file.\n\n - `elf`: Name or absolute path to the file containing stripped debug information for this image. This value might be _required_ to retrieve debug files from certain symbol servers.\n\n - `pe`: Name of the PDB file containing debug information for this image. This value is often required to retrieve debug files from specific symbol servers.\n\n - `macho`: Name or absolute path to the dSYM file containing debug information for this image. This value might be required to retrieve debug files from certain symbol servers.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NativeImagePath"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "debug_id": {
+              "description": " Unique debug identifier of the image.\n\n - `elf`: Debug identifier of the dynamic library or executable. If a code identifier is available, the debug identifier is the little-endian UUID representation of the first 16-bytes of that\n identifier. Spaces are inserted for readability, note the byte order of the first fields:\n\n   ```text\n   code id:  f1c3bcc0 2798 65fe 3058 404b2831d9e6 4135386c\n   debug id: c0bcc3f1-9827-fe65-3058-404b2831d9e6\n   ```\n\n   If no code id is available, the debug id should be computed by XORing the first 4096 bytes of the `.text` section in 16-byte chunks, and representing it as a little-endian UUID (again swapping the byte order).\n\n - `pe`: `signature` and `age` of the PDB file. Both values can be read from the CodeView PDB70 debug information header in the PE. The value should be represented as little-endian UUID, with the age appended at the end. Note that the byte order of the UUID fields must be swapped (spaces inserted for readability):\n\n   ```text\n   signature: f1c3bcc0 2798 65fe 3058 404b2831d9e6\n   age:                                            1\n   debug_id:  c0bcc3f1-9827-fe65-3058-404b2831d9e6-1\n   ```\n\n - `macho`: Identifier of the dynamic library or executable. It is the value of the `LC_UUID` load command in the Mach header, formatted as UUID.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DebugId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "image_addr": {
+              "description": " Starting memory address of the image (required).\n\n Memory address, at which the image is mounted in the virtual address space of the process. Should be a string in hex representation prefixed with `\"0x\"`.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "image_size": {
+              "description": " Size of the image in bytes (required).\n\n The size of the image in virtual memory. If missing, Sentry will assume that the image spans up to the next image, which might lead to invalid stack traces.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "image_vmaddr": {
+              "description": " Loading address in virtual memory.\n\n Preferred load address of the image in virtual memory, as declared in the headers of the\n image. When loading an image, the operating system may still choose to place it at a\n different address.\n\n Symbols and addresses in the native image are always relative to the start of the image and do not consider the preferred load address. It is merely a hint to the loader.\n\n - `elf`/`macho`: If this value is non-zero, all symbols and addresses declared in the native image start at this address, rather than 0. By contrast, Sentry deals with addresses relative to the start of the image. For example, with `image_vmaddr: 0x40000`, a symbol located at `0x401000` has a relative address of `0x1000`.\n\n   Relative addresses used in Apple Crash Reports and `addr2line` are usually in the preferred address space, and not relative address space.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "NativeImagePath": {
+      "description": " A type for strings that are generally paths, might contain system user names, but still cannot\n be stripped liberally because it would break processing for certain platforms.\n\n Those strings get special treatment in our PII processor to avoid stripping the basename.",
+      "anyOf": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "NsError": {
+      "description": " NSError informaiton.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": " The error code.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            },
+            "domain": {
+              "description": " A string containing the error domain.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "OsContext": {
+      "description": " Operating system information.\n\n OS context describes the operating system on which the event was created. In web contexts, this\n is the operating system of the browser (generally pulled from the User-Agent string).",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "build": {
+              "description": " Internal build number of the operating system.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kernel_version": {
+              "description": " Current kernel version.\n\n This is typically the entire output of the `uname` syscall.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "description": " Name of the operating system.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "raw_description": {
+              "description": " Unprocessed operating system info.\n\n An unprocessed description string obtained by the operating system. For some well-known\n runtimes, Sentry will attempt to parse `name` and `version` from this string, if they are\n not explicitly given.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "rooted": {
+              "description": " Indicator if the OS is rooted (mobile mostly).",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "version": {
+              "description": " Version of the operating system.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "OtelContext": {
+      "description": " OpenTelemetry Context\n\n If an event has this context, it was generated from an OpenTelemetry signal (trace, metric, log).",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "attributes": {
+              "description": " Attributes of the OpenTelemetry span that maps to a Sentry event.\n\n <https://github.com/open-telemetry/opentelemetry-proto/blob/724e427879e3d2bae2edc0218fff06e37b9eb46e/opentelemetry/proto/trace/v1/trace.proto#L174-L186>",
+              "default": null,
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
+            "resource": {
+              "description": " Information about an OpenTelemetry resource.\n\n <https://github.com/open-telemetry/opentelemetry-proto/blob/724e427879e3d2bae2edc0218fff06e37b9eb46e/opentelemetry/proto/resource/v1/resource.proto>",
+              "default": null,
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "PosixSignal": {
+      "description": " POSIX signal with optional extended data.\n\n On Apple systems, signals also carry a code in addition to the signal number describing the\n signal in more detail. On Linux, this code does not exist.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "description": " An optional signal code present on Apple systems.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            },
+            "code_name": {
+              "description": " Optional name of the errno constant.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "description": " Optional name of the errno constant.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "number": {
+              "description": " The POSIX signal number.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ProfileContext": {
+      "description": " Profile context",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "profile_id"
+          ],
+          "properties": {
+            "profile_id": {
+              "description": " The profile ID.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/EventId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ProguardDebugImage": {
+      "description": " Proguard mapping file.\n\n Proguard images refer to `mapping.txt` files generated when Proguard obfuscates function names. The Java SDK integrations assign this file a unique identifier, which has to be included in the list of images.",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "uuid"
+          ],
+          "properties": {
+            "uuid": {
+              "description": " UUID computed from the file contents, assigned by the Java SDK.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "RawStacktrace": {
+      "description": " A stack trace of a single thread.\n\n A stack trace contains a list of frames, each with various bits (most optional) describing the\n context of that frame. Frames should be sorted from oldest to newest.\n\n For the given example program written in Python:\n\n ```python\n def foo():\n     my_var = 'foo'\n     raise ValueError()\n\n def main():\n     foo()\n ```\n\n A minimalistic stack trace for the above program in the correct order:\n\n ```json\n {\n   \"frames\": [\n     {\"function\": \"main\"},\n     {\"function\": \"foo\"}\n   ]\n }\n ```\n\n The top frame fully symbolicated with five lines of source context:\n\n ```json\n {\n   \"frames\": [{\n     \"in_app\": true,\n     \"function\": \"myfunction\",\n     \"abs_path\": \"/real/file/name.py\",\n     \"filename\": \"file/name.py\",\n     \"lineno\": 3,\n     \"vars\": {\n       \"my_var\": \"'value'\"\n     },\n     \"pre_context\": [\n       \"def foo():\",\n       \"  my_var = 'foo'\",\n     ],\n     \"context_line\": \"  raise ValueError()\",\n     \"post_context\": [\n       \"\",\n       \"def main():\"\n     ],\n   }]\n }\n ```\n\n A minimal native stack trace with register values. Note that the `package` event attribute must\n be \"native\" for these frames to be symbolicated.\n\n ```json\n {\n   \"frames\": [\n     {\"instruction_addr\": \"0x7fff5bf3456c\"},\n     {\"instruction_addr\": \"0x7fff5bf346c0\"},\n   ],\n   \"registers\": {\n     \"rip\": \"0x00007ff6eef54be2\",\n     \"rsp\": \"0x0000003b710cd9e0\"\n   }\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "frames"
+          ],
+          "properties": {
+            "frames": {
+              "description": " Required. A non-empty list of stack frames. The list is ordered from caller to callee, or\n oldest to youngest. The last frame is the one creating the exception.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Frame"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "instruction_addr_adjustment": {
+              "description": " Optional. A flag that indicates if, and how, `instruction_addr` values need to be adjusted\n before they are symbolicated.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/InstructionAddrAdjustment"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lang": {
+              "description": " The language of the stacktrace.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "registers": {
+              "description": " Register values of the thread (top frame).\n\n A map of register names and their values. The values should contain the actual register\n values of the thread, thus mapping to the last frame in the list.",
+              "default": null,
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/RegVal"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "snapshot": {
+              "description": " Indicates that this stack trace is a snapshot triggered by an external signal.\n\n If this field is `false`, then the stack trace points to the code that caused this stack\n trace to be created. This can be the location of a raised exception, as well as an exception\n or signal handler.\n\n If this field is `true`, then the stack trace was captured as part of creating an unrelated\n event. For example, a thread other than the crashing thread, or a stack trace computed as a\n result of an external kill signal.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "RegVal": {
+      "type": "string"
+    },
+    "ReplayContext": {
+      "description": " Replay context.\n\n The replay context contains the replay_id of the session replay if the event\n occurred during a replay. The replay_id is added onto the dynamic sampling context\n on the javascript SDK which propagates it through the trace. In relay, we take\n this value from the DSC and create a context which contains only the replay_id\n This context is never set on the client for events, only on relay.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "replay_id": {
+              "description": " The replay ID.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/EventId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Request": {
+      "description": " Http request information.\n\n The Request interface contains information on a HTTP request related to the event. In client\n SDKs, this can be an outgoing request, or the request that rendered the current web page. On\n server SDKs, this could be the incoming web request that is being handled.\n\n The data variable should only contain the request body (not the query string). It can either be\n a dictionary (for standard HTTP requests) or a raw request body.\n\n ### Ordered Maps\n\n In the Request interface, several attributes can either be declared as string, object, or list\n of tuples. Sentry attempts to parse structured information from the string representation in\n such cases.\n\n Sometimes, keys can be declared multiple times, or the order of elements matters. In such\n cases, use the tuple representation over a plain object.\n\n Example of request headers as object:\n\n ```json\n {\n   \"content-type\": \"application/json\",\n   \"accept\": \"application/json, application/xml\"\n }\n ```\n\n Example of the same headers as list of tuples:\n\n ```json\n [\n   [\"content-type\", \"application/json\"],\n   [\"accept\", \"application/json\"],\n   [\"accept\", \"application/xml\"]\n ]\n ```\n\n Example of a fully populated request object:\n\n ```json\n {\n   \"request\": {\n     \"method\": \"POST\",\n     \"url\": \"http://absolute.uri/foo\",\n     \"query_string\": \"query=foobar&page=2\",\n     \"data\": {\n       \"foo\": \"bar\"\n     },\n     \"cookies\": \"PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1;\",\n     \"headers\": {\n       \"content-type\": \"text/html\"\n     },\n     \"env\": {\n       \"REMOTE_ADDR\": \"192.168.0.1\"\n     }\n   }\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "api_target": {
+              "description": " The API target/specification that made the request.\n\n Values can be `graphql`, `rest`, etc.\n\n The data field should contain the request and response bodies based on its target specification.\n\n This information can be used for better data scrubbing and normalization.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "body_size": {
+              "description": " HTTP request body size.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "cookies": {
+              "description": " The cookie values.\n\n Can be given unparsed as string, as dictionary, or as a list of tuples.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Cookies"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "data": {
+              "description": " Request data in any format that makes sense.\n\n SDKs should discard large and binary bodies by default. Can be given as a string or\n structural data of any format.",
+              "default": null
+            },
+            "env": {
+              "description": " Server environment data, such as CGI/WSGI.\n\n A dictionary containing environment information passed from the server. This is where\n information such as CGI/WSGI/Rack keys go that are not HTTP headers.\n\n Sentry will explicitly look for `REMOTE_ADDR` to extract an IP address.",
+              "default": null,
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
+            "fragment": {
+              "description": " The fragment of the request URI.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "headers": {
+              "description": " A dictionary of submitted headers.\n\n If a header appears multiple times it, needs to be merged according to the HTTP standard\n for header merging. Header names are treated case-insensitively by Sentry.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Headers"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "inferred_content_type": {
+              "description": " The inferred content type of the request payload.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "method": {
+              "description": " HTTP request method.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "query_string": {
+              "description": " The query string component of the URL.\n\n Can be given as unparsed string, dictionary, or list of tuples.\n\n If the query string is not declared and part of the `url`, Sentry moves it to the\n query string.",
+              "default": null,
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": [
+                              "array",
+                              "null"
+                            ],
+                            "items": [
+                              {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            ],
+                            "maxItems": 2,
+                            "minItems": 2
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "url": {
+              "description": " The URL of the request if available.\n\nThe query string can be declared either as part of the `url`, or separately in `query_string`.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ResponseContext": {
+      "description": " Response interface that contains information on a HTTP response related to the event.\n\n The data variable should only contain the response body. It can either be\n a dictionary (for standard HTTP responses) or a raw response body.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "body_size": {
+              "description": " HTTP response body size.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "cookies": {
+              "description": " The cookie values.\n\n Can be given unparsed as string, as dictionary, or as a list of tuples.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Cookies"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "data": {
+              "description": " Response data in any format that makes sense.\n\n SDKs should discard large and binary bodies by default. Can be given as a string or\n structural data of any format.",
+              "default": null
+            },
+            "headers": {
+              "description": " A dictionary of submitted headers.\n\n If a header appears multiple times it, needs to be merged according to the HTTP standard\n for header merging. Header names are treated case-insensitively by Sentry.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Headers"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "inferred_content_type": {
+              "description": " The inferred content type of the response payload.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "status_code": {
+              "description": " HTTP status code.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "RuntimeContext": {
+      "description": " Runtime information.\n\n Runtime context describes a runtime in more detail. Typically, this context is present in\n `contexts` multiple times if multiple runtimes are involved (for instance, if you have a\n JavaScript application running on top of JVM).",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "build": {
+              "description": " Application build string, if it is separate from the version.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "description": " Runtime name.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "raw_description": {
+              "description": " Unprocessed runtime info.\n\n An unprocessed description string obtained by the runtime. For some well-known runtimes,\n Sentry will attempt to parse `name` and `version` from this string, if they are not\n explicitly given.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "version": {
+              "description": " Runtime version string.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "SourceMapDebugImage": {
+      "description": " A debug image pointing to a source map.\n\n Examples:\n\n ```json\n {\n   \"type\": \"sourcemap\",\n   \"code_file\": \"https://example.com/static/js/main.min.js\",\n   \"debug_id\": \"395835f4-03e0-4436-80d3-136f0749a893\"\n }\n ```\n\n **Note:** Stack frames and the correlating entries in the debug image here\n for `code_file`/`abs_path` are not PII stripped as they need to line up\n perfectly for source map processing.",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "code_file",
+            "debug_id"
+          ],
+          "properties": {
+            "code_file": {
+              "description": " Path and name of the image file as URL. (required).\n\n The absolute path to the minified JavaScript file.  This helps to correlate the file to the stack trace.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "debug_file": {
+              "description": " Path and name of the associated source map.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "debug_id": {
+              "description": " Unique debug identifier of the source map.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DebugId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "SpanId": {
+      "description": " A 16-character hex string as described in the W3C trace context spec.",
+      "anyOf": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "SpanStatus": {
+      "description": "Trace status.\n\nValues from <https://github.com/open-telemetry/opentelemetry-specification/blob/8fb6c14e4709e75a9aaa64b0dbbdf02a6067682a/specification/api-tracing.md#status> Mapping to HTTP from <https://github.com/open-telemetry/opentelemetry-specification/blob/8fb6c14e4709e75a9aaa64b0dbbdf02a6067682a/specification/data-http.md#status>",
+      "type": "string",
+      "enum": [
+        "ok",
+        "cancelled",
+        "unknown",
+        "invalid_argument",
+        "deadline_exceeded",
+        "not_found",
+        "already_exists",
+        "permission_denied",
+        "resource_exhausted",
+        "failed_precondition",
+        "aborted",
+        "out_of_range",
+        "unimplemented",
+        "internal_error",
+        "unavailable",
+        "data_loss",
+        "unauthenticated"
+      ]
+    },
+    "Stacktrace": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/RawStacktrace"
+        }
+      ]
+    },
+    "String": {
+      "type": "string"
+    },
+    "SystemSdkInfo": {
+      "description": " Holds information about the system SDK.\n\n This is relevant for iOS and other platforms that have a system\n SDK.  Not to be confused with the client SDK.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "sdk_name": {
+              "description": " The internal name of the SDK.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "version_major": {
+              "description": " The major version of the SDK as integer or 0.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "version_minor": {
+              "description": " The minor version of the SDK as integer or 0.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "version_patchlevel": {
+              "description": " The patch version of the SDK as integer or 0.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TagEntry": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": [
+            {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          ],
+          "maxItems": 2,
+          "minItems": 2
+        }
+      ]
+    },
+    "Tags": {
+      "description": " Manual key/value tag pairs.",
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/TagEntry"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "Thread": {
+      "description": " A process thread of an event.\n\n The Threads Interface specifies threads that were running at the time an event happened. These threads can also contain stack traces.\n\n An event may contain one or more threads in an attribute named `threads`.\n\n The following example illustrates the threads part of the event payload and omits other attributes for simplicity.\n\n ```json\n {\n   \"threads\": {\n     \"values\": [\n       {\n         \"id\": \"0\",\n         \"name\": \"main\",\n         \"crashed\": true,\n         \"stacktrace\": {}\n       }\n     ]\n   }\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "crashed": {
+              "description": " A flag indicating whether the thread crashed. Defaults to `false`.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "current": {
+              "description": " A flag indicating whether the thread was in the foreground. Defaults to `false`.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "held_locks": {
+              "description": " Represents a collection of locks (java monitor objects) held by a thread.\n\n A map of lock object addresses and their respective lock reason/details.",
+              "default": null,
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/LockReason"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "id": {
+              "description": " The ID of the thread. Typically a number or numeric string.\n\n Needs to be unique among the threads. An exception can set the `thread_id` attribute to cross-reference this thread.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ThreadId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "main": {
+              "description": " A flag indicating whether the thread was responsible for rendering the user interface.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "name": {
+              "description": " Display name of this thread.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stacktrace": {
+              "description": " Stack trace containing frames of this exception.\n\n The thread that crashed with an exception should not have a stack trace, but instead, the `thread_id` attribute should be set on the exception and Sentry will connect the two.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Stacktrace"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "state": {
+              "description": " Thread state at the time of the crash.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ThreadId": {
+      "description": " Represents a thread id.",
+      "anyOf": [
+        {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "Timestamp": {
+      "description": "Can be a ISO-8601 formatted string or a unix timestamp in seconds (floating point values allowed).\n\nMust be UTC.",
+      "anyOf": [
+        {
+          "type": "number",
+          "format": "double"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "TraceContext": {
+      "description": " Trace context",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "span_id",
+            "trace_id"
+          ],
+          "properties": {
+            "client_sample_rate": {
+              "description": " The client-side sample rate as reported in the envelope's `trace.sample_rate` header.\n\n The server takes this field from envelope headers and writes it back into the event. Clients\n should not ever send this value.",
+              "default": null,
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "exclusive_time": {
+              "description": " The amount of time in milliseconds spent in this transaction span,\n excluding its immediate child spans.",
+              "default": null,
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "op": {
+              "description": " Span type (see `OperationType` docs).",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "origin": {
+              "description": " The origin of the trace indicates what created the trace (see [OriginType] docs).",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "parent_span_id": {
+              "description": " The ID of the span enclosing this span.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SpanId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "sampled": {
+              "description": " Track whether the trace connected to this event has been sampled entirely.\n\n This flag only applies to events with [`Error`] type that have an associated dynamic sampling context.",
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "span_id": {
+              "description": " The ID of the span.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SpanId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "description": " Whether the trace failed or succeeded. Currently only used to indicate status of individual\n transactions.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SpanStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "trace_id": {
+              "description": " The trace ID.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TraceId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TraceId": {
+      "description": " A 32-character hex string as described in the W3C trace context spec.",
+      "anyOf": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "TransactionInfo": {
+      "description": " Additional information about the name of the transaction.",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "changes": {
+              "description": " A list of changes prior to the final transaction name.\n\n This list must be empty if the transaction name is set at the beginning of the transaction\n and never changed. There is no placeholder entry for the initial transaction name.",
+              "default": null,
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/TransactionNameChange"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "original": {
+              "description": " The unmodified transaction name as obtained by the source.\n\n This value will only be set if the transaction name was modified during event processing.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "propagations": {
+              "description": " The total number of propagations during the transaction.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "source": {
+              "description": " Describes how the name of the transaction was determined.\n\n This will be used by the server to decide whether or not to scrub identifiers from the\n transaction name, or replace the entire name with a placeholder.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TransactionSource"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TransactionNameChange": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "propagations": {
+              "description": " The number of propagations from the start of the transaction to this change.",
+              "default": null,
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "source": {
+              "description": " Describes how the previous transaction name was determined.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TransactionSource"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "timestamp": {
+              "description": " Timestamp when the transaction name was changed.\n\n This adheres to the event timestamp specification.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Timestamp"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TransactionSource": {
+      "description": "Describes how the name of the transaction was determined.",
+      "type": "string",
+      "enum": [
+        "custom",
+        "url",
+        "route",
+        "view",
+        "component",
+        "sanitized",
+        "task",
+        "unknown"
+      ]
+    },
+    "User": {
+      "description": " Information about the user who triggered an event.\n\n ```json\n {\n   \"user\": {\n     \"id\": \"unique_id\",\n     \"username\": \"my_user\",\n     \"email\": \"foo@example.com\",\n     \"ip_address\": \"127.0.0.1\",\n     \"subscription\": \"basic\"\n   }\n }\n ```",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "description": " Additional arbitrary fields, as stored in the database (and sometimes as sent by clients).\n All data from `self.other` should end up here after store normalization.",
+              "default": null,
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
+            "email": {
+              "description": " Email address of the user.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "geo": {
+              "description": " Approximate geographical location of the end user or device.",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Geo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "description": " Unique identifier of the user.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "ip_address": {
+              "description": " Remote IP address of the user. Defaults to \"{{auto}}\".",
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/String"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "name": {
+              "description": " Human readable name of the user.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "segment": {
+              "description": " The user segment, for apps that divide users in user segments.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "username": {
+              "description": " Username of the user.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

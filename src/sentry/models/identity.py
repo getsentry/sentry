@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional
 
 from django.conf import settings
 from django.db import IntegrityError, models
@@ -67,7 +67,7 @@ class IdentityProvider(Model):
         return get(self.type)
 
 
-class IdentityManager(BaseManager):
+class IdentityManager(BaseManager["Identity"]):
     def get_identities_for_user(
         self, user: User | RpcUser, provider: ExternalProviders
     ) -> QuerySet:
@@ -202,7 +202,7 @@ class Identity(Model):
     date_verified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = IdentityManager()
+    objects: ClassVar[IdentityManager] = IdentityManager()
 
     class Meta:
         app_label = "sentry"

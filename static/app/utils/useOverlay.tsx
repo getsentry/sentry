@@ -74,6 +74,16 @@ const applyMaxSize: Modifier<'applyMaxSize', {}> = {
   },
 };
 
+const applyMinWidth: Modifier<'applyMinWidth', {}> = {
+  name: 'applyMinWidth',
+  phase: 'beforeWrite',
+  enabled: false, // will be enabled when overlay is open
+  fn({state}) {
+    const {reference} = state.rects;
+    state.styles.popper.minWidth = `${reference.width}px`;
+  },
+};
+
 export interface UseOverlayProps
   extends Partial<AriaOverlayProps>,
     Partial<OverlayTriggerProps>,
@@ -201,6 +211,10 @@ function useOverlay({
           padding: 16,
           ...preventOverflowOptions,
         },
+      },
+      {
+        ...applyMinWidth,
+        enabled: openState.isOpen,
       },
       {
         ...applyMaxSize,

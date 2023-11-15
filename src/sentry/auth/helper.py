@@ -245,7 +245,7 @@ class AuthIdentityHandler:
         # from the invite token and member id in the session) OR an existing invite exists on this
         # organization for the email provided by the identity provider.
         invite_helper = ApiInviteHelper.from_session_or_email(
-            request=request, organization_id=organization.id, email=user.email
+            request=request, organization_id=organization.id, email=user.email, logger=logger
         )
 
         # If we are able to accept an existing invite for the user for this

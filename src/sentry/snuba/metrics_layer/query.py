@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import datetime
 from typing import Any, Mapping, Union
 
 from snuba_sdk import (
@@ -16,14 +17,22 @@ from snuba_sdk import (
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
-from sentry.snuba.dataset import EntityKey
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics.naming_layer.mapping import (
+    get_mri,
+    get_public_name_from_mri,
+    is_private_mri,
+)
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
 FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition]
+
+
+ALLOWED_GRANULARITIES = [10, 60, 3600, 86400]
+ALLOWED_GRANULARITIES = sorted(ALLOWED_GRANULARITIES)  # Ensure it's ordered
 
 
 def run_query(request: Request) -> Mapping[str, Any]:
@@ -44,8 +53,6 @@ def run_query(request: Request) -> Mapping[str, Any]:
     assert len(metrics_query.scope.org_ids) == 1  # Initially only allow 1 org id
     organization_id = metrics_query.scope.org_ids[0]
     tenant_ids = request.tenant_ids or {"organization_id": organization_id}
-    if "use_case_id" not in tenant_ids and metrics_query.scope.use_case_id is not None:
-        tenant_ids["use_case_id"] = metrics_query.scope.use_case_id
     request.tenant_ids = tenant_ids
 
     # Process intervals
@@ -57,11 +64,25 @@ def run_query(request: Request) -> Mapping[str, Any]:
             metrics_query.start, metrics_query.end, metrics_query.rollup.interval
         )
         metrics_query = metrics_query.set_start(start).set_end(end)
+    if metrics_query.rollup.granularity is None:
+        granularity = _resolve_granularity(
+            metrics_query.start, metrics_query.end, metrics_query.rollup.interval
+        )
+        metrics_query = metrics_query.set_rollup(
+            replace(metrics_query.rollup, granularity=granularity)
+        )
 
     # Resolves MRI or public name in metrics_query
     try:
         resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
         request.query = resolved_metrics_query
+        request.tenant_ids["use_case_id"] = resolved_metrics_query.scope.use_case_id
+        # Release health AKA sessions uses a separate Dataset. Change the dataset based on the use case id.
+        # This is necessary here because the product code that uses this isn't aware of which feature is
+        # using it.
+        if resolved_metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
+            request.dataset = Dataset.Metrics.value
+
     except Exception as e:
         metrics.incr(
             "metrics_layer.query",
@@ -105,7 +126,20 @@ GENERIC_ENTITIES = {
     "c": EntityKey.GenericMetricsCounters,
     "d": EntityKey.GenericMetricsDistributions,
     "s": EntityKey.GenericMetricsSets,
+    "g": EntityKey.GenericMetricsGauges,
 }
+
+
+def _resolve_use_case_id_str(metrics_query: MetricsQuery) -> str:
+    # Automatically resolve the use_case_id if it is not provided
+    # TODO: At the moment only a single Timeseries is allowed. In the future this will need to find
+    # all the Timeseries and ensure they all have the same use case.
+    mri = metrics_query.query.metric.mri
+    parsed_mri = parse_mri(mri)
+    if parsed_mri is None:
+        raise InvalidParams(f"'{mri}' is not a valid MRI")
+
+    return parsed_mri.namespace
 
 
 def _resolve_metrics_entity(mri: str) -> EntityKey:
@@ -119,6 +153,41 @@ def _resolve_metrics_entity(mri: str) -> EntityKey:
     return GENERIC_ENTITIES[parsed_mri.entity]
 
 
+def _resolve_granularity(start: datetime, end: datetime, interval: int | None) -> int:
+    """
+    Returns the granularity in seconds based on the start, end, and interval.
+    If the interval is set, then find the largest granularity that is smaller or equal to the interval.
+
+    If the interval is None, then it must be a totals query, which means this will use the biggest granularity
+    that matches the offset from the time range. This function does no automatic fitting of the time range to
+    a performant granularity.
+
+    E.g. if the time range is 7 days, but going from 3:01:53pm to 3:01:53pm, then it has to use the 10s
+    granularity, and the performance will suffer.
+    """
+    if interval is not None:
+        for granularity in ALLOWED_GRANULARITIES[::-1]:
+            if granularity <= interval:
+                return granularity
+
+        return ALLOWED_GRANULARITIES[0]  # Default to smallest granularity
+
+    found_granularities = []
+    for t in [start, end]:
+        rounded_to_day = t.replace(hour=0, minute=0, second=0, microsecond=0)
+        second_diff = int((t - rounded_to_day).total_seconds())
+
+        found = None
+        for granularity in ALLOWED_GRANULARITIES[::-1]:
+            if second_diff % granularity == 0:
+                found = granularity
+                break
+
+        found_granularities.append(found if found is not None else ALLOWED_GRANULARITIES[0])
+
+    return min(found_granularities)
+
+
 def _resolve_metrics_query(
     metrics_query: MetricsQuery,
 ) -> tuple[MetricsQuery, Mapping[str, str | int]]:
@@ -128,14 +197,16 @@ def _resolve_metrics_query(
     """
     assert metrics_query.query is not None
     metric = metrics_query.query.metric
-    scope = metrics_query.scope
     mappings: dict[str, str | int] = {}
     if not metric.public_name and metric.mri:
-        public_name = get_public_name_from_mri(metric.mri)
-        metrics_query = metrics_query.set_query(
-            metrics_query.query.set_metric(metrics_query.query.metric.set_public_name(public_name))
-        )
-        mappings[public_name] = metric.mri
+        if not is_private_mri(metric.mri):
+            public_name = get_public_name_from_mri(metric.mri)
+            metrics_query = metrics_query.set_query(
+                metrics_query.query.set_metric(
+                    metrics_query.query.metric.set_public_name(public_name)
+                )
+            )
+            mappings[public_name] = metric.mri
     elif not metric.mri and metric.public_name:
         mri = get_mri(metric.public_name)
         metrics_query = metrics_query.set_query(
@@ -143,14 +214,25 @@ def _resolve_metrics_query(
         )
         mappings[metric.public_name] = mri
 
-    org_id = scope.org_ids[0]
-    use_case_id = string_to_use_case_id(scope.use_case_id)
-    metric_id = resolve_weak(
-        use_case_id, org_id, metrics_query.query.metric.mri
-    )  # only support raw metrics for now
-    metrics_query = metrics_query.set_query(
-        metrics_query.query.set_metric(metrics_query.query.metric.set_id(metric_id))
-    )
+    org_id = metrics_query.scope.org_ids[0]
+    use_case_id_str = _resolve_use_case_id_str(metrics_query)
+    if metrics_query.scope.use_case_id is None:
+        metrics_query = metrics_query.set_scope(
+            metrics_query.scope.set_use_case_id(use_case_id_str)
+        )
+
+    use_case_id = string_to_use_case_id(use_case_id_str)
+    if metrics_query.query.metric.id is None:
+        metric_id = resolve_weak(
+            use_case_id, org_id, metrics_query.query.metric.mri
+        )  # only support raw metrics for now
+
+        metrics_query = metrics_query.set_query(
+            metrics_query.query.set_metric(metrics_query.query.metric.set_id(metric_id))
+        )
+    else:
+        metric_id = metrics_query.query.metric.id
+
     mappings[metrics_query.query.metric.mri] = metric_id
 
     if not metrics_query.query.metric.entity:
@@ -159,18 +241,14 @@ def _resolve_metrics_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_entity(entity.value))
         )
 
+    # TODO: Once we support formula queries, we would need to resolve groupby and filters recursively given a Formula object
+    # For now, metrics_query.query will only ever be a Timeseries
     new_groupby, new_mappings = _resolve_groupby(metrics_query.query.groupby, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_groupby(new_groupby))
-    mappings.update(new_mappings)
-    new_groupby, new_mappings = _resolve_groupby(metrics_query.groupby, use_case_id, org_id)
-    metrics_query = metrics_query.set_groupby(new_groupby)
     mappings.update(new_mappings)
 
     new_filters, new_mappings = _resolve_filters(metrics_query.query.filters, use_case_id, org_id)
     metrics_query = metrics_query.set_query(metrics_query.query.set_filters(new_filters))
-    mappings.update(new_mappings)
-    new_filters, new_mappings = _resolve_filters(metrics_query.filters, use_case_id, org_id)
-    metrics_query = metrics_query.set_filters(new_filters)
     mappings.update(new_mappings)
 
     return metrics_query, mappings

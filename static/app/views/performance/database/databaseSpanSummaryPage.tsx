@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -11,16 +11,14 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {RateUnits} from 'sentry/utils/discover/fields';
-import {formatRate} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
-import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
+import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
+import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {
@@ -30,10 +28,6 @@ import {
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {
-  getDurationChartTitle,
-  getThroughputChartTitle,
-} from 'sentry/views/starfish/views/spans/types';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -46,6 +40,7 @@ type Query = {
   transaction: string;
   transactionMethod: string;
   [QueryParameterNames.SPANS_SORT]: string;
+  aggregate?: string;
 };
 
 type Props = {
@@ -55,6 +50,8 @@ type Props = {
 function SpanSummaryPage({params}: Props) {
   const organization = useOrganization();
   const location = useLocation<Query>();
+
+  const {selectedAggregate} = useAvailableDurationAggregates();
 
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
@@ -96,22 +93,19 @@ function SpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
-  const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
-    useSpanMetricsSeries(
-      groupId,
-      queryFilter,
-      [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
-      'api.starfish.span-summary-page-metrics-chart'
-    );
+  const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
+    {...queryFilter, 'span.group': groupId},
+    ['spm()'],
+    'api.starfish.span-summary-page-metrics-chart'
+  );
 
-  useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
+  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
+    {...queryFilter, 'span.group': groupId},
+    [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    'api.starfish.span-summary-page-metrics-chart'
+  );
 
-  const spanMetricsThroughputSeries = {
-    seriesName: span?.[SpanMetricsField.SPAN_OP]?.startsWith('db')
-      ? 'Queries'
-      : 'Requests',
-    data: spanMetricsSeriesData?.['spm()'].data,
-  };
+  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
     <ModulePageProviders
@@ -138,14 +132,12 @@ function SpanSummaryPage({params}: Props) {
               },
             ]}
           />
-          <Layout.Title>
-            {t('Query Summary')}
-            <FeatureBadge type={RELEASE_LEVEL} />
-          </Layout.Title>
+          <Layout.Title>{t('Query Summary')}</Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
       <Layout.Body>
+        <FeedbackWidget />
         <Layout.Main fullWidth>
           <HeaderContainer>
             <PaddedContainer>
@@ -173,40 +165,19 @@ function SpanSummaryPage({params}: Props) {
 
           <BlockContainer>
             <Block>
-              <ChartPanel
-                title={getThroughputChartTitle(span?.[SpanMetricsField.SPAN_OP])}
-              >
-                <Chart
-                  height={CHART_HEIGHT}
-                  data={[spanMetricsThroughputSeries]}
-                  loading={areSpanMetricsSeriesLoading}
-                  utc={false}
-                  chartColors={[THROUGHPUT_COLOR]}
-                  isLineChart
-                  definedAxisTicks={4}
-                  aggregateOutputFormat="rate"
-                  rateUnit={RateUnits.PER_MINUTE}
-                  tooltipFormatterOptions={{
-                    valueFormatter: value => formatRate(value, RateUnits.PER_MINUTE),
-                  }}
-                />
-              </ChartPanel>
+              <ThroughputChart
+                series={throughputData['spm()']}
+                isLoading={isThroughputDataLoading}
+              />
             </Block>
 
             <Block>
-              <ChartPanel title={getDurationChartTitle(span?.[SpanMetricsField.SPAN_OP])}>
-                <Chart
-                  height={CHART_HEIGHT}
-                  data={[
-                    spanMetricsSeriesData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-                  ]}
-                  loading={areSpanMetricsSeriesLoading}
-                  utc={false}
-                  chartColors={[AVG_COLOR]}
-                  isLineChart
-                  definedAxisTicks={4}
-                />
-              </ChartPanel>
+              <DurationChart
+                series={
+                  durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
+                }
+                isLoading={isDurationDataLoading}
+              />
             </Block>
           </BlockContainer>
 
@@ -229,8 +200,6 @@ function SpanSummaryPage({params}: Props) {
     </ModulePageProviders>
   );
 }
-
-const CHART_HEIGHT = 160;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',

@@ -39,7 +39,7 @@ class OutboxBackedOrgAuthTokenService(OrgAuthTokenService):
         RegionOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=organization_id,
-            category=OutboxCategory.ORGAUTHTOKEN_UPDATE,
+            category=OutboxCategory.ORGAUTHTOKEN_UPDATE_USED,
             object_identifier=org_auth_token_id,
             payload={
                 "organization_id": organization_id,

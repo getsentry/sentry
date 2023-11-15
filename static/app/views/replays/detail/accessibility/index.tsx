@@ -3,11 +3,12 @@ import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualiz
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-// import useA11yData from 'sentry/utils/replays/hooks/useA11yData';
+import useA11yData from 'sentry/utils/replays/hooks/useA11yData';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import useMockA11yData from 'sentry/utils/replays/hooks/useMockA11yData';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/accessibilityFilters';
@@ -37,7 +38,7 @@ function AccessibilityList() {
   const {currentTime, currentHoverTime, replay} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
-  const accessibilityData = useMockA11yData();
+  const accessibilityData = useA11yData();
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
@@ -83,6 +84,18 @@ function AccessibilityList() {
     accessibilityData && detailDataIndex
       ? Math.min(maxContainerHeight, containerSize)
       : undefined;
+
+  const {
+    handleClick: onClickToJump,
+    onSectionRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: filteredItems,
+    isTable: true,
+    setScrollToRow,
+  });
 
   const onClickCell = useCallback(
     ({}: {dataIndex: number; rowIndex: number}) => {
@@ -186,15 +199,23 @@ function AccessibilityList() {
                         setScrollToRow(undefined);
                       }
                     }}
-                    scrollToRow={scrollToRow}
+                    onSectionRendered={onSectionRendered}
                     overscanColumnCount={COLUMN_COUNT}
                     overscanRowCount={5}
                     rowCount={items.length + 1}
                     rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
+                    scrollToRow={scrollToRow}
                     width={width}
                   />
                 )}
               </AutoSizer>
+              {sortConfig.by === 'timestamp' && items.length ? (
+                <JumpButtons
+                  jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+                  onClick={onClickToJump}
+                  tableHeaderHeight={HEADER_HEIGHT}
+                />
+              ) : null}
             </OverflowHidden>
           ) : (
             <Placeholder height="100%" />

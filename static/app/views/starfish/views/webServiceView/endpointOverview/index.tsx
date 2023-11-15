@@ -428,7 +428,6 @@ export default function EndpointOverview() {
                 <SegmentedControl.Item key="http">{t('http')}</SegmentedControl.Item>
                 <SegmentedControl.Item key="db">{t('db')}</SegmentedControl.Item>
                 <SegmentedControl.Item key="cache">{t('cache')}</SegmentedControl.Item>
-                <SegmentedControl.Item key="other">{t('other')}</SegmentedControl.Item>
               </SegmentedControl>
             </SegmentedControlContainer>
             <SpanMetricsTable

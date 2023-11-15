@@ -54,10 +54,16 @@ class LostPasswordHash(Model):
             "ip_address": request.META["REMOTE_ADDR"],
         }
 
-        template = "set_password" if mode == "set_password" else "recover_account"
+        subject = "Password Recovery"
+        template = "recover_account"
+        if mode == "set_password":
+            template = "set_password"
+        elif mode == "relocate_account":
+            template = "relocate_account"
+            subject = "Set Username and Password for Your Relocated Sentry.io Account"
 
         msg = MessageBuilder(
-            subject="{}Password Recovery".format(options.get("mail.subject-prefix")),
+            subject="{}{}".format(options.get("mail.subject-prefix"), subject),
             template=f"sentry/emails/{template}.txt",
             html_template=f"sentry/emails/{template}.html",
             type="user.password_recovery",
@@ -74,6 +80,8 @@ class LostPasswordHash(Model):
         url_key = "sentry-account-recover-confirm"
         if mode == "set_password":
             url_key = "sentry-account-set-password-confirm"
+        elif mode == "relocate_account":
+            url_key = "sentry-account-relocate-confirm"
 
         return absolute_uri(reverse(url_key, args=[user_id, hash]))
 

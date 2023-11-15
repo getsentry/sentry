@@ -4,12 +4,13 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, Mapping, Optional, Union
+from typing import Any, Iterable, List, Mapping, Optional, Union
 
 from django.dispatch import Signal
 
 from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
 from sentry.services.hybrid_cloud.organization.model import (
+    OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
     RpcOrganization,
     RpcOrganizationDeleteResponse,
@@ -88,6 +89,16 @@ class OrganizationService(RpcService):
         Fetches the organization, by an organization slug. If user_id is passed, it will enforce visibility
         rules. This method is differentiated from get_organization_by_slug by not being cached and returning
         RpcOrganizationSummary instead of org contexts
+        """
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def get_organizations_by_user_and_scope(
+        self, *, region_name: str, user: RpcUser, scope: str
+    ) -> List[RpcOrganization]:
+        """
+        Fetches organizations for the given user, with the given organization member scope.
         """
         pass
 
@@ -216,6 +227,13 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def update_organization_member(
+        self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
+    ) -> Optional[RpcOrganizationMember]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
         """If the organization has exactly one team, return it.
 
@@ -227,6 +245,28 @@ class OrganizationService(RpcService):
     def add_team_member(
         self, *, organization_id: int, team_id: int, organization_member_id: int
     ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_or_create_team_member(
+        self,
+        organization_id: int,
+        *,
+        team_id: int,
+        organization_member_id: int,
+        role: Optional[str],
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_or_create_default_team(
+        self,
+        *,
+        organization_id: int,
+        new_team_slug: str,
+    ) -> RpcTeam:
         pass
 
     @regional_rpc_method(resolve=UnimplementedRegionResolution("organization", "get_team_members"))
@@ -320,6 +360,11 @@ class OrganizationService(RpcService):
         _organization_signal_service.schedule_signal(
             signal=signal, organization_id=organization_id, args=args
         )
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+        pass
 
 
 class OrganizationSignalService(abc.ABC):

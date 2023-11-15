@@ -8,8 +8,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.constants import ObjectStatus
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
@@ -17,6 +16,7 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -168,7 +168,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
     def test_disabled(self):
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor(status=ObjectStatus.DISABLED)
+            monitor = self._create_monitor(status=MonitorObjectStatus.DISABLED)
             path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
@@ -192,7 +192,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             )
 
     def test_pending_deletion(self):
-        monitor = self._create_monitor(status=ObjectStatus.PENDING_DELETION)
+        monitor = self._create_monitor(status=MonitorObjectStatus.PENDING_DELETION)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)
@@ -236,7 +236,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         )
 
     def test_deletion_in_progress(self):
-        monitor = self._create_monitor(status=ObjectStatus.DELETION_IN_PROGRESS)
+        monitor = self._create_monitor(status=MonitorObjectStatus.DELETION_IN_PROGRESS)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)

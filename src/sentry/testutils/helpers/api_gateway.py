@@ -10,9 +10,9 @@ from django.urls import re_path
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+import sentry.api.urls as api_urls
 from sentry.api.base import Endpoint, control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
-from sentry.api.endpoints.rpc import RpcServiceEndpoint
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, clear_global_regions
@@ -54,17 +54,7 @@ urlpatterns = [
         RegionEndpoint.as_view(),
         name="region-endpoint",
     ),
-    re_path(
-        r"^api/0/builtin-symbol-sources/$",
-        NoOrgRegionEndpoint.as_view(),
-        name="no-org-region-endpoint",
-    ),
-    re_path(
-        r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
-        RpcServiceEndpoint.as_view(),
-        name="sentry-api-0-rpc-service",
-    ),
-]
+] + api_urls.urlpatterns
 
 
 def verify_request_body(body, headers):

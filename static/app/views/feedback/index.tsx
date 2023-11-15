@@ -22,7 +22,7 @@ export default function FeedbackContainer({children}: Props) {
       renderDisabled={NoAccess}
     >
       <NoProjectMessage organization={organization}>
-        <FeedbackWidget type="feedback" />
+        <FeedbackWidget />
         {children}
       </NoProjectMessage>
     </Feature>

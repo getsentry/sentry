@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
 import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 
@@ -15,7 +14,7 @@ type Props = {
 export default function ChartPanel({title, children, button, subtitle}: Props) {
   return (
     <Panel>
-      <PanelBody withPadding>
+      <PanelBody>
         {title && (
           <Header>
             {title && <ChartLabel>{title}</ChartLabel>}
@@ -39,6 +38,10 @@ const SubtitleContainer = styled('div')`
 
 const ChartLabel = styled('div')`
   ${p => p.theme.text.cardTitle}
+`;
+
+const PanelBody = styled('div')`
+  padding: ${space(2)};
 `;
 
 const Header = styled('div')`

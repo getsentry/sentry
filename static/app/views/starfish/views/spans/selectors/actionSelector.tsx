@@ -101,7 +101,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
   const query = buildEventViewQuery({
     moduleName,
-    location: {...location, query: omit(location.query, SPAN_ACTION)},
+    location: {...location, query: omit(location.query, ['span.action', 'span.domain'])},
     spanCategory,
   }).join(' ');
   return EventView.fromNewQueryWithLocation(

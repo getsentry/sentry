@@ -4,7 +4,6 @@ import io
 import tarfile
 import tempfile
 from datetime import date, datetime
-from os import environ
 from pathlib import Path
 from typing import Tuple
 from unittest.mock import patch
@@ -18,7 +17,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from django.utils import timezone
 
 from sentry.backup.dependencies import NormalizedModelName
-from sentry.backup.helpers import ImportFlags
+from sentry.backup.helpers import ImportFlags, LocalFileDecryptor
 from sentry.backup.imports import (
     ImportingError,
     import_in_config_scope,
@@ -30,12 +29,17 @@ from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
+from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.organizationslugreservation import (
+    OrganizationSlugReservation,
+    OrganizationSlugReservationType,
+)
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -50,6 +54,7 @@ from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
     BackupTestCase,
@@ -78,7 +83,7 @@ class SanitizationTests(ImportTestCase):
     Ensure that potentially damaging data is properly scrubbed at import time.
     """
 
-    def test_user_sanitized_in_user_scope(self):
+    def test_users_sanitized_in_user_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -108,6 +113,7 @@ class SanitizationTests(ImportTestCase):
             )
 
             assert User.objects.filter(is_unclaimed=True).count() == 4
+            assert LostPasswordHash.objects.count() == 4
             assert User.objects.filter(is_managed=True).count() == 0
             assert User.objects.filter(is_staff=True).count() == 0
             assert User.objects.filter(is_superuser=True).count() == 0
@@ -116,7 +122,7 @@ class SanitizationTests(ImportTestCase):
             assert UserRole.objects.count() == 0
             assert UserRoleUser.objects.count() == 0
 
-    def test_user_sanitized_in_organization_scope(self):
+    def test_users_sanitized_in_organization_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_users_json_file(tmp_path)
@@ -146,6 +152,7 @@ class SanitizationTests(ImportTestCase):
             )
 
             assert User.objects.filter(is_unclaimed=True).count() == 4
+            assert LostPasswordHash.objects.count() == 4
             assert User.objects.filter(is_managed=True).count() == 0
             assert User.objects.filter(is_staff=True).count() == 0
             assert User.objects.filter(is_superuser=True).count() == 0
@@ -164,6 +171,7 @@ class SanitizationTests(ImportTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert User.objects.count() == 4
             assert User.objects.filter(is_unclaimed=True).count() == 4
+            assert LostPasswordHash.objects.count() == 4
             assert User.objects.filter(is_managed=True).count() == 1
             assert User.objects.filter(is_staff=True).count() == 2
             assert User.objects.filter(is_superuser=True).count() == 2
@@ -197,7 +205,7 @@ class SanitizationTests(ImportTestCase):
 
             # 1 from `max_user`.
             assert UserRole.objects.count() == 1
-            assert UserRoleUser.objects.count() == 1
+            assert UserRoleUser.objects.count() == 2
 
     def test_users_unsanitized_in_global_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -210,6 +218,7 @@ class SanitizationTests(ImportTestCase):
             assert User.objects.count() == 4
             # We don't mark `Global`ly imported `User`s unclaimed.
             assert User.objects.filter(is_unclaimed=True).count() == 0
+            assert LostPasswordHash.objects.count() == 0
             assert User.objects.filter(is_managed=True).count() == 1
             assert User.objects.filter(is_staff=True).count() == 2
             assert User.objects.filter(is_superuser=True).count() == 2
@@ -242,7 +251,7 @@ class SanitizationTests(ImportTestCase):
 
             # 1 from `max_user`.
             assert UserRole.objects.count() == 1
-            assert UserRoleUser.objects.count() == 1
+            assert UserRoleUser.objects.count() == 2
 
     def test_generate_suffix_for_already_taken_organization(self):
         owner = self.create_user(email="testing@example.com")
@@ -253,40 +262,76 @@ class SanitizationTests(ImportTestCase):
 
             # Note that we have created an organization with the same name as one we are about to
             # import.
-            self.create_organization(owner=self.user, name="some-org")
+            existing_org = self.create_organization(owner=self.user, name="some-org")
             with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert Organization.objects.count() == 2
         assert Organization.objects.filter(slug__icontains="some-org").count() == 2
         assert Organization.objects.filter(slug__iexact="some-org").count() == 1
-        assert Organization.objects.filter(slug__icontains="some-org-").count() == 1
+        imported_organization = Organization.objects.get(slug__icontains="some-org-")
+        assert imported_organization.id != existing_org.id
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                OrganizationSlugReservation.objects.filter(
+                    slug__icontains="some-org",
+                    reservation_type=OrganizationSlugReservationType.PRIMARY,
+                ).count()
+                == 2
+            )
+
+            assert OrganizationSlugReservation.objects.filter(slug__iexact="some-org").count() == 1
+            # Assert that the slug update RPC has completed and generated a valid matching primary
+            # slug reservation.
+            slug_reservation = OrganizationSlugReservation.objects.filter(
+                slug__icontains="some-org-",
+                reservation_type=OrganizationSlugReservationType.PRIMARY,
+            ).get()
+
             assert OrganizationMapping.objects.count() == 2
             assert OrganizationMapping.objects.filter(slug__icontains="some-org").count() == 2
             assert OrganizationMapping.objects.filter(slug__iexact="some-org").count() == 1
-            assert OrganizationMapping.objects.filter(slug__icontains="some-org-").count() == 1
+            org_mapping = OrganizationMapping.objects.get(slug__icontains="some-org-")
+            assert org_mapping.slug == slug_reservation.slug == imported_organization.slug
+            assert (
+                org_mapping.organization_id
+                == slug_reservation.organization_id
+                == imported_organization.id
+            )
+
+    def test_generate_suffix_for_already_taken_organization_with_control_option(self):
+        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
+            self.test_generate_suffix_for_already_taken_organization()
 
     def test_generate_suffix_for_already_taken_username(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            self.create_user("testing@example.com")
+            self.create_user("min_user")
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "w+") as tmp_file:
-                same_username_user = self.json_of_exhaustive_user_with_minimum_privileges()
-                copy_of_same_username_user = self.copy_user(
-                    same_username_user, "testing@example.com"
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+                json.dump(
+                    self.sort_in_memory_json(models),
+                    tmp_file,
                 )
-                json.dump(same_username_user + copy_of_same_username_user, tmp_file)
 
+            # Import twice, to check that new suffixes are assigned both times.
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
             with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 3
-                assert User.objects.filter(username__icontains="testing@example.com").count() == 3
-                assert User.objects.filter(username__iexact="testing@example.com").count() == 1
-                assert User.objects.filter(username__icontains="testing@example.com-").count() == 2
+                assert (
+                    User.objects.filter(username__icontains="min_user")
+                    .values("username")
+                    .distinct()
+                    .count()
+                    == 3
+                )
+                assert User.objects.filter(username__iexact="min_user").count() == 1
+                assert User.objects.filter(username__icontains="min_user-").count() == 2
 
     def test_bad_invalid_user(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -334,9 +379,9 @@ class SanitizationTests(ImportTestCase):
             assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
             assert UserIP.objects.filter(country_code="US").exists()
             assert UserIP.objects.filter(region_code="CA").exists()
-            assert UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
 
             # Unlike global scope, this time must be reset.
+            assert UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
             assert UserIP.objects.filter(first_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
 
     @patch("sentry.models.userip.geo_by_addr")
@@ -366,10 +411,75 @@ class SanitizationTests(ImportTestCase):
             assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
             assert UserIP.objects.filter(country_code="US").exists()
             assert UserIP.objects.filter(region_code="CA").exists()
-            assert UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
 
             # Unlike org/user scope, this must NOT be reset.
+            assert not UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
             assert not UserIP.objects.filter(first_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
+
+    # Regression test for getsentry/self-hosted#2468.
+    @patch("sentry.models.userip.geo_by_addr")
+    def test_good_multiple_user_ips_per_user_in_global_scope(self, mock_geo_by_addr):
+        mock_geo_by_addr.return_value = {
+            "country_code": "US",
+            "region": "CA",
+            "subdivision": "San Francisco",
+        }
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+
+                # Modify the UserIP to be in California, USA.
+                for model in models:
+                    if model["model"] == "sentry.userip":
+                        model["fields"]["ip_address"] = "8.8.8.8"
+
+                # Add a two copies of the same IP - so the user now has 2 `UserIP` models for the IP
+                # `8.8.8.9`, and 1 for `8.8.8.8`. After import, we would expect to only see one
+                # model for each IP.
+                models.append(
+                    {
+                        "model": "sentry.userip",
+                        "pk": 3,
+                        "fields": {
+                            "user": 2,
+                            "ip_address": "8.8.8.9",
+                            "country_code": "US",
+                            "region_code": "CA",
+                            "first_seen": "2013-04-05T03:29:45.000Z",
+                            "last_seen": "2013-04-05T03:29:45.000Z",
+                        },
+                    }
+                )
+                models.append(
+                    {
+                        "model": "sentry.userip",
+                        "pk": 4,
+                        "fields": {
+                            "user": 2,
+                            "ip_address": "8.8.8.9",
+                            "country_code": "CA",  # Incorrect value - importing should fix this.
+                            "region_code": "BC",  # Incorrect value - importing should fix this.
+                            "first_seen": "2014-04-05T03:29:45.000Z",
+                            "last_seen": "2014-04-05T03:29:45.000Z",
+                        },
+                    }
+                )
+
+                json.dump(self.sort_in_memory_json(models), tmp_file)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert UserIP.objects.count() == 2
+            assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
+            assert UserIP.objects.filter(country_code="US").exists()
+            assert UserIP.objects.filter(region_code="CA").exists()
+            assert UserIP.objects.filter(ip_address="8.8.8.9").exists()
+            assert UserIP.objects.filter(country_code="US").exists()
+            assert UserIP.objects.filter(region_code="CA").exists()
 
     def test_bad_invalid_user_ip(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -451,8 +561,9 @@ class SignalingTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
-        assert Organization.objects.count() == 1
-        assert Organization.objects.filter(slug="some-org").exists()
+        # There should only be 1 organization at this point
+        imported_organization = Organization.objects.get()
+        assert imported_organization.slug == "some-org"
 
         assert OrganizationMember.objects.count() == 3
 
@@ -468,10 +579,22 @@ class SignalingTests(ImportTestCase):
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            # An organization slug reservation with a valid primary reservation type
+            # signals that we've synchronously resolved the slug update RPC correctly.
+            assert OrganizationSlugReservation.objects.filter(
+                organization_id=imported_organization.id,
+                slug="some-org",
+                reservation_type=OrganizationSlugReservationType.PRIMARY,
+            ).exists()
             assert OrganizationMapping.objects.count() == 1
-            assert OrganizationMapping.objects.filter(slug="some-org").exists()
-
+            assert OrganizationMapping.objects.filter(
+                organization_id=imported_organization.id, slug="some-org"
+            ).exists()
             assert OrganizationMemberMapping.objects.count() == 3
+
+    def test_import_signaling_organization_with_control_provisioning_option(self):
+        with override_options({"hybrid_cloud.control-organization-provisioning": True}):
+            self.test_import_signaling_organization()
 
 
 @region_silo_test(stable=True)
@@ -608,7 +731,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_user_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -623,7 +748,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_organization_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             assert Organization.objects.count() > 0
@@ -638,7 +765,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_config_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -657,7 +786,9 @@ class DecryptionTests(ImportTestCase):
                 tmp_priv_key_path, "rb"
             ) as tmp_priv_key_file:
                 import_in_global_scope(
-                    tmp_tarball_file, decrypt_with=tmp_priv_key_file, printer=NOOP_PRINTER
+                    tmp_tarball_file,
+                    decryptor=LocalFileDecryptor(tmp_priv_key_file),
+                    printer=NOOP_PRINTER,
                 )
 
             assert Organization.objects.count() > 0
@@ -1406,6 +1537,7 @@ class CollisionTests(ImportTestCase):
                 assert not User.objects.filter(username__iexact="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 0
+                assert LostPasswordHash.objects.count() == 0
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1439,6 +1571,7 @@ class CollisionTests(ImportTestCase):
                 assert User.objects.filter(username__icontains="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 1
+                assert LostPasswordHash.objects.count() == 1
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1478,6 +1611,7 @@ class CollisionTests(ImportTestCase):
                 assert not User.objects.filter(username__icontains="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 0
+                assert LostPasswordHash.objects.count() == 0
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1542,6 +1676,7 @@ class CollisionTests(ImportTestCase):
                 assert User.objects.filter(username__icontains="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 1
+                assert LostPasswordHash.objects.count() == 1
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1606,6 +1741,7 @@ class CollisionTests(ImportTestCase):
                 assert not User.objects.filter(username__iexact="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 0
+                assert LostPasswordHash.objects.count() == 0
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1642,6 +1778,7 @@ class CollisionTests(ImportTestCase):
                 assert User.objects.filter(username__icontains="owner-").exists()
 
                 assert User.objects.filter(is_unclaimed=True).count() == 1
+                assert LostPasswordHash.objects.count() == 1
                 assert User.objects.filter(is_unclaimed=False).count() == 1
 
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
@@ -1651,7 +1788,7 @@ class CollisionTests(ImportTestCase):
                 return json.load(tmp_file)
 
 
-@pytest.mark.skipif(not environ.get("SENTRY_LEGACY_TEST_SUITE"), reason="not legacy")
+@pytest.mark.skipif(reason="not legacy")
 class TestLegacyTestSuite:
     def test_deleteme(self):
         """

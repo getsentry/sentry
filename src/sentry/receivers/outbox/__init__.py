@@ -51,8 +51,7 @@ from __future__ import annotations
 
 from typing import TypeVar
 
-from django.db import models
-
+from sentry.db.models import Model
 from sentry.services.hybrid_cloud.tombstone import (
     RpcTombstone,
     control_tombstone_service,
@@ -60,7 +59,7 @@ from sentry.services.hybrid_cloud.tombstone import (
 )
 from sentry.silo import SiloMode
 
-T = TypeVar("T", bound=models.Model)
+T = TypeVar("T", bound=Model)
 
 
 def maybe_process_tombstone(

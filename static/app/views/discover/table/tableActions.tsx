@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconDownload, IconStack, IconTag} from 'sentry/icons';
+import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -102,7 +102,7 @@ function renderEditButton(canEdit: boolean, props: Props) {
         disabled={!canEdit}
         onClick={onClick}
         data-test-id="grid-edit-enable"
-        icon={<IconStack size="xs" />}
+        icon={<IconSliders size="xs" />}
       >
         {t('Columns')}
       </Button>

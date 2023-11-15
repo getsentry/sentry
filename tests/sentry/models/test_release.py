@@ -307,6 +307,7 @@ class SetCommitsTestCase(TestCase):
 
         commit_c = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="c" * 40)
         assert commit_c
+        assert commit_c.message is not None
         assert "fixes" in commit_c.message
         assert commit_c.author_id == author.id
 

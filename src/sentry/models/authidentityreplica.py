@@ -14,8 +14,8 @@ class AuthIdentityReplica(Model):
     auth_identity_id = HybridCloudForeignKey(
         "sentry.AuthIdentity", on_delete="CASCADE", unique=True
     )
-    user_id = HybridCloudForeignKey("sentry.User", on_delete="cascade")
-    auth_provider_id = HybridCloudForeignKey("sentry.AuthProvider", on_delete="cascade")
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    auth_provider_id = HybridCloudForeignKey("sentry.AuthProvider", on_delete="CASCADE")
     ident = models.CharField(max_length=128)
     data = JSONField()
     last_verified = models.DateTimeField(default=timezone.now)

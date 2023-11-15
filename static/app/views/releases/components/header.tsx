@@ -13,11 +13,11 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {MONITOR_PATH, THRESHOLDS_PATH} from '../utils/constants';
 
 type Props = {
-  hasV2ReleaseUIEnabled: boolean;
   router: InjectedRouter;
+  hasV2ReleaseUIEnabled?: boolean;
 };
 
-function Header({router, hasV2ReleaseUIEnabled}: Props) {
+function Header({router, hasV2ReleaseUIEnabled = false}: Props) {
   const [selected, setSelected] = useState(router.location.pathname);
 
   const location = router.location;

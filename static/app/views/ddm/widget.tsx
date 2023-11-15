@@ -17,10 +17,10 @@ import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {
   defaultMetricDisplayType,
-  getUnitFromMRI,
   MetricDisplayType,
   MetricsData,
   MetricsQuery,
+  parseMRI,
   updateQuery,
   useMetricsDataZoom,
 } from 'sentry/utils/metrics';
@@ -249,7 +249,9 @@ function MetricWidgetBody({
 }
 
 function getChartSeries(data: MetricsData, {focusedSeries, groupBy, hoveredLegend}) {
-  const unit = getUnitFromMRI(Object.keys(data.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
+  // this assumes that all series have the same unit
+  const parsed = parseMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
+  const unit = parsed?.unit ?? '';
 
   const series = data.groups.map(g => {
     return {
@@ -289,7 +291,10 @@ function getSeriesName(
   groupBy: MetricsQuery['groupBy']
 ) {
   if (isOnlyGroup && !groupBy?.length) {
-    return Object.keys(group.series)?.[0] ?? '(none)';
+    const mri = Object.keys(group.series)?.[0];
+    const parsed = parseMRI(mri);
+
+    return parsed?.name ?? '(none)';
   }
 
   return Object.entries(group.by)
@@ -343,7 +348,7 @@ export type Series = {
 const MetricWidgetPanel = styled(Panel)`
   padding-bottom: 0;
   margin-bottom: 0;
-  min-width: ${MIN_WIDGET_WIDTH};
+  min-width: ${MIN_WIDGET_WIDTH}px;
 `;
 
 const StyledMetricWidgetBody = styled('div')`

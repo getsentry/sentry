@@ -1,15 +1,10 @@
 import logging
 from datetime import datetime, timezone
-from typing import Any, Mapping, Optional, Sequence, TypedDict, Union, cast
+from typing import Any, Mapping, Optional, TypedDict, Union, cast
 
-from arroyo import Topic
-from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.commit import ONCE_PER_SECOND
-from arroyo.processing import StreamProcessor
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Commit, Message, Partition
-from django.conf import settings
 from typing_extensions import NotRequired
 
 from sentry.constants import DataCategory
@@ -17,46 +12,9 @@ from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTIO
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
 from sentry.utils import json
-from sentry.utils.kafka_config import get_kafka_consumer_cluster_options, get_topic_definition
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
-
-
-def get_metrics_billing_consumer(
-    group_id: str,
-    auto_offset_reset: str,
-    strict_offset_reset: bool,
-    force_topic: Union[str, None],
-    force_cluster: Union[str, None],
-) -> StreamProcessor[KafkaPayload]:
-    topic = force_topic or settings.KAFKA_SNUBA_GENERIC_METRICS
-    bootstrap_servers = _get_bootstrap_servers(topic, force_cluster)
-
-    return StreamProcessor(
-        consumer=KafkaConsumer(
-            build_kafka_consumer_configuration(
-                default_config={},
-                group_id=group_id,
-                strict_offset_reset=strict_offset_reset,
-                auto_offset_reset=auto_offset_reset,
-                bootstrap_servers=bootstrap_servers,
-            ),
-        ),
-        topic=Topic(topic),
-        processor_factory=BillingMetricsConsumerStrategyFactory(),
-        commit_policy=ONCE_PER_SECOND,
-    )
-
-
-def _get_bootstrap_servers(topic: str, force_cluster: Union[str, None]) -> Sequence[str]:
-    cluster = force_cluster or get_topic_definition(topic)["cluster"]
-
-    options = get_kafka_consumer_cluster_options(cluster)
-    servers = options["bootstrap.servers"]
-    if isinstance(servers, (list, tuple)):
-        return servers
-    return [servers]
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

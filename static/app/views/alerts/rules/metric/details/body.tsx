@@ -9,16 +9,17 @@ import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
+import type {ChangeData} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
@@ -151,15 +152,18 @@ export default function MetricDetailsBody({
   const isSnoozed = rule.snooze;
   const ruleActionCategory = getAlertRuleActionCategory(rule);
 
-  const isOnDemandAlert = isOnDemandMetricAlert(dataset, aggregate, query);
+  const showOnDemandMetricAlertUI =
+    isOnDemandMetricAlert(dataset, aggregate, query) &&
+    shouldShowOnDemandMetricAlertUI(organization);
+
   const showMigrationWarning =
     hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
 
-  const editThresholdLink =
+  const migrationFormLink =
     rule &&
     `/organizations/${organization.slug}/alerts/metric-rules/${
       project?.slug ?? rule?.projects?.[0]
-    }/${rule.id}/`;
+    }/${rule.id}/?migration=1`;
 
   return (
     <Fragment>
@@ -188,16 +192,15 @@ export default function MetricDetailsBody({
                   )}
             </Alert>
           )}
-          <StyledPageTimeRangeSelector
-            organization={organization}
+          <StyledTimeRangeSelector
             relative={timePeriod.period ?? ''}
             start={(timePeriod.custom && timePeriod.start) || null}
             end={(timePeriod.custom && timePeriod.end) || null}
-            utc={null}
-            onUpdate={handleTimePeriodChange}
+            onChange={handleTimePeriodChange}
             relativeOptions={relativeOptions}
             showAbsolute={false}
             disallowArbitraryRelativeRanges
+            triggerLabel={relativeOptions[timePeriod.period ?? '']}
           />
 
           {showMigrationWarning ? (
@@ -206,15 +209,15 @@ export default function MetricDetailsBody({
               showIcon
               trailingItems={
                 <LinkButton
-                  to={editThresholdLink}
+                  to={migrationFormLink}
                   size="xs"
                   icon={<IconEdit size="xs" />}
                 >
-                  {t('Edit')}
+                  {t('Review Thresholds')}
                 </LinkButton>
               }
             >
-              {t('The current thresholds for this alert could use some review')}
+              {t('The current thresholds for this alert could use some review.')}
             </Alert>
           ) : null}
 
@@ -229,7 +232,7 @@ export default function MetricDetailsBody({
             interval={getPeriodInterval()}
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
             filter={getFilter()}
-            isOnDemandAlert={isOnDemandAlert}
+            isOnDemandAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
           />
           <DetailWrapper>
             <ActivityWrapper>
@@ -264,7 +267,10 @@ export default function MetricDetailsBody({
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
-          <MetricDetailsSidebar rule={rule} isOnDemandMetricAlert={isOnDemandAlert} />
+          <MetricDetailsSidebar
+            rule={rule}
+            showOnDemandMetricAlertUI={showOnDemandMetricAlertUI}
+          />
         </Layout.Side>
       </Layout.Body>
     </Fragment>
@@ -303,6 +309,6 @@ const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
 `;
 
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   margin-bottom: ${space(2)};
 `;

@@ -1,4 +1,5 @@
 import abc
+import copy
 from typing import Collection, Dict
 from unittest.mock import patch
 
@@ -18,6 +19,9 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig, SdkName
+
+sdk_configs = [SDKCrashDetectionConfig(sdk_name=SdkName.Cocoa, project_id=1234, sample_rate=1.0)]
 
 
 @pytest.fixture
@@ -34,13 +38,12 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
         pass
 
     def execute_test(self, event_data, should_be_reported, mock_sdk_crash_reporter):
-
         event = self.create_event(
             data=event_data,
             project_id=self.project.id,
         )
 
-        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=1.0)
+        sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
 
         if should_be_reported:
             assert mock_sdk_crash_reporter.report.call_count == 1
@@ -72,7 +75,7 @@ class PerformanceEventTestMixin(
             fingerprint=[fingerprint],
         )
 
-        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=1.0)
+        sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
 
         assert mock_sdk_crash_reporter.report.call_count == 0
 
@@ -100,7 +103,7 @@ def test_sdks_detected(mock_sdk_crash_reporter, store_event, sdk_name, detected)
     set_path(event_data, "sdk", "name", value=sdk_name)
     event = store_event(data=event_data)
 
-    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=1.0)
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
 
     if detected:
         assert mock_sdk_crash_reporter.report.call_count == 1
@@ -308,6 +311,7 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
                 "raw_function": "closure #1 (MXDiagnosticPayload) in SentryMXManager.didReceive([MXDiagnosticPayload])",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
@@ -315,42 +319,49 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
                 "raw_function": "closure #1 (SentryMXCallStackTree) in closure #3 (MXCPUExceptionDiagnostic) in closure #1 (MXDiagnosticPayload) in SentryMXManager.didReceive([MXDiagnosticPayload])",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
                 "function": "-[SentryMetricKitIntegration captureEventNotPerThread:params:]",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
                 "function": "+[SentrySDK captureEvent:]",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
                 "function": "-[SentryFileManager readAppStateFrom:]",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
                 "function": "+[SentrySerialization appStateWithData:]",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
                 "function": "-[SentryAppState initWithJSONObject:]",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
                 "function": "+[NSDate(SentryExtras) sentry_fromIso8601String:]",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
@@ -445,24 +456,28 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
                 "function": "-[SentryANRTracker detectANRs]",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
                 "function": "-[SentryANRTracker ANRDetected]",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
                 "function": "-[SentryANRTrackingIntegration anrDetected]",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
             {
                 "function": "getStackEntriesFromThread",
                 "package": "Sentry.framework",
                 "abs_path": "Sentry.framework",
+                "filename": "Sentry.framework",
                 "in_app": True,
             },
         ]
@@ -708,7 +723,6 @@ class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
     @django_db_all
     def test_sdk_crash_event_stored_to_sdk_crash_project(self):
-
         cocoa_sdk_crashes_project = self.create_project(
             name="Cocoa SDK Crashes",
             slug="cocoa-sdk-crashes",
@@ -721,9 +735,12 @@ class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        sdk_crash_event = sdk_crash_detection.detect_sdk_crash(
-            event=event, event_project_id=cocoa_sdk_crashes_project.id, sample_rate=1.0
-        )
+        configs = [
+            SDKCrashDetectionConfig(
+                sdk_name=SdkName.Cocoa, project_id=cocoa_sdk_crashes_project.id, sample_rate=1.0
+            )
+        ]
+        sdk_crash_event = sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
         assert sdk_crash_event is not None
 
@@ -757,7 +774,10 @@ class SDKCrashDetectionTest(
 def test_sample_is_rate_zero(mock_sdk_crash_reporter, mock_random, store_event):
     event = store_event(data=get_crash_event())
 
-    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.0)
+    configs = copy.deepcopy(sdk_configs)
+    configs[0]["sample_rate"] = 0.0
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
     assert mock_sdk_crash_reporter.report.call_count == 0
 
@@ -769,11 +789,35 @@ def test_sample_is_rate_zero(mock_sdk_crash_reporter, mock_random, store_event):
 def test_sampling_rate(mock_sdk_crash_reporter, mock_random, store_event):
     event = store_event(data=get_crash_event())
 
+    configs = copy.deepcopy(sdk_configs)
+
     # not sampled
-    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.09)
-    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.1)
+    configs[0]["sample_rate"] = 0.09
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+
+    configs[0]["sample_rate"] = 0.1
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
     # sampled
-    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.11)
+    configs[0]["sample_rate"] = 0.11
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
     assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+def test_multiple_configs_first_one_picked(mock_sdk_crash_reporter, store_event):
+    event = store_event(data=get_crash_event())
+
+    configs = [
+        SDKCrashDetectionConfig(sdk_name=SdkName.Cocoa, project_id=1234, sample_rate=1.0),
+        SDKCrashDetectionConfig(sdk_name=SdkName.Cocoa, project_id=12345, sample_rate=1.0),
+    ]
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+    project_id = mock_sdk_crash_reporter.report.call_args.args[1]
+    assert project_id == 1234

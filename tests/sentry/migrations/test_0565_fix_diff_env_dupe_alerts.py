@@ -1,8 +1,11 @@
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.models.outbox import outbox_context
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("External actor replication won't work with project rule factories")
 class FixDiffEnvDupeAlerts(TestMigrations):
     migrate_from = "0564_commitfilechange_delete_language_column"
     migrate_to = "0565_fix_diff_env_dupe_alerts"

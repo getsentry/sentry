@@ -90,15 +90,15 @@ function NetworkList() {
       : undefined;
 
   const {
-    showJumpUpButton,
-    showJumpDownButton,
     handleClick: onClickToJump,
-    handleScroll,
+    onSectionRendered,
+    showJumpDownButton,
+    showJumpUpButton,
   } = useJumpButtons({
     currentTime,
     frames: filteredItems,
+    isTable: true,
     setScrollToRow,
-    rowHeight: BODY_HEIGHT,
   });
 
   const onClickCell = useCallback(
@@ -208,22 +208,22 @@ function NetworkList() {
                       </NoRowRenderer>
                     )}
                     onScrollbarPresenceChange={onScrollbarPresenceChange}
-                    onScroll={scrollParams => {
+                    onScroll={() => {
                       if (scrollToRow !== undefined) {
                         setScrollToRow(undefined);
                       }
-                      handleScroll(scrollParams);
                     }}
-                    scrollToRow={scrollToRow}
+                    onSectionRendered={onSectionRendered}
                     overscanColumnCount={COLUMN_COUNT}
                     overscanRowCount={5}
                     rowCount={items.length + 1}
                     rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
+                    scrollToRow={scrollToRow}
                     width={width}
                   />
                 )}
               </AutoSizer>
-              {sortConfig.by === 'startTimestamp' && networkFrames?.length ? (
+              {sortConfig.by === 'startTimestamp' && items.length ? (
                 <JumpButtons
                   jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
                   onClick={onClickToJump}

@@ -1,4 +1,5 @@
 import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {Project} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -9,19 +10,23 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('Frame Variables', function () {
   it('renders', async function () {
-    const project = TestStubs.Project({
-      id: '0',
+    const project = Project({id: '0'});
+    const projectDetails = Project({
+      ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/`,
+      body: projectDetails,
+    });
+    ProjectsStore.loadInitialData([project]);
 
     const {organization, router, routerContext} = initializeOrg({
       router: {
-        location: {query: {project: '0'}},
+        location: {query: {project: project.id}},
       },
       projects: [project],
     });
-
-    ProjectsStore.loadInitialData([project]);
 
     render(
       <FrameVariables

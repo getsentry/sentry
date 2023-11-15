@@ -236,6 +236,10 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
         kwargs["organization_context"] = organization_context
         kwargs["organization"] = organization_context.organization
+
+        # Used for API access logs
+        request._request.organization = organization_context.organization  # type: ignore
+
         return (args, kwargs)
 
 

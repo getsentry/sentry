@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Sequence, Type
 
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.producer import produce_occurrence_to_kafka
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 
 
 def new_issue_occurrence(
@@ -53,4 +53,6 @@ def new_issue_occurrence(
     }
     event_data.update(extra_event_data)
 
-    produce_occurrence_to_kafka(occurrence, event_data=event_data)
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
+    )

@@ -143,8 +143,8 @@ export type MetricChartData = {
   timeseriesData: Series[];
   handleIncidentClick?: (incident: Incident) => void;
   incidents?: Incident[];
-  isOnDemandMetricAlert?: boolean;
   selectedIncident?: Incident | null;
+  showWaitingForData?: boolean;
 };
 
 type MetricChartOption = {
@@ -161,7 +161,7 @@ export function getMetricAlertChartOption({
   incidents,
   selectedIncident,
   handleIncidentClick,
-  isOnDemandMetricAlert,
+  showWaitingForData,
 }: MetricChartData): MetricChartOption {
   const criticalTrigger = rule.triggers.find(
     ({label}) => label === AlertRuleTriggerType.CRITICAL
@@ -207,7 +207,7 @@ export function getMetricAlertChartOption({
     createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
   );
 
-  if (isOnDemandMetricAlert) {
+  if (showWaitingForData) {
     const {startIndex, endIndex} = getWaitingForDataRange(dataArr);
     const startTime = new Date(dataArr[startIndex]?.name).getTime();
     const endTime = new Date(dataArr[endIndex]?.name).getTime();

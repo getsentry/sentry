@@ -16,7 +16,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
-import MetricRulesDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
+import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertType as WizardAlertType,
@@ -151,7 +151,7 @@ class Create extends Component<Props, State> {
                   {hasMetricAlerts &&
                     alertType === AlertRuleType.METRIC &&
                     (this.isDuplicateRule ? (
-                      <MetricRulesDuplicate
+                      <MetricRuleDuplicate
                         {...this.props}
                         eventView={eventView}
                         wizardTemplate={wizardTemplate}

@@ -57,6 +57,7 @@ interface FlamegraphContextMenuProps {
   onHighlightAllOccurrencesClick: () => void;
   profileGroup: ProfileGroup | null;
   disableCallOrderSort?: boolean;
+  disableColorCoding?: boolean;
 }
 
 function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean {
@@ -223,21 +224,23 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             )}
           </ProfilingContextMenuGroup>
         ) : null}
-        <ProfilingContextMenuGroup>
-          <ProfilingContextMenuHeading>{t('Color Coding')}</ProfilingContextMenuHeading>
-          {FLAMEGRAPH_COLOR_CODINGS.map((coding, idx) => (
-            <ProfilingContextMenuItemCheckbox
-              key={idx}
-              {...props.contextMenu.getMenuItemProps({
-                onClick: () => dispatch({type: 'set color coding', payload: coding}),
-              })}
-              onClick={() => dispatch({type: 'set color coding', payload: coding})}
-              checked={preferences.colorCoding === coding}
-            >
-              {coding}
-            </ProfilingContextMenuItemCheckbox>
-          ))}
-        </ProfilingContextMenuGroup>
+        {props.disableColorCoding ? null : (
+          <ProfilingContextMenuGroup>
+            <ProfilingContextMenuHeading>{t('Color Coding')}</ProfilingContextMenuHeading>
+            {FLAMEGRAPH_COLOR_CODINGS.map((coding, idx) => (
+              <ProfilingContextMenuItemCheckbox
+                key={idx}
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => dispatch({type: 'set color coding', payload: coding}),
+                })}
+                onClick={() => dispatch({type: 'set color coding', payload: coding})}
+                checked={preferences.colorCoding === coding}
+              >
+                {coding}
+              </ProfilingContextMenuItemCheckbox>
+            ))}
+          </ProfilingContextMenuGroup>
+        )}
         <ProfilingContextMenuGroup>
           <ProfilingContextMenuHeading>{t('View')}</ProfilingContextMenuHeading>
           {FLAMEGRAPH_VIEW_OPTIONS.map((view, idx) => (

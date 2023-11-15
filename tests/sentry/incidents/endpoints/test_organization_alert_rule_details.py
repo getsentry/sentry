@@ -42,7 +42,7 @@ pytestmark = [requires_snuba]
 
 
 class AlertRuleDetailsBase(AlertRuleBase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-alert-rule-details"
 
@@ -1212,6 +1212,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         project = self.create_project(name="boo", organization=self.organization, teams=[team])
         alert_rule = self.create_alert_rule(projects=[project])
         alert_rule.owner = team.actor
+        alert_rule.team_id = team.id
         alert_rule.save()
 
         other_user = self.create_user()
@@ -1222,6 +1223,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         )
         other_alert_rule = self.create_alert_rule(projects=[other_project])
         other_alert_rule.owner = other_team.actor
+        other_alert_rule.team_id = other_team.id
         other_alert_rule.save()
 
         with self.feature("organizations:incidents"):

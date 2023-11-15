@@ -28,7 +28,7 @@ class ProjectUserStatsEndpoint(EnvironmentMixin, ProjectEndpoint):
         now = timezone.now()
         then = now - timedelta(days=30)
 
-        results = tsdb.get_distinct_counts_series(
+        results = tsdb.backend.get_distinct_counts_series(
             TSDBModel.users_affected_by_project,
             (project.id,),
             then,

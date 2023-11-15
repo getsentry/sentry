@@ -1,5 +1,6 @@
 from typing import Any, Dict
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 from sentry_sdk import Client, Hub, Transport
@@ -77,8 +78,8 @@ def hub():
             dsn="http://foo@example.invalid/42",
             transport=DummyTransport,
             _experiments={
-                "enable_metrics": True,  # type: ignore
-                "before_emit_metric": before_emit_metric,
+                "enable_metrics": True,
+                "before_emit_metric": before_emit_metric,  # type:ignore
             },
         )
     )
@@ -171,9 +172,10 @@ def test_incr_called_with_tag_value_as_list(backend, hub):
     {
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
+        "delightful_metrics.emit_gauges": False,
     }
 )
-def test_gauge_as_counter(backend, hub):
+def test_gauge_as_count(backend, hub):
     # The minimetrics backend supports the list type.
     backend.gauge(key="foo", value=42.0)
     full_flush(hub)
@@ -184,6 +186,29 @@ def test_gauge_as_counter(backend, hub):
     assert metrics[0][1] == "sentrytest.foo@none"
     assert metrics[0][2] == "c"
     assert metrics[0][3] == ["42.0"]
+
+    assert len(hub.client.metrics_aggregator.buckets) == 0
+
+
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
+@override_options(
+    {
+        "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": True,
+        "delightful_metrics.emit_gauges": True,
+    }
+)
+def test_gauge(backend, hub):
+    # The minimetrics backend supports the list type.
+    backend.gauge(key="foo", value=42.0)
+    full_flush(hub)
+
+    metrics = hub.client.transport.get_metrics()
+
+    assert len(metrics) == 1
+    assert metrics[0][1] == "sentrytest.foo@none"
+    assert metrics[0][2] == "g"
+    assert metrics[0][3] == ["42.0", "42.0", "42.0", "42.0", "1"]
 
     assert len(hub.client.metrics_aggregator.buckets) == 0
 
@@ -228,6 +253,76 @@ def test_composite_backend_does_not_recurse(hub):
     assert metrics[0][4]["x"] == "bar"
 
     assert len(hub.client.metrics_aggregator.buckets) == 0
+
+
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
+@override_options(
+    {
+        "delightful_metrics.minimetrics_sample_rate": 1.0,
+    }
+)
+@patch("sentry.metrics.minimetrics.sentry_sdk")
+@pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
+def test_unit_is_correctly_propagated_for_incr(sentry_sdk, unit, expected_unit):
+    backend = MiniMetricsMetricsBackend(prefix="")
+
+    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}, "unit": unit}
+
+    # We want to mutate the params since `value` is passed as `amount`.
+    incr_params = params.copy()
+    del incr_params["value"]
+    incr_params["amount"] = params["value"]
+    backend.incr(**incr_params)
+    assert sentry_sdk.metrics.incr.call_args.kwargs == {**params, "unit": expected_unit}
+
+
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
+@override_options(
+    {
+        "delightful_metrics.minimetrics_sample_rate": 1.0,
+    }
+)
+@patch("sentry.metrics.minimetrics.sentry_sdk")
+@pytest.mark.parametrize("unit,expected_unit", [(None, "second"), ("second", "second")])
+def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit):
+    backend = MiniMetricsMetricsBackend(prefix="")
+
+    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}}
+
+    backend.timing(**params)  # type:ignore
+    assert sentry_sdk.metrics.distribution.call_args.kwargs == {**params, "unit": expected_unit}
+
+
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
+@override_options(
+    {"delightful_metrics.minimetrics_sample_rate": 1.0, "delightful_metrics.emit_gauges": True}
+)
+@patch("sentry.metrics.minimetrics.sentry_sdk")
+@pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
+def test_unit_is_correctly_propagated_for_gauge(sentry_sdk, unit, expected_unit):
+    backend = MiniMetricsMetricsBackend(prefix="")
+
+    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}, "unit": unit}
+
+    backend.gauge(**params)
+    assert sentry_sdk.metrics.gauge.call_args.kwargs == {**params, "unit": expected_unit}
+
+
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
+@override_options(
+    {
+        "delightful_metrics.minimetrics_sample_rate": 1.0,
+    }
+)
+@patch("sentry.metrics.minimetrics.sentry_sdk")
+@pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
+def test_unit_is_correctly_propagated_for_distribution(sentry_sdk, unit, expected_unit):
+    backend = MiniMetricsMetricsBackend(prefix="")
+
+    params = {"key": "sentrytest.unit", "value": 15.0, "tags": {"x": "bar"}, "unit": unit}
+
+    backend.distribution(**params)
+    assert sentry_sdk.metrics.distribution.call_args.kwargs == {**params, "unit": expected_unit}
 
 
 def test_did_you_remove_type_ignore():

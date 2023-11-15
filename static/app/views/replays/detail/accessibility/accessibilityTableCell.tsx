@@ -10,7 +10,7 @@ import {
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconInfo, IconWarning} from 'sentry/icons';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yRecord';
+import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import {Color} from 'sentry/utils/theme';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';

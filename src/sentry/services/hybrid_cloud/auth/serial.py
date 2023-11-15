@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.services.hybrid_cloud.auth import (
     RpcApiKey,
+    RpcApiToken,
     RpcAuthIdentity,
     RpcAuthProvider,
     RpcAuthProviderFlags,
@@ -71,7 +73,21 @@ def serialize_api_key(ak: ApiKey) -> RpcApiKey:
         organization_id=ak.organization_id,
         key=ak.key,
         status=ak.status,
-        allowed_origins=ak.get_allowed_origins(),
+        allowed_origins=list(ak.get_allowed_origins()),
         label=ak.label,
         scope_list=ak.get_scopes(),
+    )
+
+
+def serialize_api_token(at: ApiToken) -> RpcApiToken:
+    return RpcApiToken(
+        id=at.id,
+        user_id=at.user_id,
+        application_id=at.application_id,
+        organization_id=at.organization_id,
+        application_is_active=at.application_id is None or at.application.is_active,
+        token=at.token,
+        expires_at=at.expires_at,
+        allowed_origins=list(at.get_allowed_origins()),
+        scope_list=at.get_scopes(),
     )

@@ -99,7 +99,8 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             )
 
     @patch("sentry.analytics.record")
-    def test_sends_digest_to_every_member(self, mock_record):
+    @patch("sentry.notifications.notifications.digest.logger")
+    def test_sends_digest_to_every_member(self, mock_logger, mock_record):
         """Test that each member of the project the events are created in receive a digest email notification"""
         event_count = 4
         self.run_test(event_count=event_count, performance_issues=True, generic_issues=True)
@@ -120,7 +121,6 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             alert_id=self.rule.id,
             project_id=self.project.id,
             organization_id=self.organization.id,
-            actor_id=ANY,
             id=ANY,
             actor_type="User",
             group_id=None,
@@ -135,6 +135,17 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             alert_type="issue_alert",
             external_id=ANY,
             notification_uuid=ANY,
+        )
+        mock_logger.info.assert_called_with(
+            "mail.adapter.notify_digest",
+            extra={
+                "project_id": self.project.id,
+                "target_type": "IssueOwners",
+                "target_identifier": None,
+                "team_ids": ANY,
+                "user_ids": ANY,
+                "notification_uuid": ANY,
+            },
         )
 
     def test_sends_alert_rule_notification_to_each_member(self):

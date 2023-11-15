@@ -4,6 +4,7 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from drf_spectacular.utils import extend_schema
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
@@ -18,7 +19,6 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -26,6 +26,7 @@ from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
     MonitorLimitsExceeded,
+    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
 )
@@ -71,6 +72,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.CRONS
     permission_classes = (OrganizationMonitorPermission,)
 
     @extend_schema(
@@ -98,7 +100,12 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         queryset = Monitor.objects.filter(
             organization_id=organization.id, project_id__in=filter_params["project_id"]
-        ).exclude(status__in=[ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS])
+        ).exclude(
+            status__in=[
+                MonitorObjectStatus.PENDING_DELETION,
+                MonitorObjectStatus.DELETION_IN_PROGRESS,
+            ]
+        )
         query = request.GET.get("query")
 
         environments = None

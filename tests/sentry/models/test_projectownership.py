@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.models.actor import ActorTuple
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.groupassignee import GroupAssignee
@@ -404,6 +406,39 @@ class ProjectOwnershipTestCase(TestCase):
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.user_id == self.user.id
+
+    @patch("sentry.models.GroupAssignee.objects.assign")
+    def test_handle_skip_auto_assignment_same_assignee(self, mock_assign):
+        """Test that if an issue has already been assigned, we skip the assignment
+        on a future event with auto-assignment if the assignee won't change.
+        """
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_c = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_c])
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_c)},
+        )
+        GroupAssignee.objects.create(group=self.event.group, project=self.project, team=self.team)
+
+        # ensure we skip calling assign
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        mock_assign.assert_not_called()
 
     def test_handle_auto_assignment_when_codeowners_and_issueowners_exists(self):
         self.code_mapping = self.create_code_mapping(project=self.project2)

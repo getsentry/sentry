@@ -17,7 +17,7 @@ describe('AccountClose', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/organizations/?owner=1',
+      url: '/organizations/',
       body: [
         {
           organization: Organization({
@@ -46,7 +46,7 @@ describe('AccountClose', function () {
     renderGlobalModal();
 
     // Input for single owner org
-    const singleOwner = screen.getByRole('checkbox', {name: soloOrgSlug});
+    const singleOwner = await screen.findByRole('checkbox', {name: soloOrgSlug});
     expect(singleOwner).toBeChecked();
     expect(singleOwner).toBeDisabled();
 

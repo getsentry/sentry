@@ -78,6 +78,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     },
     [sort],
     cursor,
+    [],
     Boolean(span[SpanMetricsField.SPAN_GROUP])
   );
 

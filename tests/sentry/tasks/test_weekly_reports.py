@@ -167,6 +167,18 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         deliver_reports(ctx)
         assert mock_send_email.call_count == 0
 
+    @mock.patch("sentry.tasks.weekly_reports.send_email")
+    def test_invited_member(self, mock_send_email):
+        ctx = OrganizationReportContext(0, 0, self.organization)
+
+        # create a member without a user
+        OrganizationMember.objects.create(
+            organization=self.organization, email="different.email@example.com", token="abc"
+        )
+
+        deliver_reports(ctx, use_notifications_v2=True)
+        assert mock_send_email.call_count == 1
+
     def test_organization_project_issue_summaries(self):
         self.login_as(user=self.user)
 

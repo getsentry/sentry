@@ -1,7 +1,3 @@
-import {BadgeType} from 'sentry/components/featureBadge';
-
-export const RELEASE_LEVEL: BadgeType = 'new';
-
 export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.python': '1.29.2',
   'sentry.javascript': '7.63.0',
@@ -13,3 +9,7 @@ export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.symfony': '4.11.0',
   'sentry.android': '6.30.0',
 };
+
+export const DEFAULT_DURATION_AGGREGATE = 'avg';
+
+export const CHART_HEIGHT = 160;

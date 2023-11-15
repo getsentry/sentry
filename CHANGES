@@ -1,3 +1,75 @@
+23.11.0
+-------
+
+### Notification Settings 2.0 (ongoing)
+
+By: @scttcper (#58638, #58615)
+
+### Resource Module Internal (ongoing)
+
+By: @DominikB2014 (#58939, #58937, #58891, #58785, #58768, #58792, #58770)
+
+### Various fixes & improvements
+
+- fix(wizard) Fix possibly unbound variable in setup wizard (#59934) by @markstory
+- fix(starfish): Primary release can be undefined, check for it (#59993) by @shruthilayaj
+- feat(webvitals): Check if ttfb exists to determine proper no data state (#59912) by @edwardgou-sentry
+- feat(starfish): Highlight TTFD and link to docs when 0 (#59997) by @narsaynorath
+- fix(stafish): Fix typo in variable name (#59988) by @gggritso
+- feat(spans): Record resource spans for clustering (#58689) by @jjbayer
+- feat(metric-extraction): validate specs (#59981) by @obostjancic
+- ref(browser-starfish): use the shared domain selector in resource module (#59950) by @DominikB2014
+- feat(database): "View Query Summary" links in span waterfall (#59785) by @gggritso
+- chore(starfish): Rename breadcrumb, remove duplicate sidebar item (#59980) by @shruthilayaj
+- feat(profiling): add differential flamegraph boilerplate to statistical issue (#59905) by @JonasBa
+- feat(starfish): Use short release version and truncate (#59936) by @shruthilayaj
+- Unrevert "fix(metrics-extraction): Explicitly set metric type for metrics querying (#59931)" (#59960) by @k-fish
+- fix(email): alerts migration email text (#59975) by @obostjancic
+- feat(metrics) Check max orgs per project limit when creating investigation rules (#59852) by @RaduW
+- feat(ddm-alerts): Add force metrics layer params (#59974) by @ArthurKnaus
+- fix(project-create): Use large icon variant in framework suggestion (#59969) by @ArthurKnaus
+- ref: upgrade mypy to 1.7.0 (#59937) by @asottile-sentry
+- Move metadata from `File` to `EventAttachment` (#59845) by @Swatinem
+- Revert "feat(metric-extraction): validate specs (#59894)" (dc20e27c) by @getsentry-bot
+- feat(metric-extraction): validate specs (#59894) by @obostjancic
+- feat(ddm): Add option to forcefully use the new metrics layer (#59898) by @iambriccardo
+- feat(open-pr-comments): get PR files (#59933) by @cathteng
+- fix(feedback): Remove feedback item update on feedback list change (#59947) by @c298lee
+
+_Plus 1016 more_
+
+23.10.1
+-------
+
+### Various fixes & improvements
+
+- fix(hybridcloud) Fix a queue silo assignment (#58386) by @markstory
+- feat(migrations): Add new index to `IncidentTrigger` model (#58467) by @isabellaenriquez
+- feat(suspect-commits): Remove suspect commit recalculation period (when all-frames is enabled) (#58415) by @malwilley
+- fix(starfish): Pass webvital to charts in Webvitals module (#58517) by @edwardgou-sentry
+- feat(hc): Add __str__ implementation for RpcUser (#58485) by @mrduncan
+- Revert "feat(replays): Replay layout move start time (#58488)" (80e576dd) by @getsentry-bot
+- Revert "feat(replays): Replay layout add breadcrumbs to fullscreen mode (#58466)" (7f6fe452) by @getsentry-bot
+- feat(replays): Replay layout move start time (#58488) by @c298lee
+- feat(replays): Replay layout add breadcrumbs to fullscreen mode (#58466) by @c298lee
+- fix(alerts): use generic metrics dataset for on demand (#58510) by @obostjancic
+- fix(on-demand): Fix p100 and percentiles (#58511) by @iambriccardo
+- feat(dynamic-sampling):Add raw_query and user relation to custom_rules model (second try) (#58447) by @RaduW
+- fix(alerts): on demand migration ui (#58508) by @obostjancic
+- Revert "fix(alerts): Fix dataset selector width (#58499)" (#58501) by @ArthurKnaus
+- fix(on-demand): p100 support (#58500) by @obostjancic
+- fix(alerts): Fix dataset selector width (#58499) by @ArthurKnaus
+- fix(on-demand): remove p90 (#58496) by @obostjancic
+- feat(on-demand): conditionally show on-demand UI (#58330) by @obostjancic
+- ref(escalating-issues): Change batch size to 100 (#58489) by @NisanthanNanthakumar
+- Add Papercut label (ff80fbb5) by @chadwhitacre
+- chore(replay): Cleanup DOM Tab test, before we remove the tab itself (#58486) by @ryan953
+- feat(replay): Add Jump up|down buttons to all the Replay Details tables & lists (#58359) by @ryan953
+- chore(agg-spans): Update language on span frequency (#58484) by @shruthilayaj
+- fix(statistical-detectors): Feature flags in wrong place (#58483) by @Zylphrex
+
+_Plus 209 more_
+
 23.10.0
 -------
 

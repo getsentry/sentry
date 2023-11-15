@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
-import {IconCursorArrow} from 'sentry/icons';
+import TimeSince from 'sentry/components/timeSince';
+import {IconCalendar, IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
@@ -37,12 +37,28 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
 
   return (
     <KeyMetrics>
+      <KeyMetricLabel>{t('Start Time')}</KeyMetricLabel>
+      <KeyMetricData>
+        {replayRecord ? (
+          <TimeContainer>
+            <IconCalendar color="gray300" size="sm" />
+            <TimeSince
+              date={replayRecord.started_at}
+              isTooltipHoverable
+              unitStyle="regular"
+            />
+          </TimeContainer>
+        ) : (
+          <HeaderPlaceholder width="80px" height="16px" />
+        )}
+      </KeyMetricData>
+
       <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_dead_clicks ? (
           <Link to={breadcrumbTab}>
-            <ClickCount color="yellow300">
-              <IconCursorArrow size="sm" />
+            <ClickCount>
+              <IconCursorArrow size="sm" color="yellow300" />
               {replayRecord.count_dead_clicks}
             </ClickCount>
           </Link>
@@ -54,9 +70,9 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
       <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord?.count_rage_clicks ? (
-          <Link to={breadcrumbTab} color="red300">
-            <ClickCount color="red300">
-              <IconCursorArrow size="sm" />
+          <Link to={breadcrumbTab}>
+            <ClickCount>
+              <IconCursorArrow size="sm" color="red300" />
               {replayRecord.count_rage_clicks}
             </ClickCount>
           </Link>
@@ -80,7 +96,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
 const KeyMetrics = styled('dl')`
   display: grid;
   grid-template-rows: max-content 1fr;
-  grid-template-columns: repeat(4, max-content);
+  grid-template-columns: repeat(5, max-content);
   grid-auto-flow: column;
   gap: 0 ${space(3)};
   align-items: center;
@@ -110,10 +126,16 @@ const Count = styled('span')`
   font-variant-numeric: tabular-nums;
 `;
 
-const ClickCount = styled(Count)<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
+const ClickCount = styled(Count)`
+  color: ${p => p.theme.gray300};
   display: flex;
   gap: ${space(0.75)};
+  align-items: center;
+`;
+
+const TimeContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
 

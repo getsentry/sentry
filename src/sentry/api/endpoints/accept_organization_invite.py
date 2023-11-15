@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Mapping, Optional
 
 from django.urls import reverse
@@ -24,6 +25,8 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
+
+logger = logging.getLogger(__name__)
 
 
 def get_invite_state(
@@ -52,6 +55,11 @@ def get_invite_state(
 
         if member_mapping is None:
             return None
+
+        logger.info(
+            "organization.member_invite.no_slug",
+            extra={"member_id": member_id, "org_id": member_mapping.organization_id},
+        )
         invite_context = organization_service.get_invite_by_id(
             organization_id=member_mapping.organization_id,
             organization_member_id=member_id,

@@ -1,13 +1,22 @@
+import {ReactNode} from 'react';
 import {Organization} from 'sentry-fixture/organization';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory} from 'sentry/types';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import useReplaysCount from './useReplaysCount';
 
 jest.mock('sentry/utils/useLocation');
+
+function wrapper({children}: {children?: ReactNode}) {
+  return (
+    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
+  );
+}
 
 describe('useReplaysCount', () => {
   const mockGroupIds = ['123', '456'];
@@ -30,6 +39,7 @@ describe('useReplaysCount', () => {
 
   it('should throw if none of groupIds, replayIds, transactionNames is provided', () => {
     const {result} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
       },
@@ -39,6 +49,7 @@ describe('useReplaysCount', () => {
 
   it('should throw if more than one of groupIds, replayIds, transactionNames are provided', () => {
     const {result: result1} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: [],
@@ -48,6 +59,7 @@ describe('useReplaysCount', () => {
     expect(result1.error).toBeTruthy();
 
     const {result: result2} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: [],
@@ -57,6 +69,7 @@ describe('useReplaysCount', () => {
     expect(result2.error).toBeTruthy();
 
     const {result: result3} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         replayIds: [],
@@ -74,6 +87,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: mockGroupIds,
@@ -104,6 +118,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         issueCategory: IssueCategory.PERFORMANCE,
@@ -137,6 +152,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: mockGroupIds,
@@ -162,6 +178,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: mockGroupIds,
@@ -221,6 +238,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         groupIds: mockGroupIds,
@@ -266,6 +284,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         replayIds: mockReplayIds,
@@ -298,6 +317,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         replayIds: mockReplayIds,
@@ -323,6 +343,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         transactionNames: mockTransactionNames,
@@ -355,6 +376,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         transactionNames: mockTransactionNames,
@@ -381,6 +403,7 @@ describe('useReplaysCount', () => {
     const mockDate = new Date(Date.now());
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         transactionNames: mockTransactionNames,
@@ -416,6 +439,7 @@ describe('useReplaysCount', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      wrapper,
       initialProps: {
         organization,
         transactionNames: mockTransactionNames,

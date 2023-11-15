@@ -60,7 +60,7 @@ class JiraDescriptorEndpoint(Endpoint):
                         "name": {"value": "Configure Sentry Add-on"},
                         "key": "configure-sentry",
                     },
-                    "jiraIssueGlances": [
+                    "jiraIssueContexts": [
                         {
                             "icon": {"width": 24, "height": 24, "url": sentry_logo},
                             "content": {"type": "label", "label": {"value": "Linked Issues"}},

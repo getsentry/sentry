@@ -130,6 +130,7 @@ export interface Member {
     'idp:provisioned': boolean;
     'idp:role-restricted': boolean;
     'member-limit:restricted': boolean;
+    'partnership:restricted': boolean;
     'sso:invalid': boolean;
     'sso:linked': boolean;
   };
@@ -325,6 +326,8 @@ export enum SessionFieldWithOperation {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
   DURATION = 'p50(session.duration)',
+  CRASH_FREE_RATE_USERS = 'crash_free_rate(user)',
+  CRASH_FREE_RATE_SESSIONS = 'crash_free_rate(session)',
 }
 
 export enum SessionStatus {

@@ -11,7 +11,7 @@ from .mail import MailPreview
 
 class DebugMfaRemovedEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
-        authenticator = Authenticator(id=0, type=3, user=request.user)  # u2f
+        authenticator = Authenticator(id=0, type=3, user_id=request.user.id)  # u2f
 
         email = generate_security_email(
             account=request.user,

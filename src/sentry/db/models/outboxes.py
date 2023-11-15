@@ -23,7 +23,7 @@ from sentry_sdk.api import capture_exception
 from sentry.db.models import BaseManager, Model
 from sentry.signals import post_upgrade
 from sentry.silo import SiloMode
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.region import find_regions_for_orgs, find_regions_for_user
 from sentry.utils.env import in_test_environment
 from sentry.utils.snowflake import SnowflakeIdMixin
 
@@ -365,6 +365,8 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         """
         if hasattr(self, "organization_id"):
             return find_regions_for_orgs([self.organization_id])
+        if hasattr(self, "user_id"):
+            return find_regions_for_user(self.user_id)
         # Note that a default implementation for user_id is NOT given, because handling the case where a user
         # joins a new organization after the last outbox was processed is a special case that requires special handling.
         raise NotImplementedError

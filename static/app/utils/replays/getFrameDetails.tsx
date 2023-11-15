@@ -1,5 +1,6 @@
 import {ReactNode} from 'react';
 
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCursorArrow,
@@ -79,7 +80,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
         ),
         icon: <IconCursorArrow size="xs" />,
         title: isDeadRageClick(frame) ? 'Rage Click' : 'Dead Click',
-        tabKey: TabKey.DOM,
+        tabKey: TabKey.BREADCRUMBS,
       };
     }
     return {
@@ -93,7 +94,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       ),
       icon: <IconWarning size="xs" />,
       title: 'Slow Click',
-      tabKey: TabKey.DOM,
+      tabKey: TabKey.BREADCRUMBS,
     };
   },
   'ui.multiClick': (frame: MultiClickFrame) => {
@@ -104,7 +105,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
           clickCount: frame.data.clickCount,
           selector: stringifyNodeAttributes(frame.data.node),
         }),
-        tabKey: TabKey.DOM,
+        tabKey: TabKey.BREADCRUMBS,
         title: 'Rage Click',
         icon: <IconFire size="xs" />,
       };
@@ -116,7 +117,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
         clickCount: frame.data.clickCount,
         selector: stringifyNodeAttributes(frame.data.node),
       }),
-      tabKey: TabKey.DOM,
+      tabKey: TabKey.BREADCRUMBS,
       title: 'Multi Click',
       icon: <IconWarning size="xs" />,
     };
@@ -124,50 +125,64 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   'replay.mutations': (frame: MutationFrame) => ({
     color: 'yellow300',
     description: frame.data.limit
-      ? t(
-          'A large number of mutations was detected (%s). Replay is now stopped to prevent poor performance for your customer.',
-          frame.data.count
+      ? tct(
+          'A large number of mutations was detected [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
+          {
+            count: frame.data.count,
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#mutation-limits">
+                {t('Learn more.')}
+              </ExternalLink>
+            ),
+          }
         )
-      : t(
-          'A large number of mutations was detected (%s). This can slow down the Replay SDK and impact your customers.',
-          frame.data.count
+      : tct(
+          'A large number of mutations was detected [count]. This can slow down the Replay SDK and impact your customers. [link]',
+          {
+            count: frame.data.count,
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#mutation-limits">
+                {t('Learn more.')}
+              </ExternalLink>
+            ),
+          }
         ),
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'Replay',
     icon: <IconWarning size="xs" />,
   }),
   'ui.click': frame => ({
     color: 'purple300',
     description: frame.message ?? '',
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
   }),
   'ui.input': () => ({
     color: 'purple300',
     description: 'User Action',
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'User Input',
     icon: <IconInput size="xs" />,
   }),
   'ui.keyDown': () => ({
     color: 'purple300',
     description: 'User Action',
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'User KeyDown',
     icon: <IconKeyDown size="xs" />,
   }),
   'ui.blur': () => ({
     color: 'purple300',
     description: 'User Action',
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'User Blur',
     icon: <IconUser size="xs" />,
   }),
   'ui.focus': () => ({
     color: 'purple300',
     description: 'User Action',
-    tabKey: TabKey.DOM,
+    tabKey: TabKey.BREADCRUMBS,
     title: 'User Focus',
     icon: <IconUser size="xs" />,
   }),

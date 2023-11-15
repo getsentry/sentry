@@ -1,20 +1,26 @@
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
-import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
+import Onboarding from 'sentry/views/performance/onboarding';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
@@ -27,9 +33,23 @@ import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 function DatabaseLandingPage() {
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
+  const location = useLocation();
+  const onboardingProject = useOnboardingProject();
 
+  const spanDescription = decodeScalar(location.query?.['span.description'], '');
   const moduleFilters = useModuleFilters();
   const sort = useModuleSort(QueryParameterNames.SPANS_SORT);
+
+  const handleSearch = (newQuery: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        'span.description': newQuery === '' ? undefined : newQuery,
+        cursor: undefined,
+      },
+    });
+  };
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
@@ -48,17 +68,14 @@ function DatabaseLandingPage() {
             ]}
           />
 
-          <Layout.Title>
-            {t('Queries')}
-            <FeatureBadge type={RELEASE_LEVEL} />
-          </Layout.Title>
+          <Layout.Title>{t('Queries')}</Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <NoDataMessage Wrapper={AlertBanner} />
-
+          {!onboardingProject && <NoDataMessage Wrapper={AlertBanner} />}
+          <FeedbackWidget />
           <PaddedContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
@@ -67,21 +84,33 @@ function DatabaseLandingPage() {
             </PageFilterBar>
           </PaddedContainer>
 
-          <SpanTimeCharts moduleName={moduleName} appliedFilters={moduleFilters} />
+          {onboardingProject && (
+            <Onboarding organization={organization} project={onboardingProject} />
+          )}
+          {!onboardingProject && (
+            <Fragment>
+              <SpanTimeCharts moduleName={moduleName} appliedFilters={{}} />
+              <FilterOptionsContainer>
+                <ActionSelector
+                  moduleName={moduleName}
+                  value={moduleFilters[SpanMetricsField.SPAN_ACTION] || ''}
+                />
 
-          <FilterOptionsContainer>
-            <ActionSelector
-              moduleName={moduleName}
-              value={moduleFilters[SpanMetricsField.SPAN_ACTION] || ''}
-            />
-
-            <DomainSelector
-              moduleName={moduleName}
-              value={moduleFilters[SpanMetricsField.SPAN_DOMAIN] || ''}
-            />
-          </FilterOptionsContainer>
-
-          <SpansTable moduleName={moduleName} sort={sort} limit={LIMIT} />
+                <DomainSelector
+                  moduleName={moduleName}
+                  value={moduleFilters[SpanMetricsField.SPAN_DOMAIN] || ''}
+                />
+              </FilterOptionsContainer>
+              <SearchBarContainer>
+                <SearchBar
+                  query={spanDescription}
+                  placeholder={t('Search for more Queries')}
+                  onSearch={handleSearch}
+                />
+              </SearchBarContainer>
+              <SpansTable moduleName={moduleName} sort={sort} limit={LIMIT} />
+            </Fragment>
+          )}
         </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>
@@ -102,6 +131,10 @@ const FilterOptionsContainer = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
   max-width: 800px;
+`;
+
+const SearchBarContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const LIMIT: number = 25;

@@ -1,29 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {Index, IndexRange} from 'react-virtualized';
 
-import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
-import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
-import {RawFeedbackListResponse} from 'sentry/utils/feedback/list/types';
+import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {FeedbackIssueList} from 'sentry/utils/feedback/types';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-
-interface Params {
-  queryView: {
-    collapse: string[];
-    expand: string[];
-    limit: number;
-    queryReferrer: string;
-    shortIdLookup: number;
-    end?: string;
-    environment?: string[];
-    field?: string[];
-    project?: string[];
-    query?: string;
-    start?: string;
-    statsPeriod?: string;
-    utc?: string;
-  };
-}
 
 export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   typeof useFetchFeedbackInfiniteListData
@@ -40,20 +20,12 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   isRowLoaded: () => false,
   issues: [],
   loadMoreRows: () => Promise.resolve(),
-  setFeedback: () => undefined,
+  hits: 0,
 };
 
-export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
-  const organization = useOrganization();
-
-  const query = useMemo(
-    () => ({
-      ...queryView,
-      query: 'issue.category:feedback ' + queryView.query,
-    }),
-    [queryView]
-  );
-
+export default function useFetchFeedbackInfiniteListData() {
+  const {getListQueryKey} = useFeedbackQueryKeys();
+  const queryKey = getListQueryKey();
   const {
     data,
     error,
@@ -64,17 +36,17 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
     isFetchingNextPage,
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
-  } = useInfiniteApiQuery<RawFeedbackListResponse>({
-    queryKey: [`/organizations/${organization.slug}/issues/`, {query}],
+  } = useInfiniteApiQuery<FeedbackIssueList>({
+    queryKey,
   });
 
   const issues = useMemo(
-    () => data?.pages.flatMap(([pageData]) => pageData).map(hydrateFeedbackRecord) ?? [],
+    () => data?.pages.flatMap(([pageData]) => pageData) ?? [],
     [data]
   );
 
   const getRow = useCallback(
-    ({index}: Index): HydratedFeedbackItem | undefined => issues?.[index],
+    ({index}: Index): FeedbackIssueList[number] | undefined => issues?.[index],
     [issues]
   );
 
@@ -82,15 +54,14 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
 
   const loadMoreRows = useCallback(
     ({startIndex: _1, stopIndex: _2}: IndexRange) =>
-      // isFetchingloaderRef.current?.fetchNext(stopIndex - startIndex) ?? Promise.resolve(),
       hasNextPage && !isFetching ? fetchNextPage() : Promise.resolve(),
     [hasNextPage, isFetching, fetchNextPage]
   );
 
-  const setFeedback = useCallback(
-    (_feedbackId: string, _feedback: undefined | HydratedFeedbackItem) => {},
-    // loaderRef.current?.setFeedback(feedbackId, feedback),
-    []
+  const hits = useMemo(
+    () =>
+      data?.pages.map(([, , resp]) => Number(resp?.getResponseHeader('X-Hits'))) ?? [],
+    [data]
   );
 
   return {
@@ -106,6 +77,6 @@ export default function useFetchFeedbackInfiniteListData({queryView}: Params) {
     isRowLoaded,
     issues,
     loadMoreRows,
-    setFeedback,
+    hits: Math.max(...hits),
   };
 }

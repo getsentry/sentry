@@ -545,6 +545,8 @@ def create_alert_rule(
             include_all_projects=include_all_projects,
             owner=actor,
             comparison_delta=comparison_delta,
+            user_id=actor.user_id if actor else None,
+            team_id=actor.team_id if actor else None,
         )
 
         if user:
@@ -594,6 +596,9 @@ def snapshot_alert_rule(alert_rule, user=None):
         alert_rule_snapshot.id = None
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
+        if alert_rule.owner:
+            alert_rule_snapshot.user_id = alert_rule.owner.user_id
+            alert_rule_snapshot.team_id = alert_rule.owner.team_id
         alert_rule_snapshot.save()
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule_snapshot,
@@ -702,6 +707,8 @@ def update_alert_rule(
         if owner is not None and not isinstance(owner, Actor):
             owner = owner.resolve_to_actor()
         updated_fields["owner"] = owner
+        updated_fields["team_id"] = owner.team_id if owner else None
+        updated_fields["user_id"] = owner.user_id if owner else None
     if comparison_delta is not NOT_SET:
         resolution = DEFAULT_ALERT_RULE_RESOLUTION
         if comparison_delta is not None:
@@ -1139,21 +1146,16 @@ def create_alert_rule_trigger_action(
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
-        # Avoids the case where the discord feature flag is off and the action type is discord
-        if type != AlertRuleTriggerAction.Type.DISCORD.value or features.has(
-            "organizations:integrations-discord-metric-alerts", trigger.alert_rule.organization
-        ):
-            target_identifier, target_display = get_target_identifier_display_for_integration(
-                type.value,
-                target_identifier,
-                trigger.alert_rule.organization,
-                integration_id,
-                use_async_lookup=use_async_lookup,
-                input_channel_id=input_channel_id,
-                integrations=integrations,
-            )
-        else:
-            raise InvalidTriggerActionError("Discord metric alerts not enabled")
+        target_identifier, target_display = get_target_identifier_display_for_integration(
+            type.value,
+            target_identifier,
+            trigger.alert_rule.organization,
+            integration_id,
+            use_async_lookup=use_async_lookup,
+            input_channel_id=input_channel_id,
+            integrations=integrations,
+        )
+
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
             trigger.alert_rule.organization, sentry_app_id, installations
@@ -1214,22 +1216,16 @@ def update_alert_rule_trigger_action(
             integration_id = updated_fields.get("integration_id", trigger_action.integration_id)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
-            # Avoids the case where the discord feature flag is off and the action type is discord
-            if type != AlertRuleTriggerAction.Type.DISCORD.value or features.has(
-                "organizations:integrations-discord-metric-alerts", organization
-            ):
-                target_identifier, target_display = get_target_identifier_display_for_integration(
-                    type,
-                    target_identifier,
-                    organization,
-                    integration_id,
-                    use_async_lookup=use_async_lookup,
-                    input_channel_id=input_channel_id,
-                    integrations=integrations,
-                )
-                updated_fields["target_display"] = target_display
-            else:
-                raise InvalidTriggerActionError("Discord metric alerts not enabled")
+            target_identifier, target_display = get_target_identifier_display_for_integration(
+                type,
+                target_identifier,
+                organization,
+                integration_id,
+                use_async_lookup=use_async_lookup,
+                input_channel_id=input_channel_id,
+                integrations=integrations,
+            )
+            updated_fields["target_display"] = target_display
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
             sentry_app_id = updated_fields.get("sentry_app_id", trigger_action.sentry_app_id)
@@ -1345,11 +1341,8 @@ def get_alert_rule_trigger_action_discord_channel_id(
             integration_id=integration.id,
             guild_name=integration.name,
         )
-    except ValidationError:
-        raise InvalidTriggerActionError(
-            "Could not find channel %s. Channel may not exist, may be formatted incorrectly, or Sentry may not "
-            "have been granted permission to access it" % name
-        )
+    except ValidationError as e:
+        raise InvalidTriggerActionError(e.message)
     except IntegrationError:
         raise InvalidTriggerActionError("Bad response from Discord channel lookup")
     except ApiTimeoutError:
@@ -1425,7 +1418,8 @@ def get_alert_rule_trigger_action_opsgenie_team(
     )
     try:
         client.authorize_integration(type="sentry")
-    except ApiError:
+    except ApiError as e:
+        logger.info("opsgenie.authorization_error", extra={"error": str(e)})
         raise InvalidTriggerActionError("Invalid integration key.")
     return team["id"], team["team"]
 
@@ -1463,13 +1457,11 @@ def get_available_action_integrations_for_org(organization) -> List[RpcIntegrati
     filtered by the list of registered providers.
     :param organization:
     """
-    # Avoids the case where the discord feature flag is off and the action type is discord
+
     providers = [
         registration.integration_provider
         for registration in AlertRuleTriggerAction.get_registered_types()
         if registration.integration_provider is not None
-        if registration.type != AlertRuleTriggerAction.Type.DISCORD
-        or features.has("organizations:integrations-discord-metric-alerts", organization)
     ]
     return integration_service.get_integrations(
         status=ObjectStatus.ACTIVE,
@@ -1648,7 +1640,11 @@ def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Pro
 
     alert_snuba_query = alert_rule.snuba_query
     should_use_on_demand = should_use_on_demand_metrics(
-        alert_snuba_query.dataset, alert_snuba_query.aggregate, alert_snuba_query.query, prefilling
+        alert_snuba_query.dataset,
+        alert_snuba_query.aggregate,
+        alert_snuba_query.query,
+        None,
+        prefilling,
     )
     if should_use_on_demand:
         for project in projects:

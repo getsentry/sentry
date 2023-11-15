@@ -1,4 +1,4 @@
-from sentry.hybridcloud.models import ApiKeyReplica
+from sentry.hybridcloud.models import ApiKeyReplica, ExternalActorReplica
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
@@ -13,6 +13,55 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+
+
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
+def test_replicate_external_actor():
+    org = Factories.create_organization()
+    integration = Factories.create_integration(organization=org, external_id="hohohomerrychristmas")
+    user = Factories.create_user()
+    team = Factories.create_team(organization=org)
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        assert ExternalActorReplica.objects.count() == 0
+
+    xa1 = Factories.create_external_team(team=team, integration_id=integration.id, organization=org)
+    xa2 = Factories.create_external_user(
+        user=user, integration_id=integration.id, organization=org, external_id="12345"
+    )
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        xar1 = ExternalActorReplica.objects.get(externalactor_id=xa1.id)
+        xar2 = ExternalActorReplica.objects.get(externalactor_id=xa2.id)
+
+    assert xar1.user_id is None
+    assert xar1.team_id == team.id
+    assert xar1.externalactor_id == xa1.id
+    assert xar1.organization_id == xa1.organization_id
+    assert xar1.integration_id == xa1.integration_id
+    assert xar1.provider == xa1.provider
+    assert xar1.external_name == xa1.external_name
+    assert xar1.external_id == xa1.external_id
+
+    assert xar2.user_id == user.id
+    assert xar2.team_id is None
+    assert xar2.externalactor_id == xa2.id
+    assert xar2.organization_id == xa2.organization_id
+    assert xar2.integration_id == xa2.integration_id
+    assert xar2.provider == xa2.provider
+    assert xar2.external_name == xa2.external_name
+    assert xar2.external_id == xa2.external_id
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        xa2.user_id = 12382317  # not a user id
+        xa2.save()
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        xar2 = ExternalActorReplica.objects.get(externalactor_id=xa2.id)
+
+    # Did not update with bad user id.
+    assert xar2.user_id == user.id
 
 
 @django_db_all(transaction=True)

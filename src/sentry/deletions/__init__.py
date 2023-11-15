@@ -10,7 +10,7 @@ because of a new relation or database failure.
 Celery Tasks
 ------------
 
-Every 15 minutes `sentry.tasks.deletion.run_scheduled_deletion()` runs. This task queries for jobs
+Every 15 minutes `sentry.tasks.deletion.run_scheduled_deletions()` runs. This task queries for jobs
 that were scheduled to be run in the past that are not already in progress. Tasks are spawned for
 each deletion that needs to be processed.
 

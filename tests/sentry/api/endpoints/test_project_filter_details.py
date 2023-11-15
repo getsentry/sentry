@@ -70,6 +70,7 @@ class ProjectFilterDetailsTest(APITestCase):
             "ie10",
             "ie11",
             "opera_pre_15",
+            "edge_pre_79",
         ]
 
         self.get_success_response(

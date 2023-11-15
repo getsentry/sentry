@@ -1,5 +1,12 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {
+  ReplayNavigationFrameFixture,
+  ReplayNavigationPushFrameFixture,
+  ReplayRequestFrameFixture,
+  ReplayResourceFrameFixture,
+} from 'sentry-fixture/replay/replaySpanFrameData';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -23,8 +30,8 @@ const [
   SPAN_6_PUSH,
   SPAN_7_FETCH_GET,
   SPAN_8_FETCH_POST,
-] = hydrateSpans(TestStubs.ReplayRecord(), [
-  TestStubs.Replay.NavigationFrame({
+] = hydrateSpans(ReplayRecordFixture(), [
+  ReplayNavigationFrameFixture({
     op: 'navigation.navigate',
     description: 'http://localhost:3000/',
     startTimestamp: new Date(1663131080.5554),
@@ -33,19 +40,19 @@ const [
       size: 1334,
     },
   }),
-  TestStubs.Replay.ResourceFrame({
+  ReplayResourceFrameFixture({
     op: 'resource.link',
     description: 'http://localhost:3000/static/css/main.1856e8e3.chunk.css',
     startTimestamp: new Date(1663131080.5767),
     endTimestamp: new Date(1663131080.5951),
   }),
-  TestStubs.Replay.ResourceFrame({
+  ReplayResourceFrameFixture({
     op: 'resource.script',
     description: 'http://localhost:3000/static/js/2.3b866bed.chunk.js',
     startTimestamp: new Date(1663131080.5770998),
     endTimestamp: new Date(1663131080.5979),
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon',
     startTimestamp: new Date(1663131080.641),
@@ -55,26 +62,26 @@ const [
       statusCode: 200,
     },
   }),
-  TestStubs.Replay.ResourceFrame({
+  ReplayResourceFrameFixture({
     op: 'resource.img',
     description: 'http://localhost:3000/static/media/logo.ddd5084d.png',
     startTimestamp: new Date(1663131080.6422),
     endTimestamp: new Date(1663131080.6441),
   }),
-  TestStubs.Replay.ResourceFrame({
+  ReplayResourceFrameFixture({
     op: 'resource.css',
     description:
       'http://localhost:3000/static/media/glyphicons-halflings-regular.448c34a5.woff2',
     startTimestamp: new Date(1663131080.6447997),
     endTimestamp: new Date(1663131080.6548998),
   }),
-  TestStubs.Replay.NavigationPushFrame({
+  ReplayNavigationPushFrameFixture({
     op: 'navigation.push',
     description: '/mypokemon',
     startTimestamp: new Date(1663131082.346),
     endTimestamp: new Date(1663131082.346),
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon/pikachu',
     startTimestamp: new Date(1663131092.471),
@@ -84,7 +91,7 @@ const [
       statusCode: 200,
     },
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon/mewtu',
     startTimestamp: new Date(1663131120.198),
@@ -110,7 +117,7 @@ describe('useNetworkFilters', () => {
   ];
 
   beforeEach(() => {
-    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(browserHistory.replace).mockReset();
   });
 
   it('should update the url when setters are called', () => {
@@ -145,7 +152,7 @@ describe('useNetworkFilters', () => {
     });
 
     result.current.setFilters([TYPE_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_method: [],
@@ -157,7 +164,7 @@ describe('useNetworkFilters', () => {
     rerender();
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_method: [],
@@ -169,7 +176,7 @@ describe('useNetworkFilters', () => {
     rerender();
 
     result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_type: [TYPE_OPTION.value],
@@ -223,7 +230,7 @@ describe('useNetworkFilters', () => {
     });
 
     result.current.setFilters([TYPE_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_method: [],
@@ -235,7 +242,7 @@ describe('useNetworkFilters', () => {
     rerender();
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_method: [],
@@ -247,7 +254,7 @@ describe('useNetworkFilters', () => {
     rerender();
 
     result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_n_status: [STATUS_OPTION.value],

@@ -117,6 +117,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
         allowGravatar={false}
         endpoint={`${endpoint}avatar/`}
         model={initialData}
+        uploadDomain={initialData.links.regionUrl}
         onSave={updateOrganization}
         disabled={!access.has('org:write')}
       />

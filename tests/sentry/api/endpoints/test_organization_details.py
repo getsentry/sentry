@@ -34,7 +34,6 @@ from sentry.models.user import User
 from sentry.signals import project_created
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -314,6 +313,29 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
         assert resp.status_code == 400
 
+    def test_with_avatar_image(self):
+        organization = self.organization
+        OrganizationAvatar.objects.create(
+            organization_id=organization.id,
+            avatar_type=1,  # upload
+            file_id=1,
+            ident="abc123",
+        )
+        resp = self.get_response(organization.slug)
+        assert resp.status_code == 200
+        assert "avatar" in resp.data
+        assert resp.data["avatar"]["avatarType"] == "upload"
+        assert resp.data["avatar"]["avatarUuid"] == "abc123"
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert (
+                resp.data["avatar"]["avatarUrl"]
+                == "http://us.testserver/organization-avatar/abc123/"
+            )
+        else:
+            assert (
+                resp.data["avatar"]["avatarUrl"] == "http://testserver/organization-avatar/abc123/"
+            )
+
 
 @region_silo_test(stable=True)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
@@ -339,7 +361,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
 
     def test_valid_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "1234", "SaNtRy"]
+        valid_slugs = ["santry", "downtown-canada", "1234-foo", "SaNtRy"]
         for slug in valid_slugs:
             self.organization.refresh_from_db()
             self.get_success_response(self.organization.slug, slug=slug)
@@ -352,8 +374,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="canada-", status_code=400)
         self.get_error_response(self.organization.slug, slug="-canada", status_code=400)
         self.get_error_response(self.organization.slug, slug="----", status_code=400)
-        with override_options({"api.prevent-numeric-slugs": True}):
-            self.get_error_response(self.organization.slug, slug="1234", status_code=400)
+        self.get_error_response(self.organization.slug, slug="1234", status_code=400)
 
     def test_upload_avatar(self):
         data = {

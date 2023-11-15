@@ -16,9 +16,9 @@ import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {
   createOnDemandFilterWarning,
-  hasOnDemandMetricWidgetFeature,
   isOnDemandQueryString,
 } from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
