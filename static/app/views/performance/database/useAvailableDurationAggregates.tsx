@@ -1,7 +1,7 @@
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/performance/database/settings';
+import {useDefaultDurationAggregate} from 'sentry/views/performance/database/useDefaultDurationAggregate';
 
 // TODO: Type more strictly, these should be limited to only valid aggregate
 // functions
@@ -18,6 +18,7 @@ export function useAvailableDurationAggregates(): Result {
   const organization = useOrganization();
   const location = useLocation<Query>();
 
+  const defaultDurationAggregate = useDefaultDurationAggregate();
   let availableAggregates = ['avg'];
 
   const arePercentilesEnabled = organization.features?.includes(
@@ -36,11 +37,11 @@ export function useAvailableDurationAggregates(): Result {
 
   let selectedAggregate = decodeScalar(
     location.query.aggregate,
-    DEFAULT_DURATION_AGGREGATE
+    defaultDurationAggregate
   );
 
   if (!availableAggregates.includes(selectedAggregate)) {
-    selectedAggregate = DEFAULT_DURATION_AGGREGATE;
+    selectedAggregate = defaultDurationAggregate;
   }
 
   return {
