@@ -31,6 +31,7 @@ from sentry.models.project import Project
 from sentry.models.sentryfunction import SentryFunction
 from sentry.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
@@ -258,9 +259,8 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
         logger.info("installation_webhook.missing_installation", extra=extra)
         return
 
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
+    user = user_service.get_user(user_id=user_id)
+    if not user:
         logger.info("installation_webhook.missing_user", extra=extra)
         return
 
