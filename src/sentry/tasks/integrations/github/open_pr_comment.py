@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import List
+from typing import List, Set, Tuple
+
+from django.db.models import Value
+from django.db.models.functions import StrIndex
 
 from sentry.integrations.github.client import GitHubAppsClient
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -44,7 +49,7 @@ def safe_for_comment(
                 OPEN_PR_METRIC_BASE.format(key="api_error"),
                 tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
             )
-            logger.exception("github.open_pr_comment.unknown_api_error")
+            logger.exception("github.open_pr_comment.unknown_api_error", extra={"error": str(e)})
         return False
 
     safe_to_comment = True
@@ -74,3 +79,26 @@ def get_pr_filenames(
     # new files will not have sentry issues associated with them
     pr_filenames: List[str] = [file["filename"] for file in pr_files if file["status"] != "added"]
     return pr_filenames
+
+
+def get_projects_and_filenames_from_source_file(
+    org_id: int,
+    pr_filename: str,
+) -> Tuple[Set[Project], Set[str]]:
+    # fetch the code mappings in which the source_root is a substring at the start of pr_filename
+    code_mappings = (
+        RepositoryProjectPathConfig.objects.filter(organization_id=org_id)
+        .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
+        .filter(substring_match=1)
+    )
+
+    project_list: Set[Project] = set()
+    sentry_filenames = set()
+
+    if len(code_mappings):
+        for code_mapping in code_mappings:
+            project_list.add(code_mapping.project)
+            sentry_filenames.add(
+                pr_filename.replace(code_mapping.source_root, code_mapping.stack_root)
+            )
+    return project_list, sentry_filenames
