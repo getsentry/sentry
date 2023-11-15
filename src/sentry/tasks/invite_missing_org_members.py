@@ -86,7 +86,7 @@ def send_nudge_email(org_id):
         shared_domain=shared_domain,
     )
 
-    if not commit_author_query.exists():  # don't email if no missing commit authors
+    if not len(commit_author_query):  # don't email if no missing commit authors
         logger.info(
             "invite_missing_org_members.send_nudge_email.no_commit_authors",
             extra={"organization_id": org_id},
