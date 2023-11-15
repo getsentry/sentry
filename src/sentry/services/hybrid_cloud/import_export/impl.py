@@ -4,12 +4,12 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import traceback
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Type
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.serializers import deserialize, serialize
 from django.core.serializers.base import DeserializationError
-from django.db import DatabaseError, IntegrityError, connections, router, transaction
+from django.db import DatabaseError, IntegrityError, connections, models, router, transaction
 from django.db.models import Q
 from django.forms import model_to_dict
 from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
@@ -23,7 +23,7 @@ from sentry.backup.dependencies import (
     get_model_name,
 )
 from sentry.backup.findings import InstanceID
-from sentry.backup.helpers import EXCLUDED_APPS, DatetimeSafeDjangoJSONEncoder, Filter
+from sentry.backup.helpers import EXCLUDED_APPS, DatetimeSafeDjangoJSONEncoder, Filter, ImportFlags
 from sentry.backup.scopes import ExportScope
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
 from sentry.models.user import User
@@ -46,6 +46,39 @@ from sentry.services.hybrid_cloud.import_export.model import (
 )
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
 from sentry.silo.base import SiloMode
+
+
+def get_existing_import_chunk(
+    model_name: NormalizedModelName, flags: ImportFlags, import_chunk_type: Type[models.base.Model]
+) -> Optional[RpcImportOk]:
+    # TODO(getsentry/team-ospo#190): `min_ordinal=1` assumes the entire model is being imported in a
+    # single call; we will need to change this when we implement more granular chunking in the
+    # future.
+    found_chunk = import_chunk_type.objects.filter(
+        import_uuid=flags.import_uuid, model=model_name, min_ordinal=1
+    ).first()
+    if found_chunk is None:
+        return None
+
+    found_data = model_to_dict(found_chunk)
+    out_pk_map = PrimaryKeyMap()
+    for old_pk, new_pk in found_data["inserted_map"].items():
+        identifier = found_data["inserted_identifiers"].get(old_pk, None)
+        out_pk_map.insert(model_name, old_pk, new_pk, ImportKind.Inserted, identifier)
+    for old_pk, new_pk in found_data["existing_map"].items():
+        out_pk_map.insert(model_name, old_pk, new_pk, ImportKind.Existing)
+    for old_pk, new_pk in found_data["overwrite_map"].items():
+        out_pk_map.insert(model_name, old_pk, new_pk, ImportKind.Overwrite)
+
+    return RpcImportOk(
+        mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
+        min_ordinal=found_data["min_ordinal"],
+        max_ordinal=found_data["max_ordinal"],
+        min_source_pk=found_data["min_source_pk"],
+        max_source_pk=found_data["max_source_pk"],
+        min_inserted_pk=found_data["min_inserted_pk"],
+        max_inserted_pk=found_data["max_inserted_pk"],
+    )
 
 
 class UniversalImportExportService(ImportExportService):
@@ -73,7 +106,6 @@ class UniversalImportExportService(ImportExportService):
         pk_map: RpcPrimaryKeyMap,
         json_data: str,
     ) -> RpcImportResult:
-        deps = dependencies()
         batch_model_name = NormalizedModelName(model_name)
         model = get_model(batch_model_name)
         if model is None:
@@ -114,6 +146,12 @@ class UniversalImportExportService(ImportExportService):
             if NormalizedModelName(fb.model_name) == batch_model_name:
                 filters.append(fb.from_rpc())
 
+        import_chunk_type = (
+            ControlImportChunk
+            if SiloMode.CONTROL in dependencies()[batch_model_name].silos
+            else RegionImportChunk
+        )
+
         try:
             using = router.db_for_write(model)
             with transaction.atomic(using=using):
@@ -121,39 +159,17 @@ class UniversalImportExportService(ImportExportService):
                 # because the response got lost in transit. If so, just re-use that reply. We do
                 # this in the transaction because, while `import_by_model` is generally called in a
                 # sequential manner, cases like timeouts or long queues may cause a previous call to
-                # still be active when the next one is made. Doing this check inside the transaction
-                # lock ensures that the data is globally accurate and thwarts data races.
-                found_chunk = (
-                    (
-                        ControlImportChunk
-                        if SiloMode.CONTROL in deps[batch_model_name].silos
-                        else RegionImportChunk
-                    )
-                    .objects.filter(import_uuid=flags.import_uuid, model=model_name)
-                    .first()
+                # still be active when the next one is made. We'll check once here for an existing
+                # copy of this (uniquely identifiable) import chunk here to short circuit and avoid
+                # doing frivolous work. However, this doesn't fully solve our data race error, as it
+                # is possible that another runaway process makes the colliding write while we're
+                # building our transaction. Thus, we'll check `get_existing_import_chunk()` again if
+                # we catch an `IntegrityError` below.
+                existing_import_chunk = get_existing_import_chunk(
+                    batch_model_name, import_flags, import_chunk_type
                 )
-                if found_chunk is not None:
-                    found_data = model_to_dict(found_chunk)
-                    out_pk_map = PrimaryKeyMap()
-                    for old_pk, new_pk in found_data["inserted_map"].items():
-                        identifier = found_data["inserted_identifiers"].get(new_pk, None)
-                        out_pk_map.insert(
-                            batch_model_name, old_pk, new_pk, ImportKind.Inserted, identifier
-                        )
-                    for old_pk, new_pk in found_data["existing_map"].items():
-                        out_pk_map.insert(batch_model_name, old_pk, new_pk, ImportKind.Existing)
-                    for old_pk, new_pk in found_data["overwrite_map"].items():
-                        out_pk_map.insert(batch_model_name, old_pk, new_pk, ImportKind.Overwrite)
-
-                    return RpcImportOk(
-                        mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
-                        min_ordinal=found_data["min_ordinal"],
-                        max_ordinal=found_data["max_ordinal"],
-                        min_source_pk=found_data["min_source_pk"],
-                        max_source_pk=found_data["max_source_pk"],
-                        min_inserted_pk=found_data["min_inserted_pk"],
-                        max_inserted_pk=found_data["max_inserted_pk"],
-                    )
+                if existing_import_chunk is not None:
+                    return existing_import_chunk
 
                 ok_relocation_scopes = import_scope.value
                 out_pk_map = PrimaryKeyMap()
@@ -282,7 +298,7 @@ class UniversalImportExportService(ImportExportService):
                             k: v[2] for k, v in inserted.items() if v[2] is not None
                         },
                     }
-                    if SiloMode.CONTROL in deps[batch_model_name].silos:
+                    if import_chunk_type == ControlImportChunk:
                         ControlImportChunk(**import_chunk_args).save()
                     else:
                         RegionImportChunk(**import_chunk_args).save()
@@ -307,6 +323,30 @@ class UniversalImportExportService(ImportExportService):
         # Catch `IntegrityError` before `DatabaseError`, since the former is a subclass of the
         # latter.
         except IntegrityError as e:
+            # This race-detection code is a bit hacky, since it relies on string matching the error
+            # description from postgres but... ¯\_(ツ)_/¯.
+            if len(e.args) > 0:
+                desc = str(e.args[0])
+                if desc.startswith("UniqueViolation") and import_chunk_type._meta.db_table in desc:
+                    try:
+                        existing_import_chunk = get_existing_import_chunk(
+                            batch_model_name, import_flags, import_chunk_type
+                        )
+                        if existing_import_chunk is None:
+                            raise RuntimeError(
+                                f"Erroneous import chunk unique collision for identifier: {(import_flags.import_uuid, batch_model_name, 1)}"
+                            )
+                        return existing_import_chunk
+                    except Exception:
+                        return RpcImportError(
+                            kind=RpcImportErrorKind.Unknown,
+                            on=InstanceID(model_name),
+                            reason=f"Unknown internal error occurred: {traceback.format_exc()}",
+                        )
+
+            # All non-`ImportChunk`-related kinds of `IntegrityError` mean that the user's data was
+            # not properly sanitized against collision. This could be the fault of either the import
+            # logic, or the user's data itself.
             return RpcImportError(
                 kind=RpcImportErrorKind.IntegrityError,
                 on=InstanceID(model_name),

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import BinaryIO, Iterator, Optional, Tuple, Type
 from uuid import uuid4
 
@@ -10,6 +11,7 @@ from django.db.models.base import Model
 
 from sentry.backup.dependencies import (
     ImportKind,
+    ModelRelations,
     NormalizedModelName,
     PrimaryKeyMap,
     dependencies,
@@ -77,6 +79,8 @@ def _import(
 
     flags = flags if flags is not None else ImportFlags()
     if flags.import_uuid is None:
+        # TODO(getsentry/team-ospo#190): Previous efforts to use a dataclass here ran afoul of
+        # pydantic playing poorly with them. May be worth investigating this again.
         flags = flags._replace(import_uuid=uuid4().hex)
 
     deps = dependencies()
@@ -202,13 +206,22 @@ def _import(
         if last_seen_model_name is not None and batch:
             yield (last_seen_model_name, json.dumps(batch))
 
+    # A wrapper for some immutable state we need when performing a single `do_write().
+    @dataclass(frozen=True)
+    class ImportWriteContext:
+        scope: RpcImportScope
+        flags: RpcImportFlags
+        filter_by: list[RpcFilter]
+        dependencies: dict[NormalizedModelName, ModelRelations]
+
     # Perform the write of a single model.
     def do_write(
-        pk_map: PrimaryKeyMap, model_name: NormalizedModelName, json_data: json.JSONData
+        import_write_context: ImportWriteContext,
+        pk_map: PrimaryKeyMap,
+        model_name: NormalizedModelName,
+        json_data: json.JSONData,
     ) -> None:
-        nonlocal scope, flags, filters, deps
-
-        model_relations = deps.get(model_name)
+        model_relations = import_write_context.dependencies.get(model_name)
         if not model_relations:
             return
 
@@ -217,9 +230,9 @@ def _import(
         model_name_str = str(model_name)
         result = import_by_model(
             model_name=model_name_str,
-            scope=RpcImportScope.into_rpc(scope),
-            flags=RpcImportFlags.into_rpc(flags),
-            filter_by=[RpcFilter.into_rpc(f) for f in filters],
+            scope=import_write_context.scope,
+            flags=import_write_context.flags,
+            filter_by=import_write_context.filter_by,
             pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
             json_data=json_data,
         )
@@ -271,18 +284,25 @@ def _import(
             )
             control_import_chunk_replica.save()
 
+    import_write_context = ImportWriteContext(
+        scope=RpcImportScope.into_rpc(scope),
+        flags=RpcImportFlags.into_rpc(flags),
+        filter_by=[RpcFilter.into_rpc(f) for f in filters],
+        dependencies=deps,
+    )
+
     # Extract some write logic into its own internal function, so that we may call it irrespective
     # of how we do atomicity: on a per-model (if using multiple dbs) or global (if using a single
     # db) basis.
     def do_writes(pk_map: PrimaryKeyMap) -> None:
-        nonlocal deferred_org_auth_tokens
+        nonlocal deferred_org_auth_tokens, import_write_context
 
         for model_name, json_data in yield_json_models(content):
             if model_name == org_auth_token_model_name:
                 deferred_org_auth_tokens = json_data
                 continue
 
-            do_write(pk_map, model_name, json_data)
+            do_write(import_write_context, pk_map, model_name, json_data)
 
     # Resolves slugs for all imported organization models via the PrimaryKeyMap and reconciles
     # their slug globally via control silo by issuing a slug update.
@@ -313,7 +333,7 @@ def _import(
     resolve_org_slugs_from_pk_map(pk_map)
 
     if deferred_org_auth_tokens:
-        do_write(pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
+        do_write(import_write_context, pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
 
 
 def import_in_user_scope(
