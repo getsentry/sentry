@@ -13,7 +13,6 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -64,7 +63,7 @@ function ScreenLoadSpans() {
     },
     {
       to: '',
-      label: decodeScalar(location.query.transaction),
+      label: t('Screen Summary'),
     },
   ];
 
