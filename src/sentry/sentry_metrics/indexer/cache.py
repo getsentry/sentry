@@ -117,9 +117,7 @@ class StringIndexerCache:
         return formatted
 
     def _is_valid_timestamp(self, timestamp: str) -> bool:
-        if int(timestamp) < int((datetime.utcnow() - timedelta(hours=3)).timestamp()):
-            return False
-        return True
+        return int(timestamp) >= int((datetime.utcnow() - timedelta(hours=3)).timestamp())
 
     def _validate_result(self, result: Optional[str]) -> Optional[int]:
         if result is None:
