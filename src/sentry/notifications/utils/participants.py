@@ -652,12 +652,15 @@ def get_recipients_by_provider(
             project, users, notification_type
         )
 
-    # TODO(jangjodi): Remove extra logs once bug is fixed
     extra = {
+        "organization_id": project.organization.id,
+        "project_id": project.id,
         "target_type": target_type,
         "target_identifier": target_identifier,
         "notification_uuid": notification_uuid,
+        "teams": teams,
         "teams_by_provider": teams_by_provider,
+        "users": users,
         "users_by_provider": users_by_provider,
     }
     logger.info("sentry.notifications.recipients_by_provider", extra=extra)
