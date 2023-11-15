@@ -196,7 +196,7 @@ jobs:
       - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
         with:
           python-version: 3.8.18
-          cache-depedency: requirements-dev-frozen.txt
+          cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: pip install -q --constraint requirements-dev-frozen.txt pip-tools
       - name: check requirements
         run: |

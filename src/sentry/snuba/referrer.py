@@ -475,6 +475,9 @@ class Referrer(Enum):
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
+    DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
+        "dynamic_sampling.tasks.custom_rule_notifications"
+    )
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
@@ -639,6 +642,9 @@ class Referrer(Enum):
         "statistical_detectors.distributions.fetch_transaction_timeseries"
     )
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
+    SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY_PRIMARY = (
+        "subscription_processor.comparison_query.primary"
+    )
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"

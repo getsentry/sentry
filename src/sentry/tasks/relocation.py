@@ -19,9 +19,9 @@ from sentry.backup.dependencies import NormalizedModelName, get_model
 from sentry.backup.exports import export_in_config_scope, export_in_user_scope
 from sentry.backup.helpers import (
     DEFAULT_CRYPTO_KEY_VERSION,
+    GCPKMSDecryptor,
+    GCPKMSEncryptor,
     ImportFlags,
-    decrypt_data_encryption_key_using_gcp_kms,
-    get_public_key_using_gcp_kms,
     unwrap_encrypted_export_tarball,
 )
 from sentry.backup.imports import import_in_organization_scope
@@ -230,12 +230,12 @@ def preprocessing_scan(uuid: str) -> None:
             # Decrypt the DEK using Google KMS, and use the decrypted DEK to decrypt the encoded
             # JSON.
             try:
-                plaintext_data_encryption_key = decrypt_data_encryption_key_using_gcp_kms(
-                    unwrapped,
-                    json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8"),
+                decryptor = GCPKMSDecryptor.from_bytes(
+                    json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8")
                 )
-                decryptor = Fernet(plaintext_data_encryption_key)
-                json_data = decryptor.decrypt(unwrapped.encrypted_json_blob).decode("utf-8")
+                plaintext_data_encryption_key = decryptor.decrypt_data_encryption_key(unwrapped)
+                fernet = Fernet(plaintext_data_encryption_key)
+                json_data = fernet.decrypt(unwrapped.encrypted_json_blob).decode("utf-8")
             except Exception:
                 return fail_relocation(
                     relocation,
@@ -348,7 +348,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         fp = BytesIO()
         export_in_config_scope(
             fp,
-            encrypt_with=BytesIO(get_public_key_using_gcp_kms(DEFAULT_CRYPTO_KEY_VERSION)),
+            encryptor=GCPKMSEncryptor.from_crypto_key_version(DEFAULT_CRYPTO_KEY_VERSION),
         )
         fp.seek(0)
         kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
@@ -400,7 +400,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
         fp = BytesIO()
         export_in_user_scope(
             fp,
-            encrypt_with=BytesIO(get_public_key_using_gcp_kms(DEFAULT_CRYPTO_KEY_VERSION)),
+            encryptor=GCPKMSEncryptor.from_crypto_key_version(DEFAULT_CRYPTO_KEY_VERSION),
             user_filter=set(relocation.want_usernames),
         )
         fp.seek(0)
@@ -939,16 +939,14 @@ def importing(uuid: str) -> None:
         with relocation_data_fp, kms_config_fp:
             import_in_organization_scope(
                 relocation_data_fp,
-                decrypt_with=kms_config_fp,
-                flags=ImportFlags(
-                    decrypt_using_gcp_kms=True, merge_users=False, overwrite_configs=False
-                ),
+                decryptor=GCPKMSDecryptor(kms_config_fp),
+                flags=ImportFlags(merge_users=False, overwrite_configs=False),
                 org_filter=set(relocation.want_org_slugs),
                 printer=printer,
             )
 
-            # TODO(getsentry/team-ospo#203): Add post-processing, notifying tasks here.
-            completed.delay(uuid)
+        # TODO(getsentry/team-ospo#203): Add post-processing, notifying tasks here.
+        completed.delay(uuid)
 
 
 @instrumented_task(
