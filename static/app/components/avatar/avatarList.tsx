@@ -45,7 +45,7 @@ function AvatarList({
   return (
     <AvatarListWrapper className={className}>
       {!!numCollapsedAvatars && (
-        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`}>
+        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
           <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
             {numCollapsedAvatars < 99 && <Plus>+</Plus>}
             {numCollapsedAvatars}
@@ -80,6 +80,7 @@ export default AvatarList;
 // used in releases list page to do some alignment
 export const AvatarListWrapper = styled('div')`
   display: flex;
+  align-items: center;
   flex-direction: row-reverse;
 `;
 
