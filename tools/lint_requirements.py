@@ -15,34 +15,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("filenames", nargs="*")
     args = parser.parse_args(argv)
-    allow_url_reqs = False
 
     for filename in args.filenames:
         with open(filename) as reqs_file:
             for lineno, line in enumerate(reqs_file, start=1):
                 line = line.strip()
                 if not line or line.startswith(("--", "#")):
-                    if "lint-requirements:" in line:
-                        if "allow(url-reqs)" in line:
-                            allow_url_reqs = True
-                        elif "deny(url-reqs)" in line:
-                            allow_url_reqs = False
-                        else:
-                            raise Exception(f"Unrecognized directive: {line}")
                     continue
 
-                if allow_url_reqs:
-                    continue
-
+                invalid_requirement = False
                 try:
                     req = packaging.requirements.Requirement(line)
                 except packaging.requirements.InvalidRequirement:
-                    # `packaging` only parses "new-style" git reqs: PEP 508
-                    valid_requirement = False
+                    invalid_requirement = True
                 else:
-                    valid_requirement = not bool(req.url)
+                    invalid_requirement = bool(req.url)
 
-                if not valid_requirement:
+                if invalid_requirement:
                     raise SystemExit(
                         f"You cannot use dependencies that are not on PyPI directly.\n"
                         f"See PEP440: https://www.python.org/dev/peps/pep-0440/#direct-references\n\n"
