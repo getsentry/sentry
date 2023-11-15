@@ -12,7 +12,7 @@ from sentry.utils import json
 def test_is_slack_enabled():
     responses.add(responses.POST, "https://test/", status=200)
 
-    presenter = WebhookPresenter()
+    presenter = WebhookPresenter("options-automator")
     assert presenter.is_webhook_enabled()
     presenter.set("option1", "value1")
     presenter.set("option2", "value2")
@@ -83,7 +83,7 @@ def test_is_slack_enabled():
 @responses.activate
 @override_settings(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/", SENTRY_REGION="test_region")
 def test_slack_presenter_empty():
-    presenter = WebhookPresenter()
+    presenter = WebhookPresenter("options-automator")
     assert presenter.is_webhook_enabled()
     presenter.flush()
 
@@ -96,7 +96,7 @@ def test_slack_presenter_empty():
 def test_slack_presenter_methods_with_different_types():
     responses.add(responses.POST, "https://test/", status=200)
 
-    presenter = WebhookPresenter()
+    presenter = WebhookPresenter("options-automator")
     assert presenter.is_webhook_enabled()
 
     presenter.set("str_option", "string_value")
