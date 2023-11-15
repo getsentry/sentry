@@ -69,7 +69,7 @@ describe('AcceptProjectTransfer', function () {
       endpoint,
       expect.objectContaining({
         method: 'POST',
-        host: 'http://us.sentry.io/',
+        host: 'http://us.sentry.io',
       })
     );
   });
