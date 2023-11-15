@@ -7,7 +7,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
@@ -105,7 +105,6 @@ function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
 
 interface AggregateFlamegraphTreeTableProps {
   canvasPoolManager: CanvasPoolManager;
-  canvasScheduler: CanvasScheduler;
   frameFilter: 'system' | 'application' | 'all';
   recursion: 'collapsed' | null;
   expanded?: boolean;
@@ -113,7 +112,6 @@ interface AggregateFlamegraphTreeTableProps {
 
 export function AggregateFlamegraphTreeTable({
   expanded,
-  canvasScheduler,
   recursion,
   frameFilter,
 }: AggregateFlamegraphTreeTableProps) {
@@ -325,7 +323,6 @@ export function AggregateFlamegraphTreeTable({
     scrollContainerStyles: scrollContainerStyles,
     containerStyles: fixedContainerStyles,
     handleSortingChange,
-    handleScrollTo,
     handleExpandTreeNode,
     handleRowClick,
     handleRowKeyDown,
@@ -357,19 +354,6 @@ export function AggregateFlamegraphTreeTable({
     },
     [sort, direction, handleSortingChange]
   );
-
-  useEffect(() => {
-    function onShowInTableView(frame: FlamegraphFrame) {
-      handleScrollTo(el => el.node === frame.node);
-    }
-
-    canvasScheduler.on('zoom at frame', onShowInTableView);
-    canvasScheduler.on('show in table view', onShowInTableView);
-    return () => {
-      canvasScheduler.off('show in table view', onShowInTableView);
-      canvasScheduler.off('zoom at frame', onShowInTableView);
-    };
-  }, [canvasScheduler, handleScrollTo]);
 
   const onSortBySampleCount = useCallback(() => {
     onSortChange('sample count');

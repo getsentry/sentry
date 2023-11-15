@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -34,7 +34,6 @@ import {
 } from '../callTreeTable';
 
 import {FlamegraphTreeContextMenu} from './flamegraphTreeContextMenu';
-import {FlamegraphTreeTableRow} from './flamegraphTreeTableRow';
 
 function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
   return n.node.node.isDirectRecursive();
@@ -46,6 +45,8 @@ interface FlamegraphTreeTableProps {
   flamegraph: Flamegraph;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
+  onBottomUpClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
+  onTopDownClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
   recursion: 'collapsed' | null;
   referenceNode: FlamegraphFrame;
   tree: FlamegraphFrame[];
@@ -59,9 +60,10 @@ export function FlamegraphTreeTable({
   canvasPoolManager,
   canvasScheduler,
   getFrameColor,
-  formatDuration,
   recursion,
   flamegraph,
+  onBottomUpClick,
+  onTopDownClick,
 }: FlamegraphTreeTableProps) {
   const [scrollContainerRef, setFixedScrollContainerRef] =
     useState<HTMLDivElement | null>(null);
@@ -76,13 +78,23 @@ export function FlamegraphTreeTable({
     return makeCallTreeTableSortFunction(sort, direction);
   }, [sort, direction]);
 
-  const [clickedContextMenuNode, setClickedContextMenuClose] =
+  const [clickedContextMenuNode, setClickedContextMenuNode] =
     useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
 
   const [tableParentContainer, setTableParentContainer] = useState<HTMLDivElement | null>(
     null
   );
   const contextMenu = useContextMenu({container: tableParentContainer});
+
+  const onRowContextMenu = useCallback(
+    (item: VirtualizedTreeNode<FlamegraphFrame>) => {
+      return (e: React.MouseEvent<Element, MouseEvent>) => {
+        setClickedContextMenuNode(item);
+        contextMenu.handleContextMenu(e);
+      };
+    },
+    [contextMenu]
+  );
 
   const handleZoomIntoFrameClick = useCallback(() => {
     if (!clickedContextMenuNode) {
@@ -112,43 +124,6 @@ export function FlamegraphTreeTable({
     ]);
   }, [canvasPoolManager, clickedContextMenuNode, flamegraph]);
 
-  const renderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] = useCallback(
-    (
-      r,
-      {
-        handleRowClick,
-        handleRowMouseEnter,
-        handleExpandTreeNode,
-        handleRowKeyDown,
-        selectedNodeIndex,
-      }
-    ) => {
-      return (
-        <FlamegraphTreeTableRow
-          ref={n => {
-            r.ref = n;
-          }}
-          key={r.key}
-          node={r.item}
-          style={r.styles}
-          referenceNode={referenceNode}
-          frameColor={getFrameColor(r.item.node)}
-          formatDuration={formatDuration}
-          tabIndex={selectedNodeIndex === r.key ? 0 : 1}
-          onClick={handleRowClick}
-          onExpandClick={handleExpandTreeNode}
-          onKeyDown={handleRowKeyDown}
-          onMouseEnter={handleRowMouseEnter}
-          onContextMenu={evt => {
-            setClickedContextMenuClose(r.item);
-            contextMenu.handleContextMenu(evt);
-          }}
-        />
-      );
-    },
-    [contextMenu, formatDuration, referenceNode, getFrameColor]
-  );
-
   const fixedRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
@@ -172,7 +147,7 @@ export function FlamegraphTreeTable({
             onKeyDown={handleRowKeyDown}
             onClick={handleRowClick}
             onMouseEnter={handleRowMouseEnter}
-            onContextMenu={contextMenu.handleContextMenu}
+            onContextMenu={onRowContextMenu(r.item)}
           >
             <CallTreeTableFixedColumns
               node={r.item}
@@ -196,7 +171,7 @@ export function FlamegraphTreeTable({
           </CallTreeTableRow>
         );
       },
-      [referenceNode, flamegraph.formatter, getFrameColor, contextMenu]
+      [referenceNode, flamegraph.formatter, getFrameColor, onRowContextMenu]
     );
 
   const dynamicRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
@@ -222,7 +197,7 @@ export function FlamegraphTreeTable({
             onKeyDown={handleRowKeyDown}
             onClick={handleRowClick}
             onMouseEnter={handleRowMouseEnter}
-            onContextMenu={contextMenu.handleContextMenu}
+            onContextMenu={onRowContextMenu(r.item)}
           >
             <CallTreeTableDynamicColumns
               node={r.item}
@@ -236,7 +211,7 @@ export function FlamegraphTreeTable({
           </CallTreeTableRow>
         );
       },
-      [referenceNode, flamegraph.formatter, getFrameColor, contextMenu]
+      [referenceNode, flamegraph.formatter, getFrameColor, onRowContextMenu]
     );
   const onScrollToNode: UseVirtualizedTreeProps<FlamegraphFrame>['onScrollToNode'] =
     useCallback(
@@ -274,7 +249,6 @@ export function FlamegraphTreeTable({
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
     onScrollToNode,
-    renderRow,
     scrollContainer: scrollContainers,
     rowHeight: 24,
     tree,
@@ -362,6 +336,8 @@ export function FlamegraphTreeTable({
             onZoomIntoFrameClick={handleZoomIntoFrameClick}
             onHighlightAllFramesClick={onHighlightAllOccurrencesClick}
             contextMenu={contextMenu}
+            onBottomUpClick={onBottomUpClick}
+            onTopDownClick={onTopDownClick}
           />
           <CallTreeFixedColumnsContainer>
             {/*

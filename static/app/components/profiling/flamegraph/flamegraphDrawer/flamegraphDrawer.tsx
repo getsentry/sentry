@@ -82,7 +82,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
     setTab('bottom up');
   }, [setTab]);
 
-  const onCallOrderClick = useCallback(() => {
+  const onTopDownClick = useCallback(() => {
     setTab('top down');
   }, [setTab]);
 
@@ -131,7 +131,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             data-title={t('Top Down')}
             priority="link"
             size="zero"
-            onClick={onCallOrderClick}
+            onClick={onTopDownClick}
           >
             {t('Top Down')}
           </Button>
@@ -241,6 +241,8 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       <FlamegraphTreeTable
         {...props}
         expanded={tab === 'top down'}
+        onTopDownClick={onTopDownClick}
+        onBottomUpClick={onBottomUpClick}
         recursion={recursion}
         flamegraph={props.flamegraph}
         referenceNode={props.referenceNode}
