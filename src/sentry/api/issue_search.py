@@ -268,6 +268,9 @@ def convert_query_values(
                     for child in search_filter.children
                 ]
             )
+        elif isinstance(search_filter, str):
+            return search_filter
+
         if search_filter.key.name == "empty_stacktrace.js_console":
             if not features.has(
                 "organizations:javascript-console-error-tag", organization, actor=None
