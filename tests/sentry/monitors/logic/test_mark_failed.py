@@ -734,7 +734,7 @@ class MarkFailedTestCase(TestCase):
         # create in-progress check-ins
         first_checkin = None
         checkins = []
-        for i in range(0, failure_issue_threshold):
+        for i in range(0, failure_issue_threshold + 1):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
