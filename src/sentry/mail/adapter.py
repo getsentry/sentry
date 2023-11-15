@@ -110,7 +110,7 @@ class MailAdapter:
         user_ids = project.member_set.values_list("user_id", flat=True)
         users = user_service.get_many(filter=dict(user_ids=list(user_ids)))
 
-        # Do we need to use a notification service here?
+        # TODO: Do we need to use a notification service here?
         controller = NotificationController(
             recipients=users,
             project_ids=[project.id],
