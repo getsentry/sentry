@@ -278,6 +278,12 @@ def project_event_counts_for_organization(ctx):
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
     data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
 
+    if ctx.organization.slug == "sentry":
+        logger.info(
+            "project_event_counts_for_organization_query_result",
+            extra={"num_query_rows": len(data)},
+        )
+
     for dat in data:
         project_id = dat["project_id"]
         # Project no longer in organization, but events still exist
