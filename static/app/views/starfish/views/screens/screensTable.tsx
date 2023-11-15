@@ -179,8 +179,10 @@ export function useTableQuery({
   initialData,
   limit,
   staleTime,
+  cursor,
 }: {
   eventView: EventView;
+  cursor?: string;
   enabled?: boolean;
   excludeOther?: boolean;
   initialData?: TableData;
@@ -197,6 +199,7 @@ export function useTableQuery({
     orgSlug: organization.slug,
     limit: limit ?? 25,
     referrer,
+    cursor,
     options: {
       refetchOnWindowFocus: false,
       enabled,
