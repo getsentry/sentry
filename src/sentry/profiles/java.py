@@ -53,8 +53,10 @@ def parse_obfuscated_signature(signature: str) -> Tuple[List[str], str]:
 
 
 # format_signature formats the types into a human-readable signature
-def format_signature(parameter_java_types: List[str], return_java_type: str) -> str:
-    if parameter_java_types is None and return_java_type is None:
+def format_signature(
+    parameter_java_types: Optional[List[str]], return_java_type: Optional[str]
+) -> str:
+    if parameter_java_types is None or return_java_type is None:
         return ""
     signature = f"({', '.join(parameter_java_types)})"
     if return_java_type and return_java_type != "void":
