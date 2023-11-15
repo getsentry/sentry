@@ -21,6 +21,7 @@ import {EventDifferenialFlamegraph} from 'sentry/components/events/eventStatisti
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
+import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -225,28 +226,30 @@ function ProfilingDurationRegressionIssueDetailsContent({
       organization={organization}
       renderDisabled
     >
-      <Fragment>
-        <ErrorBoundary mini>
-          <EventRegressionSummary event={event} group={group} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventFunctionBreakpointChart event={event} />
-        </ErrorBoundary>
-        <Feature
-          features={['profiling-differential-flamegraph']}
-          organization={organization}
-        >
+      <TransactionsDeltaProvider event={event} project={project}>
+        <Fragment>
           <ErrorBoundary mini>
-            <EventDifferenialFlamegraph event={event} />
+            <EventRegressionSummary event={event} group={group} />
           </ErrorBoundary>
-        </Feature>
-        <ErrorBoundary mini>
-          <EventAffectedTransactions event={event} group={group} project={project} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventFunctionComparisonList event={event} group={group} project={project} />
-        </ErrorBoundary>
-      </Fragment>
+          <ErrorBoundary mini>
+            <EventFunctionBreakpointChart event={event} />
+          </ErrorBoundary>
+          <Feature
+            features={['profiling-differential-flamegraph']}
+            organization={organization}
+          >
+            <ErrorBoundary mini>
+              <EventDifferenialFlamegraph event={event} />
+            </ErrorBoundary>
+          </Feature>
+          <ErrorBoundary mini>
+            <EventAffectedTransactions event={event} group={group} project={project} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventFunctionComparisonList event={event} group={group} project={project} />
+          </ErrorBoundary>
+        </Fragment>
+      </TransactionsDeltaProvider>
     </Feature>
   );
 }
