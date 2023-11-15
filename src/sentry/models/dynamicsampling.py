@@ -313,6 +313,7 @@ class CustomDynamicSamplingRule(Model):
             end_date__lt=timezone.now(), is_active=True
         ).update(is_active=False)
 
+    @staticmethod
     def num_active_rules_for_project(project: "Project") -> int:
         """
         Returns the number of active rules for the given project
