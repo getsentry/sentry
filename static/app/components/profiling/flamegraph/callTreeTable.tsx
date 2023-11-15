@@ -1,12 +1,12 @@
 import {forwardRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {IconUser} from 'sentry/icons/iconUser';
 import {space} from 'sentry/styles/space';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
 export const enum CallTreeTableClassNames {
   ROW = 'CallTreeTableRow',
@@ -173,7 +173,7 @@ export const CallTreeTable = styled('div')`
 
 export const CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX = 164;
 
-export const FixedColumnsContainer = styled('div')`
+export const CallTreeFixedColumnsContainer = styled('div')`
   position: absolute;
   left: 0;
   top: 0;
@@ -192,7 +192,7 @@ export const FixedColumnsContainer = styled('div')`
   }
 `;
 
-export const DynamicColumnsContainer = styled('div')`
+export const CallTreeDynamicColumnsContainer = styled('div')`
   position: absolute;
   right: 0;
   top: 0;
@@ -202,12 +202,175 @@ export const DynamicColumnsContainer = styled('div')`
   z-index: 1;
 `;
 
-function computeRelativeWeight(base: number, value: number) {
-  // Make sure we dont divide by zero
-  if (!base || !value) {
-    return 0;
+export const CallTreeTableHeader = styled('div')`
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex: 1;
+  flex-grow: 0;
+
+  > div {
+    position: relative;
+    border-bottom: 1px solid ${p => p.theme.border};
+    background-color: ${p => p.theme.background};
+    white-space: nowrap;
+
+    &:last-child {
+      flex: 1;
+    }
+
+    &:not(:last-child) {
+      border-right: 1px solid ${p => p.theme.border};
+    }
   }
-  return (value / base) * 100;
+`;
+
+export const CallTreeTableHeaderButton = styled('button')`
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 ${space(1)};
+  border: none;
+  background-color: ${props => props.theme.surface200};
+  transition: background-color 100ms ease-in-out;
+  line-height: 24px;
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
+`;
+
+export const CallTreeTableContainer = styled('div')`
+  position: relative;
+  height: 100%;
+`;
+
+type SyncCallTreeScrollParams = {
+  node: VirtualizedTreeRenderedRow<FlamegraphFrame> | undefined;
+  scrollContainer: HTMLElement | HTMLElement[] | null;
+  coordinates?: {depth: number; top: number};
+};
+
+// This is slighlty unfortunate and ugly, but because our two columns are sticky
+// we need to scroll the container to the left when we scroll to a node. This
+// should be resolved when we split the virtualization between containers and sync scroll,
+// but is a larger undertaking and will take a bit longer
+export function syncCallTreeTableScroll(args: SyncCallTreeScrollParams) {
+  if (!args.scrollContainer) {
+    return;
+  }
+  if (args.node) {
+    const lastCell = args.node.ref?.lastChild?.firstChild as
+      | HTMLElement
+      | null
+      | undefined;
+    if (lastCell) {
+      lastCell.scrollIntoView({
+        block: 'nearest',
+      });
+
+      const left = -328 + (args.node.item.depth * 14 + 8);
+      if (Array.isArray(args.scrollContainer)) {
+        args.scrollContainer.forEach(c => {
+          c.scrollBy({
+            left,
+          });
+        });
+      } else {
+        args.scrollContainer.scrollBy({
+          left,
+        });
+      }
+    }
+  } else if (args.coordinates && args.scrollContainer) {
+    const left = -328 + (args.coordinates.depth * 14 + 8);
+
+    if (Array.isArray(args.scrollContainer)) {
+      args.scrollContainer.forEach(c => {
+        c.scrollBy({
+          left,
+        });
+      });
+    } else {
+      args.scrollContainer.scrollBy({
+        left,
+      });
+    }
+  }
+}
+
+export function makeCallTreeTableSortFunction(
+  property: 'sample count' | 'duration' | 'total weight' | 'self weight' | 'name',
+  direction: 'asc' | 'desc'
+) {
+  if (property === 'duration') {
+    return direction === 'desc'
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.node.aggregate_duration_ns - a.node.node.aggregate_duration_ns;
+        }
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.node.aggregate_duration_ns - b.node.node.aggregate_duration_ns;
+        };
+  }
+
+  // Sample counts are stored as weights
+  if (property === 'total weight' || property === 'sample count') {
+    return direction === 'desc'
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.node.totalWeight - a.node.node.totalWeight;
+        }
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.node.totalWeight - b.node.node.totalWeight;
+        };
+  }
+
+  if (property === 'self weight') {
+    return direction === 'desc'
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.node.selfWeight - a.node.node.selfWeight;
+        }
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.node.selfWeight - b.node.node.selfWeight;
+        };
+  }
+
+  if (property === 'name') {
+    return direction === 'desc'
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.frame.name.localeCompare(b.node.frame.name);
+        }
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.frame.name.localeCompare(a.node.frame.name);
+        };
+  }
+
+  throw new Error(`Unknown sort property ${property}`);
 }
 
 const TEXT_ALIGN_RIGHT: React.CSSProperties = {textAlign: 'right'};
@@ -250,42 +413,38 @@ interface CallTreeTableColumns {
     opts?: {expandChildren: boolean}
   ) => void;
   referenceNode: FlamegraphFrame;
+  relativeSelfWeight: number;
+  relativeTotalWeight: number;
+  selfWeight: number | React.ReactNode;
   tabIndex: number;
+  totalWeight: number | React.ReactNode;
+  type: 'count' | 'time';
 }
 
 export function CallTreeTableFixedColumns(props: CallTreeTableColumns) {
-  const totalWeight = computeRelativeWeight(
-    props.referenceNode.node.totalWeight,
-    props.node.node.node.totalWeight
-  );
-
-  const totalAggregateDuration = computeRelativeWeight(
-    props.referenceNode.node.aggregate_duration_ns,
-    props.node.node.node.aggregate_duration_ns
-  );
-
   return (
     <Fragment>
       <div className={CallTreeTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
-        {props.node.node.node.totalWeight}
+        {typeof props.selfWeight === 'number'
+          ? props.formatDuration(props.selfWeight)
+          : props.selfWeight}
         <div className={CallTreeTableClassNames.WEIGHT}>
-          {totalWeight.toFixed(2)}%
+          {props.relativeSelfWeight.toFixed(1)}%
           <div
             className={CallTreeTableClassNames.BACKGROUND_WEIGHT}
-            style={{transform: `scaleX(${totalWeight / 100})`}}
+            style={{transform: `scaleX(${props.relativeSelfWeight / 100})`}}
           />
         </div>
       </div>
       <div className={CallTreeTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
-        <PerformanceDuration
-          nanoseconds={props.node.node.node.aggregate_duration_ns}
-          abbreviation
-        />
+        {typeof props.totalWeight === 'number'
+          ? props.formatDuration(props.totalWeight)
+          : props.totalWeight}
         <div className={CallTreeTableClassNames.WEIGHT}>
-          {totalAggregateDuration.toFixed(2)}%
+          {props.relativeTotalWeight.toFixed(1)}%
           <div
             className={CallTreeTableClassNames.BACKGROUND_WEIGHT}
-            style={{transform: `scaleX(${totalAggregateDuration / 100})`}}
+            style={{transform: `scaleX(${props.relativeTotalWeight / 100})`}}
           />
         </div>
         <div className={CallTreeTableClassNames.FRAME_TYPE}>
@@ -300,7 +459,12 @@ export function CallTreeTableFixedColumns(props: CallTreeTableColumns) {
   );
 }
 
-export function CallTreeTableDynamicColumns(props: CallTreeTableColumns) {
+export function CallTreeTableDynamicColumns(
+  props: Omit<
+    CallTreeTableColumns,
+    'relativeTotalWeight' | 'relativeSelfWeight' | 'selfWeight' | 'totalWeight'
+  >
+) {
   const handleExpanding = (evt: React.MouseEvent) => {
     evt.stopPropagation();
     props.onExpandClick(props.node, !props.node.expanded, {

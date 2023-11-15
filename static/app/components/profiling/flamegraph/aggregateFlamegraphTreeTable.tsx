@@ -2,10 +2,10 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
@@ -23,6 +23,7 @@ import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/V
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
+import {relativeWeight} from 'sentry/utils/profiling/units/units';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
@@ -30,13 +31,17 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {AggregateFlamegraphTreeContextMenu} from './aggregateFlamegraphTreeContextMenu';
 import {
   CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX,
+  CallTreeDynamicColumnsContainer,
+  CallTreeFixedColumnsContainer,
   CallTreeTable,
+  CallTreeTableContainer,
   CallTreeTableDynamicColumns,
   CallTreeTableFixedColumns,
   CallTreeTableGhostRow,
+  CallTreeTableHeader,
+  CallTreeTableHeaderButton,
   CallTreeTableRow,
-  DynamicColumnsContainer,
-  FixedColumnsContainer,
+  syncCallTreeTableScroll,
 } from './callTreeTable';
 
 function makeSortFunction(
@@ -224,11 +229,27 @@ export function AggregateFlamegraphTreeTable({
             onContextMenu={contextMenu.handleContextMenu}
           >
             <CallTreeTableFixedColumns
+              type="count"
               node={r.item}
               referenceNode={referenceNode}
               frameColor={getFrameColor(r.item.node)}
               formatDuration={flamegraph.formatter}
               tabIndex={selectedNodeIndex === r.key ? 0 : 1}
+              totalWeight={
+                <PerformanceDuration
+                  nanoseconds={r.item.node.node.aggregate_duration_ns}
+                  abbreviation
+                />
+              }
+              selfWeight={r.item.node.node.totalWeight.toFixed(0)}
+              relativeSelfWeight={relativeWeight(
+                referenceNode.node.totalWeight,
+                r.item.node.node.totalWeight
+              )}
+              relativeTotalWeight={relativeWeight(
+                referenceNode.node.aggregate_duration_ns,
+                r.item.node.node.aggregate_duration_ns
+              )}
               onExpandClick={handleExpandTreeNode}
             />
           </CallTreeTableRow>
@@ -263,6 +284,7 @@ export function AggregateFlamegraphTreeTable({
             onContextMenu={contextMenu.handleContextMenu}
           >
             <CallTreeTableDynamicColumns
+              type="count"
               node={r.item}
               referenceNode={referenceNode}
               frameColor={getFrameColor(r.item.node)}
@@ -276,10 +298,6 @@ export function AggregateFlamegraphTreeTable({
       [referenceNode, flamegraph.formatter, getFrameColor, contextMenu]
     );
 
-  // This is slighlty unfortunate and ugly, but because our two columns are sticky
-  // we need to scroll the container to the left when we scroll to a node. This
-  // should be resolved when we split the virtualization between containers and sync scroll,
-  // but is a larger undertaking and will take a bit longer
   const onScrollToNode: UseVirtualizedTreeProps<FlamegraphFrame>['onScrollToNode'] =
     useCallback(
       (
@@ -287,47 +305,7 @@ export function AggregateFlamegraphTreeTable({
         scrollContainer: HTMLElement | HTMLElement[] | null,
         coordinates?: {depth: number; top: number}
       ) => {
-        if (!scrollContainer) {
-          return;
-        }
-        if (node) {
-          const lastCell = node.ref?.lastChild?.firstChild as
-            | HTMLElement
-            | null
-            | undefined;
-          if (lastCell) {
-            lastCell.scrollIntoView({
-              block: 'nearest',
-            });
-
-            const left = -328 + (node.item.depth * 14 + 8);
-            if (Array.isArray(scrollContainer)) {
-              scrollContainer.forEach(c => {
-                c.scrollBy({
-                  left,
-                });
-              });
-            } else {
-              scrollContainer.scrollBy({
-                left,
-              });
-            }
-          }
-        } else if (coordinates && scrollContainer) {
-          const left = -328 + (coordinates.depth * 14 + 8);
-
-          if (Array.isArray(scrollContainer)) {
-            scrollContainer.forEach(c => {
-              c.scrollBy({
-                left,
-              });
-            });
-          } else {
-            scrollContainer.scrollBy({
-              left,
-            });
-          }
-        }
+        syncCallTreeTableScroll({node, scrollContainer, coordinates});
       },
       []
     );
@@ -416,9 +394,9 @@ export function AggregateFlamegraphTreeTable({
   return (
     <FrameBar>
       <CallTreeTable>
-        <FrameCallersTableHeader>
+        <CallTreeTableHeader>
           <FrameWeightCell>
-            <TableHeaderButton onClick={onSortBySampleCount}>
+            <CallTreeTableHeaderButton onClick={onSortBySampleCount}>
               <InteractionStateLayer />
               <span>
                 {t('Samples')}{' '}
@@ -431,10 +409,10 @@ export function AggregateFlamegraphTreeTable({
               {sort === 'sample count' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}
-            </TableHeaderButton>
+            </CallTreeTableHeaderButton>
           </FrameWeightCell>
           <FrameWeightCell>
-            <TableHeaderButton onClick={onSortByDuration}>
+            <CallTreeTableHeaderButton onClick={onSortByDuration}>
               <InteractionStateLayer />
               <span>
                 {t('Duration')}{' '}
@@ -447,25 +425,25 @@ export function AggregateFlamegraphTreeTable({
               {sort === 'duration' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}
-            </TableHeaderButton>
+            </CallTreeTableHeaderButton>
           </FrameWeightCell>
-          <FrameNameCell>
-            <TableHeaderButton onClick={onSortByName}>
+          <div>
+            <CallTreeTableHeaderButton onClick={onSortByName}>
               <InteractionStateLayer />
               {t('Frame')}{' '}
               {sort === 'name' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}
-            </TableHeaderButton>
-          </FrameNameCell>
-        </FrameCallersTableHeader>
-        <AggregateFlamegraphTableContainer ref={setTableParentContainer}>
+            </CallTreeTableHeaderButton>
+          </div>
+        </CallTreeTableHeader>
+        <CallTreeTableContainer ref={setTableParentContainer}>
           <AggregateFlamegraphTreeContextMenu
             onBottomUpClick={onBottomUpClick}
             onTopDownClick={onTopDownClick}
             contextMenu={contextMenu}
           />
-          <FixedColumnsContainer>
+          <CallTreeFixedColumnsContainer>
             {/*
           The order of these two matters because we want clicked state to
           be on top of hover in cases where user is hovering a clicked row.
@@ -484,8 +462,8 @@ export function AggregateFlamegraphTreeTable({
                 <CallTreeTableGhostRow />
               </div>
             </div>
-          </FixedColumnsContainer>
-          <DynamicColumnsContainer>
+          </CallTreeFixedColumnsContainer>
+          <CallTreeDynamicColumnsContainer>
             {/*
           The order of these two matters because we want clicked state to
           be on top of hover in cases where user is hovering a clicked row.
@@ -503,39 +481,14 @@ export function AggregateFlamegraphTreeTable({
                 })}
               </div>
             </div>
-          </DynamicColumnsContainer>
+          </CallTreeDynamicColumnsContainer>
           <div ref={hoveredGhostRowRef} style={{zIndex: 0}} />
           <div ref={clickedGhostRowRef} style={{zIndex: 0}} />
-        </AggregateFlamegraphTableContainer>
+        </CallTreeTableContainer>
       </CallTreeTable>
     </FrameBar>
   );
 }
-
-const AggregateFlamegraphTableContainer = styled('div')`
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  right: 0;
-`;
-
-const TableHeaderButton = styled('button')`
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 ${space(1)};
-  border: none;
-  background-color: ${props => props.theme.surface200};
-  transition: background-color 100ms ease-in-out;
-  line-height: 24px;
-
-  svg {
-    width: 10px;
-    height: 10px;
-  }
-`;
 
 const FrameBar = styled('div')`
   overflow: auto;
@@ -549,30 +502,4 @@ const FrameBar = styled('div')`
 
 const FrameWeightCell = styled('div')`
   width: ${CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX}px;
-`;
-
-const FrameNameCell = styled('div')`
-  flex: 1 1 100%;
-`;
-
-const FrameCallersTableHeader = styled('div')`
-  top: 0;
-  position: sticky;
-  z-index: 2;
-  display: flex;
-
-  > div {
-    position: relative;
-    border-bottom: 1px solid ${p => p.theme.border};
-    background-color: ${p => p.theme.background};
-    white-space: nowrap;
-
-    &:last-child {
-      flex: 1;
-    }
-
-    &:not(:last-child) {
-      border-right: 1px solid ${p => p.theme.border};
-    }
-  }
 `;
