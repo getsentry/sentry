@@ -30,6 +30,7 @@ export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}
         'count_web_vitals(measurements.fcp, any)',
         'count_web_vitals(measurements.cls, any)',
         'count_web_vitals(measurements.fid, any)',
+        'count_web_vitals(measurements.ttfb, any)',
         'count()',
         'failure_count()',
         'p95(transaction.duration)',
