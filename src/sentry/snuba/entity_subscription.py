@@ -36,6 +36,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils import metrics
@@ -401,6 +402,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 skip_time_conditions=True,
                 use_metrics_layer=self.use_metrics_layer,
                 on_demand_metrics_enabled=self.on_demand_metrics_enabled,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
             ),
         )
