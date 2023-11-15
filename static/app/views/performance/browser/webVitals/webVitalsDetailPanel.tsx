@@ -78,18 +78,29 @@ export function WebVitalsDetailPanel({
     if (!data) {
       return [];
     }
-    const count = projectData?.data[0]['count()'] as number;
+    const count = projectData?.data?.[0]?.['count()'] as number;
     return data
       .map(row => ({
         ...row,
-        opportunity: calculateOpportunity(
-          projectScore[`${webVital}Score`],
-          count,
-          row[`${webVital}Score`],
-          row['count()']
-        ),
+        opportunity:
+          count !== undefined
+            ? calculateOpportunity(
+                projectScore[`${webVital}Score`],
+                count,
+                row[`${webVital}Score`],
+                row['count()']
+              )
+            : undefined,
       }))
-      .sort((a, b) => b.opportunity - a.opportunity)
+      .sort((a, b) => {
+        if (a.opportunity === undefined) {
+          return 1;
+        }
+        if (b.opportunity === undefined) {
+          return -1;
+        }
+        return b.opportunity - a.opportunity;
+      })
       .slice(0, MAX_ROWS);
   }, [data, projectData?.data, projectScore, webVital]);
 
