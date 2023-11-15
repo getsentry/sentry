@@ -70,8 +70,8 @@ class GroupNotesEndpoint(GroupEndpoint):
         GroupSubscription.objects.subscribe(
             group=group, subscriber=request.user, reason=GroupSubscriptionReason.comment
         )
+        mentioned_users = extract_user_ids_from_mentions(group.organization.id, mentions)
         if not features.has("organizations:participants-purge", group.organization):
-            mentioned_users = extract_user_ids_from_mentions(group.organization.id, mentions)
             GroupSubscription.objects.bulk_subscribe(
                 group=group,
                 user_ids=mentioned_users["users"],
