@@ -378,7 +378,8 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
     threshold_environment: str | None = (
         ethreshold["environment"]["name"] if ethreshold["environment"] else None
     )
-    for i in timeseries:
+    sorted_series = sorted(timeseries, key=lambda x: x["time"])
+    for i in sorted_series:
         if parser.parse(i["time"]) > ethreshold["end"]:
             # timeseries are ordered chronologically
             # So if we're past our threshold.end, we can skip the rest
