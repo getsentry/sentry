@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -40,17 +41,18 @@ type DeleteTagVariables = {key: TagWithTopValues['key']};
 function ProjectTags(props: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const projectId = props.params.projectId;
+  const {projectId} = props.params;
 
-  const project = useMemo(
-    () => projects.find(p => p.id === projectId),
-    [projects, projectId]
-  );
+  const project = projects.find(p => p.id === projectId);
 
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const {data: tags, isLoading} = useApiQuery<TagWithTopValues[]>(
+  const {
+    data: tags,
+    isLoading,
+    isError,
+  } = useApiQuery<TagWithTopValues[]>(
     [`/projects/${organization.slug}/${projectId}/tags/`],
     {staleTime: 0}
   );
@@ -71,6 +73,10 @@ function ProjectTags(props: Props) {
 
   if (isLoading) {
     return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError />;
   }
 
   const isEmpty = !tags || !tags.length;
