@@ -10,7 +10,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class BaseIncidentDetailsTest(APITestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-incident-details"
 

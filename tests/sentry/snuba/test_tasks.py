@@ -59,7 +59,7 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
 class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     status_translations = {
         QuerySubscription.Status.CREATING: "create",

@@ -3,7 +3,7 @@ from sentry.testutils.abstract import Abstract
 
 def test_abstract():
     class C:
-        __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+        __test__ = Abstract(__module__, __qualname__)
 
     class D(C):
         pass
