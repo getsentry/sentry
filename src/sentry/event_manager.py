@@ -138,7 +138,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("sentry.events")
 
-SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
+SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
