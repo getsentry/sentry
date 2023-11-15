@@ -78,5 +78,9 @@ export function generateIconName(
     return isLegacyEdge ? 'legacy-edge' : 'edge';
   }
 
+  if (formattedName.endsWith('-mobile')) {
+    return formattedName.split('-')[0];
+  }
+
   return formattedName;
 }
