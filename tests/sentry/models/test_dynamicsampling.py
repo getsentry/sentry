@@ -337,6 +337,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             else:
                 assert rule.is_active
                 assert rule.id in active_rules
+
     def test_per_project_limit(self):
         """
         Tests that it is not possible to create more than MAX_CUSTOM_RULES_PER_PROJECT
