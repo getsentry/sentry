@@ -14,10 +14,8 @@ import {
 import {IconChevron, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
 import useApi from 'sentry/utils/useApi';
-import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -30,19 +28,8 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
   const api = useApi();
   const project = feedbackIssue.project;
   const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
-  const {data} = useCommitters(
-    {
-      eventId: feedbackEvent?.id ?? '',
-      projectSlug: project.slug,
-    },
-    {
-      notifyOnChangeProps: ['data'],
-      enabled: defined(feedbackEvent?.id),
-    }
-  );
 
   useEffect(() => {
-    // TODO: We should check if this is already loaded
     fetchOrgMembers(api, organization.slug, [project.id]);
   }, [api, organization, project]);
 
@@ -76,11 +63,7 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
     organization,
   });
 
-  const owners = getOwnerList(
-    data?.committers ?? [],
-    eventOwners,
-    feedbackIssue.assignedTo
-  );
+  const owners = getOwnerList([], eventOwners, feedbackIssue.assignedTo);
 
   const dropdown = (
     <AssigneeSelectorDropdown
@@ -95,6 +78,7 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
         assign(null);
       }}
       owners={owners}
+      group={feedbackIssue}
     >
       {({isOpen, getActorProps}) => (
         <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>

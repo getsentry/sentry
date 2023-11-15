@@ -14,7 +14,7 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useOrganization');
 
-function wrapper({children}: {children?: ReactNode}) {
+function Wrapper({children}: {children?: ReactNode}) {
   return (
     <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
   );
@@ -69,7 +69,7 @@ describe('useSpanMetricsSeries', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(
       ({filters, yAxis}) => useSpanMetricsSeries(filters, yAxis),
       {
-        wrapper,
+        wrapper: Wrapper,
         initialProps: {
           filters: {
             'span.group': '221aa7ebd216',

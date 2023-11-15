@@ -158,6 +158,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/issues
 /static/app/views/alerts/                                 @getsentry/issues
 /static/app/views/issueDetails/                           @getsentry/issues
+/static/app/views/issueDetails/groupEventDetails/         @getsentry/issues
 /static/app/views/projects/                               @getsentry/issues
 /static/app/views/projectDetail/                          @getsentry/issues
 /static/app/views/releases/                               @getsentry/issues
@@ -207,6 +208,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/performance
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/performance
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/performance
+/static/app/components/events/viewHierarchy/*                               @getsentry/performance
 
 /src/sentry/api/serializers/snuba.py                                        @getsentry/discover-n-dashboards
 /src/sentry/snuba/discover.py                                               @getsentry/discover-n-dashboards
