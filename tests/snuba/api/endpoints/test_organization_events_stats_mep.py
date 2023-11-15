@@ -1000,7 +1000,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                     "customtag2",
                 ],
                 "topEvents": 5,
-                "dataset": "metrics",
+                "dataset": "metricsEnhanced",
                 "useOnDemandMetrics": "true",
                 "onDemandType": "dynamic_query",
             },
