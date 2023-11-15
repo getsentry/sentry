@@ -49,7 +49,8 @@ export type SpanStringFields =
   | 'span.group'
   | 'project.id'
   | 'transaction'
-  | 'transaction.method';
+  | 'transaction.method'
+  | 'release';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;

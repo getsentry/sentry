@@ -5,13 +5,12 @@ import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-
-const {SPAN_GROUP, RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetricsField;
+import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 export type SpanMetrics = {
   interval: number;
@@ -22,19 +21,15 @@ export type SpanMetrics = {
 };
 
 export const useSpanMetricsSeries = (
-  group: string,
-  queryFilters: SpanSummaryQueryFilters,
+  filters: SpanMetricsQueryFilters,
   yAxis: string[] = [],
   referrer = 'span-metrics-series'
 ) => {
   const pageFilters = usePageFilters();
 
-  const eventView = group
-    ? getEventView(group, pageFilters.selection, yAxis, queryFilters)
-    : undefined;
+  const eventView = getEventView(filters, pageFilters.selection, yAxis);
 
-  const enabled =
-    Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
+  const enabled = Object.values(filters).every(value => Boolean(value));
 
   const result = useSpansQuery<SpanMetrics[]>({
     eventView,
@@ -62,31 +57,31 @@ export const useSpanMetricsSeries = (
 };
 
 function getEventView(
-  group: string,
+  filters: SpanMetricsQueryFilters,
   pageFilters: PageFilters,
-  yAxis: string[],
-  queryFilters: SpanSummaryQueryFilters
+  yAxis: string[]
 ) {
-  const query = [
-    `${SPAN_GROUP}:${group}`,
-    ...(queryFilters?.transactionName
-      ? [`transaction:"${queryFilters?.transactionName}"`]
-      : []),
-    ...(queryFilters?.['transaction.method']
-      ? [`transaction.method:${queryFilters?.['transaction.method']}`]
-      : []),
-    ...(queryFilters?.release ? [`release:${queryFilters?.release}`] : []),
-    ...(queryFilters?.[RESOURCE_RENDER_BLOCKING_STATUS]
-      ? [
-          `${RESOURCE_RENDER_BLOCKING_STATUS}:${queryFilters[RESOURCE_RENDER_BLOCKING_STATUS]}`,
-        ]
-      : []),
-  ].join(' ');
+  const query = new MutableSearch('');
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (!value) {
+      return;
+    }
+
+    if (value === EMPTY_OPTION_VALUE) {
+      query.addFilterValue('!has', key);
+    }
+
+    query.addFilterValue(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
+  });
+
+  // TODO: This condition should be enforced everywhere
+  // query.addFilterValue('has', 'span.description');
 
   return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query,
+      query: query.formatString(),
       fields: [],
       yAxis,
       dataset: DiscoverDatasets.SPANS_METRICS,
@@ -96,3 +91,5 @@ function getEventView(
     pageFilters
   );
 }
+
+const ALLOWED_WILDCARD_FIELDS = ['span.description'];

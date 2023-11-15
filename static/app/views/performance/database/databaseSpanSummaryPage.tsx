@@ -94,15 +94,13 @@ function SpanSummaryPage({params}: Props) {
   };
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    groupId,
-    queryFilter,
+    {...queryFilter, 'span.group': groupId},
     ['spm()'],
     'api.starfish.span-summary-page-metrics-chart'
   );
 
   const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
-    groupId,
-    queryFilter,
+    {...queryFilter, 'span.group': groupId},
     [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     'api.starfish.span-summary-page-metrics-chart'
   );

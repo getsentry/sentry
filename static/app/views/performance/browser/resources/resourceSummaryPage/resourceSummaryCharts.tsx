@@ -35,8 +35,8 @@ function ResourceSummaryCharts(props: {groupId: string}) {
 
   const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries(
-      props.groupId,
       {
+        'span.group': props.groupId,
         ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
           ? {[RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS]}
           : {}),
