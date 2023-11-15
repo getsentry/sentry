@@ -723,6 +723,15 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 param_type, return_type = deobfuscate_signature(method["signature"], mapper)
                 method["signature"] = format_signature(param_type, return_type)
 
+            # in case we don't have line numbers but we do the signature,
+            # we do a best-effort deobfuscation exploiting function parameters
+            if method.get("source_line") is None and method.get("signature") is not None:
+                mapped = mapper.remap_frame(method["class_name"], method["name"], 0, param_type)
+            else:
+                mapped = mapper.remap_frame(
+                    method["class_name"], method["name"], method["source_line"] or 0
+                )
+
             if len(mapped) >= 1:
                 new_frame = mapped[-1]
                 method["class_name"] = new_frame.class_name
