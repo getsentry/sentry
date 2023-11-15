@@ -150,6 +150,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 "end": end,
             },
         )
+        metrics.incr("release.threshold_health_status.attempt")
 
         serializer = ReleaseThresholdStatusIndexSerializer(
             data=request.query_params,
@@ -279,7 +280,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             release_value_list = [release_version for release_version in filter_list["releases"]]
             category_thresholds: List[EnrichedThreshold] = filter_list["thresholds"]
             if threshold_type == ReleaseThresholdType.TOTAL_ERROR_COUNT:
-                metrics.incr("check.error_count")
+                metrics.incr("release.threshold_health_status.check.error_count")
                 """
                 Fetch errors timeseries for all projects with an error_count threshold in desired releases
                 Iterate through timeseries given threshold window and determine health status
@@ -315,37 +316,37 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
-                metrics.incr("check.new_issue_count")
+                metrics.incr("release.threshold_health_status.check.new_issue_count")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.UNHANDLED_ISSUE_COUNT:
-                metrics.incr("check.unhandled_issue_count")
+                metrics.incr("release.threshold_health_status.check.unhandled_issue_count")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.REGRESSED_ISSUE_COUNT:
-                metrics.incr("check.regressed_issue_count")
+                metrics.incr("release.threshold_health_status.check.regressed_issue_count")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.FAILURE_RATE:
-                metrics.incr("check.failure_rate")
+                metrics.incr("release.threshold_health_status.check.failure_rate")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_SESSION_RATE:
-                metrics.incr("check.crash_free_session_rate")
+                metrics.incr("release.threshold_health_status.check.crash_free_session_rate")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_USER_RATE:
-                metrics.incr("check.crash_free_user_rate")
+                metrics.incr("release.threshold_health_status.check.crash_free_user_rate")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
@@ -379,18 +380,22 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
         if parser.parse(i["time"]) > ethreshold["end"]:
             # timeseries are ordered chronologically
             # So if we're past our threshold.end, we can skip the rest
+            logger.info("Reached end of threshold window. Breaking")
+            metrics.incr("release.threshold_health_status.is_error_count_healthy.break_loop")
             break
         if ethreshold["environment"]:
             threshold_environment = ethreshold["environment"]["name"]
         if (
             parser.parse(i["time"]) <= ethreshold["start"]  # ts is before our threshold start
-            or parser.parse(i["time"]) > ethreshold["end"]  # ts is after our threshold ned
+            or parser.parse(i["time"]) > ethreshold["end"]  # ts is after our threshold end
             or i["release"] != ethreshold["release"]  # ts is not our the right release
             or i["project_id"] != ethreshold["project_id"]  # ts is not the right project
             or i["environment"] != threshold_environment  # ts is not the right environment
         ):
+            metrics.incr("release.threshold_health_status.is_error_count_healthy.skip")
             continue
         # else ethreshold.start < i.time <= ethreshold.end
+        metrics.incr("release.threshold_health_status.is_error_count_healthy.aggregate_total")
         total_count += i["count()"]
 
     logger.info(
@@ -405,6 +410,7 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
             "trigger_type": ethreshold["trigger_type"],
             "start": ethreshold["start"],
             "end": ethreshold["end"],
+            "error_count_data": timeseries,
         },
     )
 
