@@ -7,7 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
-from sentry.backup.helpers import create_encrypted_export_tarball
+from sentry.backup.helpers import LocalFileEncryptor, create_encrypted_export_tarball
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
@@ -60,7 +60,9 @@ class RelocationCreateTest(APITestCase):
                             "owner": self.owner.username,
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                             "orgs": ["testing", "foo"],
@@ -102,7 +104,9 @@ class RelocationCreateTest(APITestCase):
                             "owner": self.owner.username,
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                             "orgs": ["testing", "foo"],
@@ -126,7 +130,9 @@ class RelocationCreateTest(APITestCase):
                             "owner": self.owner.username,
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                             "orgs": ["testing", "foo"],
@@ -167,7 +173,9 @@ class RelocationCreateTest(APITestCase):
                             "owner": self.owner.username,
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                         },
@@ -189,7 +197,9 @@ class RelocationCreateTest(APITestCase):
                         {
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                             "orgs": ["testing", "foo"],
@@ -213,7 +223,9 @@ class RelocationCreateTest(APITestCase):
                             "owner": "doesnotexist",
                             "file": SimpleUploadedFile(
                                 "export.tar",
-                                create_encrypted_export_tarball(data, p).getvalue(),
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
                                 content_type="application/tar",
                             ),
                             "orgs": ["testing", "foo"],
@@ -240,7 +252,7 @@ class RelocationCreateTest(APITestCase):
                 with open(tmp_pub_key_path, "rb") as p:
                     simple_file = SimpleUploadedFile(
                         "export.tar",
-                        create_encrypted_export_tarball(data, p).getvalue(),
+                        create_encrypted_export_tarball(data, LocalFileEncryptor(p)).getvalue(),
                         content_type="application/tar",
                     )
                     simple_file.name = None

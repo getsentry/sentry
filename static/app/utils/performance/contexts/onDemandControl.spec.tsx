@@ -1,6 +1,5 @@
-import {Widget, WidgetType} from '../../types';
-
-import {isOnDemandMetricWidget} from './utils';
+import {_isOnDemandMetricWidget} from 'sentry/utils/performance/contexts/onDemandControl';
+import {Widget, WidgetType} from 'sentry/views/dashboards/types';
 
 function widget(
   aggregates: string[],
@@ -27,25 +26,25 @@ function widget(
 describe('isOnDemandMetricWidget', () => {
   it('should return true for a widget that contains non standard fields', () => {
     expect(
-      isOnDemandMetricWidget(widget(['count()'], 'transaction.duration:>1'))
+      _isOnDemandMetricWidget(widget(['count()'], 'transaction.duration:>1'))
     ).toBeTruthy();
-    expect(isOnDemandMetricWidget(widget(['count()'], 'device.name:foo'))).toBeTruthy();
-    expect(isOnDemandMetricWidget(widget(['count()'], 'geo.region:>US'))).toBeTruthy();
+    expect(_isOnDemandMetricWidget(widget(['count()'], 'device.name:foo'))).toBeTruthy();
+    expect(_isOnDemandMetricWidget(widget(['count()'], 'geo.region:>US'))).toBeTruthy();
   });
 
   it('should return false for a widget that has only standard fields', () => {
-    expect(isOnDemandMetricWidget(widget(['count()'], 'release:1.0'))).toBeFalsy();
-    expect(isOnDemandMetricWidget(widget(['count()'], 'platform:foo'))).toBeFalsy();
+    expect(_isOnDemandMetricWidget(widget(['count()'], 'release:1.0'))).toBeFalsy();
+    expect(_isOnDemandMetricWidget(widget(['count()'], 'platform:foo'))).toBeFalsy();
   });
 
   it('should return false for a widget that has multiple or unsupported aggregates', () => {
     expect(
-      isOnDemandMetricWidget(
+      _isOnDemandMetricWidget(
         widget(['count()', 'count_unique()'], 'transaction.duration:>1')
       )
     ).toBeFalsy();
     expect(
-      isOnDemandMetricWidget(widget(['apdex(100)'], 'transaction.duration:>1'))
+      _isOnDemandMetricWidget(widget(['apdex(100)'], 'transaction.duration:>1'))
     ).toBeFalsy();
   });
 });

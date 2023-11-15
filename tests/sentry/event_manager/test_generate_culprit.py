@@ -108,17 +108,23 @@ def test_hash_from_values():
 
 
 def test_nel_culprit():
-    data = {"nel": {"body": {"phase": "application", "type": "http.error", "status_code": 418}}}
+    data = {
+        "type": "nel",
+        "contexts": {
+            "nel": {"phase": "application", "error_type": "http.error"},
+            "response": {"status_code": 418},
+        },
+    }
     assert (
         generate_culprit(data)
         == "The user agent successfully received a response, but it had a 418 status code"
     )
 
-    data = {"nel": {"body": {"phase": "connection", "type": "tcp.reset"}}}
+    data = {"type": "nel", "contexts": {"nel": {"phase": "connection", "error_type": "tcp.reset"}}}
     assert generate_culprit(data) == "The TCP connection was reset"
 
-    data = {"nel": {"body": {"phase": "dns", "type": "dns.weird"}}}
+    data = {"type": "nel", "contexts": {"nel": {"phase": "dns", "error_type": "dns.weird"}}}
     assert generate_culprit(data) == "dns.weird"
 
-    data = {"nel": {"body": {"phase": "dns"}}}
+    data = {"type": "nel", "contexts": {"nel": {"phase": "dns"}}}
     assert generate_culprit(data) == "<missing>"

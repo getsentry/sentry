@@ -865,6 +865,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
     } = this.state;
 
+    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
+    const isMigration = this.props.location?.query?.migration === '1';
+
     const chartProps = {
       organization,
       projects: [project],
@@ -872,7 +875,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
       query: this.chartQuery,
       aggregate,
-      dataset,
+      // If the alert is being migrated, we want to use the generic metrics dataset to allow users to edit their thresholds
+      dataset: isMigration ? Dataset.GENERIC_METRICS : dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
       timeWindow,
       environment,

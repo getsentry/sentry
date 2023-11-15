@@ -4,6 +4,7 @@ import {formatBytesBase2} from 'sentry/utils';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
+import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -21,17 +22,33 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH,
   HTTP_RESPONSE_TRANSFER_SIZE,
+  RESOURCE_RENDER_BLOCKING_STATUS,
 } = SpanMetricsField;
 
 function ResourceSummaryCharts(props: {groupId: string}) {
+  const filters = useResourceModuleFilters();
+  // console.log({
+  //   ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
+  //     ? {[RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS]}
+  //     : {}),
+  // });
+
   const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
-    useSpanMetricsSeries(props.groupId, {}, [
-      `spm()`,
-      `avg(${SPAN_SELF_TIME})`,
-      `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-      `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
-      `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
-    ]);
+    useSpanMetricsSeries(
+      props.groupId,
+      {
+        ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
+          ? {[RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS]}
+          : {}),
+      },
+      [
+        `spm()`,
+        `avg(${SPAN_SELF_TIME})`,
+        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+        `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
+        `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
+      ]
+    );
 
   if (spanMetricsSeriesData) {
     spanMetricsSeriesData[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`].lineStyle = {

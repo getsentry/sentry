@@ -11,6 +11,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -74,6 +75,7 @@ export default function FiltersBar({
           </FilterButtons>
         )}
       </Fragment>
+      <ToggleOnDemand />
     </Wrapper>
   );
 }

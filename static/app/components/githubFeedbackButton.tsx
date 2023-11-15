@@ -7,14 +7,16 @@ type GithubFeedbackButtonProps = Omit<LinkButtonProps, 'children' | 'aria-label'
   href: string;
   ['aria-label']?: string;
   label?: string | null;
+  title?: string | null;
 };
 
 export function GithubFeedbackButton({
   label = t('Give Feedback'),
+  title = t('Give us feedback on GitHub'),
   ...props
 }: GithubFeedbackButtonProps) {
   return (
-    <Tooltip title={t('Give us feedback on GitHub')}>
+    <Tooltip title={title}>
       <LinkButton
         aria-label={label ?? t('Give Feedback')}
         size="sm"

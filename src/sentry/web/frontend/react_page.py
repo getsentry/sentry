@@ -48,6 +48,10 @@ class ReactMixin:
                 {"property": key, "content": value}
                 for key, value in self.meta_tags(request, **kwargs).items()
             ],
+            # Rendering the layout requires serializing the active organization.
+            # Since we already have it here from the OrganizationMixin, we can
+            # save some work and render it faster.
+            "org_context": getattr(self, "active_organization", None),
         }
 
         # Force a new CSRF token to be generated and set in user's
