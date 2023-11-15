@@ -406,7 +406,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
       listItem =>
         function () {
           const transaction = (listItem.transaction as string | undefined) ?? '';
-          const count = projectData?.data[0]['count()'] as number;
+          const count = projectData?.data?.[0]?.['count()'] as number;
           if (props.chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES) {
             const projectScore = calculatePerformanceScoreFromTableDataRow(
               projectData?.data?.[0]

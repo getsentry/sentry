@@ -78,7 +78,7 @@ export function WebVitalsDetailPanel({
     if (!data) {
       return [];
     }
-    const count = projectData?.data[0]['count()'] as number;
+    const count = projectData?.data?.[0]?.['count()'] as number;
     return data
       .map(row => ({
         ...row,

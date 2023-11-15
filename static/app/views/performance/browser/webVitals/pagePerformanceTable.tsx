@@ -77,7 +77,7 @@ export function PagePerformanceTable() {
     isLoading: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsQuery({limit: MAX_ROWS, transaction: query});
 
-  const count = projectData?.data[0]['count()'] as number;
+  const count = projectData?.data?.[0]?.['count()'] as number;
 
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
