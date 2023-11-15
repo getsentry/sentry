@@ -118,11 +118,7 @@ function DatabaseLandingPage() {
                   isLoading={isThroughputDataLoading}
                 />
                 <DurationChart
-                  series={
-                    durationData[
-                      `${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
-                    ]
-                  }
+                  series={durationData[`${selectedAggregate}(span.self_time)`]}
                   isLoading={isDurationDataLoading}
                 />
               </ChartContainer>
