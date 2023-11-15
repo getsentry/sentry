@@ -338,6 +338,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             meta = results.get("meta", {})
+            # logger.info("HEY")
+            # print("HEY")
+            # print(meta)
+            # breakpoint()
             fields_meta = meta.get("fields", {})
 
             if standard_meta:
