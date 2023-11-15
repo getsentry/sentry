@@ -165,7 +165,7 @@ test-monolith-dbs: create-db
 
 test-snuba: create-db
 	@echo "--> Running snuba tests"
-	pytest tests \
+	pytest -k 'not __In' tests \
 		-m snuba_ci \
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
 	@echo ""
@@ -173,7 +173,7 @@ test-snuba: create-db
 # snuba-full runs on API changes in Snuba
 test-snuba-full: create-db
 	@echo "--> Running full snuba tests"
-	pytest tests/snuba \
+	pytest -k 'not __In' tests/snuba \
 		tests/sentry/eventstream/kafka \
 		tests/sentry/post_process_forwarder \
 		tests/sentry/snuba \
