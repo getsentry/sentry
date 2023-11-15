@@ -91,7 +91,10 @@ def proxy_request_if_needed(
         install_uuid = view_kwargs["uuid"]
         return proxy_sentryappinstallation_request(request, install_uuid)
 
-    if request.resolver_match and request.resolver_match.url_name in REGION_PINNED_URL_NAMES:
+    if (
+        request.resolver_match
+        and request.resolver_match.url_name in settings.REGION_PINNED_URL_NAMES
+    ):
         region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
 
         return proxy_region_request(request, region)
