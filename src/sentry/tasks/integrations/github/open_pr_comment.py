@@ -3,6 +3,9 @@ from __future__ import annotations
 import logging
 from typing import List, Set, Tuple
 
+from django.db.models import Value
+from django.db.models.functions import StrIndex
+
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
@@ -82,8 +85,12 @@ def get_projects_and_filenames_from_source_file(
     org_id: int,
     pr_filename: str,
 ) -> Tuple[Set[Project], Set[str]]:
-    query = "SELECT * FROM sentry_repositoryprojectpathconfig WHERE organization_id = %s and %s LIKE CONCAT(source_root, '%%')"
-    code_mappings = list(RepositoryProjectPathConfig.objects.raw(query, [org_id, pr_filename]))
+    # fetch the code mappings in which the source_root is a substring at the start of pr_filename
+    code_mappings = (
+        RepositoryProjectPathConfig.objects.filter(organization_id=org_id)
+        .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
+        .filter(substring_match=1)
+    )
 
     project_list: Set[Project] = set()
     sentry_filenames = set()
