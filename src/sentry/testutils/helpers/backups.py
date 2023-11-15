@@ -18,7 +18,6 @@ from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
-from sentry.backup.comparators import ComparatorMap
 from sentry.backup.dependencies import NormalizedModelName, get_model, sorted_dependencies
 from sentry.backup.exports import (
     export_in_config_scope,
@@ -96,8 +95,6 @@ from sentry.utils.json import JSONData
 
 __all__ = [
     "export_to_file",
-    "import_export_then_validate",
-    "import_export_from_fixture_then_validate",
     "ValidationError",
 ]
 
@@ -246,7 +243,7 @@ def clear_model(model, *, reset_pks: bool):
             table = model._meta.db_table
             seq = f"{table}_id_seq"
             with connections[using].cursor() as cursor:
-                cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
+                cursor.execute("SELECT setval(%s, 1, false)", [seq])
 
 
 @assume_test_silo_mode(SiloMode.REGION)
@@ -325,32 +322,6 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
                 )
 
     return actual
-
-
-EMPTY_COMPARATORS_FOR_TESTING: ComparatorMap = {}
-
-
-def import_export_from_fixture_then_validate(
-    tmp_path: Path,
-    fixture_file_name: str,
-    map: ComparatorMap = EMPTY_COMPARATORS_FOR_TESTING,
-) -> None:
-    """
-    Test helper that validates that data imported from a fixture `.json` file correctly matches
-    the actual outputted export data.
-    """
-
-    fixture_file_path = get_fixture_path("backup", fixture_file_name)
-    with open(fixture_file_path) as backup_file:
-        expect = json.load(backup_file)
-    with open(fixture_file_path, "rb") as fixture_file:
-        import_in_global_scope(fixture_file, printer=NOOP_PRINTER)
-
-    res = validate(
-        expect, export_to_file(tmp_path.joinpath("tmp_test_file.json"), ExportScope.Global), map
-    )
-    if res.findings:
-        raise ValidationError(res)
 
 
 class BackupTestCase(TransactionTestCase):
