@@ -141,6 +141,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 
         query = serializer.validated_data["query"]
         projects = serializer.validated_data.get("projects")
+
         try:
             condition = get_condition(query)
 
