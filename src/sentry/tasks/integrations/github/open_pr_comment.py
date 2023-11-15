@@ -79,12 +79,12 @@ def get_pr_filenames(
 
 
 def get_projects_and_filenames_from_source_file(
+    org_id: int,
     pr_filename: str,
 ) -> Tuple[Set[Project], Set[str]]:
-    query = (
-        "SELECT * FROM sentry_repositoryprojectpathconfig WHERE %s LIKE CONCAT(source_root, '%%')"
-    )
-    code_mappings = list(RepositoryProjectPathConfig.objects.raw(query, [pr_filename]))
+    query = "SELECT * FROM sentry_repositoryprojectpathconfig WHERE organization_id = %s and %s LIKE CONCAT(source_root, '%%')"
+    code_mappings = list(RepositoryProjectPathConfig.objects.raw(query, [org_id, pr_filename]))
+
     project_list: Set[Project] = set()
     sentry_filenames = set()
 

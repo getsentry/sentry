@@ -181,6 +181,16 @@ class TestGetFilenames(GithubCommentTestCase):
                 default_branch="master",
             )
 
+        # matching code mapping from a different org
+        other_org_code_mapping = self.create_code_mapping(
+            project=self.another_org_project,
+            repo=self.another_org_repo,
+            source_root="",
+            stack_root="./",
+        )
+        other_org_code_mapping.organization_id = self.another_organization.id
+        other_org_code_mapping.save()
+
         source_stack_nonmatches = [
             ("/src/sentry", "sentry"),
             ("tests/", "tests/"),
@@ -201,6 +211,8 @@ class TestGetFilenames(GithubCommentTestCase):
             for source_root, stack_root in source_stack_pairs
         ]
 
-        project_list, sentry_filenames = get_projects_and_filenames_from_source_file(filename)
+        project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
+            self.organization.id, filename
+        )
         assert project_list == set(projects)
         assert sentry_filenames == set(correct_filenames)
