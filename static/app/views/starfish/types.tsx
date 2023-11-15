@@ -45,6 +45,7 @@ export type SpanStringFields =
   | 'span.description'
   | 'span.module'
   | 'span.action'
+  | 'span.domain'
   | 'span.group'
   | 'project.id'
   | 'transaction'

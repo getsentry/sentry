@@ -53,6 +53,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
+    MetricSpecType,
     OnDemandMetricSpec,
     should_use_on_demand_metrics,
 )
@@ -134,7 +135,13 @@ class MetricsQueryBuilder(QueryBuilder):
             if self.params.environments:
                 environment = self.params.environments[0].name
 
-            return OnDemandMetricSpec(field, self.query, environment, groupby_columns)
+            return OnDemandMetricSpec(
+                field=field,
+                query=self.query,
+                environment=environment,
+                groupbys=groupby_columns,
+                spec_type=self.builder_config.on_demand_metrics_type or MetricSpecType.SIMPLE_QUERY,
+            )
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
@@ -155,12 +162,13 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
         aggregate_columns = self.selected_columns
-        return {
+        map = {
             col: self._get_on_demand_metric_spec(col)
             for col in aggregate_columns
             # Replace with proper table code later
             if fields.is_function(col) and self._get_on_demand_metric_spec(col)
         }
+        return map
 
     def _get_metrics_query_from_on_demand_spec(
         self,
@@ -255,7 +263,7 @@ class MetricsQueryBuilder(QueryBuilder):
         )
 
     def validate_aggregate_arguments(self) -> None:
-        if not self.builder_config.use_metrics_layer:
+        if not self.use_metrics_layer:
             super().validate_aggregate_arguments()
 
     @property
@@ -270,6 +278,12 @@ class MetricsQueryBuilder(QueryBuilder):
             return UseCaseID.SPANS
         else:
             return UseCaseID.SESSIONS
+
+    @property
+    def use_metrics_layer(self) -> bool:
+        # We want to use the metrics layer only for normal metrics, since span metrics are currently
+        # NOT supported.
+        return self.builder_config.use_metrics_layer and not self.spans_metrics_builder
 
     def resolve_query(
         self,
@@ -308,7 +322,7 @@ class MetricsQueryBuilder(QueryBuilder):
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
                 self.groupby = self.resolve_groupby(groupby_columns)
 
-        if len(self.metric_ids) > 0 and not self.builder_config.use_metrics_layer:
+        if len(self.metric_ids) > 0 and not self.use_metrics_layer:
             self.where.append(
                 # Metric id is intentionally sorted, so we create consistent queries here both for testing & caching.
                 Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
@@ -320,7 +334,7 @@ class MetricsQueryBuilder(QueryBuilder):
             col = tag_match.group("tag") if tag_match else col
 
         # on-demand metrics require metrics layer behavior
-        if self.builder_config.use_metrics_layer or self._has_on_demand_specs:
+        if self.use_metrics_layer or self._has_on_demand_specs:
             if col in ["project_id", "timestamp"]:
                 return col
             # TODO: update resolve params so this isn't needed
@@ -530,7 +544,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
-        if self.is_performance or self.builder_config.use_metrics_layer:
+        if self.is_performance or self.use_metrics_layer:
             return value
         return self.resolve_metric_index(value)
 
@@ -660,10 +674,7 @@ class MetricsQueryBuilder(QueryBuilder):
         This dialect should NEVER be used outside of the transformer as it will create problems if parsed by the
         snuba SDK.
         """
-        if (
-            not self.builder_config.use_metrics_layer
-            and not self.builder_config.on_demand_metrics_enabled
-        ):
+        if not self.use_metrics_layer and not self.builder_config.on_demand_metrics_enabled:
             # The reasoning for this error is because if "use_metrics_layer" is false, the MQB will not generate the
             # snql dialect explained below as there is not need for that because it will directly generate normal snql
             # that can be returned via the "get_snql_query" method.
@@ -697,7 +708,7 @@ class MetricsQueryBuilder(QueryBuilder):
         """
         This method returns the normal snql of the query being built for execution.
         """
-        if self.builder_config.use_metrics_layer:
+        if self.use_metrics_layer:
             # The reasoning for this error is because if "use_metrics_layer" is true, the snql built within MQB will
             # be a slight variation of snql that is understood only by the "mqb_query_transformer" thus we don't
             # want to return it to users.
@@ -788,7 +799,7 @@ class MetricsQueryBuilder(QueryBuilder):
         for orderby in self.orderby:
             for entity, framework in query_framework.items():
                 # Metrics layer can't have aliases in the functions for some reason
-                if self.builder_config.use_metrics_layer:
+                if self.use_metrics_layer:
                     framework_functions = [
                         function.exp if isinstance(function, AliasedExpression) else function
                         for function in framework.functions
@@ -939,7 +950,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.tenant_ids = self.tenant_ids or dict()
         self.tenant_ids["use_case_id"] = self.use_case_id.value
 
-        if self.builder_config.use_metrics_layer or self._has_on_demand_specs:
+        if self.use_metrics_layer or self._has_on_demand_specs:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -1164,7 +1175,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         we are going to import the purposfully hidden SnubaQueryBuilder which is a component that takes a MetricsQuery
         and returns one or more equivalent snql query(ies).
         """
-        if self.builder_config.use_metrics_layer or self._has_on_demand_specs:
+        if self.use_metrics_layer or self._has_on_demand_specs:
             from sentry.snuba.metrics import SnubaQueryBuilder
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -1362,7 +1373,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         """
 
         # No need for primary from the query framework since there's no orderby to worry about
-        if self.builder_config.use_metrics_layer:
+        if self.use_metrics_layer:
             prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
 
             return [
@@ -1415,7 +1426,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         return queries
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.builder_config.use_metrics_layer or self._has_on_demand_specs:
+        if self.use_metrics_layer or self._has_on_demand_specs:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -1428,7 +1439,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                         metrics_query = self._get_metrics_query_from_on_demand_spec(
                             spec=spec, require_time_range=True
                         )
-                    elif self.builder_config.use_metrics_layer:
+                    elif self.use_metrics_layer:
                         snuba_query = self.get_snql_query()[0].query
                         metrics_query = transform_mqb_query_to_metrics_query(
                             snuba_query, self.is_alerts_query
@@ -1614,7 +1625,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         results = []
         meta_dict = {}
 
-        if self.builder_config.use_metrics_layer or self._has_on_demand_specs:
+        if self.use_metrics_layer or self._has_on_demand_specs:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -1645,7 +1656,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                             )
                             metrics_queries.append(metrics_query)
 
-                    elif self.builder_config.use_metrics_layer:
+                    elif self.use_metrics_layer:
                         snuba_query = self.get_snql_query()[0].query
                         metrics_queries.append(
                             transform_mqb_query_to_metrics_query(snuba_query, self.is_alerts_query)

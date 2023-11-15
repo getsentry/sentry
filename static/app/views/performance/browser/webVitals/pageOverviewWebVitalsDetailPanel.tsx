@@ -28,7 +28,7 @@ import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/compo
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
 import {
-  calculatePerformanceScore,
+  calculatePerformanceScoreFromTableDataRow,
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
 } from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
@@ -84,13 +84,7 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const {data: projectData} = useProjectWebVitalsQuery({transaction});
 
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-  });
+  const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
@@ -288,17 +282,19 @@ export function PageOverviewWebVitalsDetailPanel({
         <ChartContainer>
           {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
         </ChartContainer>
-        <GridEditable
-          data={tableData}
-          isLoading={isTransactionWebVitalsQueryLoading}
-          columnOrder={columnOrder}
-          columnSortBy={[sort]}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
-          location={location}
-        />
+        <TableContainer>
+          <GridEditable
+            data={tableData}
+            isLoading={isTransactionWebVitalsQueryLoading}
+            columnOrder={columnOrder}
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+            location={location}
+          />
+        </TableContainer>
         <PageErrorAlert />
       </DetailPanel>
     </PageErrorProvider>
@@ -328,4 +324,8 @@ const ChartContainer = styled('div')`
 
 const NoValue = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const TableContainer = styled('div')`
+  margin-bottom: 80px;
 `;
