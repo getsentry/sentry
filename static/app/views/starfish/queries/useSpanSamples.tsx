@@ -110,7 +110,7 @@ export const useSpanSamples = (options: Options) => {
           upperBound: maxYValue,
           project: pageFilter.selection.projects,
           query: queryString,
-          ...(additionalFields?.length ? {additonalFields: additionalFields} : {}),
+          ...(additionalFields?.length ? {additionalFields} : {}),
         })}`
       );
       return data
