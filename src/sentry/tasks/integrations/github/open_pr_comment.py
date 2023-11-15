@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Set, Union
+from typing import List, Set, Tuple
 
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -80,12 +80,12 @@ def get_pr_filenames(
 
 def get_projects_and_filenames_from_source_file(
     pr_filename: str,
-) -> Union[Set[Project], Set[str]]:
+) -> Tuple[Set[Project], Set[str]]:
     query = (
         "SELECT * FROM sentry_repositoryprojectpathconfig WHERE %s LIKE CONCAT(source_root, '%%')"
     )
     code_mappings = list(RepositoryProjectPathConfig.objects.raw(query, [pr_filename]))
-    project_list = set()
+    project_list: Set[Project] = set()
     sentry_filenames = set()
 
     if len(code_mappings):
