@@ -18,7 +18,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
@@ -203,11 +203,19 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                 <ScreensBarChart
                   chartOptions={[
                     {
-                      title: t('Comparing Release TTID'),
+                      title: t('TTID by Device Class'),
                       yAxis: YAXIS_COLUMNS[yAxes[0]],
                       series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[0]]]),
                       xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                      subtitle: t('Device Classes'),
+                      subtitle: primaryRelease
+                        ? t(
+                            '%s v. %s',
+                            formatVersionAndCenterTruncate(primaryRelease, 12),
+                            secondaryRelease
+                              ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                              : ''
+                          )
+                        : '',
                     },
                   ]}
                   chartKey="spansChart"
@@ -218,11 +226,17 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
               <ChartsContainerItem key="xyz">
                 <MiniChartPanel
                   title={t('Average TTID')}
-                  subtitle={t(
-                    '%s v. %s',
-                    centerTruncate(primaryRelease, 12),
-                    secondaryRelease ? centerTruncate(secondaryRelease, 12) : ''
-                  )}
+                  subtitle={
+                    primaryRelease
+                      ? t(
+                          '%s v. %s',
+                          formatVersionAndCenterTruncate(primaryRelease, 12),
+                          secondaryRelease
+                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                            : ''
+                        )
+                      : ''
+                  }
                 >
                   <Chart
                     height={80}
@@ -258,11 +272,19 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                 <ScreensBarChart
                   chartOptions={[
                     {
-                      title: t('Comparing Release TTFD'),
+                      title: t('TTFD by Device Class'),
                       yAxis: YAXIS_COLUMNS[yAxes[1]],
                       series: Object.values(transformedEvents[YAXIS_COLUMNS[yAxes[1]]]),
                       xAxisLabel: ['high', 'medium', 'low', 'Unknown'],
-                      subtitle: t('Device Classes'),
+                      subtitle: primaryRelease
+                        ? t(
+                            '%s v. %s',
+                            formatVersionAndCenterTruncate(primaryRelease, 12),
+                            secondaryRelease
+                              ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                              : ''
+                          )
+                        : '',
                     },
                   ]}
                   chartKey="spansChart"
@@ -273,11 +295,17 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
               <ChartsContainerItem key="xyz">
                 <MiniChartPanel
                   title={t('Average TTFD')}
-                  subtitle={t(
-                    '%s v. %s',
-                    centerTruncate(primaryRelease, 12),
-                    secondaryRelease ? centerTruncate(secondaryRelease, 12) : ''
-                  )}
+                  subtitle={
+                    primaryRelease
+                      ? t(
+                          '%s v. %s',
+                          formatVersionAndCenterTruncate(primaryRelease, 12),
+                          secondaryRelease
+                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                            : ''
+                        )
+                      : ''
+                  }
                 >
                   <Chart
                     height={80}
@@ -312,11 +340,17 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
           <ChartsContainerItem key="xyz">
             <MiniChartPanel
               title={CHART_TITLES[YAxis.COUNT]}
-              subtitle={t(
-                '%s v. %s',
-                centerTruncate(primaryRelease, 12),
-                secondaryRelease ? centerTruncate(secondaryRelease, 12) : ''
-              )}
+              subtitle={
+                primaryRelease
+                  ? t(
+                      '%s v. %s',
+                      formatVersionAndCenterTruncate(primaryRelease, 12),
+                      secondaryRelease
+                        ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                        : ''
+                    )
+                  : ''
+              }
             >
               <Chart
                 data={Object.values(transformedReleaseSeries[YAXIS_COLUMNS[yAxes[2]]])}

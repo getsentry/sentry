@@ -25,7 +25,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -51,8 +51,8 @@ export function ScreenLoadSpansTable({
   const organization = useOrganization();
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
-  const truncatedPrimary = centerTruncate(primaryRelease ?? '', 15);
-  const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 15);
+  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
+  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
