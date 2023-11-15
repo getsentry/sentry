@@ -1,3 +1,4 @@
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -125,7 +126,4 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
     def test_invalid_numeric_slug(self):
         self.login_as(user=self.user)
         response = self.get_error_response(self.org.slug, slug="1234", status_code=400)
-        assert (
-            response.data["slug"][0]
-            == "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. It cannot be entirely numeric."
-        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
