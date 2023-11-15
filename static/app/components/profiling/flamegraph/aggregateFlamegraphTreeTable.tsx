@@ -27,7 +27,9 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
+import {AggregateFlamegraphTreeContextMenu} from './aggregateFlamegraphTreeContextMenu';
 import {
+  CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX,
   CallTreeTable,
   CallTreeTableDynamicColumns,
   CallTreeTableFixedColumns,
@@ -35,8 +37,7 @@ import {
   CallTreeTableRow,
   DynamicColumnsContainer,
   FixedColumnsContainer,
-} from './calltree/FrameCallersTable';
-import {AggregateFlamegraphTreeContextMenu} from './aggregateFlamegraphTreeContextMenu';
+} from './callTreeTable';
 
 function makeSortFunction(
   property: 'sample count' | 'duration' | 'name',
@@ -519,8 +520,6 @@ const AggregateFlamegraphTableContainer = styled('div')`
   right: 0;
 `;
 
-const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
-
 const TableHeaderButton = styled('button')`
   display: flex;
   width: 100%;
@@ -549,7 +548,7 @@ const FrameBar = styled('div')`
 `;
 
 const FrameWeightCell = styled('div')`
-  width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
+  width: ${CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX}px;
 `;
 
 const FrameNameCell = styled('div')`

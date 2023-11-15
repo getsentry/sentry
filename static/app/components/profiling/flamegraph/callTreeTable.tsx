@@ -9,16 +9,16 @@ import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
 export const enum CallTreeTableClassNames {
-  ROW = 'FrameCallersRow',
-  CELL = 'FrameCallersTableCell',
-  FRAME_CELL = 'FrameCallersTableCellFrame',
-  WEIGHT = 'FrameCallersTableCellWeight',
-  BACKGROUND_WEIGHT = 'FrameCallersTableCellWeightBar',
-  FRAME_TYPE = 'FrameCallersTableCellFrameType',
-  COLOR_INDICATOR = 'FrameCallersTableCellColorIndicator',
-  EXPAND_BUTTON = 'FrameCallersTableCellExpandButton',
-  GHOST_ROW_CELL = 'FrameCallersTableCellGhostRow',
-  GHOST_ROW_CONTAINER = 'FrameCallersTableCellGhostRowContainer',
+  ROW = 'CallTreeTableRow',
+  CELL = 'CallTreeTableTableCell',
+  FRAME_CELL = 'CallTreeTableTableCellFrame',
+  WEIGHT = 'CallTreeTableTableCellWeight',
+  BACKGROUND_WEIGHT = 'CallTreeTableTableCellWeightBar',
+  FRAME_TYPE = 'CallTreeTableTableCellFrameType',
+  COLOR_INDICATOR = 'CallTreeTableTableCellColorIndicator',
+  EXPAND_BUTTON = 'CallTreeTableTableCellExpandButton',
+  GHOST_ROW_CELL = 'CallTreeTableTableCellGhostRow',
+  GHOST_ROW_CONTAINER = 'CallTreeTableTableCellGhostRowContainer',
 }
 
 export const CallTreeTable = styled('div')`
@@ -171,14 +171,14 @@ export const CallTreeTable = styled('div')`
   }
 `;
 
-const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
+export const CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX = 164;
 
 export const FixedColumnsContainer = styled('div')`
   position: absolute;
   left: 0;
   top: 0;
   height: 100%;
-  width: ${2 * FRAME_WEIGHT_CELL_WIDTH_PX}px;
+  width: ${2 * CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX}px;
   overflow: hidden;
   z-index: 1;
 
@@ -197,7 +197,7 @@ export const DynamicColumnsContainer = styled('div')`
   right: 0;
   top: 0;
   height: 100%;
-  width: calc(100% - ${2 * FRAME_WEIGHT_CELL_WIDTH_PX}px);
+  width: calc(100% - ${2 * CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX}px);
   overflow: hidden;
   z-index: 1;
 `;
@@ -253,7 +253,7 @@ interface CallTreeTableColumns {
   tabIndex: number;
 }
 
-export function CallTreeTableDynamicColumns(props: CallTreeTableColumns) {
+export function CallTreeTableFixedColumns(props: CallTreeTableColumns) {
   const totalWeight = computeRelativeWeight(
     props.referenceNode.node.totalWeight,
     props.node.node.node.totalWeight
@@ -300,7 +300,7 @@ export function CallTreeTableDynamicColumns(props: CallTreeTableColumns) {
   );
 }
 
-export function CallTreeTableFixedColumns(props: CallTreeTableColumns) {
+export function CallTreeTableDynamicColumns(props: CallTreeTableColumns) {
   const handleExpanding = (evt: React.MouseEvent) => {
     evt.stopPropagation();
     props.onExpandClick(props.node, !props.node.expanded, {
