@@ -1,7 +1,7 @@
 import pytest
 import responses
 
-from sentry.runner.commands.presenters.presenterdelegator import PresenterDelegator
+from sentry.runner.commands.options.presenters.presenterdelegator import PresenterDelegator
 
 
 @pytest.mark.django_db

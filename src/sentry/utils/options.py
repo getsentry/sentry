@@ -3,11 +3,7 @@
 
 import logging
 
-import requests
-from django.conf import settings
-
 from sentry import options
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -30,16 +26,3 @@ def sample_modulo(option_name: str, value: int, granularity: int = 100) -> bool:
         logger.error("Invalid value for option %r: %r", option_name, sample_rate)
 
     return False
-
-
-def send_to_webhook(json_data: dict) -> None:
-    """
-    Helper function for sending runtime option changes to the webhook.
-    """
-    if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
-        headers = {"Content-Type": "application/json"}
-        requests.post(
-            settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL,
-            data=json.dumps(json_data),
-            headers=headers,
-        ).raise_for_status()

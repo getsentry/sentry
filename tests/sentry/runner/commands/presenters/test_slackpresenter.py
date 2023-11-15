@@ -2,7 +2,7 @@ import pytest
 import responses
 from django.test import override_settings
 
-from sentry.runner.commands.presenters.slackpresenter import SlackPresenter
+from sentry.runner.commands.options.presenters.slackpresenter import SlackPresenter
 from sentry.utils import json
 
 
