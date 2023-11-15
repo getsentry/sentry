@@ -5,7 +5,7 @@
         "fields": {
             "password": "pbkdf2_sha256$150000$iEvdIknqYjTr$+QsGn0tfIJ1FZLxQI37mVU1gL2KbL/wqjMtG/dFhsMA=",
             "last_login": null,
-            "username": "maximum@example.com",
+            "username": "max_user",
             "name": "",
             "email": "maximum@example.com",
             "is_staff": true,
