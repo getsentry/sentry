@@ -36,7 +36,7 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
 
   // @todo use the data to render a flamegraph
   useDifferentialFlamegraphQuery({
-    projectID: isNaN(projectID) ? -1 : projectID,
+    projectID,
     breakpoint,
     environments: [],
     transaction: '',

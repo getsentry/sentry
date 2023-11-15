@@ -13,7 +13,7 @@ import {
 interface DifferentialFlamegraphQueryParameters {
   breakpoint: number;
   environments: AggregateFlamegraphQueryParameters['environments'];
-  projectID: number;
+  projectID: number | null;
   transaction: string;
 }
 
@@ -27,7 +27,8 @@ export function useDifferentialFlamegraphQuery(
     return {
       transaction: params.transaction,
       environments: params.environments,
-      projects: isNaN(params.projectID) ? [] : [params.projectID],
+      projects:
+        params.projectID === null || isNaN(params.projectID) ? [] : [params.projectID],
       datetime: {},
     };
   }, [params.transaction, params.environments, params.projectID]);
