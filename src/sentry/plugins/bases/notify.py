@@ -146,7 +146,7 @@ class NotificationPlugin(Plugin):
         if self.get_conf_key() == "mail":
             user_ids = list(project.member_set.values_list("user_id", flat=True))
             users = user_service.get_many(filter={"user_ids": user_ids})
-            # Do we need to use a notification service here?
+            # TODO: Do we need to use a notification service here?
             notification_controller = NotificationController(
                 recipients=users,
                 project_ids=[project.id],
