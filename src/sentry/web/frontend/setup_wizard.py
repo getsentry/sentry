@@ -79,25 +79,9 @@ class SetupWizardView(BaseView):
         # {'us': {'org_ids': [...], 'projects': [...], 'keys': [...]}}
         region_data_map = defaultdict(lambda: defaultdict(list))
 
-        for mapping in org_mappings:
-            region_data_map[mapping.region_name]["org_ids"].append(mapping.organization_id)
-
-        for region_name, region_data in region_data_map.items():
-            org_ids = region_data["org_ids"]
-            region_data["projects"] = project_service.get_many_by_organizations(
-                region_name=region_name, organization_ids=org_ids
-            )
-
-        for region_name, region_data in region_data_map.items():
-            project_ids = [rpc_project.id for rpc_project in region_data["projects"]]
-            region_data["keys"] = project_key_service.get_project_keys_by_region(
-                region_name=region_name,
-                project_ids=project_ids,
-                role=ProjectKeyRole.store,
-            )
-
         org_mappings_map = {}
         for mapping in org_mappings:
+            region_data_map[mapping.region_name]["org_ids"].append(mapping.organization_id)
             status = OrganizationStatus(mapping.status)
             serialized_mapping = {
                 "id": mapping.organization_id,
@@ -108,15 +92,31 @@ class SetupWizardView(BaseView):
             }
             org_mappings_map[mapping.organization_id] = serialized_mapping
 
-        keys_map = defaultdict(list)
-        filled_projects = []
         for region_name, region_data in region_data_map.items():
+            org_ids = region_data["org_ids"]
+            projects = project_service.get_many_by_organizations(
+                region_name=region_name, organization_ids=org_ids
+            )
+            region_data["projects"] = projects
+
+        keys_map = defaultdict(list)
+        for region_name, region_data in region_data_map.items():
+            project_ids = [rpc_project.id for rpc_project in region_data["projects"]]
+            keys = project_key_service.get_project_keys_by_region(
+                region_name=region_name,
+                project_ids=project_ids,
+                role=ProjectKeyRole.store,
+            )
+            region_data["keys"] = keys
             for key in region_data["keys"]:
                 serialized_key = {
                     "dsn": {"public": key.dsn_public},
                     "isActive": key.is_active,
                 }
                 keys_map[key.project_id].append(serialized_key)
+
+        filled_projects = []
+        for region_name, region_data in region_data_map.items():
             for project in region_data["projects"]:
                 enriched_project = {
                     "slug": project.slug,
@@ -140,7 +140,7 @@ class SetupWizardView(BaseView):
         return render_to_response("sentry/setup-wizard.html", context, request)
 
 
-def get_token(mappings: List[OrganizationMapping], user: User | RpcUser):
+def get_token(mappings: List[OrganizationMapping], user: RpcUser):
     can_use_org_tokens = len(mappings) == 1
 
     # If only one org, try to generate an org auth token
