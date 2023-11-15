@@ -404,6 +404,7 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
             "threshold": ethreshold,
             "total_count": total_count,
             "error_count_data": timeseries,
+            "threshold_environment": threshold_environment,
         },
     )
 
