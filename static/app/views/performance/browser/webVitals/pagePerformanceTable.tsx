@@ -35,7 +35,7 @@ import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVita
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
-type RowWithScoreAndOpportunity = Row & {opportunity: number; score: number};
+type RowWithScoreAndOpportunity = Row & {score: number; opportunity?: number};
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
@@ -81,12 +81,15 @@ export function PagePerformanceTable() {
 
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
-    opportunity: calculateOpportunity(
-      projectScore.totalScore ?? 0,
-      count,
-      row.score,
-      row['count()']
-    ),
+    opportunity:
+      count !== undefined
+        ? calculateOpportunity(
+            projectScore.totalScore ?? 0,
+            count,
+            row.score,
+            row['count()']
+          )
+        : undefined,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -217,8 +220,16 @@ export function PagePerformanceTable() {
     ) {
       return <AlignRight>{getFormattedDuration((row[key] as number) / 1000)}</AlignRight>;
     }
-    if (['p75(measurements.cls)', 'opportunity'].includes(key)) {
+    if (key === 'p75(measurements.cls)') {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+    }
+    if (key === 'opportunity') {
+      if (row.opportunity !== undefined) {
+        return (
+          <AlignRight>{Math.round((row.opportunity as number) * 100) / 100}</AlignRight>
+        );
+      }
+      return null;
     }
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
