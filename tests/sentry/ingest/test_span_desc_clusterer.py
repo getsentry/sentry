@@ -1,7 +1,5 @@
 from unittest import mock
 
-import pytest
-
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.ingest.transaction_clusterer.datasource.redis import (
@@ -27,7 +25,6 @@ from sentry.ingest.transaction_clusterer.tasks import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.relay.config import get_project_config
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
@@ -85,51 +82,6 @@ def test_distribution():
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
 @django_db_all
-@pytest.mark.parametrize(
-    "description, description_scrubbed, op, feat_flag_enabled, expected",
-    [
-        ("", "", "http.client", True, 0),
-        ("", "GET /a/b/c", "something.else", True, 0),
-        ("", "GET /a/b/c", "http.client", True, 1),
-        ("GET /a/b/c", "", "something.else", True, 0),
-        ("GET /a/b/c", "", "http.client", True, 1),
-        ("GET /a/b/c", "GET /a/*/c", "something.else", True, 0),
-        ("GET /a/b/c", "GET /a/*/c", "http.client", True, 1),
-        ("GET /a/b/c", "GET /a/*/c", "http.client", False, 0),
-    ],
-)
-def test_record_span(
-    mocked_record,
-    default_organization,
-    description,
-    description_scrubbed,
-    op,
-    feat_flag_enabled,
-    expected,
-):
-    with Feature(
-        {
-            "projects:span-metrics-extraction": feat_flag_enabled,
-        }
-    ):
-        project = Project(id=111, name="project", organization_id=default_organization.id)
-        record_span_descriptions(
-            project,
-            {
-                "spans": [
-                    {
-                        "description": description,
-                        "op": op,
-                        "data": {"description.scrubbed": description_scrubbed},
-                    }
-                ]
-            },
-        )
-        assert len(mocked_record.mock_calls) == expected
-
-
-@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
-@django_db_all
 def test_record_span_desc_url(mocked_record, default_organization):
     with Feature(
         {
@@ -142,21 +94,29 @@ def test_record_span_desc_url(mocked_record, default_organization):
             {
                 "spans": [
                     {
-                        "description": "POST http://example.com/remains/to-scrub/remains-too/1234567890",
-                        "op": "http.client",
-                        "data": {
-                            "description.scrubbed": "POST http://example.com/remains/*/remains-too/*"
+                        "op": "resource.css",
+                        "sentry_tags": {
+                            "description": "https://*.domain.com/jane/path/to/something.en-us.js"
                         },
-                    }
-                ]
+                    },
+                    {
+                        "op": "resource.css",
+                        "sentry_tags": {"description": "webroot/my.js"},
+                    },
+                ],
             },
         )
         assert mocked_record.mock_calls == [
             mock.call(
                 ClustererNamespace.SPANS,
                 Project(id=111, name="project", slug=None),
-                "/remains/*/remains-too/*",
-            )
+                "/jane/path/to/something.en-us.js",
+            ),
+            mock.call(
+                ClustererNamespace.SPANS,
+                Project(id=111, name="project", slug=None),
+                "webroot/my.js",
+            ),
         ]
 
 
@@ -227,7 +187,7 @@ def test_save_rules(default_project):
 
 # From the test -- number of transactions: 30 == 10 * 2 + 5 * 2
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 30)
-@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD_SPANS", 5)
 @mock.patch(
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs.delay",
     wraps=cluster_projects_span_descs,  # call immediately
@@ -310,7 +270,7 @@ def test_run_clusterer_task(cluster_projects_span_descs, default_organization):
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
-@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD_SPANS", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
 @django_db_all
 def test_clusterer_only_runs_when_enough_data(mock_update_rules, default_project):
@@ -341,46 +301,8 @@ def test_get_deleted_project():
     assert list(get_active_projects(ClustererNamespace.SPANS)) == []
 
 
-@django_db_all
-def test_span_descs_clusterer_generates_rules(default_project):
-    def _get_projconfig_span_desc_rules(project: Project):
-        return (
-            get_project_config(project, full_config=True)
-            .to_dict()["config"]
-            .get("spanDescriptionRules")
-        )
-
-    feature = "projects:span-metrics-extraction"
-    with Feature({feature: False}):
-        assert _get_projconfig_span_desc_rules(default_project) is None
-    with Feature({feature: True}):
-        assert _get_projconfig_span_desc_rules(default_project) is None
-
-    rules = {ReplacementRule("/rule/*/0/**"): 0, ReplacementRule("/rule/*/1/**"): 1}
-    ProjectOptionRuleStore(ClustererNamespace.SPANS).write(default_project, rules)
-
-    with Feature({feature: False}):
-        assert _get_projconfig_span_desc_rules(default_project) is None
-    with Feature({feature: True}):
-        assert _get_projconfig_span_desc_rules(default_project) == [
-            # TTL is 90d, so three months to expire
-            {
-                "pattern": "/rule/*/0/**",
-                "expiry": "1970-04-01T00:00:00Z",
-                "scope": {"op": "http"},
-                "redaction": {"method": "replace", "substitution": "*"},
-            },
-            {
-                "pattern": "/rule/*/1/**",
-                "expiry": "1970-04-01T00:00:01Z",
-                "scope": {"op": "http"},
-                "redaction": {"method": "replace", "substitution": "*"},
-            },
-        ]
-
-
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 10)
-@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD_SPANS", 5)
 @mock.patch(
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs.delay",
     wraps=cluster_projects_span_descs,  # call immediately
@@ -411,17 +333,16 @@ def test_span_descs_clusterer_bumps_rules(_, default_organization):
                 {
                     "spans": [
                         {
-                            "description": "GET domain/remains/to-scrub/remains",
-                            "op": "http.client",
-                            "data": {"description.scrubbed": "GET domain/remains/*/remains"},
-                        }
+                            "op": "resource.css",
+                            "sentry_tags": {"description": "webroot/my.js"},
+                        },
                     ],
                     "_meta": {
                         "spans": {
                             "0": {
-                                "data": {
-                                    "description.scrubbed": {
-                                        "": {"rem": [["description.scrubbed:**/remains/*/**", "s"]]}
+                                "sentry_tags": {
+                                    "description": {
+                                        "": {"rem": [["description:**/remains/*/**", "s"]]}
                                     }
                                 }
                             }
@@ -442,7 +363,7 @@ def test_span_descs_clusterer_bumps_rules(_, default_organization):
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 3)
-@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD_SPANS", 2)
 @mock.patch(
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs.delay",
     wraps=cluster_projects_span_descs,  # call immediately
@@ -455,20 +376,19 @@ def test_dont_store_inexisting_rules(_, default_organization):
         rogue_span_payload = {
             "spans": [
                 {
-                    "description": "GET domain/remains/to-scrub/remains",
-                    "op": "http.client",
-                    "data": {"description.scrubbed": "GET domain/remains/*/remains"},
-                }
+                    "op": "resource.css",
+                    "sentry_tags": {"description": "webroot/my.js"},
+                },
             ],
             "_meta": {
                 "spans": {
                     "0": {
-                        "data": {
-                            "description.scrubbed": {
+                        "sentry_tags": {
+                            "description": {
                                 "": {
                                     "rem": [
                                         [
-                                            "description.scrubbed:**/i/am/a/rogue/rule/dont/store/me/**",
+                                            "description:**/i/am/a/rogue/rule/dont/store/me/**",
                                             "s",
                                         ]
                                     ]
@@ -507,10 +427,9 @@ def test_record_span_descriptions_no_databag(default_organization):
         payload = {
             "spans": [
                 {
-                    "description": "GET a",
-                    "op": "http.client",
-                    "data": None,
-                }
+                    "op": "resource.css",
+                    "sentry_tags": {"description": "webroot/my.js"},
+                },
             ],
         }
 

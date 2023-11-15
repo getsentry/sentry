@@ -890,7 +890,50 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Highest opportunity pages widget', async function () {
+  it('Most time consuming resources widget', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES}
+        />
+      </MEPSettingProvider>
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Most Time Consuming Resources'
+    );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spansMetrics',
+          environment: ['prod'],
+          field: [
+            'span.description',
+            'span.op',
+            'project.id',
+            'span.group',
+            'sum(span.self_time)',
+            'avg(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: QUERY_LIMIT_PARAM,
+          project: ['-42'],
+          query:
+            '!span.description:browser-extension://* span.op:[resource.script,resource.css] !resource.render_blocking_status:blocking transaction.op:pageload',
+          sort: '-time_spent_percentage()',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('Best Page Opportunities widget', async function () {
     const data = initializeData();
 
     wrapper = render(
@@ -903,7 +946,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Highest Opportunity Pages'
+      'Best Page Opportunities'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(

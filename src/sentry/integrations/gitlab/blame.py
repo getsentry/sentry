@@ -87,6 +87,7 @@ def _fetch_file_blame(
     cache_key = client.get_cache_key(request_path, json.dumps(params))
     response = client.check_cache(cache_key)
     if response:
+        metrics.incr("integrations.gitlab.get_blame_for_files.got_cached")
         logger.info(
             "sentry.integrations.gitlab.get_blame_for_files.got_cached",
             extra=extra,
@@ -115,7 +116,7 @@ def _create_file_blame_info(commit: CommitInfo, file: SourceLineInfo) -> FileBla
 
 def _handle_file_blame_error(error: ApiError, file: SourceLineInfo, extra: Mapping[str, Any]):
     if error.code == 429:
-        metrics.incr("sentry.integrations.gitlab.get_blame_for_files.rate_limit")
+        metrics.incr("integrations.gitlab.get_blame_for_files.rate_limit")
     logger.exception(
         "get_blame_for_files.api_error",
         extra={

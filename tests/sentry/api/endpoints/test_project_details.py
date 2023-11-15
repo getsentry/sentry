@@ -10,7 +10,7 @@ from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
@@ -33,7 +33,6 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -548,7 +547,6 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.org_slug,
@@ -827,13 +825,19 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["allowedDomains"] == ["*"]
 
     def test_safe_fields(self):
-        value = ["foobar.com", "https://example.com"]
+        value = ["foobar", "extra.fields.**"]
         resp = self.get_success_response(self.org_slug, self.proj_slug, safeFields=value)
         assert self.project.get_option("sentry:safe_fields") == [
-            "foobar.com",
-            "https://example.com",
+            "foobar",
+            "extra.fields.**",
         ]
-        assert resp.data["safeFields"] == ["foobar.com", "https://example.com"]
+        assert resp.data["safeFields"] == ["foobar", "extra.fields.**"]
+
+        value = ["er ror", "double.**.wildcard.**"]
+        resp = self.get_error_response(self.org_slug, self.proj_slug, safeFields=value)
+        assert resp.data["safeFields"] == [
+            'Invalid syntax near "er ror" (line 1),\nDeep wildcard used more than once (line 2)',
+        ]
 
     def test_store_crash_reports(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)

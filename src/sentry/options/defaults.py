@@ -270,13 +270,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "api.prevent-numeric-slugs",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
@@ -1472,6 +1465,7 @@ register(
 )
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1697,3 +1691,10 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # END: SDK Crash Detection
+
+register(
+    # Lists the shared resource ids we want to account usage for.
+    "shared_resources_accounting_enabled",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

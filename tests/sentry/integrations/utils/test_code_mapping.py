@@ -11,10 +11,15 @@ from sentry.integrations.utils.code_mapping import (
     UnsupportedFrameFilename,
     filter_source_code_files,
     get_extension,
+    get_sorted_code_mapping_configs,
     should_include,
     stacktrace_buckets,
 )
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 sentry_files = [
     "bin/__init__.py",
@@ -322,3 +327,79 @@ class TestDerivedCodeMappings(TestCase):
         )
         assert stacktrace_root == "app:///../"
         assert source_path == ""
+
+
+class TestGetSortedCodeMappingConfigs(TestCase):
+    def setUp(self):
+        super()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(provider="example", name="Example")
+            self.integration.add_organization(self.organization, self.user)
+            self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+        )
+        self.repo.integration_id = self.integration.id
+        self.repo.provider = "example"
+        self.repo.save()
+
+    def test_get_sorted_code_mapping_configs(self):
+        # Created by the user, not well defined stack root
+        code_mapping1 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="",
+            source_root="",
+            automatically_generated=False,
+        )
+        # Created by automation, not as well defined stack root
+        code_mapping2 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="usr/src/getsentry/src/",
+            source_root="",
+            automatically_generated=True,
+        )
+        # Created by the user, well defined stack root
+        code_mapping3 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="usr/src/getsentry/",
+            source_root="",
+            automatically_generated=False,
+        )
+        # Created by the user, not as well defined stack root
+        code_mapping4 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="usr/src/",
+            source_root="",
+            automatically_generated=False,
+        )
+        # Created by automation, well defined stack root
+        code_mapping5 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="usr/src/getsentry/src/sentry/",
+            source_root="",
+            automatically_generated=True,
+        )
+
+        # Expected configs: stack_root, automatically_generated
+        expected_config_order = [
+            code_mapping3,  # "usr/src/getsentry/", False
+            code_mapping4,  # "usr/src/", False
+            code_mapping1,  # "", False
+            code_mapping5,  # "usr/src/getsentry/src/sentry/", True
+            code_mapping2,  # "usr/src/getsentry/src/", True
+        ]
+
+        sorted_configs = get_sorted_code_mapping_configs(self.project)
+        assert sorted_configs == expected_config_order

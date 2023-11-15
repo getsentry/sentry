@@ -1,24 +1,17 @@
-import {Location} from 'history';
+import {useMemo, useState} from 'react';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {Event, Organization} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import {NumericChange, renderHeadCell} from 'sentry/utils/performance/regression/table';
+import {Event, Project} from 'sentry/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+
+import {EventRegressionTable} from './eventRegressionTable';
 
 interface SpanDiff {
   p95_after: number;
@@ -35,17 +28,6 @@ interface UseFetchAdvancedAnalysisProps {
   breakpoint: string;
   end: string;
   projectId: string;
-  start: string;
-  transaction: string;
-}
-
-interface RenderBodyCellProps {
-  column: GridColumnOrder<string>;
-  end: string;
-  location: Location;
-  organization: Organization;
-  projectId: string;
-  row: SpanDiff;
   start: string;
   transaction: string;
 }
@@ -79,70 +61,22 @@ function useFetchAdvancedAnalysis({
   );
 }
 
-function getColumns() {
-  return [
-    {key: 'span_op', name: t('Span Operation'), width: 200},
-    {key: 'span_description', name: t('Description'), width: COL_WIDTH_UNDEFINED},
-    {key: 'spm', name: t('Throughput'), width: COL_WIDTH_UNDEFINED},
-    {key: 'p95', name: t('P95'), width: COL_WIDTH_UNDEFINED},
-  ];
+const ADDITIONAL_COLUMNS = [
+  {key: 'operation', name: t('Operation'), width: 120},
+  {key: 'description', name: t('Description'), width: COL_WIDTH_UNDEFINED},
+];
+
+interface AggregateSpanDiffProps {
+  event: Event;
+  project: Project;
 }
 
-function renderBodyCell({
-  column,
-  row,
-  organization,
-  transaction,
-  projectId,
-  location,
-  start,
-  end,
-}: RenderBodyCellProps) {
-  if (column.key === 'span_description') {
-    const label = row[column.key] || t('unnamed span');
-    return (
-      <Tooltip title={label} showOnlyOnOverflow>
-        <TextOverflow>
-          <Link
-            to={spanDetailsRouteWithQuery({
-              orgSlug: organization.slug,
-              spanSlug: {op: row.span_op, group: row.span_group},
-              transaction,
-              projectID: projectId,
-              query: {
-                ...location.query,
-                statsPeriod: undefined,
-                query: undefined,
-                start,
-                end,
-              },
-            })}
-          >
-            {label}
-          </Link>
-        </TextOverflow>
-      </Tooltip>
-    );
-  }
-
-  if (['p95', 'spm'].includes(column.key)) {
-    const beforeRawValue = row[`${column.key}_before`];
-    const afterRawValue = row[`${column.key}_after`];
-    return (
-      <NumericChange
-        columnKey={column.key}
-        beforeRawValue={beforeRawValue}
-        afterRawValue={afterRawValue}
-      />
-    );
-  }
-
-  return row[column.key];
-}
-
-function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}) {
+function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
   const location = useLocation();
   const organization = useOrganization();
+
+  const [causeType, setCauseType] = useState<'duration' | 'throughput'>('duration');
+
   const {transaction, breakpoint} = event?.occurrence?.evidenceData ?? {};
   const breakpointTimestamp = new Date(breakpoint * 1000).toISOString();
 
@@ -156,55 +90,86 @@ function AggregateSpanDiff({event, projectId}: {event: Event; projectId: string}
     start: (start as Date).toISOString(),
     end: (end as Date).toISOString(),
     breakpoint: breakpointTimestamp,
-    projectId,
+    projectId: project.id,
   });
 
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
+  const tableData = useMemo(() => {
+    return (
+      data?.map(row => {
+        if (causeType === 'throughput') {
+          return {
+            operation: row.span_op,
+            group: row.span_group,
+            description: row.span_description,
+            throughputBefore: row.spm_before,
+            throughputAfter: row.spm_after,
+            percentageChange: row.spm_after / row.spm_before - 1,
+          };
+        }
+        return {
+          operation: row.span_op,
+          group: row.span_group,
+          description: row.span_description,
+          durationBefore: row.p95_before / 1e3,
+          durationAfter: row.p95_after / 1e3,
+          percentageChange: row.p95_after / row.p95_before - 1,
+        };
+      }) || []
+    );
+  }, [data, causeType]);
 
-  let content;
-  if (isError) {
-    content = (
-      <EmptyStateWarning>
-        <p>{t('Oops! Something went wrong fetching span diffs')}</p>
-      </EmptyStateWarning>
-    );
-  } else if (!defined(data) || data.length === 0) {
-    content = (
-      <EmptyStateWarning>
-        <p>{t('Unable to find significant differences in spans')}</p>
-      </EmptyStateWarning>
-    );
-  } else {
-    content = (
-      <GridEditable
-        isLoading={isLoading}
-        data={data}
-        location={location}
-        columnOrder={getColumns()}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell: (column, row) =>
-            renderBodyCell({
-              column,
-              row,
-              organization,
-              transaction,
-              projectId,
-              location,
+  const tableOptions = useMemo(() => {
+    return {
+      description: {
+        defaultValue: t('(unnamed span)'),
+        link: dataRow => ({
+          target: spanDetailsRouteWithQuery({
+            orgSlug: organization.slug,
+            spanSlug: {op: dataRow.operation, group: dataRow.group},
+            transaction,
+            projectID: project.id,
+            query: {
+              ...location.query,
+              statsPeriod: undefined,
+              query: undefined,
               start: (start as Date).toISOString(),
               end: (end as Date).toISOString(),
-            }),
-        }}
-      />
-    );
-  }
+            },
+          }),
+        }),
+      },
+    };
+  }, [location, organization, project, transaction, start, end]);
 
   return (
-    <EventDataSection type="potential-causes" title={t('Potential Causes')}>
-      {content}
+    <EventDataSection
+      type="potential-causes"
+      title={t('Potential Causes')}
+      actions={
+        <SegmentedControl
+          size="xs"
+          aria-label={t('Duration or Throughput')}
+          value={causeType}
+          onChange={setCauseType}
+        >
+          <SegmentedControl.Item key="duration">
+            {t('Duration (P95)')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="throughput">
+            {t('Throughput')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+      }
+    >
+      <EventRegressionTable
+        causeType={causeType}
+        columns={ADDITIONAL_COLUMNS}
+        data={tableData}
+        isLoading={isLoading}
+        isError={isError}
+        // renderers={renderers}
+        options={tableOptions}
+      />
     </EventDataSection>
   );
 }

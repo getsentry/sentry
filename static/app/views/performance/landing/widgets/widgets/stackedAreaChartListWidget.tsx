@@ -9,6 +9,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
@@ -29,10 +30,16 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {
+  Badge,
+  PerformanceBadge,
+} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {
+  calculatePerformanceScore,
+  calculatePerformanceScoreFromTableDataRow,
+} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsTimeseriesQuery';
@@ -72,10 +79,13 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
   const pageError = usePageError();
   const theme = useTheme();
-  const {data: projectData, isLoading: isProjectWebVitalDataLoading} =
-    useProjectWebVitalsQuery();
   const colors = [...theme.charts.getColorPalette(5)].reverse();
   const field = fields[0];
+
+  // TODO Abdullah Khan: Create a new widget type/file for Best Page Opportunity
+  // Web vitals widget. Code path is very different from generic stacked area chart widget.
+  const {data: projectData, isLoading: isProjectWebVitalDataLoading} =
+    useProjectWebVitalsQuery();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -309,34 +319,34 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
               });
 
             formattedWebVitalsScoreBreakdown.total.push({
-              value: totalScore,
+              value: totalScore ?? 0,
               name: dataRow.name,
             });
             formattedWebVitalsScoreBreakdown.cls.push({
-              value: clsScore,
+              value: clsScore ?? 0,
               name: dataRow.name,
             });
             formattedWebVitalsScoreBreakdown.lcp.push({
-              value: lcpScore,
+              value: lcpScore ?? 0,
               name: dataRow.name,
             });
             formattedWebVitalsScoreBreakdown.fcp.push({
-              value: fcpScore,
+              value: fcpScore ?? 0,
               name: dataRow.name,
             });
             formattedWebVitalsScoreBreakdown.ttfb.push({
-              value: ttfbScore,
+              value: ttfbScore ?? 0,
               name: dataRow.name,
             });
             formattedWebVitalsScoreBreakdown.fid.push({
-              value: fidScore,
+              value: fidScore ?? 0,
               name: dataRow.name,
             });
           });
         return (
           <Chart
             stacked
-            height={150}
+            height={props.chartHeight}
             data={formatTimeSeriesResultsToChartData(
               formattedWebVitalsScoreBreakdown,
               segmentColors
@@ -396,15 +406,11 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
       listItem =>
         function () {
           const transaction = (listItem.transaction as string | undefined) ?? '';
-          const count = projectData?.data[0]['count()'] as number;
+          const count = projectData?.data?.[0]?.['count()'] as number;
           if (props.chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES) {
-            const projectScore = calculatePerformanceScore({
-              lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-              fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-              cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-              ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-              fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-            });
+            const projectScore = calculatePerformanceScoreFromTableDataRow(
+              projectData?.data?.[0]
+            );
             const rowScore = calculatePerformanceScore({
               lcp: listItem['p75(measurements.lcp)'] as number,
               fcp: listItem['p75(measurements.fcp)'] as number,
@@ -412,12 +418,17 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
               ttfb: listItem['p75(measurements.ttfb)'] as number,
               fid: listItem['p75(measurements.fid)'] as number,
             });
-            const opportunity = calculateOpportunity(
-              projectScore.totalScore,
-              count,
-              rowScore.totalScore,
-              listItem['count()']
-            );
+            const opportunity =
+              projectScore.totalScore !== null &&
+              rowScore.totalScore !== null &&
+              count !== undefined
+                ? calculateOpportunity(
+                    projectScore.totalScore,
+                    count,
+                    rowScore.totalScore,
+                    listItem['count()']
+                  )
+                : null;
             return (
               <Fragment>
                 <GrowLink
@@ -429,14 +440,39 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
                   <Truncate value={transaction} maxLength={40} />
                 </GrowLink>
                 <StyledRightAlignedCell>
-                  <PerformanceBadge score={rowScore.totalScore} />
+                  {rowScore.totalScore !== null && (
+                    <Tooltip
+                      title={
+                        <span>
+                          {t('The overall performance rating of this page.')}
+                          <br />
+                          <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                            {t('How is this calculated?')}
+                          </ExternalLink>
+                        </span>
+                      }
+                      isHoverable
+                    >
+                      <PerformanceBadgeWrapper>
+                        <PerformanceBadge score={rowScore.totalScore} />
+                      </PerformanceBadgeWrapper>
+                    </Tooltip>
+                  )}
                   {isProjectWebVitalDataLoading ? (
                     <StyledLoadingIndicator size={20} />
                   ) : (
                     <Tooltip
-                      title={t(
-                        'The opportunity to improve your cumulative performance score.'
-                      )}
+                      title={
+                        <span>
+                          {t(
+                            "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
+                          )}
+                          <br />
+                          <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                            {t('How is this calculated?')}
+                          </ExternalLink>
+                        </span>
+                      }
                       isHoverable
                       showUnderline
                       skipWrapper
@@ -544,4 +580,11 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
     margin: 0;
   }
 `;
+
+const PerformanceBadgeWrapper = styled('span')`
+  ${Badge} {
+    text-decoration: underline dotted;
+  }
+`;
+
 const EventsRequest = withApi(_EventsRequest);

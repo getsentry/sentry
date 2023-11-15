@@ -447,6 +447,14 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
 fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
 
+def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -> bool:
+    return (
+        features.has("organizations:escalating-metrics-backend", event.project.organization)
+        and not is_transaction_event
+        and event.group.issue_type.should_detect_escalation(event.project.organization)
+    )
+
+
 @instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
@@ -595,10 +603,7 @@ def post_process_group(
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
-        if (
-            features.has("organizations:escalating-metrics-backend", event.project.organization)
-            and not is_transaction_event
-        ):
+        if should_update_escalating_metrics(event, is_transaction_event):
             _update_escalating_metrics(event)
 
         group_events: Mapping[int, GroupEvent] = {
@@ -1213,6 +1218,27 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     )
 
 
+def feedback_filter_decorator(func):
+    def wrapper(job):
+        if not should_postprocess_feedback(job):
+            return
+        return func(job)
+
+    return wrapper
+
+
+def should_postprocess_feedback(job: PostProcessJob) -> bool:
+    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+
+    event = job["event"]
+    if event.occurrence.evidence_data.get("source") in [
+        FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
+        FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT.value,
+    ]:
+        return True
+    return False
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1231,6 +1257,11 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         fire_error_processed,
         sdk_crash_monitoring,
         process_replay_link,
+    ],
+    GroupCategory.FEEDBACK: [
+        feedback_filter_decorator(process_snoozes),
+        feedback_filter_decorator(process_inbox_adds),
+        feedback_filter_decorator(process_rules),
     ],
 }
 

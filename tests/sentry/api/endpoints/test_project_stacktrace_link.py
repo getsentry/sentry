@@ -6,7 +6,6 @@ import pytest
 import responses
 
 from sentry import options
-from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_configs
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -527,19 +526,6 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
         ]
 
         self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
-
-    def test_multiple_code_mapping_matches_order(self):
-        # Expected configs: stack_root, automatically_generated
-        expected_config_order = [
-            self.code_mapping3,  # "usr/src/getsentry/", False
-            self.code_mapping4,  # "usr/src/", False
-            self.code_mapping1,  # "", False
-            self.code_mapping5,  # "usr/src/getsentry/src/sentry/", True
-            self.code_mapping2,  # "usr/src/getsentry/src/", True
-        ]
-
-        sorted_configs = get_code_mapping_configs(self.project)
-        assert sorted_configs == expected_config_order
 
     def test_multiple_code_mapping_matches(self):
         with patch.object(

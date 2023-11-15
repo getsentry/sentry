@@ -17,7 +17,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 class EnvironmentBase(APITestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-project-replay-recording-segment-details"
 

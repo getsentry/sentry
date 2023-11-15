@@ -89,8 +89,7 @@ class InternalMetrics:
                 finally:
                     q.task_done()
 
-        t = Thread(target=worker)
-        t.setDaemon(True)
+        t = Thread(target=worker, daemon=True)
         t.start()
 
         self._started = True

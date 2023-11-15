@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import Alert from 'sentry/components/alert';
 import ApiForm from 'sentry/components/forms/apiForm';
@@ -89,13 +89,16 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
         submitLabel={t('Unsubscribe')}
         cancelLabel={t('Cancel')}
         onCancel={() => {
-          browserHistory.push('/auth/login/');
+          // Use window.location as we're going to an HTML view
+          window.location.assign('/auth/login/');
         }}
         onSubmitSuccess={() => {
-          browserHistory.push('/auth/login/');
+          // Use window.location as we're going to an HTML view
+          window.location.assign('/auth/login/');
         }}
+        initialData={{cancel: 1}}
       >
-        <HiddenField name="cancel" value="1" />
+        <HiddenField name="cancel" />
       </ApiForm>
     </Fragment>
   );

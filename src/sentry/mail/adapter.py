@@ -60,6 +60,7 @@ class MailAdapter:
             "target_type": target_type.value,
             "target_identifier": target_identifier,
             "fallthrough_choice": fallthrough_choice.value if fallthrough_choice else None,
+            "notification_uuid": notification_uuid,
         }
         log_event = "dispatched"
         for future in futures:

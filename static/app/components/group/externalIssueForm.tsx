@@ -154,6 +154,6 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
   };
 
   renderBody() {
-    return this.renderForm(this.getCleanedFields());
+    return this.renderForm(this.loadAsyncThenFetchAllFields());
   }
 }

@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
 from sentry import eventstore, features
-from sentry.feedback.usecases.create_feedback import shim_to_feedback
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -200,9 +200,12 @@ class ErrorPageEmbedView(View):
                         "name": report.name,
                         "email": report.email,
                         "comments": report.comments,
+                        "event_id": report.event_id,
+                        "level": "error",  # assume error level from error page embed
                     },
                     event,
                     project,
+                    FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
                 )
 
             return self._smart_response(request)

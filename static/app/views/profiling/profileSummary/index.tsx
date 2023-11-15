@@ -26,6 +26,7 @@ import {
   ProfilingBreadcrumbs,
   ProfilingBreadcrumbsProps,
 } from 'sentry/components/profiling/profilingBreadcrumbs';
+import ProfilingFeedbackButton from 'sentry/components/profiling/profilingFeedbackButton';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -59,6 +60,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   FlamegraphProvider,
@@ -154,11 +156,12 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         </Layout.Title>
       </ProfilingHeaderContent>
       {transactionSummaryTarget && (
-        <Layout.HeaderActions>
+        <StyledHeaderActions>
+          <ProfilingFeedbackButton />
           <LinkButton to={transactionSummaryTarget} size="sm">
             {t('View Transaction Summary')}
           </LinkButton>
-        </Layout.HeaderActions>
+        </StyledHeaderActions>
       )}
       <Tabs onChange={props.onViewChange} value={props.view}>
         <TabList hideBorder>
@@ -181,6 +184,13 @@ const ProfilingHeaderContent = styled(Layout.HeaderContent)`
     line-height: normal;
   }
 `;
+
+const StyledHeaderActions = styled(Layout.HeaderActions)`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+`;
+
 const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
@@ -281,6 +291,7 @@ interface ProfileSummaryPageProps {
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
+  const {selection} = usePageFilters();
 
   const profilingUsingTransactions = organization.features.includes(
     'profiling-using-transactions'
@@ -333,7 +344,12 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const {data, isLoading, isError} = useAggregateFlamegraphQuery({transaction});
+  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
+    transaction,
+    environments: selection.environments,
+    projects: selection.projects,
+    datetime: selection.datetime,
+  });
 
   const [visualization, setVisualization] = useLocalStorageState<
     'flamegraph' | 'call tree'

@@ -39,6 +39,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
 )
 from sentry.services.hybrid_cloud.organization.model import (
+    OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
@@ -351,6 +352,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 )
         return serialize_member(org_member)
 
+    def update_organization_member(
+        self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
+    ) -> Optional[RpcOrganizationMember]:
+        member = OrganizationMember.objects.get(id=member_id)
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+            if len(attrs):
+                for k, v in attrs.items():
+                    setattr(member, k, v)
+                member.save()
+
+        return serialize_member(member)
+
     def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
         teams = list(Team.objects.filter(organization_id=organization_id)[0:2])
         if len(teams) == 1:
@@ -380,7 +393,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if team_query.exists():
             team = team_query[0]
         else:
-            team = Team.objects.create(organization_id=organization_id, slug=new_team_slug)
+            team = Team.objects.create(
+                organization_id=organization_id, slug=new_team_slug, name=new_team_slug
+            )
         return serialize_rpc_team(team)
 
     def get_or_create_team_member(

@@ -125,6 +125,13 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
+# COV_ARGS controls extra args passed to pytest to generate covereage
+# It's used in test-python-ci. Typically generated an XML coverage file
+# Except in .github/workflows/codecov_per_test_coverage.yml
+# When it's dynamically changed to include --cov-context=test flag
+# See that workflow for more info
+COV_ARGS = --cov-report="xml:.artifacts/python.coverage.xml"
+
 test-python-ci: create-db
 	@echo "--> Running CI Python tests"
 	pytest \
@@ -133,7 +140,7 @@ test-python-ci: create-db
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
-		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
+		--cov . $(COV_ARGS)
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so

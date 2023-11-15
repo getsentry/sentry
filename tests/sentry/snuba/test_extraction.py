@@ -44,6 +44,21 @@ from sentry.testutils.pytest.fixtures import django_db_all
             True,
         ),  # transaction.duration query is on-demand
         ("count[)", "", False),  # Malformed aggregate should return false
+        (
+            "count()",
+            "event.type:error transaction.duration:>0",
+            False,
+        ),  # event.type:error not supported by metrics
+        (
+            "count()",
+            "event.type:default transaction.duration:>0",
+            False,
+        ),  # event.type:error not supported by metrics
+        (
+            "count()",
+            "error.handled:true transaction.duration:>0",
+            False,
+        ),  # error.handled is an error search term
     ],
 )
 def test_should_use_on_demand(agg, query, result):
@@ -408,6 +423,44 @@ def test_spec_with_has():
             {"name": "event.measurements.memoryUsage.value", "op": "eq", "value": None},
         ],
         "op": "and",
+    }
+
+
+def test_spec_with_message():
+    spec = OnDemandMetricSpec(
+        "avg(measurements.lcp)", 'message:"issues" AND !message:"alerts" AND "api"'
+    )
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.transaction", "op": "glob", "value": ["*issues*"]},
+            {
+                "inner": {"name": "event.transaction", "op": "glob", "value": ["*alerts*"]},
+                "op": "not",
+            },
+            {"name": "event.transaction", "op": "glob", "value": ["*api*"]},
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_with_unknown_error_status():
+    spec = OnDemandMetricSpec(
+        "avg(measurements.lcp)", "transaction.status:unknown_error OR transaction.status:unknown"
+    )
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.contexts.trace.status", "op": "eq", "value": "unknown"},
+            {"name": "event.contexts.trace.status", "op": "eq", "value": "unknown"},
+        ],
+        "op": "or",
     }
 
 

@@ -1,4 +1,5 @@
 import {ColorChannels, FlamegraphTheme} from './flamegraph/flamegraphTheme';
+import {Profile} from './profile/profile';
 import {relativeChange} from './units/units';
 import {Flamegraph} from './flamegraph';
 import {FlamegraphFrame} from './flamegraphFrame';
@@ -27,7 +28,14 @@ export class DifferentialFlamegraph extends Flamegraph {
   toCount: Map<string, number> = new Map();
   fromCount: Map<string, number> = new Map();
 
-  static Diff(
+  static Empty(): DifferentialFlamegraph {
+    return new DifferentialFlamegraph(Profile.Empty, 0, {
+      inverted: false,
+      sort: 'call order',
+    });
+  }
+
+  static FromDiff(
     from: Flamegraph, // Reference chart is the one we compare the new flamegraph with
     to: Flamegraph,
     theme: FlamegraphTheme

@@ -274,7 +274,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
               </RegressedFunctionMetricsRow>
               <RegressedFunctionSparklineContainer>
                 <ProfilingSparklineChart
-                  name=""
+                  name="p95(function.duration)"
                   points={trendToPoints(fn)}
                   color={trendType === 'improvement' ? theme.green300 : theme.red300}
                   aggregate_range_1={fn.aggregate_range_1}

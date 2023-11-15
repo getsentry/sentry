@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import toUpper from 'lodash/toUpper';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
@@ -20,80 +23,84 @@ type Props = {
   transaction?: string;
 };
 
+const WEB_VITALS_METERS_CONFIG = {
+  lcp: {
+    name: t('Largest Contentful Paint'),
+    formatter: (value: number) => getFormattedDuration(value / 1000),
+  },
+  fcp: {
+    name: t('First Contentful Paint'),
+    formatter: (value: number) => getFormattedDuration(value / 1000),
+  },
+  fid: {
+    name: t('First Input Delay'),
+    formatter: (value: number) => getFormattedDuration(value / 1000),
+  },
+  cls: {
+    name: t('Cumulative Layout Shift'),
+    formatter: (value: number) => Math.round(value * 100) / 100,
+  },
+  ttfb: {
+    name: t('Time To First Byte'),
+    formatter: (value: number) => getFormattedDuration(value / 1000),
+  },
+};
+
 export default function WebVitalMeters({onClick, projectData, projectScore}: Props) {
   if (!projectScore) {
     return null;
   }
 
+  const webVitals = Object.keys(WEB_VITALS_METERS_CONFIG) as WebVitals[];
+
   return (
     <Container>
       <Flex>
-        <MeterBarContainer key="lcp" onClick={() => onClick?.('lcp')}>
-          <InteractionStateLayer />
-          <MeterBarBody>
-            <MeterHeader>{t('Largest Contentful Paint')}</MeterHeader>
-            <MeterValueText>
-              {getFormattedDuration(
-                (projectData?.data?.[0]?.['p75(measurements.lcp)'] as number) / 1000
+        {webVitals.map(webVital => {
+          const webVitalExists = projectScore[`${webVital}Score`] !== null;
+          const formattedMeterValueText = webVitalExists ? (
+            WEB_VITALS_METERS_CONFIG[webVital].formatter(
+              projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
+            )
+          ) : (
+            <NoValue />
+          );
+          const headerText = WEB_VITALS_METERS_CONFIG[webVital].name;
+          const meterBody = (
+            <Fragment>
+              <MeterBarBody>
+                <MeterHeader>{headerText}</MeterHeader>
+                <MeterValueText>{formattedMeterValueText}</MeterValueText>
+              </MeterBarBody>
+              <MeterBarFooter score={projectScore[`${webVital}Score`]} />
+            </Fragment>
+          );
+          return (
+            <MeterBarContainer
+              key={webVital}
+              onClick={() => webVitalExists && onClick?.(webVital)}
+              clickable={webVitalExists}
+            >
+              {webVitalExists && <InteractionStateLayer />}
+              {webVitalExists && meterBody}
+              {!webVitalExists && (
+                <StyledTooltip
+                  title={tct('No [webVital] data found in this project.', {
+                    webVital: toUpper(webVital),
+                  })}
+                >
+                  {meterBody}
+                </StyledTooltip>
               )}
-            </MeterValueText>
-          </MeterBarBody>
-          <MeterBarFooter score={projectScore.lcpScore} />
-        </MeterBarContainer>
-        <MeterBarContainer key="fcp" onClick={() => onClick?.('fcp')}>
-          <InteractionStateLayer />
-          <MeterBarBody>
-            <MeterHeader>{t('First Contentful Paint')}</MeterHeader>
-            <MeterValueText>
-              {getFormattedDuration(
-                (projectData?.data?.[0]?.['p75(measurements.fcp)'] as number) / 1000
-              )}
-            </MeterValueText>
-          </MeterBarBody>
-          <MeterBarFooter score={projectScore.fcpScore} />
-        </MeterBarContainer>
-        <MeterBarContainer key="fid" onClick={() => onClick?.('fid')}>
-          <InteractionStateLayer />
-          <MeterBarBody>
-            <MeterHeader>{t('First Input Delay')}</MeterHeader>
-            <MeterValueText>
-              {getFormattedDuration(
-                (projectData?.data?.[0]?.['p75(measurements.fid)'] as number) / 1000
-              )}
-            </MeterValueText>
-          </MeterBarBody>
-          <MeterBarFooter score={projectScore.fidScore} />
-        </MeterBarContainer>
-        <MeterBarContainer key="cls" onClick={() => onClick?.('cls')}>
-          <InteractionStateLayer />
-          <MeterBarBody>
-            <MeterHeader>{t('Cumulative Layout Shift')}</MeterHeader>
-            <MeterValueText>
-              {Math.round(
-                (projectData?.data?.[0]?.['p75(measurements.cls)'] as number) * 100
-              ) / 100}
-            </MeterValueText>
-          </MeterBarBody>
-          <MeterBarFooter score={projectScore.clsScore} />
-        </MeterBarContainer>
-        <MeterBarContainer key="ttfb" onClick={() => onClick?.('ttfb')}>
-          <InteractionStateLayer />
-          <MeterBarBody>
-            <MeterHeader>{t('Time To First Byte')}</MeterHeader>
-            <MeterValueText>
-              {getFormattedDuration(
-                (projectData?.data?.[0]?.['p75(measurements.ttfb)'] as number) / 1000
-              )}
-            </MeterValueText>
-          </MeterBarBody>
-          <MeterBarFooter score={projectScore.ttfbScore} />
-        </MeterBarContainer>
+            </MeterBarContainer>
+          );
+        })}
       </Flex>
     </Container>
   );
 }
 
-const getFormattedDuration = (value: number) => {
+export const getFormattedDuration = (value: number) => {
   return getDuration(value, value < 1 ? 0 : 2, true);
 };
 
@@ -111,11 +118,11 @@ const Flex = styled('div')<{gap?: number}>`
   flex-wrap: wrap;
 `;
 
-const MeterBarContainer = styled('div')`
+const MeterBarContainer = styled('div')<{clickable?: boolean}>`
   flex: 1;
   position: relative;
   padding: 0;
-  cursor: pointer;
+  cursor: ${p => (p.clickable ? 'pointer' : 'default')};
   min-width: 140px;
 `;
 
@@ -141,7 +148,12 @@ const MeterValueText = styled('div')`
   text-align: center;
 `;
 
-function MeterBarFooter({score}: {score: number}) {
+function MeterBarFooter({score}: {score: number | null}) {
+  if (score === null) {
+    return (
+      <MeterBarFooterContainer status="none">{t('No Data')}</MeterBarFooterContainer>
+    );
+  }
   const status = scoreToStatus(score);
   return (
     <MeterBarFooterContainer status={status}>
@@ -158,4 +170,17 @@ const MeterBarFooterContainer = styled('div')<{status: string}>`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.5)};
   text-align: center;
+`;
+
+const NoValueContainer = styled('span')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+function NoValue() {
+  return <NoValueContainer>{' \u2014 '}</NoValueContainer>;
+}
+
+const StyledTooltip = styled(Tooltip)`
+  display: block;
 `;

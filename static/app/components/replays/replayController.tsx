@@ -226,12 +226,12 @@ function ReplayControls({
       <ReplayPlayPauseBar />
       <Container>
         {hasNewTimeline ? (
-          <TimeAndScrubberGrid isCompact={isCompact}>
+          <TimeAndScrubberGrid id="replay-timeline-player" isCompact={isCompact}>
             <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
             <div style={{gridArea: 'timeline'}}>
               <ReplayTimeline />
             </div>
-            <div style={{gridArea: 'timelineSize'}}>
+            <div style={{gridArea: 'timelineSize', fontVariantNumeric: 'tabular-nums'}}>
               <TimelineSizeBar />
             </div>
             <StyledScrubber
@@ -239,7 +239,7 @@ function ReplayControls({
               ref={elem}
               {...mouseTrackingProps}
             >
-              <PlayerScrubber />
+              <PlayerScrubber showZoomIndicators />
             </StyledScrubber>
             <Time style={{gridArea: 'duration'}}>
               {durationMs ? formatTime(durationMs) : '--:--'}

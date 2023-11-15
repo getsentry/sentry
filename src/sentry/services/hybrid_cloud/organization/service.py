@@ -10,6 +10,7 @@ from django.dispatch import Signal
 
 from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
 from sentry.services.hybrid_cloud.organization.model import (
+    OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
     RpcOrganization,
     RpcOrganizationDeleteResponse,
@@ -212,6 +213,13 @@ class OrganizationService(RpcService):
         inviter_id: Optional[int] = None,
         invite_status: Optional[int] = None,
     ) -> RpcOrganizationMember:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_organization_member(
+        self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
+    ) -> Optional[RpcOrganizationMember]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

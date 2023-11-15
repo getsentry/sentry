@@ -64,6 +64,8 @@ export enum PerformanceWidgetSetting {
   SPAN_OPERATIONS = 'span_operations',
   TIME_TO_INITIAL_DISPLAY = 'time_to_initial_display',
   TIME_TO_FULL_DISPLAY = 'time_to_full_display',
+  OVERALL_PERFORMANCE_SCORE = 'overall_performance_score',
+  MOST_TIME_CONSUMING_RESOURCES = 'most_time_consuming_resources',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -270,12 +272,30 @@ export const WIDGET_DEFINITIONS: ({
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
     chartColor: WIDGET_PALETTE[0],
   },
+  [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]: {
+    title: t('Most Time Consuming Resources'),
+    subTitle: t('Render blocking for pages'),
+    titleTooltip: getTermHelp(
+      organization,
+      PerformanceTerm.MOST_TIME_CONSUMING_RESOURCES
+    ),
+    fields: [`time_spent_percentage()`],
+    dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+    chartColor: WIDGET_PALETTE[0],
+  },
   [PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES]: {
-    title: t('Highest Opportunity Pages'),
-    subTitle: t('Recommended pages to improve your performance score'),
+    title: t('Best Page Opportunities'),
+    subTitle: t('Pages to improve your performance score'),
     titleTooltip: '',
     fields: [`count()`],
     dataType: GenericPerformanceWidgetDataType.STACKED_AREA,
+  },
+  [PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE]: {
+    title: t('Performance Score'),
+    subTitle: t('The overall performance score across selected projects'),
+    titleTooltip: '',
+    fields: [],
+    dataType: GenericPerformanceWidgetDataType.PERFORMANCE_SCORE,
   },
   [PerformanceWidgetSetting.SLOW_HTTP_OPS]: {
     title: t('Slow HTTP Ops'),

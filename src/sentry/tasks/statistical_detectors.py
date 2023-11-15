@@ -28,9 +28,11 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features, options
+from sentry import features, options, projectoptions
+from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import ObjectStatus
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
@@ -62,12 +64,46 @@ from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 
-FUNCTIONS_PER_PROJECT = 100
+FUNCTIONS_PER_PROJECT = 50
 FUNCTIONS_PER_BATCH = 1_000
 TRANSACTIONS_PER_PROJECT = 50
-TRANSACTIONS_PER_BATCH = 10
+TRANSACTIONS_PER_BATCH = 1_000
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
+
+
+def get_performance_project_settings(projects: List[Project]):
+    project_settings = {}
+
+    project_option_settings = ProjectOption.objects.get_value_bulk(
+        projects, "sentry:performance_issue_settings"
+    )
+
+    for project in projects:
+        default_project_settings = projectoptions.get_well_known_default(
+            "sentry:performance_issue_settings",
+            project=project,
+        )
+
+        project_settings[project] = {
+            **default_project_settings,
+            **(project_option_settings[project] or {}),
+        }  # Merge saved project settings into default so updating the default to add new settings works in the future.
+
+    return project_settings
+
+
+def all_projects_with_settings():
+    for projects in chunked(
+        RangeQuerySetWrapper(
+            Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
+            step=100,
+        ),
+        100,
+    ):
+        project_settings = get_performance_project_settings(projects)
+        for project in projects:
+            yield project, project_settings[project]
 
 
 @instrumented_task(
@@ -81,28 +117,18 @@ def run_detection() -> None:
 
     now = django_timezone.now()
 
-    enabled_performance_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.performance")
-    )
-    enabled_profiling_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.profiling")
-    )
-
     performance_projects = []
     profiling_projects = []
 
     performance_projects_count = 0
     profiling_projects_count = 0
 
-    for project in RangeQuerySetWrapper(
-        Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
-        step=100,
-    ):
+    for project, project_settings in all_projects_with_settings():
         if project.flags.has_transactions and (
             features.has(
                 "organizations:performance-statistical-detectors-ema", project.organization
             )
-            or project.id in enabled_performance_projects
+            and project_settings[InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value]
         ):
             performance_projects.append(project)
             performance_projects_count += 1
@@ -117,7 +143,6 @@ def run_detection() -> None:
 
         if project.flags.has_profiles and (
             features.has("organizations:profiling-statistical-detectors-ema", project.organization)
-            or project.id in enabled_profiling_projects
         ):
             profiling_projects.append(project.id)
             profiling_projects_count += 1
@@ -191,10 +216,6 @@ def detect_transaction_change_points(
     if not options.get("statistical_detectors.enable"):
         return
 
-    enabled_performance_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.performance")
-    )
-
     projects_by_id = {
         project.id: project
         for project in Project.objects.filter(
@@ -204,7 +225,6 @@ def detect_transaction_change_points(
             features.has(
                 "organizations:performance-statistical-detectors-breakpoint", project.organization
             )
-            or project.id in enabled_performance_projects
         )
     }
 
@@ -239,7 +259,7 @@ def _detect_transaction_change_points(
     trend_function = "p95(transaction.duration)"
 
     for chunk in chunked(
-        query_transactions_timeseries(transactions, start, trend_function), TRANSACTIONS_PER_BATCH
+        query_transactions_timeseries(transactions, start, trend_function), TIMESERIES_PER_BATCH
     ):
         data = {}
         for project_id, transaction_name, result in chunk:
@@ -256,16 +276,13 @@ def _detect_transaction_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
+            "min_change()": 200,  # require a minimum 200ms increase (in ms)
+            # "trend_percentage()": 0.5,  # require a minimum 50% increase
+            # "validate_tail_hours": 6,
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.
             "allow_midpoint": "0",
-            # TODO: uncomment these thresholds below after the
-            # rollout is complete so that only severe regressions
-            # are promoted to issues.
-            # "trend_percentage()": 0.5,
-            # "min_change()": 200_000_000,
-            # "validate_tail_hours": 12,
         }
 
         try:
@@ -584,10 +601,6 @@ def detect_function_change_points(
     breakpoint_count = 0
     emitted_count = 0
 
-    enabled_profiling_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.profiling")
-    )
-
     projects_by_id = {
         project.id: project
         for project in Project.objects.filter(
@@ -597,7 +610,6 @@ def detect_function_change_points(
             features.has(
                 "organizations:profiling-statistical-detectors-breakpoint", project.organization
             )
-            or project.id in enabled_profiling_projects
         )
     }
 
@@ -736,10 +748,9 @@ def _detect_function_change_points(
         request = {
             "data": data,
             "sort": "-trend_percentage()",
-            # TODO: uncomment this threshold below after the
-            # rollout is complete so that only severe regressions
-            # are promoted to issues.
-            # "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
+            "min_change()": 100_000_000,  # require a minimum 100ms increase (in ns)
+            # "trend_percentage()": 0.5,  # require a minimum 50% increase
+            # "validate_tail_hours": 6,
             # Disable the fall back to use the midpoint as the breakpoint
             # which was originally intended to detect a gradual regression
             # for the trends use case. That does not apply here.

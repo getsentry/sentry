@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 """
 TODO(postgres): We've encoded these enums as integers to facilitate
@@ -361,6 +364,7 @@ class GroupSubscriptionStatus:
 
 @dataclass
 class UnsubscribeContext:
+    organization: Organization
     resource_id: int
     key: str
     referrer: str | None = None

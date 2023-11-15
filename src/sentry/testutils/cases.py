@@ -108,12 +108,16 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.silo import SiloMode
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
+from sentry.snuba.metrics.extraction import OnDemandMetricSpec
+from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
+from sentry.testutils.pytest.fixtures import default_project
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.integrations import ExternalProviders
@@ -1782,6 +1786,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "metrics_distributions": "distribution",
         "metrics_sets": "set",
         "metrics_counters": "counter",
+        "metrics_gauges": "gauge",
     }
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
@@ -1799,6 +1804,21 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.time_to_initial_display": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
+    }
+    ON_DEMAND_KEY_MAP = {
+        "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
+        "d": TransactionMetricKey.DIST_ON_DEMAND.value,
+        "s": TransactionMetricKey.SET_ON_DEMAND.value,
+    }
+    ON_DEMAND_MRI_MAP = {
+        "c": TransactionMRI.COUNT_ON_DEMAND.value,
+        "d": TransactionMRI.DIST_ON_DEMAND.value,
+        "s": TransactionMRI.SET_ON_DEMAND.value,
+    }
+    ON_DEMAND_ENTITY_MAP = {
+        "c": EntityKey.MetricsCounters.value,
+        "d": EntityKey.MetricsDistributions.value,
+        "s": EntityKey.MetricsSets.value,
     }
     METRIC_STRINGS = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
@@ -1862,9 +1882,38 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=UseCaseID.TRANSACTIONS,
+                use_case_id=use_case_id,
                 aggregation_option=aggregation_option,
             )
+
+    def store_on_demand_metric(
+        self,
+        value: list[Any] | Any,
+        spec: OnDemandMetricSpec,
+        additional_tags: Optional[Dict[str, str]] = None,
+        timestamp: Optional[datetime] = None,
+    ):
+
+        project: Project = default_project
+        metric_spec = spec.to_metric_spec(project)
+        metric_spec_tags = metric_spec["tags"] or [] if metric_spec else []
+        spec_tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
+
+        metric_type = spec._metric_type
+
+        self.store_transaction_metric(
+            value,
+            metric=self.ON_DEMAND_KEY_MAP[metric_type],
+            internal_metric=self.ON_DEMAND_MRI_MAP[metric_type],
+            entity=self.ON_DEMAND_ENTITY_MAP[metric_type],
+            tags={
+                **spec_tags,
+                **additional_tags,  # Additional tags might be needed to override field values from the spec.
+            },
+            timestamp=timestamp,
+        )
+
+        return spec
 
     def store_span_metric(
         self,
@@ -1875,7 +1924,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
-        use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,  # TODO(wmak): this needs to be the span id
+        use_case_id: UseCaseID = UseCaseID.SPANS,
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1903,7 +1952,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=UseCaseID.TRANSACTIONS,
+                use_case_id=use_case_id,
             )
 
     def wait_for_metric_count(

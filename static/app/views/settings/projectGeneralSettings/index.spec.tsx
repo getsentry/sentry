@@ -273,7 +273,7 @@ describe('projectGeneralSettings', function () {
     expect(putMock).toHaveBeenCalled();
 
     // updates ProjectsStore
-    expect(ProjectsStore.itemsById['2'].platform).toBe('javascript');
+    expect(ProjectsStore.getById('2')!.platform).toBe('javascript');
   });
 
   it('changing name updates ProjectsStore', async function () {
@@ -314,7 +314,7 @@ describe('projectGeneralSettings', function () {
 
     // Redirects the user
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
-    expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
+    expect(ProjectsStore.getById('2')!.slug).toBe('new-project');
   });
 
   describe('Non-"save on blur" Field', function () {

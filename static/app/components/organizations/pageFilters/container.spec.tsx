@@ -1,7 +1,7 @@
 import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/actionCreators/pageFilters';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -412,8 +412,6 @@ describe('PageFiltersContainer', function () {
     await waitFor(() =>
       expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']))
     );
-
-    expect(screen.getByRole('button', {name: 'Restore old values'})).toBeInTheDocument();
   });
 
   it('does not update local storage when disablePersistence is true', async function () {

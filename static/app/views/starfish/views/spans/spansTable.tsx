@@ -60,13 +60,20 @@ export default function SpansTable({
   const location = useLocation();
   const organization = useOrganization();
 
+  const spanDescription = decodeScalar(location.query?.['span.description']);
+  const spanAction = decodeScalar(location.query?.['span.action']);
+  const spanDomain = decodeScalar(location.query?.['span.domain']);
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const {isLoading, data, meta, pageLinks} = useSpanList(
-    moduleName ?? ModuleName.ALL,
-    endpoint,
-    method,
-    spanCategory,
+    {
+      'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+      'span.action': spanAction,
+      'span.domain': spanDomain,
+      'span.module': moduleName ?? ModuleName.ALL,
+      transaction: endpoint,
+      'transaction.method': method,
+    },
     [sort],
     limit,
     'api.starfish.use-span-list',

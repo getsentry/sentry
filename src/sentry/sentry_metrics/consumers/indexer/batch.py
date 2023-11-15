@@ -1,6 +1,6 @@
 import logging
 import random
-from collections import defaultdict, deque
+from collections import defaultdict
 from typing import (
     Any,
     Callable,
@@ -19,9 +19,11 @@ from typing import (
 import rapidjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
-from sentry_kafka_schemas.codecs import Codec, ValidationError
+from sentry_kafka_schemas.codecs import ValidationError
+from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
@@ -71,14 +73,14 @@ class IndexerBatch:
         outer_message: Message[MessageBatch],
         should_index_tag_values: bool,
         is_output_sliced: bool,
-        input_codec: Optional[Codec[Any]],
         tags_validator: Callable[[Mapping[str, str]], bool],
+        schema_validator: Callable[[str, IngestMetric], None],
     ) -> None:
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
         self.is_output_sliced = is_output_sliced
-        self.__input_codec = input_codec
         self.tags_validator = tags_validator
+        self.schema_validator = schema_validator
 
         self.__message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_size_sum: MutableMapping[UseCaseID, int] = defaultdict(int)
@@ -110,7 +112,6 @@ class IndexerBatch:
         skipped_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
 
         for msg in self.outer_message.payload:
-
             assert isinstance(msg.value, BrokerValue)
             broker_meta = BrokerMeta(msg.value.partition, msg.value.offset)
 
@@ -157,9 +158,12 @@ class IndexerBatch:
                 exc_info=True,
             )
             raise
+
+        assert parsed_payload.get("name", None) is not None
+        parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
+
         try:
-            if self.__input_codec:
-                self.__input_codec.validate(parsed_payload)
+            self.schema_validator(use_case_id.value, parsed_payload)
         except ValidationError:
             if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
                 raise
@@ -168,7 +172,6 @@ class IndexerBatch:
                 extra={"payload_value": str(msg.payload.value)},
                 exc_info=True,
             )
-        parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
 
         self.__message_count[use_case_id] += 1
         self.__message_size_max[use_case_id] = max(
@@ -289,7 +292,9 @@ class IndexerBatch:
         mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]],
         bulk_record_meta: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]],
     ) -> IndexerOutputMessageBatch:
-        new_messages: MutableSequence[Message[Union[RoutingPayload, KafkaPayload]]] = []
+        new_messages: MutableSequence[
+            Message[Union[RoutingPayload, KafkaPayload, InvalidMessage]]
+        ] = []
         cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         for message in self.outer_message.payload:
@@ -297,7 +302,16 @@ class IndexerBatch:
             output_message_meta: Dict[str, Dict[str, str]] = defaultdict(dict)
             assert isinstance(message.value, BrokerValue)
             broker_meta = BrokerMeta(message.value.partition, message.value.offset)
-            if broker_meta in self.invalid_msg_meta or broker_meta in self.filtered_msg_meta:
+            if broker_meta in self.filtered_msg_meta:
+                continue
+            if broker_meta in self.invalid_msg_meta:
+                new_messages.append(
+                    Message(
+                        message.value.replace(
+                            InvalidMessage(broker_meta.partition, broker_meta.offset)
+                        )
+                    )
+                )
                 continue
             old_payload_value = self.parsed_payloads_by_meta.pop(broker_meta)
 
@@ -499,6 +513,5 @@ class IndexerBatch:
             )
         return IndexerOutputMessageBatch(
             new_messages,
-            deque(sorted(self.invalid_msg_meta)),
             cogs_usage,
         )

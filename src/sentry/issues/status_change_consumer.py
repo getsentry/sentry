@@ -115,6 +115,7 @@ def get_group_from_fingerprint(status_change: StatusChangeMessageData) -> Group 
         .select_related("group")
         .first()
     )
+
     if not grouphash:
         logger.error(
             "grouphash.not_found",
@@ -132,6 +133,8 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     """
     Processes the incoming message payload into a format we can use.
     """
+    from sentry.issues.ingest import process_occurrence_data
+
     data = {
         "fingerprint": payload["fingerprint"],
         "project_id": payload["project_id"],
@@ -139,6 +142,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         "new_substatus": payload.get("new_substatus", None),
     }
 
+    process_occurrence_data(data)
     return {"status_change": data}
 
 

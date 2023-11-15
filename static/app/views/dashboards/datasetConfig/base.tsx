@@ -14,6 +14,7 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValue} from 'sentry/views/discover/table/types';
 
@@ -140,6 +141,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     queryIndex: number,
     organization: Organization,
     pageFilters: PageFilters,
+    onDemandControlContext?: OnDemandControlContext,
     referrer?: string,
     mepSetting?: MEPState | null
   ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
@@ -156,9 +158,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getTableRequest?: (
     api: Client,
+    widget: Widget,
     query: WidgetQuery,
     organization: Organization,
     pageFilters: PageFilters,
+    onDemandControlContext?: OnDemandControlContext,
     limit?: number,
     cursor?: string,
     referrer?: string,

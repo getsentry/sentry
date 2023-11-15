@@ -38,6 +38,10 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
     PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
 
+  if (props.organization.features.includes('starfish-browser-resource-module-ui')) {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
+  }
+
   if (
     props.organization.features.includes('starfish-browser-webvitals-pageoverview-v2')
   ) {
@@ -48,7 +52,7 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
     <PerformanceDisplayProvider
       value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
     >
-      <div>
+      <div data-test-id="frontend-other-view">
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow
           {...props}

@@ -12,7 +12,7 @@ import {MetricsTag, SavedSearchType, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   getReadableMetricType,
-  getUseCaseFromMri,
+  getUseCaseFromMRI,
   isAllowedOp,
   MetricDisplayType,
   MetricsQuery,
@@ -195,12 +195,13 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
   // TODO(ddm): try to use useApiQuery here
   const getTagValues = useCallback(
     async tag => {
+      const useCase = getUseCaseFromMRI(mri);
       const tagsValues = await api.requestPromise(
         `/organizations/${org.slug}/metrics/tags/${tag.key}/`,
         {
           query: {
             metric: mri,
-            useCase: getUseCaseFromMri(mri),
+            useCase,
             project: selection.projects,
           },
         }
