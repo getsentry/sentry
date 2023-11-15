@@ -176,7 +176,7 @@ class GetSendToTeamTest(_ParticipantsTest):
     def test_invalid_team(self):
         assert self.get_send_to_team(self.project, 900001) == {}
 
-    def test_send_to_team(self, mock_logger):
+    def test_send_to_team(self):
         self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
 
         expected_users = collections.defaultdict(set)
