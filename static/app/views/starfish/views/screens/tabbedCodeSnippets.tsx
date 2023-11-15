@@ -29,7 +29,7 @@ export function TabbedCodeSnippet({tabs}: TabbedCodeSnippetProps) {
       dark
       tabs={tabs}
       language={language}
-      hideCopyButton={false}
+      hideCopyButton
       selectedTab={selectedTabValue}
       onTabClick={value => setSelectedTabValue(value)}
       filename={filename}
@@ -41,7 +41,7 @@ export function TabbedCodeSnippet({tabs}: TabbedCodeSnippetProps) {
 
 const StyledCodeSnippet = styled(CodeSnippet)`
   pre {
-    max-height: 80px;
+    height: 213px;
   }
   margin-top: ${space(1)};
 `;
