@@ -21,6 +21,8 @@ from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
+UNREAL_FEEDBACK_UNATTENDED_MESSAGE = "Sent in the unattended mode"
+
 
 class FeedbackCreationSource(Enum):
     NEW_FEEDBACK_ENVELOPE = "new_feedback_envelope"
@@ -102,7 +104,21 @@ def fix_for_issue_platform(event_data):
     return ret_event
 
 
+def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
+    # Right now all unreal error events without a feedback
+    # actually get a sent a feedback with this message
+    # signifying there is no feedback. Let's go ahead and filter these.
+    if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
+        metrics.incr("feedback.filtered", tags={"reason": "unreal.unattended"}, sample_rate=1.0)
+        return True
+
+    return False
+
+
 def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
+    if should_filter_feedback(event, project_id, source):
+        return
+
     metrics.incr("feedback.created", tags={"referrer": source.value}, sample_rate=1.0)
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
