@@ -9,6 +9,7 @@ class EventUserSnubaQuery(analytics.Event):
         analytics.Attribute("query"),
         analytics.Attribute("count_rows_returned", required=True, type=int),
         analytics.Attribute("count_rows_filtered", required=True, type=int),
+        analytics.Attribute("query_time_ms", type=int),
     )
 
 
