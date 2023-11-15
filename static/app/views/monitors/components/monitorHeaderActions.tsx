@@ -8,6 +8,7 @@ import {IconDelete, IconEdit, IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {Monitor, MonitorStatus} from '../types';
@@ -22,11 +23,19 @@ type Props = {
 
 function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
   const api = useApi();
+  const router = useRouter();
+
   const {selection} = usePageFilters();
 
   const handleDelete = async () => {
     await deleteMonitor(api, orgId, monitor.slug);
-    browserHistory.push(normalizeUrl(`/organizations/${orgId}/crons/`));
+    browserHistory.push(
+      normalizeUrl(
+        `/organizations/${orgId}/crons/${
+          router.location.query.prevUrl ? `?project=${router.location.query.prevUrl}` : ''
+        }`
+      )
+    );
   };
 
   const handleUpdate = async (data: Partial<Monitor>) => {
