@@ -3,6 +3,7 @@ from __future__ import annotations
 import collections
 from datetime import datetime, timedelta
 from typing import Iterable, Mapping, Optional, Sequence, Set, Union
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -171,13 +172,28 @@ class GetSendToTeamTest(_ParticipantsTest):
             project=project or self.project,
             target_type=ActionTargetType.TEAM,
             target_identifier=team_id or self.team.id,
+            notification_uuid="notification_uuid",
         )
 
     def test_invalid_team(self):
         assert self.get_send_to_team(self.project, 900001) == {}
 
-    def test_send_to_team(self):
+    @patch("sentry.notifications.utils.participants.logger")
+    def test_send_to_team(self, mock_logger):
         self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
+
+        expected_users = collections.defaultdict(set)
+        expected_users[ExternalProviders.EMAIL] = {RpcActor.from_orm_user(self.user)}
+        mock_logger.info.assert_called_with(
+            "sentry.notifications.recipients_by_provider",
+            extra={
+                "target_type": ActionTargetType.TEAM,
+                "target_identifier": self.team.id,
+                "notification_uuid": "notification_uuid",
+                "teams_by_provider": {},
+                "users_by_provider": expected_users,
+            },
+        )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingProvider.objects.create(
