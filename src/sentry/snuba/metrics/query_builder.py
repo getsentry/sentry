@@ -516,6 +516,8 @@ class QueryDefinition:
         self._projects = projects
         paginator_kwargs = paginator_kwargs or {}
 
+        self.allow_private = query_params.get("allowPrivate") == "true"
+
         self.query = query_params.get("query", "")
         self.groupby = [
             MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
@@ -524,11 +526,11 @@ class QueryDefinition:
             parse_field(
                 key,
                 allow_mri=allow_mri,
-                allow_private=query_params.get("allowPrivate") == "true",
+                allow_private=self.allow_private,
             )
             for key in query_params.getlist("field", [])
         ]
-        self.orderby = self._parse_orderby(query_params, allow_mri)
+        self.orderby = self._parse_orderby(query_params, allow_mri, self.allow_private)
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
         self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
         self.having: Optional[ConditionGroup] = query_params.getlist("having")
@@ -562,7 +564,7 @@ class QueryDefinition:
         )
 
     @staticmethod
-    def _parse_orderby(query_params, allow_mri: bool = False):
+    def _parse_orderby(query_params, allow_mri: bool = False, allow_private: bool = False):
         orderbys = query_params.getlist("orderBy", [])
         if not orderbys:
             return None
@@ -574,7 +576,7 @@ class QueryDefinition:
                 orderby = orderby[1:]
                 direction = Direction.DESC
 
-            field = parse_field(orderby, allow_mri=allow_mri)
+            field = parse_field(orderby, allow_mri=allow_mri, allow_private=allow_private)
             orderby_list.append(MetricsOrderBy(field=field, direction=direction))
 
         return orderby_list

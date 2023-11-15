@@ -93,6 +93,7 @@ def _transform_select(query_select):
                         op=select_field.function,
                         metric_mri=select_field.parameters[0].name,
                         alias=select_field.alias,
+                        allow_private=True,
                     )
                 )
         else:

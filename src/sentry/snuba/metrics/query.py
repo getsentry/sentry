@@ -203,13 +203,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
                     f"Invalid operation '{field.op}'. Must be one of {', '.join(OPERATIONS)}"
                 )
             if field.metric_mri in derived_metrics_mri:
-                metric_name = (
-                    field.metric_mri
-                    if field.allow_private
-                    else get_public_name_from_mri(field.metric_mri)
-                )
                 raise DerivedMetricParseException(
-                    f"Failed to parse {field.op}({metric_name}). No operations can be "
+                    f"Failed to parse {field.op}({get_public_name_from_mri(field.metric_mri)}). No operations can be "
                     f"applied on this field as it is already a derived metric with an "
                     f"aggregation applied to it."
                 )
