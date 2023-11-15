@@ -395,10 +395,11 @@ def _convert_aggregate_and_query_to_metric(
             spec_type=spec_type,
         )
 
+        metric_spec = on_demand_spec.to_metric_spec(project)
         # TODO: switch to validate_rule_condition
-        validate_sampling_condition(json.dumps(on_demand_spec.condition))
+        validate_sampling_condition(json.dumps(metric_spec["condition"]))
 
-        return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)
+        return on_demand_spec.query_hash, metric_spec
 
     except ValueError:
         # raised by validate_sampling_condition
