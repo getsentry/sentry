@@ -171,16 +171,19 @@ export function TimeRangeSelector({
   const [hasDateRangeErrors, setHasDateRangeErrors] = useState(false);
   const [showAbsoluteSelector, setShowAbsoluteSelector] = useState(!showRelative);
 
-  const [internalValue, setInternalValue] = useState<ChangeData>(() => {
+  const getDefaultInternalValue = useCallback(() => {
     const internalUtc = utc ?? getUserTimezone() === 'UTC';
-
     return {
       start: start ? getInternalDate(start, internalUtc) : undefined,
       end: end ? getInternalDate(end, internalUtc) : undefined,
       utc: internalUtc,
       relative: relative ?? null,
     };
-  });
+  }, [end, relative, start, utc]);
+
+  const [internalValue, setInternalValue] = useState<ChangeData>(
+    getDefaultInternalValue()
+  );
 
   const getOptions = useCallback(
     (items: Item[]): SelectOption<string>[] => {
@@ -335,7 +338,7 @@ export function TimeRangeSelector({
             setHasChanges(false);
             setSearch('');
           }}
-          onInteractOutside={commitChanges}
+          onInteractOutside={() => !showAbsoluteSelector && commitChanges()}
           onKeyDown={e => e.key === 'Escape' && commitChanges()}
           trigger={
             trigger ??
@@ -440,7 +443,14 @@ export function TimeRangeSelector({
                               size="xs"
                               borderless
                               icon={<IconArrow size="xs" direction="left" />}
-                              onClick={() => setShowAbsoluteSelector(false)}
+                              onClick={() => {
+                                setHasChanges(false);
+                                setInternalValue((prev: ChangeData) => ({
+                                  ...prev,
+                                  ...getDefaultInternalValue(),
+                                }));
+                                setShowAbsoluteSelector(false);
+                              }}
                             >
                               {t('Back')}
                             </Button>
