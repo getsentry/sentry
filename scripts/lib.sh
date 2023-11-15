@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/sourceme/bash
 # NOTE: This file is sourced in CI across different repos (e.g. snuba),
 # thus, renaming this file or any functions can break CI!
 #
@@ -7,14 +7,12 @@
 # shellcheck disable=SC2034 # Unused variables
 # shellcheck disable=SC2001 # https://github.com/koalaman/shellcheck/wiki/SC2001
 
-# This block is a safe-guard since in CI calling tput will fail and abort scripts
-if [ -z "${CI+x}" ]; then
-    bold="$(tput bold)"
-    red="$(tput setaf 1)"
-    green="$(tput setaf 2)"
-    yellow="$(tput setaf 3)"
-    reset="$(tput sgr0)"
-fi
+# NB: tput is problematic, and everything modern supports xterm escapes:
+bold=$'\x1b[1m'
+red=$'\x1b[31m'
+green=$'\x1b[32m'
+yellow=$'\x1b[33m'
+reset=$'\x1b[m'
 
 venv_name=".venv"
 
@@ -28,10 +26,31 @@ export XDG_CONFIG_DIRS="${XDG_CONFIG_DIRS:-/etc/xdg}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/var/run}"
 
+export SENTRY_DEVENV_HOME="${SENTRY_DEVENV_HOME:-$XDG_DATA_HOME/sentry-devenv}"
+
 
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
+}
+
+interactive_shell() {
+  # If not running interactively, don't do anything
+  # coshells are "interactive" (ish)
+  case "$-${COSHELL_VERSION:+i}" in
+      *i*) true;;
+        *) false;;
+  esac
+}
+
+strict_mode() {
+  if [[ "${DEBUG:-}" ]]; then
+    set -x
+  fi
+  # these settings are _real bad_ for interactive shells, so let's double-check
+  if ! interactive_shell; then
+    set -euo pipefail
+  fi
 }
 
 configure-sentry-cli() {

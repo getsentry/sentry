@@ -1,0 +1,53 @@
+#!/sourceme/bash
+# this script helps to transition between the old and new method of
+# bootstrapping sentry's dev environment.
+set -euo pipefail
+if [[ "${DEBUG:-}" ]]; then
+  set -x
+fi
+exec >&2  # we only have logging output, no data
+
+# Use requirements-dev.txt to decide when to cut over to `devenv` tooling.
+# This also provides us with a clean-cut rollback procedure.
+if ! grep -Eq "^devenv($|>)" requirements-dev.txt; then
+    # Old and busted. (but currently working)
+    if [ ! -f ".venv/bin/activate" ]; then
+        prompt_python_venv_creation
+        # This is time consuming but it has to be done
+        source "${SENTRY_ROOT}/scripts/bootstrap-py3-venv"
+    fi
+else
+    # The new hotness. (but not ready yet)
+    PATH_add "${SENTRY_DEVENV_HOME}/bin"
+    if ! command -v devenv >/dev/null; then
+      die '
+Please install the `devenv` tool:
+    https://github.com/getsentry/devenv#install
+'
+    elif [ ! -f ".venv/bin/activate" ]; then
+      update_command=(devenv sync)
+    fi
+fi
+
+if [[ "$SENTRY_POST_MERGE_AUTO_UPDATE" ]]; then
+  cat <<EOF
+
+[${red}${bold}!!!${reset}] ${red} It looks like some dependencies have changed that will require your intervention. Run the following to update:${reset}
+
+    ${red}${bold}${update_command[*]}${reset}
+
+EOF
+  if [[ "$SENTRY_POST_MERGE_AUTO_UPDATE" = "false" ]]; then
+    echo "${yellow}If you want these commands to be executed automatically after pulling code, you can export the SENTRY_POST_MERGE_AUTO_UPDATE variable.${reset}"
+  else
+    echo "${yellow}Automatically running update command because SENTRY_POST_MERGE_AUTO_UPDATE is set.${reset}"
+    "${update_command[@]}"
+  fi
+
+  echo "${red}This should be impossible..."
+  exit 1
+
+else
+  # we're not doing a post-merge
+  "${update_command[@]}"
+fi
