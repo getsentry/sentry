@@ -21,7 +21,7 @@ from sentry.models.eventerror import EventError
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.profiles.device import classify_device
-from sentry.profiles.java import deobfuscate_signature
+from sentry.profiles.java import deobfuscate_signature, format_signature
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.silo import SiloMode
@@ -694,7 +694,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
         # we still need to decode signatures
         for m in profile["profile"]["methods"]:
             if m.get("signature"):
-                m["signature"] = deobfuscate_signature(m["signature"])
+                param_type, return_type = deobfuscate_signature(m["signature"])
+                m["signature"] = format_signature(param_type, return_type)
         return
 
     with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
@@ -719,7 +720,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
             )
 
             if method.get("signature"):
-                method["signature"] = deobfuscate_signature(method["signature"], mapper)
+                param_type, return_type = deobfuscate_signature(method["signature"], mapper)
+                method["signature"] = format_signature(param_type, return_type)
 
             if len(mapped) >= 1:
                 new_frame = mapped[-1]

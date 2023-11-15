@@ -1,7 +1,7 @@
 import pytest
 from symbolic.proguard import ProguardMapper
 
-from sentry.profiles.java import deobfuscate_signature
+from sentry.profiles.java import deobfuscate_signature, format_signature
 
 PROGUARD_SOURCE = b"""\
 # compiler: R8
@@ -50,4 +50,5 @@ def mapper(tmp_path):
     ],
 )
 def test_deobfuscate_signature(mapper, obfuscated, expected):
-    assert deobfuscate_signature(obfuscated, mapper) == expected
+    param_type, return_type = deobfuscate_signature(obfuscated, mapper)
+    assert format_signature(param_type, return_type) == expected
