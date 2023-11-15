@@ -63,13 +63,13 @@ function DatabaseLandingPage() {
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
     filters,
     ['spm()'],
-    'api.starfish.span-summary-page-metrics-chart'
+    'api.starfish.span-landing-page-metrics-chart'
   );
 
   const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
     filters,
     [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    'api.starfish.span-summary-page-metrics-chart'
+    'api.starfish.span-landing-page-metrics-chart'
   );
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
