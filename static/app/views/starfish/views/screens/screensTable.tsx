@@ -233,6 +233,7 @@ export function useTableQuery({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {isReady: pageFiltersReady} = usePageFilters();
 
   const result = useDiscoverQuery({
     eventView,
@@ -243,7 +244,7 @@ export function useTableQuery({
     cursor,
     options: {
       refetchOnWindowFocus: false,
-      enabled,
+      enabled: enabled && pageFiltersReady,
       staleTime,
     },
   });
