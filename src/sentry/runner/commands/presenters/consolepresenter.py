@@ -3,7 +3,7 @@ from typing import Any, List, Tuple
 import click
 from yaml import safe_dump
 
-from sentry.runner.commands.options.presenters.optionspresenter import OptionsPresenter
+from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
 
 
 class ConsolePresenter(OptionsPresenter):

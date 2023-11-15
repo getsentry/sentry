@@ -4,7 +4,7 @@ from typing import Any, Optional, Set
 import click
 from yaml import safe_load
 
-from sentry.runner.commands.options.presenters.presenterdelegator import PresenterDelegator
+from sentry.runner.commands.presenters.presenterdelegator import PresenterDelegator
 from sentry.runner.decorators import configuration, log_options
 
 

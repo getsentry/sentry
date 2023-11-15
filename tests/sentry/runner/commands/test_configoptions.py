@@ -6,7 +6,7 @@ import pytest
 from sentry import options
 from sentry.options.manager import FLAG_AUTOMATOR_MODIFIABLE, FLAG_IMMUTABLE, UpdateChannel
 from sentry.runner.commands.configoptions import configoptions
-from sentry.runner.commands.options.presenters.consolepresenter import ConsolePresenter
+from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
 from sentry.testutils.cases import CliTestCase
 
 

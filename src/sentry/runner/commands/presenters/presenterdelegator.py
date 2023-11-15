@@ -1,5 +1,5 @@
-from sentry.runner.commands.options.presenters.consolepresenter import ConsolePresenter
-from sentry.runner.commands.options.presenters.slackpresenter import SlackPresenter
+from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
+from sentry.runner.commands.presenters.slackpresenter import WebhookPresenter
 
 
 class PresenterDelegator:
@@ -7,8 +7,8 @@ class PresenterDelegator:
         self._consolepresenter = ConsolePresenter()
 
         self._slackpresenter = None
-        if SlackPresenter.is_slack_enabled():
-            self._slackpresenter = SlackPresenter()
+        if WebhookPresenter.is_webhook_enabled():
+            self._slackpresenter = WebhookPresenter()
 
     def __getattr__(self, attr: str):
         def wrapper(*args, **kwargs):
