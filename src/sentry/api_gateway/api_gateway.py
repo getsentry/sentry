@@ -38,6 +38,7 @@ REGION_PINNED_URL_NAMES = (
     "sentry-error-page-embed",
     "sentry-release-hook",
     "sentry-api-0-projects",
+    "sentry-api-0-accept-project-transfer",
     "sentry-account-email-unsubscribe-incident",
     "sentry-account-email-unsubscribe-issue",
     "sentry-account-email-unsubscribe-project",
