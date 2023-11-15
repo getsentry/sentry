@@ -8,24 +8,31 @@ from sentry.models.files.file import File
 @register(EventAttachment)
 class EventAttachmentSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        files = {f.id: f for f in File.objects.filter(id__in=[ea.file_id for ea in item_list])}
-        return {ea: {"file": files[ea.file_id]} for ea in item_list}
+        files = {
+            f.id: f
+            for f in File.objects.filter(id__in=[ea.file_id for ea in item_list if ea.file_id])
+        }
+        return {ea: {"file": files[ea.file_id]} for ea in item_list if ea.file_id}
 
     def serialize(self, obj, attrs, user):
-        file = attrs["file"]
+        file = attrs.get("file")
+        content_type = obj.content_type or get_mimetype(file)
+        size = obj.size or file.size
+        sha1 = obj.sha1 or file.checksum
+        headers = {"Content-Type": content_type}
 
         return {
             "id": str(obj.id),
             "event_id": obj.event_id,
             "type": obj.type,
             "name": obj.name,
-            "mimetype": get_mimetype(file),
+            "mimetype": content_type,
             "dateCreated": obj.date_added,
-            "size": file.size,
+            "size": size,
             # TODO: It would be nice to deprecate these two fields.
             # If not, we can at least define `headers` as `Content-Type: $mimetype`.
-            "headers": file.headers,
-            "sha1": file.checksum,
+            "headers": headers,
+            "sha1": sha1,
         }
 
 
