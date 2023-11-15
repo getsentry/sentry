@@ -1,11 +1,10 @@
 from typing import Any, List, Optional, Tuple
 
-import requests
 from django.conf import settings
 
 from sentry import options
 from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
-from sentry.utils import json
+from sentry.utils.options import send_to_webhook
 
 
 class SlackPresenter(OptionsPresenter):
@@ -81,8 +80,7 @@ class SlackPresenter(OptionsPresenter):
                 for key, got_type, expected_type in self.invalid_type_options
             ],
         }
-
-        self._send_to_webhook(json_data)
+        send_to_webhook(json_data)
 
     def truncate_value(self, value: str) -> str:
         value_str = str(value)
@@ -119,12 +117,3 @@ class SlackPresenter(OptionsPresenter):
         expected_type: type,
     ) -> None:
         self.invalid_type_options.append((key, got_type, expected_type))
-
-    def _send_to_webhook(self, json_data: dict) -> None:
-        if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
-            headers = {"Content-Type": "application/json"}
-            requests.post(
-                settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL,
-                data=json.dumps(json_data),
-                headers=headers,
-            ).raise_for_status()
