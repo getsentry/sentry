@@ -138,7 +138,7 @@ function SearchBar(props: SearchBarProps) {
       async query => {
         try {
           setLoading(true);
-          const conditions = additionalConditions ?? new MutableSearch('');
+          const conditions = additionalConditions?.copy() ?? new MutableSearch('');
           conditions.addFilterValues('transaction', [wrapQueryInWildcards(query)], false);
           conditions.addFilterValues('event.type', ['transaction']);
 

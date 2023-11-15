@@ -1,5 +1,7 @@
-import functools
+from __future__ import annotations
+
 import logging
+from typing import Any
 from unittest import TestCase, mock
 
 import pytest
@@ -20,16 +22,15 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 # Silence connection warnings
 logger.setLevel(logging.ERROR)
 
-make_manager = functools.partial(
-    ClusterManager,
-    {
+
+def _options_manager() -> dict[str, Any]:
+    return {
         "redis.clusters": {
             "foo": {"hosts": {0: {"db": 0}}},
             "bar": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
             "baz": {"is_redis_cluster": True, "hosts": {0: {}}},
         }
-    },
-)
+    }
 
 
 class ClusterManagerTestCase(TestCase):
@@ -37,16 +38,16 @@ class ClusterManagerTestCase(TestCase):
         imports._cache.clear()
 
     def test_get(self):
-        manager = make_manager()
+        manager = ClusterManager(_options_manager())
         assert manager.get("foo") is manager.get("foo")
         assert manager.get("foo") is not manager.get("bar")
-        assert manager.get("foo").pool_cls is _shared_pool  # type: ignore[attr-defined]
+        assert manager.get("foo").pool_cls is _shared_pool
         with pytest.raises(KeyError):
             manager.get("invalid")
 
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
     def test_specific_cluster(self, RetryingRedisCluster):
-        manager = make_manager(cluster_type=_RedisCluster)
+        manager = ClusterManager(_options_manager(), cluster_type=_RedisCluster)
 
         # We wrap the cluster in a Simple Lazy Object, force creation of the
         # object to verify it's correct.
@@ -72,7 +73,7 @@ class ClusterManagerTestCase(TestCase):
 
                 return SimpleLazyObject(setupfunc)
 
-        manager = make_manager(cluster_type=TestClusterType)
+        manager = ClusterManager(_options_manager(), cluster_type=TestClusterType)
         manager.get("foo")
         # repeated retrieval should not trigger call to setupfunc
         manager.get("foo")
@@ -80,7 +81,7 @@ class ClusterManagerTestCase(TestCase):
 
 def test_get_cluster_from_options_cluster_provided():
     backend = mock.sentinel.backend
-    manager = make_manager()
+    manager = ClusterManager(_options_manager())
 
     cluster, options = get_cluster_from_options(
         backend, {"cluster": "foo", "foo": "bar"}, cluster_manager=manager
@@ -93,7 +94,7 @@ def test_get_cluster_from_options_cluster_provided():
 
 def test_get_cluster_from_options_legacy_hosts_option():
     backend = mock.sentinel.backend
-    manager = make_manager()
+    manager = ClusterManager(_options_manager())
 
     with pytest.warns(DeprecatedSettingWarning) as warninfo:
         cluster, options = get_cluster_from_options(
@@ -113,7 +114,7 @@ def test_get_cluster_from_options_legacy_hosts_option():
 
 def test_get_cluster_from_options_both_options_invalid():
     backend = mock.sentinel.backend
-    manager = make_manager()
+    manager = ClusterManager(_options_manager())
 
     with pytest.raises(InvalidConfiguration):
         cluster, options = get_cluster_from_options(
