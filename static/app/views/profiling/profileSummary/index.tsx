@@ -60,6 +60,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   FlamegraphProvider,
@@ -290,6 +291,7 @@ interface ProfileSummaryPageProps {
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
+  const {selection} = usePageFilters();
 
   const profilingUsingTransactions = organization.features.includes(
     'profiling-using-transactions'
@@ -342,7 +344,12 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const {data, isLoading, isError} = useAggregateFlamegraphQuery({transaction});
+  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
+    transaction,
+    environments: selection.environments,
+    projects: selection.projects,
+    datetime: selection.datetime,
+  });
 
   const [visualization, setVisualization] = useLocalStorageState<
     'flamegraph' | 'call tree'
