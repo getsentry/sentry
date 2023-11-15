@@ -16,12 +16,13 @@ import JSCSSView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
 } from 'sentry/views/performance/browser/resources/jsCssView';
-import DomainSelector from 'sentry/views/performance/browser/resources/shared/domainSelector';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
@@ -66,8 +67,12 @@ function ResourcesLandingPage() {
               <DatePageFilter />
             </PageFilterBar>
             <DomainSelector
+              emptyOptionLocation="top"
               value={filters[SPAN_DOMAIN] || ''}
-              defaultResourceTypes={DEFAULT_RESOURCE_TYPES}
+              additionalQuery={[
+                ...DEFAULT_RESOURCE_FILTERS,
+                `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+              ]}
             />
           </FilterOptionsContainer>
 
