@@ -278,13 +278,15 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                   series: Object.values(
                     transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]]]
                   ),
-                  subtitle: t(
-                    '%s v. %s',
-                    formatVersionAndCenterTruncate(primaryRelease, 12),
-                    secondaryRelease
-                      ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                      : ''
-                  ),
+                  subtitle: primaryRelease
+                    ? t(
+                        '%s v. %s',
+                        formatVersionAndCenterTruncate(primaryRelease, 12),
+                        secondaryRelease
+                          ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                          : ''
+                      )
+                    : '',
                 },
               ]}
               chartHeight={chartHeight ?? 180}
@@ -309,13 +311,15 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                     series: Object.values(
                       transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]]]
                     ),
-                    subtitle: t(
-                      '%s v. %s',
-                      formatVersionAndCenterTruncate(primaryRelease, 12),
-                      secondaryRelease
-                        ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                        : ''
-                    ),
+                    subtitle: primaryRelease
+                      ? t(
+                          '%s v. %s',
+                          formatVersionAndCenterTruncate(primaryRelease, 12),
+                          secondaryRelease
+                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                            : ''
+                        )
+                      : '',
                   },
                 ]}
                 chartHeight={chartHeight ?? 180}

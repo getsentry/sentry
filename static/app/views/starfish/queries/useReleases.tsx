@@ -75,7 +75,11 @@ export function useReleases(searchTerm?: string) {
   };
 }
 
-export function useReleaseSelection() {
+export function useReleaseSelection(): {
+  isLoading: boolean;
+  primaryRelease: string | undefined;
+  secondaryRelease: string | undefined;
+} {
   const location = useLocation();
 
   const {data: releases, isLoading} = useReleases();
