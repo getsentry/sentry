@@ -141,3 +141,13 @@ class UserUpdateArgs(TypedDict, total=False):
     avatar_type: int
     actor_id: int  # TODO(hybrid-cloud): Remove this after the actor migration is complete
     is_active: bool
+
+
+class UserIdEmailArgs(TypedDict):
+    user_id: int
+    email: str
+
+
+class RpcVerifyUserEmail(RpcModel):
+    exists: bool = False
+    email: str = ""
