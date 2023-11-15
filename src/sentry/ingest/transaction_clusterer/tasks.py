@@ -25,6 +25,10 @@ logger_transactions = logging.getLogger("sentry.ingest.transaction_clusterer.tas
 #: NOTE: We could make this configurable through django settings or even per-project in the future.
 MERGE_THRESHOLD = 200
 
+#: We're only using span clustering for resource spans right now, where we expect path segments to be either
+#: very low-cardinality or very high-cardinality, so we can use a more aggressive threshold.
+MERGE_THRESHOLD_SPANS = 50
+
 #: Number of projects to process in one celery task
 #: The number 100 was chosen at random and might still need tweaking.
 PROJECTS_PER_TASK = 100
@@ -154,8 +158,8 @@ def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
                 span.set_data("project_id", project.id)
                 descriptions = list(redis.get_span_descriptions(project))
                 new_rules = []
-                if len(descriptions) >= MERGE_THRESHOLD:
-                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                if len(descriptions) >= MERGE_THRESHOLD_SPANS:
+                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD_SPANS)
                     clusterer.add_input(descriptions)
                     new_rules = clusterer.get_rules()
                     # Span description rules must match a prefix in the string
