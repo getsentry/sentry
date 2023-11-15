@@ -341,12 +341,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             fields_meta = meta.get("fields", {})
 
             if standard_meta:
-                isMetricsData = meta.pop("isMetricsData", False)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
                     "units": units,
-                    "isMetricsData": isMetricsData,
                     "tips": meta.get("tips", {}),
                     "datasetReason": meta.get("datasetReason", discover.DEFAULT_DATASET_REASON),
                 }
@@ -355,8 +353,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             else:
                 meta = fields_meta
 
-            if "isMetricsData" not in meta:
-                meta["isMetricsData"] = False
+            meta["isMetricsData"] = meta.pop("isMetricsData", False)
+            meta["isMetricsExtractedData"] = meta.pop("isMetricsExtractedData", False)
 
             if not data:
                 return {"data": [], "meta": meta}
