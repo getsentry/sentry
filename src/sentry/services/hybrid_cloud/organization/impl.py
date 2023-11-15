@@ -117,6 +117,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except Organization.DoesNotExist:
             return None
 
+    def get_organizations_by_user_and_scope(
+        self, *, region_name: str, user: RpcUser, scope: str
+    ) -> List[RpcOrganization]:
+        organizations = Organization.objects.get_for_user(user=user, scope=scope)
+        return list(map(serialize_rpc_organization, organizations))
+
     def get_default_organization(self) -> RpcOrganization:
         return serialize_rpc_organization(Organization.get_default())
 
