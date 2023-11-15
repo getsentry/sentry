@@ -40,6 +40,8 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils import metrics
 
+from sentry.snuba.metrics.extraction import MetricSpecType
+
 if TYPE_CHECKING:
     from sentry.search.events.builder import QueryBuilder
 
@@ -400,6 +402,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 skip_time_conditions=True,
                 use_metrics_layer=self.use_metrics_layer,
                 on_demand_metrics_enabled=self.on_demand_metrics_enabled,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
             ),
         )
