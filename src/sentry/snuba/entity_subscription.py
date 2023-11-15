@@ -36,11 +36,10 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils import metrics
-
-from sentry.snuba.metrics.extraction import MetricSpecType
 
 if TYPE_CHECKING:
     from sentry.search.events.builder import QueryBuilder
