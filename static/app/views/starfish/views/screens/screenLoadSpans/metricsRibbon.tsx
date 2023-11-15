@@ -11,7 +11,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
@@ -31,8 +31,8 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const truncatedPrimary = centerTruncate(primaryRelease ?? '', 10);
-  const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 10);
+  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 10);
+  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 10);
 
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
