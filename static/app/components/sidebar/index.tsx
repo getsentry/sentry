@@ -342,13 +342,6 @@ function Sidebar({location, organization}: Props) {
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
         />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Screens')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/mobile/screens/`}
-          id="starfish-mobile-screen-loads"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
       </SidebarAccordion>
     </Feature>
   );

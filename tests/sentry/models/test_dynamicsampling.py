@@ -1,12 +1,35 @@
 from datetime import timedelta
 from typing import List, Optional
 
+import pytest
 from django.utils import timezone
 
-from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.models.dynamicsampling import (
+    MAX_CUSTOM_RULES_PER_PROJECT,
+    CustomDynamicSamplingRule,
+    TooManyRules,
+)
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
+
+
+def _create_rule_for_env(
+    env_idx: int, projects: List[Project], organization: Organization
+) -> CustomDynamicSamplingRule:
+    condition = {"op": "equals", "name": "environment", "value": f"prod{env_idx}"}
+    return CustomDynamicSamplingRule.update_or_create(
+        condition=condition,
+        start=timezone.now(),
+        end=timezone.now() + timedelta(hours=1),
+        project_ids=[project.id for project in projects],
+        organization_id=organization.id,
+        num_samples=100,
+        sample_rate=0.5,
+        query=f"environment:prod{env_idx}",
+    )
 
 
 @freeze_time("2023-09-18")
@@ -56,23 +79,11 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         assert updated_rule.end_date >= end2
 
     def test_assign_rule_id(self):
-        def create_rule_for_env(env_idx: int):
-            condition = {"op": "equals", "name": "environment", "value": f"prod{env_idx}"}
-            return CustomDynamicSamplingRule.update_or_create(
-                condition=condition,
-                start=timezone.now(),
-                end=timezone.now() + timedelta(hours=1),
-                project_ids=[self.project.id],
-                organization_id=self.organization.id,
-                num_samples=100,
-                sample_rate=0.5,
-                query=f"environment:prod{env_idx}",
-            )
 
         rule_ids = set()
         rules = []
         for idx in range(3):
-            rule = create_rule_for_env(idx)
+            rule = _create_rule_for_env(idx, [self.project], self.organization)
             rule_ids.add(rule.rule_id)
             rules.append(rule)
 
@@ -83,11 +94,11 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         rules[1].is_active = False
         rules[1].save()
 
-        new_rule = create_rule_for_env(4)
+        new_rule = _create_rule_for_env(4, [self.project], self.organization)
         assert new_rule.rule_id == rules[1].rule_id
 
         # a new rule will take another slot (now that there is no free slot)
-        new_rule_2 = create_rule_for_env(5)
+        new_rule_2 = _create_rule_for_env(5, [self.project], self.organization)
         assert new_rule_2.rule_id not in rule_ids
 
         # make again an empty slot ( this time by having the rule expire)
@@ -96,7 +107,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         rules[2].save()
 
         # the new rule should take the empty slot
-        new_rule_3 = create_rule_for_env(6)
+        new_rule_3 = _create_rule_for_env(6, [self.project], self.organization)
         assert new_rule_3.rule_id == rules[2].rule_id
 
     def test_deactivate_old_rules(self):
@@ -273,3 +284,28 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         second_projects = second_rule.projects.all()
         assert len(second_projects) == 1
         assert self.second_project == second_projects[0]
+
+    def test_per_project_limit(self):
+        """
+        Tests that it is not possible to create more than MAX_CUSTOM_RULES_PER_PROJECT
+        for a project
+        """
+
+        # a few org rules
+        num_org_rules = 10
+        for idx in range(num_org_rules):
+            _create_rule_for_env(idx, [], self.organization)
+
+        # now add project rules (up to MAX_CUSTOM_RULES_PER_PROJECT)
+        for idx in range(num_org_rules, MAX_CUSTOM_RULES_PER_PROJECT):
+            _create_rule_for_env(idx, [self.project], self.organization)
+            _create_rule_for_env(idx, [self.second_project], self.organization)
+
+        # we've reached the limit for both project and second_project next one should raise TooManyRules()
+        with pytest.raises(TooManyRules):
+            _create_rule_for_env(MAX_CUSTOM_RULES_PER_PROJECT, [self.project], self.organization)
+
+        with pytest.raises(TooManyRules):
+            _create_rule_for_env(
+                MAX_CUSTOM_RULES_PER_PROJECT, [self.second_project], self.organization
+            )
