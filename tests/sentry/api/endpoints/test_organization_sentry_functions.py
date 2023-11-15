@@ -122,8 +122,8 @@ class OrganizationSentryFunctionsGet(OrganizationSentryFunctionBase):
 
     @with_feature("organizations:sentry-functions")
     def test_get_with_function_and_env_variables(self):
-        # env_variables is expected to be a single dict if directly creating the function instance.
-        # Normally, this would be a list of dicts that would be converted by the request serializer
+        # env_variables is expected to be a single dict of key-value pairs if
+        # you're directly creating a SentryFunction object using .create()
         SentryFunction.objects.create(**self.post_data, env_variables={"foo": "bar", "baz": "qux"})
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert response.data[0] == {
