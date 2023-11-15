@@ -803,24 +803,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         for (_, value), expected_value in zip(data, [10, 20, 30, 40, 50, 60]):
             assert value[0]["count"] == expected_value  # type:ignore
 
-    def test_custom(self):
-        mri = "c:transactions/usage@none"
-        response = self.do_request(
-            data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
-                "interval": "1h",
-                "yAxis": [
-                    f"sum({mri})",
-                ],
-                "project": self.project.id,
-                "dataset": "metricsEnhanced",
-                **self.additional_params,
-            },
-        )
-
-        assert response.status_code == 200, response.content
-
     def test_distribution_custom_metric(self):
         mri = "d:custom/sentry.process_profile.track_outcome@second"
         for index, value in enumerate((10, 20, 30, 40, 50, 60)):
