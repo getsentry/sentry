@@ -49,7 +49,8 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
 
         # Resolve any open incidents
         if incident_recovering:
-            # TODO(rjo100): Check for multiple open incidents due to a logic bug
+            # TODO(rjo100): Check for multiple open incidents where we only
+            # resolved if recovery_threshold was set and not faiure_issue_threshold
             active_incidents = MonitorIncident.objects.filter(
                 monitor_environment=monitor_env,
                 resolving_checkin__isnull=True,
