@@ -2057,7 +2057,7 @@ SENTRY_ALLOW_ORIGIN: str | None = None
 
 # Origins that are allowed to use credentials. This list is in addition
 # to all subdomains of system.url-prefix
-ALLOWED_CREDENTIAL_ORIGINS = []
+ALLOWED_CREDENTIAL_ORIGINS: list[str] = []
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"
