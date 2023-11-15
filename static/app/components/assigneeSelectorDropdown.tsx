@@ -21,6 +21,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {
   Actor,
+  Group,
   Organization,
   SuggestedOwner,
   SuggestedOwnerReason,
@@ -28,6 +29,7 @@ import type {
   User,
 } from 'sentry/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
+import {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),
@@ -73,6 +75,7 @@ export interface AssigneeSelectorDropdownProps {
   organization: Organization;
   assignedTo?: Actor | null;
   disabled?: boolean;
+  group?: Group | FeedbackIssue;
   memberList?: User[];
   onAssign?: OnAssignCallback;
   onClear?: () => void;
@@ -182,7 +185,7 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   assignableTeams(): AssignableTeam[] {
-    const group = GroupStore.get(this.props.id);
+    const group = GroupStore.get(this.props.id) ?? this.props.group;
     if (!group) {
       return [];
     }
