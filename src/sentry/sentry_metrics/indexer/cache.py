@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Collection, Iterable, Mapping, MutableMapping, Optional, Sequence, Set
 
 from django.conf import settings
@@ -32,6 +32,7 @@ _INDEXER_CACHE_RESOLVE_CACHE_REPLENISHMENT_METRIC = (
 )
 _INDEXER_CACHE_DOUBLE_WRITE_METRIC = "sentry_metrics.indexer.memcache.double-write"
 _INDEXER_CACHE_DOUBLE_READ_METRIC = "sentry_metrics.indexer.memcache.new-schema-read"
+_INDEXER_CACHE_STALE_KEYS_METRIC = "sentry_metrics.indexer.memcache.stale-keys"
 
 # only used to compare to the older version of the PGIndexer
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
@@ -115,10 +116,17 @@ class StringIndexerCache:
 
         return formatted
 
+    def _is_valid_timestamp(self, timestamp: str) -> bool:
+        return int(timestamp) >= int((datetime.utcnow() - timedelta(hours=3)).timestamp())
+
     def _validate_result(self, result: Optional[str]) -> Optional[int]:
         if result is None:
             return None
-        result, _ = result.split(":")
+        result, timestamp = result.split(":")
+
+        if not self._is_valid_timestamp(timestamp):
+            metrics.incr(_INDEXER_CACHE_STALE_KEYS_METRIC)
+
         return int(result)
 
     def get(self, namespace: str, key: str) -> Optional[int]:
