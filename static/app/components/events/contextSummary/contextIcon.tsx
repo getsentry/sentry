@@ -47,7 +47,6 @@ import {IconSize} from 'sentry/utils/theme';
 const LOGO_MAPPING = {
   'android-phone': logoAndroidPhone,
   'android-tablet': logoAndroidTablet,
-  'chrome-mobile': logoChrome,
   'chrome-mobile-ios': logoChrome,
   'google-chrome': logoChrome,
   'internet-explorer': logoIe,
