@@ -22,7 +22,7 @@ import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
-import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
+import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
@@ -40,7 +40,7 @@ function DatabaseLandingPage() {
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
 
-  const {selectedAggregate} = useAvailableDurationAggregates();
+  const [selectedAggregate] = useSelectedDurationAggregate();
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
   const moduleFilters = useModuleFilters();
   const sort = useModuleSort(QueryParameterNames.SPANS_SORT);

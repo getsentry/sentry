@@ -17,7 +17,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
-import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
+import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
@@ -55,7 +55,7 @@ function SpanSummaryPage({params}: Props) {
   const organization = useOrganization();
   const location = useLocation<Query>();
 
-  const {selectedAggregate} = useAvailableDurationAggregates();
+  const [selectedAggregate] = useSelectedDurationAggregate();
 
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
