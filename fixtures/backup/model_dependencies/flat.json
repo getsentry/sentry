@@ -163,6 +163,8 @@
     "sentry.controlfileblob",
     "sentry.organization"
   ],
+  "sentry.controlimportchunk": [],
+  "sentry.controlimportchunkreplica": [],
   "sentry.controloption": [],
   "sentry.controloutbox": [],
   "sentry.controltombstone": [],
@@ -640,6 +642,7 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "sentry.regionimportchunk": [],
   "sentry.regionoutbox": [],
   "sentry.regionscheduleddeletion": [],
   "sentry.regiontombstone": [],

@@ -136,6 +136,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
         widget,
         onDemandControlContext
       ),
+      onDemandType: 'dynamic_query',
     };
     return getEventsRequest(
       url,
@@ -631,6 +632,7 @@ async function doOnDemandMetricsRequest(
       queryExtras: {
         ...requestData.queryExtras,
         useOnDemandMetrics: true,
+        onDemandType: 'dynamic_query',
       },
       dataset: 'metricsEnhanced',
       generatePathname: isEditing ? fetchEstimatedStats : undefined,
