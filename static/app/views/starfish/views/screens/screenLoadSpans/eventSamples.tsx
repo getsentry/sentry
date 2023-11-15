@@ -29,7 +29,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {DeviceClassSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/deviceClassSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -73,7 +73,7 @@ export function ScreenLoadEventSamples({
   };
 
   const columnNameMap = {
-    id: t('Event ID (%s)', centerTruncate(release)),
+    id: t('Event ID (%s)', formatVersionAndCenterTruncate(release)),
     'profile.id': t('Profile'),
     'measurements.time_to_initial_display': t('TTID'),
     'measurements.time_to_full_display': t('TTFD'),
