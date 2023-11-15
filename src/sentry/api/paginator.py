@@ -756,7 +756,7 @@ class SnubaRequestPaginator:
     def __init__(
         self,
         query: Query,
-        dataset: Dataset,
+        dataset: str,
         app_id: str,
         tenant_ids: dict,
         order_by: Optional[str] = None,
@@ -764,6 +764,8 @@ class SnubaRequestPaginator:
         on_results: Optional[Callable[[Sequence[Any]], Any]] = None,
     ):
         self.query = query
+        if dataset not in {ds.value for ds in Dataset}:
+            raise ValueError(f"Dataset {dataset} does not exist", dataset)
         self.dataset = dataset
         self.app_id = app_id
         self.tenant_ids = tenant_ids
