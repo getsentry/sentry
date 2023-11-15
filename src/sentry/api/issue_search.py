@@ -37,6 +37,7 @@ from sentry.search.utils import (
     parse_substatus_value,
     parse_user_value,
 )
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 
 is_filter_translation = {
@@ -242,7 +243,7 @@ value_converters: Mapping[str, ValueConverter] = {
 def convert_query_values(
     search_filters: ParsedTerms,
     projects: Sequence[Project],
-    user: User,
+    user: Optional[User | RpcUser],
     environments: Optional[Sequence[Environment]],
     value_converters=value_converters,
 ) -> List[SearchFilter]:
@@ -261,21 +262,21 @@ def convert_query_values(
         search_filter: SearchFilter, organization: Organization
     ) -> SearchFilter:
         if isinstance(search_filter, ParenExpression):
-            search_filter = search_filter._replace(
+            return search_filter._replace(
                 children=[
                     child if isinstance(child, str) else convert_search_filter(child, organization)
                     for child in search_filter.children
                 ]
             )
-        elif isinstance(search_filter, SearchFilter) and search_filter.key.name in value_converters:
-            if search_filter.key.name == "empty_stacktrace.js_console":
-                if not features.has(
-                    "organizations:javascript-console-error-tag", organization, actor=None
-                ):
-                    raise InvalidSearchQuery(
-                        "The empty_stacktrace.js_console filter is not supported for this organization"
-                    )
+        if search_filter.key.name == "empty_stacktrace.js_console":
+            if not features.has(
+                "organizations:javascript-console-error-tag", organization, actor=None
+            ):
+                raise InvalidSearchQuery(
+                    "The empty_stacktrace.js_console filter is not supported for this organization"
+                )
 
+        if search_filter.key.name in value_converters:
             converter = value_converters[search_filter.key.name]
             new_value = converter(
                 to_list(search_filter.value.raw_value), projects, user, environments

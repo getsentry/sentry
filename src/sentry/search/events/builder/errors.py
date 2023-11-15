@@ -23,7 +23,7 @@ class ErrorsQueryBuilder(QueryBuilder):
             parsed_terms,
             self.params.projects,
             self.params.user,
-            self.params.environments,
+            list(filter(None, self.params.environments)),
             value_converters=value_converters,
         )
         return parsed_terms
