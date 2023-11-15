@@ -315,12 +315,13 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             [],
         ]:
             # create some expired rules
-            rule = create_rule(env_idx, timezone.now() - timedelta(minutes=5), projects)
+            project_ids = [p.id for p in projects]
+            rule = create_rule(env_idx, timezone.now() - timedelta(minutes=5), project_ids)
             expired_rules.add(rule.id)
             env_idx += 1
 
             # create some active rules
-            rule = create_rule(env_idx, timezone.now() + timedelta(minutes=5), projects)
+            rule = create_rule(env_idx, timezone.now() + timedelta(minutes=5), project_ids)
             active_rules.add(rule.id)
             env_idx += 1
 
