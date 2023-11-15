@@ -269,14 +269,14 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This Project has event with minified stack trace
         has_minified_stack_trace: bool
 
-        # This Project has event with sourcemaps
-        has_sourcemaps: bool
-
         # This Project has cron monitors
         has_cron_monitors: bool
 
         # This Project has sent check-ins
         has_cron_checkins: bool
+
+        # This Project has event with sourcemaps
+        has_sourcemaps: bool
 
         bitfield_default = 10
         bitfield_null = True
@@ -618,7 +618,6 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         )
 
     def delete(self, **kwargs):
-
         # There is no foreign key relationship so we have to manually cascade.
         notifications_service.remove_notification_settings_for_project(project_id=self.id)
 
