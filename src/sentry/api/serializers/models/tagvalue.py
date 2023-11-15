@@ -1,6 +1,7 @@
-from typing import Any, Dict
-
-from sentry.api.serializers import Serializer
+from sentry import features
+from sentry.api.serializers import Serializer, serialize
+from sentry.models.eventuser import EventUser as EventUser_model
+from sentry.models.project import Project
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.utils.eventuser import EventUser
 
@@ -15,16 +16,29 @@ class UserTagValueSerializer(Serializer):
         self.project_id = project_id
 
     def get_attrs(self, item_list, user):
-        users = EventUser.for_tags(project_id=self.project_id, values=[t.value for t in item_list])
+        projects = Project.objects.filter(id=self.project_id)
+        if features.has("organizations:eventuser-from-snuba", projects[0].organization):
+            users = EventUser.for_tags(
+                project_id=self.project_id, values=[t.value for t in item_list]
+            )
+        else:
+            users = EventUser_model.for_tags(
+                project_id=self.project_id, values=[t.value for t in item_list]
+            )
+
         result = {}
         for item in item_list:
             result[item] = {"user": users.get(item.value)}
         return result
 
     def serialize(self, obj, attrs, user):
-        result: Dict[str, Any] = (
-            {"id": None} if not isinstance(attrs["user"], EventUser) else attrs["user"].serialize()
-        )
+        if isinstance(attrs["user"], EventUser):
+            result = attrs["user"].serialize()
+        elif isinstance(attrs["user"], EventUser_model):
+            result = serialize(attrs["user"], user)
+        else:
+            result = {"id": None}
+
         query = convert_user_tag_to_query("user", obj.value)
         if query:
             result["query"] = query
