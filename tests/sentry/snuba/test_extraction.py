@@ -555,6 +555,36 @@ def test_cleanup_equivalent_specs():
     assert simple_spec.query_hash == event_type_spec.query_hash == parens_spec.query_hash
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        "isNightlyBuild:true environment:production OR isNightlyBuild:True environment:production",
+        "isNightlyBuild:true (environment:production OR isNightlyBuild:True) environment:production",
+        "isNightlyBuild:true AND environment:production OR isNightlyBuild:True AND environment:production",
+        "isNightlyBuild:true AND (environment:production OR isNightlyBuild:True) AND environment:production",
+        "isNightlyBuild:true environment:production",
+        "isNightlyBuild:true AND environment:production",
+        "(isNightlyBuild:true environment:production)",
+        "(isNightlyBuild:true AND environment:production)",
+        "isNightlyBuild:true OR environment:production",
+        "(isNightlyBuild:true OR environment:production)",
+    ],
+)
+def test_cleanup_with_environment_injection(query):
+    # We are simulating the transformation that the frontend performs in the query, since they add the
+    # `event.type:transaction`.
+    field = "count()"
+    transformed_query = f"({query}) AND (event.type:transaction)"
+    environment = "production"
+
+    spec = OnDemandMetricSpec(field, query, environment=environment, use_updated_env_logic=False)
+    transformed_spec = OnDemandMetricSpec(
+        field, transformed_query, environment=environment, use_updated_env_logic=False
+    )
+
+    assert spec.query_hash == transformed_spec.query_hash
+
+
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
 def test_spec_apdex_without_condition(_get_satisfactory_threshold_and_metric, default_project):

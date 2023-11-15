@@ -939,10 +939,12 @@ class OnDemandMetricSpec:
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
+        use_updated_env_logic: bool = False,
     ):
         self.field = field
         self.query = query
         self.spec_type = spec_type
+        self.use_updated_env_logic = use_updated_env_logic
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
@@ -1147,7 +1149,16 @@ class OnDemandMetricSpec:
                 )
             )
 
-        extended_conditions = new_conditions + conditions
+        extended_conditions = conditions
+        if new_conditions:
+            if self.use_updated_env_logic:
+                # This transformation is equivalent to (new_conditions) AND (conditions).
+                extended_conditions = [ParenExpression(children=new_conditions)] + [
+                    ParenExpression(children=conditions)
+                ]
+            else:
+                extended_conditions = new_conditions + conditions
+
         return QueryParsingResult(
             # This transformation is equivalent to the syntax "new_conditions AND conditions" where conditions can be
             # in parentheses or not.
