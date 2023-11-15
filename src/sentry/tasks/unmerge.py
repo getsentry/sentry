@@ -386,7 +386,7 @@ def get_event_user_from_interface(value, project):
         username=value.get("valuename"),
         ip_address=value.get("ip_address"),
         project_id=project.id,
-        name=value.get("valuename"),
+        name=None,
     )
 
 

@@ -5,9 +5,11 @@ import hashlib
 import itertools
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import patch
+
+from django.utils import timezone
 
 from sentry import eventstream, tagstore, tsdb
 from sentry.eventstore.models import Event
