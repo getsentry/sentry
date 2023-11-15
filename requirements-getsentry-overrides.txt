@@ -8,6 +8,7 @@
 # # comment explaining what you're doing
 # library-name @ https://github.com/getsentry/<repo>/archive/<40 char sha>.zip
 
+# lint-requirements: allow(url-reqs)
 
 # This overrides our sentry-python version to use a version with
 # configurable gzip compression
