@@ -36,7 +36,10 @@ import {
 } from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {
+  calculatePerformanceScore,
+  calculatePerformanceScoreFromTableDataRow,
+} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsTimeseriesQuery';
@@ -405,13 +408,9 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           const transaction = (listItem.transaction as string | undefined) ?? '';
           const count = projectData?.data[0]['count()'] as number;
           if (props.chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES) {
-            const projectScore = calculatePerformanceScore({
-              lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-              fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-              cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-              ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-              fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-            });
+            const projectScore = calculatePerformanceScoreFromTableDataRow(
+              projectData?.data?.[0]
+            );
             const rowScore = calculatePerformanceScore({
               lcp: listItem['p75(measurements.lcp)'] as number,
               fcp: listItem['p75(measurements.fcp)'] as number,

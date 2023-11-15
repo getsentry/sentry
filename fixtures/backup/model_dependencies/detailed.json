@@ -1160,6 +1160,30 @@
       ]
     ]
   },
+  "sentry.controlimportchunk": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.controlimportchunk",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "sentry_controlimportchunk",
+    "uniques": []
+  },
+  "sentry.controlimportchunkreplica": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.controlimportchunkreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_controlimportchunkreplica",
+    "uniques": []
+  },
   "sentry.controloption": {
     "dangling": false,
     "foreign_keys": {},
@@ -1705,7 +1729,7 @@
       "file_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.file",
-        "nullable": false
+        "nullable": true
       },
       "group_id": {
         "kind": "ImplicitForeignKey",
@@ -1725,13 +1749,7 @@
       "Region"
     ],
     "table_name": "sentry_eventattachment",
-    "uniques": [
-      [
-        "event_id",
-        "file_id",
-        "project_id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.eventprocessingissue": {
     "dangling": false,
@@ -4594,6 +4612,18 @@
         "user_id"
       ]
     ]
+  },
+  "sentry.regionimportchunk": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.regionimportchunk",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_regionimportchunk",
+    "uniques": []
   },
   "sentry.regionoutbox": {
     "dangling": false,

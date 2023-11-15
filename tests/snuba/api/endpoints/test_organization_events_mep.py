@@ -1143,6 +1143,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "count_web_vitals(measurements.fcp, meh)",
                     "count_web_vitals(measurements.fid, meh)",
                     "count_web_vitals(measurements.cls, good)",
+                    "count_web_vitals(measurements.lcp, any)",
                 ],
                 "query": "event.type:transaction",
                 "dataset": "metricsEnhanced",
@@ -1160,6 +1161,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["count_web_vitals(measurements.fcp, meh)"] == 1
         assert data[0]["count_web_vitals(measurements.fid, meh)"] == 1
         assert data[0]["count_web_vitals(measurements.cls, good)"] == 1
+        assert data[0]["count_web_vitals(measurements.lcp, any)"] == 1
 
         assert meta["isMetricsData"]
         assert field_meta["count_web_vitals(measurements.lcp, good)"] == "integer"
@@ -1167,6 +1169,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["count_web_vitals(measurements.fcp, meh)"] == "integer"
         assert field_meta["count_web_vitals(measurements.fid, meh)"] == "integer"
         assert field_meta["count_web_vitals(measurements.cls, good)"] == "integer"
+        assert field_meta["count_web_vitals(measurements.lcp, any)"] == "integer"
 
     def test_measurement_rating_that_does_not_exist(self):
         self.store_transaction_metric(
