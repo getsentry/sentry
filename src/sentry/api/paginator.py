@@ -765,28 +765,29 @@ class SnubaRequestPaginator:
     ):
         self.query = query
         if dataset not in {ds.value for ds in Dataset}:
-            raise ValueError(f"Dataset {dataset} does not exist", dataset)
+            raise ValueError(f"Dataset {dataset} does not exist")
         self.dataset = dataset
         self.app_id = app_id
         self.tenant_ids = tenant_ids
-        if order_by and self.query.orderby:
-            raise BadPaginationError("Value provided for order_by when query already has one")
-        elif order_by:
-            if order_by.startswith("-"):
+        if order_by:
+            if self.query.orderby:
+                raise Exception("Value provided for order_by when query already has one")
+            elif order_by.startswith("-"):
                 self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.DESC)])
             else:
                 self.query = self.query.set_orderby([OrderBy(Column(order_by), Direction.ASC)])
-        if not self.query.limit:
-            if limit:
-                if limit <= 0:
-                    raise BadPaginationError("Limit must be positive")
-                elif limit > MAX_SNUBA_ELEMENTS:
-                    raise BadPaginationError("Limit too large")
-                self.query = self.query.set_limit(limit)
-            else:
-                self.query = self.query.set_limit(MAX_LIMIT)
-        elif self.query.limit and limit:
-            raise BadPaginationError("Value provided for limit when query already has one")
+        if limit:
+            if self.query.limit:
+                raise Exception("Value provided for limit when query already has one")
+            elif limit <= 0:
+                raise ValueError("Limit must be positive")
+            elif limit > MAX_SNUBA_ELEMENTS:
+                raise ValueError(
+                    f"Limit too large, must be less than or equal to {MAX_SNUBA_ELEMENTS}"
+                )
+            self.query = self.query.set_limit(limit)
+        elif not self.query.limit:
+            self.query = self.query.set_limit(MAX_LIMIT)
         self.on_results = on_results
 
     def get_result(self, cursor: Cursor = None):
@@ -794,9 +795,11 @@ class SnubaRequestPaginator:
             cursor = Cursor(0, 0, 0)
 
         limit = self.query.limit.limit
-        self.query = self.query.set_limit(
-            limit + 1
-        )  # +1 to limit so that we can tell if there are more results left after the current page
+        # if the limit is equal to the max, we can only return 1 page
+        if limit != MAX_SNUBA_ELEMENTS:
+            self.query = self.query.set_limit(
+                limit + 1
+            )  # +1 to limit so that we can tell if there are more results left after the current page
 
         # offset = "page" number * max number of items per page
         offset = cursor.offset * cursor.value

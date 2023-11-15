@@ -9,6 +9,7 @@ from django.utils.timezone import make_aware
 from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query
 
 from sentry.api.paginator import (
+    MAX_SNUBA_ELEMENTS,
     BadPaginationError,
     ChainPaginator,
     CombinedQuerysetIntermediary,
@@ -26,7 +27,7 @@ from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.utils.cursors import Cursor
 
 
@@ -878,6 +879,7 @@ class TestChainPaginator(SimpleTestCase):
         assert third.next.has_results is False
 
 
+@region_silo_test(stable=True)
 class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
     cls = SnubaRequestPaginator
 
@@ -902,13 +904,14 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
             limit=Limit(3),
         )
         self.referrer = "tests.sentry.api.test_paginator"
+        self.tenant_ids = {"referrer": self.referrer, "organization_id": self.organization.id}
 
     def test_simple(self):
         paginator = self.cls(
             query=self.query,
             dataset="events",
             app_id=self.referrer,
-            tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
+            tenant_ids=self.tenant_ids,
         )
         first_page = paginator.get_result()
         assert len(first_page.results) == 3
@@ -932,13 +935,22 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
         assert third_page.prev.offset == 1
         assert third_page.prev.has_results
 
+    def test_raises_error_for_invalid_dataset(self):
+        with pytest.raises(ValueError):
+            self.cls(
+                query=self.query,
+                dataset="invalid-ds",
+                app_id=self.referrer,
+                tenant_ids=self.tenant_ids,
+            )
+
     def test_raises_error_for_orderby_when_query_already_has(self):
-        with pytest.raises(BadPaginationError):
+        with pytest.raises(Exception):
             self.cls(
                 query=self.query,
                 dataset="events",
                 app_id=self.referrer,
-                tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
+                tenant_ids=self.tenant_ids,
                 order_by="another_column",
             )
 
@@ -948,8 +960,8 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
             query=self.query,
             dataset="events",
             app_id=self.referrer,
-            tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
-            order_by="-event_id",
+            tenant_ids=self.tenant_ids,
+            order_by="-event_id",  # descending
         )
         assert paginator1.query.orderby == [OrderBy(Column("event_id"), Direction.DESC)]
         assert paginator1.get_result().results == [
@@ -960,19 +972,19 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
             query=self.query,
             dataset="events",
             app_id=self.referrer,
-            tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
-            order_by="event_id",
+            tenant_ids=self.tenant_ids,
+            order_by="event_id",  # ascending
         )
         assert paginator2.query.orderby == [OrderBy(Column("event_id"), Direction.ASC)]
         assert paginator2.get_result().results == [{"event_id": str(i) * 32} for i in range(3)]
 
     def test_raises_error_for_limit_when_query_already_has(self):
-        with pytest.raises(BadPaginationError):
+        with pytest.raises(Exception):
             self.cls(
                 query=self.query,
                 dataset="events",
                 app_id=self.referrer,
-                tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
+                tenant_ids=self.tenant_ids,
                 limit=10,
             )
 
@@ -982,8 +994,42 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
             query=self.query,
             dataset="events",
             app_id=self.referrer,
-            tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
+            tenant_ids=self.tenant_ids,
             limit=4,
         )
         assert paginator1.query.limit.limit == 4
         assert len(paginator1.get_result().results) == 4
+
+    def test_errors_when_limit_not_within_range(self):
+        self.query = self.query._replace("limit", None)
+        with pytest.raises(ValueError):
+            self.cls(
+                query=self.query,
+                dataset="events",
+                app_id=self.referrer,
+                tenant_ids=self.tenant_ids,
+                limit=-1,
+            )
+        with pytest.raises(ValueError):
+            self.cls(
+                query=self.query,
+                dataset="events",
+                app_id=self.referrer,
+                tenant_ids=self.tenant_ids,
+                limit=(MAX_SNUBA_ELEMENTS + 1),
+            )
+
+    def test_get_result_errors_on_large_offset(self):
+        self.query = self.query._replace("limit", None)
+        paginator = self.cls(
+            query=self.query,
+            dataset="events",
+            app_id=self.referrer,
+            tenant_ids=self.tenant_ids,
+            limit=MAX_SNUBA_ELEMENTS,
+        )
+        first_page = paginator.get_result()
+        assert first_page.next == Cursor(MAX_SNUBA_ELEMENTS, 1, False, False)
+
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(first_page.next)
