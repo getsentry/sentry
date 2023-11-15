@@ -44,9 +44,14 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {
+  querySummaryRouteWithQuery,
+  spanDetailsRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {ModuleName} from 'sentry/views/starfish/types';
+import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 import {OpsDot} from '../../opsBreakdown';
 
@@ -254,7 +259,7 @@ function SpanDetail(props: Props) {
     );
   }
 
-  function renderViewSimilarSpansButton() {
+  function renderSpanDetailActions() {
     const {span, organization, event} = props;
 
     if (isGapSpan(span) || !span.op || !span.hash) {
@@ -263,18 +268,38 @@ function SpanDetail(props: Props) {
 
     const transactionName = event.title;
 
-    const target = spanDetailsRouteWithQuery({
-      orgSlug: organization.slug,
-      transaction: transactionName,
-      query: location.query,
-      spanSlug: {op: span.op, group: span.hash},
-      projectID: event.projectID,
-    });
-
     return (
-      <StyledButton size="xs" to={target}>
-        {t('View Similar Spans')}
-      </StyledButton>
+      <ButtonGroup>
+        {organization.features.includes('performance-database-view') &&
+        resolveSpanModule(span.sentry_tags?.op, span.sentry_tags?.category) ===
+          ModuleName.DB &&
+        span.sentry_tags?.group ? (
+          <StyledButton
+            size="xs"
+            to={querySummaryRouteWithQuery({
+              orgSlug: organization.slug,
+              query: location.query,
+              group: span.sentry_tags.group,
+              projectID: event.projectID,
+            })}
+          >
+            {t('View Query Summary')}
+          </StyledButton>
+        ) : null}
+
+        <StyledButton
+          size="xs"
+          to={spanDetailsRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionName,
+            query: location.query,
+            spanSlug: {op: span.op, group: span.hash},
+            projectID: event.projectID,
+          })}
+        >
+          {t('View Similar Spans')}
+        </StyledButton>
+      </ButtonGroup>
     );
   }
 
@@ -478,7 +503,7 @@ function SpanDetail(props: Props) {
                   {profileId}
                 </Row>
               )}
-              <Row title="Description" extra={renderViewSimilarSpansButton()}>
+              <Row title="Description" extra={renderSpanDetailActions()}>
                 {span?.description ?? ''}
               </Row>
               <Row title="Status">{span.status || ''}</Row>
