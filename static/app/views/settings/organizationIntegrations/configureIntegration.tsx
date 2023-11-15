@@ -327,6 +327,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     return null;
   };
 
+  // TODO(Steve): Refactor components into separate tabs and use more generic tab logic
   function renderMainTab() {
     if (!provider || !integration) {
       return null;
