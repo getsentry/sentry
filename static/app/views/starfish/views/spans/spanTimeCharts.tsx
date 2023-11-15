@@ -39,7 +39,7 @@ type Props = {
 type ChartProps = {
   filters: ModuleFilters;
   moduleName: ModuleName;
-  throughtputUnit: RateUnits;
+  throughputUnit: RateUnits;
 };
 
 function getSegmentLabel(moduleName: ModuleName) {
@@ -90,7 +90,7 @@ export function SpanTimeCharts({
             <Comp
               moduleName={moduleName}
               filters={appliedFilters}
-              throughtputUnit={throughputUnit}
+              throughputUnit={throughputUnit}
             />
           </ChartPanel>
         </ChartsContainerItem>
@@ -99,11 +99,7 @@ export function SpanTimeCharts({
   );
 }
 
-function ThroughputChart({
-  moduleName,
-  filters,
-  throughtputUnit,
-}: ChartProps): JSX.Element {
+function ThroughputChart({moduleName, filters, throughputUnit}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
 
@@ -125,9 +121,9 @@ function ThroughputChart({
     const groupData = dataByGroup[groupName];
 
     let throughputMultiplier = 1; // We're fetching per minute, so default is 1
-    if (throughtputUnit === RateUnits.PER_SECOND) {
+    if (throughputUnit === RateUnits.PER_SECOND) {
       throughputMultiplier = 1 / 60;
-    } else if (throughtputUnit === RateUnits.PER_HOUR) {
+    } else if (throughputUnit === RateUnits.PER_HOUR) {
       throughputMultiplier = 60;
     }
 
@@ -154,12 +150,12 @@ function ThroughputChart({
       }}
       definedAxisTicks={4}
       aggregateOutputFormat="rate"
-      rateUnit={throughtputUnit}
+      rateUnit={throughputUnit}
       stacked
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => formatRate(value, throughtputUnit),
+        valueFormatter: value => formatRate(value, throughputUnit),
       }}
     />
   );

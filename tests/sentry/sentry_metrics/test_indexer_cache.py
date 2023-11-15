@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import pytest
 from django.conf import settings
 
@@ -209,3 +211,11 @@ def test_separate_namespacing() -> None:
         indexer_cache.set(namespace, "transactions:3:what", 2)
         assert indexer_cache.get(namespace, "sessions:3:what") == 1
         assert indexer_cache.get(namespace, "transactions:3:what") == 2
+
+
+def test_is_valid_timestamp() -> None:
+    stale_ts = int((datetime.utcnow() - timedelta(hours=5)).timestamp())
+    new_ts = int((datetime.utcnow() - timedelta(hours=1)).timestamp())
+
+    assert not indexer_cache._is_valid_timestamp(str(stale_ts))
+    assert indexer_cache._is_valid_timestamp(str(new_ts))
