@@ -5,13 +5,19 @@ from contextlib import contextmanager
 from enum import Enum, unique
 from functools import lru_cache
 from string import Template
-from typing import Generator, Optional, Tuple
+from typing import Any, Generator, Optional, Tuple
 
+from django.utils import timezone
+
+from sentry import options
 from sentry.backup.dependencies import dependencies, get_model_name, sorted_dependencies
 from sentry.backup.scopes import RelocationScope
+from sentry.http import get_server_hostname
 from sentry.models.files.utils import get_storage
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 
 logger = logging.getLogger("sentry.relocation.tasks")
 
@@ -267,6 +273,37 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
 )
 
 
+class EmailKind(Enum):
+    STARTED = 0
+    FAILED = 1
+    SUCCEEDED = 2
+
+
+def send_relocation_update_email(
+    relocation: Relocation, email_kind: EmailKind, args: dict[str, Any]
+):
+    name = str(email_kind.name)
+    name_lower = name.lower()
+    msg = MessageBuilder(
+        subject=f"{options.get('mail.subject-prefix')} Your Relocation has {name.capitalize()}",
+        template=f"sentry/emails/relocation-{name_lower}.txt",
+        html_template=f"sentry/emails/relocation-{name_lower}.html",
+        type=f"relocation.{name_lower}",
+        context={"domain": get_server_hostname(), "datetime": timezone.now(), **args},
+    )
+    email_to = []
+    owner = user_service.get_user(user_id=relocation.owner_id)
+    if owner is not None:
+        email_to.append(owner.email)
+
+    if relocation.owner_id != relocation.creator_id:
+        creator = user_service.get_user(user_id=relocation.creator_id)
+        if creator is not None:
+            email_to.append(creator.email)
+
+    msg.send_async(to=email_to)
+
+
 def start_relocation_task(
     uuid: str, step: Relocation.Step, task: OrderedTask, allowed_task_attempts: int
 ) -> Tuple[Optional[Relocation], int]:
@@ -341,7 +378,14 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
     relocation.save()
 
     logger.info("Task failed", extra={"uuid": relocation.uuid, "task": task.name, "reason": reason})
-    return
+    send_relocation_update_email(
+        relocation,
+        EmailKind.FAILED,
+        {
+            "uuid": str(relocation.uuid),
+            "reason": reason,
+        },
+    )
 
 
 @contextmanager
