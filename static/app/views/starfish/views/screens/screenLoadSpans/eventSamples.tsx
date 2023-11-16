@@ -64,7 +64,11 @@ export function ScreenLoadEventSamples({
   const deviceClass = decodeScalar(location.query['device.class']);
 
   if (deviceClass) {
-    searchQuery.addFilterValue('device.class', deviceClass);
+    if (deviceClass === 'Unknown') {
+      searchQuery.addFilterValue('!has', 'device.class');
+    } else {
+      searchQuery.addFilterValue('device.class', deviceClass);
+    }
   }
 
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? {
