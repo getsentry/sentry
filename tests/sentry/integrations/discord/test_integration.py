@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
 import responses
+from responses.matchers import header_matcher
 
 from sentry import audit_log, options
 from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
@@ -52,6 +53,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.GET,
             url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
             json={
                 "id": guild_id,
                 "name": server_name,
@@ -163,6 +165,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         provider.setup()
 
         assert responses.assert_call_count(count=1, url=url)
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == f"Bot {self.bot_token}"
+        assert url == request.url
 
     @responses.activate
     @mock.patch("sentry.integrations.discord.commands.logger.error")
