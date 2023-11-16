@@ -745,7 +745,7 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     return ret_val
 
 
-def _remove_redundant_parentheses(tokens: List[QueryToken]) -> List[QueryToken]:
+def _remove_redundant_parentheses(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
     Removes redundant parentheses in the form (((expr))) since they are not needed and might lead to parsing issues
     down the line.
