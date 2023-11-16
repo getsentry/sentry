@@ -390,3 +390,35 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["shortId"] == event.group.qualified_short_id
         assert int(response.data[0]["id"]) == event.group_id
+
+
+class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
+    url_name = "sentry-api-0-organization-spans-samples"
+
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    def test_is_segment_properly_converted_in_filter(self, mock_raw_snql_query):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(self.url_name, kwargs={"organization_slug": project.organization.slug})
+
+        response = self.client.get(
+            url,
+            {
+                "query": "span.is_segment:1 transaction:api/0/foo",
+                "lowerBound": "0",
+                "firstBound": "10",
+                "secondBound": "20",
+                "upperBound": "200",
+                "column": "span.duration",
+            },
+            format="json",
+            extra={"project": [project.id]},
+        )
+
+        assert response.status_code == 200, response.content
+
+        # the SQL should have is_segment converted into an int for all requests
+        assert all(
+            "is_segment = 1" in call_args[0][0].serialize()
+            for call_args in mock_raw_snql_query.call_args_list
+        )
