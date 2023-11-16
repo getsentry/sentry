@@ -263,19 +263,30 @@ def test_spec_complex_query_with_environment():
     assert spec._metric_type == "c"
     assert spec.field_to_extract is None
     assert spec.op == "sum"
+    # We care about keeping the precedence order being preserved and not the environment being injected taking
+    # precedence.
     assert spec.condition == {
         "inner": [
+            {"name": "event.environment", "op": "eq", "value": "staging"},
             {
                 "inner": [
-                    {"name": "event.environment", "op": "eq", "value": "staging"},
-                    {"name": "event.duration", "op": "gt", "value": 1000.0},
-                    {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
+                    {
+                        "inner": [
+                            {"name": "event.duration", "op": "gt", "value": 1000.0},
+                            {
+                                "name": "event.contexts.response.status_code",
+                                "op": "eq",
+                                "value": "200",
+                            },
+                        ],
+                        "op": "and",
+                    },
+                    {"name": "event.tags.os.browser", "op": "eq", "value": "Chrome"},
                 ],
-                "op": "and",
+                "op": "or",
             },
-            {"name": "event.tags.os.browser", "op": "eq", "value": "Chrome"},
         ],
-        "op": "or",
+        "op": "and",
     }
 
 

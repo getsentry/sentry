@@ -1159,10 +1159,9 @@ class OnDemandMetricSpec:
         extended_conditions = conditions
         if new_conditions:
             if self.use_updated_env_logic:
+                conditions = [ParenExpression(children=conditions)] if conditions else []
                 # This transformation is equivalent to (new_conditions) AND (conditions).
-                extended_conditions = [ParenExpression(children=new_conditions)] + [
-                    ParenExpression(children=conditions)
-                ]
+                extended_conditions = [ParenExpression(children=new_conditions)] + conditions
             else:
                 extended_conditions = new_conditions + conditions
 
