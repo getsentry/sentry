@@ -17,7 +17,9 @@ from sentry.utils import json
 
 class NormalizedModelName:
     """
-    A wrapper type that ensures that the contained model name has been properly normalized. A "normalized" model name is one that is identical to the name as it appears in an exported JSON backup, so a string of the form `{app_label.lower()}.{model_name.lower()}`.
+    A wrapper type that ensures that the contained model name has been properly normalized. A
+    "normalized" model name is one that is identical to the name as it appears in an exported JSON
+    backup, so a string of the form `{app_label.lower()}.{model_name.lower()}`.
     """
 
     __model_name: str
@@ -276,7 +278,8 @@ class PrimaryKeyMap:
 
     def get_kind(self, model_name: NormalizedModelName, old: int) -> Optional[ImportKind]:
         """
-        Is the mapped entry a newly inserted model, or an already existing one that has been merged in?
+        Is the mapped entry a newly inserted model, or an already existing one that has been merged
+        in?
         """
 
         pk_map = self.mapping.get(str(model_name))
@@ -313,7 +316,8 @@ class PrimaryKeyMap:
         slug: str | None = None,
     ) -> None:
         """
-        Create a new OLD_PK -> NEW_PK mapping for the given model. Models that contain unique slugs (organizations, projects, etc) can optionally store that information as well.
+        Create a new OLD_PK -> NEW_PK mapping for the given model. Models that contain unique slugs
+        (organizations, projects, etc) can optionally store that information as well.
         """
 
         self.mapping[str(model_name)][old] = (new, kind, slug)
@@ -327,18 +331,25 @@ class PrimaryKeyMap:
             for old_pk, new_entry in mappings.items():
                 self.mapping[model_name_str][old_pk] = new_entry
 
-    def partition(self, model_names: set[NormalizedModelName]) -> PrimaryKeyMap:
+    def partition(
+        self, model_names: set[NormalizedModelName], kinds: set[ImportKind] | None = None
+    ) -> PrimaryKeyMap:
         """
-        Create a new map with only the specified model kinds retained.
+        Create a new map with only the specified models and kinds retained.
         """
 
         building = PrimaryKeyMap()
+        import_kinds = {k for k in ImportKind} if kinds is None else kinds
         for model_name_str, mappings in self.mapping.items():
             model_name = NormalizedModelName(model_name_str)
             if model_name not in model_names:
                 continue
 
             for old_pk, new_entry in mappings.items():
+                (_, import_kind, _) = new_entry
+                if import_kind not in import_kinds:
+                    continue
+
                 building.mapping[model_name_str][old_pk] = new_entry
 
         return building
@@ -347,7 +358,10 @@ class PrimaryKeyMap:
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
 def dependencies() -> dict[NormalizedModelName, ModelRelations]:
-    """Produce a dictionary mapping model type definitions to a `ModelDeps` describing their dependencies."""
+    """
+    Produce a dictionary mapping model type definitions to a `ModelDeps` describing their
+    dependencies.
+    """
 
     from django.apps import apps
 

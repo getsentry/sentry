@@ -55,7 +55,11 @@ class RpcFilter(RpcModel):
 
 class RpcPrimaryKeyMap(RpcModel):
     """
-    Shadows `sentry.backup.dependencies.PrimaryKeyMap` for the purpose of passing it over an RPC boundary. The primary difference between this class and the one it shadows is that the original `PrimaryKeyMap` uses `defaultdict` for ergonomics purposes, whereas this one uses a regular dict but provides no mutation methods - it is only intended for data interchange, and should be converted to and from `PrimaryKeyMap` immediately on either side of the RPC call.
+    Shadows `sentry.backup.dependencies.PrimaryKeyMap` for the purpose of passing it over an RPC
+    boundary. The primary difference between this class and the one it shadows is that the original
+    `PrimaryKeyMap` uses `defaultdict` for ergonomics purposes, whereas this one uses a regular dict
+    but provides no mutation methods - it is only intended for data interchange, and should be
+    converted to and from `PrimaryKeyMap` immediately on either side of the RPC call.
     """
 
     # Pydantic duplicates global default models on a per-instance basis, so using `{}` here is safe.
@@ -98,14 +102,21 @@ class RpcImportFlags(RpcModel):
 
     merge_users: bool = False
     overwrite_configs: bool = False
+    import_uuid: Optional[str] = None
 
     def from_rpc(self) -> ImportFlags:
-        return ImportFlags(merge_users=self.merge_users, overwrite_configs=self.overwrite_configs)
+        return ImportFlags(
+            merge_users=self.merge_users,
+            overwrite_configs=self.overwrite_configs,
+            import_uuid=self.import_uuid,
+        )
 
     @classmethod
     def into_rpc(cls, base_flags: ImportFlags) -> "RpcImportFlags":
         return cls(
-            merge_users=base_flags.merge_users, overwrite_configs=base_flags.overwrite_configs
+            merge_users=base_flags.merge_users,
+            overwrite_configs=base_flags.overwrite_configs,
+            import_uuid=base_flags.import_uuid,
         )
 
 
@@ -119,6 +130,7 @@ class RpcImportErrorKind(str, Enum):
     DeserializationFailed = "DeserializationFailed"
     IncorrectSiloModeForModel = "IncorrectSiloModeForModel"
     IntegrityError = "IntegrityError"
+    MissingImportUUID = "MissingImportUUID"
     UnknownModel = "UnknownModel"
     UnexpectedModel = "UnexpectedModel"
     UnspecifiedScope = "UnspecifiedScope"
@@ -159,8 +171,12 @@ class RpcImportOk(RpcModel):
 
     is_err: Literal[False] = False
     mapped_pks: RpcPrimaryKeyMap
-    max_pk: int = 0
-    num_imported: int = 0
+    min_ordinal: Optional[int] = None
+    max_ordinal: Optional[int] = None
+    min_source_pk: Optional[int] = None
+    max_source_pk: Optional[int] = None
+    min_inserted_pk: Optional[int] = None
+    max_inserted_pk: Optional[int] = None
 
 
 RpcImportResult = Annotated[Union[RpcImportOk, RpcImportError], Field(discriminator="is_err")]
@@ -168,7 +184,8 @@ RpcImportResult = Annotated[Union[RpcImportOk, RpcImportError], Field(discrimina
 
 class RpcExportScope(str, Enum):
     """
-    Scope values are rendered as strings for JSON interchange, but can easily be mapped back to their set-based values when necessary.
+    Scope values are rendered as strings for JSON interchange, but can easily be mapped back to
+    their set-based values when necessary.
     """
 
     User = "User"

@@ -78,6 +78,7 @@ class RegionImportChunk(BaseImportChunk):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionimportchunk"
+        unique_together = (("import_uuid", "model", "min_ordinal"),)
 
 
 @control_silo_only_model
@@ -92,6 +93,7 @@ class ControlImportChunk(BaseImportChunk):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_controlimportchunk"
+        unique_together = (("import_uuid", "model", "min_ordinal"),)
 
 
 @region_silo_only_model
@@ -134,3 +136,4 @@ class ControlImportChunkReplica(BaseImportChunk):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_controlimportchunkreplica"
+        unique_together = (("import_uuid", "model", "min_ordinal"),)
