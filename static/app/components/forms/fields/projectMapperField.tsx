@@ -207,8 +207,8 @@ export class RenderField extends Component<RenderProps, State> {
                 return (
                   <components.ValueContainer {...containerProps}>
                     <MappedValueContainer>
-                      {getIcon(iconType)}
-                      {mappedItemsByValue[selectedMappedValue || ''].label}
+                      {containerProps.data.leadingItems}
+                      {containerProps.children}
                     </MappedValueContainer>
                   </components.ValueContainer>
                 );
