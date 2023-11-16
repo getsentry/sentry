@@ -5,6 +5,7 @@ import itertools
 from typing import Any, Callable, Iterable, Sequence, Tuple, Type
 
 import pydantic
+from django.utils.functional import LazyObject
 
 from sentry.services.hybrid_cloud import ArgumentDict
 
@@ -100,7 +101,18 @@ class SerializableFunctionSignature:
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
         return pydantic.create_model(model_name, **field_definitions)  # type: ignore[call-overload]
 
+    @staticmethod
+    def _unwrap_lazy_django_object(arg: Any) -> Any:
+        if isinstance(arg, LazyObject):
+            return getattr(arg, "_wrapped")
+        else:
+            return arg
+
     def serialize_arguments(self, raw_arguments: ArgumentDict) -> ArgumentDict:
+        raw_arguments = {
+            key: self._unwrap_lazy_django_object(arg) for (key, arg) in raw_arguments.items()
+        }
+
         try:
             model_instance = self._parameter_model(**raw_arguments)
         except Exception as e:
