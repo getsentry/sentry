@@ -110,19 +110,24 @@ export class MutableSearch {
 
   formatString() {
     const formattedTokens: string[] = [];
+    const escapeableCharacters = /[\s\(\)\\"]/g;
     for (const token of this.tokens) {
       switch (token.type) {
         case TokenType.FILTER:
           if (token.value === '' || token.value === null) {
             formattedTokens.push(`${token.key}:""`);
-          } else if (/[\s\(\)\\"]/g.test(token.value)) {
+          } else if (
+            escapeableCharacters.test(token.value) &&
+            token.value[0] !== '[' &&
+            token.value[token.value.length - 1] !== ']'
+          ) {
             formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
           } else {
             formattedTokens.push(`${token.key}:${token.value}`);
           }
           break;
         case TokenType.FREE_TEXT:
-          if (/[\s\(\)\\"]/g.test(token.value)) {
+          if (escapeableCharacters.test(token.value)) {
             formattedTokens.push(`"${escapeDoubleQuotes(token.value)}"`);
           } else {
             formattedTokens.push(token.value);
