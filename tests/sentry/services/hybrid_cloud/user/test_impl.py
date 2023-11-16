@@ -15,24 +15,21 @@ class DatabaseBackedUserService(TestCase):
     def test_create_new_user(self):
         old_user_count = User.objects.all().count()
         rpc_user = user_service.get_or_create_user_by_email(email="test@email.com")
-        assert rpc_user
         user = User.objects.get(id=rpc_user.id)
         new_user_count = User.objects.all().count()
         assert new_user_count == old_user_count + 1
         assert user.flags.newsletter_consent_prompt
 
-    def test_skip_creation(self):
-        rpc_user = user_service.get_or_create_user_by_email(
-            email="test@email.com", skip_creation=True
-        )
+    def test_get_no_existing(self):
+        rpc_user = user_service.get_user_by_email(email="test@email.com")
         assert rpc_user is None
 
     def test_get_or_create_user(self):
         user1 = self.create_user(email="test@email.com", username="1")
         user2 = self.create_user(email="test@email.com", username="2")
         user = user_service.get_or_create_user_by_email(email="test@email.com")
-        assert user and user1.id == user.id
-        assert user and user2.id != user.id
+        assert user1.id == user.id
+        assert user2.id != user.id
 
     def test_get_active_user(self):
         inactive_user = self.create_user(
@@ -40,13 +37,13 @@ class DatabaseBackedUserService(TestCase):
         )
         active_user = self.create_user(email="test@email.com", username="active")
         user = user_service.get_or_create_user_by_email(email="test@email.com")
-        assert user and active_user.id == user.id
+        assert active_user.id == user.id
         assert inactive_user.id != user.id
 
     def test_get_user_ci(self):
         user = self.create_user(email="tESt@email.com")
         fetched_user = user_service.get_or_create_user_by_email(email="TesT@email.com")
-        assert fetched_user and user.id == fetched_user.id
+        assert user.id == fetched_user.id
 
     def test_get_user_with_ident(self):
         user1 = self.create_user(email="test@email.com", username="1")
@@ -61,5 +58,5 @@ class DatabaseBackedUserService(TestCase):
         fetched_user = user_service.get_or_create_user_by_email(
             email="TesT@email.com", ident=partner_user_id
         )
-        assert fetched_user and user2.id == fetched_user.id
+        assert user2.id == fetched_user.id
         assert user1.id != fetched_user.id
