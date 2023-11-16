@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django.db import router, transaction
+from django.db.models import F
+from django.db.models.functions import TruncMinute
 from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -133,22 +135,19 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             # update timeouts + expected next check-in, as appropriate
             checkin_margin = result["config"].get("checkin_margin")
             if checkin_margin != existing_margin:
-                for monitor_environment in MonitorEnvironment.objects.filter(monitor_id=monitor.id):
-                    monitor_environment.next_checkin_latest = (
-                        monitor_environment.next_checkin
-                        + timedelta(minutes=int(checkin_margin or 1))
-                    )
-                    monitor_environment.save(update_fields=["next_checkin_latest"])
+                MonitorEnvironment.objects.filter(monitor_id=monitor.id).update(
+                    next_checkin_latest=F("next_checkin")
+                    + timedelta(minutes=int(checkin_margin or 1))
+                )
 
             max_runtime = result["config"].get("max_runtime")
             if max_runtime != existing_max_runtime:
-                for in_progress_checkin in MonitorCheckIn.objects.filter(
+                MonitorCheckIn.objects.filter(
                     monitor_id=monitor.id, status=CheckInStatus.IN_PROGRESS
-                ):
-                    in_progress_checkin.timeout_at = in_progress_checkin.date_added.replace(
-                        second=0, microsecond=0
-                    ) + timedelta(minutes=min((max_runtime or TIMEOUT), MAX_TIMEOUT))
-                    in_progress_checkin.save(update_fields=["timeout_at"])
+                ).update(
+                    timeout_at=TruncMinute(F("date_added"))
+                    + timedelta(minutes=min((max_runtime or TIMEOUT), MAX_TIMEOUT))
+                )
 
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")

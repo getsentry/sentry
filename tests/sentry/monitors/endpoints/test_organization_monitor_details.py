@@ -19,7 +19,6 @@ from sentry.monitors.models import (
 from sentry.monitors.utils import get_timeout_at
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
