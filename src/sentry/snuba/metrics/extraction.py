@@ -745,6 +745,13 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     return ret_val
 
 
+def _remove_redundant_parentheses(tokens: List[QueryToken]) -> List[QueryToken]:
+    if len(tokens) == 1 and isinstance(tokens[0], ParenExpression):
+        return _remove_redundant_parentheses(tokens[0].children)
+
+    return tokens
+
+
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
     if isinstance(value, dict):
         return {key: _deep_sorted(value) for key, value in sorted(value.items())}
@@ -939,7 +946,7 @@ class OnDemandMetricSpec:
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
-        use_updated_env_logic: bool = False,
+        use_updated_env_logic: bool = True,
     ):
         self.field = field
         self.query = query
@@ -1234,7 +1241,12 @@ class OnDemandMetricSpec:
         try:
             conditions = _parse_search_query(value)
             clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
-            return QueryParsingResult(conditions=clean_conditions)
+            # In order to avoid having issues with the parsing logic, we want to remove any unnecessary parentheses
+            # that are not needed, since if we had the parentheses this might lead to a different conditions tree, which
+            # in our case doesn't happen since SearchQueryConverter optimizes that case but it can easily slip in other
+            # edge cases.
+            final_conditions = _remove_redundant_parentheses(clean_conditions)
+            return QueryParsingResult(conditions=final_conditions)
         except InvalidSearchQuery as e:
             raise Exception(f"Invalid search query '{value}' in on demand spec: {e}")
 

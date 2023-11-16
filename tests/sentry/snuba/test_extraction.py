@@ -572,17 +572,25 @@ def test_cleanup_equivalent_specs():
 )
 def test_cleanup_with_environment_injection(query):
     # We are simulating the transformation that the frontend performs in the query, since they add the
-    # `event.type:transaction`.
+    # AND (`event.type:transaction`) at the end.
     field = "count()"
     transformed_query = f"({query}) AND (event.type:transaction)"
     environment = "production"
 
-    spec = OnDemandMetricSpec(field, query, environment=environment, use_updated_env_logic=False)
-    transformed_spec = OnDemandMetricSpec(
-        field, transformed_query, environment=environment, use_updated_env_logic=False
-    )
+    # We test with both new and old env logic, in this case queries should be identical in both logics since we
+    # scrape away parentheses.
+    for updated_env_login in (True, False):
+        spec = OnDemandMetricSpec(
+            field, query, environment=environment, use_updated_env_logic=updated_env_login
+        )
+        transformed_spec = OnDemandMetricSpec(
+            field,
+            transformed_query,
+            environment=environment,
+            use_updated_env_logic=updated_env_login,
+        )
 
-    assert spec.query_hash == transformed_spec.query_hash
+        assert spec.query_hash == transformed_spec.query_hash
 
 
 @django_db_all
