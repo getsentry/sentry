@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import pydantic
 
@@ -6,7 +6,7 @@ import pydantic
 class OrganizationOptions(pydantic.BaseModel):
     name: str
     slug: str
-    owning_user_id: int
+    owning_user_id: Optional[int] = None
     create_default_team: bool = True
     is_test = False
 
