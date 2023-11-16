@@ -653,9 +653,10 @@ class EntitySubscriptionTestCase(TestCase):
 
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
 
-        snql_query = entity_subscription.build_query_builder(
-            "release:latest", [self.project.id], None
-        ).get_snql_query()
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            snql_query = entity_subscription.build_query_builder(
+                "release:latest", [self.project.id], None
+            ).get_snql_query()
         assert snql_query.query.select == [
             Function(
                 function="uniq",
