@@ -2060,6 +2060,10 @@ SENTRY_ENABLE_INVITES = True
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN: str | None = None
 
+# Origins that are allowed to use credentials. This list is in addition
+# to all subdomains of system.url-prefix
+ALLOWED_CREDENTIAL_ORIGINS: list[str] = []
+
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"
 SENTRY_BUFFER_OPTIONS: dict[str, str] = {}
