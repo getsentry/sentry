@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -66,23 +66,64 @@ function MriField({aggregate, project, onChange}: Props) {
     [selectedMriMeta]
   );
 
+  const getMriOptions = useCallback(
+    (searchText: string) => {
+      const filteredMeta = metaArr.filter(
+        ({name}) =>
+          searchText === '' || name.toLowerCase().indexOf(searchText.toLowerCase()) > -1
+      );
+
+      const options = filteredMeta.splice(0, 100).map<{
+        label: React.ReactNode;
+        value: string;
+        disabled?: boolean;
+        trailingItems?: React.ReactNode;
+      }>(metric => ({
+        label: metric.name,
+        value: metric.mri,
+        trailingItems: (
+          <Fragment>
+            <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
+            <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
+          </Fragment>
+        ),
+      }));
+
+      if (filteredMeta.length > options.length) {
+        options.push({
+          label: (
+            <SizeLimitMessage>{t('Use search to find more options…')}</SizeLimitMessage>
+          ),
+          value: '',
+          disabled: true,
+        });
+      }
+      return options;
+    },
+    [metaArr]
+  );
+
+  const selectedOption = selectedMriMeta && {
+    label: selectedMriMeta.name,
+    value: selectedMriMeta.mri,
+    trailingItems: (
+      <Fragment>
+        <Tag tooltipText={t('Type')}>{getReadableMetricType(selectedMriMeta.type)}</Tag>
+        <Tag tooltipText={t('Unit')}>{selectedMriMeta.unit}</Tag>
+      </Fragment>
+    ),
+  };
+
   return (
     <Wrapper>
       <StyledSelectControl
         searchable
-        sizeLimit={100}
         placeholder={t('Select a metric')}
-        options={metaArr.map(metric => ({
-          label: metric.name,
-          value: metric.mri,
-          trailingItems: (
-            <Fragment>
-              <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
-              <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-            </Fragment>
-          ),
-        }))}
-        value={selectedValues.mri}
+        async
+        defaultOptions={getMriOptions('')}
+        loadOptions={searchText => Promise.resolve(getMriOptions(searchText))}
+        filterOption={() => true}
+        value={selectedOption}
         onChange={option => {
           const availableOps = getSortedMriOperations(meta[option.value].operations);
           const selectedOp =
@@ -116,4 +157,11 @@ const Wrapper = styled('div')`
 
 const StyledSelectControl = styled(SelectControl)`
   width: 200px;
+`;
+
+const SizeLimitMessage = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  display: block;
+  width: 100%;
+  text-align: center;
 `;
