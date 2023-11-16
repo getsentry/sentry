@@ -41,7 +41,7 @@ Competing Uses specifically include using the Software:
 2. in a way that exposes the APIs of the Software; and
 
 3. in a product or service that offers the same or substantially similar
-functionality to the Software.
+   functionality to the Software.
 
 Permitted Purposes specifically include using the Software:
 
@@ -52,8 +52,8 @@ Permitted Purposes specifically include using the Software:
 3. for non-commercial research; and
 
 4. in connection with software development services or managed services that
-you provide to a licensee using the Software in accordance with these Terms and
-Conditions.
+   you provide to a licensee using the Software in accordance with these Terms and
+   Conditions.
 
 ### Patents
 
