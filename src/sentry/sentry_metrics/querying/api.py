@@ -153,8 +153,11 @@ class MutableTimeseries:
 
     def inject_environments(self, environments: Sequence[Environment]) -> "MutableTimeseries":
         if environments:
-            environment_ids = [environment.id for environment in environments]
-            existing_filters = self._timeseries.filters
+            environment_names = [environment.name for environment in environments]
+            existing_filters = self._timeseries.filters[:] if self._timeseries.filters else []
+            self._timeseries = self._timeseries.set_filters(
+                existing_filters + [Condition(Column("environment"), Op.IN, environment_names)]
+            )
 
         return self
 
@@ -163,7 +166,7 @@ class MutableTimeseries:
         # the quantiles operation which generalizes any percentile.
         if (match := self.PERCENTILE_REGEX.match(self._timeseries.aggregate)) is not None:
             percentile_value = float(match.group(1))
-            self._timeseries.set_aggregate("quantiles", [percentile_value / 100])
+            self._timeseries = self._timeseries.set_aggregate("quantiles", [percentile_value / 100])
 
         return self
 
@@ -208,41 +211,43 @@ class QueryParser:
 
         return [Column(group_by) for group_by in self._group_bys]
 
-    def _parse_mql(self, field: str) -> MutableTimeseries:
+    def _parse_mql(
+        self,
+        field: str,
+        filters: Optional[Sequence[Condition]],
+        group_bys: Optional[Sequence[Column]],
+    ) -> MutableTimeseries:
         """
         Parses the field with the MQL grammar.
         """
-        return MutableTimeseries(timeseries=parse_mql(field).query)
+        timeseries = parse_mql(field).query
+        modified_timeseries = timeseries.set_filters(filters).set_groupby(group_bys)
+        return MutableTimeseries(timeseries=modified_timeseries)
 
-    def parse_timeserieses(
+    def generate_queries(
         self, environments: Sequence[Environment]
     ) -> Generator[Timeseries, None, None]:
         """
-        Parses the incoming fields with the MQL grammar.
-
-        Note that for now the filters and groupy are passed in, since we want to still keep the filtering
-        via the discover grammar.
+        Generates multiple timeseries queries given a base query.
         """
         if not self._fields:
             raise InvalidMetricsQueryError("You must query at least one field.")
 
+        # TODO: take the filters, parse them via the discover grammar and convert them to MQL filters, so that
+        #   we can leverage the conversion performed automatically by the snuba sdk.
         # We first parse the filters and group bys, which are then going to be applied on each individual query
         # that is executed.
         filters = self._parse_query()
         group_bys = self._parse_group_bys()
 
         for field in self._fields:
-            # TODO: take the filters, parse them via the discover grammar and convert them to MQL filters, so that
-            #   we can leverage the conversion performed automatically by the snuba sdk.
-            timeseries = (
-                self._parse_mql(field)
+            # TODO: add mql string here.
+            yield (
+                self._parse_mql(field, filters, group_bys)
                 .inject_environments(environments)
                 .alias_operators()
                 .get_mutated()
-                .set_filters(filters)
-                .set_groupby(group_bys)
             )
-            yield timeseries
 
 
 class QueryExecutor:
@@ -499,7 +504,7 @@ def run_metrics_query(
 
     # Parsing the input and iterating over each timeseries.
     parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
-    for timeseries in parser.parse_timeserieses(environments=environments):
+    for timeseries in parser.generate_queries(environments=environments):
         query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
         executor.schedule(query)
 
