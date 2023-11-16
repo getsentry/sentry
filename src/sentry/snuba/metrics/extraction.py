@@ -746,6 +746,10 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
 
 
 def _remove_redundant_parentheses(tokens: List[QueryToken]) -> List[QueryToken]:
+    """
+    Removes redundant parentheses in the form (((expr))) since they are not needed and might lead to parsing issues
+    down the line.
+    """
     if len(tokens) == 1 and isinstance(tokens[0], ParenExpression):
         return _remove_redundant_parentheses(tokens[0].children)
 
@@ -1163,13 +1167,14 @@ class OnDemandMetricSpec:
                 # This transformation is equivalent to (new_conditions) AND (conditions).
                 extended_conditions = [ParenExpression(children=new_conditions)] + conditions
             else:
+                # This transformation is not behaving correctly since it can violate precedence rules. Since we use
+                # an AND condition for the environment, it will bind with higher priority than an OR specified in the
+                # user query, effectively resulting in the wrong condition (e.g., (X AND Y) OR Z != X AND (Y OR Z)).
+                #
+                # This transformation is equivalent to new_conditions and conditions.
                 extended_conditions = new_conditions + conditions
 
-        return QueryParsingResult(
-            # This transformation is equivalent to the syntax "new_conditions AND conditions" where conditions can be
-            # in parentheses or not.
-            conditions=extended_conditions
-        )
+        return QueryParsingResult(conditions=extended_conditions)
 
     @staticmethod
     def _aggregate_conditions(parsed_field) -> Optional[RuleCondition]:
