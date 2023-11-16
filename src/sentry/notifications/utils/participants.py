@@ -433,7 +433,6 @@ def get_send_to(
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
     rules: Iterable[Rule] | None = None,
-    notification_uuid: str | None = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     recipients = determine_eligible_recipients(
         project, target_type, target_identifier, event, fallthrough_choice
@@ -452,9 +451,7 @@ def get_send_to(
             recipients = filter(
                 lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
             )
-    return get_recipients_by_provider(
-        project, recipients, notification_type, target_type, target_identifier, notification_uuid
-    )
+    return get_recipients_by_provider(project, recipients, notification_type)
 
 
 def get_fallthrough_recipients(
@@ -599,9 +596,6 @@ def get_recipients_by_provider(
     project: Project,
     recipients: Iterable[RpcActor],
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
-    target_type: ActionTargetType | None = None,
-    target_identifier: int | None = None,
-    notification_uuid: str | None = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
     recipients_by_type = partition_recipients(recipients)
@@ -651,18 +645,5 @@ def get_recipients_by_provider(
         users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
             project, users, notification_type
         )
-
-    extra = {
-        "organization_id": project.organization.id,
-        "project_id": project.id,
-        "target_type": target_type,
-        "target_identifier": target_identifier,
-        "notification_uuid": notification_uuid,
-        "teams": teams,
-        "teams_by_provider": teams_by_provider,
-        "users": users,
-        "users_by_provider": users_by_provider,
-    }
-    logger.info("sentry.notifications.recipients_by_provider", extra=extra)
 
     return combine_recipients_by_provider(teams_by_provider, users_by_provider)
