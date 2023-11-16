@@ -1,107 +1,75 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
 import pytest
 
 from sentry.backup.comparators import get_default_comparators
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
+from sentry.backup.imports import import_in_global_scope
+from sentry.backup.scopes import ExportScope
+from sentry.backup.validate import validate
+from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import (
+    NOOP_PRINTER,
+    BackupTestCase,
     ValidationError,
     clear_database,
-    import_export_from_fixture_then_validate,
+    export_to_file,
 )
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import json
 
 
 @region_silo_test
-@django_db_all(transaction=True, reset_sequences=True)
-def test_good_fresh_install(tmp_path):
-    # TODO(getsentry/team-ospo#190): Once we release 23.12.0, we have fulfilled our "two versions
-    # back" promise, and we can remove `sentry:latest*` options from `fresh_install.json`.
-    import_export_from_fixture_then_validate(
-        tmp_path, "fresh-install.json", get_default_comparators()
-    )
+class SnapshotTests(BackupTestCase):
+    """
+    Tests against specific JSON snapshots.
+    """
 
+    def setUp(self):
+        super().setUp()
+        clear_database(reset_pks=True)
 
-@region_silo_test
-@django_db_all(transaction=True, reset_sequences=True)
-def test_bad_unequal_json(tmp_path):
-    # Without calling `get_default_comparators()` as the third argument to
-    # `import_export_from_fixture_then_validate()`, the `date_updated` fields will not be compared
-    # using the special comparator logic, and will try to use (and fail on) simple JSON string
-    # comparison instead.
-    with pytest.raises(ValidationError) as execinfo:
-        import_export_from_fixture_then_validate(tmp_path, "fresh-install.json")
-    findings = execinfo.value.info.findings
+    def import_export_fixture_then_validate(
+        self, *, tmp_out_path: Path, fixture_file_name: str
+    ) -> json.JSONData:
+        """
+        Test helper that validates that data imported from a fixture `.json` file correctly matches
+        the actual outputted export data.
+        """
 
-    assert len(findings) >= 3
-    assert findings[0].kind == ComparatorFindingKind.UnequalJSON
-    assert findings[1].kind == ComparatorFindingKind.UnequalJSON
-    assert findings[2].kind == ComparatorFindingKind.UnequalJSON
+        fixture_file_path = get_fixture_path("backup", fixture_file_name)
+        with open(fixture_file_path) as backup_file:
+            expect = json.load(backup_file)
+        with open(fixture_file_path, "rb") as fixture_file:
+            import_in_global_scope(fixture_file, printer=NOOP_PRINTER)
 
+        actual = export_to_file(tmp_out_path, ExportScope.Global)
+        res = validate(expect, actual, get_default_comparators())
+        if res.findings:
+            raise ValidationError(res)
 
-@region_silo_test
-@django_db_all(transaction=True, reset_sequences=True)
-def test_date_updated_with_zeroed_milliseconds(tmp_path):
-    import_export_from_fixture_then_validate(tmp_path, "datetime-with-zeroed-millis.json")
+        return actual
 
+    def test_date_with_and_without_zeroed_millis(self):
+        with TemporaryDirectory() as tmp_dir, pytest.raises(ValidationError) as execinfo:
+            tmp_out_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            return self.import_export_fixture_then_validate(
+                tmp_out_path=tmp_out_path, fixture_file_name="datetime-millis.json"
+            )
 
-@region_silo_test
-@django_db_all(transaction=True, reset_sequences=True)
-def test_date_updated_with_unzeroed_milliseconds(tmp_path):
-    with pytest.raises(ValidationError) as execinfo:
-        import_export_from_fixture_then_validate(tmp_path, "datetime-with-unzeroed-millis.json")
-    findings = execinfo.value.info.findings
-    assert len(findings) == 1
-    assert findings[0].kind == ComparatorFindingKind.UnequalJSON
-    assert findings[0].on == InstanceID("sentry.option", 1)
-    assert findings[0].left_pk == 1
-    assert findings[0].right_pk == 1
-    assert """-  "last_updated": "2023-06-22T00:00:00Z",""" in findings[0].reason
-    assert """+  "last_updated": "2023-06-22T00:00:00.000Z",""" in findings[0].reason
+        findings = execinfo.value.info.findings
+        assert len(findings) == 1
+        assert findings[0].kind == ComparatorFindingKind.UnequalJSON
+        assert findings[0].on == InstanceID("sentry.option", 2)
+        assert findings[0].left_pk == 2
+        assert findings[0].right_pk == 2
+        assert """-  "last_updated": "2023-06-22T00:00:00Z",""" in findings[0].reason
+        assert """+  "last_updated": "2023-06-22T00:00:00.000Z",""" in findings[0].reason
 
-
-@region_silo_test
-@django_db_all(transaction=True, reset_sequences=True)
-def test_good_continuing_sequences(tmp_path):
-    # Populate once to set the sequences.
-    import_export_from_fixture_then_validate(
-        tmp_path, "fresh-install.json", get_default_comparators()
-    )
-
-    # Empty the database without resetting primary keys.
-    clear_database()
-
-    # Test that foreign keys are properly re-pointed to newly allocated primary keys as they are
-    # assigned.
-    import_export_from_fixture_then_validate(
-        tmp_path, "fresh-install.json", get_default_comparators()
-    )
-
-
-# User models are unique and important enough that we target them with a specific test case.
-@region_silo_test
-@django_db_all(transaction=True)
-def test_user_pk_mapping(tmp_path):
-    import_export_from_fixture_then_validate(
-        tmp_path, "user-pk-mapping.json", get_default_comparators()
-    )
-
-
-# The import should be robust to usernames and organization slugs that have had random suffixes
-# added on due to conflicts in the existing database.
-@region_silo_test
-@django_db_all(transaction=True)
-def test_auto_suffix_username_and_organization_slug(tmp_path):
-    import_export_from_fixture_then_validate(
-        tmp_path, "duplicate-username-and-organization-slug.json", get_default_comparators()
-    )
-
-
-# Apps are often owned by a fake "proxy_user" with an autogenerated name and no email. This empty
-# email is represented as such in the database, with an empty string as the entry in the `Email`
-# table. This test ensures that this relationship is preserved through an import/export cycle.
-@region_silo_test
-@django_db_all(transaction=True)
-def test_app_user_with_empty_email(tmp_path):
-    import_export_from_fixture_then_validate(
-        tmp_path, "app-user-with-empty-email.json", get_default_comparators()
-    )
+    def test_app_user_with_empty_email(self):
+        with TemporaryDirectory() as tmp_dir:
+            tmp_out_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            return self.import_export_fixture_then_validate(
+                tmp_out_path=tmp_out_path, fixture_file_name="app-user-with-empty-email.json"
+            )

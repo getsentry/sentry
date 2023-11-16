@@ -28,16 +28,14 @@ import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {
   ScreensTable,
   useTableQuery,
 } from 'sentry/views/starfish/views/screens/screensTable';
-import {
-  REPORT_FULLY_DRAWN_CONTENT,
-  SETUP_CONTENT,
-} from 'sentry/views/starfish/views/screens/setupContent';
+import {SETUP_CONTENT} from 'sentry/views/starfish/views/screens/setupContent';
 import {TabbedCodeSnippet} from 'sentry/views/starfish/views/screens/tabbedCodeSnippets';
 
 export enum YAxis {
@@ -271,12 +269,21 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             <ScreensBarChart
               chartOptions={[
                 {
-                  title: t('Comparing Release %s', CHART_TITLES[yAxes[0]]),
+                  title: t('%s by Top Screen', CHART_TITLES[yAxes[0]]),
                   yAxis: YAXIS_COLUMNS[yAxes[0]],
                   xAxisLabel: topTransactions,
                   series: Object.values(
                     transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]]]
                   ),
+                  subtitle: primaryRelease
+                    ? t(
+                        '%s v. %s',
+                        formatVersionAndCenterTruncate(primaryRelease, 12),
+                        secondaryRelease
+                          ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                          : ''
+                      )
+                    : '',
                 },
               ]}
               chartHeight={chartHeight ?? 180}
@@ -289,18 +296,26 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             {defined(hasTTFD) && !hasTTFD && yAxes[1] === YAxis.TTFD ? (
               <ChartPanel title={CHART_TITLES[yAxes[1]]}>
                 <TabbedCodeSnippet tabs={SETUP_CONTENT} />
-                <TabbedCodeSnippet tabs={REPORT_FULLY_DRAWN_CONTENT} />
               </ChartPanel>
             ) : (
               <ScreensBarChart
                 chartOptions={[
                   {
-                    title: t('Comparing Release %s', CHART_TITLES[yAxes[1]]),
+                    title: t('%s by Top Screen', CHART_TITLES[yAxes[1]]),
                     yAxis: YAXIS_COLUMNS[yAxes[1]],
                     xAxisLabel: topTransactions,
                     series: Object.values(
                       transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]]]
                     ),
+                    subtitle: primaryRelease
+                      ? t(
+                          '%s v. %s',
+                          formatVersionAndCenterTruncate(primaryRelease, 12),
+                          secondaryRelease
+                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                            : ''
+                        )
+                      : '',
                   },
                 ]}
                 chartHeight={chartHeight ?? 180}
@@ -365,7 +380,6 @@ const ChartsContainer = styled('div')`
 
 const ChartsContainerItem = styled('div')`
   flex: 1;
-  overflow: hidden;
 `;
 
 export const Spacer = styled('div')`

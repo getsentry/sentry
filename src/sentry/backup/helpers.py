@@ -432,3 +432,9 @@ class ImportFlags(NamedTuple):
     # `key`) or `Relay` (as identified by its unique `relay_id`) already exists, should we overwrite
     # it with the new value, or keep the existing one and discard the incoming value instead?
     overwrite_configs: bool = False
+
+    # A UUID with which to identify this import's `*ImportChunk` database entries. Useful for
+    # passing the calling `Relocation` model's UUID to all of the imports it triggered. If this flag
+    # is not provided, the import was called in a non-relocation context, like from the `sentry
+    # import` CLI command.
+    import_uuid: str | None = None

@@ -21,6 +21,7 @@ from sentry.incidents.logic import (
     check_aggregate_column_support,
     create_alert_rule,
     delete_alert_rule_trigger,
+    get_column_from_aggregate,
     query_datasets_to_type,
     translate_aggregate_field,
     update_alert_rule,
@@ -35,6 +36,7 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import build_query_builder
 
+from ...snuba.metrics.naming_layer.mapping import is_mri
 from . import (
     CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS,
     QUERY_TYPE_VALID_DATASETS,
@@ -134,7 +136,16 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def validate_aggregate(self, aggregate):
         try:
-            if not check_aggregate_column_support(aggregate):
+            allow_mri = features.has(
+                "organizations:ddm-experimental",
+                self.context["organization"],
+                actor=self.context.get("user", None),
+            )
+
+            if not check_aggregate_column_support(
+                aggregate,
+                allow_mri=allow_mri,
+            ):
                 raise serializers.ValidationError(
                     "Invalid Metric: We do not currently support this field."
                 )
@@ -242,6 +253,17 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             actor=self.context.get("user", None),
         ):
             dataset = data["dataset"] = Dataset.Metrics
+
+        if features.has(
+            "organizations:ddm-experimental",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ):
+            column = get_column_from_aggregate(data["aggregate"])
+            if is_mri(column) and dataset != Dataset.PerformanceMetrics:
+                raise serializers.ValidationError(
+                    "You can use an MRI only on alerts on performance metrics"
+                )
 
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
 
