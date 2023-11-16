@@ -327,6 +327,9 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     configure_structlog()
 
+    if settings.ENVIRONMENT == "production":
+        logging.raiseExceptions = False
+
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
     if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
