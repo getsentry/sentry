@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry_relay.processing import pii_selector_suggestions_from_event
 
 from sentry import nodestore
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -16,6 +17,7 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
+    owner = ApiOwner.DISCOVER_N_DASHBOARDS
 
     def get(self, request: Request, organization) -> Response:
         """
