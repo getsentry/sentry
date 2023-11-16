@@ -99,13 +99,13 @@ function SpanSummaryPage({params}: Props) {
   };
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    {transaction: endpoint, 'transaction.method': endpointMethod, 'span.group': groupId},
+    filters,
     ['spm()'],
     'api.starfish.span-summary-page-metrics-chart'
   );
 
   const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
-    {transaction: endpoint, 'transaction.method': endpointMethod, 'span.group': groupId},
+    filters,
     [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     'api.starfish.span-summary-page-metrics-chart'
   );
