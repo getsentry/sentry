@@ -30,7 +30,7 @@ import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetri
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import {MriSearchBar} from 'sentry/views/alerts/rules/metric/mriSearchBar';
+import {parseAggregate} from 'sentry/views/alerts/rules/metric/mriField';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {
   convertDatasetEventTypesToSource,
@@ -38,6 +38,7 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
 import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
+import {MetricSearchBar} from 'sentry/views/ddm/queryBuilder';
 
 import {getProjectOptions} from '../utils';
 
@@ -456,12 +457,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               >
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
                   return hasDdmAlertsSupport(organization) ? (
-                    <MriSearchBar
-                      aggregate={aggregate}
-                      project={project}
+                    <MetricSearchBar
+                      mri={parseAggregate(aggregate).mri}
+                      projectIds={[parseInt(project.id, 10)]}
                       placeholder={this.searchPlaceholder}
                       query={initialData.query}
                       defaultQuery={initialData?.query ?? ''}
+                      useFormWrapper={false}
+                      searchSource="alert_builder"
                       onChange={query => {
                         onFilterSearch(query, true);
                         onChange(query, {});

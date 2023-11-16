@@ -8,7 +8,7 @@ import Tag from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsTag, SavedSearchType, TagCollection} from 'sentry/types';
+import {SavedSearchType, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   getReadableMetricType,
@@ -163,7 +163,7 @@ export function QueryBuilder({
       </QueryBuilderRow>
       <QueryBuilderRow>
         <MetricSearchBar
-          tags={tags}
+          projectIds={projects}
           mri={metricsQuery.mri}
           disabled={!metricsQuery.mri}
           onChange={query => onChange({query})}
@@ -176,23 +176,25 @@ export function QueryBuilder({
 
 interface MetricSearchBarProps extends Omit<Partial<SearchBarProps>, 'tags'> {
   onChange: (value: string) => void;
-  tags: MetricsTag[];
+  projectIds: number[];
   disabled?: boolean;
   mri?: string;
   query?: string;
 }
 
 export function MetricSearchBar({
-  tags,
   mri,
   disabled,
   onChange,
   query,
+  projectIds,
   ...props
 }: MetricSearchBarProps) {
   const org = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+
+  const {data: tags = []} = useMetricsTags(mri, projectIds);
 
   const supportedTags: TagCollection = useMemo(
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
@@ -240,6 +242,7 @@ export function MetricSearchBar({
       placeholder={t('Filter by tags')}
       query={query}
       savedSearchType={SavedSearchType.METRIC}
+      projectIds={projectIds}
       {...props}
     />
   );
