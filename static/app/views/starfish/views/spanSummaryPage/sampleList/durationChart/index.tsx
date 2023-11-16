@@ -81,6 +81,7 @@ function DurationChart({
   };
 
   const seriesQueryFilters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
     transaction: transactionName,
   };
 
