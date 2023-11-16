@@ -112,7 +112,7 @@ def get_projects_and_filenames_from_source_file(
 
 
 def get_top_5_issues_by_count_for_file(
-    projects: Set[Project], sentry_filenames: Set[str]
+    projects: List[Project], sentry_filenames: List[str]
 ) -> list[dict[str, Any]]:
     """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
     group_ids = list(
