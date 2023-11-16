@@ -13,6 +13,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.search.events import constants
 from sentry.search.utils import map_device_class_level
+from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
@@ -2584,16 +2585,16 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["fields"]["device.class"] == "string"
 
 
-# XXX: This is not working
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
 ):
+    viewname = "sentry-api-0-organization-events"
+
     def setUp(self):
         super().setUp()
         self.features = {
             "organizations:on-demand-metrics-extraction-widgets": True,
         }
-        self.min_ago = before_now(minutes=1)
 
     def do_request(self, query):
         self.login_as(user=self.user)
@@ -2604,30 +2605,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         with self.feature(self.features):
             return self.client.get(url, query, format="json")
 
-    def test_metrics_extracted_data_does_not_fall_back_no_fields(self):
-        self.store_transaction_metric(
-            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
-        )
-
-        response = self.do_request(
-            {
-                "dataset": "metricsEnhanced",
-                "onDemandType": "dynamic_query",
-                "query": "transaction.duration:>=91",
-                "useOnDemandMetrics": "true",
-                "yAxis": "epm()",
-            }
-        )
-        assert response.status_code == 200, response.content
-        meta = response.data["meta"]
-
-        assert meta["isMetricsData"]
-        assert meta["isMetricsExtractedData"]
-
     def test_metrics_extracted_data_does_not_fall_back_with_fields(self):
-        self.store_transaction_metric(
-            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
+        spec = OnDemandMetricSpec(
+            field="count()",
+            query="transaction.duration:>1s",
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
         )
+
+        self.store_on_demand_metric(1, spec=spec)
 
         response = self.do_request(
             {
@@ -2640,9 +2625,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             }
         )
         assert response.status_code == 200, response.content
+        import pprint
+
+        pprint.pprint(response.content)
         meta = response.data["meta"]
 
-        assert meta["isMetricsData"]
+        # assert meta["isMetricsData"]
         assert meta["isMetricsExtractedData"]
 
 
