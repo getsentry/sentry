@@ -161,6 +161,7 @@ export function SampleList({
           }}
           onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
           onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
+          query={extraQuery}
           highlightedSpanId={highlightedSpanId}
         />
 
