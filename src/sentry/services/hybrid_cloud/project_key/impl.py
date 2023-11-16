@@ -54,11 +54,11 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         region_name: str,
         project_ids: List[str],
         role: ProjectKeyRole,
-        limit: int = 100,
     ) -> List[RpcProjectKey]:
+        # TODO: This query is unbounded and will need to be addressed in the future.
         project_keys = ProjectKey.objects.filter(
             project__in=project_ids,
             roles=F("roles").bitor(role.as_orm_role()),
             status=ProjectKeyStatus.ACTIVE,
-        ).order_by("-date_added")[:limit]
+        ).order_by("-date_added")
         return [serialize_project_key(pk) for pk in project_keys]
