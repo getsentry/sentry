@@ -527,6 +527,9 @@ class OutboxBase(Model):
     # Initial creation date for the outbox which should not be modified. Used for lag time calculation.
     date_added = models.DateTimeField(null=False, default=timezone.now, editable=False)
 
+    # Additional outbox information, such as the initiating transaction/span ID, related organization/user, etc
+    metadata: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+
     def last_delay(self) -> datetime.timedelta:
         return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))
 
