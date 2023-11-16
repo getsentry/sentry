@@ -2584,6 +2584,68 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["fields"]["device.class"] == "string"
 
 
+# XXX: This is not working
+class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
+    MetricsEnhancedPerformanceTestCase
+):
+    def setUp(self):
+        super().setUp()
+        self.features = {
+            "organizations:on-demand-metrics-extraction-widgets": True,
+        }
+        self.min_ago = before_now(minutes=1)
+
+    def do_request(self, query):
+        self.login_as(user=self.user)
+        url = reverse(
+            self.viewname,
+            kwargs={"organization_slug": self.organization.slug},
+        )
+        with self.feature(self.features):
+            return self.client.get(url, query, format="json")
+
+    def test_metrics_extracted_data_does_not_fall_back_no_fields(self):
+        self.store_transaction_metric(
+            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
+        )
+
+        response = self.do_request(
+            {
+                "dataset": "metricsEnhanced",
+                "onDemandType": "dynamic_query",
+                "query": "transaction.duration:>=91",
+                "useOnDemandMetrics": "true",
+                "yAxis": "epm()",
+            }
+        )
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+
+        assert meta["isMetricsData"]
+        assert meta["isMetricsExtractedData"]
+
+    def test_metrics_extracted_data_does_not_fall_back_with_fields(self):
+        self.store_transaction_metric(
+            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
+        )
+
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "dataset": "metricsEnhanced",
+                "onDemandType": "dynamic_query",
+                "query": "transaction.duration:>=91",
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            }
+        )
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+
+        assert meta["isMetricsData"]
+        assert meta["isMetricsExtractedData"]
+
+
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
 ):
