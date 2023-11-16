@@ -163,7 +163,8 @@ export function QueryBuilder({
       </QueryBuilderRow>
       <QueryBuilderRow>
         <MetricSearchBar
-          projectIds={projects}
+          // TODO(aknaus): clean up projectId type in ddm
+          projectIds={projects.map(id => id.toString())}
           mri={metricsQuery.mri}
           disabled={!metricsQuery.mri}
           onChange={query => onChange({query})}
@@ -174,9 +175,10 @@ export function QueryBuilder({
   );
 }
 
-interface MetricSearchBarProps extends Omit<Partial<SearchBarProps>, 'tags'> {
+interface MetricSearchBarProps
+  extends Omit<Partial<SearchBarProps>, 'tags' | 'projectIds'> {
   onChange: (value: string) => void;
-  projectIds: number[];
+  projectIds: string[];
   disabled?: boolean;
   mri?: string;
   query?: string;
@@ -193,8 +195,12 @@ export function MetricSearchBar({
   const org = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+  const projectIdNumbers = useMemo(
+    () => projectIds.map(id => parseInt(id, 10)),
+    [projectIds]
+  );
 
-  const {data: tags = []} = useMetricsTags(mri, projectIds);
+  const {data: tags = []} = useMetricsTags(mri, projectIdNumbers);
 
   const supportedTags: TagCollection = useMemo(
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
@@ -242,7 +248,7 @@ export function MetricSearchBar({
       placeholder={t('Filter by tags')}
       query={query}
       savedSearchType={SavedSearchType.METRIC}
-      projectIds={projectIds}
+      projectIds={projectIdNumbers}
       {...props}
     />
   );

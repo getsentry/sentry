@@ -91,7 +91,7 @@ function MriField({aggregate, project, onChange}: Props) {
     (searchText: string) => {
       const filteredMeta = metaArr.filter(
         ({name}) =>
-          searchText === '' || name.toLowerCase().indexOf(searchText.toLowerCase()) > -1
+          searchText === '' || name.toLowerCase().includes(searchText.toLowerCase())
       );
 
       const options = filteredMeta.splice(0, 100).map<{

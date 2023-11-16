@@ -459,7 +459,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   return hasDdmAlertsSupport(organization) ? (
                     <MetricSearchBar
                       mri={parseAggregate(aggregate).mri}
-                      projectIds={[parseInt(project.id, 10)]}
+                      projectIds={[project.id]}
                       placeholder={this.searchPlaceholder}
                       query={initialData.query}
                       defaultQuery={initialData?.query ?? ''}
