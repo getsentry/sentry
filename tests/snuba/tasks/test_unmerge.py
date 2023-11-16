@@ -5,9 +5,11 @@ import hashlib
 import itertools
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import patch
+
+from django.utils import timezone
 
 from sentry import eventstream, tagstore, tsdb
 from sentry.eventstore.models import Event
@@ -179,7 +181,8 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             return now + timedelta(seconds=offset)
 
         project = self.create_project()
-
+        project.date_added = timezone.now() - timedelta(minutes=10)
+        project.save()
         sequence = itertools.count(0)
         tag_values = itertools.cycle(["red", "green", "blue"])
         user_values = itertools.cycle([{"id": 1}, {"id": 2}])
