@@ -1,18 +1,21 @@
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {Organization, OrganizationSummary} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -49,46 +52,37 @@ type OwnedOrg = {
   singleOwner: boolean;
 };
 
-type Props = DeprecatedAsyncView['props'];
+function AccountClose() {
+  const api = useApi();
 
-type State = DeprecatedAsyncView['state'] & {
-  organizations: OwnedOrg[] | null;
-  /**
-   * Org slugs that will be removed
-   */
-  orgsToRemove: Set<string> | null;
-};
+  const [organizations, setOrganizations] = useState<OwnedOrg[]>([]);
+  const [orgsToRemove, setOrgsToRemove] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
 
-class AccountClose extends DeprecatedAsyncView<Props, State> {
-  leaveRedirectTimeout: number | undefined = undefined;
+  // Load organizations from all regions.
+  useEffect(() => {
+    setIsLoading(true);
+    fetchOrganizations(api, {owner: 1}).then((response: OwnedOrg[]) => {
+      const singleOwnerOrgs = response
+        .filter(item => item.singleOwner)
+        .map(item => item.organization.slug);
 
-  componentWillUnmount() {
-    window.clearTimeout(this.leaveRedirectTimeout);
-  }
+      setOrgsToRemove(new Set(singleOwnerOrgs));
+      setOrganizations(response);
+      setIsLoading(false);
+    });
+  }, [api]);
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    return [['organizations', '/organizations/?owner=1']];
-  }
-
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      orgsToRemove: null,
+  let leaveRedirectTimeout: number | undefined = undefined;
+  useEffect(() => {
+    // setup unmount callback
+    return () => {
+      window.clearTimeout(leaveRedirectTimeout);
     };
-  }
+  }, [leaveRedirectTimeout]);
 
-  get singleOwnerOrgs() {
-    return this.state.organizations
-      ?.filter(({singleOwner}) => singleOwner)
-      ?.map(({organization}) => organization.slug);
-  }
-
-  getTitle() {
-    return t('Close Account');
-  }
-
-  handleChange = (
-    {slug}: Organization,
+  const handleChange = (
+    organization: OrganizationSummary,
     isSingle: boolean,
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -98,35 +92,22 @@ class AccountClose extends DeprecatedAsyncView<Props, State> {
     if (isSingle) {
       return;
     }
-
-    this.setState(state => {
-      const set = state.orgsToRemove || new Set(this.singleOwnerOrgs);
-      if (checked) {
-        set.add(slug);
-      } else {
-        set.delete(slug);
-      }
-
-      return {orgsToRemove: set};
-    });
+    const slugSet = new Set(orgsToRemove);
+    if (checked) {
+      slugSet.add(organization.slug);
+    } else {
+      slugSet.delete(organization.slug);
+    }
+    setOrgsToRemove(slugSet);
   };
 
-  get orgSlugsToRemove() {
-    const {orgsToRemove} = this.state;
-    return (
-      (orgsToRemove === null ? this.singleOwnerOrgs : Array.from(orgsToRemove)) || []
-    );
-  }
-
-  handleRemoveAccount = async () => {
-    const orgs = this.orgSlugsToRemove;
-
+  const handleRemoveAccount = async () => {
     addLoadingMessage('Closing account\u2026');
 
     try {
-      await this.api.requestPromise('/users/me/', {
+      await api.requestPromise('/users/me/', {
         method: 'DELETE',
-        data: {organizations: orgs},
+        data: {organizations: Array.from(orgsToRemove)},
       });
 
       openModal(GoodbyeModalContent, {
@@ -134,78 +115,74 @@ class AccountClose extends DeprecatedAsyncView<Props, State> {
       });
 
       // Redirect after 10 seconds
-      window.clearTimeout(this.leaveRedirectTimeout);
-      this.leaveRedirectTimeout = window.setTimeout(leaveRedirect, 10000);
+      window.clearTimeout(leaveRedirectTimeout);
+      leaveRedirectTimeout = window.setTimeout(leaveRedirect, 10000);
     } catch {
       addErrorMessage('Error closing account');
     }
   };
 
-  renderBody() {
-    const {organizations, orgsToRemove} = this.state;
+  const HookedCustomConfirmAccountClose = HookOrDefault({
+    hookName: 'component:confirm-account-close',
+    defaultComponent: props => <ConfirmAccountClose {...props} />,
+  });
 
-    const HookedCustomConfirmAccountClose = HookOrDefault({
-      hookName: 'component:confirm-account-close',
-      defaultComponent: props => <ConfirmAccountClose {...props} />,
-    });
-
-    return (
-      <div>
-        <SettingsPageHeader title={this.getTitle()} />
-
-        <TextBlock>
-          {t('This will permanently remove all associated data for your user')}.
-        </TextBlock>
-
-        <Alert type="error" showIcon>
-          <Important>
-            {t('Closing your account is permanent and cannot be undone')}!
-          </Important>
-        </Alert>
-
-        <Panel>
-          <PanelHeader>{t('Remove the following organizations')}</PanelHeader>
-          <PanelBody>
-            <PanelAlert type="info">
-              {t(
-                'Ownership will remain with other organization owners if an organization is not deleted.'
-              )}
-              <br />
-              {tct(
-                "Boxes which can't be unchecked mean that you are the only organization owner and the organization [strong:will be deleted].",
-                {strong: <strong />}
-              )}
-            </PanelAlert>
-
-            {organizations?.map(({organization, singleOwner}) => (
-              <PanelItem key={organization.slug}>
-                <label>
-                  <input
-                    style={{marginRight: 6}}
-                    type="checkbox"
-                    value={organization.slug}
-                    onChange={this.handleChange.bind(this, organization, singleOwner)}
-                    name="organizations"
-                    checked={
-                      orgsToRemove === null
-                        ? singleOwner
-                        : orgsToRemove.has(organization.slug)
-                    }
-                    disabled={singleOwner}
-                  />
-                  {organization.slug}
-                </label>
-              </PanelItem>
-            ))}
-          </PanelBody>
-        </Panel>
-        <HookedCustomConfirmAccountClose
-          handleRemoveAccount={this.handleRemoveAccount}
-          organizationSlugs={this.orgSlugsToRemove}
-        />
-      </div>
-    );
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
+
+  return (
+    <div>
+      <SettingsPageHeader title={t('Close Account')} />
+
+      <TextBlock>
+        {t('This will permanently remove all associated data for your user')}.
+      </TextBlock>
+
+      <Alert type="error" showIcon>
+        <Important>
+          {t('Closing your account is permanent and cannot be undone')}!
+        </Important>
+      </Alert>
+
+      <Panel>
+        <PanelHeader>{t('Remove the following organizations')}</PanelHeader>
+        <PanelBody>
+          <PanelAlert type="info">
+            {t(
+              'Ownership will remain with other organization owners if an organization is not deleted.'
+            )}
+            <br />
+            {tct(
+              "Boxes which can't be unchecked mean that you are the only organization owner and the organization [strong:will be deleted].",
+              {strong: <strong />}
+            )}
+          </PanelAlert>
+
+          {organizations?.map(({organization, singleOwner}) => (
+            <PanelItem key={organization.slug}>
+              <label>
+                <input
+                  style={{marginRight: 6}}
+                  type="checkbox"
+                  value={organization.slug}
+                  onChange={evt => handleChange(organization, singleOwner, evt)}
+                  name="organizations"
+                  checked={orgsToRemove.has(organization.slug)}
+                  disabled={singleOwner}
+                />
+                {organization.slug}
+              </label>
+            </PanelItem>
+          ))}
+        </PanelBody>
+      </Panel>
+      <HookedCustomConfirmAccountClose
+        handleRemoveAccount={handleRemoveAccount}
+        organizationSlugs={Array.from(orgsToRemove)}
+      />
+    </div>
+  );
 }
 
 export default AccountClose;

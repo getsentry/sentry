@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, List, Mapping, Optional
 
 from snuba_sdk import (
     BooleanCondition,

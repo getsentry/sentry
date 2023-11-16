@@ -313,8 +313,8 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert EventUser.for_tags(self.project.id, ["id:myminion"]) == {
             "id:myminion": EventUser.from_event(self.event_3)
         }
-        # assert EventUser.for_tags(self.project.id, ["id:doesnotexist"]) == {}
-        # assert EventUser.for_tags(self.project.id, ["id:myminion", "id:doesnotexist", "id:2"]) == {
-        #     "id:myminion": EventUser.from_event(self.event_3),
-        #     "id:2": EventUser.from_event(self.event_2),
-        # }
+        assert EventUser.for_tags(self.project.id, ["id:doesnotexist"]) == {}
+        assert EventUser.for_tags(self.project.id, ["id:myminion", "id:doesnotexist", "id:2"]) == {
+            "id:myminion": EventUser.from_event(self.event_3),
+            "id:2": EventUser.from_event(self.event_2),
+        }

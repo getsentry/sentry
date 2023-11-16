@@ -278,6 +278,17 @@ def project_event_counts_for_organization(ctx):
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
     data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
 
+    # TODO(isabella): remove debug logging for sentry
+    if ctx.organization.slug == "sentry":
+        logger.info(
+            "project_event_counts_for_organization_query_result",
+            extra={
+                "report_start": ctx.start.isoformat(),
+                "report_end": (ctx.end + timedelta(days=1)).isoformat(),
+                "num_query_rows": len(data),
+            },
+        )
+
     for dat in data:
         project_id = dat["project_id"]
         # Project no longer in organization, but events still exist
@@ -907,6 +918,17 @@ def render_template_context(ctx, user_id):
                     }
                 )
             series.append((to_datetime(t), project_series))
+        if ctx.organization.slug == "sentry":
+            # TODO(isabella): remove debug logging for sentry
+            logger.info(
+                "render_template_context.trends.totals",
+                extra={
+                    "error_count": total_error,
+                    "transaction_count": total_transaction,
+                    "replay_count": total_replays,
+                    "project_count": len(projects_associated_with_user),
+                },
+            )
         return {
             "legend": legend,
             "series": series,

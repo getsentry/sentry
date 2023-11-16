@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from dataclasses import dataclass
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -54,7 +55,7 @@ QUERY_HASH_KEY = "query_hash"
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
 # Maps from Discover's field names to event protocol paths. See Relay's
-# ``FieldValueProvider`` for supported fields. All fields need to be prefixed
+# ``Getter`` implementation for ``Event`` for supported fields. All fields need to be prefixed
 # with "event.".
 # List of UI supported search fields is defined in sentry/static/app/utils/fields/index.ts
 _SEARCH_TO_PROTOCOL_FIELDS = {
@@ -110,6 +111,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "transaction.op": "contexts.trace.op",
     "http.status_code": "contexts.response.status_code",
     "unreal.crash_type": "contexts.unreal.crash_type",
+    "profile.id": "contexts.profile.profile_id",
     # Computed fields
     "transaction.duration": "duration",
     "release.build": "release.build",
@@ -905,6 +907,13 @@ class QueryParsingResult:
         return len(self.conditions) == 0
 
 
+class MetricSpecType(Enum):
+    # Encodes environment into the query hash, does not support group-by environment
+    SIMPLE_QUERY = "simple_query"
+    # Omits environment from the query hash, supports group-by on environment for dynamic switching between envs.
+    DYNAMIC_QUERY = "dynamic_query"
+
+
 @dataclass
 class OnDemandMetricSpec:
     """
@@ -915,6 +924,7 @@ class OnDemandMetricSpec:
     field: str
     query: str
     groupbys: Sequence[str]
+    spec_type: MetricSpecType
 
     # Public fields.
     op: MetricOperationType
@@ -929,9 +939,12 @@ class OnDemandMetricSpec:
         query: str,
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
+        spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
     ):
         self.field = field
         self.query = query
+        self.spec_type = spec_type
+
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
         # For now, we just support the environment as extra, but in the future we might need more complex ways to
@@ -946,6 +959,10 @@ class OnDemandMetricSpec:
         self.op = op
         self._metric_type = metric_type
         self._arguments = arguments or []
+
+        sentry_sdk.start_span(
+            op="OnDemandMetricSpec.spec_type", description=self.spec_type
+        ).finish()
 
     @property
     def field_to_extract(self):
@@ -1035,8 +1052,8 @@ class OnDemandMetricSpec:
 
         return tags_specs_generator(project, self._arguments)
 
-    def _tag_for_groupby(self, groupby: str) -> TagSpec:
-        """Returns a TagSpec for a groupby"""
+    def _tag_for_field(self, groupby: str) -> TagSpec:
+        """Returns a TagSpec for a field, eg. a groupby"""
         field = _map_field_name(groupby)
 
         return {
@@ -1046,7 +1063,7 @@ class OnDemandMetricSpec:
 
     def tags_groupbys(self, groupbys: Sequence[str]) -> List[TagSpec]:
         """Returns a list of tag specs generate for added groupbys, as they need to be stored separately for queries to work."""
-        return [self._tag_for_groupby(groupby) for groupby in groupbys]
+        return [self._tag_for_field(groupby) for groupby in groupbys]
 
     def to_metric_spec(self, project: Project) -> MetricSpec:
         """Converts the OndemandMetricSpec into a MetricSpec that Relay can understand."""
@@ -1056,6 +1073,9 @@ class OnDemandMetricSpec:
 
         tag_from_groupbys = self.tags_groupbys(self.groupbys)
         extended_tags_conditions.extend(tag_from_groupbys)
+
+        if self.spec_type == MetricSpecType.DYNAMIC_QUERY:
+            extended_tags_conditions.append(self._tag_for_field("environment"))
 
         metric_spec: MetricSpec = {
             "category": DataCategory.TRANSACTION.api_name(),
@@ -1081,7 +1101,9 @@ class OnDemandMetricSpec:
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
         # We extend the parsed query with other conditions that we want to inject externally from the query.
-        parsed_query = self._extend_parsed_query(parsed_query)
+        # If it is a simple query, we encode the environment in the query hash, instead of emitting it as a tag of the metric.
+        if self.spec_type == MetricSpecType.SIMPLE_QUERY:
+            parsed_query = self._extend_parsed_query(parsed_query)
 
         # Second step is to extract the conditions that might be present in the aggregate function (e.g. count_if).
         parsed_field = self._parse_field(self.field)
