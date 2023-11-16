@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
+import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Tag from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
@@ -174,15 +174,22 @@ export function QueryBuilder({
   );
 }
 
-type MetricSearchBarProps = {
-  mri: string;
+interface MetricSearchBarProps extends Omit<Partial<SearchBarProps>, 'tags'> {
   onChange: (value: string) => void;
   tags: MetricsTag[];
   disabled?: boolean;
+  mri?: string;
   query?: string;
-};
+}
 
-function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBarProps) {
+export function MetricSearchBar({
+  tags,
+  mri,
+  disabled,
+  onChange,
+  query,
+  ...props
+}: MetricSearchBarProps) {
   const org = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
@@ -233,6 +240,7 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
       placeholder={t('Filter by tags')}
       query={query}
       savedSearchType={SavedSearchType.METRIC}
+      {...props}
     />
   );
 }

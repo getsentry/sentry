@@ -84,15 +84,19 @@ type MetricTag = {
   key: string;
 };
 
-export function useMetricsTags(mri: string, projects: PageFilters['projects']) {
+export function useMetricsTags(
+  mri: string | undefined,
+  projects: PageFilters['projects']
+) {
   const {slug} = useOrganization();
-  const useCase = getUseCaseFromMRI(mri);
+  const useCase = getUseCaseFromMRI(mri || '');
   return useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/`,
       {query: {metric: mri, useCase, project: projects}},
     ],
     {
+      enabled: !!mri,
       staleTime: Infinity,
     }
   );

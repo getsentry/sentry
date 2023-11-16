@@ -24,11 +24,13 @@ import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTa
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
+import {hasDdmAlertsSupport} from 'sentry/utils/ddm/features';
 import {getDisplayName} from 'sentry/utils/environment';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
+import {MriSearchBar} from 'sentry/views/alerts/rules/metric/mriSearchBar';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {
   convertDatasetEventTypesToSource,
@@ -56,6 +58,7 @@ const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
 };
 
 type Props = {
+  aggregate: string;
   alertType: AlertType;
   api: Client;
   comparisonType: AlertRuleComparisonType;
@@ -316,7 +319,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {organization, disabled, alertType, timeWindow, onTimeWindowChange} =
+    const {organization, disabled, alertType, timeWindow, onTimeWindowChange, project} =
       this.props;
 
     return (
@@ -332,6 +335,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             help={null}
             organization={organization}
             disabled={disabled}
+            project={project}
             style={{
               ...this.formElemBaseStyle,
               flex: 1,
@@ -377,7 +381,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       dataset,
       isExtrapolatedChartData,
       isMigration,
+      aggregate,
+      project,
     } = this.props;
+
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -448,7 +455,19 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 flexibleControlStateSize
               >
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
-                  return (
+                  return hasDdmAlertsSupport(organization) ? (
+                    <MriSearchBar
+                      aggregate={aggregate}
+                      project={project}
+                      placeholder={this.searchPlaceholder}
+                      query={initialData.query}
+                      defaultQuery={initialData?.query ?? ''}
+                      onChange={query => {
+                        onFilterSearch(query, true);
+                        onChange(query, {});
+                      }}
+                    />
+                  ) : (
                     <SearchContainer>
                       <StyledSearchBar
                         disallowWildcard={dataset === Dataset.SESSIONS}

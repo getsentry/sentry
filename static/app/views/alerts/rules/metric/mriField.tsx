@@ -15,13 +15,13 @@ interface Props {
   project: Project;
 }
 
-function parseAggregate(aggregate: string) {
+export function parseAggregate(aggregate: string) {
   const parsedFunction = parseFunction(aggregate);
   if (!parsedFunction) {
     // Assumption: we only allow aggregate functions for custom metric alerts
     return {
-      mri: null,
-      op: null,
+      mri: undefined,
+      op: undefined,
     };
     // throw new Error('Invalid aggregate for metrics');
   }
