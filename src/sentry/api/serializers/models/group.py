@@ -52,19 +52,8 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.notifications.helpers import (
-    collect_groups_by_project,
-    get_groups_for_query,
-    get_subscription_from_attributes,
-    get_user_subscriptions_for_groups,
-    should_use_notifications_v2,
-    transform_to_notification_settings_by_scope,
-)
-from sentry.notifications.types import (
-    GroupSubscriptionStatus,
-    NotificationSettingEnum,
-    NotificationSettingTypes,
-)
+from sentry.notifications.helpers import collect_groups_by_project, get_subscription_from_attributes
+from sentry.notifications.types import GroupSubscriptionStatus, NotificationSettingEnum
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
@@ -589,62 +578,39 @@ class GroupSerializerBase(Serializer, ABC):
 
         groups_by_project = collect_groups_by_project(groups)
         project_ids = list(groups_by_project.keys())
-        if should_use_notifications_v2(groups[0].project.organization):
-            enabled_settings = notifications_service.get_subscriptions_for_projects(
-                user_id=user.id, project_ids=project_ids, type=NotificationSettingEnum.WORKFLOW
-            )
-            query_groups = {
-                group for group in groups if (not enabled_settings[group.project_id][2])
-            }
-            subscriptions_by_group_id: dict[int, GroupSubscription] = {
-                subscription.group_id: subscription
-                for subscription in GroupSubscription.objects.filter(
-                    group__in=query_groups, user_id=user.id
-                )
-            }
-            groups_by_project = collect_groups_by_project(groups)
-
-            results = {}
-            for project_id, group_set in groups_by_project.items():
-                s = enabled_settings[project_id]
-                subscription_status = GroupSubscriptionStatus(
-                    is_disabled=s[0],
-                    is_active=s[1],
-                    has_only_inactive_subscriptions=s[2],
-                )
-                for group in group_set:
-                    subscription = subscriptions_by_group_id.get(group.id)
-                    if subscription:
-                        # Having a GroupSubscription overrides NotificationSettings.
-                        results[group.id] = (False, subscription.is_active, subscription)
-                    elif subscription_status.is_disabled:
-                        # The user has disabled notifications in all cases.
-                        results[group.id] = (True, False, None)
-                    else:
-                        # Since there is no subscription, it is only active if the value is ALWAYS.
-                        results[group.id] = (False, subscription_status.is_active, None)
-
-            return results
-
-        notification_settings_by_scope = transform_to_notification_settings_by_scope(
-            notifications_service.get_settings_for_user_by_projects(
-                type=NotificationSettingTypes.WORKFLOW,
-                user_id=user.id,
-                parent_ids=project_ids,
-            )
+        enabled_settings = notifications_service.get_subscriptions_for_projects(
+            user_id=user.id, project_ids=project_ids, type=NotificationSettingEnum.WORKFLOW
         )
-        query_groups = get_groups_for_query(groups_by_project, notification_settings_by_scope, user)
-        subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user_id=user.id)
-        subscriptions_by_group_id = {
-            subscription.group_id: subscription for subscription in subscriptions
+        query_groups = {group for group in groups if (not enabled_settings[group.project_id][2])}
+        subscriptions_by_group_id: dict[int, GroupSubscription] = {
+            subscription.group_id: subscription
+            for subscription in GroupSubscription.objects.filter(
+                group__in=query_groups, user_id=user.id
+            )
         }
+        groups_by_project = collect_groups_by_project(groups)
 
-        return get_user_subscriptions_for_groups(
-            groups_by_project,
-            notification_settings_by_scope,
-            subscriptions_by_group_id,
-            user,
-        )
+        results = {}
+        for project_id, group_set in groups_by_project.items():
+            s = enabled_settings[project_id]
+            subscription_status = GroupSubscriptionStatus(
+                is_disabled=s[0],
+                is_active=s[1],
+                has_only_inactive_subscriptions=s[2],
+            )
+            for group in group_set:
+                subscription = subscriptions_by_group_id.get(group.id)
+                if subscription:
+                    # Having a GroupSubscription overrides NotificationSettings.
+                    results[group.id] = (False, subscription.is_active, subscription)
+                elif subscription_status.is_disabled:
+                    # The user has disabled notifications in all cases.
+                    results[group.id] = (True, False, None)
+                else:
+                    # Since there is no subscription, it is only active if the value is ALWAYS.
+                    results[group.id] = (False, subscription_status.is_active, None)
+
+        return results
 
     @staticmethod
     def _resolve_resolutions(
@@ -766,7 +732,6 @@ class GroupSerializerBase(Serializer, ABC):
             and getattr(request.user, "is_sentry_app", False)
             and is_api_token_auth(request.auth)
         ):
-
             if AuthenticatedToken.from_token(request.auth).token_has_org_access(organization_id):
                 return True
 

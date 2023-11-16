@@ -25,14 +25,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
-from sentry.notifications.helpers import (
-    get_scope,
-    get_scope_type,
-    should_use_notifications_v2,
-    transform_to_notification_settings_by_recipient,
-    validate,
-    where_should_recipient_be_notified,
-)
+from sentry.notifications.helpers import get_scope, get_scope_type, validate
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
@@ -48,7 +41,6 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
@@ -424,40 +416,20 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             organization = parent
             project_ids = None
 
-        if should_use_notifications_v2(organization):
-            # We should replace calls to NotificationSettings.get_notification_recipients at the call site - this code should never be reached
-            setting_type = (
-                NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[type])
-                if type
-                else NotificationSettingEnum.ISSUE_ALERTS
-            )
-            controller = NotificationController(
-                recipients=recipient_actors,
-                project_ids=project_ids,
-                organization_id=organization.id,
-                type=setting_type,
-            )
-
-            logger.warning("Missing upstream implementation for get_notification_recipients in v2")
-            return controller.get_notification_recipients(type=setting_type)
-
-        notification_settings = notifications_service.get_settings_for_recipient_by_parent(
-            type=type, parent_id=parent.id, recipients=recipient_actors
+        setting_type = (
+            NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[type])
+            if type
+            else NotificationSettingEnum.ISSUE_ALERTS
         )
-        notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-            notification_settings, recipient_actors
+        controller = NotificationController(
+            recipients=recipient_actors,
+            project_ids=project_ids,
+            organization_id=organization.id,
+            type=setting_type,
         )
 
-        mapping = defaultdict(set)
-        for recipient in recipient_actors:
-            providers = where_should_recipient_be_notified(
-                notification_settings_by_recipient, recipient, type
-            )
-            for provider in providers:
-                mapping[provider].add(recipient)
-        return mapping
+        return controller.get_notification_recipients(type=setting_type)
 
-    # TODO(snigdha): cleanup after v2
     def get_notification_recipients(
         self, project: Project
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
@@ -575,7 +547,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             id_key = "team_id"
             id = team.id
 
-        for (provider, type, scope_type, scope_identifier, value) in notification_settings:
+        for provider, type, scope_type, scope_identifier, value in notification_settings:
             # A missing DB row is equivalent to DEFAULT.
             if value == NotificationSettingOptionValues.DEFAULT:
                 self._filter(
@@ -614,7 +586,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         enabled_value_dict = {}
 
         # group the type, scope_type, scope_identifier, together and get store the explicitly enabled/disabled providers
-        for (provider, type, scope_type, scope_identifier, value) in notification_settings:
+        for provider, type, scope_type, scope_identifier, value in notification_settings:
             # Group the type, scope_type, scope_identifier together
             group_key = (type, scope_type, scope_identifier)
             all_settings.add(group_key)
