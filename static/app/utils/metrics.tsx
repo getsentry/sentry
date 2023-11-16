@@ -161,7 +161,7 @@ export function useMetricsData({
   const useCase = getUseCaseFromMRI(mri);
   const field = op ? `${op}(${mri})` : mri;
 
-  const interval = getMetricsInterval(datetime, mri);
+  const interval = getMetricsInterval(datetime, useCase);
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
@@ -262,7 +262,7 @@ export function useMetricsDataZoom(props: MetricsQuery) {
 }
 
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
-function getMetricsInterval(dateTimeObj: DateTimeObject, mri: string) {
+export function getMetricsInterval(dateTimeObj: DateTimeObject, useCase: UseCase) {
   const interval = getInterval(dateTimeObj, 'metrics');
 
   if (interval !== '1m') {
@@ -270,7 +270,6 @@ function getMetricsInterval(dateTimeObj: DateTimeObject, mri: string) {
   }
 
   const diffInMinutes = getDiffInMinutes(dateTimeObj);
-  const useCase = getUseCaseFromMRI(mri);
 
   if (diffInMinutes <= 60 && useCase === 'custom') {
     return '10s';
@@ -279,7 +278,7 @@ function getMetricsInterval(dateTimeObj: DateTimeObject, mri: string) {
   return interval;
 }
 
-function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
+export function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
   return period
     ? {statsPeriod: period}
     : {start: moment(start).toISOString(), end: moment(end).toISOString()};

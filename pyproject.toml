@@ -600,7 +600,6 @@ module = [
     "sentry.tasks.integrations.sync_status_inbound",
     "sentry.tasks.integrations.sync_status_outbound",
     "sentry.tasks.merge",
-    "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
