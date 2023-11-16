@@ -33,7 +33,6 @@ export const useSpanMetrics = <T extends MetricsProperty[]>(
   const enabled =
     Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
 
-  // TODO: Add referrer
   const result = useSpansQuery({
     eventView,
     initialData: [],
