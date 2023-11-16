@@ -225,9 +225,9 @@ class TestGetIssues(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
 
-        self.group_id = [self._create_event() for _ in range(6)][0].group.id
+        self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
 
-    def _create_event(self, filenames=None, project_id=None, timestamp=None):
+    def _create_event(self, filenames=None, project_id=None, timestamp=None, user_id=None):
         if timestamp is None:
             timestamp = iso_format(before_now(seconds=5))
         if filenames is None:
@@ -250,6 +250,7 @@ class TestGetIssues(GithubCommentTestCase):
                         }
                     ]
                 },
+                "user": {"id": user_id},
             },
             project_id=project_id,
             assert_no_errors=False,
@@ -259,6 +260,7 @@ class TestGetIssues(GithubCommentTestCase):
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert top_5_issue_ids == [self.group_id]
+        assert top_5_issues[0]["affected_users"] == 6
 
     def test_project_group_id_mismatch(self):
         # we fetch all group_ids that belong to the projects passed into the function
@@ -289,18 +291,18 @@ class TestGetIssues(GithubCommentTestCase):
         assert top_5_issue_ids == [self.group_id]
 
     def test_fetches_top_five_issues(self):
-        group_id_1 = [self._create_event(filenames=["bar.py", "baz.py"]) for _ in range(5)][
-            0
-        ].group.id
-        group_id_2 = [self._create_event(filenames=["hello.py", "baz.py"]) for _ in range(4)][
-            0
-        ].group.id
-        group_id_3 = [self._create_event(filenames=["base.py", "baz.py"]) for _ in range(3)][
-            0
-        ].group.id
-        group_id_4 = [self._create_event(filenames=["nom.py", "baz.py"]) for _ in range(2)][
-            0
-        ].group.id
+        group_id_1 = [
+            self._create_event(filenames=["bar.py", "baz.py"], user_id=str(i)) for i in range(5)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(filenames=["hello.py", "baz.py"], user_id=str(i)) for i in range(4)
+        ][0].group.id
+        group_id_3 = [
+            self._create_event(filenames=["base.py", "baz.py"], user_id=str(i)) for i in range(3)
+        ][0].group.id
+        group_id_4 = [
+            self._create_event(filenames=["nom.py", "baz.py"], user_id=str(i)) for i in range(2)
+        ][0].group.id
         # 6th issue
         self._create_event(filenames=["nan.py", "baz.py"])
         # unrelated issue with same stack trace in different project
@@ -308,4 +310,7 @@ class TestGetIssues(GithubCommentTestCase):
 
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        users_affected = [issue["affected_users"] for issue in top_5_issues]
+
         assert top_5_issue_ids == [self.group_id, group_id_1, group_id_2, group_id_3, group_id_4]
+        assert users_affected == [6, 5, 4, 3, 2]

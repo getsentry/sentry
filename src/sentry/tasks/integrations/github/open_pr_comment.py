@@ -133,10 +133,10 @@ def get_top_5_issues_by_count_for_file(
                 [
                     Column("group_id"),
                     Function("count", [], "event_count"),
-                    Column("exception_frames.filename"),
+                    Function("uniq", [Column("user_hash")], "affected_users"),
                 ]
             )
-            .set_groupby([Column("group_id"), Column("exception_frames.filename")])
+            .set_groupby([Column("group_id")])
             .set_where(
                 [
                     Condition(Column("project_id"), Op.IN, project_ids),
