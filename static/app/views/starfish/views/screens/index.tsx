@@ -294,12 +294,14 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             />
           </ChartsContainerItem>
 
-          <ChartsContainerItem key="ttfd">
-            {defined(hasTTFD) && !hasTTFD && yAxes[1] === YAxis.TTFD ? (
+          {defined(hasTTFD) && !hasTTFD && yAxes[1] === YAxis.TTFD ? (
+            <ChartsContainerWithHiddenOverflow>
               <ChartPanel title={CHART_TITLES[yAxes[1]]}>
                 <TabbedCodeSnippet tabs={SETUP_CONTENT} />
               </ChartPanel>
-            ) : (
+            </ChartsContainerWithHiddenOverflow>
+          ) : (
+            <ChartsContainerItem key="ttfd">
               <ScreensBarChart
                 chartOptions={[
                   {
@@ -324,8 +326,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                 isLoading={isReleaseEventsLoading}
                 chartKey="screensChart1"
               />
-            )}
-          </ChartsContainerItem>
+            </ChartsContainerItem>
+          )}
         </Fragment>
       </ChartsContainer>
       <StyledSearchBar
@@ -378,6 +380,11 @@ const ChartsContainer = styled('div')`
   flex-direction: row;
   flex-wrap: wrap;
   gap: ${space(2)};
+`;
+
+const ChartsContainerWithHiddenOverflow = styled('div')`
+  flex: 1;
+  overflow: hidden;
 `;
 
 const ChartsContainerItem = styled('div')`
