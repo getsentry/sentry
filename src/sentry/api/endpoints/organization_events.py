@@ -240,7 +240,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         try:
-            use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
+            on_demand_metrics_type = self.handle_on_demand(request)
         except ValueError:
             metric_type_values = [e.value for e in MetricSpecType]
             metric_types = ",".join(metric_type_values)
@@ -248,10 +248,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 {"detail": f"On demand metric type must be one of: {metric_types}"}, status=400
             )
 
-        on_demand_metrics_enabled = (
-            batch_features.get("organizations:on-demand-metrics-extraction", False)
-            and use_on_demand_metrics
+        on_demand_metrics_enabled = batch_features.get(
+            "organizations:on-demand-metrics-extraction", False
         )
+
+        use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
@@ -282,7 +283,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
                 has_metrics=use_metrics,
-                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
             )

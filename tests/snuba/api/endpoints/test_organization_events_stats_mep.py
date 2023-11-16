@@ -975,7 +975,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 ],
                 "topEvents": 5,
                 "dataset": "metrics",
-                "useOnDemandMetrics": "true",
                 "onDemandType": "not_real",
             },
         )
@@ -1000,7 +999,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 ],
                 "topEvents": 5,
                 "dataset": "metrics",
-                "useOnDemandMetrics": "true",
             },
         )
 
@@ -1060,7 +1058,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 ],
                 "topEvents": 5,
                 "dataset": "metricsEnhanced",
-                "useOnDemandMetrics": "true",
                 "onDemandType": "dynamic_query",
             },
         )
@@ -1132,7 +1129,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 ],
                 "topEvents": 5,
                 "dataset": "metricsEnhanced",
-                "useOnDemandMetrics": "true",
                 "onDemandType": "dynamic_query",
             },
         )

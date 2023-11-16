@@ -202,13 +202,19 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
         try:
-            use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
+            on_demand_metrics_type = self.handle_on_demand(request)
         except ValueError:
             metric_type_values = [e.value for e in MetricSpecType]
             metric_types = ",".join(metric_type_values)
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
-        force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
+        on_demand_metrics_enabled = batch_features.get(
+            "organizations:on-demand-metrics-extraction", False
+        )
+
+        use_metrics_layer = request.GET.get("forceMetricsLayer") == "true" and batch_features.get(
+            "organizations:use-metrics-layer", False
+        )
 
         def get_event_stats(
             query_columns: Sequence[str],
@@ -232,7 +238,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
-                    on_demand_metrics_enabled=use_on_demand_metrics,
+                    on_demand_metrics_enabled=on_demand_metrics_enabled,
                     on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                 )
@@ -250,10 +256,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 # We want to allow people to force use the new metrics layer in the query builder. We decided to go for
                 # this approach so that we can have only a subset of parts of sentry that use the new metrics layer for
                 # their queries since right now the metrics layer has not full feature parity with the query builder.
-                use_metrics_layer=force_metrics_layer
-                or batch_features.get("organizations:use-metrics-layer", False),
-                on_demand_metrics_enabled=use_on_demand_metrics
-                and batch_features.get("organizations:on-demand-metrics-extraction", False),
+                use_metrics_layer=use_metrics_layer,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
             )
 

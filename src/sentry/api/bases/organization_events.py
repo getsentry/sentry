@@ -293,14 +293,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             has_results="true" if bool(cursor) else "false",
         )
 
-    def handle_on_demand(self, request: Request) -> tuple[bool, MetricSpecType]:
-        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
+    def handle_on_demand(self, request: Request) -> MetricSpecType:
         on_demand_metric_type = MetricSpecType.SIMPLE_QUERY
         on_demand_metric_type_value = request.GET.get("onDemandType")
-        if use_on_demand_metrics and on_demand_metric_type_value:
+        if on_demand_metric_type_value:
             on_demand_metric_type = MetricSpecType(on_demand_metric_type_value)
 
-        return use_on_demand_metrics, on_demand_metric_type
+        return on_demand_metric_type
 
     def handle_unit_meta(
         self, meta: Dict[str, str]
