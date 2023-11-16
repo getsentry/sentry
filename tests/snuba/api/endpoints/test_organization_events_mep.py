@@ -2592,9 +2592,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
     def setUp(self):
         super().setUp()
-        self.features = {
-            "organizations:on-demand-metrics-extraction-widgets": True,
-        }
 
     def do_request(self, query):
         self.login_as(user=self.user)
@@ -2602,7 +2599,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             self.viewname,
             kwargs={"organization_slug": self.organization.slug},
         )
-        with self.feature(self.features):
+        with self.feature(
+            {
+                "organizations:on-demand-metrics-extraction": True,  # XXX: We have coupling
+                "organizations:on-demand-metrics-extraction-widgets": True,
+            }
+        ):
             return self.client.get(url, query, format="json")
 
     def test_metrics_extracted_data_does_not_fall_back_with_fields(self):
