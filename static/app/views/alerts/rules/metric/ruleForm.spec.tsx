@@ -233,9 +233,7 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      await waitFor(() =>
-        expect(screen.findByTestId('alert-total-events')).toHaveTextContent('Total5')
-      );
+      expect(await screen.findByTestId('alert-total-events')).toHaveTextContent('Total5');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
