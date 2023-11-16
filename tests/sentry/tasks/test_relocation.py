@@ -947,7 +947,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @patch(
     "sentry.tasks.relocation.CloudBuildClient",
     new_callable=lambda: FakeCloudBuildClient,
@@ -1784,7 +1784,7 @@ class CompletedTest(RelocationTaskTestCase):
         assert not relocation.failure_reason
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @patch(
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
