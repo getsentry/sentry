@@ -94,7 +94,7 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
           <DurationCell
             milliseconds={
               data.data[0]?.[
-                `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`
+                `avg_if(measurements.time_to_full_display,release,${primaryRelease})`
               ] as number
             }
           />
