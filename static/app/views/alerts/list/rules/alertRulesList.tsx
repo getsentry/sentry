@@ -195,6 +195,10 @@ function AlertRulesList() {
     <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
   );
 
+  const rulesWithmigrationWarnings = new Set(
+    ruleList.filter(rule => hasMigrationUIFeatureFlag && ruleNeedsMigration(rule))
+  );
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
@@ -278,9 +282,8 @@ function AlertRulesList() {
                         key={`${
                           isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
                         }-${rule.id}`}
-                        showMigrationWarning={
-                          hasMigrationUIFeatureFlag && ruleNeedsMigration(rule)
-                        }
+                        showMigrationWarning={rulesWithmigrationWarnings.has(rule)}
+                        listHasMigrationWarnings={rulesWithmigrationWarnings.size > 0}
                         projectsLoaded={initiallyLoaded}
                         projects={projects as Project[]}
                         rule={rule}
