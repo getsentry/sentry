@@ -4,9 +4,7 @@
   "environment": "production",
   "platform": "csharp",
   "logger": "",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {
