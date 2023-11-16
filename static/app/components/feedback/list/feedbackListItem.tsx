@@ -1,4 +1,4 @@
-import {CSSProperties, forwardRef, Fragment} from 'react';
+import {CSSProperties, forwardRef} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -10,9 +10,10 @@ import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasRep
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
+import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCircleFill, IconPlay} from 'sentry/icons';
+import {IconCircleFill, IconFlag, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -43,6 +44,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const organization = useOrganization();
     const isOpen = useIsSelectedFeedback({feedbackItem});
     const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
+    const crashReportId = feedbackItem.level === 'error';
 
     return (
       <CardSpacing className={className} style={style} ref={ref}>
@@ -89,21 +91,31 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <div style={{gridArea: 'message'}}>
             <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
           </div>
-          <div style={{gridArea: 'assigned', display: 'flex', justifyContent: 'end'}}>
+          <div
+            style={{
+              gridArea: 'icons',
+              display: 'flex',
+              justifyContent: 'end',
+              gap: `${space(0.5)}`,
+            }}
+          >
             {feedbackItem.assignedTo ? (
               <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
             ) : null}
+            {hasReplayId && <Tag icon={<IconPlay />} tooltipText={t('Replay')} />}
           </div>
-          <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
-            <Flex align="center" gap={space(0.5)}>
-              <ProjectAvatar project={feedbackItem.project} size={12} />
-              <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
-              {hasReplayId ? (
-                <Fragment>
-                  <IconPlay size="xs" />
-                  {t('Replay')}
-                </Fragment>
-              ) : null}
+          <Flex style={{gridArea: 'labels'}} gap={space(1)} align="center">
+            <Flex align="center" gap={space(1.5)}>
+              <IconText isOpen={isOpen}>
+                <ProjectAvatar project={feedbackItem.project} size={12} />
+                <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
+              </IconText>
+              {crashReportId && (
+                <IconText isOpen={isOpen}>
+                  <IconFlag size="xs" />
+                  {t('Crash Report')}
+                </IconText>
+              )}
             </Flex>
           </Flex>
         </LinkedFeedbackCard>
@@ -111,6 +123,12 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     );
   }
 );
+
+const IconText = styled(Flex)<{isOpen: boolean}>`
+  align-items: center;
+  gap: ${space(0.5)};
+  color: ${p => (p.isOpen ? p.theme.gray100 : p.theme.gray400)};
+`;
 
 const CardSpacing = styled('div')`
   padding: ${space(0.25)} ${space(0.5)};
@@ -136,7 +154,7 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-areas:
     'checkbox user time'
     'unread message message'
-    '. icons assigned';
+    '. labels icons';
   gap: ${space(1)};
   place-items: stretch;
   align-items: center;
