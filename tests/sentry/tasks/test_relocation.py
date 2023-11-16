@@ -14,16 +14,19 @@ from google_crc32c import value as crc32c
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import (
+    ImportFlags,
     LocalFileDecryptor,
     LocalFileEncryptor,
     create_encrypted_export_tarball,
     decrypt_encrypted_tarball,
     unwrap_encrypted_export_tarball,
 )
+from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.relocation import (
     Relocation,
     RelocationFile,
@@ -34,6 +37,7 @@ from sentry.models.relocation import (
 from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.tasks.relocation import (
+    ERR_POSTPROCESSING_INTERNAL,
     ERR_PREPROCESSING_DECRYPTION,
     ERR_PREPROCESSING_INTERNAL,
     ERR_PREPROCESSING_INVALID_JSON,
@@ -49,6 +53,7 @@ from sentry.tasks.relocation import (
     MAX_FAST_TASK_RETRIES,
     MAX_VALIDATION_POLLS,
     importing,
+    postprocessing,
     preprocessing_baseline_config,
     preprocessing_colliding_users,
     preprocessing_complete,
@@ -64,6 +69,8 @@ from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, gen
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
+
+IMPORT_JSON_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
 
 
 class FakeCloudBuildClient:
@@ -112,7 +119,7 @@ class RelocationTaskTestCase(TestCase):
             with open(tmp_pub_key_path, "wb") as f:
                 f.write(pub_key_pem)
 
-            with open(get_fixture_path("backup", "fresh-install.json")) as f:
+            with open(IMPORT_JSON_FILE_PATH, "rb") as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
                     file = File.objects.create(name="export.tar", type=RELOCATION_FILE_TYPE)
@@ -1089,7 +1096,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
-@patch("sentry.tasks.relocation.completed.delay")
+@patch("sentry.tasks.relocation.postprocessing.delay")
 @region_silo_test
 class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
     def setUp(self):
@@ -1099,14 +1106,15 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         self.relocation.latest_task = "VALIDATING_COMPLETE"
         self.relocation.save()
 
-    def test_success(self, completed_mock: Mock, fake_kms_client: FakeKeyManagementServiceClient):
+    def test_success(
+        self, postprocessing_mock: Mock, fake_kms_client: FakeKeyManagementServiceClient
+    ):
         self.mock_kms_client(fake_kms_client)
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
         importing(self.uuid)
 
-        # TODO(getsentry/team-ospo#203): Should notify users instead.
-        assert completed_mock.call_count == 1
+        assert postprocessing_mock.call_count == 1
         assert Organization.objects.filter(slug__startswith="testing").count() == org_count + 1
 
         assert RegionImportChunk.objects.filter(import_uuid=self.uuid).count() == 9
@@ -1128,6 +1136,87 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
                 "sentry.user",
                 "sentry.useremail",
             ]
+
+
+@patch("sentry.tasks.relocation.completed.delay")
+@region_silo_test
+class PostprocessingTest(RelocationTaskTestCase):
+    def setUp(self):
+        RelocationTaskTestCase.setUp(self)
+        TransactionTestCase.setUp(self)
+        self.relocation.step = Relocation.Step.IMPORTING.value
+        self.relocation.latest_task = "IMPORTING"
+        self.relocation.save()
+
+        with open(IMPORT_JSON_FILE_PATH, "rb") as fp:
+            import_in_organization_scope(
+                fp,
+                flags=ImportFlags(
+                    merge_users=False, overwrite_configs=False, import_uuid=str(self.uuid)
+                ),
+                org_filter=set(self.relocation.want_org_slugs),
+            )
+
+        imported_orgs = RegionImportChunk.objects.get(
+            import_uuid=self.uuid, model="sentry.organization"
+        )
+        assert len(imported_orgs.inserted_map) == 1
+        assert len(imported_orgs.inserted_identifiers) == 1
+
+        self.imported_org_id: int = next(iter(imported_orgs.inserted_map.values()))
+        self.imported_org_slug: str = next(iter(imported_orgs.inserted_identifiers.values()))
+
+    def test_success(self, completed_mock: Mock):
+        assert (
+            OrganizationMember.objects.filter(
+                organization_id=self.imported_org_id, role="owner", has_global_access=True
+            ).count()
+            == 1
+        )
+        assert not OrganizationMember.objects.filter(
+            organization_id=self.imported_org_id, user_id=self.owner.id
+        ).exists()
+
+        postprocessing(self.uuid)
+
+        # TODO(getsentry/team-ospo#203): Should notify users instead.
+        assert completed_mock.call_count == 1
+        assert (
+            OrganizationMember.objects.filter(
+                organization_id=self.imported_org_id, role="owner", has_global_access=True
+            ).count()
+            == 2
+        )
+        assert OrganizationMember.objects.filter(
+            organization_id=self.imported_org_id, user_id=self.owner.id
+        ).exists()
+
+    def test_retry_if_attempts_left(self, completed_mock: Mock):
+        self.relocation.want_org_slugs = ["incorrect-slug"]
+        self.relocation.save()
+
+        # An exception being raised will trigger a retry in celery.
+        with pytest.raises(Exception):
+            postprocessing(self.uuid)
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert not relocation.failure_reason
+        assert completed_mock.call_count == 0
+
+    def test_fail_if_no_attempts_left(self, completed_mock: Mock):
+        self.relocation.latest_task = "POSTPROCESSING"
+        self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
+        self.relocation.want_org_slugs = ["incorrect-slug"]
+        self.relocation.save()
+
+        with pytest.raises(Exception):
+            postprocessing(self.uuid)
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.failure_reason == ERR_POSTPROCESSING_INTERNAL
+        assert completed_mock.call_count == 0
 
 
 @patch(
