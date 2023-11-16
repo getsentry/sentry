@@ -68,10 +68,6 @@ class MetricWidgetQueries extends Component<Props, State> {
 
   componentDidMount() {
     this._isMounted = true;
-    // if (requiresCustomReleaseSorting(this.props.widget.queries[0])) {
-    //   this.fetchReleases();
-    //   return;
-    // }
   }
 
   componentWillUnmount() {
