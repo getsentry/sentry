@@ -148,6 +148,8 @@ def timeseries_query(
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            # We want to capture this exception to have more visibility in case the query can't be satisfied by metrics.
+            sentry_sdk.capture_exception(error)
             metrics_compatible = False
         except Exception as error:
             raise error
