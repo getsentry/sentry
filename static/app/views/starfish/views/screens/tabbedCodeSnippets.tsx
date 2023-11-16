@@ -26,7 +26,6 @@ export function TabbedCodeSnippet({tabs}: TabbedCodeSnippetProps) {
 
   return (
     <StyledCodeSnippet
-      dark
       tabs={tabs}
       language={language}
       hideCopyButton
