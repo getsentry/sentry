@@ -177,18 +177,20 @@ class DatabaseBackedUserService(UserService):
         self, *, email: str, ident: Optional[str] = None, referrer: Optional[str] = None
     ) -> RpcUser:
         with transaction.atomic(router.db_for_write(User)):
-            user = self.get_user_by_email(email=email, ident=ident)
+            rpc_user = self.get_user_by_email(email=email, ident=ident)
+            if rpc_user:
+                return rpc_user
+
             # Create User if it doesn't exist
-            if user is None:
-                user = User.objects.create(
-                    username=f"{slugify(str.split(email, '@')[0])}-{uuid4().hex}",
-                    email=email,
-                    name=email,
-                )
-                user_signup.send_robust(
-                    sender=self, user=user, source="api", referrer=referrer or "unknown"
-                )
-                user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
+            user = User.objects.create(
+                username=f"{slugify(str.split(email, '@')[0])}-{uuid4().hex}",
+                email=email,
+                name=email,
+            )
+            user_signup.send_robust(
+                sender=self, user=user, source="api", referrer=referrer or "unknown"
+            )
+            user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
             return serialize_rpc_user(user)
 
     def get_user_by_email(
