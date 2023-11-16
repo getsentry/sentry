@@ -806,7 +806,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert relocation.status == Relocation.Status.FAILURE.value
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.tasks.relocation.validating_start.delay")
 class PreprocessingCompleteTest(RelocationTaskTestCase):
@@ -936,7 +936,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.tasks.relocation.CloudBuildClient",
     new_callable=lambda: FakeCloudBuildClient,
@@ -1772,7 +1772,7 @@ class CompletedTest(RelocationTaskTestCase):
         assert not relocation.failure_reason
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
