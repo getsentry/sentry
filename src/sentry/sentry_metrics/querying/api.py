@@ -156,7 +156,6 @@ class MutableTimeseries:
             environment_ids = [environment.id for environment in environments]
             existing_filters = self._timeseries.filters
 
-
         return self
 
     def alias_operators(self) -> "MutableTimeseries":
@@ -173,7 +172,6 @@ class MutableTimeseries:
 
 
 class QueryParser:
-
     def __init__(
         self,
         fields: Sequence[str],
@@ -216,7 +214,9 @@ class QueryParser:
         """
         return MutableTimeseries(timeseries=parse_mql(field).query)
 
-    def parse_timeserieses(self, environments: Sequence[Environment]) -> Generator[Timeseries, None, None]:
+    def parse_timeserieses(
+        self, environments: Sequence[Environment]
+    ) -> Generator[Timeseries, None, None]:
         """
         Parses the incoming fields with the MQL grammar.
 
