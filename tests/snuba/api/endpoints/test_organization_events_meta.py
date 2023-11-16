@@ -395,11 +395,8 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-samples"
 
-    @mock.patch(
-        "sentry.search.events.builder.spans_indexed.SpansIndexedQueryBuilder.process_results",
-        return_value={"data": []},
-    )
-    def test_is_segment_properly_converted_in_filter(self, mock_request):
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    def test_is_segment_properly_converted_in_filter(self, mock_raw_snql_query):
         self.login_as(user=self.user)
         project = self.create_project()
         url = reverse(self.url_name, kwargs={"organization_slug": project.organization.slug})
@@ -422,6 +419,6 @@ class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
 
         # the SQL should have is_segment converted into an int for all requests
         assert all(
-            "equals((is_segment AS _snuba_is_segment), 1)" in call_args[0][0]["sql"]
-            for call_args in mock_request.call_args_list
+            "is_segment = 1" in call_args[0][0].serialize()
+            for call_args in mock_raw_snql_query.call_args_list
         )
