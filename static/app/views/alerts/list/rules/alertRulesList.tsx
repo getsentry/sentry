@@ -195,7 +195,7 @@ function AlertRulesList() {
     <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
   );
 
-  const rulesWithmigrationWarnings = new Set(
+  const rulesWithMigrationWarnings = new Set(
     ruleList.filter(rule => hasMigrationUIFeatureFlag && ruleNeedsMigration(rule))
   );
 
@@ -282,8 +282,8 @@ function AlertRulesList() {
                         key={`${
                           isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
                         }-${rule.id}`}
-                        showMigrationWarning={rulesWithmigrationWarnings.has(rule)}
-                        listHasMigrationWarnings={rulesWithmigrationWarnings.size > 0}
+                        showMigrationWarning={rulesWithMigrationWarnings.has(rule)}
+                        listHasMigrationWarnings={rulesWithMigrationWarnings.size > 0}
                         projectsLoaded={initiallyLoaded}
                         projects={projects as Project[]}
                         rule={rule}
