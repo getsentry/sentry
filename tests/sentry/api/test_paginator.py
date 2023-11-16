@@ -944,6 +944,16 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
                 tenant_ids=self.tenant_ids,
             )
 
+    def test_raises_error_when_no_orderby(self):
+        self.query = self.query._replace("orderby", None)
+        with pytest.raises(Exception):
+            self.cls(
+                query=self.query,
+                dataset="events",
+                app_id=self.referrer,
+                tenant_ids=self.tenant_ids,
+            )
+
     def test_raises_error_for_orderby_when_query_already_has(self):
         with pytest.raises(Exception):
             self.cls(

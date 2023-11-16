@@ -776,6 +776,8 @@ class SnubaRequestPaginator:
                 self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.DESC)])
             else:
                 self.query = self.query.set_orderby([OrderBy(Column(order_by), Direction.ASC)])
+        elif not self.query.orderby:
+            raise Exception("Missing orderby for query")
         if limit:
             if self.query.limit:
                 raise Exception("Value provided for limit when query already has one")
