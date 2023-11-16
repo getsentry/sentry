@@ -1309,10 +1309,15 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 
     event = job["event"]
-    if event.occurrence.evidence_data.get("source") in [
-        FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-        FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT.value,
-    ]:
+    if (
+        hasattr(event, "occurrence")
+        and event.occurrence is not None
+        and event.occurrence.evidence_data.get("source")
+        in [
+            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
+            FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT.value,
+        ]
+    ):
         return True
     return False
 
