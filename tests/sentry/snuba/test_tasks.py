@@ -563,52 +563,55 @@ class BuildSnqlQueryTest(TestCase):
         # metrics layer generates snql.
         use_none_clauses=False,
     ):
-        aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
-        time_window = 3600
-        entity_subscription = get_entity_subscription(
-            query_type=query_type,
-            dataset=dataset,
-            aggregate=aggregate,
-            time_window=time_window,
-            extra_fields=entity_extra_fields,
-        )
-        query_builder = build_query_builder(
-            entity_subscription,
-            query,
-            (self.project.id,),
-            environment=environment,
-            params={
-                "organization_id": self.organization.id,
-                "project_id": [self.project.id],
-            },
-        )
-        snql_query = query_builder.get_snql_query()
-        select = self.string_aggregate_to_snql(query_type, dataset, aggregate, aggregate_kwargs)
-        if dataset == Dataset.Sessions:
-            col_name = "sessions" if "sessions" in aggregate else "users"
-            select.insert(
-                0,
-                Function(
-                    function="identity", parameters=[Column(name=col_name)], alias="_total_count"
-                ),
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
+            time_window = 3600
+            entity_subscription = get_entity_subscription(
+                query_type=query_type,
+                dataset=dataset,
+                aggregate=aggregate,
+                time_window=time_window,
+                extra_fields=entity_extra_fields,
             )
-        # Select order seems to be unstable, so just arbitrarily sort by name, alias so that it's consistent
-        snql_query.query.select.sort(key=lambda q: (q.function, q.alias))
-        entity_name = get_entity_key_from_query_builder(query_builder).value
-        entity_args = {"name": entity_name}
-        if dataset == Dataset.Events:
-            entity_args["alias"] = entity_name
-        expected_query = Query(
-            match=Entity(**entity_args),
-            select=select,
-            where=expected_conditions,
-            groupby=None if use_none_clauses else [],
-            having=[],
-            orderby=None if use_none_clauses else [],
-        )
-        if granularity is not None:
-            expected_query = expected_query.set_granularity(granularity)
-        assert snql_query.query == expected_query
+            query_builder = build_query_builder(
+                entity_subscription,
+                query,
+                (self.project.id,),
+                environment=environment,
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                },
+            )
+            snql_query = query_builder.get_snql_query()
+            select = self.string_aggregate_to_snql(query_type, dataset, aggregate, aggregate_kwargs)
+            if dataset == Dataset.Sessions:
+                col_name = "sessions" if "sessions" in aggregate else "users"
+                select.insert(
+                    0,
+                    Function(
+                        function="identity",
+                        parameters=[Column(name=col_name)],
+                        alias="_total_count",
+                    ),
+                )
+            # Select order seems to be unstable, so just arbitrarily sort by name, alias so that it's consistent
+            snql_query.query.select.sort(key=lambda q: (q.function, q.alias))
+            entity_name = get_entity_key_from_query_builder(query_builder).value
+            entity_args = {"name": entity_name}
+            if dataset == Dataset.Events:
+                entity_args["alias"] = entity_name
+            expected_query = Query(
+                match=Entity(**entity_args),
+                select=select,
+                where=expected_conditions,
+                groupby=None if use_none_clauses else [],
+                having=[],
+                orderby=None if use_none_clauses else [],
+            )
+            if granularity is not None:
+                expected_query = expected_query.set_granularity(granularity)
+            assert snql_query.query == expected_query
 
     def string_aggregate_to_snql(self, query_type, dataset, aggregate, aggregate_kwargs):
         aggregate_builder_func = self.aggregate_mappings[query_type][dataset].get(
