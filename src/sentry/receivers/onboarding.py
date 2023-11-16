@@ -53,7 +53,7 @@ START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
 )
 # Used to determine if we should or not record an analytic data
 # for a first sourcemap of a project
-START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 13, tzinfo=timezone.utc)
+START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=timezone.utc)
 
 
 @project_created.connect(weak=False)

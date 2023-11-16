@@ -749,12 +749,20 @@ class OrganizationOnboardingTaskTest(TestCase):
     def test_first_event_without_sourcemaps_received(self, record_analytics):
         """
         Test that an analytics event is NOT recorded when
-        there no event with sourcemaps is received
+        no event with sourcemaps is received
         """
         now = django_timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         data = load_data("javascript")
+        data["exception"] = {
+            "values": [
+                {
+                    "stacktrace": {"frames": [{"data": {}}]},
+                    "type": "TypeError",
+                }
+            ]
+        }
         event = self.store_event(
             project_id=project.id,
             data=data,
@@ -762,15 +770,12 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         event_processed.send(project=project, event=event, sender=type(project))
 
-        with pytest.raises(AssertionError):
-            record_analytics.assert_called_with(
-                "first_sourcemaps_for_project.sent",
-                user_id=self.user.id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                platform="javascript",
-                url="http://localhost:3000",
-            )
+        count = 0
+        for call_arg in record_analytics.call_args_list:
+            if "first_sourcemaps_for_project.sent" in call_arg[0]:
+                count += 1
+
+        assert count == 0
 
     @patch("sentry.analytics.record")
     def test_first_event_with_sourcemaps_received(self, record_analytics):
