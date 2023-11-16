@@ -15,6 +15,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
@@ -105,7 +106,12 @@ export function ScreensBarChart({
           <BarChart
             {...chartProps}
             height={chartHeight ?? 180}
-            series={chartOptions[selectedDisplay].series ?? []}
+            series={
+              chartOptions[selectedDisplay].series?.map(series => ({
+                ...series,
+                name: formatVersion(series.seriesName),
+              })) ?? []
+            }
             grid={{
               left: '0',
               right: '0',
