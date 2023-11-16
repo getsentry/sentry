@@ -120,7 +120,6 @@ def _ensure_monitor_with_config(
 def check_killswitch(
     metric_kwargs: Dict,
     project: Project,
-    monitor_slug: str,
 ):
     """
     Enforce organization level monitor kill switch. Returns true if the
@@ -133,10 +132,6 @@ def check_killswitch(
         metrics.incr(
             "monitors.checkin.dropped.blocked",
             tags={**metric_kwargs},
-        )
-        logger.info(
-            "monitors.consumer.killswitch",
-            extra={"org_id": project.organization_id, "slug": monitor_slug},
         )
     return is_blocked
 
@@ -162,14 +157,6 @@ def check_ratelimit(
         metrics.incr(
             "monitors.checkin.dropped.ratelimited",
             tags={**metric_kwargs},
-        )
-        logger.info(
-            "monitors.consumer.rate_limited",
-            extra={
-                "organization_id": project.organization_id,
-                "slug": monitor_slug,
-                "environment": environment,
-            },
         )
     return is_blocked
 
@@ -240,7 +227,7 @@ def _process_checkin(
         "sdk_platform": sdk_platform,
     }
 
-    if check_killswitch(metric_kwargs, project, monitor_slug):
+    if check_killswitch(metric_kwargs, project):
         return
 
     if check_ratelimit(metric_kwargs, project, monitor_slug, environment):
