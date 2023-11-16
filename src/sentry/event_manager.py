@@ -34,6 +34,7 @@ from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError
+from usageaccountant import UsageUnit
 
 from sentry import (
     eventstore,
@@ -121,6 +122,7 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -651,7 +653,7 @@ class EventManager:
             attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
-        _materialize_event_metrics(jobs)
+        _materialize_event_metrics(jobs, "errors")
 
         for attachment in attachments:
             key = f"bytes.stored.{attachment.type}"
@@ -2475,7 +2477,7 @@ def save_attachments(cache_key: Optional[str], attachments: list[Attachment], jo
 
 
 @metrics.wraps("event_manager.save_transactions.materialize_event_metrics")
-def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
+def _materialize_event_metrics(jobs: Sequence[Job], app_feature: str) -> None:
     for job in jobs:
         # Ensure the _metrics key exists. This is usually created during
         # and prefilled with ingestion sizes.
@@ -2484,6 +2486,13 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
 
         # Capture the actual size that goes into node store.
         event_metrics["bytes.stored.event"] = len(json.dumps(dict(job["event"].data.items())))
+        if app_feature is not None:
+            record(
+                resource_id=settings.COGS_EVENT_STORE_LABEL,
+                app_feature=app_feature,
+                amount=event_metrics["bytes.stored.event"],
+                usage_type=UsageUnit.BYTES,
+            )
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):
@@ -2695,7 +2704,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
     _tsdb_record_all_metrics(jobs)
-    _materialize_event_metrics(jobs)
+    _materialize_event_metrics(jobs, "transactions")
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
@@ -2729,7 +2738,7 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _derive_interface_tags_many(jobs)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
-    _materialize_event_metrics(jobs)
+    _materialize_event_metrics(jobs, "issue_platform")
     _nodestore_save_many(jobs)
 
     return jobs

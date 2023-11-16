@@ -3901,3 +3901,4 @@ SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
+COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
