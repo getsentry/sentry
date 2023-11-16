@@ -22,12 +22,12 @@ export default function PageloadModule() {
   const organization = useOrganization();
 
   return (
-    <SentryDocumentTitle title={t('Screens')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Mobile')} orgSlug={organization.slug}>
       <Layout.Page>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Screens')}</Layout.Title>
+              <Layout.Title>{t('Mobile')}</Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
 

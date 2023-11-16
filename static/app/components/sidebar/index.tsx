@@ -280,7 +280,7 @@ function Sidebar({location, organization}: Props) {
                   isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
                   isBeta={SCREENS_RELEASE_LEVEL === 'beta'}
                   isNew={SCREENS_RELEASE_LEVEL === 'new'}
-                  label={t('Screens')}
+                  label={t('Mobile')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
                   icon={<SubitemDot collapsed />}

@@ -59,7 +59,7 @@ function ScreenLoadSpans() {
   const crumbs: Crumb[] = [
     {
       to: screenLoadModule,
-      label: t('Screens'),
+      label: t('Mobile'),
       preservePageFilters: true,
     },
     {
