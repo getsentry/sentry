@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
@@ -6,9 +7,13 @@ import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {ProjectKey} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
-export const steps = (): LayoutProps['steps'] => [
+export const steps = (dsn: string | null, projectSlug: string): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -26,10 +31,7 @@ export const steps = (): LayoutProps['steps'] => [
         code: `npx @sentry/wizard@latest -i nextjs`,
       },
     ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: (
+    additionalInfo: (
       <Fragment>
         {t(
           'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
@@ -68,6 +70,13 @@ export const steps = (): LayoutProps['steps'] => [
             })}
           </ListItem>
         </List>
+      </Fragment>
+    ),
+  },
+  {
+    type: StepType.ALTERNATVE,
+    description: (
+      <Fragment>
         <p>
           {tct('Alternatively, you can also [manualSetupLink:set up the SDK manually].', {
             manualSetupLink: (
@@ -75,6 +84,18 @@ export const steps = (): LayoutProps['steps'] => [
             ),
           })}
         </p>
+        <br />
+        <DSNText>
+          <p>
+            {tct(
+              "If you already have the code for Sentry in your application, and just need this project's ([projectSlug]) DSN, you can find it below:",
+              {
+                projectSlug: <code>{projectSlug}</code>,
+              }
+            )}
+          </p>
+        </DSNText>
+        <div>{dsn && <TextCopyInput>{dsn}</TextCopyInput>}</div>
       </Fragment>
     ),
   },
@@ -83,7 +104,25 @@ export const steps = (): LayoutProps['steps'] => [
 // Configuration End
 
 export function GettingStartedWithNextJs({...props}: ModuleProps) {
-  return <Layout steps={steps()} {...props} />;
+  const {organization, projectSlug} = props;
+  const {
+    data: projectKeys,
+    isError,
+    isLoading,
+  } = useApiQuery<ProjectKey[]>(
+    [`/projects/${organization?.slug}/${projectSlug}/keys/`],
+    {
+      staleTime: Infinity,
+    }
+  );
+
+  const dsn = isError || isLoading ? null : projectKeys[0].dsn.public;
+
+  return <Layout steps={steps(dsn, projectSlug)} {...props} />;
 }
 
 export default GettingStartedWithNextJs;
+
+const DSNText = styled('div')`
+  margin-bottom: ${space(0.5)};
+`;

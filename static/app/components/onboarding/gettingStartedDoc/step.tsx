@@ -10,12 +10,14 @@ export enum StepType {
   INSTALL = 'install',
   CONFIGURE = 'configure',
   VERIFY = 'verify',
+  ALTERNATVE = 'alternative',
 }
 
 export const StepTitle = {
   [StepType.INSTALL]: t('Install'),
   [StepType.CONFIGURE]: t('Configure SDK'),
   [StepType.VERIFY]: t('Verify'),
+  [StepType.ALTERNATVE]: t('Alternative Methods'),
 };
 
 interface CodeSnippetTab {
