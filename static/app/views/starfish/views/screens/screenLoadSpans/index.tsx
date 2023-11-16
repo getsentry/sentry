@@ -96,7 +96,9 @@ function ScreenLoadSpans() {
                     </PageFilterBar>
                     <ReleaseComparisonSelector />
                   </FilterContainer>
-                  <ScreenMetricsRibbon />
+                  <ScreenMetricsRibbon
+                    additionalFilters={[`transaction:${transactionName}`]}
+                  />
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreenCharts
