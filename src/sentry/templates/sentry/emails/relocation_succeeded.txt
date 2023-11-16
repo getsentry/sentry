@@ -1,0 +1,9 @@
+Your relocation request was successful! The following organizations were migrated to sentry.io:
+
+{% for org in orgs %}
+* {{ org }}
+{% endfor %}
+
+You are now an owner of all of these organizations. Welcome to sentry.io!
+
+ID: {{ uuid }}

@@ -112,6 +112,8 @@ ERR_IMPORTING_INTERNAL = "Internal error during importing."
 
 ERR_POSTPROCESSING_INTERNAL = "Internal error during postprocessing."
 
+ERR_NOTIFYING_INTERNAL = "Internal error during relocation notification."
+
 ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
 
 
@@ -1038,8 +1040,8 @@ def postprocessing(uuid: str) -> None:
                 role="owner",
             )
 
-        # TODO(getsentry/team-ospo#203): Add notifying task here.
-        completed.delay(uuid)
+        # TODO(getsentry/team-ospo#203): Call notifying_users here.
+        notifying_owner.delay(uuid)
 
 
 @instrumented_task(
@@ -1061,7 +1063,7 @@ def notifying_users(uuid: str) -> None:
 
 
 @instrumented_task(
-    name="sentry.relocation.notifying_owners",
+    name="sentry.relocation.notifying_owner",
     queue="relocation",
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
@@ -1069,13 +1071,37 @@ def notifying_users(uuid: str) -> None:
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
-def notifying_owners(uuid: str) -> None:
+def notifying_owner(uuid: str) -> None:
     """
     Send an email to the creator and owner, telling them that their relocation was successful.
     """
 
-    # TODO(getsentry/team-ospo#203): Implement this.
-    pass
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        step=Relocation.Step.NOTIFYING,
+        task=OrderedTask.NOTIFYING_OWNER,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.NOTIFYING_OWNER,
+        attempts_left,
+        ERR_NOTIFYING_INTERNAL,
+    ):
+        send_relocation_update_email(
+            relocation,
+            EmailKind.SUCCEEDED,
+            {
+                "uuid": str(relocation.uuid),
+                "orgs": relocation.want_org_slugs,
+            },
+        )
+        completed.delay(uuid)
 
 
 @instrumented_task(

@@ -767,6 +767,20 @@ def relocation_started(request):
 
 
 @login_required
+def relocation_succeeded(request):
+    return MailPreview(
+        html_template="sentry/emails/relocation_succeeded.html",
+        text_template="sentry/emails/relocation_succeeded.txt",
+        context={
+            "domain": get_server_hostname(),
+            "datetime": timezone.now(),
+            "uuid": str(uuid.uuid4().hex),
+            "orgs": ["testsentry", "testgetsentry"],
+        },
+    ).render(request)
+
+
+@login_required
 def org_delete_confirm(request):
     from sentry.models.auditlogentry import AuditLogEntry
 

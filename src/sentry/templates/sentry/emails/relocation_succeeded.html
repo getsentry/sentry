@@ -1,0 +1,17 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Relocation Succeeded</h3>
+    <p>Your relocation request was successful! The following organizations were migrated to sentry.io:</p>
+<ul>
+{% for org in orgs %}
+<li>
+    <a>{{ org }}</a>
+</li>
+{% endfor %}
+</ul>
+    <p>You are now an owner of all of these organizations. Welcome to sentry.io!</p>
+    <p><small><i>ID: {{ uuid }}</i></small></p>
+{% endblock %}
