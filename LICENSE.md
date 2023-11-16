@@ -52,8 +52,8 @@ Permitted Purposes specifically include using the Software:
 3. for non-commercial research; and
 
 4. in connection with software development services or managed services that
-   you provide to a licensee using the Software in accordance with these Terms and
-   Conditions.
+   you provide to a licensee using the Software in accordance with these Terms
+and Conditions.
 
 ### Patents
 
