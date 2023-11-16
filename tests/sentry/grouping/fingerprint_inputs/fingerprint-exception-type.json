@@ -1,9 +1,7 @@
 {
   "_fingerprinting_rules": [
     {
-      "matchers": [
-        ["type", "DatabaseUnavailable"]
-      ],
+      "matchers": [["type", "DatabaseUnavailable"]],
       "fingerprint": ["database-unavailable"]
     }
   ],

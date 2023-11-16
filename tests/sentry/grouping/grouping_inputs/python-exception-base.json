@@ -6,11 +6,13 @@
       "value": "hello world",
       "module": "foo.bar",
       "stacktrace": {
-        "frames": [{
-          "filename": "foo/baz.py",
-          "lineno": 1,
-          "in_app": true
-        }]
+        "frames": [
+          {
+            "filename": "foo/baz.py",
+            "lineno": 1,
+            "in_app": true
+          }
+        ]
       }
     },
     {
@@ -18,11 +20,13 @@
       "value": "hello world",
       "module": "foo.bar",
       "stacktrace": {
-        "frames": [{
-          "filename": "foo/baz.py",
-          "lineno": 1,
-          "in_app": false
-        }]
+        "frames": [
+          {
+            "filename": "foo/baz.py",
+            "lineno": 1,
+            "in_app": false
+          }
+        ]
       }
     }
   ]

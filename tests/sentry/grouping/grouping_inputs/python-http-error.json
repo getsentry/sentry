@@ -92,9 +92,7 @@
   },
   "logentry": {
     "message": "%s.process_error",
-    "params": [
-      "send_notification"
-    ],
+    "params": ["send_notification"],
     "formatted": "send_notification.process_error"
   },
   "release": "d0d3f1ea630178c8f2836c2d2382dd534e9b47ac"

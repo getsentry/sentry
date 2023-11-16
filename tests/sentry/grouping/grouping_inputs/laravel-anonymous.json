@@ -18,9 +18,7 @@
                 "}",
                 ""
               ],
-              "post_context": [
-                ""
-              ],
+              "post_context": [""],
               "in_app": true,
               "lineno": 21,
               "filename": "/server.php",
