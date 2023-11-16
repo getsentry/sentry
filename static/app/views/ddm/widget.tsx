@@ -230,6 +230,7 @@ function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenuProps) 
 }
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-ignore
 function handleAddQueryToDashboard(props: {
   metricsQuery: MetricsQuery;
   organization: Organization;
