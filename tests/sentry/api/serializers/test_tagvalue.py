@@ -53,6 +53,8 @@ class UseTagValueSerializerTest(TestCase):
             last_seen=datetime(2018, 1, 1),
         )
 
-        result = serialize(tagvalue, user, serializer=UserTagValueSerializer(project_id=1))
+        result = serialize(
+            tagvalue, user, serializer=UserTagValueSerializer(project_id=self.project.id)
+        )
         assert result["value"] == "username:ted"
         assert result["query"] == 'user.username:"ted"'
