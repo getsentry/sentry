@@ -103,6 +103,15 @@ class SerializableFunctionSignature:
 
     @staticmethod
     def _unwrap_lazy_django_object(arg: Any) -> Any:
+        """Unwrap any lazy objects before attempting to serialize.
+
+        It's possible to receive a SimpleLazyObject initialized by the Django
+        framework and pass it to an RPC (typically `request.user` as an RpcUser
+        argument). These objects are supposed to behave seamlessly like the
+        underlying type, but don't play nice with the reflection that Pydantic uses
+        to serialize. So, we manually check and force them to unwrap.
+        """
+
         if isinstance(arg, LazyObject):
             return getattr(arg, "_wrapped")
         else:
