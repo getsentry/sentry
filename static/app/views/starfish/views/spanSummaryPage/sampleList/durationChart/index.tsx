@@ -26,6 +26,7 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFields?: string[];
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
@@ -67,6 +68,7 @@ function DurationChart({
   onMouseOverSample,
   highlightedSpanId,
   transactionMethod,
+  additionalFields,
   release,
   query,
 }: Props) {
@@ -91,8 +93,7 @@ function DurationChart({
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
-    groupId,
-    filters,
+    {...filters, 'span.group': groupId},
     [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );
@@ -116,6 +117,7 @@ function DurationChart({
     transactionMethod,
     release,
     query,
+    additionalFields,
   });
 
   const baselineAvgSeries: Series = {

@@ -118,6 +118,7 @@ export function InviteBanner({
     trackAnalytics('github_invite_banner.viewed', {
       organization,
       members_shown: missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).length,
+      total_members: missingMembers.length,
     });
   }
   if (!isEligibleForBanner || !showBanner || missingMembers.length === 0) {

@@ -35,10 +35,7 @@ import {
   ScreensTable,
   useTableQuery,
 } from 'sentry/views/starfish/views/screens/screensTable';
-import {
-  REPORT_FULLY_DRAWN_CONTENT,
-  SETUP_CONTENT,
-} from 'sentry/views/starfish/views/screens/setupContent';
+import {SETUP_CONTENT} from 'sentry/views/starfish/views/screens/setupContent';
 import {TabbedCodeSnippet} from 'sentry/views/starfish/views/screens/tabbedCodeSnippets';
 
 export enum YAxis {
@@ -299,7 +296,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             {defined(hasTTFD) && !hasTTFD && yAxes[1] === YAxis.TTFD ? (
               <ChartPanel title={CHART_TITLES[yAxes[1]]}>
                 <TabbedCodeSnippet tabs={SETUP_CONTENT} />
-                <TabbedCodeSnippet tabs={REPORT_FULLY_DRAWN_CONTENT} />
               </ChartPanel>
             ) : (
               <ScreensBarChart
@@ -384,7 +380,6 @@ const ChartsContainer = styled('div')`
 
 const ChartsContainerItem = styled('div')`
   flex: 1;
-  overflow: hidden;
 `;
 
 export const Spacer = styled('div')`
