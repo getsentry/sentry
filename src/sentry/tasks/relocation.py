@@ -11,9 +11,11 @@ from zipfile import ZipFile
 import yaml
 from cryptography.fernet import Fernet
 from django.db import router, transaction
+from django.utils import timezone as get_timezone
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
 
+from sentry import options
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.backup.dependencies import NormalizedModelName, get_model
 from sentry.backup.exports import export_in_config_scope, export_in_user_scope
@@ -26,6 +28,7 @@ from sentry.backup.helpers import (
 )
 from sentry.backup.imports import import_in_organization_scope
 from sentry.filestore.gcs import GoogleCloudStorage
+from sentry.http import get_server_hostname
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
 from sentry.models.importchunk import RegionImportChunk
@@ -39,10 +42,12 @@ from sentry.models.relocation import (
 )
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
+from sentry.utils.email.message_builder import MessageBuilder
 from sentry.utils.env import gcp_project_id
 from sentry.utils.relocation import (
     RELOCATION_BLOB_SIZE,
@@ -307,10 +312,34 @@ def preprocessing_scan(uuid: str) -> None:
             relocation.want_usernames = sorted(usernames)
             relocation.save()
 
-            # TODO(getsentry/team-ospo#203): The user's import data looks basically okay - we should
-            # use this opportunity to send a "your relocation request has been accepted and is in
-            # flight, please give it a couple hours" email.
             preprocessing_baseline_config.delay(uuid)
+
+            # The user's import data looks basically okay - we can use this opportunity to send a
+            # "your relocation request has been accepted and is in flight, please give it a few
+            # hours" email.
+            msg = MessageBuilder(
+                subject=f"{options.get('mail.subject-prefix')} Your Relocation has Started",
+                template="sentry/emails/relocation-started.txt",
+                html_template="sentry/emails/relocation-started.html",
+                type="relocation.started",
+                context={
+                    "domain": get_server_hostname(),
+                    "datetime": get_timezone.now(),
+                    "uuid": str(relocation.uuid),
+                    "orgs": relocation.want_org_slugs,
+                },
+            )
+            email_to = []
+            owner = user_service.get_user(user_id=relocation.owner_id)
+            if owner is not None:
+                email_to.append(owner.email)
+
+            if relocation.owner_id != relocation.creator_id:
+                creator = user_service.get_user(user_id=relocation.creator_id)
+                if creator is not None:
+                    email_to.append(creator.email)
+
+            msg.send_async(to=email_to)
 
 
 @instrumented_task(
