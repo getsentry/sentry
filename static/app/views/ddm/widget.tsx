@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -6,15 +7,16 @@ import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {IconSearch} from 'sentry/icons';
+import {IconEllipsis, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   MetricDisplayType,
@@ -26,6 +28,7 @@ import {
 } from 'sentry/utils/metrics';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {MetricChart} from 'sentry/views/ddm/chart';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
@@ -127,18 +130,31 @@ export function MetricWidget({
   return (
     <MetricWidgetPanel key={widget.position}>
       <PanelBody>
-        <QueryBuilder
-          metricsQuery={{
-            mri: widget.mri,
-            query: widget.query,
-            op: widget.op,
-            groupBy: widget.groupBy,
-          }}
-          projects={projects}
-          displayType={widget.displayType}
-          onChange={widget.onChange}
-          powerUserMode={widget.powerUserMode}
-        />
+        <MetricWidgetHeader>
+          <QueryBuilder
+            metricsQuery={{
+              mri: widget.mri,
+              query: widget.query,
+              op: widget.op,
+              groupBy: widget.groupBy,
+            }}
+            projects={projects}
+            displayType={widget.displayType}
+            onChange={widget.onChange}
+            powerUserMode={widget.powerUserMode}
+          />
+          <MetricWidgetContextMenu
+            metricsQuery={{
+              mri: widget.mri,
+              query: widget.query,
+              op: widget.op,
+              groupBy: widget.groupBy,
+              projects,
+              datetime,
+              environments,
+            }}
+          />
+        </MetricWidgetHeader>
         {widget.mri ? (
           <MetricWidgetBody
             datetime={datetime}
@@ -159,6 +175,71 @@ export function MetricWidget({
     </MetricWidgetPanel>
   );
 }
+
+const MetricWidgetHeader = styled('div')`
+  display: flex;
+
+  justify-content: space-between;
+  margin-bottom: ${space(1)};
+`;
+
+type ContextMenuProps = {
+  metricsQuery: MetricsQuery;
+  displayType?: MetricDisplayType;
+};
+
+function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenuProps) {
+  const organization = useOrganization();
+  const router = useRouter();
+
+  if (!organization.features.includes('ddm-experimental')) {
+    return null;
+  }
+
+  return (
+    <StyledDropdownMenuControl
+      items={[
+        {
+          key: 'add-alert',
+          label: t('Create Alert'),
+          disabled: true,
+        },
+        {
+          key: 'add-dashoard',
+          label: t('Add to Dashboard'),
+          onAction: () => {
+            handleAddQueryToDashboard({
+              organization,
+              router,
+              metricsQuery,
+              displayType,
+            });
+          },
+        },
+      ]}
+      triggerProps={{
+        'aria-label': t('Widget actions'),
+        size: 'xs',
+        borderless: true,
+        showChevron: false,
+        icon: <IconEllipsis direction="down" size="sm" />,
+      }}
+      position="bottom-end"
+    />
+  );
+}
+
+/* eslint-disable @typescript-eslint/no-unused-vars */
+function handleAddQueryToDashboard(props: {
+  metricsQuery: MetricsQuery;
+  organization: Organization;
+  router: InjectedRouter;
+  displayType?: MetricDisplayType;
+}) {}
+
+const StyledDropdownMenuControl = styled(DropdownMenu)`
+  margin: ${space(1)};
+`;
 
 function MetricWidgetBody({
   onChange,
