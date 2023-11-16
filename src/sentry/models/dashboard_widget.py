@@ -45,11 +45,13 @@ class TypesClass:
 class DashboardWidgetTypes(TypesClass):
     DISCOVER = 0
     ISSUE = 1
-    METRICS = 2
+    RELEASE_HEALTH = 2
+    METRICS = 3
     TYPES = [
         (DISCOVER, "discover"),
         (ISSUE, "issue"),
-        (METRICS, "metrics"),
+        (RELEASE_HEALTH, "metrics"),
+        (METRICS, "custom-metrics"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
