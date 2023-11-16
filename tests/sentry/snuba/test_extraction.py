@@ -6,6 +6,7 @@ from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
+    SearchQueryConverter,
     apdex_tag_spec,
     cleanup_query,
     failure_tag_spec,
@@ -653,3 +654,26 @@ def test_to_standard_metrics_query(dirty, clean):
     clean_tokens = parse_search_query(clean)
 
     assert cleaned_up_tokens == clean_tokens
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        (
+            "has:profile.id",
+            {
+                "op": "not",
+                "inner": {"op": "eq", "name": "event.contexts.profile.profile_id", "value": None},
+            },
+        ),
+        (
+            "profile.id:abc123",
+            {"op": "eq", "name": "event.contexts.profile.profile_id", "value": "abc123"},
+        ),
+    ],
+)
+def test_search_query_converter(query, expected):
+    tokens = parse_search_query(query)
+    converter = SearchQueryConverter(tokens)
+    condition = converter.convert()
+    assert expected == condition

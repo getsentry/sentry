@@ -55,7 +55,7 @@ QUERY_HASH_KEY = "query_hash"
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
 # Maps from Discover's field names to event protocol paths. See Relay's
-# ``FieldValueProvider`` for supported fields. All fields need to be prefixed
+# ``Getter`` implementation for ``Event`` for supported fields. All fields need to be prefixed
 # with "event.".
 # List of UI supported search fields is defined in sentry/static/app/utils/fields/index.ts
 _SEARCH_TO_PROTOCOL_FIELDS = {
@@ -111,6 +111,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "transaction.op": "contexts.trace.op",
     "http.status_code": "contexts.response.status_code",
     "unreal.crash_type": "contexts.unreal.crash_type",
+    "profile.id": "contexts.profile.profile_id",
     # Computed fields
     "transaction.duration": "duration",
     "release.build": "release.build",
