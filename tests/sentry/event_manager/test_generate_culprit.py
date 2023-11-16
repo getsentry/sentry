@@ -105,3 +105,26 @@ def test_truncation():
 def test_hash_from_values():
     result = hash_from_values(["foo", "bar", "foô"])
     assert result == "6d81588029ed4190110b2779ba952a00"
+
+
+def test_nel_culprit():
+    data = {
+        "type": "nel",
+        "contexts": {
+            "nel": {"phase": "application", "error_type": "http.error"},
+            "response": {"status_code": 418},
+        },
+    }
+    assert (
+        generate_culprit(data)
+        == "The user agent successfully received a response, but it had a 418 status code"
+    )
+
+    data = {"type": "nel", "contexts": {"nel": {"phase": "connection", "error_type": "tcp.reset"}}}
+    assert generate_culprit(data) == "The TCP connection was reset"
+
+    data = {"type": "nel", "contexts": {"nel": {"phase": "dns", "error_type": "dns.weird"}}}
+    assert generate_culprit(data) == "dns.weird"
+
+    data = {"type": "nel", "contexts": {"nel": {"phase": "dns"}}}
+    assert generate_culprit(data) == "<missing>"

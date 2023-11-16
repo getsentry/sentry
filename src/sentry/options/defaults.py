@@ -1692,4 +1692,9 @@ register(
 )
 # END: SDK Crash Detection
 
-register("unsubscribe_link.use_react_views", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    # Lists the shared resource ids we want to account usage for.
+    "shared_resources_accounting_enabled",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

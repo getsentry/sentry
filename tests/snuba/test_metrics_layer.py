@@ -5,9 +5,11 @@ from typing import Literal, Mapping
 
 import pytest
 from snuba_sdk import (
+    ArithmeticOperator,
     Column,
     Condition,
     Direction,
+    Formula,
     Metric,
     MetricsQuery,
     MetricsScope,
@@ -20,6 +22,7 @@ from snuba_sdk import (
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey
 from sentry.snuba.metrics_layer.query import run_query
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
@@ -450,3 +453,53 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
 
         assert len(result["data"]) == 61
         assert result["totals"]["aggregate_value"] == 60
+
+    def test_failure_rate(self) -> None:
+        query = MetricsQuery(
+            query=Formula(
+                ArithmeticOperator.DIVIDE,
+                [
+                    Timeseries(
+                        metric=Metric(
+                            mri=TransactionMRI.DURATION.value,
+                        ),
+                        aggregate="count",
+                        filters=[
+                            Condition(
+                                Column(TransactionTagsKey.TRANSACTION_STATUS.value),
+                                Op.NOT_IN,
+                                [
+                                    TransactionStatusTagValue.OK.value,
+                                    TransactionStatusTagValue.CANCELLED.value,
+                                    TransactionStatusTagValue.UNKNOWN.value,
+                                ],
+                            )
+                        ],
+                    ),
+                    Timeseries(
+                        metric=Metric(
+                            mri=TransactionMRI.DURATION.value,
+                        ),
+                        aggregate="count",
+                    ),
+                ],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, totals=True, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+
+        assert len(result["data"]) == 61
+        assert result["totals"]["aggregate_value"] == 1.0

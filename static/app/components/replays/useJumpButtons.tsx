@@ -57,7 +57,7 @@ export default function useJumpButtons({
     handleClick,
     onRowsRendered,
     onSectionRendered,
-    showJumpDownButton: rowIndex > visibleRange.stopIndex,
+    showJumpDownButton: rowIndex > visibleRange.stopIndex + 1,
     showJumpUpButton: rowIndex < visibleRange.startIndex,
   };
 }

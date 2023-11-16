@@ -57,7 +57,7 @@ describe('differentialFlamegraph', () => {
       events: [...makeEvent(1, 0)],
     });
 
-    const flamegraph = DifferentialFlamegraph.Diff(from, to, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(from, to, THEME);
     expect(flamegraph.colors?.get('f0')).toEqual([1, 0, 0, 1]);
   });
   it('INCREASE: color encodes relative increase in red', () => {
@@ -70,7 +70,7 @@ describe('differentialFlamegraph', () => {
       events: [...makeEvent(3, 0)],
     });
 
-    const flamegraph = DifferentialFlamegraph.Diff(from, to, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(from, to, THEME);
     expect(flamegraph.colors?.get('f0')).toEqual([1, 0, 0, 0.5]);
   });
   it('DECREASE: color encodes relative decrease in blue', () => {
@@ -83,7 +83,7 @@ describe('differentialFlamegraph', () => {
       events: [...makeEvent(2, 0)],
     });
 
-    const flamegraph = DifferentialFlamegraph.Diff(from, to, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(from, to, THEME);
     expect(flamegraph.colors?.get('f0')).toEqual([0, 0, 1, 0.5]);
   });
   it('No change: no color is set', () => {
@@ -96,7 +96,7 @@ describe('differentialFlamegraph', () => {
       events: [...makeEvent(2, 0)],
     });
 
-    const flamegraph = DifferentialFlamegraph.Diff(from, to, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(from, to, THEME);
     expect(flamegraph.colors?.get('f0')).toBe(undefined);
   });
 });

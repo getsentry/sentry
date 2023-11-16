@@ -120,6 +120,34 @@ class ContextIterator(Protocol):
         ...
 
 
+class _SimpleContextIterator(Iterator[Any]):
+    def __init__(self, inner: Iterator[Any]):
+        self.inner = inner
+        self.log_state = DynamicSamplingLogState()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self.inner)
+
+    def get_current_state(self) -> DynamicSamplingLogState:
+        return self.log_state
+
+    def set_current_state(self, state: DynamicSamplingLogState) -> None:
+        self.log_state = state
+
+
+def to_context_iterator(inner: Iterator[Any]) -> ContextIterator:
+    """
+    Adds a LogState to a simple iterator turning it into a ContextIterator
+
+    Note: (RaduW) this was probably a mistake, ContextIterator, _SimpleContextIterator and TimedIterator
+    should have been rolled into one type TimedIterator.
+    """
+    return _SimpleContextIterator(inner)
+
+
 class TimedIterator(Iterator[Any]):
     """
     An iterator that wraps an existing ContextIterator.

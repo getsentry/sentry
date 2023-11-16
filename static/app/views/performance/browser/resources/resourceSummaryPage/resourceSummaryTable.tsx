@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 
 import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
@@ -7,17 +7,20 @@ import GridEditable, {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
+import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePageQuery';
 import {useResourceSummarySort} from 'sentry/views/performance/browser/resources/utils/useResourceSummarySort';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 const {RESOURCE_RENDER_BLOCKING_STATUS, SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} =
@@ -37,7 +40,13 @@ function ResourceSummaryTable() {
   const location = useLocation();
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
-  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {sort});
+  const filters = useResourceModuleFilters();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {
+    sort,
+    cursor,
+    renderBlockingStatus: filters[RESOURCE_RENDER_BLOCKING_STATUS],
+  });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
@@ -66,7 +75,7 @@ function ResourceSummaryTable() {
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
     if (key === 'spm()') {
-      return <ThroughputCell rate={row[key] * 60} unit={RateUnits.PER_SECOND} />;
+      return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(span.self_time)') {
       return <DurationCell milliseconds={row[key]} />;
@@ -75,6 +84,12 @@ function ResourceSummaryTable() {
       return <FileSize bytes={row[key]} />;
     }
     if (key === 'transaction') {
+      const blockingStatus = row['resource.render_blocking_status'];
+      let query = `!has:${RESOURCE_RENDER_BLOCKING_STATUS}`;
+      if (blockingStatus) {
+        query = `${RESOURCE_RENDER_BLOCKING_STATUS}:${blockingStatus}`;
+      }
+
       return (
         <Link
           to={{
@@ -82,6 +97,7 @@ function ResourceSummaryTable() {
             query: {
               ...location.query,
               transaction: row[key],
+              query: [query],
             },
           }}
         >
@@ -100,6 +116,13 @@ function ResourceSummaryTable() {
       return <span>{'-'}</span>;
     }
     return <span>{row[key]}</span>;
+  };
+
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
+    });
   };
 
   return (
@@ -125,7 +148,7 @@ function ResourceSummaryTable() {
         }}
         location={location}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }

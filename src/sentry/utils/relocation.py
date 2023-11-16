@@ -5,13 +5,19 @@ from contextlib import contextmanager
 from enum import Enum, unique
 from functools import lru_cache
 from string import Template
-from typing import Generator, Optional, Tuple
+from typing import Any, Generator, Optional, Tuple
 
+from django.utils import timezone
+
+from sentry import options
 from sentry.backup.dependencies import dependencies, get_model_name, sorted_dependencies
 from sentry.backup.scopes import RelocationScope
+from sentry.http import get_server_hostname
 from sentry.models.files.utils import get_storage
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 
 logger = logging.getLogger("sentry.relocation.tasks")
 
@@ -30,7 +36,8 @@ class OrderedTask(Enum):
     VALIDATING_POLL = 7
     VALIDATING_COMPLETE = 8
     IMPORTING = 9
-    COMPLETED = 10
+    POSTPROCESSING = 10
+    COMPLETED = 11
 
 
 # The file type for a relocation export tarball of any kind.
@@ -180,16 +187,15 @@ IMPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "import"
       - "$scope"
       - "/in/$tarfile"
-      - "--findings-file"
-      - "/findings/import-$jsonfile"
       - "--decrypt-with-gcp-kms"
       - "/in/kms-config.json"
+      - "--findings-file"
+      - "/findings/import-$jsonfile"
       $args
     timeout: 30s
     """
 )
 
-# TODO(getsentry/team-ospo#203): Encrypt outgoing as well.
 EXPORT_VALIDATION_STEP_TEMPLATE = Template(
     """
   - name: "gcr.io/cloud-builders/docker"
@@ -209,7 +215,9 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "web"
       - "export"
       - "$scope"
-      - "/out/$jsonfile"
+      - "/out/$tarfile"
+      - "--encrypt-with-gcp-kms"
+      - "/in/kms-config.json"
       - "--findings-file"
       - "/findings/export-$jsonfile"
       $args
@@ -217,7 +225,21 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
     """
 )
 
-# TODO(getsentry/team-ospo#203): Encrypt right side as well.
+COPY_OUT_DIR_TEMPLATE = Template(
+    """
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: copy-out-dir
+    waitFor:
+      $wait_for
+    args:
+      - 'cp'
+      - '-r'
+      - '/workspace/out'
+      - '$bucket_root/relocations/runs/$uuid/out'
+    timeout: 30s
+    """
+)
+
 COMPARE_VALIDATION_STEP_TEMPLATE = Template(
     """
   - name: "gcr.io/cloud-builders/docker"
@@ -235,17 +257,51 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
       - "-v"
       - "/workspace/findings:/findings"
       - "web"
+      - "backup"
       - "compare"
       - "/in/$tarfile"
-      - "/out/$jsonfile"
-      - "--findings-file"
-      - "/findings/compare-$jsonfile"
+      - "/out/$tarfile"
       - "--decrypt-left-with-gcp-kms"
       - "/in/kms-config.json"
+      - "--decrypt-right-with-gcp-kms"
+      - "/in/kms-config.json"
+      - "--findings-file"
+      - "/findings/compare-$jsonfile"
       $args
     timeout: 30s
     """
 )
+
+
+class EmailKind(Enum):
+    STARTED = 0
+    FAILED = 1
+    SUCCEEDED = 2
+
+
+def send_relocation_update_email(
+    relocation: Relocation, email_kind: EmailKind, args: dict[str, Any]
+):
+    name = str(email_kind.name)
+    name_lower = name.lower()
+    msg = MessageBuilder(
+        subject=f"{options.get('mail.subject-prefix')} Your Relocation has {name.capitalize()}",
+        template=f"sentry/emails/relocation-{name_lower}.txt",
+        html_template=f"sentry/emails/relocation-{name_lower}.html",
+        type=f"relocation.{name_lower}",
+        context={"domain": get_server_hostname(), "datetime": timezone.now(), **args},
+    )
+    email_to = []
+    owner = user_service.get_user(user_id=relocation.owner_id)
+    if owner is not None:
+        email_to.append(owner.email)
+
+    if relocation.owner_id != relocation.creator_id:
+        creator = user_service.get_user(user_id=relocation.creator_id)
+        if creator is not None:
+            email_to.append(creator.email)
+
+    msg.send_async(to=email_to)
 
 
 def start_relocation_task(
@@ -322,7 +378,14 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
     relocation.save()
 
     logger.info("Task failed", extra={"uuid": relocation.uuid, "task": task.name, "reason": reason})
-    return
+    send_relocation_update_email(
+        relocation,
+        EmailKind.FAILED,
+        {
+            "uuid": str(relocation.uuid),
+            "reason": reason,
+        },
+    )
 
 
 @contextmanager
@@ -348,10 +411,10 @@ def retry_task_or_fail_relocation(
         # `FAILURE`.
         if attempts_left == 0:
             fail_relocation(relocation, task, reason)
-            return
+        else:
+            logger_data["reason"] = reason
+            logger.info("Task retried", extra=logger_data)
 
-        logger_data["reason"] = reason
-        logger.info("Task retried", extra=logger_data)
         raise e
     else:
         logger.info("Task finished", extra=logger_data)
@@ -462,6 +525,11 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             wait_for=["export-colliding-users"],
             kind=RelocationFile.Kind.RAW_USER_DATA,
             args=filter_org_slugs_args,
+        ),
+        COPY_OUT_DIR_TEMPLATE.substitute(
+            bucket_root=bucket_root,
+            uuid=relocation.uuid,
+            wait_for=["export-raw-relocation-data"],
         ),
         create_cloudbuild_validation_step(
             id="compare-baseline-config",

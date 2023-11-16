@@ -122,14 +122,14 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             <pre>{feedbackItem.metadata.message}</pre>
           </Blockquote>
         </Section>
-        <Section icon={<IconLink size="xs" />} title={t('Url')}>
+        <Section icon={<IconLink size="xs" />} title={t('URL')}>
           <ErrorBoundary mini>
             <TextCopyInput size="sm">
               {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
             </TextCopyInput>
           </ErrorBoundary>
         </Section>
-        {feedbackItem.level === 'error' && crashReportId && (
+        {crashReportId && (
           <CrashReportSection
             organization={organization}
             crashReportId={crashReportId}

@@ -1,7 +1,7 @@
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
-import {doMetricsRequest} from 'sentry/actionCreators/metrics';
+import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
@@ -20,6 +20,7 @@ import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 
@@ -71,9 +72,11 @@ export const ReleasesConfig: DatasetConfig<
   disableSortOptions,
   getTableRequest: (
     api: Client,
+    _: Widget,
     query: WidgetQuery,
     organization: Organization,
     pageFilters: PageFilters,
+    __?: OnDemandControlContext,
     limit?: number,
     cursor?: string
   ) =>
@@ -506,7 +509,7 @@ function getReleasesRequest(
       includeSeries,
       includeTotals,
     };
-    requester = doMetricsRequest;
+    requester = doReleaseHealthRequest;
 
     if (
       rawOrderby &&

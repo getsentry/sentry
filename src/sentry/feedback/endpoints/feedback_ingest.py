@@ -22,7 +22,7 @@ from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.feedback.models import Feedback
-from sentry.feedback.usecases.create_feedback import create_feedback_issue
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -176,7 +176,9 @@ class FeedbackIngestEndpoint(Endpoint):
         Feedback.objects.create(**result)
 
         _convert_feedback_to_context(request.data)
-        create_feedback_issue(request.data, project.id)
+        create_feedback_issue(
+            request.data, project.id, FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT
+        )
 
         return self.respond(status=201)
 

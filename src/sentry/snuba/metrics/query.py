@@ -41,7 +41,6 @@ class MetricField:
         Dict[str, Union[None, str, int, float, Sequence[Tuple[Union[str, int], ...]]]]
     ] = None
     alias: Optional[str] = None
-    allow_private: bool = False
 
     def __post_init__(self) -> None:
         # Validate that it is a valid MRI format
@@ -57,9 +56,6 @@ class MetricField:
 
     @property
     def _metric_name(self) -> str:
-        if self.allow_private:
-            return self.metric_mri
-
         return get_public_name_from_mri(self.metric_mri)
 
     def __str__(self) -> str:
@@ -162,6 +158,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[MetricOrderByField]] = None
     limit: Optional[Limit] = None
+    # In cases where limit involves calculation (eg. top N series), we want to cap the limit since it'll be blocked otherwise.
+    max_limit: Optional[Limit] = None
     offset: Optional[Offset] = None
     include_totals: bool = True
     include_series: bool = True
@@ -191,7 +189,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     @staticmethod
     def _validate_field(field: MetricField) -> None:
-        derived_metrics_mri = get_derived_metrics(exclude_private=True)
+        all_derived_metrics = get_derived_metrics()
 
         # Validate the validity of the expression meaning that if an operation is present, then it needs to be one of
         # of the supported operations and that the metric mri should be one of the aggregated derived metrics
@@ -200,14 +198,9 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 raise InvalidParams(
                     f"Invalid operation '{field.op}'. Must be one of {', '.join(OPERATIONS)}"
                 )
-            if field.metric_mri in derived_metrics_mri:
-                metric_name = (
-                    field.metric_mri
-                    if field.allow_private
-                    else get_public_name_from_mri(field.metric_mri)
-                )
+            if field.metric_mri in all_derived_metrics:
                 raise DerivedMetricParseException(
-                    f"Failed to parse {field.op}({metric_name}). No operations can be "
+                    f"Failed to parse {field.op}({get_public_name_from_mri(field.metric_mri)}). No operations can be "
                     f"applied on this field as it is already a derived metric with an "
                     f"aggregation applied to it."
                 )
@@ -303,6 +296,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
             granularity=self.granularity.granularity,
             interval=self.interval,
         )
+        if self.max_limit and self.max_limit < MAX_POINTS:
+            return
         if self.limit.limit > MAX_POINTS:
             raise InvalidParams(
                 f"Requested limit exceeds the maximum allowed limit of {MAX_POINTS}"
@@ -310,7 +305,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if self.start and self.end and self.include_series:
             if intervals_len * self.limit.limit > MAX_POINTS:
                 raise InvalidParams(
-                    f"Requested interval of timedelta of "
+                    f"Requested intervals ({intervals_len}) of timedelta of "
                     f"{timedelta(seconds=self.granularity.granularity)} with statsPeriod "
                     f"timedelta of {self.end - self.start} is too granular for a per_page of "
                     f"{self.limit.limit} elements. Increase your interval, decrease your "

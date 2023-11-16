@@ -15,6 +15,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconBookmark, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {clearQuery, updateQuery} from 'sentry/utils/metrics';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -158,6 +159,7 @@ export function useScratchpads() {
 
 export function ScratchpadSelector() {
   const scratchpads = useScratchpads();
+  const organization = useOrganization();
 
   const isDefault = useCallback(
     scratchpad => scratchpads.default === scratchpad.id,
@@ -183,6 +185,10 @@ export function ScratchpadSelector() {
                 borderless
                 onPointerDown={e => e.stopPropagation()}
                 onClick={() => {
+                  trackAnalytics('ddm.scratchpad.set-default', {
+                    organization,
+                  });
+
                   if (isDefault(s)) {
                     scratchpads.setDefault(null);
                   } else {
@@ -202,7 +208,13 @@ export function ScratchpadSelector() {
                 onPointerDown={e => e.stopPropagation()}
                 onClick={() => {
                   openConfirmModal({
-                    onConfirm: () => scratchpads.remove(s.id),
+                    onConfirm: () => {
+                      trackAnalytics('ddm.scratchpad.remove', {
+                        organization,
+                      });
+
+                      return scratchpads.remove(s.id);
+                    },
                     message: t('Are you sure you want to delete this scratchpad?'),
                     confirmText: t('Delete'),
                   });
@@ -216,7 +228,7 @@ export function ScratchpadSelector() {
           </Fragment>
         ),
       })),
-    [scratchpads, isDefault]
+    [scratchpads, isDefault, organization]
   );
 
   return (
@@ -260,11 +272,17 @@ function SaveAsDropdown({
   const theme = useTheme();
   const [name, setName] = useState('');
 
+  const organization = useOrganization();
+
   const save = useCallback(() => {
+    trackAnalytics('ddm.scratchpad.save', {
+      organization,
+    });
+
     onSave(name);
     setOpen(false);
     setName('');
-  }, [name, onSave, setOpen]);
+  }, [name, onSave, setOpen, organization]);
 
   const enterKeyPressed = useKeyPress('Enter');
 

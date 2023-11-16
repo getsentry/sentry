@@ -25,6 +25,7 @@ export type ChartSelectOptions = {
   title: string;
   yAxis: string;
   series?: Series[];
+  subtitle?: string;
   xAxisLabel?: string[];
 };
 
@@ -61,27 +62,34 @@ export function ScreensBarChart({
       <HeaderContainer>
         <Header>
           <ChartLabel>
-            <StyledCompactSelect
-              options={menuOptions}
-              value={chartOptions[selectedDisplay]?.yAxis}
-              onChange={option => {
-                const chartOption = chartOptions.find(o => o.yAxis === option.value);
-                if (defined(chartOption)) {
-                  router.replace({
-                    pathname: router.location.pathname,
-                    query: {...router.location.query, [chartKey]: chartOption.yAxis},
-                  });
-                }
-              }}
-              triggerProps={{
-                borderless: true,
-                size: 'zero',
-                'aria-label': chartOptions[selectedDisplay]?.title,
-              }}
-              offset={4}
-            />
+            {chartOptions.length > 1 ? (
+              <StyledCompactSelect
+                options={menuOptions}
+                value={chartOptions[selectedDisplay]?.yAxis}
+                onChange={option => {
+                  const chartOption = chartOptions.find(o => o.yAxis === option.value);
+                  if (defined(chartOption)) {
+                    router.replace({
+                      pathname: router.location.pathname,
+                      query: {...router.location.query, [chartKey]: chartOption.yAxis},
+                    });
+                  }
+                }}
+                triggerProps={{
+                  borderless: true,
+                  size: 'zero',
+                  'aria-label': chartOptions[selectedDisplay]?.title,
+                }}
+                offset={4}
+              />
+            ) : (
+              chartOptions[selectedDisplay]?.title
+            )}
           </ChartLabel>
         </Header>
+        {chartOptions[selectedDisplay].subtitle && (
+          <Subtitle>{chartOptions[selectedDisplay].subtitle}</Subtitle>
+        )}
       </HeaderContainer>
       <TransitionChart
         loading={Boolean(isLoading)}
@@ -101,7 +109,7 @@ export function ScreensBarChart({
             grid={{
               left: '0',
               right: '0',
-              top: '16px',
+              top: '8px',
               bottom: '0',
               containLabel: true,
             }}
@@ -146,7 +154,7 @@ const ChartLabel = styled('p')`
 `;
 
 const HeaderContainer = styled('div')`
-  padding: 0 ${space(1)} ${space(1)} 0;
+  padding: 0 ${space(1)} 0 0;
 `;
 
 const Header = styled('div')`
@@ -168,4 +176,10 @@ const StyledCompactSelect = styled(CompactSelect)`
     padding: ${space(0.5)} ${space(1)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
+`;
+
+const Subtitle = styled('span')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
+  display: inline-block;
 `;

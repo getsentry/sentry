@@ -29,7 +29,7 @@ from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
 class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     @property
     @abstractmethod

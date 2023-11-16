@@ -3,6 +3,8 @@ import {Project} from 'sentry/types/project';
 const supportedProfilingPlatformSDKs = [
   'android',
   'apple-ios',
+  'flutter',
+  'dart-flutter',
   'go',
   'node',
   'python',
@@ -61,6 +63,13 @@ export function getDocsPlatformSDKForPlatform(
   }
   if (platform === 'javascript-react') {
     return 'javascript-react';
+  }
+
+  if (platform === 'dart-flutter') {
+    return 'dart-flutter';
+  }
+  if (platform === 'flutter') {
+    return 'flutter';
   }
 
   // Python

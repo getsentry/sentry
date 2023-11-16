@@ -6,7 +6,6 @@ import {Location} from 'history';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
@@ -15,7 +14,6 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
   IconDashboard,
-  IconFile,
   IconGraph,
   IconIssues,
   IconLightning,
@@ -249,7 +247,9 @@ function Sidebar({location, organization}: Props) {
                   }
                   to={`/organizations/${organization.slug}/performance/database/`}
                   id="performance-database"
-                  icon={<SubitemDot collapsed={collapsed} />}
+                  // collapsed controls whether the dot is visible or not.
+                  // We always want it visible for these sidebar items so force it to true.
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
               <Feature
@@ -268,7 +268,7 @@ function Sidebar({location, organization}: Props) {
                   }
                   to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
                   id="performance-webvitals"
-                  icon={<SubitemDot collapsed={collapsed} />}
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
               <Feature
@@ -280,10 +280,10 @@ function Sidebar({location, organization}: Props) {
                   isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
                   isBeta={SCREENS_RELEASE_LEVEL === 'beta'}
                   isNew={SCREENS_RELEASE_LEVEL === 'new'}
-                  label={t('Screens')}
+                  label={t('Mobile')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
-                  icon={<SubitemDot collapsed={collapsed} />}
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
               <Feature features={['starfish-browser-resource-module-ui']}>
@@ -292,7 +292,7 @@ function Sidebar({location, organization}: Props) {
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"
-                  icon={<IconFile />}
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
             </SidebarAccordion>
@@ -342,13 +342,6 @@ function Sidebar({location, organization}: Props) {
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
         />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Screens')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/mobile/screens/`}
-          id="starfish-mobile-screen-loads"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
       </SidebarAccordion>
     </Feature>
   );
@@ -380,16 +373,9 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
-        label={
-          <Fragment>
-            {t('User Feedback')}{' '}
-            <FeatureBadge
-              title={t('This feature is available for early adopters and may change')}
-              type="alpha"
-              variant="short"
-            />
-          </Fragment>
-        }
+        label={t('User Feedback')}
+        isBeta
+        variant="short"
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
       />
