@@ -97,11 +97,9 @@ def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, st
 
 
 def is_private_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> bool:
-    try:
-        get_public_name_from_mri(internal_name)
-        return False
-    except InvalidParams:
-        return True
+    public_name = get_public_name_from_mri(internal_name)
+    # If the public name is the same as internal name it means that the internal is "private".
+    return public_name == internal_name
 
 
 def _extract_name_from_custom_metric_mri(mri: str) -> Optional[str]:

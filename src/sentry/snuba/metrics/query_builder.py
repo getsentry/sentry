@@ -110,16 +110,16 @@ def _strip_project_id(condition: Condition) -> Optional[Condition]:
     return None
 
 
-def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
+def parse_field(field: str, allow_mri: bool = False) -> MetricField:
     if allow_mri:
         mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
         if mri_matches:
-            return parse_mri_field(field, allow_private)
+            return parse_mri_field(field)
 
     return parse_public_field(field)
 
 
-def parse_mri_field(field: str, allow_private: bool = False) -> MetricField:
+def parse_mri_field(field: str) -> MetricField:
     matches = MRI_EXPRESSION_REGEX.match(field)
 
     try:
@@ -129,7 +129,7 @@ def parse_mri_field(field: str, allow_private: bool = False) -> MetricField:
         operation = None
         mri = field
 
-    return MetricField(op=operation, metric_mri=mri, allow_private=allow_private)
+    return MetricField(op=operation, metric_mri=mri)
 
 
 def parse_public_field(field: str) -> MetricField:
@@ -516,8 +516,6 @@ class QueryDefinition:
         self._projects = projects
         paginator_kwargs = paginator_kwargs or {}
 
-        self.allow_private = query_params.get("allowPrivate") == "true"
-
         self.query = query_params.get("query", "")
         self.groupby = [
             MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
@@ -526,11 +524,10 @@ class QueryDefinition:
             parse_field(
                 key,
                 allow_mri=allow_mri,
-                allow_private=self.allow_private,
             )
             for key in query_params.getlist("field", [])
         ]
-        self.orderby = self._parse_orderby(query_params, allow_mri, self.allow_private)
+        self.orderby = self._parse_orderby(query_params, allow_mri)
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
         self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
         self.having: Optional[ConditionGroup] = query_params.getlist("having")
@@ -564,7 +561,7 @@ class QueryDefinition:
         )
 
     @staticmethod
-    def _parse_orderby(query_params, allow_mri: bool = False, allow_private: bool = False):
+    def _parse_orderby(query_params, allow_mri: bool = False):
         orderbys = query_params.getlist("orderBy", [])
         if not orderbys:
             return None
@@ -576,7 +573,7 @@ class QueryDefinition:
                 orderby = orderby[1:]
                 direction = Direction.DESC
 
-            field = parse_field(orderby, allow_mri=allow_mri, allow_private=allow_private)
+            field = parse_field(orderby, allow_mri=allow_mri)
             orderby_list.append(MetricsOrderBy(field=field, direction=direction))
 
         return orderby_list
