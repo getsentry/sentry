@@ -174,22 +174,17 @@ class DatabaseBackedUserService(UserService):
         return serialize_rpc_user(user)
 
     def get_or_create_user_by_email(
-        self, *, email: str, ident: Optional[str] = None, referrer: Optional[str] = None
-    ) -> RpcUser:
+        self,
+        *,
+        email: str,
+        ident: Optional[str] = None,
+        referrer: Optional[str] = None,
+        skip_creation: Optional[bool] = False,
+    ) -> Optional[RpcUser]:
         with transaction.atomic(router.db_for_write(User)):
             user_query = User.objects.filter(email__iexact=email, is_active=True)
             # Create User if it doesn't exist
-            if not user_query.exists():
-                user = User.objects.create(
-                    username=f"{slugify(str.split(email, '@')[0])}-{uuid4().hex}",
-                    email=email,
-                    name=email,
-                )
-                user_signup.send_robust(
-                    sender=self, user=user, source="api", referrer=referrer or "unknown"
-                )
-                user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
-            else:
+            if user_query.exists():
                 # Users are not supposed to have the same email but right now our auth pipeline let this happen
                 # So let's not break the user experience. Instead return the user with auth identity of ident or
                 # the first user if ident is None
@@ -207,7 +202,20 @@ class DatabaseBackedUserService(UserService):
                                 "Email has two auth identity for the same ident",
                                 extra={"email": email},
                             )
+                return serialize_rpc_user(user)
 
+            if skip_creation:
+                return None
+
+            user = User.objects.create(
+                username=f"{slugify(str.split(email, '@')[0])}-{uuid4().hex}",
+                email=email,
+                name=email,
+            )
+            user_signup.send_robust(
+                sender=self, user=user, source="api", referrer=referrer or "unknown"
+            )
+            user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
             return serialize_rpc_user(user)
 
     def verify_any_email(self, *, email: str) -> bool:
