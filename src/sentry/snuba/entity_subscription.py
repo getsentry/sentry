@@ -178,7 +178,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         params: Optional[MutableMapping[str, Any]] = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
-        from sentry.search.events.builder import QueryBuilder
+        from sentry.search.events.builder import ErrorsQueryBuilder, QueryBuilder
 
         if params is None:
             params = {}
@@ -189,7 +189,15 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         if environment:
             params["environment"] = environment.name
 
-        return QueryBuilder(
+        query_builder_cls = QueryBuilder
+        # TODO: Remove this query when we remove the feature check
+        organization = Organization.objects.filter(project__id__in=project_ids)[0]
+        if self.dataset == Dataset.Events and features.has(
+            "organizations:metric-alert-ignore-archived", organization
+        ):
+            query_builder_cls = ErrorsQueryBuilder
+
+        return query_builder_cls(
             dataset=Dataset(self.dataset.value),
             query=query,
             selected_columns=[self.aggregate],
