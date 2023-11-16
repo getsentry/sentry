@@ -1698,3 +1698,15 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "releases_v2.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "releases_v2.organization_slugs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
