@@ -46,6 +46,7 @@ SPAN_MODULE_ALIAS = "span.module"
 SPAN_DOMAIN_ALIAS = "span.domain"
 SPAN_DOMAIN_SEPARATOR = ","
 UNIQUE_SPAN_DOMAIN_ALIAS = "unique.span_domains"
+SPAN_IS_SEGMENT_ALIAS = "span.is_segment"
 
 
 class ThresholdDict(TypedDict):
