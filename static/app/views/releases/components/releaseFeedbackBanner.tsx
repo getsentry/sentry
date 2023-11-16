@@ -26,8 +26,8 @@ export default function ReleaseFeedbackBanner() {
     <PageBanner
       style={{marginBottom: '16px'}}
       button={ctaButton}
-      description={t('Join our beta by dropping us a note.')}
-      heading={t('Want to automate rollback for bad canary releases?')}
+      description={t('Send us an email to get early access.')}
+      heading={t('Want to automatically rollback bad releases?')}
       icon={<IconBroadcast size="sm" />}
       image={replaysDeadRageBackground}
       title={tct("[blue:What's New]", {blue: <Blue />})}
