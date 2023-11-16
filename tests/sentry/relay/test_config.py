@@ -144,7 +144,7 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     # Check that the "sampling" key is missing from config. It used to be called
     # "dynamicSampling", so we also test for that:
     subconfig = cfg.to_dict()["config"]
-    assert "dynamicSampling" not in cfg and "sampling" not in subconfig
+    assert "dynamicSampling" not in subconfig and "sampling" not in subconfig
     assert mock_logger.error.call_args == mock.call(ANY, exc_info=True)
 
 
