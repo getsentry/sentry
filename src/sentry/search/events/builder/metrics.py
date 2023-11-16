@@ -1671,9 +1671,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                         )
                 metrics_data = []
                 for metrics_query in metrics_queries:
-                    # breakpoint()
                     with sentry_sdk.start_span(op="metric_layer", description="run_query"):
-                        # XXX: Possibly get_series will have to include the meta data
                         metrics_data.append(
                             get_series(
                                 projects=self.params.projects,
@@ -1689,9 +1687,6 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 raise IncompatibleMetricsQuery(err)
             with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
                 result = self._metric_layer_result(metrics_data)
-                # XXX: Just for giggles
-                result["meta"].append({"isMetricsExtractedData": True})
-                # breakpoint()
                 return result
 
         else:
@@ -1720,7 +1715,6 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         seen_metrics_metas = {}
         time_data_map = defaultdict(dict)
         with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
-            # breakpoint()
             metric_layer_result: Any = {
                 "data": [],
                 "meta": [],
