@@ -16,7 +16,7 @@ import {
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -86,7 +86,7 @@ export function ScreenLoadSampleContainer({
                   )}/`,
                 }}
               >
-                {centerTruncate(release)}
+                {formatVersionAndCenterTruncate(release)}
               </Link>
             </Tooltip>
           </SectionTitle>

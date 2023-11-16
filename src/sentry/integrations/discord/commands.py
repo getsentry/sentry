@@ -42,9 +42,17 @@ class DiscordCommandManager:
 
         if result is None:
             cache.set(cache_key, True, 3600)
+            client = DiscordNonProxyClient()
             try:
-                DiscordNonProxyClient().overwrite_application_commands(self.COMMANDS)
+                client.overwrite_application_commands(self.COMMANDS)
             except ApiError as e:
                 sentry_sdk.capture_exception(e)
-                logger.error("discord.setup.update_bot_commands_failure", extra={"status": e.code})
+                logger.error(
+                    "discord.setup.update_bot_commands_failure",
+                    extra={
+                        "status": e.code,
+                        "error": str(e),
+                        "application_id": client.application_id,
+                    },
+                )
                 cache.delete(cache_key)

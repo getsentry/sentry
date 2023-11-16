@@ -55,7 +55,7 @@ QUERY_HASH_KEY = "query_hash"
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
 # Maps from Discover's field names to event protocol paths. See Relay's
-# ``FieldValueProvider`` for supported fields. All fields need to be prefixed
+# ``Getter`` implementation for ``Event`` for supported fields. All fields need to be prefixed
 # with "event.".
 # List of UI supported search fields is defined in sentry/static/app/utils/fields/index.ts
 _SEARCH_TO_PROTOCOL_FIELDS = {
@@ -111,6 +111,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "transaction.op": "contexts.trace.op",
     "http.status_code": "contexts.response.status_code",
     "unreal.crash_type": "contexts.unreal.crash_type",
+    "profile.id": "contexts.profile.profile_id",
     # Computed fields
     "transaction.duration": "duration",
     "release.build": "release.build",
@@ -943,6 +944,7 @@ class OnDemandMetricSpec:
         self.field = field
         self.query = query
         self.spec_type = spec_type
+
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
         # For now, we just support the environment as extra, but in the future we might need more complex ways to
@@ -957,6 +959,10 @@ class OnDemandMetricSpec:
         self.op = op
         self._metric_type = metric_type
         self._arguments = arguments or []
+
+        sentry_sdk.start_span(
+            op="OnDemandMetricSpec.spec_type", description=self.spec_type
+        ).finish()
 
     @property
     def field_to_extract(self):

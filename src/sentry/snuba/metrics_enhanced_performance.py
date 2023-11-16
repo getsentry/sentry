@@ -60,6 +60,7 @@ def query(
                 has_metrics,
                 use_metrics_layer,
                 on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
             result["meta"]["datasetReason"] = dataset_reason
 
@@ -139,6 +140,7 @@ def timeseries_query(
                 functions_acl,
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -146,6 +148,8 @@ def timeseries_query(
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            # We want to capture this exception to have more visibility in case the query can't be satisfied by metrics.
+            sentry_sdk.capture_exception(error)
             metrics_compatible = False
         except Exception as error:
             raise error
@@ -219,6 +223,7 @@ def top_events_timeseries(
                 include_other,
                 functions_acl,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
