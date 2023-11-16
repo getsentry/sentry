@@ -44,7 +44,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration query is on-demand
-        ("count[)", "", False),  # Malformed aggregate should return false
+        ("count()", "", False),  # Malformed aggregate should return false
         (
             "count()",
             "event.type:error transaction.duration:>0",
@@ -63,6 +63,17 @@ from sentry.testutils.pytest.fixtures import django_db_all
     ],
 )
 def test_should_use_on_demand(agg, query, result):
+    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
+
+
+@pytest.mark.parametrize(
+    "agg, query, result",
+    [
+        ("sum(c:custom/page_load@millisecond)", "release:a", False),
+        ("avg(d:transactions/duration@millisecond)", "release:a", False),
+    ],
+)
+def test_should_use_on_demand_with_mri(agg, query, result):
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
 

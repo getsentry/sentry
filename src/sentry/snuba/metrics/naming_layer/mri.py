@@ -182,7 +182,9 @@ class ParsedMRI:
 
 
 def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
-    """Parse a mri string to determine its entity, namespace, name and unit"""
+    """
+    Parse a mri string to determine its entity, namespace, name and unit.
+    """
     match = MRI_SCHEMA_REGEX.match(mri_string)
     if match is None:
         return None
@@ -190,11 +192,33 @@ def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
     return ParsedMRI(**match.groupdict())
 
 
+def is_mri(mri_string: Optional[str]) -> bool:
+    """
+    Returns true if the passed value is a mri.
+    """
+    return parse_mri(mri_string) is not None
+
+
+def is_custom_metric(parsed_mri: ParsedMRI) -> bool:
+    """
+    A custom mri is a mri which uses the custom namespace, and it's different from a custom measurement.
+    """
+    return parsed_mri.namespace == "custom"
+
+
+def is_transaction_metric(parsed_mri: ParsedMRI) -> bool:
+    """
+    A transaction mri is a mri which uses the transactions namespace.
+    """
+    return parsed_mri.namespace == "transactions"
+
+
 def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
-    """A custom measurement won't use the custom namespace, but will be under the transaction namespace
+    """
+    A custom measurement won't use the custom namespace, but will be under the transaction namespace.
 
     This checks the namespace, and name to match what we expect first before iterating through the
-    members of the transaction MRI enum to make sure it isn't a standard measurement
+    members of the transaction MRI enum to make sure it isn't a standard measurement.
     """
     return (
         parsed_mri.namespace == "transactions"
