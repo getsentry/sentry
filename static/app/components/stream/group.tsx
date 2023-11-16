@@ -43,6 +43,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import {useGroupStats} from 'sentry/views/issueList/groupStatsProvider';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
@@ -246,7 +247,8 @@ function BaseGroupRow({
   };
 
   const renderReprocessingColumns = () => {
-    const {statusDetails, count} = group as GroupReprocessing;
+    const {count} = stats;
+    const {statusDetails} = group as GroupReprocessing;
     const {info, pendingEvents} = statusDetails;
 
     if (!info) {
@@ -284,18 +286,20 @@ function BaseGroupRow({
     );
   };
 
+  const stats = useGroupStats(group.id);
+
   // Use data.filtered to decide on which value to use
   // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
   // we use useFilteredStats param passed to Group for deciding
-  const primaryCount = group.filtered ? group.filtered.count : group.count;
-  const secondaryCount = group.filtered ? group.count : undefined;
-  const primaryUserCount = group.filtered ? group.filtered.userCount : group.userCount;
-  const secondaryUserCount = group.filtered ? group.userCount : undefined;
+  const primaryCount = stats.filtered ? stats.filtered.count : stats.count;
+  const secondaryCount = stats.filtered ? stats.count : undefined;
+  const primaryUserCount = stats.filtered ? stats.filtered.userCount : stats.userCount;
+  const secondaryUserCount = stats.filtered ? stats.userCount : undefined;
   // preview stats
-  const lastTriggeredDate = group.lastTriggered;
+  const lastTriggeredDate = stats.lastTriggered;
 
   const showSecondaryPoints = Boolean(
-    withChart && group && group.filtered && statsPeriod && useFilteredStats
+    withChart && group && stats.filtered && statsPeriod && useFilteredStats
   );
 
   const groupCategoryCountTitles: Record<IssueCategory, string> = {
@@ -315,24 +319,24 @@ function BaseGroupRow({
         title={
           <CountTooltipContent>
             <h4>{groupCategoryCountTitles[group.issueCategory]}</h4>
-            {group.filtered && (
+            {stats.filtered && (
               <Fragment>
                 <div>{queryFilterDescription ?? t('Matching filters')}</div>
                 <Link to={getDiscoverUrl(true)}>
-                  <Count value={group.filtered?.count} />
+                  <Count value={stats.filtered?.count} />
                 </Link>
               </Fragment>
             )}
             <Fragment>
               <div>{t('Total in %s', summary)}</div>
               <Link to={getDiscoverUrl()}>
-                <Count value={group.count} />
+                <Count value={stats.count} />
               </Link>
             </Fragment>
-            {group.lifetime && (
+            {stats.lifetime && (
               <Fragment>
                 <div>{t('Since issue began')}</div>
-                <Count value={group.lifetime.count} />
+                <Count value={stats.lifetime.count} />
               </Fragment>
             )}
           </CountTooltipContent>
@@ -355,24 +359,24 @@ function BaseGroupRow({
       title={
         <CountTooltipContent>
           <h4>{t('Affected Users')}</h4>
-          {group.filtered && (
+          {stats.filtered && (
             <Fragment>
               <div>{queryFilterDescription ?? t('Matching filters')}</div>
               <Link to={getDiscoverUrl(true)}>
-                <Count value={group.filtered?.userCount} />
+                <Count value={stats.filtered?.userCount} />
               </Link>
             </Fragment>
           )}
           <Fragment>
             <div>{t('Total in %s', summary)}</div>
             <Link to={getDiscoverUrl()}>
-              <Count value={group.userCount} />
+              <Count value={stats.userCount} />
             </Link>
           </Fragment>
-          {group.lifetime && (
+          {stats.lifetime && (
             <Fragment>
               <div>{t('Since issue began')}</div>
-              <Count value={group.lifetime.userCount} />
+              <Count value={stats.lifetime.userCount} />
             </Fragment>
           )}
         </CountTooltipContent>
