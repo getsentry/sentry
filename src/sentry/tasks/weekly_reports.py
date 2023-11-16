@@ -283,8 +283,8 @@ def project_event_counts_for_organization(ctx):
         logger.info(
             "project_event_counts_for_organization_query_result",
             extra={
-                "report_start": ctx.start,
-                "report_end": ctx.end + timedelta(days=1),
+                "report_start": ctx.start.isoformat(),
+                "report_end": (ctx.end + timedelta(days=1)).isoformat(),
                 "num_query_rows": len(data),
             },
         )
