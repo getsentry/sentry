@@ -50,7 +50,10 @@ class DashboardWidgetTypes(TypesClass):
     TYPES = [
         (DISCOVER, "discover"),
         (ISSUE, "issue"),
-        (RELEASE_HEALTH, "metrics"),
+        (
+            RELEASE_HEALTH,
+            "metrics",
+        ),  # TODO(ddm): rename RELEASE to 'release', and METRICS to 'metrics'
         (METRICS, "custom-metrics"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
