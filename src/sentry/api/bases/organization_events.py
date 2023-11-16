@@ -342,11 +342,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
+                isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
                     "units": units,
                     "isMetricsData": isMetricsData,
+                    "isMetricsExtractedData": isMetricsExtractedData,
                     "tips": meta.get("tips", {}),
                     "datasetReason": meta.get("datasetReason", discover.DEFAULT_DATASET_REASON),
                 }

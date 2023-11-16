@@ -60,6 +60,7 @@ def query(
                 has_metrics,
                 use_metrics_layer,
                 on_demand_metrics_enabled,
+                on_demand_metrics_type,
             )
             result["meta"]["datasetReason"] = dataset_reason
 
@@ -96,6 +97,7 @@ def query(
             has_metrics=has_metrics,
         )
         results["meta"]["isMetricsData"] = False
+        results["meta"]["isMetricsExtractedData"] = False
         results["meta"]["datasetReason"] = dataset_reason
 
         return results

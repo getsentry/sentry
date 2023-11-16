@@ -78,11 +78,9 @@ def query(
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
+        results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
         sentry_sdk.set_tag("performance.dataset", "metrics")
-        # metrics_query.is_alerts_query is set at this point. Maybe we can leverage it
-        # XXX: How do we know it hasn't fallen back?
-        results["meta"]["isMetricsExtractedData"] = on_demand_metrics_enabled
-        sentry_sdk.set_tag("on_demand_metrics.enabled", on_demand_metrics_enabled)
+        sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
         return results
 
 
