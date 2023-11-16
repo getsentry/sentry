@@ -127,7 +127,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 const IconText = styled(Flex)<{isOpen: boolean}>`
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => (p.isOpen ? p.theme.gray100 : p.theme.gray300)};
+  color: ${p => (p.isOpen ? p.theme.gray100 : p.theme.gray400)};
 `;
 
 const CardSpacing = styled('div')`
