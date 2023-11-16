@@ -42,6 +42,7 @@ export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
   RELEASES = 'releases',
+  METRICS = 'metrics',
 }
 
 export enum SortDirection {

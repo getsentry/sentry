@@ -10,14 +10,15 @@ import {DataSet} from '../utils';
 
 import {BuildStep} from './buildStep';
 
-const DATASET_CHOICES: [DataSet, string][] = [
-  [DataSet.EVENTS, t('Errors and Transactions')],
-  [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
-];
+// const DATASET_CHOICES: [DataSet, string][] = [
+//   [DataSet.EVENTS, t('Errors and Transactions')],
+//   [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
+// ];
 
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
+  hasCustomMetricsFeature: boolean;
   hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
 }
@@ -26,6 +27,7 @@ export function DataSetStep({
   dataSet,
   onChange,
   hasReleaseHealthFeature,
+  hasCustomMetricsFeature,
   displayType,
 }: Props) {
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
@@ -35,6 +37,18 @@ export function DataSetStep({
       DataSet.ISSUES,
       t('This dataset is restricted to tabular visualization.'),
     ]);
+  }
+
+  const datasetChoices = new Map<string, string>();
+  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
+  datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
+
+  if (hasReleaseHealthFeature) {
+    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
+  }
+
+  if (hasCustomMetricsFeature) {
+    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
   }
 
   return (
@@ -52,14 +66,7 @@ export function DataSetStep({
       <DataSetChoices
         label="dataSet"
         value={dataSet}
-        choices={
-          hasReleaseHealthFeature
-            ? [
-                ...DATASET_CHOICES,
-                [DataSet.RELEASES, t('Releases (Sessions, Crash rates)')],
-              ]
-            : DATASET_CHOICES
-        }
+        choices={[...datasetChoices.entries()]}
         disabledChoices={disabledChoices}
         onChange={newDataSet => {
           onChange(newDataSet as DataSet);

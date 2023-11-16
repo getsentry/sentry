@@ -1,7 +1,7 @@
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
-import {doMetricsRequest} from 'sentry/actionCreators/metrics';
+import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
@@ -509,7 +509,7 @@ function getReleasesRequest(
       includeSeries,
       includeTotals,
     };
-    requester = doMetricsRequest;
+    requester = doReleaseHealthRequest;
 
     if (
       rawOrderby &&
