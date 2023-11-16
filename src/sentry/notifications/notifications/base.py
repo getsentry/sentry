@@ -10,8 +10,6 @@ import sentry_sdk
 from sentry import analytics
 from sentry.db.models import Model
 from sentry.models.environment import Environment
-from sentry.models.notificationsetting import NotificationSetting
-from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     NotificationSettingEnum,
@@ -240,21 +238,11 @@ class BaseNotification(abc.ABC):
             if self.notification_setting_type
             else NotificationSettingEnum.ISSUE_ALERTS
         )
-        if should_use_notifications_v2(self.organization):
-            return get_notification_recipients_v2(
-                recipients=recipients,
-                type=setting_type,
-                organization_id=self.organization.id,
-            )
-
-        accepting_recipients: Mapping[
-            ExternalProviders, Iterable[RpcActor]
-        ] = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.organization,
-            recipients,
-            self.notification_setting_type or NotificationSettingTypes.ISSUE_ALERTS,
+        return get_notification_recipients_v2(
+            recipients=recipients,
+            type=setting_type,
+            organization_id=self.organization.id,
         )
-        return accepting_recipients
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         # need a notification_setting_type to call this function
