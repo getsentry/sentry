@@ -179,9 +179,6 @@ class GetSendToTeamTest(_ParticipantsTest):
     def test_send_to_team(self):
         self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
 
-        expected_users = collections.defaultdict(set)
-        expected_users[ExternalProviders.EMAIL] = {RpcActor.from_orm_user(self.user)}
-
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingProvider.objects.create(
                 user_id=self.user.id,
