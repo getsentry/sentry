@@ -10,10 +10,13 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ProjectKey} from 'sentry/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
 
-export const steps = (dsn: string | null, projectSlug: string): LayoutProps['steps'] => [
+type Props = {
+  dsn: string;
+  projectSlug: string;
+};
+
+export const steps = ({dsn, projectSlug}: Props): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -95,7 +98,7 @@ export const steps = (dsn: string | null, projectSlug: string): LayoutProps['ste
             )}
           </p>
         </DSNText>
-        <div>{dsn && <TextCopyInput>{dsn}</TextCopyInput>}</div>
+        <div>{<TextCopyInput>{dsn}</TextCopyInput>}</div>
       </Fragment>
     ),
   },
@@ -104,21 +107,9 @@ export const steps = (dsn: string | null, projectSlug: string): LayoutProps['ste
 // Configuration End
 
 export function GettingStartedWithNextJs({...props}: ModuleProps) {
-  const {organization, projectSlug} = props;
-  const {
-    data: projectKeys,
-    isError,
-    isLoading,
-  } = useApiQuery<ProjectKey[]>(
-    [`/projects/${organization?.slug}/${projectSlug}/keys/`],
-    {
-      staleTime: Infinity,
-    }
-  );
+  const {projectSlug, dsn} = props;
 
-  const dsn = isError || isLoading ? null : projectKeys[0].dsn.public;
-
-  return <Layout steps={steps(dsn, projectSlug)} {...props} />;
+  return <Layout steps={steps({dsn, projectSlug})} {...props} />;
 }
 
 export default GettingStartedWithNextJs;

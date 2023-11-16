@@ -9,7 +9,7 @@ describe('GettingStartedWithNextJs', function () {
     render(<GettingStartedWithNextJs dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({dsn: 'test-dsn', projectSlug: 'test-project'})) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
