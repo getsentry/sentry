@@ -134,7 +134,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def validate_aggregate(self, aggregate):
         try:
-            if not check_aggregate_column_support(aggregate):
+            if not check_aggregate_column_support(
+                aggregate,
+                allow_mri=features.has(
+                    "organizations:ddm-experimental",
+                    self.context["organization"],
+                    actor=self.context.get("user", None),
+                ),
+            ):
                 raise serializers.ValidationError(
                     "Invalid Metric: We do not currently support this field."
                 )

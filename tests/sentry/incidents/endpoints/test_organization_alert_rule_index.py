@@ -745,6 +745,38 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 == "Performance alerts must use the `generic_metrics` dataset"
             )
 
+    def test_alert_with_metric_mri_as_column(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+                "organizations:ddm-experimental",
+            ]
+        ):
+            for mri in (
+                "sum(c:transactions/count_per_root_project@none)",
+                "p95(d:transactions/duration@millisecond)",
+                "count_unique(s:transactions/user@none)",
+                "avg(d:custom/sentry.process_profile.symbolicate.process@second)",
+            ):
+                test_params = {
+                    **self.alert_rule_dict,
+                    "aggregate": mri,
+                    "dataset": "generic_metrics",
+                }
+
+                resp = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **test_params,
+                )
+
+                assert "id" in resp.data
+                alert_rule = AlertRule.objects.get(id=resp.data["id"])
+                assert resp.data == serialize(alert_rule, self.user)
+
 
 # TODO(Gabe): Rewrite this test to properly annotate the silo mode
 @freeze_time()
