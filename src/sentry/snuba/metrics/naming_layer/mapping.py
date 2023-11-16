@@ -77,7 +77,10 @@ def get_mri(external_name: Union[Enum, str]) -> str:
 
 
 def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> str:
-    """Returns the public name from a MRI if it has a mapping to a public metric name, otherwise raise an exception"""
+    """
+    Returns the public name from a MRI if it has a mapping to a public metric name, otherwise return the internal
+    name.
+    """
     if not len(MRI_TO_NAME):
         create_name_mapping_layers()
 
@@ -90,15 +93,13 @@ def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, st
     elif (alias := _extract_name_from_custom_metric_mri(internal_name)) is not None:
         return alias
     else:
-        raise InvalidParams(f"Unable to find a mri reverse mapping for '{internal_name}'.")
+        return internal_name
 
 
 def is_private_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> bool:
-    try:
-        get_public_name_from_mri(internal_name)
-        return False
-    except InvalidParams:
-        return True
+    public_name = get_public_name_from_mri(internal_name)
+    # If the public name is the same as internal name it means that the internal is "private".
+    return public_name == internal_name
 
 
 def _extract_name_from_custom_metric_mri(mri: str) -> Optional[str]:

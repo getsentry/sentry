@@ -571,27 +571,6 @@ def test_validate_metric_field_mri():
 
 
 @pytest.mark.parametrize(
-    "alias",
-    [
-        pytest.param(
-            None,
-            id="No alias provided",
-        ),
-        pytest.param(
-            "ahmed_alias",
-            id="alias is provided",
-        ),
-    ],
-)
-def test_validate_metric_field_mri_is_public(alias):
-    with pytest.raises(
-        InvalidParams,
-        match=f"Unable to find a mri reverse mapping for '{SessionMRI.ERRORED_ALL.value}'.",
-    ):
-        MetricField(op=None, metric_mri=SessionMRI.ERRORED_ALL.value, alias=alias)
-
-
-@pytest.mark.parametrize(
     "select, interval, series",
     [
         pytest.param(
