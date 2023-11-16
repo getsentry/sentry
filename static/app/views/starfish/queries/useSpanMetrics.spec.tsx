@@ -69,13 +69,13 @@ describe('useSpanMetrics', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(
-      ({group, filters, fields}) => useSpanMetrics(group, filters, fields),
+      ({filters, fields}) => useSpanMetrics(filters, fields),
       {
         wrapper: Wrapper,
         initialProps: {
-          group: '221aa7ebd216',
           filters: {
-            transactionName: '/api/details',
+            'span.group': '221aa7ebd216',
+            transaction: '/api/details',
             release: '0.0.1',
           },
           fields: ['spm()'] as MetricsProperty[],
@@ -90,7 +90,7 @@ describe('useSpanMetrics', () => {
       expect.objectContaining({
         method: 'GET',
         query: expect.objectContaining({
-          query: `span.group:221aa7ebd216 transaction:"/api/details" release:0.0.1`,
+          query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1`,
           dataset: 'spansMetrics',
           statsPeriod: '10d',
           field: ['spm()'],

@@ -2,36 +2,25 @@ import {Location} from 'history';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   MetricsProperty,
   MetricsResponse,
-  SpanMetricsField,
+  SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-
-const {SPAN_GROUP} = SpanMetricsField;
-
-export type SpanSummaryQueryFilters = {
-  release?: string;
-  'resource.render_blocking_status'?: 'blocking' | 'non-blocking' | '!blocking' | '';
-  'transaction.method'?: string;
-  transactionName?: string;
-};
+import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 export const useSpanMetrics = <T extends MetricsProperty[]>(
-  group: string,
-  queryFilters: SpanSummaryQueryFilters,
+  filters: SpanMetricsQueryFilters,
   fields: T,
   referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
-  const eventView = group
-    ? getEventView(group, location, queryFilters, fields)
-    : undefined;
+  const eventView = getEventView(filters, fields, location);
 
-  const enabled =
-    Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
+  const enabled = Object.values(filters).every(value => Boolean(value));
 
   const result = useSpansQuery({
     eventView,
@@ -50,23 +39,31 @@ export const useSpanMetrics = <T extends MetricsProperty[]>(
 };
 
 function getEventView(
-  group: string,
-  location: Location,
-  queryFilters?: SpanSummaryQueryFilters,
-  fields: string[] = []
+  filters: SpanMetricsQueryFilters,
+  fields: string[] = [],
+  location: Location
 ) {
+  const query = new MutableSearch('');
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (!value) {
+      return;
+    }
+
+    if (value === EMPTY_OPTION_VALUE) {
+      query.addFilterValue('!has', key);
+    }
+
+    query.addFilterValue(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
+  });
+
+  // TODO: This condition should be enforced everywhere
+  // query.addFilterValue('has', 'span.description');
+
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query: `${SPAN_GROUP}:${group}${
-        queryFilters?.transactionName
-          ? ` transaction:"${queryFilters?.transactionName}"`
-          : ''
-      }${
-        queryFilters?.['transaction.method']
-          ? ` transaction.method:${queryFilters?.['transaction.method']}`
-          : ''
-      }${queryFilters?.release ? ` release:${queryFilters?.release}` : ''}`,
+      query: query.formatString(),
       fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
@@ -74,3 +71,5 @@ function getEventView(
     location
   );
 }
+
+const ALLOWED_WILDCARD_FIELDS = ['span.description'];
