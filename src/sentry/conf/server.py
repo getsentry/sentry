@@ -26,6 +26,7 @@ from typing import (
 from urllib.parse import urlparse
 
 import sentry
+from sentry import options
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
@@ -1831,7 +1832,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
     # Enable new release UI
-    "organizations:release-ui-v2": False,
+    "organizations:releases-v2": False,
+    "organizations:releases-v2-st": options.get("releases_v2.enabled"),
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
