@@ -278,10 +278,15 @@ def project_event_counts_for_organization(ctx):
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
     data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
 
+    # TODO(isabella): remove debug logging for sentry
     if ctx.organization.slug == "sentry":
         logger.info(
             "project_event_counts_for_organization_query_result",
-            extra={"report_start": ctx.start, "report_end": ctx.end, "num_query_rows": len(data)},
+            extra={
+                "report_start": ctx.start,
+                "report_end": ctx.end + timedelta(days=1),
+                "num_query_rows": len(data),
+            },
         )
 
     for dat in data:
@@ -914,6 +919,7 @@ def render_template_context(ctx, user_id):
                 )
             series.append((to_datetime(t), project_series))
         if ctx.organization.slug == "sentry":
+            # TODO(isabella): remove debug logging for sentry
             logger.info(
                 "render_template_context.trends.totals",
                 extra={
