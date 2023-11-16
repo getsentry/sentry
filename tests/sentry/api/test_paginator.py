@@ -6,8 +6,10 @@ from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Va
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.timezone import make_aware
+from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query
 
 from sentry.api.paginator import (
+    MAX_SNUBA_ELEMENTS,
     BadPaginationError,
     ChainPaginator,
     CombinedQuerysetIntermediary,
@@ -17,13 +19,15 @@ from sentry.api.paginator import (
     OffsetPaginator,
     Paginator,
     SequencePaginator,
+    SnubaRequestPaginator,
     reverse_bisect_left,
 )
 from sentry.incidents.models import AlertRule, Incident
 from sentry.models.rule import Rule
 from sentry.models.user import User
-from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.utils.cursors import Cursor
 
 
@@ -873,3 +877,169 @@ class TestChainPaginator(SimpleTestCase):
         assert len(third.results) == 2
         assert third.results == [7, 8]
         assert third.next.has_results is False
+
+
+@region_silo_test(stable=True)
+class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
+    cls = SnubaRequestPaginator
+
+    def setUp(self):
+        super().setUp()
+        now = timezone.now()
+        self.project.date_added = now - timedelta(minutes=5)
+        for i in range(8):
+            self.store_event(
+                project_id=self.project.id,
+                data={"event_id": str(i) * 32, "timestamp": iso_format(now - timedelta(minutes=2))},
+            )
+        self.query = Query(
+            match=Entity("events"),
+            select=[Column("event_id")],
+            where=[
+                Condition(Column("project_id"), Op.EQ, self.project.id),
+                Condition(Column("timestamp"), Op.GTE, now - timedelta(days=1)),
+                Condition(Column("timestamp"), Op.LT, now + timedelta(days=1)),
+            ],
+            orderby=[OrderBy(Column("event_id"), Direction.ASC)],
+            limit=Limit(3),
+        )
+        self.referrer = "tests.sentry.api.test_paginator"
+        self.tenant_ids = {"referrer": self.referrer, "organization_id": self.organization.id}
+
+    def test_simple(self):
+        paginator = self.cls(
+            query=self.query,
+            dataset="events",
+            app_id=self.referrer,
+            tenant_ids=self.tenant_ids,
+        )
+        first_page = paginator.get_result()
+        assert len(first_page.results) == 3
+        assert first_page.results == [{"event_id": str(i) * 32} for i in range(3)]
+        assert first_page.next.offset == 1
+        assert first_page.next.has_results
+        assert first_page.prev.has_results is False
+
+        second_page = paginator.get_result(cursor=first_page.next)
+        assert len(second_page.results) == 3
+        assert second_page.results == [{"event_id": str(i) * 32} for i in range(3, 6)]
+        assert second_page.next.offset == 2
+        assert second_page.next.has_results
+        assert second_page.prev.offset == 0
+        assert second_page.prev.has_results
+
+        third_page = paginator.get_result(cursor=second_page.next)
+        assert len(third_page.results) == 2
+        assert third_page.results == [{"event_id": str(i) * 32} for i in range(6, 8)]
+        assert third_page.next.has_results is False
+        assert third_page.prev.offset == 1
+        assert third_page.prev.has_results
+
+    def test_raises_error_for_invalid_dataset(self):
+        with pytest.raises(ValueError):
+            self.cls(
+                query=self.query,
+                dataset="invalid-ds",
+                app_id=self.referrer,
+                tenant_ids=self.tenant_ids,
+            )
+
+    def test_raises_error_when_no_orderby(self):
+        self.query = self.query._replace("orderby", None)
+        with pytest.raises(Exception):
+            self.cls(
+                query=self.query,
+                dataset="events",
+                app_id=self.referrer,
+                tenant_ids=self.tenant_ids,
+            )
+
+    def test_raises_error_for_orderby_when_query_already_has(self):
+        with pytest.raises(Exception):
+            self.cls(
+                query=self.query,
+                dataset="events",
+                app_id=self.referrer,
+                tenant_ids=self.tenant_ids,
+                order_by="another_column",
+            )
+
+    def test_uses_paginator_orderby_when_none_in_query(self):
+        self.query = self.query._replace("orderby", None)
+        paginator1 = self.cls(
+            query=self.query,
+            dataset="events",
+            app_id=self.referrer,
+            tenant_ids=self.tenant_ids,
+            order_by="-event_id",  # descending
+        )
+        assert paginator1.query.orderby == [OrderBy(Column("event_id"), Direction.DESC)]
+        assert paginator1.get_result().results == [
+            {"event_id": str(i) * 32} for i in range(7, 4, -1)
+        ]
+
+        paginator2 = self.cls(
+            query=self.query,
+            dataset="events",
+            app_id=self.referrer,
+            tenant_ids=self.tenant_ids,
+            order_by="event_id",  # ascending
+        )
+        assert paginator2.query.orderby == [OrderBy(Column("event_id"), Direction.ASC)]
+        assert paginator2.get_result().results == [{"event_id": str(i) * 32} for i in range(3)]
+
+    def test_raises_error_for_limit_when_query_already_has(self):
+        with pytest.raises(Exception):
+            self.cls(
+                query=self.query,
+                dataset="events",
+                app_id=self.referrer,
+                tenant_ids=self.tenant_ids,
+                limit=10,
+            )
+
+    def test_uses_paginator_limit_when_none_in_query(self):
+        self.query = self.query._replace("limit", None)
+        paginator1 = self.cls(
+            query=self.query,
+            dataset="events",
+            app_id=self.referrer,
+            tenant_ids=self.tenant_ids,
+            limit=4,
+        )
+        assert paginator1.query.limit.limit == 4
+        assert len(paginator1.get_result().results) == 4
+
+    def test_errors_when_limit_not_within_range(self):
+        self.query = self.query._replace("limit", None)
+        with pytest.raises(ValueError):
+            self.cls(
+                query=self.query,
+                dataset="events",
+                app_id=self.referrer,
+                tenant_ids=self.tenant_ids,
+                limit=-1,
+            )
+        with pytest.raises(ValueError):
+            self.cls(
+                query=self.query,
+                dataset="events",
+                app_id=self.referrer,
+                tenant_ids=self.tenant_ids,
+                limit=(MAX_SNUBA_ELEMENTS + 1),
+            )
+
+    def test_get_result_errors_on_large_offset(self):
+        self.query = self.query._replace("limit", None)
+        paginator = self.cls(
+            query=self.query,
+            dataset="events",
+            app_id=self.referrer,
+            tenant_ids=self.tenant_ids,
+            limit=MAX_SNUBA_ELEMENTS,
+        )
+        first_page = paginator.get_result()
+        assert first_page.next == Cursor(MAX_SNUBA_ELEMENTS, 1, False, False)
+
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(first_page.next)
