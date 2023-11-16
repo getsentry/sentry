@@ -2,6 +2,7 @@ import {createContext, useContext} from 'react';
 import {dropUndefinedKeys} from '@sentry/utils';
 import * as reactQuery from '@tanstack/react-query';
 
+import {ApiResult} from 'sentry/api';
 import type {Group, GroupStats, Organization, PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {UseQueryResult} from 'sentry/utils/queryClient';
@@ -38,14 +39,20 @@ const GroupStatsContext = createContext<UseQueryResult<
   Record<string, GroupStats>
 > | null>(null);
 
-export function useGroupStats() {
+export function useGroupStats(groupId: Group['id']): GroupStats;
+export function useGroupStats(): UseQueryResult<Record<string, GroupStats>>;
+export function useGroupStats(maybeGroupId?: Group['id']) {
   const ctx = useContext(GroupStatsContext);
 
   if (!ctx) {
     throw new Error('GroupStatsContext was called ourside of GroupStatsProvider');
   }
 
-  return ctx;
+  if (typeof maybeGroupId === 'undefined') {
+    return ctx;
+  }
+
+  return ctx.data?.[maybeGroupId] ?? {};
 }
 
 interface StatEndpointParams extends Partial<PageFilters['datetime']> {
@@ -77,7 +84,7 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
 
   const queryFn = (): Promise<Record<string, GroupStats>> => {
     const promise = api
-      .requestPromise(`/organizations/${props.organization.slug}/issues-stats/`, {
+      .requestPromise<true>(`/organizations/${props.organization.slug}/issues-stats/`, {
         method: 'GET',
         query: getEndpointParams({
           selection: props.selection,
@@ -87,13 +94,12 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
         }),
         includeAllArgs: true,
       })
-      .then((resp: GroupStats[]): Record<string, GroupStats> => {
+      .then((resp: ApiResult<GroupStats[]>): Record<string, GroupStats> => {
         const map: Record<string, GroupStats> = {};
-
-        if (!resp || !Array.isArray(resp)) {
+        if (!resp || !Array.isArray(resp[0])) {
           return map;
         }
-        for (const stat of resp) {
+        for (const stat of resp[0]) {
           map[stat.id] = stat;
         }
         return map;
@@ -107,7 +113,8 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
   };
 
   const statsQuery = reactQuery.useQuery<Record<string, GroupStats>, RequestError>(
-    [`/organizations/${props.organization.slug}/issues-stats/`, queryFn],
+    [`/organizations/${props.organization.slug}/issues-stats/`],
+    queryFn,
     {
       enabled: props.groupIds.length > 0,
       staleTime: Infinity,

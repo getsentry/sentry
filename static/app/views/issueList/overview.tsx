@@ -33,6 +33,7 @@ import {space} from 'sentry/styles/space';
 import {
   BaseGroup,
   Group,
+  GroupStats,
   IssueCategory,
   Organization,
   PageFilters,
@@ -1212,13 +1213,13 @@ class IssueListOverview extends Component<Props, State> {
     };
   };
 
-  onStatsRequestPromise = (promise: Promise<any>) => {
+  onStatsRequestPromise = (promise: Promise<Record<string, GroupStats>>) => {
     promise
       .then(data => {
-        if (!data) {
+        if (!data || !data[0]) {
           return;
         }
-        this.trackTabViewed(this.state.groupIds, data as unknown as Group[]);
+        this.trackTabViewed(this.state.groupIds, data[0] as unknown as Group[]);
       })
       .catch(err => {
         this.setState({

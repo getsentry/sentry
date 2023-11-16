@@ -18,6 +18,7 @@ import type {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import withOrganization from 'sentry/utils/withOrganization';
+import {useGroupStats} from 'sentry/views/issueList/groupStatsProvider';
 
 type Props = {
   data: Event | Group;
@@ -43,12 +44,12 @@ function EventOrGroupExtraDetails({
     annotations,
     shortId,
     project,
-    lifetime,
-    isUnhandled,
     inbox,
     status,
     substatus,
   } = data as Group;
+
+  const stats = useGroupStats(id);
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
@@ -74,13 +75,13 @@ function EventOrGroupExtraDetails({
           }
         />
       )}
-      {isUnhandled && <UnhandledTag />}
-      {!lifetime && !firstSeen && !lastSeen ? (
+      {stats.isUnhandled && <UnhandledTag />}
+      {!stats.lifetime && !firstSeen && !lastSeen ? (
         <Placeholder height="14px" width="100px" />
       ) : (
         <TimesTag
-          lastSeen={lifetime?.lastSeen || lastSeen}
-          firstSeen={lifetime?.firstSeen || firstSeen}
+          lastSeen={stats.lifetime?.lastSeen || lastSeen}
+          firstSeen={stats.lifetime?.firstSeen || firstSeen}
         />
       )}
       {/* Always display comment count on inbox */}
