@@ -15,15 +15,18 @@ interface Props {
   project: Project;
 }
 
+function buildAggregate(mri: string, op: string) {
+  return `${op}(${mri})`;
+}
+
 export function parseAggregate(aggregate: string) {
   const parsedFunction = parseFunction(aggregate);
   if (!parsedFunction) {
-    // Assumption: we only allow aggregate functions for custom metric alerts
+    // We only allow aggregate functions for custom metric alerts
     return {
       mri: undefined,
       op: undefined,
     };
-    // throw new Error('Invalid aggregate for metrics');
   }
   return {
     mri: parsedFunction.arguments[0],
@@ -31,7 +34,7 @@ export function parseAggregate(aggregate: string) {
   };
 }
 
-function getSortedMriOperations(operations: string[]) {
+function filterAndSortOperations(operations: string[]) {
   return operations.filter(isAllowedOp).sort((a, b) => a.localeCompare(b));
 }
 
@@ -47,25 +50,43 @@ function MriField({aggregate, project, onChange}: Props) {
   const selectedMriMeta = selectedValues.mri ? meta[selectedValues.mri] : null;
 
   useEffect(() => {
-    // auto select first mri if none of the available ones is selected
+    // Auto-select the first mri if none of the available ones is selected
     if (!selectedMriMeta && metaArr.length > 0) {
       const newSelection = metaArr[0];
       onChange(
-        `${getSortedMriOperations(newSelection.operations)[0]}(${newSelection.mri})`,
+        buildAggregate(
+          newSelection.mri,
+          filterAndSortOperations(newSelection.operations)[0]
+        ),
         {}
       );
     }
   }, [metaArr, onChange, selectedMriMeta]);
 
+  const handleMriChange = useCallback(
+    option => {
+      // Make sure that the selected operation matches the new metric
+      const availableOps = filterAndSortOperations(meta[option.value].operations);
+      const selectedOp =
+        selectedValues.op && availableOps.includes(selectedValues.op)
+          ? selectedValues.op
+          : availableOps[0];
+      onChange(buildAggregate(option.value, selectedOp), {});
+    },
+    [meta, onChange, selectedValues.op]
+  );
+
   const operationOptions = useMemo(
     () =>
-      getSortedMriOperations(selectedMriMeta?.operations ?? []).map(op => ({
+      filterAndSortOperations(selectedMriMeta?.operations ?? []).map(op => ({
         label: op,
         value: op,
       })),
     [selectedMriMeta]
   );
 
+  // As SelectControl does not support an options size limit out of the box
+  // we work around it by using the async variant of the control
   const getMriOptions = useCallback(
     (searchText: string) => {
       const filteredMeta = metaArr.filter(
@@ -103,15 +124,10 @@ function MriField({aggregate, project, onChange}: Props) {
     [metaArr]
   );
 
+  // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
   const selectedOption = selectedMriMeta && {
     label: selectedMriMeta.name,
     value: selectedMriMeta.mri,
-    trailingItems: (
-      <Fragment>
-        <Tag tooltipText={t('Type')}>{getReadableMetricType(selectedMriMeta.type)}</Tag>
-        <Tag tooltipText={t('Unit')}>{selectedMriMeta.unit}</Tag>
-      </Fragment>
-    ),
   };
 
   return (
@@ -124,14 +140,7 @@ function MriField({aggregate, project, onChange}: Props) {
         loadOptions={searchText => Promise.resolve(getMriOptions(searchText))}
         filterOption={() => true}
         value={selectedOption}
-        onChange={option => {
-          const availableOps = getSortedMriOperations(meta[option.value].operations);
-          const selectedOp =
-            selectedValues.op && availableOps.includes(selectedValues.op)
-              ? selectedValues.op
-              : availableOps[0];
-          onChange(`${selectedOp}(${option.value})`, {});
-        }}
+        onChange={handleMriChange}
       />
       <StyledSelectControl
         searchable
