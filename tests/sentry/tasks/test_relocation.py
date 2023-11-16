@@ -817,7 +817,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert relocation.status == Relocation.Status.FAILURE.value
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.tasks.relocation.validating_start.delay")
 class PreprocessingCompleteTest(RelocationTaskTestCase):
