@@ -319,7 +319,7 @@ class OAuth2CallbackView(PipelineView):
 
         if error:
             pipeline.logger.info("identity.token-exchange-error", extra={"error": error})
-            return pipeline.error(error)
+            return pipeline.error(ERR_INVALID_STATE)
 
         if state != pipeline.fetch_state("state"):
             pipeline.logger.info(

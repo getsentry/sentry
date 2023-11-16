@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from sentry.hybridcloud.rpc.services.caching import back_with_silo_cache
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -17,6 +17,7 @@ from sentry.services.hybrid_cloud.user import (
     UserSerializeType,
     UserUpdateArgs,
 )
+from sentry.services.hybrid_cloud.user.model import RpcVerifyUserEmail, UserIdEmailArgs
 from sentry.silo import SiloMode
 
 
@@ -140,6 +141,31 @@ class UserService(RpcService):
     @rpc_method
     @abstractmethod
     def verify_any_email(self, *, email: str) -> bool:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def create_by_username_and_email(self, *, email: str, username: str) -> RpcUser:
+        """
+        Creates a new user via a combination of email and username.
+        This is not idempotent and only really intended for legacy
+        Heroku provisioning.
+        :param email: The user's email address
+        :param username: The user's username
+        :return: RpcUser of the newly created user
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def trigger_user_consent_email_if_applicable(self, *, user_id: int) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def verify_user_emails(
+        self, *, user_id_emails: List[UserIdEmailArgs]
+    ) -> Dict[int, RpcVerifyUserEmail]:
         pass
 
 

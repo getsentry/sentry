@@ -32,7 +32,13 @@ class DiscordRequestParser(BaseRequestParser):
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
             params = unsign(self.match.kwargs.get("signed_params"))
-            return Integration.objects.filter(id=params.get("integration_id")).first()
+            integration_id = params.get("integration_id")
+
+            logger.info(
+                f"{self.provider}.get_integration_from_request.{self.view_class.__name__}",
+                extra={"path": self.request.path, "integration_id": integration_id},
+            )
+            return Integration.objects.filter(id=integration_id).first()
 
         if self.view_class == DiscordInteractionsEndpoint:
             drf_request: Request = DiscordInteractionsEndpoint().initialize_request(self.request)
@@ -40,10 +46,20 @@ class DiscordRequestParser(BaseRequestParser):
 
             self.discord_request = discord_request
 
+            logger.info(
+                f"{self.provider}.get_integration_from_request.discord_interactions_endpoint",
+                extra={"path": self.request.path, "guild_id": discord_request.guild_id},
+            )
+
             return Integration.objects.filter(
                 provider=self.provider,
                 external_id=discord_request.guild_id,
             ).first()
+
+        logger.info(
+            f"{self.provider}.get_integration_from_request.no_view_class",
+            extra={"path": self.request.path},
+        )
 
         return None
 
@@ -57,10 +73,11 @@ class DiscordRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         if self.view_class == DiscordInteractionsEndpoint:
-            if self.discord_request and self.discord_request.is_command():
-                return self.get_response_from_first_region()
+            if self.discord_request:
+                if self.discord_request.is_command() or self.discord_request.is_ping():
+                    return self.get_response_from_first_region()
 
-            if self.discord_request and self.discord_request.is_message_component():
-                return self.get_response_from_all_regions()
+                if self.discord_request.is_message_component():
+                    return self.get_response_from_all_regions()
 
         return self.get_response_from_control_silo()

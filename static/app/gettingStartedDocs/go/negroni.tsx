@@ -3,40 +3,17 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-// Configuration Start
-export const steps = ({
-  dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct('Install our Go Negroni SDK using [code:go get]:', {
-          code: <code />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: 'go get github.com/getsentry/sentry-go/negroni',
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: t(
-      "Import and initialize the Sentry SDK early in your application's setup:"
-    ),
-    configurations: [
-      {
-        language: 'go',
-        code: `
+type Params = DocsParams;
+
+const getConfigureSnippet = (params: Params) => `
 import (
   "fmt"
   "net/http"
@@ -48,7 +25,7 @@ import (
 
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
-  Dsn: "${dsn}",
+  Dsn: "${params.dsn}",
   EnableTracing: true,
   // Set TracesSampleRate to 1.0 to capture 100%
   // of transactions for performance monitoring.
@@ -74,24 +51,9 @@ mux.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
 app.UseHandler(mux)
 
 // And run it
-http.ListenAndServe(":3000", app)
-        `,
-      },
-      {
-        description: (
-          <Fragment>
-            <strong>{t('Options')}</strong>
-            <p>
-              {tct(
-                '[sentryNegroniCode:sentrynegroni] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
-                {sentryNegroniCode: <code />, optionsCode: <code />}
-              )}
-            </p>
-            {t('Currently it respects 3 options:')}
-          </Fragment>
-        ),
-        language: 'go',
-        code: `
+http.ListenAndServe(":3000", app)`;
+
+const getOptionsSnippet = () => `
 // Whether Sentry should repanic after recovery, in most cases it should be set to true,
 // as negroni.Classic includes its own Recovery middleware that handles http responses.
 Repanic bool
@@ -100,41 +62,9 @@ Repanic bool
 // it's safe to either skip this option or set it to "false".
 WaitForDelivery bool
 // Timeout for the event delivery requests.
-Timeout time.Duration
-        `,
-      },
-    ],
-  },
-  {
-    title: t('Usage'),
-    description: (
-      <Fragment>
-        <p>
-          {tct(
-            "[sentryNegroniCode:sentrynegroni] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentry.GetHubFromContext()] method on the request itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
-            {
-              sentryNegroniCode: <code />,
-              sentryHubLink: (
-                <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
-              ),
-              getHubFromContextCode: <code />,
-              captureMessageCode: <code />,
-              captureExceptionCode: <code />,
-            }
-          )}
-        </p>
-        <AlertWithoutMarginBottom>
-          {tct(
-            "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryNegroniCode:sentrynegroni]!",
-            {sentryNegroniCode: <code />, sentryHubCode: <code />}
-          )}
-        </AlertWithoutMarginBottom>
-      </Fragment>
-    ),
-    configurations: [
-      {
-        language: 'go',
-        code: `
+Timeout time.Duration`;
+
+const getUsageSnippet = () => `
 app := negroni.Classic()
 
 app.Use(sentrynegroni.New(sentrynegroni.Options{
@@ -166,21 +96,11 @@ mux.HandleFunc("/foo", func(rw http.ResponseWriter, r *http.Request) {
 
 app.UseHandler(mux)
 
-http.ListenAndServe(":3000", app)
-        `,
-      },
-      {
-        description: (
-          <strong>
-            {tct('Accessing Request in [beforeSendCode:BeforeSend] callback', {
-              beforeSendCode: <code />,
-            })}
-          </strong>
-        ),
-        language: 'go',
-        code: `
+http.ListenAndServe(":3000", app)`;
+
+const getBeforeSendSnippet = params => `
 sentry.Init(sentry.ClientOptions{
-  Dsn: "${dsn}",
+  Dsn: "${params.dsn}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
     if hint.Context != nil {
       if req, ok := hint.Context.Value(sentry.RequestContextKey).(*http.Request); ok {
@@ -190,46 +110,9 @@ sentry.Init(sentry.ClientOptions{
 
     return event
   },
-})
-        `,
-      },
-    ],
-  },
-  {
-    title: t("Using Negroni's 'panicHandlerFuncCode' Option"),
-    description: (
-      <Fragment>
-        <p>
-          {tct(
-            "Negroni provides an option called [panicHandlerFuncCode:PanicHandlerFunc], which lets you 'plug-in' to its default [recoveryCode:Recovery] middleware.",
-            {
-              panicHandlerFuncCode: <code />,
-              recoveryCode: <code />,
-            }
-          )}
-        </p>
-        <p>
-          {tct(
-            "[sentrynegroniCode:sentrynegroni] exports a very barebones implementation, which utilizes it, so if you don't need anything else than just reporting panics to Sentry, you can use it instead, as it's just one line of code!",
-            {
-              sentrynegroniCode: <code />,
-            }
-          )}
-        </p>
-        <p>
-          {tct(
-            'You can still use [beforeSendCode:BeforeSend] and event processors to modify data before delivering it to Sentry, using this method as well.',
-            {
-              beforeSendCode: <code />,
-            }
-          )}
-        </p>
-      </Fragment>
-    ),
-    configurations: [
-      {
-        language: 'go',
-        code: `
+})`;
+
+const getPanicHandlerSnippet = () => `
 app := negroni.New()
 
 recovery := negroni.NewRecovery()
@@ -244,19 +127,143 @@ mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 
 app.UseHandler(mux)
 
-http.ListenAndServe(":3000", app)
-      `,
-      },
-    ],
-  },
-];
-// Configuration End
+http.ListenAndServe(":3000", app)`;
 
-export function GettingStartedWithNegroni({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
-}
+const onboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct('Install our Go Negroni SDK using [code:go get]:', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'bash',
+          code: 'go get github.com/getsentry/sentry-go/negroni',
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Import and initialize the Sentry SDK early in your application's setup:"
+      ),
+      configurations: [
+        {
+          language: 'go',
+          code: getConfigureSnippet(params),
+        },
+        {
+          description: (
+            <Fragment>
+              <strong>{t('Options')}</strong>
+              <p>
+                {tct(
+                  '[sentryNegroniCode:sentrynegroni] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
+                  {sentryNegroniCode: <code />, optionsCode: <code />}
+                )}
+              </p>
+              {t('Currently it respects 3 options:')}
+            </Fragment>
+          ),
+          language: 'go',
+          code: getOptionsSnippet(),
+        },
+      ],
+    },
+    {
+      title: t('Usage'),
+      description: (
+        <Fragment>
+          <p>
+            {tct(
+              "[sentryNegroniCode:sentrynegroni] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentry.GetHubFromContext()] method on the request itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
+              {
+                sentryNegroniCode: <code />,
+                sentryHubLink: (
+                  <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
+                ),
+                getHubFromContextCode: <code />,
+                captureMessageCode: <code />,
+                captureExceptionCode: <code />,
+              }
+            )}
+          </p>
+          <AlertWithoutMarginBottom>
+            {tct(
+              "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryNegroniCode:sentrynegroni]!",
+              {sentryNegroniCode: <code />, sentryHubCode: <code />}
+            )}
+          </AlertWithoutMarginBottom>
+        </Fragment>
+      ),
+      configurations: [
+        {
+          language: 'go',
+          code: getUsageSnippet(),
+        },
+        {
+          description: (
+            <strong>
+              {tct('Accessing Request in [beforeSendCode:BeforeSend] callback', {
+                beforeSendCode: <code />,
+              })}
+            </strong>
+          ),
+          language: 'go',
+          code: getBeforeSendSnippet(params),
+        },
+      ],
+    },
+    {
+      title: t("Using Negroni's 'panicHandlerFuncCode' Option"),
+      description: (
+        <Fragment>
+          <p>
+            {tct(
+              "Negroni provides an option called [panicHandlerFuncCode:PanicHandlerFunc], which lets you 'plug-in' to its default [recoveryCode:Recovery] middleware.",
+              {
+                panicHandlerFuncCode: <code />,
+                recoveryCode: <code />,
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              "[sentrynegroniCode:sentrynegroni] exports a very barebones implementation, which utilizes it, so if you don't need anything else than just reporting panics to Sentry, you can use it instead, as it's just one line of code!",
+              {
+                sentrynegroniCode: <code />,
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              'You can still use [beforeSendCode:BeforeSend] and event processors to modify data before delivering it to Sentry, using this method as well.',
+              {
+                beforeSendCode: <code />,
+              }
+            )}
+          </p>
+        </Fragment>
+      ),
+      configurations: [
+        {
+          language: 'go',
+          code: getPanicHandlerSnippet(),
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+};
 
-export default GettingStartedWithNegroni;
+const docs: Docs = {
+  onboarding,
+};
+
+export default docs;
 
 const AlertWithoutMarginBottom = styled(Alert)`
   margin-bottom: 0;

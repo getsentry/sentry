@@ -1,7 +1,10 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -12,6 +15,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
@@ -19,6 +23,13 @@ import {TraceTable} from 'sentry/views/ddm/traceTable';
 
 function DDM() {
   const organization = useOrganization();
+
+  useEffect(() => {
+    trackAnalytics('ddm.page-view', {
+      organization,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <SentryDocumentTitle title={t('DDM')} orgSlug={organization.slug}>
@@ -29,13 +40,21 @@ function DDM() {
               <Layout.Title>
                 {t('DDM')}
                 <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io"
+                  docsUrl="https://develop.sentry.dev/delightful-developer-metrics/"
                   title={t('Delightful Developer Metrics.')}
                 />
                 <FeatureBadge type="alpha" />
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions />
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <GithubFeedbackButton
+                  href="https://github.com/getsentry/sentry/discussions/58584"
+                  label={t('Discussion')}
+                  title={null}
+                />
+              </ButtonBar>
+            </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
             <FeedbackWidget />

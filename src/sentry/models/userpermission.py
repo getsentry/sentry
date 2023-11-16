@@ -66,11 +66,6 @@ class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
         # If we are merging users, ignore the imported permissions and use the merged user's
         # permissions instead.
         if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
-            model_name = get_model_name(self)
-            permissions = self.__class__.objects.filter(user_id=self.user_id).all()
-            for permission in permissions:
-                pk_map.insert(model_name, self.pk, permission.pk, ImportKind.Existing)
-
             return None
 
         return old_pk

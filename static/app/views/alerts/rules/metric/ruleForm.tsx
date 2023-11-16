@@ -29,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
+import {getForceMetricsLayerQueryExtras} from 'sentry/utils/ddm/features';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
@@ -626,7 +627,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       transaction.setData('actions', sanitizedTriggers);
 
       const hasMetricDataset = organization.features.includes('mep-rollout-flag');
-
+      const dataset = this.determinePerformanceDataset();
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
         this.api,
@@ -647,13 +648,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             : {}),
           // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset: this.determinePerformanceDataset(),
+          dataset,
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
           wizardV3: 'true',
           referrer: location?.query?.referrer,
           sessionId,
+          ...getForceMetricsLayerQueryExtras(organization, dataset),
         }
       );
       // if we get a 202 back it means that we have an async task
@@ -865,6 +867,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
     } = this.state;
 
+    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
+    const isMigration = this.props.location?.query?.migration === '1';
+
     const chartProps = {
       organization,
       projects: [project],
@@ -872,7 +877,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
       query: this.chartQuery,
       aggregate,
-      dataset,
+      // If the alert is being migrated, we want to use the generic metrics dataset to allow users to edit their thresholds
+      dataset: isMigration ? Dataset.GENERIC_METRICS : dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
       timeWindow,
       environment,

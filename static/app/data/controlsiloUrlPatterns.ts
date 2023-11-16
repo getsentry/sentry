@@ -1,6 +1,7 @@
 // This is generated code.
 // To update it run `getsentry django generate_controlsilo_urls --format=js --output=/path/to/thisfile.ts`
 const patterns: RegExp[] = [
+  new RegExp('^remote/heroku/resources(?:/[^/]+)?$'),
   new RegExp('^remote/github/marketplace/purchase/$'),
   new RegExp('^docs/api/user/$'),
   new RegExp('^_experiment/log_exposure/$'),
@@ -48,6 +49,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/organizations/[^/]+/broadcasts/$'),
   new RegExp('^api/0/users/$'),
   new RegExp('^api/0/users/[^/]+/$'),
+  new RegExp('^api/0/users/[^/]+/regions/$'),
   new RegExp('^api/0/users/[^/]+/avatar/$'),
   new RegExp('^api/0/users/[^/]+/authenticators/$'),
   new RegExp('^api/0/users/[^/]+/authenticators/[^/]+/enroll/$'),

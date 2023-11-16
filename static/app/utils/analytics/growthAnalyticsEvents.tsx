@@ -63,7 +63,7 @@ export type GrowthEventParameters = {
     guide: string;
   };
   'github_invite_banner.snoozed': {};
-  'github_invite_banner.viewed': {members_shown: number};
+  'github_invite_banner.viewed': {members_shown: number; total_members: number};
   'growth.clicked_enter_sandbox': {
     scenario: string;
     source?: string;

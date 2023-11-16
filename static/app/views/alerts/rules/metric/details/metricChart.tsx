@@ -43,6 +43,7 @@ import {space} from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {getForceMetricsLayerQueryExtras} from 'sentry/utils/ddm/features';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -572,12 +573,16 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    const queryExtras = getMetricDatasetQueryExtras({
-      organization,
-      location,
-      dataset,
-      newAlertOrQuery: false,
-    });
+    const queryExtras = {
+      ...getMetricDatasetQueryExtras({
+        organization,
+        location,
+        dataset,
+        newAlertOrQuery: false,
+        useOnDemandMetrics: isOnDemandAlert,
+      }),
+      ...getForceMetricsLayerQueryExtras(organization, dataset),
+    };
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
@@ -617,7 +622,6 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
-        useOnDemandMetrics={isOnDemandAlert}
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) => (
           <Fragment>

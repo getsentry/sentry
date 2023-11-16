@@ -23,7 +23,12 @@ class Conflict(Exception):
     pass
 
 
-def save_userreport(project, report, start_time=None):
+def save_userreport(
+    project,
+    report,
+    source,
+    start_time=None,
+):
     with metrics.timer("sentry.ingest.userreport.save_userreport"):
         if start_time is None:
             start_time = timezone.now()
@@ -99,7 +104,7 @@ def save_userreport(project, report, start_time=None):
         user_feedback_received.send(project=project, sender=save_userreport)
 
         if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
-            shim_to_feedback(report, event, project)
+            shim_to_feedback(report, event, project, source)
 
         return report_instance
 

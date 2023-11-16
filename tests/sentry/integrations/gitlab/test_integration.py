@@ -1,3 +1,5 @@
+from dataclasses import asdict
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
@@ -9,7 +11,9 @@ from isodate import parse_datetime
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab import GitlabIntegrationProvider
+from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
 from sentry.integrations.gitlab.client import GitLabProxyApiClient, GitlabProxySetupClient
+from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -456,6 +460,67 @@ class GitlabIntegrationTest(IntegrationTestCase):
         commit_context = installation.get_commit_context(repo, filepath, ref, event_frame)
         # The returned commit context has converted the timezone to UTC (000Z)
         assert commit_context == commit_context_expected
+
+    @responses.activate
+    def test_get_commit_context_all_frames(self):
+        self.assert_setup_flow()
+        external_id = 4
+        integration = Integration.objects.get(provider=self.provider.key)
+        instance = integration.metadata["instance"]
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Get Sentry / Example Repo",
+                external_id=f"{instance}:{external_id}",
+                url="https://gitlab.example.com/getsentry/projects/example-repo",
+                config={"project_id": external_id, "path": "getsentry/example-repo"},
+                provider="integrations:gitlab",
+                integration_id=integration.id,
+            )
+        installation = integration.get_installation(self.organization.id)
+
+        file = SourceLineInfo(
+            path="src/gitlab.py",
+            lineno=10,
+            ref="master",
+            repo=repo,
+            code_mapping=None,  # type: ignore
+        )
+
+        responses.add(
+            responses.GET,
+            url=f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{quote(file.path, safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}",
+            json=[
+                GitLabFileBlameResponseItem(
+                    lines=[],
+                    commit=GitLabCommitResponse(
+                        id="1",
+                        message="test message",
+                        committed_date="2023-01-01T00:00:00.000Z",
+                        author_name="Marvin",
+                        author_email="marvin@place.com",
+                        committer_email=None,
+                        committer_name=None,
+                    ),
+                )
+            ],
+            status=200,
+        )
+
+        response = installation.get_commit_context_all_frames([file], extra={})
+
+        assert response == [
+            FileBlameInfo(
+                **asdict(file),
+                commit=CommitInfo(
+                    commitId="1",
+                    commitMessage="test message",
+                    committedDate=datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    commitAuthorEmail="marvin@place.com",
+                    commitAuthorName="Marvin",
+                ),
+            )
+        ]
 
     @responses.activate
     def test_source_url_matches(self):

@@ -1,13 +1,14 @@
-import {Fragment, MouseEventHandler} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
-import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import ResourceTable from 'sentry/views/performance/browser/resources/jsCssView/resourceTable';
+import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
 import {
   BrowserStarfishFields,
@@ -36,23 +37,10 @@ type Option = {
 function JSCSSView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
-  const location = useLocation();
 
   const spanTimeChartsFilters: ModuleFilters = {
     'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
     ...(filters[SPAN_DOMAIN] ? {[SPAN_DOMAIN]: filters[SPAN_DOMAIN]} : {}),
-  };
-
-  const handleBlockingToggle: MouseEventHandler = () => {
-    const hasBlocking = filters[RESOURCE_RENDER_BLOCKING_STATUS] === 'blocking';
-    const newBlocking = hasBlocking ? undefined : 'blocking';
-    browserHistory.push({
-      ...location,
-      query: {
-        ...location.query,
-        [RESOURCE_RENDER_BLOCKING_STATUS]: newBlocking,
-      },
-    });
   };
 
   return (
@@ -65,17 +53,11 @@ function JSCSSView() {
 
       <FilterOptionsContainer>
         <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
-        <PageSelector
+        <TransactionSelector
           value={filters[TRANSACTION] || ''}
           defaultResourceTypes={DEFAULT_RESOURCE_TYPES}
         />
-        <SwitchContainer>
-          <SwitchButton
-            isActive={filters[RESOURCE_RENDER_BLOCKING_STATUS] === 'blocking'}
-            toggle={handleBlockingToggle}
-          />
-          {t('Render Blocking')}
-        </SwitchContainer>
+        <RenderBlockingSelector value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''} />
       </FilterOptionsContainer>
       <ResourceTable sort={sort} defaultResourceTypes={DEFAULT_RESOURCE_TYPES} />
     </Fragment>
@@ -108,26 +90,64 @@ function ResourceTypeSelector({value}: {value?: string}) {
   );
 }
 
-function PageSelector({
+export function TransactionSelector({
   value,
   defaultResourceTypes,
 }: {
   defaultResourceTypes?: string[];
   value?: string;
 }) {
+  const [state, setState] = useState({
+    search: '',
+    inputChanged: false,
+    shouldRequeryOnInputChange: false,
+  });
   const location = useLocation();
-  const {data: pages} = useResourcePagesQuery(defaultResourceTypes);
 
-  const options: Option[] = [
-    {value: '', label: 'All'},
-    ...pages.map(page => ({value: page, label: page})),
-  ];
+  const {data: pages, isLoading} = useResourcePagesQuery(
+    defaultResourceTypes,
+    state.search
+  );
+
+  // If the maximum number of pages is returned, we need to requery on input change to get full results
+  if (!state.shouldRequeryOnInputChange && pages && pages.length >= 100) {
+    setState({...state, shouldRequeryOnInputChange: true});
+  }
+
+  // Everytime loading is complete, reset the inputChanged state
+  useEffect(() => {
+    if (!isLoading && state.inputChanged) {
+      setState({...state, inputChanged: false});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
+
+  const optionsReady = !isLoading && !state.inputChanged;
+
+  const options: Option[] = optionsReady
+    ? [{value: '', label: 'All'}, ...pages.map(page => ({value: page, label: page}))]
+    : [];
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debounceUpdateSearch = useCallback(
+    debounce((search, currentState) => {
+      setState({...currentState, search});
+    }, 500),
+    []
+  );
 
   return (
     <SelectControlWithProps
       inFieldLabel={`${t('Page')}:`}
       options={options}
       value={value}
+      onInputChange={input => {
+        if (state.shouldRequeryOnInputChange) {
+          setState({...state, inputChanged: true});
+          debounceUpdateSearch(input, state);
+        }
+      }}
+      noOptionsMessage={() => (optionsReady ? undefined : t('Loading...'))}
       onChange={newValue => {
         browserHistory.push({
           ...location,
@@ -140,12 +160,6 @@ function PageSelector({
     />
   );
 }
-
-const SwitchContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  column-gap: ${space(1)};
-`;
 
 export const FilterOptionsContainer = styled('div')`
   display: grid;

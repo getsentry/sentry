@@ -90,17 +90,17 @@ Makefile                                                 @getsentry/owners-sentr
 /static/app/components/sidebar/index.tsx                 @getsentry/open-source
 
 ## Relocation - getsentry/team-ospo#153
-/src/sentry/api/endpoints/relocation.py                  @getsentry/open-source
+/src/sentry/api/endpoints/relocation/                    @getsentry/open-source
 /src/sentry/backup/                                      @getsentry/open-source
 /src/sentry/runner/commands/backup.py                    @getsentry/open-source
 /src/sentry/services/hybrid-cloud/import_export/         @getsentry/open-source
 /src/sentry/tasks/relocation.py                          @getsentry/open-source
 /src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
 /src/sentry/utils/relocation.py                          @getsentry/open-source
-/tests/sentry/api/endpoints/test_relocation.py           @getsentry/open-source
+/tests/sentry/api/endpoints/relocation                   @getsentry/open-source
 /tests/sentry/tasks/test_relocation.py                   @getsentry/open-source
 /tests/sentry/utils/test_relocation.py                   @getsentry/open-source
-/tests/sentry/backup                                     @getsentry/open-source
+/tests/sentry/backup/                                    @getsentry/open-source
 /tests/sentry/runner/commands/test_backup.py             @getsentry/open-source
 
 ## Build & Releases
@@ -158,6 +158,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/issues
 /static/app/views/alerts/                                 @getsentry/issues
 /static/app/views/issueDetails/                           @getsentry/issues
+/static/app/views/issueDetails/groupEventDetails/         @getsentry/issues
 /static/app/views/projects/                               @getsentry/issues
 /static/app/views/projectDetail/                          @getsentry/issues
 /static/app/views/releases/                               @getsentry/issues
@@ -207,6 +208,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/performance
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/performance
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/performance
+/static/app/components/events/viewHierarchy/*                               @getsentry/performance
 
 /src/sentry/api/serializers/snuba.py                                        @getsentry/discover-n-dashboards
 /src/sentry/snuba/discover.py                                               @getsentry/discover-n-dashboards
