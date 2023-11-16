@@ -8,7 +8,6 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
@@ -19,8 +18,6 @@ type Props = {
 };
 
 function ReplayView({toggleFullscreen}: Props) {
-  const organization = useOrganization();
-  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -51,9 +48,7 @@ function ReplayView({toggleFullscreen}: Props) {
           </BreadcrumbContainer>
         ) : null}
       </PlayerBreadcrumbContainer>
-      {isFullscreen || !hasNewTimeline ? (
-        <ReplayController toggleFullscreen={toggleFullscreen} />
-      ) : null}
+      {isFullscreen ? <ReplayController toggleFullscreen={toggleFullscreen} /> : null}
     </Fragment>
   );
 }
