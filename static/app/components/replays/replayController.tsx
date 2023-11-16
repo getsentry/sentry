@@ -161,7 +161,7 @@ function TimelineSizeBar() {
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1}
       />
-      <span style={{padding: `${space(0.5)}`}}>
+      <span style={{padding: `0 ${space(0.5)}`}}>
         {timelineScale}
         {t('x')}
       </span>
