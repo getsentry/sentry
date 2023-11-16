@@ -37,8 +37,9 @@ class OrderedTask(Enum):
     VALIDATING_COMPLETE = 8
     IMPORTING = 9
     POSTPROCESSING = 10
-    NOTIFYING_OWNER = 11
-    COMPLETED = 12
+    NOTIFYING_USERS = 11
+    NOTIFYING_OWNER = 12
+    COMPLETED = 13
 
 
 # The file type for a relocation export tarball of any kind.
@@ -61,10 +62,10 @@ RELOCATION_BLOB_SIZE = int((2**31) / 32)
 # be imported, a `/workspace/out` directory for exports that will be generated, and
 # `/workspace/findings` for findings.
 #
-# TODO(getsentry/team-ospo#203): Make `get-self-hosted-repo` pull a pinned version, not
+# TODO(getsentry/team-ospo#190): Make `get-self-hosted-repo` pull a pinned version, not
 # mainline.
 #
-# TODO(getsentry/team-ospo#203): Use script in self-hosted to completely flush db instead of
+# TODO(getsentry/team-ospo#216): Use script in self-hosted to completely flush db instead of
 # using truncation tables.
 CLOUDBUILD_YAML_TEMPLATE = Template(
     """
@@ -548,7 +549,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=[],
         ),
-        # TODO(getsentry/team-ospo#203): Add compare-raw-relocation-data as well.
+        # TODO(getsentry/team-ospo#216): Add compare-raw-relocation-data as well.
     ]
 
     deps = dependencies()
