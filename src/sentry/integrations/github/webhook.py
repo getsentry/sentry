@@ -39,6 +39,7 @@ from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo import SiloMode
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONData
 
@@ -239,11 +240,13 @@ class InstallationEventWebhook(Webhook):
         integration_service.update_integration(
             integration_id=integration.id, status=ObjectStatus.DISABLED
         )
-        Repository.objects.filter(
-            organization_id__in=org_ids,
-            provider=f"integrations:{self.provider}",
-            integration_id=integration.id,
-        ).update(status=ObjectStatus.DISABLED)
+
+        if len(org_ids) > 0 and SiloMode.get_current_mode() != SiloMode.CONTROL:
+            Repository.objects.filter(
+                organization_id__in=org_ids,
+                provider=f"integrations:{self.provider}",
+                integration_id=integration.id,
+            ).update(status=ObjectStatus.DISABLED)
 
 
 class PushEventWebhook(Webhook):
@@ -442,7 +445,6 @@ class PullRequestEventWebhook(Webhook):
         repo: Repository,
         host: str | None = None,
     ) -> None:
-
         pull_request = event["pull_request"]
         number = pull_request["number"]
         title = pull_request["title"]
