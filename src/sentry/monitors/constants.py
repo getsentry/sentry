@@ -15,6 +15,9 @@ SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p %Z"
 # lowering this may invalidate monitors + block check-ins
 MAX_THRESHOLD = 720
 
+# minimum value in minutes for check-ins to close from in-progress
+DEFAULT_CHECKIN_MARGIN = 1
+
 
 class PermitCheckInStatus(Enum):
     ACCEPT = 0

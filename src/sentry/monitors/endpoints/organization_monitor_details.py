@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
-
 from django.db import router, transaction
 from django.db.models import F
 from django.db.models.functions import TruncMinute
@@ -27,7 +25,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.monitors.constants import MAX_TIMEOUT, TIMEOUT
 from sentry.monitors.endpoints.base import MonitorEndpoint
 from sentry.monitors.models import (
     CheckInStatus,
@@ -38,7 +35,12 @@ from sentry.monitors.models import (
     MonitorStatus,
 )
 from sentry.monitors.serializers import MonitorSerializer
-from sentry.monitors.utils import create_alert_rule, update_alert_rule
+from sentry.monitors.utils import (
+    create_alert_rule,
+    get_checkin_margin_timedelta,
+    get_timeout_at_timedelta,
+    update_alert_rule,
+)
 from sentry.monitors.validators import MonitorValidator
 
 
@@ -137,7 +139,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             if checkin_margin != existing_margin:
                 MonitorEnvironment.objects.filter(monitor_id=monitor.id).update(
                     next_checkin_latest=F("next_checkin")
-                    + timedelta(minutes=int(checkin_margin or 1))
+                    + get_checkin_margin_timedelta(checkin_margin)
                 )
 
             max_runtime = result["config"].get("max_runtime")
@@ -145,8 +147,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 MonitorCheckIn.objects.filter(
                     monitor_id=monitor.id, status=CheckInStatus.IN_PROGRESS
                 ).update(
-                    timeout_at=TruncMinute(F("date_added"))
-                    + timedelta(minutes=min((max_runtime or TIMEOUT), MAX_TIMEOUT))
+                    timeout_at=TruncMinute(F("date_added")) + get_timeout_at_timedelta(max_runtime)
                 )
 
         if "project" in result and result["project"].id != monitor.project_id:

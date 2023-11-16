@@ -20,7 +20,7 @@ from sentry.signals import (
     first_cron_monitor_created,
 )
 
-from .constants import MAX_TIMEOUT, TIMEOUT
+from .constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
 from .models import CheckInStatus, Monitor, MonitorCheckIn
 
 
@@ -50,13 +50,18 @@ def signal_monitor_created(project: Project, user, from_upsert: bool):
     check_and_signal_first_monitor_created(project, user, from_upsert)
 
 
+# Used when updating a monitor environment with a new timeout_at value
+def get_timeout_at_timedelta(max_runtime: Optional[int]) -> timedelta:
+    return timedelta(minutes=min((max_runtime or TIMEOUT), MAX_TIMEOUT))
+
+
 # Generates a timeout_at value for new check-ins
 def get_timeout_at(
     monitor_config: dict, status: CheckInStatus, date_added: Optional[datetime]
 ) -> Optional[datetime]:
     if status == CheckInStatus.IN_PROGRESS:
-        return date_added.replace(second=0, microsecond=0) + timedelta(
-            minutes=min(((monitor_config or {}).get("max_runtime") or TIMEOUT), MAX_TIMEOUT)
+        return date_added.replace(second=0, microsecond=0) + get_timeout_at_timedelta(
+            (monitor_config or {}).get("max_runtime")
         )
 
     return None
@@ -76,6 +81,11 @@ def valid_duration(duration: Optional[int]) -> bool:
         return False
 
     return True
+
+
+# Used when creating check-ins or updating them after the config changes
+def get_checkin_margin_timedelta(checkin_margin: Optional[int]) -> timedelta:
+    return timedelta(minutes=int(checkin_margin or DEFAULT_CHECKIN_MARGIN))
 
 
 def fetch_associated_groups(
