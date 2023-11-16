@@ -57,6 +57,7 @@ import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
+import {GroupStatsProvider} from 'sentry/views/issueList/groupStatsProvider';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 import IssueListActions from './actions';
@@ -492,10 +493,6 @@ class IssueListOverview extends Component<Props, State> {
 
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
-        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
-        if (currentTransaction?.op === 'navigation') {
-          currentTransaction.finish();
-        }
       },
     });
   };
@@ -693,7 +690,7 @@ class IssueListOverview extends Component<Props, State> {
         }
         GroupStore.add(data);
 
-        this.fetchStats(data.map((group: BaseGroup) => group.id));
+        // this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
         const queryCount =
@@ -1215,6 +1212,27 @@ class IssueListOverview extends Component<Props, State> {
     };
   };
 
+  onStatsRequestPromise = (promise: Promise<any>) => {
+    promise
+      .then(data => {
+        if (!data) {
+          return;
+        }
+        this.trackTabViewed(this.state.groupIds, data as unknown as Group[]);
+      })
+      .catch(err => {
+        this.setState({
+          error: parseApiError(err),
+        });
+      })
+      .finally(() => {
+        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        if (currentTransaction?.op === 'navigation') {
+          currentTransaction.finish();
+        }
+      });
+  };
+
   render() {
     if (
       this.props.savedSearchLoading &&
@@ -1289,22 +1307,31 @@ class IssueListOverview extends Component<Props, State> {
                   showProject
                 />
                 <VisuallyCompleteWithData
-                  hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
+                  hasData={this.state.groupIds.length > 0}
                   isLoading={this.state.issuesLoading}
                 >
-                  <GroupListBody
-                    memberList={this.state.memberList}
-                    groupStatsPeriod={this.getGroupStatsPeriod()}
+                  <GroupStatsProvider
                     groupIds={groupIds}
-                    displayReprocessingLayout={displayReprocessingActions}
-                    query={query}
-                    sort={this.getSort()}
-                    selectedProjectIds={selection.projects}
-                    loading={issuesLoading}
-                    error={error}
-                    refetchGroups={this.fetchData}
-                  />
+                    selection={this.props.selection}
+                    organization={this.props.organization}
+                    period={this.getGroupStatsPeriod()}
+                    query={this.getQuery()}
+                    onRequest={this.onStatsRequestPromise}
+                  >
+                    <GroupListBody
+                      memberList={this.state.memberList}
+                      groupStatsPeriod={this.getGroupStatsPeriod()}
+                      groupIds={groupIds}
+                      displayReprocessingLayout={displayReprocessingActions}
+                      sort={this.getSort()}
+                      selectedProjectIds={selection.projects}
+                      loading={issuesLoading}
+                      error={error}
+                      query={query}
+                      refetchGroups={this.fetchData}
+                    />
+                  </GroupStatsProvider>
                 </VisuallyCompleteWithData>
               </PanelBody>
             </Panel>
