@@ -6,6 +6,7 @@ from .discover import (  # NOQA
     TopEventsQueryBuilder,
     UnresolvedQuery,
 )
+from .errors import ErrorsQueryBuilder  # NOQA
 from .issue_platform import IssuePlatformTimeseriesQueryBuilder  # NOQA
 from .metrics import (  # NOQA
     AlertMetricsQueryBuilder,
@@ -45,6 +46,7 @@ __all__ = [
     "TopEventsQueryBuilder",
     "UnresolvedQuery",
     "AlertMetricsQueryBuilder",
+    "ErrorsQueryBuilder",
     "HistogramMetricQueryBuilder",
     "MetricsQueryBuilder",
     "TimeseriesMetricQueryBuilder",
