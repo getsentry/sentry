@@ -19,6 +19,16 @@ def TaskRunner():
         settings.CELERY_ALWAYS_EAGER = prev
 
 
+class BustTaskRunnerRetryError(Exception):
+    """
+    An exception that mocks can throw, which will bubble to tasks run by the `BurstTaskRunner` and
+    cause them to be re-queued, rather than failed immediately. Useful for simulating the
+    `@instrument_task` decorator's retry semantics.
+    """
+
+    pass
+
+
 @contextmanager
 def BurstTaskRunner():
     """
@@ -40,7 +50,10 @@ def BurstTaskRunner():
             self, args, kwargs = job_queue.pop(0)
 
             with patch("celery.app.task.Task.apply_async", apply_async):
-                self(*args, **kwargs)
+                try:
+                    self(*args, **kwargs)
+                except BustTaskRunnerRetryError:
+                    job_queue.append((self, args, kwargs))
 
             jobs += 1
 

@@ -240,19 +240,18 @@ def preprocessing_scan(uuid: str) -> None:
 
             # Decrypt the DEK using Google KMS, and use the decrypted DEK to decrypt the encoded
             # JSON.
-            try:
+            with retry_task_or_fail_relocation(
+                relocation,
+                OrderedTask.PREPROCESSING_SCAN,
+                attempts_left,
+                ERR_PREPROCESSING_DECRYPTION,
+            ):
                 decryptor = GCPKMSDecryptor.from_bytes(
                     json.dumps(get_default_crypto_key_version()).encode("utf-8")
                 )
                 plaintext_data_encryption_key = decryptor.decrypt_data_encryption_key(unwrapped)
                 fernet = Fernet(plaintext_data_encryption_key)
                 json_data = fernet.decrypt(unwrapped.encrypted_json_blob).decode("utf-8")
-            except Exception:
-                return fail_relocation(
-                    relocation,
-                    OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_DECRYPTION,
-                )
 
             # Grab usernames and org slugs from the JSON data.
             usernames = []

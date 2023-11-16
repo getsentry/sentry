@@ -263,55 +263,67 @@ class UniversalImportExportService(ImportExportService):
                                         reason=str(e),
                                     )
 
-                # If we wrote at least one model, make sure to write an appropriate `ImportChunk`
+                # If the `counter` is at 0, no model instances were actually imported, so we can
+                # return early.
+                if counter == 0:
+                    return RpcImportOk(
+                        mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
+                        min_ordinal=None,
+                        max_ordinal=None,
+                        min_source_pk=None,
+                        max_source_pk=None,
+                        min_inserted_pk=None,
+                        max_inserted_pk=None,
+                    )
+
+                # We wrote at least one model, so make sure to write an appropriate `ImportChunk`
                 # and update the sequences too.
-                if counter > 0:
-                    table = model_instance._meta.db_table
-                    seq = f"{table}_id_seq"
-                    with connections[using].cursor() as cursor:
-                        cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
+                table = model_instance._meta.db_table
+                seq = f"{table}_id_seq"
+                with connections[using].cursor() as cursor:
+                    cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
 
-                    inserted = out_pk_map.partition(
-                        {batch_model_name}, {ImportKind.Inserted}
-                    ).mapping[model_name]
-                    existing = out_pk_map.partition(
-                        {batch_model_name}, {ImportKind.Existing}
-                    ).mapping[model_name]
-                    overwrite = out_pk_map.partition(
-                        {batch_model_name}, {ImportKind.Overwrite}
-                    ).mapping[model_name]
-                    import_chunk_args = {
-                        "import_uuid": flags.import_uuid,
-                        "model": model_name,
-                        # TODO(getsentry/team-ospo#190): The next two fields assume the entire model
-                        # is being imported in a single call; we may change this in the future.
-                        "min_ordinal": 1,
-                        "max_ordinal": counter,
-                        "min_source_pk": min_old_pk,
-                        "max_source_pk": max_old_pk,
-                        "min_inserted_pk": min_inserted_pk,
-                        "max_inserted_pk": max_inserted_pk,
-                        "inserted_map": {k: v[0] for k, v in inserted.items()},
-                        "existing_map": {k: v[0] for k, v in existing.items()},
-                        "overwrite_map": {k: v[0] for k, v in overwrite.items()},
-                        "inserted_identifiers": {
-                            k: v[2] for k, v in inserted.items() if v[2] is not None
-                        },
-                    }
-                    if import_chunk_type == ControlImportChunk:
-                        ControlImportChunk(**import_chunk_args).save()
-                    else:
-                        RegionImportChunk(**import_chunk_args).save()
+                inserted = out_pk_map.partition({batch_model_name}, {ImportKind.Inserted}).mapping[
+                    model_name
+                ]
+                existing = out_pk_map.partition({batch_model_name}, {ImportKind.Existing}).mapping[
+                    model_name
+                ]
+                overwrite = out_pk_map.partition(
+                    {batch_model_name}, {ImportKind.Overwrite}
+                ).mapping[model_name]
+                import_chunk_args = {
+                    "import_uuid": flags.import_uuid,
+                    "model": model_name,
+                    # TODO(getsentry/team-ospo#190): The next two fields assume the entire model is
+                    # being imported in a single call; we may change this in the future.
+                    "min_ordinal": 1,
+                    "max_ordinal": counter,
+                    "min_source_pk": min_old_pk,
+                    "max_source_pk": max_old_pk,
+                    "min_inserted_pk": min_inserted_pk,
+                    "max_inserted_pk": max_inserted_pk,
+                    "inserted_map": {k: v[0] for k, v in inserted.items()},
+                    "existing_map": {k: v[0] for k, v in existing.items()},
+                    "overwrite_map": {k: v[0] for k, v in overwrite.items()},
+                    "inserted_identifiers": {
+                        k: v[2] for k, v in inserted.items() if v[2] is not None
+                    },
+                }
+                if import_chunk_type == ControlImportChunk:
+                    ControlImportChunk(**import_chunk_args).save()
+                else:
+                    RegionImportChunk(**import_chunk_args).save()
 
-            return RpcImportOk(
-                mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
-                min_ordinal=1,
-                max_ordinal=counter,
-                min_source_pk=min_old_pk,
-                max_source_pk=max_old_pk,
-                min_inserted_pk=min_inserted_pk,
-                max_inserted_pk=max_inserted_pk,
-            )
+                return RpcImportOk(
+                    mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
+                    min_ordinal=1,
+                    max_ordinal=counter,
+                    min_source_pk=min_old_pk,
+                    max_source_pk=max_old_pk,
+                    min_inserted_pk=min_inserted_pk,
+                    max_inserted_pk=max_inserted_pk,
+                )
 
         except DeserializationError:
             return RpcImportError(
