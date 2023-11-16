@@ -102,7 +102,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             {feedbackItem.assignedTo ? (
               <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
             ) : null}
-            {hasReplayId && <Tag icon={<IconPlay />} tooltipText={t('Replay')} />}
+            {hasReplayId && <Tag icon={<IconPlay />}>{t('Replay')}</Tag>}
           </div>
           <Flex style={{gridArea: 'labels'}} gap={space(1)} align="center">
             <Flex align="center" gap={space(1.5)}>
@@ -127,7 +127,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 const IconText = styled(Flex)<{isOpen: boolean}>`
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => (p.isOpen ? p.theme.gray100 : p.theme.gray400)};
+  color: ${p => (p.isOpen ? p.theme.gray100 : p.theme.gray300)};
 `;
 
 const CardSpacing = styled('div')`
