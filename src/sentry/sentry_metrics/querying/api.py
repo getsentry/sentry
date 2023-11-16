@@ -145,8 +145,34 @@ class ExecutionResult:
         return self.result["meta"]
 
 
-class QueryParser:
+class MutableTimeseries:
     PERCENTILE_REGEX = re.compile(r"^p(\d{1,3})$")
+
+    def __init__(self, timeseries: Timeseries):
+        self._timeseries = timeseries
+
+    def inject_environments(self, environments: Sequence[Environment]) -> "MutableTimeseries":
+        if environments:
+            environment_ids = [environment.id for environment in environments]
+            existing_filters = self._timeseries.filters
+
+
+        return self
+
+    def alias_operators(self) -> "MutableTimeseries":
+        # In case we have a percentile in the form `px` where `x` is in the range [0-100], we want to convert it to
+        # the quantiles operation which generalizes any percentile.
+        if (match := self.PERCENTILE_REGEX.match(self._timeseries.aggregate)) is not None:
+            percentile_value = float(match.group(1))
+            self._timeseries.set_aggregate("quantiles", [percentile_value / 100])
+
+        return self
+
+    def get_mutated(self) -> Timeseries:
+        return self._timeseries
+
+
+class QueryParser:
 
     def __init__(
         self,
@@ -167,7 +193,7 @@ class QueryParser:
         if not self._query:
             return None
 
-        # TODO: implement parsing via the discover grammar.
+        # TODO: pass directly grammar to mql.
         filters = []
         matches = QUERY_REGEX.findall(self._query)
         for key, value in matches:
@@ -184,28 +210,13 @@ class QueryParser:
 
         return [Column(group_by) for group_by in self._group_bys]
 
-    def _transform_timeseries(self, timeseries: Timeseries) -> Timeseries:
-        """
-        Transforms a timeseries to a variant which is supported by the metrics layer.
-
-        For now, the only transformation that is being performed is the conversion of percentiles.
-        """
-        # In case we have a percentile in the form `px` where `x` is in the range [0-100], we want to convert it to
-        # the quantiles operation which generalizes any percentile.
-        if (match := self.PERCENTILE_REGEX.match(timeseries.aggregate)) is not None:
-            percentile_value = float(match.group(1))
-            return timeseries.set_aggregate("quantiles", [percentile_value / 100])
-
-        return timeseries
-
-    def _parse_mql(self, field: str) -> Timeseries:
+    def _parse_mql(self, field: str) -> MutableTimeseries:
         """
         Parses the field with the MQL grammar.
         """
-        parsed_query = parse_mql(field)
-        return self._transform_timeseries(parsed_query.query)
+        return MutableTimeseries(timeseries=parse_mql(field).query)
 
-    def parse_timeserieses(self) -> Generator[Timeseries, None, None]:
+    def parse_timeserieses(self, environments: Sequence[Environment]) -> Generator[Timeseries, None, None]:
         """
         Parses the incoming fields with the MQL grammar.
 
@@ -223,8 +234,15 @@ class QueryParser:
         for field in self._fields:
             # TODO: take the filters, parse them via the discover grammar and convert them to MQL filters, so that
             #   we can leverage the conversion performed automatically by the snuba sdk.
-            timeseries = self._parse_mql(field)
-            yield timeseries.set_filters(filters).set_groupby(group_bys)
+            timeseries = (
+                self._parse_mql(field)
+                .inject_environments(environments)
+                .alias_operators()
+                .get_mutated()
+                .set_filters(filters)
+                .set_groupby(group_bys)
+            )
+            yield timeseries
 
 
 class QueryExecutor:
@@ -473,7 +491,6 @@ def run_metrics_query(
         scope=MetricsScope(
             org_ids=[organization.id],
             project_ids=[project.id for project in projects],
-            environment_ids=[environment.id for environment in environments],
         ),
     )
 
@@ -482,7 +499,7 @@ def run_metrics_query(
 
     # Parsing the input and iterating over each timeseries.
     parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
-    for timeseries in parser.parse_timeserieses():
+    for timeseries in parser.parse_timeserieses(environments=environments):
         query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
         executor.schedule(query)
 

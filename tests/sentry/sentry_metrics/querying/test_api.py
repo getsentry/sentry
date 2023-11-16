@@ -63,6 +63,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 interval=3600,
                 organization=self.project.organization,
                 projects=[self.project],
+                environments=[],
                 referrer="metrics.data.api",
             )
             groups = results["groups"]
@@ -85,6 +86,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
@@ -104,6 +106,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
@@ -124,6 +127,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
@@ -150,6 +154,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
@@ -171,6 +176,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
@@ -201,6 +207,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
