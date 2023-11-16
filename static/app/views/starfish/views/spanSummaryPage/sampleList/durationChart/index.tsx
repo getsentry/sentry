@@ -14,7 +14,7 @@ import {
 } from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {
   crossIconPath,
   downwardPlayIconPath,
@@ -80,12 +80,19 @@ function DurationChart({
     transactionName,
   };
 
+  const seriesQueryFilters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+    transaction: transactionName,
+  };
+
   if (transactionMethod) {
     filters['transaction.method'] = transactionMethod;
+    seriesQueryFilters['transaction.method'] = transactionMethod;
   }
 
   if (release) {
     filters.release = release;
+    seriesQueryFilters.release = release;
   }
 
   const {
@@ -93,7 +100,7 @@ function DurationChart({
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
-    {...filters, 'span.group': groupId},
+    seriesQueryFilters,
     [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );

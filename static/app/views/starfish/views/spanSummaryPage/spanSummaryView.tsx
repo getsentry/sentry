@@ -13,7 +13,11 @@ import {SpanDescription} from 'sentry/views/starfish/components/spanDescription'
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {
+  SpanFunction,
+  SpanMetricsField,
+  SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
 import {
   DataTitles,
   getThroughputChartTitle,
@@ -65,6 +69,13 @@ export function SpanSummaryView({groupId}: Props) {
     'api.starfish.span-summary-page-metrics'
   );
 
+  const seriesQueryFilter: SpanMetricsQueryFilters = endpoint
+    ? {
+        transaction: endpoint,
+        'transaction.method': endpointMethod,
+      }
+    : {};
+
   const span = {
     ...spanMetrics,
     [SpanMetricsField.SPAN_GROUP]: groupId,
@@ -78,7 +89,7 @@ export function SpanSummaryView({groupId}: Props) {
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries(
-      {'span.group': groupId, ...queryFilter},
+      {'span.group': groupId, ...seriesQueryFilter},
       [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
       'api.starfish.span-summary-page-metrics-chart'
     );
