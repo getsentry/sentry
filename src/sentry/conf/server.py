@@ -1733,8 +1733,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-trial-ended-banner": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
-    # Enable the Replay Details > New timeline
-    "organizations:session-replay-new-timeline": False,
     # Enable the accessibility issues endpoint
     "organizations:session-replay-accessibility-issues": False,
     # Enable the new suggested assignees feature
@@ -1830,8 +1828,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
-    # Enable the new notification settings system
-    "organizations:notification-settings-v2": False,
     # Enable new release UI
     "organizations:release-ui-v2": False,
     # Enable User Feedback v2 ingest

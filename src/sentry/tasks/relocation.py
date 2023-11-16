@@ -18,10 +18,10 @@ from sentry.api.serializers.rest_framework.base import camel_to_snake_case, conv
 from sentry.backup.dependencies import NormalizedModelName, get_model
 from sentry.backup.exports import export_in_config_scope, export_in_user_scope
 from sentry.backup.helpers import (
-    DEFAULT_CRYPTO_KEY_VERSION,
     GCPKMSDecryptor,
     GCPKMSEncryptor,
     ImportFlags,
+    get_default_crypto_key_version,
     unwrap_encrypted_export_tarball,
 )
 from sentry.backup.imports import import_in_organization_scope
@@ -240,19 +240,18 @@ def preprocessing_scan(uuid: str) -> None:
 
             # Decrypt the DEK using Google KMS, and use the decrypted DEK to decrypt the encoded
             # JSON.
-            try:
+            with retry_task_or_fail_relocation(
+                relocation,
+                OrderedTask.PREPROCESSING_SCAN,
+                attempts_left,
+                ERR_PREPROCESSING_DECRYPTION,
+            ):
                 decryptor = GCPKMSDecryptor.from_bytes(
-                    json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8")
+                    json.dumps(get_default_crypto_key_version()).encode("utf-8")
                 )
                 plaintext_data_encryption_key = decryptor.decrypt_data_encryption_key(unwrapped)
                 fernet = Fernet(plaintext_data_encryption_key)
                 json_data = fernet.decrypt(unwrapped.encrypted_json_blob).decode("utf-8")
-            except Exception:
-                return fail_relocation(
-                    relocation,
-                    OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_DECRYPTION,
-                )
 
             # Grab usernames and org slugs from the JSON data.
             usernames = []
@@ -368,7 +367,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         fp = BytesIO()
         export_in_config_scope(
             fp,
-            encryptor=GCPKMSEncryptor.from_crypto_key_version(DEFAULT_CRYPTO_KEY_VERSION),
+            encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
         )
         fp.seek(0)
         kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
@@ -420,7 +419,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
         fp = BytesIO()
         export_in_user_scope(
             fp,
-            encryptor=GCPKMSEncryptor.from_crypto_key_version(DEFAULT_CRYPTO_KEY_VERSION),
+            encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
             user_filter=set(relocation.want_usernames),
         )
         fp.seek(0)
@@ -488,7 +487,7 @@ def preprocessing_complete(uuid: str) -> None:
 
         # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
         # during validation.
-        kms_config_bytes = json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8")
+        kms_config_bytes = json.dumps(get_default_crypto_key_version()).encode("utf-8")
         storage.save(f"relocations/runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes))
 
         # Upload the exports we'll be validating.
@@ -965,7 +964,7 @@ def importing(uuid: str) -> None:
             .first()
         )
         relocation_data_fp = raw_relocation_file.file.getfile()
-        kms_config_fp = BytesIO(json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8"))
+        kms_config_fp = BytesIO(json.dumps(get_default_crypto_key_version()).encode("utf-8"))
 
         with relocation_data_fp, kms_config_fp:
             import_in_organization_scope(

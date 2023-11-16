@@ -373,6 +373,11 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
     instead.
     """
 
+    # Another nested exception handler could have already failed this relocation - in this case, do
+    # nothing.
+    if relocation.status == Relocation.Status.FAILURE.value:
+        return
+
     if reason:
         relocation.failure_reason = reason
 
