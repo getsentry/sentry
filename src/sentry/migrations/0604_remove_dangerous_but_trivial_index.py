@@ -2,7 +2,6 @@
 
 from django.db import migrations
 
-from sentry.models.broadcast import Broadcast
 from sentry.new_migrations.migrations import CheckedMigration
 
 
@@ -14,10 +13,9 @@ class Migration(CheckedMigration):
         ("sentry", "0603_add_dangerous_but_trivial_index"),
     ]
 
-    assert Broadcast._meta.model_name
     operations = [
         migrations.RemoveIndex(
-            model_name=Broadcast._meta.model_name,
+            model_name="broadcast",
             name="dangerous_but_trivial_idx",
         ),
     ]
