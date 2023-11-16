@@ -21,24 +21,27 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
 
-        for value, transaction, platform, time in (
-            (1, "/hello", "android", self.now()),
-            (3, "/hello", "ios", self.now()),
-            (5, "/world", "windows", self.now() + timedelta(minutes=30)),
-            (3, "/hello", "ios", self.now() + timedelta(hours=1)),
-            (2, "/hello", "android", self.now() + timedelta(hours=1)),
-            (3, "/world", "windows", self.now() + timedelta(hours=1, minutes=30)),
+        for value, transaction, platform, env, time in (
+            (1, "/hello", "android", "prod", self.now()),
+            (3, "/hello", "ios", "dev", self.now()),
+            (5, "/world", "windows", "prod", self.now() + timedelta(minutes=30)),
+            (3, "/hello", "ios", "dev", self.now() + timedelta(hours=1)),
+            (2, "/hello", "android", "dev", self.now() + timedelta(hours=1)),
+            (3, "/world", "windows", "prod", self.now() + timedelta(hours=1, minutes=30)),
         ):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
                 "distribution",
                 TransactionMRI.DURATION.value,
-                {"transaction": transaction, "platform": platform},
+                {"transaction": transaction, "platform": platform, "environment": env},
                 self.ts(time),
                 value,
                 UseCaseID.TRANSACTIONS,
             )
+
+        self.prod_env = self.create_environment(name="prod", project=self.project)
+        self.dev_env = self.create_environment(name="dev", project=self.project)
 
     def now(self):
         return MOCK_DATETIME
@@ -63,6 +66,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 interval=3600,
                 organization=self.project.organization,
                 projects=[self.project],
+                environments=[],
                 referrer="metrics.data.api",
             )
             groups = results["groups"]
@@ -85,6 +89,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
@@ -92,6 +97,27 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["by"] == {}
         assert groups[0]["series"] == {field: [0.0, 9.0, 8.0]}
         assert groups[0]["totals"] == {field: 17.0}
+
+    def test_query_with_one_aggregation_and_environment(self) -> None:
+        # Query with just one aggregation.
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query=None,
+            group_bys=None,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[self.prod_env],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {field: [0.0, 6.0, 3.0]}
+        assert groups[0]["totals"] == {field: 9.0}
 
     def test_query_with_percentile(self) -> None:
         field = f"p90({TransactionMRI.DURATION.value})"
@@ -104,6 +130,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
@@ -124,6 +151,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
@@ -150,6 +178,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
@@ -171,6 +200,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
@@ -201,6 +231,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             interval=3600,
             organization=self.project.organization,
             projects=[self.project],
+            environments=[],
             referrer="metrics.data.api",
         )
         groups = results["groups"]
