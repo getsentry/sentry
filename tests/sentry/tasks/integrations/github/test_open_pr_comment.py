@@ -5,8 +5,10 @@ import responses
 from sentry.tasks.integrations.github.open_pr_comment import (
     get_pr_filenames,
     get_projects_and_filenames_from_source_file,
+    get_top_5_issues_by_count_for_file,
     safe_for_comment,
 )
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.tasks.integrations.github.test_pr_comment import GithubCommentTestCase
@@ -216,3 +218,94 @@ class TestGetFilenames(GithubCommentTestCase):
         )
         assert project_list == set(projects)
         assert sentry_filenames == set(correct_filenames)
+
+
+@region_silo_test(stable=True)
+class TestGetIssues(GithubCommentTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.group_id = [self._create_event() for _ in range(6)][0].group.id
+
+    def _create_event(self, filenames=None, project_id=None, timestamp=None):
+        if timestamp is None:
+            timestamp = iso_format(before_now(seconds=5))
+        if filenames is None:
+            filenames = ["foo.py", "baz.py"]
+        if project_id is None:
+            project_id = self.project.id
+
+        return self.store_event(
+            data={
+                "message": "hello!",
+                "platform": "python",
+                "timestamp": timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [{"filename": filename} for filename in filenames],
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=project_id,
+            assert_no_errors=False,
+        )
+
+    def test_simple(self):
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert top_5_issue_ids == [self.group_id]
+
+    def test_project_group_id_mismatch(self):
+        # we fetch all group_ids that belong to the projects passed into the function
+        self._create_event(project_id=self.another_org_project.id)
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert top_5_issue_ids == [self.group_id]
+
+    def test_filename_mismatch(self):
+        group_id = self._create_event(
+            filenames=["foo.py", "bar.py"],
+        ).group.id
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert group_id != self.group_id
+        assert top_5_issue_ids == [self.group_id]
+
+    def test_event_too_old(self):
+        group_id = self._create_event(
+            timestamp=iso_format(before_now(days=30)), filenames=["bar.py", "baz.py"]
+        ).group.id
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert group_id != self.group_id
+        assert top_5_issue_ids == [self.group_id]
+
+    def test_fetches_top_five_issues(self):
+        group_id_1 = [self._create_event(filenames=["bar.py", "baz.py"]) for _ in range(5)][
+            0
+        ].group.id
+        group_id_2 = [self._create_event(filenames=["hello.py", "baz.py"]) for _ in range(4)][
+            0
+        ].group.id
+        group_id_3 = [self._create_event(filenames=["base.py", "baz.py"]) for _ in range(3)][
+            0
+        ].group.id
+        group_id_4 = [self._create_event(filenames=["nom.py", "baz.py"]) for _ in range(2)][
+            0
+        ].group.id
+        # 6th issue
+        self._create_event(filenames=["nan.py", "baz.py"])
+        # unrelated issue with same stack trace in different project
+        self._create_event(project_id=self.another_org_project.id)
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert top_5_issue_ids == [self.group_id, group_id_1, group_id_2, group_id_3, group_id_4]

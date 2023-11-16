@@ -1,19 +1,26 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Set, Tuple
+from datetime import datetime, timedelta
+from typing import Any, List, Set, Tuple
 
 from django.db.models import Value
 from django.db.models.functions import StrIndex
+from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
+from snuba_sdk import Request as SnubaRequest
 
 from sentry.integrations.github.client import GitHubAppsClient
+from sentry.models.group import Group
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE, GithubAPIErrorType
 from sentry.utils import metrics
+from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
@@ -102,3 +109,49 @@ def get_projects_and_filenames_from_source_file(
                 pr_filename.replace(code_mapping.source_root, code_mapping.stack_root)
             )
     return project_list, sentry_filenames
+
+
+def get_top_5_issues_by_count_for_file(
+    projects: Set[Project], sentry_filenames: Set[str]
+) -> list[dict[str, Any]]:
+    """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
+    group_ids = list(
+        Group.objects.filter(
+            last_seen__gte=datetime.now() - timedelta(days=14),
+            project__in=projects,
+        ).values_list("id", flat=True)
+    )
+    project_ids = [p.id for p in projects]
+
+    request = SnubaRequest(
+        dataset=Dataset.Events.value,
+        app_id="default",
+        tenant_ids={"organization_id": projects[0].organization_id},
+        query=(
+            Query(Entity("events"))
+            .set_select(
+                [
+                    Column("group_id"),
+                    Function("count", [], "event_count"),
+                    Column("exception_frames.filename"),
+                ]
+            )
+            .set_groupby([Column("group_id"), Column("exception_frames.filename")])
+            .set_where(
+                [
+                    Condition(Column("project_id"), Op.IN, project_ids),
+                    Condition(Column("group_id"), Op.IN, group_ids),
+                    Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=30)),
+                    Condition(Column("timestamp"), Op.LT, datetime.now()),
+                    Condition(
+                        Function("arrayElement", (Column("exception_frames.filename"), -1)),
+                        Op.IN,
+                        sentry_filenames,
+                    ),
+                ]
+            )
+            .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
+            .set_limit(5)
+        ),
+    )
+    return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
