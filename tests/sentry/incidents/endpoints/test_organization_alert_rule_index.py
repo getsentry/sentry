@@ -745,7 +745,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 == "Performance alerts must use the `generic_metrics` dataset"
             )
 
-    def test_alert_with_metric_mri_as_column(self):
+    def test_alert_with_metric_mri(self):
         with self.feature(
             [
                 "organizations:incidents",
@@ -776,6 +776,33 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 assert "id" in resp.data
                 alert_rule = AlertRule.objects.get(id=resp.data["id"])
                 assert resp.data == serialize(alert_rule, self.user)
+
+    def test_alert_with_metric_mri_on_wrong_dataset(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+                "organizations:ddm-experimental",
+            ]
+        ):
+            test_params = {
+                **self.alert_rule_dict,
+                "aggregate": "sum(c:sessions/session@none)",
+                "dataset": "metrics",
+            }
+
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **test_params,
+            )
+
+            assert (
+                resp.data["nonFieldErrors"][0]
+                == "You can use an MRI only on alerts on performance metrics"
+            )
 
 
 # TODO(Gabe): Rewrite this test to properly annotate the silo mode
