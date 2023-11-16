@@ -281,7 +281,7 @@ def project_event_counts_for_organization(ctx):
     if ctx.organization.slug == "sentry":
         logger.info(
             "project_event_counts_for_organization_query_result",
-            extra={"num_query_rows": len(data)},
+            extra={"report_start": ctx.start, "report_end": ctx.end, "num_query_rows": len(data)},
         )
 
     for dat in data:
@@ -913,6 +913,16 @@ def render_template_context(ctx, user_id):
                     }
                 )
             series.append((to_datetime(t), project_series))
+        if ctx.organization.slug == "sentry":
+            logger.info(
+                "render_template_context.trends.totals",
+                extra={
+                    "error_count": total_error,
+                    "transaction_count": total_transaction,
+                    "replay_count": total_replays,
+                    "project_count": len(projects_associated_with_user),
+                },
+            )
         return {
             "legend": legend,
             "series": series,
