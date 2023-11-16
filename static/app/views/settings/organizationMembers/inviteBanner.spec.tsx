@@ -81,7 +81,7 @@ describe('inviteBanner', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('does not render banner if no missing members', function () {
+  it('does not render banner if no option', function () {
     const org = Organization({
       features: ['integrations-gh-invite'],
     });
@@ -102,10 +102,10 @@ describe('inviteBanner', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('does not render banner if lacking org:write', function () {
+  it('does not render banner if no missing members', async function () {
     const org = Organization({
       features: ['integrations-gh-invite'],
-      access: [],
+      githubNudgeInvite: true,
     });
 
     MockApiClient.addMockResponse({
@@ -114,14 +114,71 @@ describe('inviteBanner', function () {
       body: [noMissingMembers],
     });
 
-    render(
-      <InviteBanner
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
-    );
+    await act(async () => {
+      await render(
+        <InviteBanner
+          onSendInvite={() => {}}
+          organization={org}
+          allowedRoles={[]}
+          onModalClose={() => {}}
+        />
+      );
+    });
+
+    expect(
+      screen.queryByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render banner if no integration', async function () {
+    const org = Organization({
+      features: ['integrations-gh-invite'],
+      githubNudgeInvite: true,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/missing-members/',
+      method: 'GET',
+      body: [],
+    });
+
+    await act(async () => {
+      await render(
+        <InviteBanner
+          onSendInvite={() => {}}
+          organization={org}
+          allowedRoles={[]}
+          onModalClose={() => {}}
+        />
+      );
+    });
+
+    expect(
+      screen.queryByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render banner if lacking org:write', async function () {
+    const org = Organization({
+      features: ['integrations-gh-invite'],
+      access: [],
+      githubNudgeInvite: true,
+    });
+
+    await act(async () => {
+      await render(
+        <InviteBanner
+          onSendInvite={() => {}}
+          organization={org}
+          allowedRoles={[]}
+          onModalClose={() => {}}
+        />
+      );
+    });
 
     expect(
       screen.queryByRole('heading', {
