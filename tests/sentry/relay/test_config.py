@@ -141,8 +141,10 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
-    # Key is missing from config:
-    assert "dynamicSampling" not in cfg.to_dict()["config"]
+    # Check that the "sampling" key is missing from config. It used to be called
+    # "dynamicSampling", so we also test for that:
+    subconfig = cfg.to_dict()["config"]
+    assert "dynamicSampling" not in cfg and "sampling" not in subconfig
     assert mock_logger.error.call_args == mock.call(ANY, exc_info=True)
 
 
@@ -343,10 +345,10 @@ def test_project_config_with_all_biases_enabled(
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
+    dynamic_sampling = get_path(cfg, "config", "sampling")
     assert dynamic_sampling == {
-        "rules": [],
-        "rulesV2": [
+        "version": 2,
+        "rules": [
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.02},
                 "type": "transaction",

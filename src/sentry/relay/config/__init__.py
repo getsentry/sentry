@@ -213,7 +213,7 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
-        return {"rules": [], "rulesV2": generate_rules(project)}
+        return {"version": 2, "rules": generate_rules(project)}
 
     return None
 
@@ -341,7 +341,7 @@ def _get_project_config(
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
     # anything.
-    add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
+    add_experimental_config(config, "sampling", get_dynamic_sampling_config, project)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
