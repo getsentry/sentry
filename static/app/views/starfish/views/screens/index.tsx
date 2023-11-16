@@ -380,6 +380,7 @@ const ChartsContainer = styled('div')`
 
 const ChartsContainerItem = styled('div')`
   flex: 1;
+  overflow: hidden;
 `;
 
 export const Spacer = styled('div')`
