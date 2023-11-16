@@ -28,6 +28,7 @@ from sentry.backup.imports import import_in_organization_scope
 from sentry.filestore.gcs import GoogleCloudStorage
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
+from sentry.models.importchunk import RegionImportChunk
 from sentry.models.organization import Organization
 from sentry.models.relocation import (
     Relocation,
@@ -37,6 +38,7 @@ from sentry.models.relocation import (
     ValidationStatus,
 )
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
@@ -105,6 +107,8 @@ ERR_VALIDATING_INTERNAL = "Internal error during validating."
 ERR_VALIDATING_MAX_RUNS = "All validation attempts timed out."
 
 ERR_IMPORTING_INTERNAL = "Internal error during importing."
+
+ERR_POSTPROCESSING_INTERNAL = "Internal error during postprocessing."
 
 ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
 
@@ -947,7 +951,72 @@ def importing(uuid: str) -> None:
                 printer=printer,
             )
 
-        # TODO(getsentry/team-ospo#203): Add post-processing, notifying tasks here.
+        postprocessing.delay(uuid)
+
+
+@instrumented_task(
+    name="sentry.relocation.postprocessing",
+    queue="relocation",
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def postprocessing(uuid: str) -> None:
+    """
+    Make the owner of this relocation an owner of all of the organizations we just imported.
+    """
+
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        step=Relocation.Step.POSTPROCESSING,
+        task=OrderedTask.POSTPROCESSING,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.POSTPROCESSING,
+        attempts_left,
+        ERR_POSTPROCESSING_INTERNAL,
+    ):
+        imported_org_ids: set[int] = set()
+        for chunk in RegionImportChunk.objects.filter(
+            import_uuid=str(uuid), model="sentry.organization"
+        ):
+            imported_org_ids = imported_org_ids.union(set(chunk.inserted_map.values()))
+
+        # Do a sanity check on pk-mapping before we go an make anyone the owner of an org they did
+        # not import - are all of these orgs plausibly ones that the user requested, based on slug
+        # matching?
+        imported_orgs = Organization.objects.filter(id__in=imported_org_ids)
+        for org in imported_orgs:
+            matched_prefix = False
+            for slug_prefix in relocation.want_org_slugs:
+                if org.slug.startswith(slug_prefix):
+                    matched_prefix = True
+                    break
+
+            # This should always be treated as an internal logic error, since we just wrote these
+            # orgs, so probably there is a serious bug with pk mapping.
+            assert matched_prefix is True
+
+        # Okay, all of the new organizations specified by the import chunk seem kosher - go ahead
+        # and make the owner of this import an owner of all of them.
+        for org in imported_orgs:
+            organization_service.add_organization_member(
+                organization_id=org.id,
+                default_org_role=org.default_role,
+                user_id=relocation.owner_id,
+                role="owner",
+            )
+
+        # TODO(getsentry/team-ospo#203): Add notifying task here.
         completed.delay(uuid)
 
 
