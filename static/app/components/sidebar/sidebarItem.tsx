@@ -18,6 +18,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {SidebarOrientation} from './types';
+import {SIDEBAR_NAVIGATION_SOURCE} from './utils';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
@@ -88,6 +89,7 @@ export type SidebarItemProps = {
    * The current organization. Useful for analytics.
    */
   organization?: Organization;
+  search?: string;
   to?: string;
   /**
    * Content to render at the end of the item.
@@ -103,6 +105,7 @@ function SidebarItem({
   id,
   href,
   to,
+  search,
   icon,
   label,
   badge,
@@ -167,7 +170,11 @@ function SidebarItem({
         {...props}
         id={`sidebar-item-${id}`}
         active={isActive ? 'true' : undefined}
-        to={(to ? to : href) || '#'}
+        to={{
+          pathname: to ? to : href ?? '#',
+          search,
+          state: {source: SIDEBAR_NAVIGATION_SOURCE},
+        }}
         className={className}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
           !(to || href) && event.preventDefault();

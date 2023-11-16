@@ -52,6 +52,10 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
             id=organization_id, name=organization_name, slug=slug, is_test=is_test
         )
 
+        # Slug changes mean there was either a collision with the organization slug
+        # or a bug in the slugify implementation, so we reject the organization creation
+        assert org.slug == slug, "Organization slug should not have been modified on save"
+
         om = OrganizationMember.objects.create(
             user_id=user_id, organization=org, role=roles.get_top_dog().id
         )

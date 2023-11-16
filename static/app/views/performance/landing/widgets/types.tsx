@@ -23,6 +23,7 @@ export enum GenericPerformanceWidgetDataType {
   LINE_LIST = 'line_list',
   TRENDS = 'trends',
   STACKED_AREA = 'stacked_area',
+  PERFORMANCE_SCORE = 'performance_score',
 }
 
 export type PerformanceWidgetProps = {
@@ -145,7 +146,6 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
 
   InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
-  subTitle?: string;
 };
 
 export type GenericPerformanceWithData<T extends WidgetDataConstraint> =

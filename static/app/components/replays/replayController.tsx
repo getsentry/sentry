@@ -151,22 +151,26 @@ function TimelineSizeBar() {
   const durationMs = replay?.getDurationMs();
   const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
   return (
-    <ButtonBar merged>
+    <ButtonBar>
       <Button
         size="xs"
         title={t('Zoom out')}
         icon={<IconSubtract size="xs" />}
         borderless
-        onClick={() => setTimelineScale(Math.max(timelineScale - 0.5, 1))}
+        onClick={() => setTimelineScale(Math.max(timelineScale - 1, 1))}
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1}
       />
+      <span>
+        {timelineScale}
+        {t('x')}
+      </span>
       <Button
         size="xs"
         title={t('Zoom in')}
         icon={<IconAdd size="xs" />}
         borderless
-        onClick={() => setTimelineScale(Math.min(timelineScale + 0.5, maxScale))}
+        onClick={() => setTimelineScale(Math.min(timelineScale + 1, maxScale))}
         aria-label={t('Zoom in')}
         disabled={timelineScale === maxScale}
       />
@@ -222,12 +226,12 @@ function ReplayControls({
       <ReplayPlayPauseBar />
       <Container>
         {hasNewTimeline ? (
-          <TimeAndScrubberGrid isCompact={isCompact}>
+          <TimeAndScrubberGrid id="replay-timeline-player" isCompact={isCompact}>
             <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
             <div style={{gridArea: 'timeline'}}>
               <ReplayTimeline />
             </div>
-            <div style={{gridArea: 'timelineSize'}}>
+            <div style={{gridArea: 'timelineSize', fontVariantNumeric: 'tabular-nums'}}>
               <TimelineSizeBar />
             </div>
             <StyledScrubber
@@ -235,7 +239,7 @@ function ReplayControls({
               ref={elem}
               {...mouseTrackingProps}
             >
-              <PlayerScrubber />
+              <PlayerScrubber showZoomIndicators />
             </StyledScrubber>
             <Time style={{gridArea: 'duration'}}>
               {durationMs ? formatTime(durationMs) : '--:--'}

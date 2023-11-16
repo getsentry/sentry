@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, Optional, Sequence, Tuple, Union, overload
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
-class TeamManager(BaseManager):
+class TeamManager(BaseManager["Team"]):
     @overload
     def get_for_user(
         self,
@@ -192,7 +192,7 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
     date_added = models.DateTimeField(default=timezone.now, null=True)
     org_role = models.CharField(max_length=32, null=True)
 
-    objects = TeamManager(cache_fields=("pk", "slug"))
+    objects: ClassVar[TeamManager] = TeamManager(cache_fields=("pk", "slug"))
 
     class Meta:
         app_label = "sentry"

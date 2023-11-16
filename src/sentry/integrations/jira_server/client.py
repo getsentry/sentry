@@ -34,10 +34,7 @@ class JiraServerClient(IntegrationProxyClient):
     ISSUE_URL = "/rest/api/2/issue/%s"
     ISSUE_FIELDS_URL = "/rest/api/2/issue/createmeta/%s/issuetypes/%s"
     ISSUE_TYPES_URL = "/rest/api/2/issue/createmeta/%s/issuetypes"
-    # https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/priority-getPriorities
     PRIORITIES_URL = "/rest/api/2/priority"
-    # https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/project/{projectKeyOrId}/priorityscheme
-    PRIORITY_SCHEME_URL = "/rest/api/2/project/%s/priorityscheme"
     PROJECT_URL = "/rest/api/2/project"
     SEARCH_URL = "/rest/api/2/search/"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"
@@ -147,18 +144,23 @@ class JiraServerClient(IntegrationProxyClient):
     def get_versions(self, project):
         return self.get_cached(self.VERSIONS_URL % project)
 
-    def get_priorities(self, project: str):
+    def get_priorities(self):
         """
-        Fetches all priorities associated with the project. Jira Server does not provide a
-        single API to fetch priorities for a project, so we instead fetch the project's
-        priority scheme which contains the relevant priority ids (but not human-readable names).
-        We then fetch the full list of priorities and find the overlap to get both ids and names.
+        XXX(schew2381): There is an existing bug where we fetch and show all project priorities instead of scoping
+        them to the selected project. This is fine when manually creating a Jira Server issue b/c we surface that
+        the selected priority is not available. However for the alert rule action, you can save the action with an
+        invalid priority for the chosen project. We surface this issue externally in our docs:
+        https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-alert-not-creating-jira-issues
+
+        We are limited by the Jira Server API b/c fetching priorities requires global/project admin permissions.
+        There is currently no workaround for this!
+
+        Please DO NOT attempt to use the following APIs:
+        https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/priorityschemes-getPrioritySchemes
+        https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/project/{projectKeyOrId}/priorityscheme-getAssignedPriorityScheme
+
         """
-        project_priority_ids = self.get_cached(self.PRIORITY_SCHEME_URL % project)["optionIds"]
-        priorities = self.get_cached(self.PRIORITIES_URL)
-        # Find the overlap between the project's priority ids and the full list of priorities
-        priorities = [p for p in priorities if p["id"] in project_priority_ids]
-        return priorities
+        return self.get_cached(self.PRIORITIES_URL)
 
     def get_users_for_project(self, project):
         # Jira Server wants a project key, while cloud is indifferent.

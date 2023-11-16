@@ -4,6 +4,7 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from drf_spectacular.utils import extend_schema
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
@@ -71,6 +72,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.CRONS
     permission_classes = (OrganizationMonitorPermission,)
 
     @extend_schema(

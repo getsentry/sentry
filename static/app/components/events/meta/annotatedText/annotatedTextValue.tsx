@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {Organization, Project} from 'sentry/types';
 
+import {FilteredAnnotatedTextValue} from './filteredAnnotatedTextValue';
 import {Redaction} from './redaction';
 import {getTooltipText} from './utils';
 import {ValueElement} from './valueElement';
@@ -10,11 +10,9 @@ import {ValueElement} from './valueElement';
 type Props = {
   value: React.ReactNode;
   meta?: Record<any, any>;
-  organization?: Organization;
-  project?: Project;
 };
 
-export function AnnotatedTextValue({value, meta, organization, project}: Props) {
+export function AnnotatedTextValue({value, meta}: Props) {
   if (meta?.chunks?.length && meta.chunks.length > 1) {
     return (
       <ChunksSpan>
@@ -38,19 +36,7 @@ export function AnnotatedTextValue({value, meta, organization, project}: Props) 
   }
 
   if (meta?.rem?.length) {
-    return (
-      <Tooltip
-        title={getTooltipText({
-          rule_id: meta.rem[0][0],
-          remark: meta.rem[0][1],
-          organization,
-          project,
-        })}
-        isHoverable
-      >
-        <ValueElement value={value} meta={meta} />
-      </Tooltip>
-    );
+    return <FilteredAnnotatedTextValue value={value} meta={meta} />;
   }
 
   return <ValueElement value={value} meta={meta} />;

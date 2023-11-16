@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -12,11 +13,7 @@ import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {DateString, PageFilters} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
-import {
-  formatMetricsUsingUnitAndOp,
-  getNameFromMRI,
-  MetricDisplayType,
-} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
 import theme from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
@@ -53,6 +50,10 @@ export function MetricChart({
   const chartRef = useRef<ReactEchartsRef>(null);
   const router = useRouter();
 
+  const {hoverProps, isHovered} = useHover({
+    isDisabled: false,
+  });
+
   // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {
     const echartsInstance = chartRef?.current?.getEchartsInstance();
@@ -72,7 +73,6 @@ export function MetricChart({
   const formatters = {
     valueFormatter: (value: number) =>
       formatMetricsUsingUnitAndOp(value, unit, operation),
-    nameFormatter: mri => getNameFromMRI(mri),
     isGroupedByDate: true,
     bucketSize,
     showTimeInTooltip: true,
@@ -111,7 +111,7 @@ export function MetricChart({
   };
 
   return (
-    <ChartWrapper>
+    <ChartWrapper {...hoverProps}>
       <ChartZoom
         router={router}
         period={period}
@@ -151,9 +151,13 @@ export function MetricChart({
                   })
                 : undefined;
 
+              // Zoom render props are slowing down the chart rendering,
+              // so we only pass them when the chart is hovered over
+              const zoomProps = isHovered ? zoomRenderProps : {};
+
               const allProps = {
                 ...chartProps,
-                ...zoomRenderProps,
+                ...zoomProps,
                 series: [...seriesToShow, ...releaseSeries],
                 legend,
               };

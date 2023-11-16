@@ -18,7 +18,7 @@ def test_good_ignore_differing_pks(tmp_path):
                 "model": "sentry.option",
                 "pk": 2,
                 "fields": {
-                "key": "sentry:last_worker_version",
+                "key": "sentry:latest_version",
                 "last_updated": "2023-06-23T00:00:00.000Z",
                 "last_updated_by": "unknown",
                 "value": "\\"23.7.1\\""
@@ -34,7 +34,7 @@ def test_good_ignore_differing_pks(tmp_path):
                 "model": "sentry.option",
                 "pk": 3,
                 "fields": {
-                "key": "sentry:last_worker_version",
+                "key": "sentry:latest_version",
                 "last_updated": "2023-06-23T00:00:00.000Z",
                 "last_updated_by": "unknown",
                 "value": "\\"23.7.1\\""
@@ -94,7 +94,7 @@ def test_bad_out_of_order_entry(tmp_path):
                 "model": "sentry.option",
                 "pk": 3,
                 "fields": {
-                "key": "sentry:last_worker_version",
+                "key": "sentry:latest_version",
                 "last_updated": "2023-06-23T00:00:00.000Z",
                 "last_updated_by": "unknown",
                 "value": "\\"23.7.1\\""
@@ -141,7 +141,7 @@ def test_bad_extra_left_entry(tmp_path):
                 "model": "sentry.option",
                 "pk": 2,
                 "fields": {
-                "key": "sentry:last_worker_version",
+                "key": "sentry:latest_version",
                 "last_updated": "2023-06-23T00:00:00.000Z",
                 "last_updated_by": "unknown",
                 "value": "\\"23.7.1\\""
@@ -172,7 +172,7 @@ def test_bad_extra_right_entry(tmp_path):
                 "model": "sentry.option",
                 "pk": 2,
                 "fields": {
-                "key": "sentry:last_worker_version",
+                "key": "sentry:latest_version",
                 "last_updated": "2023-06-23T00:00:00.000Z",
                 "last_updated_by": "unknown",
                 "value": "\\"23.7.1\\""

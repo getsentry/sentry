@@ -45,8 +45,8 @@ from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 
@@ -2113,7 +2113,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident, [self.action], [(150.0, IncidentStatus.CLOSED, mock.ANY)]
         )
 
-    @override_options({"metric_alerts.rate_limit": True})
+    @with_feature("organizations:metric-alert-rate-limiting")
     def test_no_new_incidents_within_ten_minutes(self):
         # Verify that a new incident is not made for the same rule, trigger, and
         # subscription if an incident was already made within the last 10 minutes.
@@ -2152,7 +2152,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             any_order=True,
         )
 
-    @override_options({"metric_alerts.rate_limit": True})
+    @with_feature("organizations:metric-alert-rate-limiting")
     def test_incident_made_after_ten_minutes(self):
         # Verify that a new incident will be made for the same rule, trigger, and
         # subscription if the last incident made for those was made more tha 10 minutes

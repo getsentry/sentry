@@ -204,8 +204,6 @@
   color: '8D5494'
 - name: 'Product Area: User Feedback'
   color: '8D5494'
-- name: 'Product Area: Bug Report'
-  color: '8D5494'
 - name: 'Product Area: Stats'
   color: '8D5494'
 - name: 'Product Area: Settings'

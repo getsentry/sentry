@@ -1,9 +1,8 @@
-import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {useContext, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
-import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
@@ -82,15 +81,6 @@ interface DropdownMenuProps
    */
   menuTitle?: React.ReactChild;
   /**
-   * Whether the menu should always be wider than the trigger. If true (default), then
-   * the menu will have a min width equal to the trigger's width.
-   */
-  menuWiderThanTrigger?: boolean;
-  /**
-   * Minimum menu width, in pixels
-   */
-  minMenuWidth?: number;
-  /**
    * Tag name for the outer wrap, defaults to `div`
    */
   renderWrapAs?: React.ElementType;
@@ -140,8 +130,6 @@ function DropdownMenu({
   triggerProps = {},
   isDisabled: disabledProp,
   isOpen: isOpenProp,
-  minMenuWidth,
-  menuWiderThanTrigger = true,
   renderWrapAs = 'div',
   size = 'md',
   className,
@@ -194,31 +182,6 @@ function DropdownMenu({
     triggerRef
   );
 
-  // Calculate the current trigger element's width. This will be used as
-  // the min width for the menu.
-  const [triggerWidth, setTriggerWidth] = useState<number>();
-  // Update triggerWidth when its size changes using useResizeObserver
-  const updateTriggerWidth = useCallback(async () => {
-    if (!menuWiderThanTrigger) {
-      return;
-    }
-
-    // Wait until the trigger element finishes rendering, otherwise
-    // ResizeObserver might throw an infinite loop error.
-    await new Promise(resolve => window.setTimeout(resolve));
-    setTriggerWidth(triggerRef.current?.offsetWidth ?? 0);
-  }, [menuWiderThanTrigger, triggerRef]);
-
-  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
-  // If ResizeObserver is not available, manually update the width
-  // when any of [trigger, triggerLabel, triggerProps] changes.
-  useEffect(() => {
-    if (typeof window.ResizeObserver !== 'undefined') {
-      return;
-    }
-    updateTriggerWidth();
-  }, [updateTriggerWidth]);
-
   function renderTrigger() {
     if (trigger) {
       return trigger({...overlayTriggerProps, ...buttonProps}, isOpen);
@@ -249,7 +212,6 @@ function DropdownMenu({
         {...props}
         {...menuProps}
         size={size}
-        minWidth={Math.max(minMenuWidth ?? 0, triggerWidth ?? 0)}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
         overlayPositionProps={overlayProps}
         overlayState={overlayState}

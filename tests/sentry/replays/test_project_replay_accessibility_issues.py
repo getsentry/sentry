@@ -75,7 +75,6 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert response.has_header("X-Hits")
 
             response_data = response.json()
-            assert response_data["meta"]["total"] == 1
             assert len(response_data["data"]) == 1
             assert "elements" in response_data["data"][0]
             assert "help_url" in response_data["data"][0]

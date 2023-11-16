@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {DateString, IssueCategory, Organization} from 'sentry/types';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
@@ -115,21 +115,22 @@ function useReplaysCount({
     }
   );
 
-  return useMemo(() => {
+  useEffect(() => {
     if (isFetched) {
-      const merged = {
+      setLastData(last => ({
         ...zeroCounts,
-        ...lastData,
+        ...last,
         ...data,
-      };
-      setLastData(merged);
-      return merged;
+      }));
     }
+  }, [isFetched, zeroCounts, data]);
+
+  return useMemo<CountState>(() => {
     return {
       ...lastData,
       ...data,
     };
-  }, [isFetched, zeroCounts, lastData, data]);
+  }, [lastData, data]);
 }
 
 function makeReplayCountsQueryKey({

@@ -53,7 +53,7 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
         params=params,
         selected_columns=selected_columns,
         equations=[],
-        query=f"event.type:transaction transaction:{transaction}",
+        query=f'event.type:transaction transaction:"{transaction}"',
         limit=limit,
         config=QueryBuilderConfig(
             auto_aggregations=True,
@@ -271,7 +271,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         with self.handle_query_errors():
             transaction_count_query = metrics_query(
                 ["count()"],
-                f"event.type:transaction transaction:{transaction_name}",
+                f'event.type:transaction transaction:"{transaction_name}"',
                 params,
                 referrer=f"{BASE_REFERRER}-{analysis_type}",
             )

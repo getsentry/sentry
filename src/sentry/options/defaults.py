@@ -270,13 +270,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "api.prevent-numeric-slugs",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
@@ -1007,6 +1000,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Option to control sampling percentage of schema validation on the generic metrics pipeline
+# based on namespace.
+register(
+    "sentry-metrics.indexer.generic-metrics.schema-validation-rules",
+    default={},  # empty dict means validate schema for all use cases
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to control sampling percentage of schema validation on the release health metrics
+# pipeline based on namespace.
+register(
+    "sentry-metrics.indexer.release-health.schema-validation-rules",
+    default={},  # empty dict means validate schema for all use cases
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1456,6 +1465,7 @@ register(
 )
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1564,6 +1574,12 @@ register(
     default=14,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "statistical_detectors.ratelimit.ema",
+    type=Int,
+    default=-1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "options_automator_slack_webhook_enabled",
@@ -1580,6 +1596,16 @@ register(
 register(
     "on_demand.max_widget_specs",
     default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "on_demand.max_widget_cardinality.count",
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "on_demand.max_widget_cardinality.killswitch",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1631,7 +1657,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("metric_alerts.rate_limit", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "delightful_metrics.emit_gauges",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # SDK Crash Detection
 #
@@ -1647,4 +1677,24 @@ register(
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4506155486085120.
+register(
+    "issues.sdk_crash_detection.react-native.project_id",
+    default=4506155486085120,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.react-native.sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # END: SDK Crash Detection
+
+register(
+    # Lists the shared resource ids we want to account usage for.
+    "shared_resources_accounting_enabled",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

@@ -261,7 +261,8 @@ def test_moving_average_cross_over_detector(
     )
 
     for payload in payloads:
-        trend_type = detector.update(payload)
+        trend_type, score = detector.update(payload)
+        assert score >= 0
         if trend_type == TrendType.Regressed:
             all_regressed.append(payload)
         elif trend_type == TrendType.Improved:
@@ -304,7 +305,7 @@ def test_moving_average_cross_over_detector_bad_order(
         value=100,
         timestamp=now,
     )
-    trend_type = detector.update(payload)
+    trend_type, _ = detector.update(payload)
     assert trend_type is not None
 
     payload = DetectorPayload(
@@ -314,7 +315,7 @@ def test_moving_average_cross_over_detector_bad_order(
         value=100,
         timestamp=now - timedelta(hours=1),
     )
-    trend_type = detector.update(payload)
+    trend_type, _ = detector.update(payload)
     assert trend_type is None
 
 
@@ -394,7 +395,8 @@ def test_moving_average_relative_change_detector(
     )
 
     for payload in payloads:
-        trend_type = detector.update(payload)
+        trend_type, score = detector.update(payload)
+        assert score >= 0
         if trend_type == TrendType.Regressed:
             all_regressed.append(payload)
         elif trend_type == TrendType.Improved:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Collection, Iterable, Mapping, MutableMapping, Optional, Sequence, Set
 
 from django.conf import settings
@@ -30,6 +30,10 @@ _INDEXER_CACHE_RESOLVE_METRIC = "sentry_metrics.indexer.memcache.resolve"
 _INDEXER_CACHE_RESOLVE_CACHE_REPLENISHMENT_METRIC = (
     "sentry_metrics.indexer.memcache.resolve.replenish"
 )
+_INDEXER_CACHE_DOUBLE_WRITE_METRIC = "sentry_metrics.indexer.memcache.double-write"
+_INDEXER_CACHE_DOUBLE_READ_METRIC = "sentry_metrics.indexer.memcache.new-schema-read"
+_INDEXER_CACHE_STALE_KEYS_METRIC = "sentry_metrics.indexer.memcache.stale-keys"
+
 # only used to compare to the older version of the PGIndexer
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
@@ -112,14 +116,22 @@ class StringIndexerCache:
 
         return formatted
 
+    def _is_valid_timestamp(self, timestamp: str) -> bool:
+        return int(timestamp) >= int((datetime.utcnow() - timedelta(hours=3)).timestamp())
+
     def _validate_result(self, result: Optional[str]) -> Optional[int]:
         if result is None:
             return None
-        result, _ = result.split(":")
+        result, timestamp = result.split(":")
+
+        if not self._is_valid_timestamp(timestamp):
+            metrics.incr(_INDEXER_CACHE_STALE_KEYS_METRIC)
+
         return int(result)
 
     def get(self, namespace: str, key: str) -> Optional[int]:
         if options.get(NAMESPACED_READ_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_READ_METRIC)
             result = self.cache.get(
                 self._make_namespaced_cache_key(namespace, key), version=self.version
             )
@@ -134,6 +146,7 @@ class StringIndexerCache:
             version=self.version,
         )
         if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_WRITE_METRIC)
             self.cache.set(
                 key=self._make_namespaced_cache_key(namespace, key),
                 value=self._make_cache_val(value, int(datetime.utcnow().timestamp())),
@@ -143,6 +156,7 @@ class StringIndexerCache:
 
     def get_many(self, namespace: str, keys: Iterable[str]) -> MutableMapping[str, Optional[int]]:
         if options.get(NAMESPACED_READ_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_READ_METRIC)
             cache_keys = {self._make_namespaced_cache_key(namespace, key): key for key in keys}
             namespaced_results: MutableMapping[str, Optional[int]] = {
                 k: self._validate_result(v)
@@ -164,6 +178,7 @@ class StringIndexerCache:
         cache_key_values = {self._make_cache_key(k): v for k, v in key_values.items()}
         self.cache.set_many(cache_key_values, timeout=self.randomized_ttl, version=self.version)
         if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_WRITE_METRIC)
             timestamp = int(datetime.utcnow().timestamp())
             namespaced_cache_key_values = {
                 self._make_namespaced_cache_key(namespace, k): self._make_cache_val(v, timestamp)
@@ -176,11 +191,13 @@ class StringIndexerCache:
     def delete(self, namespace: str, key: str) -> None:
         self.cache.delete(self._make_cache_key(key), version=self.version)
         if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_WRITE_METRIC)
             self.cache.delete(self._make_namespaced_cache_key(namespace, key), version=self.version)
 
     def delete_many(self, namespace: str, keys: Sequence[str]) -> None:
         self.cache.delete_many([self._make_cache_key(key) for key in keys], version=self.version)
         if options.get(NAMESPACED_WRITE_FEAT_FLAG):
+            metrics.incr(_INDEXER_CACHE_DOUBLE_WRITE_METRIC)
             self.cache.delete_many(
                 [self._make_namespaced_cache_key(namespace, key) for key in keys],
                 version=self.version,
@@ -195,7 +212,6 @@ class CachingIndexer(StringIndexer):
     def bulk_record(
         self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
-
         cache_keys = UseCaseKeyCollection(strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()

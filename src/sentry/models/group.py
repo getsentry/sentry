@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
 
 from django.core.cache import cache
 from django.db import models
@@ -542,7 +542,7 @@ class Group(Model):
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
-    objects: GroupManager = GroupManager(cache_fields=("id",))
+    objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
 
     class Meta:
         app_label = "sentry"

@@ -1,4 +1,5 @@
 import {getInterval} from 'sentry/components/charts/utils';
+import {PageFilters} from 'sentry/types';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -11,10 +12,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
+  datetime?: PageFilters['datetime'];
   transaction?: string | null;
 };
 
-export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) => {
+export const useProjectWebVitalsValuesTimeseriesQuery = ({
+  transaction,
+  datetime,
+}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -39,7 +44,10 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
       interval: getInterval(pageFilters.selection.datetime, 'low'),
       dataset: DiscoverDatasets.METRICS,
     },
-    pageFilters.selection
+    {
+      ...pageFilters.selection,
+      datetime: datetime ?? pageFilters.selection.datetime,
+    }
   );
 
   const result = useGenericDiscoverQuery<
@@ -90,7 +98,7 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({transaction}: Props) =
     eps: [],
   };
 
-  result?.data?.['p75(measurements.lcp)'].data.forEach((interval, index) => {
+  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
     const map: {key: string; series: SeriesDataUnit[]}[] = [
       {key: 'p75(measurements.cls)', series: data.cls},
       {key: 'p75(measurements.lcp)', series: data.lcp},

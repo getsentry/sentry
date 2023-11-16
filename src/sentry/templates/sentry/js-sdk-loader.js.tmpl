@@ -132,12 +132,20 @@
     }
     function setupSDK(SDK) {
         try {
+            // If defined, we call window.sentryOnLoad first
+            if (typeof _window.sentryOnLoad === 'function') {
+                _window.sentryOnLoad();
+                // Cleanup to allow garbage collection
+                _window.sentryOnLoad = undefined;
+            }
             // We have to make sure to call all callbacks first
             for (var i = 0; i < onLoadCallbacks.length; i++) {
                 if (typeof onLoadCallbacks[i] === 'function') {
                     onLoadCallbacks[i]();
                 }
             }
+            // Cleanup to allow garbage collection
+            onLoadCallbacks.splice(0);
             // First call all inits from the queue
             for (var i = 0; i < queue.length; i++) {
                 var item = queue[i];

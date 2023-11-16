@@ -4,7 +4,7 @@ import {explodeSlug} from 'sentry/utils';
 
 type Props = {
   organization?: OrganizationSummary;
-} & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
+} & BaseAvatar['props'];
 
 function OrganizationAvatar({organization, ...props}: Props) {
   if (!organization) {
@@ -17,9 +17,7 @@ function OrganizationAvatar({organization, ...props}: Props) {
     <BaseAvatar
       {...props}
       type={(organization.avatar && organization.avatar.avatarType) || 'letter_avatar'}
-      uploadPath="organization-avatar"
-      uploadId={organization.avatar && organization.avatar.avatarUuid}
-      uploadDomain={organization.links?.regionUrl}
+      uploadUrl={organization.avatar && organization.avatar.avatarUrl}
       letterId={slug}
       tooltip={slug}
       title={title}

@@ -3,6 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+import traceback
 from typing import List, Optional, Set
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -222,11 +223,11 @@ class UniversalImportExportService(ImportExportService):
                 reason=str(e),
             )
 
-        except Exception as e:
+        except Exception:
             return RpcImportError(
                 kind=RpcImportErrorKind.Unknown,
                 on=InstanceID(model_name),
-                reason=f"Unknown internal error occurred: {e}",
+                reason=f"Unknown internal error occurred: {traceback.format_exc()}",
             )
 
     def export_by_model(
@@ -359,11 +360,11 @@ class UniversalImportExportService(ImportExportService):
                 mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map), max_pk=max_pk, json_data=json_data
             )
 
-        except Exception as e:
+        except Exception:
             return RpcExportError(
                 kind=RpcExportErrorKind.Unknown,
                 on=InstanceID(model_name),
-                reason=f"Unknown internal error occurred: {e}",
+                reason=f"Unknown internal error occurred: {traceback.format_exc()}",
             )
 
     def get_all_globally_privileged_users(self) -> Set[int]:

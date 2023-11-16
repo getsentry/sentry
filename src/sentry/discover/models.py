@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from django.db import models, router, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
@@ -87,7 +89,7 @@ class DiscoverSavedQuery(Model):
             )
 
 
-class TeamKeyTransactionModelManager(BaseManager):
+class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
     @staticmethod
     def __schedule_invalidate_project_config_transaction_commit(instance, trigger):
         try:
@@ -144,7 +146,7 @@ class TeamKeyTransaction(Model):
     organization = FlexibleForeignKey("sentry.Organization")
 
     # Custom Model Manager required to override post_save/post_delete method
-    objects = TeamKeyTransactionModelManager()
+    objects: ClassVar[TeamKeyTransactionModelManager] = TeamKeyTransactionModelManager()
 
     class Meta:
         app_label = "sentry"

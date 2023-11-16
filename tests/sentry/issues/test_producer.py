@@ -170,76 +170,72 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
                 status=STRING_TO_STATUS_LOOKUP[gh_status],
             ).exists()
 
+    def test_with_status_change_unresolved(self):
+        for substatus, activity_type in [
+            (GroupSubStatus.ESCALATING, ActivityType.SET_ESCALATING),
+            (GroupSubStatus.ONGOING, ActivityType.SET_UNRESOLVED),
+            (GroupSubStatus.REGRESSED, ActivityType.SET_REGRESSION),
+        ]:
+            status_change = StatusChangeMessage(
+                fingerprint=[self.group_hash.hash],
+                project_id=self.group.project_id,
+                new_status=GroupStatus.UNRESOLVED,
+                new_substatus=substatus,
+            )
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.STATUS_CHANGE,
+                status_change=status_change,
+            )
+            self.group.refresh_from_db()
+            assert self.group.status == GroupStatus.UNRESOLVED
+            assert self.group.substatus == substatus
+
+            assert Activity.objects.filter(group=self.group, type=activity_type.value).exists()
+
+            gh_status = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS[substatus]
+            assert GroupHistory.objects.filter(
+                group=self.group,
+                status=STRING_TO_STATUS_LOOKUP[gh_status],
+            ).exists()
+
     @patch("sentry.issues.status_change_consumer.logger.error")
     def test_with_invalid_status_change(self, mock_logger_error: MagicMock) -> None:
-        bad_status_change = StatusChangeMessage(
-            fingerprint=[self.group_hash.hash],
-            project_id=self.group.project_id,
-            new_status=GroupStatus.RESOLVED,
-            new_substatus=GroupSubStatus.FOREVER,
-        )
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=bad_status_change,
-        )
-        self.group.refresh_from_db()
-        mock_logger_error.assert_called_with(
-            "group.update_status.unexpected_substatus",
-            extra={
-                "project_id": self.group.project_id,
-                "fingerprint": [self.group_hash.hash],
-                "new_status": GroupStatus.RESOLVED,
-                "new_substatus": GroupSubStatus.FOREVER,
-            },
-        )
-        assert self.group.status == self.initial_status
-        assert self.group.substatus == self.initial_substatus
-
-        bad_status_change = StatusChangeMessage(
-            fingerprint=[self.group_hash.hash],
-            project_id=self.group.project_id,
-            new_status=GroupStatus.IGNORED,
-            new_substatus=None,
-        )
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=bad_status_change,
-        )
-        self.group.refresh_from_db()
-        mock_logger_error.assert_called_with(
-            "group.update_status.missing_substatus",
-            extra={
-                "project_id": self.group.project_id,
-                "fingerprint": [self.group_hash.hash],
-                "new_status": GroupStatus.IGNORED,
-                "new_substatus": None,
-            },
-        )
-        assert self.group.status == self.initial_status
-        assert self.group.substatus == self.initial_substatus
-
-        bad_status_change = StatusChangeMessage(
-            fingerprint=[self.group_hash.hash],
-            project_id=self.group.project_id,
-            new_status=GroupStatus.IGNORED,
-            new_substatus=GroupSubStatus.REGRESSED,
-        )
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=bad_status_change,
-        )
-        self.group.refresh_from_db()
-        mock_logger_error.assert_called_with(
-            "group.update_status.invalid_substatus",
-            extra={
-                "project_id": self.group.project_id,
-                "fingerprint": [self.group_hash.hash],
-                "new_status": GroupStatus.IGNORED,
-                "new_substatus": GroupSubStatus.REGRESSED,
-            },
-        )
-        assert self.group.status == self.initial_status
-        assert self.group.substatus == self.initial_substatus
+        for status, substatus, error_msg in [
+            (
+                GroupStatus.RESOLVED,
+                GroupSubStatus.FOREVER,
+                "group.update_status.unexpected_substatus",
+            ),
+            (GroupStatus.IGNORED, None, "group.update_status.missing_substatus"),
+            (
+                GroupStatus.IGNORED,
+                GroupSubStatus.REGRESSED,
+                "group.update_status.invalid_substatus",
+            ),
+            (GroupStatus.UNRESOLVED, GroupSubStatus.NEW, "group.update_status.invalid_substatus"),
+        ]:
+            bad_status_change = StatusChangeMessage(
+                fingerprint=[self.group_hash.hash],
+                project_id=self.group.project_id,
+                new_status=status,
+                new_substatus=substatus,
+            )
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.STATUS_CHANGE,
+                status_change=bad_status_change,
+            )
+            self.group.refresh_from_db()
+            mock_logger_error.assert_called_with(
+                error_msg,
+                extra={
+                    "project_id": self.group.project_id,
+                    "fingerprint": [self.group_hash.hash],
+                    "new_status": status,
+                    "new_substatus": substatus,
+                },
+            )
+            assert self.group.status == self.initial_status
+            assert self.group.substatus == self.initial_substatus
 
     @patch("sentry.issues.status_change_consumer.logger.error")
     def test_invalid_hashes(self, mock_logger_error) -> None:

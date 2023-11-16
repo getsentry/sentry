@@ -17,6 +17,7 @@ class InstallationEndpointTest(APITestCase):
     base_url = "https://api.github.com"
 
     def setUp(self):
+        self.login_as(self.user)
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)

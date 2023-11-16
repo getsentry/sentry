@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, List, Optional, Union
 
 from django.db import models
 from django.db.models import SET_NULL, Q
@@ -142,7 +142,7 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
 }
 
 
-class GroupHistoryManager(BaseManager):
+class GroupHistoryManager(BaseManager["GroupHistory"]):
     def filter_to_team(self, team):
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.project import Project
@@ -170,7 +170,7 @@ class GroupHistory(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    objects = GroupHistoryManager()
+    objects: ClassVar[GroupHistoryManager] = GroupHistoryManager()
 
     organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)

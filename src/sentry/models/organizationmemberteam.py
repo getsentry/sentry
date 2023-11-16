@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, FrozenSet, Mapping
+from typing import Any, ClassVar, FrozenSet, Mapping
 
 from django.db import models
 
@@ -19,7 +19,9 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
     Identifies relationships between organization members and the teams they are on.
     """
 
-    objects = RegionOutboxProducingManager["OrganizationMemberTeam"]()
+    objects: ClassVar[
+        RegionOutboxProducingManager[OrganizationMemberTeam]
+    ] = RegionOutboxProducingManager()
 
     __relocation_scope__ = RelocationScope.Organization
     category = OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE

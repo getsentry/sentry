@@ -69,7 +69,7 @@ describe('usePerfFilters', () => {
   const traceRows: ReplayTraceRow[] = [CRUMB_1_NAV, CRUMB_2_CLICK];
 
   beforeEach(() => {
-    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(browserHistory.replace).mockReset();
   });
 
   it('should update the url when setters are called', () => {
@@ -94,7 +94,7 @@ describe('usePerfFilters', () => {
     });
 
     result.current.setFilters([TYPE_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_p_type: [TYPE_OPTION.value],

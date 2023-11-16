@@ -39,7 +39,6 @@ logger = logging.getLogger(__name__)
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
-    process_occurrence_data(occurrence_data)
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
     if occurrence.event_id != event.event_id:
@@ -56,22 +55,22 @@ def save_issue_occurrence(
         release = None
     group_info = save_issue_from_occurrence(occurrence, event, release)
     if group_info:
-        send_issue_occurrence_to_eventstream(event, occurrence, group_info)
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info])
         _increment_release_associated_counts(
             group_info.group.project, environment, release, [group_info]
         )
         _get_or_create_group_release(environment, release, event, [group_info])
-
+        send_issue_occurrence_to_eventstream(event, occurrence, group_info)
     return occurrence, group_info
 
 
-def process_occurrence_data(occurrence_data: IssueOccurrenceData) -> None:
+def process_occurrence_data(data: Mapping[str, Any]) -> None:
+    if "fingerprint" not in data:
+        return
+
     # Hash fingerprints to make sure they're a consistent length
-    occurrence_data["fingerprint"] = [
-        md5(part.encode("utf-8")).hexdigest() for part in occurrence_data["fingerprint"]
-    ]
+    data["fingerprint"] = [md5(part.encode("utf-8")).hexdigest() for part in data["fingerprint"]]
 
 
 class IssueArgs(TypedDict):

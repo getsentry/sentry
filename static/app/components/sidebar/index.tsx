@@ -14,7 +14,6 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
   IconDashboard,
-  IconFile,
   IconGraph,
   IconIssues,
   IconLightning,
@@ -47,6 +46,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
+import {SCREENS_RELEASE_LEVEL} from 'sentry/views/performance/mobile/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -191,7 +191,8 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconIssues />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
-      to={`/organizations/${organization.slug}/issues/?referrer=sidebar`}
+      to={`/organizations/${organization.slug}/issues/`}
+      search="?referrer=sidebar"
       id="issues"
     />
   );
@@ -222,7 +223,8 @@ function Sidebar({location, organization}: Props) {
         // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
         if (
           organization.features.includes('performance-database-view') ||
-          organization.features.includes('starfish-browser-webvitals')
+          organization.features.includes('starfish-browser-webvitals') ||
+          organization.features.includes('performance-screens-view')
         ) {
           return (
             <SidebarAccordion
@@ -245,7 +247,9 @@ function Sidebar({location, organization}: Props) {
                   }
                   to={`/organizations/${organization.slug}/performance/database/`}
                   id="performance-database"
-                  icon={<SubitemDot collapsed={collapsed} />}
+                  // collapsed controls whether the dot is visible or not.
+                  // We always want it visible for these sidebar items so force it to true.
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
               <Feature
@@ -264,7 +268,22 @@ function Sidebar({location, organization}: Props) {
                   }
                   to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
                   id="performance-webvitals"
-                  icon={<SubitemDot collapsed={collapsed} />}
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
+              <Feature
+                features={['performance-screens-view']}
+                organization={organization}
+              >
+                <SidebarItem
+                  {...sidebarItemProps}
+                  isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
+                  isBeta={SCREENS_RELEASE_LEVEL === 'beta'}
+                  isNew={SCREENS_RELEASE_LEVEL === 'new'}
+                  label={t('Screens')}
+                  to={`/organizations/${organization.slug}/performance/mobile/screens/`}
+                  id="performance-mobile-screens"
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
               <Feature features={['starfish-browser-resource-module-ui']}>
@@ -273,7 +292,7 @@ function Sidebar({location, organization}: Props) {
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"
-                  icon={<IconFile />}
+                  icon={<SubitemDot collapsed />}
                 />
               </Feature>
             </SidebarAccordion>
@@ -323,13 +342,6 @@ function Sidebar({location, organization}: Props) {
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
         />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Screen Load')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/starfish/pageload/`}
-          id="starfish-mobile-screen-loads"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
       </SidebarAccordion>
     </Feature>
   );
@@ -362,10 +374,10 @@ function Sidebar({location, organization}: Props) {
         {...sidebarItemProps}
         icon={<IconMegaphone />}
         label={t('User Feedback')}
+        isBeta
+        variant="short"
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
-        isAlpha
-        variant="short"
       />
     </Feature>
   );

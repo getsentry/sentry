@@ -7,7 +7,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
-import {EventCause} from 'sentry/components/events/eventCause';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -18,12 +17,10 @@ import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
+import {EventDifferenialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
-import {EventFunctionRegressionEvidence} from 'sentry/components/events/eventStatisticalDetector/eventFunctionRegressionEvidence';
+import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
-import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
-import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/spanOpBreakdown';
-import TransactionFrequencyChart from 'sentry/components/events/eventStatisticalDetector/transactionFrequencyChart';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -34,6 +31,7 @@ import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrR
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
+import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -100,7 +98,7 @@ function DefaultGroupEventDetailsContent({
       {hasActionableItems && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
-      <EventCause
+      <SuspectCommits
         project={project}
         eventId={event.id}
         group={group}
@@ -197,18 +195,14 @@ function PerformanceDurationRegressionIssueDetailsContent({
       renderDisabled
     >
       <Fragment>
-        <RegressionMessage event={event} group={group} />
+        <ErrorBoundary mini>
+          <EventRegressionSummary event={event} group={group} />
+        </ErrorBoundary>
         <ErrorBoundary mini>
           <EventBreakpointChart event={event} />
         </ErrorBoundary>
         <ErrorBoundary mini>
-          <TransactionFrequencyChart event={event} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventSpanOpBreakdown event={event} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <AggregateSpanDiff event={event} projectId={project.id} />
+          <AggregateSpanDiff event={event} project={project} />
         </ErrorBoundary>
         <ErrorBoundary mini>
           <EventComparison event={event} project={project} />
@@ -232,13 +226,20 @@ function ProfilingDurationRegressionIssueDetailsContent({
       renderDisabled
     >
       <Fragment>
-        <RegressionMessage event={event} group={group} />
+        <ErrorBoundary mini>
+          <EventRegressionSummary event={event} group={group} />
+        </ErrorBoundary>
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventFunctionRegressionEvidence event={event} />
-        </ErrorBoundary>
+        <Feature
+          features={['profiling-differential-flamegraph']}
+          organization={organization}
+        >
+          <ErrorBoundary mini>
+            <EventDifferenialFlamegraph event={event} />
+          </ErrorBoundary>
+        </Feature>
         <ErrorBoundary mini>
           <EventAffectedTransactions event={event} group={group} project={project} />
         </ErrorBoundary>
@@ -264,7 +265,8 @@ function GroupEventDetailsContent({
   }
 
   switch (group.issueType) {
-    case IssueType.PERFORMANCE_DURATION_REGRESSION: {
+    case IssueType.PERFORMANCE_DURATION_REGRESSION:
+    case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
       return (
         <PerformanceDurationRegressionIssueDetailsContent
           group={group}
@@ -273,7 +275,8 @@ function GroupEventDetailsContent({
         />
       );
     }
-    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL: {
+    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
+    case IssueType.PROFILE_FUNCTION_REGRESSION: {
       return (
         <ProfilingDurationRegressionIssueDetailsContent
           group={group}

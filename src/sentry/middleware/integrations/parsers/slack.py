@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List
 
-from django.http import HttpResponse
 from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackRequestError
@@ -21,9 +19,7 @@ from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
 from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.silo.client import SiloClientError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.types.region import Region
 from sentry.utils.signing import unsign
 
 from .base import BaseRequestParser
@@ -66,23 +62,6 @@ class SlackRequestParser(BaseRequestParser):
     See: `src/sentry/integrations/slack/views`
     """
 
-    def handle_action_endpoint(self, regions: List[Region]) -> HttpResponse:
-        drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
-        slack_request = self.view_class.slack_request_class(drf_request)
-        action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
-
-        if action_option in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
-            return self.get_response_from_control_silo()
-        else:
-            response_map = self.get_responses_from_region_silos(regions=regions)
-            successful_responses = [
-                result for result in response_map.values() if result.response is not None
-            ]
-            if len(successful_responses) == 0:
-                error_map = {region: result.error for region, result in response_map.items()}
-                raise SiloClientError("No successful region responses", error_map)
-            return successful_responses[0].response
-
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.webhook_endpoints:
             # We need convert the raw Django request to a Django Rest Framework request
@@ -105,28 +84,6 @@ class SlackRequestParser(BaseRequestParser):
             return Integration.objects.filter(id=params.get("integration_id")).first()
 
         return None
-
-    def get_response_from_first_region(self):
-        regions = self.get_regions_from_organizations()
-        first_region = regions[0]
-        response_map = self.get_responses_from_region_silos(regions=[first_region])
-        region_result = response_map[first_region.name]
-        if region_result.error is not None:
-            # We want to fail loudly so that devs know this error happened on the region silo (for now)
-            error = SiloClientError(region_result.error)
-            raise SiloClientError(error)
-        return region_result.response
-
-    def get_response_from_all_regions(self):
-        regions = self.get_regions_from_organizations()
-        response_map = self.get_responses_from_region_silos(regions=regions)
-        successful_responses = [
-            result for result in response_map.values() if result.response is not None
-        ]
-        if len(successful_responses) == 0:
-            error_map = {region: result.error for region, result in response_map.items()}
-            raise SiloClientError("No successful region responses", error_map)
-        return successful_responses[0].response
 
     def get_response(self):
         """

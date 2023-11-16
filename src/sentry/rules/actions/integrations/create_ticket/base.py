@@ -17,6 +17,7 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
 
     form_cls = IntegrationNotifyServiceForm
     integration_key = "integration"
+    link: str | None
     rule: Rule
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

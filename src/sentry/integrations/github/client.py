@@ -43,10 +43,6 @@ logger = logging.getLogger("sentry.integrations.github")
 MINIMUM_REQUESTS = 200
 
 
-class GitHubApproachingRateLimit(Exception):
-    pass
-
-
 class GithubRateLimitInfo:
     def __init__(self, info: Dict[str, int]) -> None:
         self.limit = info["limit"]
@@ -233,17 +229,23 @@ class GitHubClientMixin(GithubProxyClient):
 
         Returns the merged pull request that introduced the commit to the repository. If the commit is not present in the default branch, will only return open pull requests associated with the commit.
         """
-        pullrequest: JSONData = self.get(f"/repos/{repo}/commits/{sha}/pulls")
-        return pullrequest
+        return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
-    def get_pullrequest(self, repo: str, pull_number: int) -> JSONData:
+    def get_pullrequest(self, repo: str, pull_number: str) -> JSONData:
         """
-        https://docs.github.com/en/free-pro-team@latest/rest/pulls/pulls?apiVersion=2022-11-28#get-a-pull-request
+        https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
 
         Returns the pull request details
         """
-        pullrequest: JSONData = self.get(f"/repos/{repo}/pulls/{pull_number}")
-        return pullrequest
+        return self.get(f"/repos/{repo}/pulls/{pull_number}")
+
+    def get_pullrequest_files(self, repo: str, pull_number: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
+
+        Returns up to 30 files associated with a pull request. Responses are paginated.
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
 
     def get_repo(self, repo: str) -> JSONData:
         """
@@ -690,10 +692,18 @@ class GitHubClientMixin(GithubProxyClient):
 
         return response_ref.get("target", {}).get("blame", {}).get("ranges", [])
 
-    def get_blame_for_files(self, files: Sequence[SourceLineInfo]) -> Sequence[FileBlameInfo]:
+    def get_blame_for_files(
+        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+    ) -> Sequence[FileBlameInfo]:
+        log_info = {
+            **extra,
+            "provider": "github",
+            "organization_integration_id": self.org_integration_id,
+        }
+        metrics.incr("integrations.github.get_blame_for_files")
         rate_limit = self.get_rate_limit(specific_resource="graphql")
         if rate_limit.remaining < MINIMUM_REQUESTS:
-            metrics.incr("sentry.integrations.github.get_blame_for_files.rate_limit")
+            metrics.incr("integrations.github.get_blame_for_files.not_enough_requests_remaining")
             logger.error(
                 "sentry.integrations.github.get_blame_for_files.rate_limit",
                 extra={
@@ -704,47 +714,57 @@ class GitHubClientMixin(GithubProxyClient):
                     "organization_integration_id": self.org_integration_id,
                 },
             )
-            raise GitHubApproachingRateLimit()
+            raise ApiRateLimitedError("Not enough requests remaining for GitHub")
 
         file_path_mapping = generate_file_path_mapping(files)
-
-        try:
-            response = self.post(
-                path="/graphql",
-                data={"query": create_blame_query(file_path_mapping)},
-                allow_text=False,
+        data = create_blame_query(file_path_mapping, extra=log_info)
+        cache_key = self.get_cache_key("/graphql", data)
+        response = self.check_cache(cache_key)
+        if response:
+            metrics.incr("integrations.github.get_blame_for_files.got_cached")
+            logger.info(
+                "sentry.integrations.github.get_blame_for_files.got_cached",
+                extra=log_info,
             )
-        except ValueError as e:
-            logger.exception(
-                e,
-                {
-                    "provider": "github",
-                    "organization_integration_id": self.org_integration_id,
-                },
-            )
-            return []
+        else:
+            try:
+                response = self.post(
+                    path="/graphql",
+                    data={"query": create_blame_query(file_path_mapping, extra=log_info)},
+                    allow_text=False,
+                )
+            except ValueError as e:
+                logger.exception(e, log_info)
+                return []
+            else:
+                self.set_cache(cache_key, response, 60)
 
         if not isinstance(response, MappingApiResponse):
             raise ApiError("Response is not JSON")
 
-        if response.get("errors"):
-            err_message = ", ".join(
-                [error.get("message", "") for error in response.get("errors", [])]
-            )
-            logger.error(
-                "get_blame_for_files.graphql_error",
-                extra={
-                    "provider": "github",
-                    "error": err_message,
-                    "organization_integration_id": self.org_integration_id,
-                },
-            )
+        errors = response.get("errors", [])
+        if len(errors) > 0:
+            if any([error for error in errors if error.get("type") == "RATE_LIMITED"]):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+
+            # When data is present, it means that the query was at least partially successful,
+            # usually a missing repo/branch/file which is expected with wrong configurations.
+            # If data is not present, the query may be formed incorrectly, so raise an error.
+            if not response.get("data"):
+                err_message = ", ".join(
+                    [error.get("message", "") for error in response.get("errors", [])]
+                )
+                raise ApiError(err_message)
 
         return extract_commits_from_blame_response(
             response=response,
             file_path_mapping=file_path_mapping,
             files=files,
-            extra={"provider": "github", "organization_integration_id": self.org_integration_id},
+            extra={
+                **extra,
+                "provider": "github",
+                "organization_integration_id": self.org_integration_id,
+            },
         )
 
 

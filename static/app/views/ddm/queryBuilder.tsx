@@ -12,7 +12,7 @@ import {MetricsTag, SavedSearchType, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   getReadableMetricType,
-  getUseCaseFromMri,
+  getUseCaseFromMRI,
   isAllowedOp,
   MetricDisplayType,
   MetricsQuery,
@@ -53,6 +53,16 @@ export function QueryBuilder({
 
   const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
 
+  const metaArr = useMemo(() => {
+    if (mriMode) {
+      return Object.values(meta);
+    }
+
+    return Object.values(meta).filter(
+      metric => metric.mri.includes(':custom/') || metric.mri === metricsQuery.mri
+    );
+  }, [meta, metricsQuery.mri, mriMode]);
+
   if (!meta) {
     return null;
   }
@@ -63,25 +73,18 @@ export function QueryBuilder({
         <WrapPageFilterBar>
           <CompactSelect
             searchable
+            sizeLimit={100}
             triggerProps={{prefix: t('Metric'), size: 'sm'}}
-            options={Object.values(meta)
-              .filter(metric =>
-                mriMode
-                  ? true
-                  : metric.mri.includes(':custom/') || metric.mri === metricsQuery.mri
-              )
-              .map(metric => ({
-                label: mriMode ? metric.mri : metric.name,
-                value: metric.mri,
-                trailingItems: mriMode ? undefined : (
-                  <Fragment>
-                    <Tag tooltipText={t('Type')}>
-                      {getReadableMetricType(metric.type)}
-                    </Tag>
-                    <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-                  </Fragment>
-                ),
-              }))}
+            options={metaArr.map(metric => ({
+              label: mriMode ? metric.mri : metric.name,
+              value: metric.mri,
+              trailingItems: mriMode ? undefined : (
+                <Fragment>
+                  <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
+                  <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
+                </Fragment>
+              ),
+            }))}
             value={metricsQuery.mri}
             onChange={option => {
               const availableOps = meta[option.value]?.operations.filter(isAllowedOp);
@@ -192,12 +195,13 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
   // TODO(ddm): try to use useApiQuery here
   const getTagValues = useCallback(
     async tag => {
+      const useCase = getUseCaseFromMRI(mri);
       const tagsValues = await api.requestPromise(
         `/organizations/${org.slug}/metrics/tags/${tag.key}/`,
         {
           query: {
             metric: mri,
-            useCase: getUseCaseFromMri(mri),
+            useCase,
             project: selection.projects,
           },
         }

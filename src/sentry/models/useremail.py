@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Iterable, List, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, ClassVar, Iterable, List, Mapping, Optional, Tuple
 
 from django.conf import settings
 from django.db import models
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from sentry.models.user import User
 
 
-class UserEmailManager(BaseManager):
+class UserEmailManager(BaseManager["UserEmail"]):
     def get_emails_by_user(self, organization: RpcOrganization) -> Mapping[User, Iterable[str]]:
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
@@ -57,7 +57,7 @@ class UserEmail(ControlOutboxProducingModel):
         help_text=_("Designates whether this user has confirmed their email."),
     )
 
-    objects = UserEmailManager()
+    objects: ClassVar[UserEmailManager] = UserEmailManager()
 
     class Meta:
         app_label = "sentry"
@@ -105,8 +105,6 @@ class UserEmail(ControlOutboxProducingModel):
         # If we are merging users, ignore the imported email and use the merged user's email
         # instead.
         if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
-            useremail = self.__class__.objects.get(user_id=self.user_id)
-            pk_map.insert(get_model_name(self), self.pk, useremail.pk, ImportKind.Existing)
             return None
 
         # Only preserve validation hashes in the backup/restore scope - in all others, have the user

@@ -44,7 +44,7 @@ from sentry.constants import (
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
 )
-from sentry.datascrubbing import validate_pii_config_update
+from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -250,7 +250,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_safeFields(self, value):
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
-        return value
+        return validate_pii_selectors(value)
 
     def validate_attachmentsRole(self, value):
         try:

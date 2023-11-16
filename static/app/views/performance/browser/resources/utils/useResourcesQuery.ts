@@ -4,9 +4,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {
+  ModuleFilters,
+  useResourceModuleFilters,
+} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {
   SPAN_DOMAIN,
@@ -19,11 +23,34 @@ const {
   PROJECT_ID,
 } = SpanMetricsField;
 
+const {TIME_SPENT_PERCENTAGE} = SpanFunction;
+
 type Props = {
   sort: ValidSort;
   defaultResourceTypes?: string[];
   limit?: number;
   query?: string;
+};
+
+export const DEFAULT_RESOURCE_FILTERS = ['!span.description:"browser-extension://*"'];
+
+export const getResourcesEventViewQuery = (
+  resourceFilters: Partial<ModuleFilters>,
+  defaultResourceTypes: string[] | undefined
+): string[] => {
+  return [
+    ...DEFAULT_RESOURCE_FILTERS,
+    ...(resourceFilters.transaction
+      ? [`transaction:"${resourceFilters.transaction}"`]
+      : []),
+    ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
+    ...getDomainFilter(resourceFilters[SPAN_DOMAIN]),
+    ...(resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]
+      ? [
+          `${RESOURCE_RENDER_BLOCKING_STATUS}:${resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]}`,
+        ]
+      : [`!${RESOURCE_RENDER_BLOCKING_STATUS}:blocking`]),
+  ];
 };
 
 export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Props) => {
@@ -33,24 +60,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
   const {slug: orgSlug} = useOrganization();
 
   const queryConditions = [
-    `${SPAN_OP}:${
-      resourceFilters[SPAN_OP] || `[${defaultResourceTypes?.join(',')}]` || 'resource.*'
-    }`,
-    ...(!query
-      ? [
-          ...(resourceFilters.transaction
-            ? [`transaction:"${resourceFilters.transaction}"`]
-            : []),
-          ...(resourceFilters[SPAN_DOMAIN]
-            ? [`${SPAN_DOMAIN}:${resourceFilters[SPAN_DOMAIN]}`]
-            : []),
-          ...(resourceFilters['resource.render_blocking_status']
-            ? [
-                `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
-              ]
-            : [`!resource.render_blocking_status:blocking`]),
-        ]
-      : []),
+    ...(!query ? getResourcesEventViewQuery(resourceFilters, defaultResourceTypes) : []),
     query,
   ];
 
@@ -67,6 +77,8 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
         SPAN_DOMAIN,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         'project.id',
+        `${TIME_SPENT_PERCENTAGE}()`,
+        `sum(${SPAN_SELF_TIME})`,
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
@@ -107,8 +119,35 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
     [`avg(http.response_content_length)`]: row[
       `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`
     ] as number,
+    [`time_spent_percentage()`]: row[`${TIME_SPENT_PERCENTAGE}()`] as number,
     ['count_unique(transaction)']: row['count_unique(transaction)'] as number,
+    [`sum(span.self_time)`]: row[`sum(${SPAN_SELF_TIME})`] as number,
   }));
 
   return {...result, data: data || []};
+};
+
+export const getDomainFilter = (selectedDomain: string | undefined) => {
+  if (!selectedDomain) {
+    return [];
+  }
+
+  if (selectedDomain === EMPTY_OPTION_VALUE) {
+    return [`!has:${SPAN_DOMAIN}`];
+  }
+
+  return [`${SPAN_DOMAIN}:${selectedDomain}`];
+};
+
+export const getResourceTypeFilter = (
+  selectedSpanOp: string | undefined,
+  defaultResourceTypes: string[] | undefined
+) => {
+  let resourceFilter: string[] = [`${SPAN_OP}:resource.*`];
+  if (selectedSpanOp) {
+    resourceFilter = [`${SPAN_OP}:${selectedSpanOp}`];
+  } else if (defaultResourceTypes) {
+    resourceFilter = [`${SPAN_OP}:[${defaultResourceTypes.join(',')}]`];
+  }
+  return resourceFilter;
 };

@@ -40,7 +40,7 @@ function FcpRecommendations({transaction}: {transaction: string}) {
     defaultResourceTypes: ['resource.script', 'resource.css', 'resource.img'],
     limit: 7,
   });
-  if (isLoading || !data) {
+  if (isLoading || !data || data.length < 1) {
     return null;
   }
   return (

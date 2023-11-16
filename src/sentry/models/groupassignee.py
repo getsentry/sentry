@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class GroupAssigneeManager(BaseManager):
+class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def get_assigned_to_data(
         self, assigned_to: Team | RpcUser, assignee_type: str, extra: Dict[str, str] | None = None
     ) -> Dict[str, Any]:
@@ -260,7 +260,7 @@ class GroupAssignee(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    objects = GroupAssigneeManager()
+    objects: ClassVar[GroupAssigneeManager] = GroupAssigneeManager()
 
     project = FlexibleForeignKey("sentry.Project", related_name="assignee_set")
     group = FlexibleForeignKey("sentry.Group", related_name="assignee_set", unique=True)

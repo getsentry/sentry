@@ -8,9 +8,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
 import {
+  DEFAULT_INDEXED_SORT,
+  SORTABLE_INDEXED_FIELDS,
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
   transaction: string;
@@ -32,6 +35,11 @@ export const useTransactionSamplesWebVitalsQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+
+  const sort = useWebVitalsSort({
+    defaultSort: DEFAULT_INDEXED_SORT,
+    sortableFields: SORTABLE_INDEXED_FIELDS as unknown as string[],
+  });
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -59,6 +67,8 @@ export const useTransactionSamplesWebVitalsQuery = ({
     },
     pageFilters.selection
   );
+
+  eventView.sorts = [sort];
 
   const {data, isLoading, ...rest} = useDiscoverQuery({
     eventView,
@@ -103,12 +113,12 @@ export const useTransactionSamplesWebVitalsQuery = ({
               });
             return {
               ...row,
-              score: totalScore,
-              clsScore,
-              fcpScore,
-              lcpScore,
-              ttfbScore,
-              fidScore,
+              score: totalScore ?? 0,
+              clsScore: clsScore ?? 0,
+              fcpScore: fcpScore ?? 0,
+              lcpScore: lcpScore ?? 0,
+              ttfbScore: ttfbScore ?? 0,
+              fidScore: fidScore ?? 0,
             };
           })
       : [];

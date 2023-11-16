@@ -105,14 +105,14 @@ describe('ProjectKeyDetails', function () {
     );
   });
 
-  it('has stats box', function () {
-    expect(screen.getByText('Key Details')).toBeInTheDocument();
+  it('has stats box', async function () {
+    expect(await screen.findByText('Key Details')).toBeInTheDocument();
     expect(statsMock).toHaveBeenCalled();
   });
 
   it('changes name', async function () {
-    await userEvent.clear(screen.getByRole('textbox', {name: 'Name'}));
-    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'New Name');
+    await userEvent.clear(await screen.findByRole('textbox', {name: 'Name'}));
+    await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'New Name');
     await userEvent.tab();
 
     expect(putMock).toHaveBeenCalledWith(
@@ -126,7 +126,7 @@ describe('ProjectKeyDetails', function () {
   });
 
   it('disable and enables key', async function () {
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
@@ -135,7 +135,7 @@ describe('ProjectKeyDetails', function () {
       })
     );
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
@@ -146,11 +146,9 @@ describe('ProjectKeyDetails', function () {
   });
 
   it('revokes a key', async function () {
-    await userEvent.click(screen.getByRole('button', {name: 'Revoke Key'}));
-
+    await userEvent.click(await screen.findByRole('button', {name: 'Revoke Key'}));
     renderGlobalModal();
-    await userEvent.click(screen.getByTestId('confirm-button'));
-
+    await userEvent.click(await screen.findByTestId('confirm-button'));
     expect(deleteMock).toHaveBeenCalled();
   });
 });

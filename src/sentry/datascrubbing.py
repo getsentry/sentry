@@ -8,6 +8,7 @@ from sentry_relay.processing import (
     convert_datascrubbing_config,
     pii_strip_event,
     validate_pii_config,
+    validate_pii_selector,
 )
 
 from sentry.utils import json, metrics
@@ -152,6 +153,23 @@ def validate_pii_config_update(organization, value):
         raise serializers.ValidationError(str(e))
 
     return value
+
+
+def validate_pii_selectors(selectors):
+    if not selectors:
+        return selectors
+
+    errors = list()
+    for line, selector in enumerate(selectors, start=1):
+        try:
+            validate_pii_selector(selector)
+        except ValueError as e:
+            errors.append(f"{e} (line {line})".capitalize())
+
+    if errors:
+        raise serializers.ValidationError(",\n".join(errors))
+
+    return selectors
 
 
 def _prefix_rule_references_in_rule(custom_rules, rule_def, prefix):

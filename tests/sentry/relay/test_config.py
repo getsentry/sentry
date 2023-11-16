@@ -609,19 +609,6 @@ def test_txnames_ready(default_project, num_clusterer_runs):
 
 
 @django_db_all
-def test_accept_span_desc_rules(default_project):
-    with Feature({"projects:span-metrics-extraction": True}), mock.patch(
-        "sentry.relay.config.get_sorted_rules",
-        return_value=[
-            ("**/test/*/**", 0),
-        ],
-    ):
-        config = get_project_config(default_project).to_dict()["config"]
-        _validate_project_config(config)
-        assert "spanDescriptionRules" in config
-
-
-@django_db_all
 @region_silo_test(stable=True)
 def test_project_config_setattr(default_project):
     project_cfg = ProjectConfig(default_project)
@@ -741,7 +728,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
         config = get_project_config(default_project).to_dict()["config"]
         validate_project_config(json.dumps(config), strict=False)
         assert config["metricExtraction"] == {
-            "version": 1,
+            "version": 2,
             "metrics": [
                 {
                     "category": "transaction",

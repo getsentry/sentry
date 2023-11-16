@@ -540,6 +540,17 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         # a graceful authorization failure.
         assert response.status_code == 400
 
+    def test_cannot_update_partnership_member(self):
+        member = self.create_user("bar@example.com")
+        member_om = self.create_member(
+            organization=self.organization,
+            user=member,
+            role="member",
+            flags=OrganizationMember.flags["partnership:restricted"],
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id, status_code=403)
+
 
 @region_silo_test(stable=True)
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
@@ -725,6 +736,17 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
             organization=self.organization, user=None, email="invitee@example.com", role="member"
         )
         self.get_success_response(self.organization.slug, invite.id)
+
+    def test_cannot_delete_partnership_member(self):
+        member = self.create_user("bar@example.com")
+        member_om = self.create_member(
+            organization=self.organization,
+            user=member,
+            role="member",
+            flags=OrganizationMember.flags["partnership:restricted"],
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id, status_code=403)
 
 
 @region_silo_test(stable=True)

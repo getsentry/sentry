@@ -1,6 +1,7 @@
 import types
 from urllib.parse import parse_qs, urlparse
 
+from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.rule import Rule
 from sentry.notifications.helpers import (
@@ -10,6 +11,7 @@ from sentry.notifications.helpers import (
     get_subscription_from_attributes,
     get_team_members,
     get_values_by_provider_by_type,
+    team_is_valid_recipient,
     validate,
 )
 from sentry.notifications.notify import notification_providers
@@ -24,7 +26,9 @@ from sentry.notifications.utils import (
     get_rules,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
 
 
@@ -221,3 +225,32 @@ class NotificationHelpersTest(TestCase):
         assert get_team_members(team1) == [RpcActor.from_object(user1)]
         assert get_team_members(team2) == [RpcActor.from_object(user2)]
         assert get_team_members(team3) == []
+
+    def test_team_is_valid_recipient(self):
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+        team3 = self.create_team(organization=self.organization)
+        integration1 = self.create_integration(
+            organization=self.organization, provider="Slack", external_id="slack-id"
+        )
+        integration2 = self.create_integration(
+            organization=self.organization, provider="Jira", external_id="jira-id"
+        )
+        ExternalActor.objects.create(
+            team_id=team1.id,
+            organization=self.organization,
+            integration_id=integration1.id,
+            external_name="valid_integration",
+            provider=110,
+        )
+        ExternalActor.objects.create(
+            team_id=team2.id,
+            organization=self.organization,
+            integration_id=integration2.id,
+            external_name="invalid_integration",
+            provider=0,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert team_is_valid_recipient(team1)
+            assert not team_is_valid_recipient(team2)
+            assert not team_is_valid_recipient(team3)

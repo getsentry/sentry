@@ -69,7 +69,6 @@ class OrganizationMetricsPermissionTest(APITestCase):
         return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
 
     def test_permissions(self):
-
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=[])
 

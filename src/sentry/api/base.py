@@ -11,9 +11,8 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
-from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import BasePermission
@@ -88,13 +87,6 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-DEFAULT_SLUG_PATTERN = r"^[a-z0-9_\-]+$"
-NON_NUMERIC_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
-DEFAULT_SLUG_ERROR_MESSAGE = _(
-    "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
-    "It cannot be entirely numeric."
-)
-
 
 def allow_cors_options(func):
     """
@@ -116,41 +108,50 @@ def allow_cors_options(func):
         else:
             response = func(self, request, *args, **kwargs)
 
-        allow = ", ".join(self._allowed_methods())
-        response["Allow"] = allow
-        response["Access-Control-Allow-Methods"] = allow
-        response["Access-Control-Allow-Headers"] = (
-            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
-            "Content-Type, Authentication, Authorization, Content-Encoding, "
-            "sentry-trace, baggage, X-CSRFToken"
+        return apply_cors_headers(
+            request=request, response=response, allowed_methods=self._allowed_methods()
         )
-        response["Access-Control-Expose-Headers"] = (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
-            "Endpoint, Retry-After, Link"
-        )
-
-        if request.META.get("HTTP_ORIGIN") == "null":
-            # if ORIGIN header is explicitly specified as 'null' leave it alone
-            origin: str | None = "null"
-        else:
-            origin = origin_from_request(request)
-
-        if origin is None or origin == "null":
-            response["Access-Control-Allow-Origin"] = "*"
-        else:
-            response["Access-Control-Allow-Origin"] = origin
-
-        # If the requesting origin is a subdomain of
-        # the application's base-hostname we should allow cookies
-        # to be sent.
-        basehost = options.get("system.base-hostname")
-        if basehost and origin:
-            if origin.endswith(("://" + basehost, "." + basehost)):
-                response["Access-Control-Allow-Credentials"] = "true"
-
-        return response
 
     return allow_cors_options_wrapper
+
+
+def apply_cors_headers(
+    request: HttpRequest, response: HttpResponse, allowed_methods: list[str] | None = None
+) -> HttpResponse:
+    if allowed_methods is None:
+        allowed_methods = []
+    allow = ", ".join(allowed_methods)
+    response["Allow"] = allow
+    response["Access-Control-Allow-Methods"] = allow
+    response["Access-Control-Allow-Headers"] = (
+        "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+        "Content-Type, Authentication, Authorization, Content-Encoding, "
+        "sentry-trace, baggage, X-CSRFToken"
+    )
+    response["Access-Control-Expose-Headers"] = (
+        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, " "Endpoint, Retry-After, Link"
+    )
+
+    if request.META.get("HTTP_ORIGIN") == "null":
+        # if ORIGIN header is explicitly specified as 'null' leave it alone
+        origin: str | None = "null"
+    else:
+        origin = origin_from_request(request)
+
+    if origin is None or origin == "null":
+        response["Access-Control-Allow-Origin"] = "*"
+    else:
+        response["Access-Control-Allow-Origin"] = origin
+
+    # If the requesting origin is a subdomain of
+    # the application's base-hostname we should allow cookies
+    # to be sent.
+    basehost = options.get("system.base-hostname")
+    if basehost and origin:
+        if origin.endswith(("://" + basehost, "." + basehost)):
+            response["Access-Control-Allow-Credentials"] = "true"
+
+    return response
 
 
 class Endpoint(APIView):
@@ -575,17 +576,6 @@ class ReleaseAnalyticsMixin:
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
-
-
-class PreventNumericSlugMixin:
-    def validate_slug(self, slug: str) -> str:
-        """
-        Validates that the slug is not entirely numeric. Requires a feature flag
-        to be turned on.
-        """
-        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
-            raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
-        return slug
 
 
 def resolve_region(request: HttpRequest) -> Optional[str]:

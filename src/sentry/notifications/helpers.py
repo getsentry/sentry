@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Subquery
 
-from sentry import features
+from sentry.hybridcloud.models.externalactorreplica import ExternalActorReplica
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.notifications.defaults import (
@@ -690,7 +690,8 @@ def get_providers_for_recipient(
 
 
 def should_use_notifications_v2(organization: Organization):
-    return features.has("organizations:notification-settings-v2", organization)
+    # TODO: remove function
+    return True
 
 
 def recipient_is_user(recipient: RpcActor | Team | RpcUser | User) -> bool:
@@ -724,9 +725,8 @@ def team_is_valid_recipient(team: Team | RpcActor) -> bool:
     A team is a valid recipient if it has a linked integration (ie. linked Slack channel)
     for any one of the providers allowed for personal notifications.
     """
-    from sentry.models.integrations.external_actor import ExternalActor
 
-    linked_integration = ExternalActor.objects.filter(
+    linked_integration = ExternalActorReplica.objects.filter(
         team_id=team.id,
         provider__in=PERSONAL_NOTIFICATION_PROVIDERS_AS_INT,
     )

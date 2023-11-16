@@ -23,6 +23,10 @@ from sentry.api.endpoints.organization_projects_experiment import (
 )
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
+from sentry.api.endpoints.organization_unsubscribe import (
+    OrganizationUnsubscribeIssue,
+    OrganizationUnsubscribeProject,
+)
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -33,6 +37,8 @@ from sentry.api.endpoints.release_thresholds.release_threshold_index import (
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
+from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
+from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -106,6 +112,9 @@ from sentry.monitors.endpoints.organization_monitor_details import (
 from sentry.monitors.endpoints.organization_monitor_index import OrganizationMonitorIndexEndpoint
 from sentry.monitors.endpoints.organization_monitor_index_stats import (
     OrganizationMonitorIndexStatsEndpoint,
+)
+from sentry.monitors.endpoints.organization_monitor_schedule_sample_data import (
+    OrganizationMonitorScheduleSampleDataEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
@@ -509,6 +518,7 @@ from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
 from .endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from .endpoints.project_stacktrace_links import ProjectStacktraceLinksEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
+from .endpoints.project_symbol_sources import ProjectSymbolSourcesEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
@@ -520,7 +530,6 @@ from .endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
 from .endpoints.project_transfer import ProjectTransferEndpoint
-from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
@@ -552,7 +561,6 @@ from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
-from .endpoints.team_notification_settings_details import TeamNotificationSettingsDetailsEndpoint
 from .endpoints.team_projects import TeamProjectsEndpoint
 from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
@@ -730,6 +738,19 @@ BROADCAST_URLS = [
     re_path(
         r"^(?P<broadcast_id>[^\/]+)/$",
         BroadcastDetailsEndpoint.as_view(),
+    ),
+]
+
+RELOCATION_URLS = [
+    re_path(
+        r"^$",
+        RelocationIndexEndpoint.as_view(),
+        name="sentry-api-0-relocations-index",
+    ),
+    re_path(
+        r"^public-key/$",
+        RelocationPublicKeyEndpoint.as_view(),
+        name="sentry-api-0-relocations-public-key",
     ),
 ]
 
@@ -1479,6 +1500,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-monitor-index-stats",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/monitors-schedule-data/$",
+        OrganizationMonitorScheduleSampleDataEndpoint.as_view(),
+        name="sentry-api-0-organization-monitors-schedule-sample-data",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/$",
         OrganizationMonitorDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-details",
@@ -1945,6 +1971,17 @@ ORGANIZATION_URLS = [
         GroupingConfigsEndpoint.as_view(),
         name="sentry-api-0-organization-grouping-configs",
     ),
+    # Unsubscribe from organization notifications
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/unsubscribe/project/(?P<id>\d+)/$",
+        OrganizationUnsubscribeProject.as_view(),
+        name="sentry-api-0-organization-unsubscribe-project",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/unsubscribe/issue/(?P<id>\d+)/$",
+        OrganizationUnsubscribeIssue.as_view(),
+        name="sentry-api-0-organization-unsubscribe-issue",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -2348,6 +2385,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-stats",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/symbol-sources/$",
+        ProjectSymbolSourcesEndpoint.as_view(),
+        name="sentry-api-0-project-symbol-sources",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/tags/$",
         ProjectTagsEndpoint.as_view(),
         name="sentry-api-0-project-tags",
@@ -2381,11 +2423,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/$",
         ProjectUsersEndpoint.as_view(),
         name="sentry-api-0-project-users",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/(?P<user_hash>[^/]+)/$",
-        ProjectUserDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-user-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-feedback|user-reports)/$",
@@ -2591,11 +2628,6 @@ TEAM_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/all-unresolved-issues/$",
         TeamAllUnresolvedIssuesEndpoint.as_view(),
         name="sentry-api-0-team-all-unresolved-issues",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",
-        TeamNotificationSettingsDetailsEndpoint.as_view(),
-        name="sentry-api-0-team-notification-settings",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/members/$",
@@ -3003,6 +3035,11 @@ urlpatterns = [
     re_path(
         r"^internal/",
         include(INTERNAL_URLS),
+    ),
+    # Relocations
+    re_path(
+        r"^relocations/",
+        include(RELOCATION_URLS),
     ),
     # Catch all
     re_path(

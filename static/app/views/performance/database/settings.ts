@@ -9,3 +9,7 @@ export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.symfony': '4.11.0',
   'sentry.android': '6.30.0',
 };
+
+export const DEFAULT_DURATION_AGGREGATE = 'avg';
+
+export const CHART_HEIGHT = 160;

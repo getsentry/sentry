@@ -2,12 +2,11 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
-from typing import List
+from typing import ClassVar, List
 
 from django.db import models, router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
-from django.utils.text import slugify
 from rest_framework.request import Request
 
 from sentry.backup.scopes import RelocationScope
@@ -75,15 +74,6 @@ def default_uuid():
     return str(uuid.uuid4())
 
 
-def generate_slug(name: str, is_internal=False) -> str:
-    slug = slugify(name)
-    # for internal, add some uuid to make it unique
-    if is_internal:
-        slug = f"{slug}-{default_uuid()[:UUID_CHARS_IN_SLUG]}"
-
-    return slug
-
-
 def track_response_code(status, integration_slug, webhook_event):
     metrics.incr(
         "integration-platform.http_response",
@@ -92,7 +82,7 @@ def track_response_code(status, integration_slug, webhook_event):
     )
 
 
-class SentryAppManager(ParanoidManager):
+class SentryAppManager(ParanoidManager["SentryApp"]):
     def get_alertable_sentry_apps(self, organization_id: int) -> QuerySet:
         return self.filter(
             installations__organization_id=organization_id,
@@ -162,8 +152,9 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     creator_label = models.TextField(null=True)
 
     popularity = models.PositiveSmallIntegerField(null=True, default=1)
+    metadata = JSONField(default=dict)
 
-    objects = SentryAppManager()
+    objects: ClassVar[SentryAppManager] = SentryAppManager()
 
     class Meta:
         app_label = "sentry"
@@ -206,6 +197,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
         ).exists()
 
     def build_signature(self, body):
+        assert self.application is not None
         secret = self.application.client_secret
         return hmac.new(
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
