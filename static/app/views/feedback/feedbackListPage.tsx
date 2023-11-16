@@ -10,7 +10,7 @@ import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
 import {
-  useFeedbackFromSlack,
+  useFeedbackHasSlug,
   useHaveSelectedProjectsSetupFeedback,
 } from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
@@ -32,7 +32,7 @@ interface Props extends RouteComponentProps<{}, {}, {}> {}
 export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
-  const {isFromSlack} = useFeedbackFromSlack();
+  const {hasSlug} = useFeedbackHasSlug();
   const location = useLocation();
 
   return (
@@ -76,7 +76,7 @@ export default function FeedbackListPage({}: Props) {
             <ErrorBoundary>
               <LayoutGrid>
                 <FeedbackFilters style={{gridArea: 'filters'}} />
-                {hasSetupOneFeedback || isFromSlack ? (
+                {hasSetupOneFeedback || hasSlug ? (
                   <Fragment>
                     <Container style={{gridArea: 'list'}}>
                       <FeedbackList />

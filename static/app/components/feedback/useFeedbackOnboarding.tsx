@@ -47,9 +47,9 @@ export function useHaveSelectedProjectsSetupFeedback() {
   };
 }
 
-export function useFeedbackFromSlack() {
-  const {getParamValue: getReferrer} = useUrlParams('referrer', '');
-  const isFromSlack = getReferrer() === 'slack';
+export function useFeedbackHasSlug() {
+  const {getParamValue: getSlug} = useUrlParams('feedbackSlug', '');
+  const hasSlug = getSlug().length > 0;
 
-  return {isFromSlack};
+  return {hasSlug};
 }
