@@ -37,6 +37,7 @@ from sentry.models.relocation import (
 from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.tasks.relocation import (
+    ERR_NOTIFYING_INTERNAL,
     ERR_POSTPROCESSING_INTERNAL,
     ERR_PREPROCESSING_DECRYPTION,
     ERR_PREPROCESSING_INTERNAL,
@@ -52,7 +53,9 @@ from sentry.tasks.relocation import (
     ERR_VALIDATING_MAX_RUNS,
     MAX_FAST_TASK_RETRIES,
     MAX_VALIDATION_POLLS,
+    completed,
     importing,
+    notifying_owner,
     postprocessing,
     preprocessing_baseline_config,
     preprocessing_colliding_users,
@@ -183,7 +186,7 @@ class RelocationTaskTestCase(TestCase):
         fake_cloudbuild_client.get_build.side_effect = None
 
     def mock_message_builder(self, fake_message_builder: Mock):
-        fake_message_builder.return_value.send_async.return_value = MagicMock()
+        fake_message_builder.return_value.send_async.return_value = Mock()
 
 
 @patch("sentry.utils.relocation.MessageBuilder")
@@ -1451,7 +1454,8 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
             ]
 
 
-@patch("sentry.tasks.relocation.completed.delay")
+@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.tasks.relocation.notifying_owner.delay")
 @region_silo_test
 class PostprocessingTest(RelocationTaskTestCase):
     def setUp(self):
@@ -1479,7 +1483,12 @@ class PostprocessingTest(RelocationTaskTestCase):
         self.imported_org_id: int = next(iter(imported_orgs.inserted_map.values()))
         self.imported_org_slug: str = next(iter(imported_orgs.inserted_identifiers.values()))
 
-    def test_success(self, completed_mock: Mock):
+    def test_success(
+        self,
+        notifying_owner_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
         assert (
             OrganizationMember.objects.filter(
                 organization_id=self.imported_org_id, role="owner", has_global_access=True
@@ -1493,7 +1502,8 @@ class PostprocessingTest(RelocationTaskTestCase):
         postprocessing(self.uuid)
 
         # TODO(getsentry/team-ospo#203): Should notify users instead.
-        assert completed_mock.call_count == 1
+        assert notifying_owner_mock.call_count == 1
+
         assert (
             OrganizationMember.objects.filter(
                 organization_id=self.imported_org_id, role="owner", has_global_access=True
@@ -1504,7 +1514,12 @@ class PostprocessingTest(RelocationTaskTestCase):
             organization_id=self.imported_org_id, user_id=self.owner.id
         ).exists()
 
-    def test_retry_if_attempts_left(self, completed_mock: Mock):
+    def test_retry_if_attempts_left(
+        self,
+        notifying_owner_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
         self.relocation.want_org_slugs = ["incorrect-slug"]
         self.relocation.save()
 
@@ -1515,9 +1530,14 @@ class PostprocessingTest(RelocationTaskTestCase):
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
         assert not relocation.failure_reason
-        assert completed_mock.call_count == 0
+        assert notifying_owner_mock.call_count == 0
 
-    def test_fail_if_no_attempts_left(self, completed_mock: Mock):
+    def test_fail_if_no_attempts_left(
+        self,
+        notifying_owner_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
         self.relocation.latest_task = "POSTPROCESSING"
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.want_org_slugs = ["incorrect-slug"]
@@ -1526,10 +1546,120 @@ class PostprocessingTest(RelocationTaskTestCase):
         with pytest.raises(Exception):
             postprocessing(self.uuid)
 
+        assert notifying_owner_mock.call_count == 0
+
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.failure_reason == ERR_POSTPROCESSING_INTERNAL
+
+
+@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.tasks.relocation.completed.delay")
+@region_silo_test
+class NotifyingOwnerTest(RelocationTaskTestCase):
+    def setUp(self):
+        RelocationTaskTestCase.setUp(self)
+        TransactionTestCase.setUp(self)
+        self.relocation.step = Relocation.Step.POSTPROCESSING.value
+        self.relocation.latest_task = "POSTPROCESSING"
+        self.relocation.save()
+
+    def test_success_admin_assisted_relocation(
+        self,
+        completed_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
+
+        notifying_owner(self.uuid)
+
+        assert fake_message_builder.call_count == 1
+        assert fake_message_builder.call_args.kwargs["type"] == "relocation.succeeded"
+        fake_message_builder.return_value.send_async.assert_called_once_with(
+            to=[self.owner.email, self.superuser.email]
+        )
+
+        assert completed_mock.call_count == 1
+
+    def test_success_self_serve_relocation(
+        self,
+        completed_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.relocation.creator_id = self.relocation.owner_id
+        self.relocation.save()
+
+        notifying_owner(self.uuid)
+
+        assert fake_message_builder.call_count == 1
+        assert fake_message_builder.call_args.kwargs["type"] == "relocation.succeeded"
+        fake_message_builder.return_value.send_async.assert_called_once_with(to=[self.owner.email])
+
+        assert completed_mock.call_count == 1
+
+    def test_retry_if_attempts_left(
+        self,
+        completed_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        fake_message_builder.return_value.send_async.side_effect = Exception("Test")
+
+        # An exception being raised will trigger a retry in celery.
+        with pytest.raises(Exception):
+            notifying_owner(self.uuid)
+
+        assert fake_message_builder.call_count == 1
         assert completed_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert not relocation.failure_reason
+
+    def test_fail_if_no_attempts_left(
+        self,
+        completed_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.relocation.latest_task = "NOTIFYING_OWNER"
+        self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
+        self.relocation.save()
+
+        self.mock_message_builder(fake_message_builder)
+        fake_message_builder.return_value.send_async.side_effect = [Exception("Test"), None]
+
+        with pytest.raises(Exception):
+            notifying_owner(self.uuid)
+
+        # Oh, the irony: sending the "relocation success" email failed, so we send a "relocation
+        # failed" email instead...
+        assert fake_message_builder.call_count == 2
+        assert fake_message_builder.call_args_list[0].kwargs["type"] == "relocation.succeeded"
+        assert fake_message_builder.call_args_list[1].kwargs["type"] == "relocation.failed"
+
+        assert completed_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.failure_reason == ERR_NOTIFYING_INTERNAL
+
+
+@region_silo_test
+class CompletedTest(RelocationTaskTestCase):
+    def setUp(self):
+        RelocationTaskTestCase.setUp(self)
+        TransactionTestCase.setUp(self)
+        self.relocation.step = Relocation.Step.NOTIFYING.value
+        self.relocation.latest_task = "NOTIFYING_OWNER"
+        self.relocation.save()
+
+    def test_success(self):
+        completed(self.uuid)
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.SUCCESS.value
+        assert not relocation.failure_reason
 
 
 @patch(
@@ -1583,11 +1713,9 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
         assert fake_kms_client.asymmetric_decrypt.call_count == 2
 
-        assert fake_message_builder.call_count == 1
-        assert fake_message_builder.call_args.kwargs["type"] == "relocation.started"
-        fake_message_builder.return_value.send_async.assert_called_once_with(
-            to=[self.owner.email, self.superuser.email]
-        )
+        assert fake_message_builder.call_count == 2
+        assert fake_message_builder.call_args_list[0].kwargs["type"] == "relocation.succeeded"
+        assert fake_message_builder.call_args_list[1].kwargs["type"] == "relocation.started"
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.SUCCESS.value
