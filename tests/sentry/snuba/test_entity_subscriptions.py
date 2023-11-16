@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from snuba_sdk import And, Column, Condition, Function, Op
+from snuba_sdk import And, Column, Condition, Entity, Function, Op
 
 from sentry.exceptions import (
     IncompatibleMetricsQuery,
@@ -651,30 +651,34 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.get_entity_extra_params() == {}
         assert entity_subscription.dataset == Dataset.Events
 
-        snql_query = entity_subscription.build_query_builder(
-            "release:latest", [self.project.id], None
-        ).get_snql_query()
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            snql_query = entity_subscription.build_query_builder(
+                "release:latest", [self.project.id], None
+            ).get_snql_query()
         assert snql_query.query.select == [
             Function(
                 function="uniq",
-                parameters=[Column(name="tags[sentry:user]")],
+                parameters=[Column(name="tags[sentry:user]", entity=entity)],
                 alias="count_unique_user",
             )
         ]
         assert snql_query.query.where == [
             And(
                 [
-                    Condition(Column("type"), Op.EQ, "error"),
+                    Condition(Column("type", entity=entity), Op.EQ, "error"),
                     Condition(
                         Function(
-                            function="ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                            function="ifNull",
+                            parameters=[Column(name="tags[sentry:release]", entity=entity), ""],
                         ),
                         Op.IN,
                         [""],
                     ),
                 ]
             ),
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
+            Condition(Column("project_id", entity=entity), Op.IN, [self.project.id]),
         ]
 
 
