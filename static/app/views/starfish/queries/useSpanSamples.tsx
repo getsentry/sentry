@@ -8,9 +8,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
-import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {
+  SpanIndexedField,
+  SpanIndexedFieldTypes,
+  SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
 
@@ -57,8 +60,8 @@ export const useSpanSamples = (options: Options) => {
     ...extraQuery,
   ]);
 
-  const filters: SpanSummaryQueryFilters = {
-    transactionName,
+  const filters: SpanMetricsQueryFilters = {
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
