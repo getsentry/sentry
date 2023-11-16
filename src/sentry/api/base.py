@@ -148,7 +148,10 @@ def apply_cors_headers(
     # to be sent.
     basehost = options.get("system.base-hostname")
     if basehost and origin:
-        if origin.endswith(("://" + basehost, "." + basehost)):
+        if (
+            origin.endswith(("://" + basehost, "." + basehost))
+            or origin in settings.ALLOWED_CREDENTIAL_ORIGINS
+        ):
             response["Access-Control-Allow-Credentials"] = "true"
 
     return response

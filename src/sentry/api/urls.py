@@ -596,6 +596,7 @@ from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_permission_details import UserPermissionDetailsEndpoint
 from .endpoints.user_permissions import UserPermissionsEndpoint
 from .endpoints.user_permissions_config import UserPermissionsConfigEndpoint
+from .endpoints.user_regions import UserRegionsEndpoint
 from .endpoints.user_role_details import UserUserRoleDetailsEndpoint
 from .endpoints.user_roles import UserUserRolesEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
@@ -807,6 +808,11 @@ USER_URLS = [
         r"^(?P<user_id>[^\/]+)/$",
         UserDetailsEndpoint.as_view(),
         name="sentry-api-0-user-details",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/regions/$",
+        UserRegionsEndpoint.as_view(),
+        name="sentry-api-0-user-regions",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/avatar/$",
