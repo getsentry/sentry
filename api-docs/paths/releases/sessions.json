@@ -1,8 +1,6 @@
 {
   "get": {
-    "tags": [
-      "Releases"
-    ],
+    "tags": ["Releases"],
     "description": "Returns a time series of release health session statistics for projects bound to an organization.\n\nThe interval and date range are subject to certain restrictions and rounding rules.\n\nThe date range is rounded to align with the interval, and is rounded to at least one hour. The interval can at most be one day and at least one hour currently. It has to cleanly divide one day, for rounding reasons.\n\nApart from the query parameters listed below, this endpoint also supports the usual [pagination parameters](https://docs.sentry.io/api/pagination/).",
     "operationId": "Retrieve Release Health Session Statistics",
     "parameters": [

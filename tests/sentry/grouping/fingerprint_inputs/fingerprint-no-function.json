@@ -5,7 +5,7 @@
         ["type", "DatabaseUnavailable"],
         ["module", "io.sentry.example.*"]
       ],
-      "fingerprint": ["database-unavailable",  "{{ function }}"]
+      "fingerprint": ["database-unavailable", "{{ function }}"]
     }
   ],
   "exception": {
