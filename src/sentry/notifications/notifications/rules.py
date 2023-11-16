@@ -107,6 +107,7 @@ class AlertRuleNotification(ProjectNotification):
             notification_type=self.notification_setting_type,
             fallthrough_choice=self.fallthrough_choice,
             rules=self.rules,
+            notification_uuid=self.notification_uuid,
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
