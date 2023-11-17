@@ -44,7 +44,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const organization = useOrganization();
     const isOpen = useIsSelectedFeedback({feedbackItem});
     const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
-    const crashReportId = feedbackItem.level === 'error';
+    const crashReportId = feedbackItem.metadata.source === 'crash_report_embed_form';
 
     return (
       <CardSpacing className={className} style={style} ref={ref}>
