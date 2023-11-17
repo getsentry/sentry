@@ -3251,39 +3251,10 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
     def setUp(self):
         super().setUp()
 
-    def test_distribution_metrics_query(self):
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-        for value in (10, 20, 30):
-            self.store_transaction_metric(
-                value=value,
-                metric=mri,
-                internal_metric=mri,
-                entity="metrics_distributions",
-                tags={},
-                timestamp=self.start,
-                use_case_id=UseCaseID.CUSTOM,
-            )
-
-        query = MetricsQueryBuilder(
-            self.params,
-            granularity=3600,
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[f"count({mri})"],
-            config=QueryBuilderConfig(
-                use_metrics_layer=True,
-            ),
-        )
-
-        result = query.run_query("test_query")
-
-        assert result["data"] == [{"count_d_custom_sentry_process_profile_track_outcome_second": 3}]
-        meta = result["meta"]
-
-        assert len(meta) == 1
-        assert meta[0]["name"] == "count_d_custom_sentry_process_profile_track_outcome_second"
-
-    def test_count_timeseries_metrics_query(self):
+    def test_count_metrics_query(self):
         mri = "c:custom/website_click@none"
+        aggregate = f"sum({mri})"
+
         for index, value in enumerate((10, 20)):
             self.store_transaction_metric(
                 value=value,
@@ -3295,18 +3266,17 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
                 use_case_id=UseCaseID.CUSTOM,
             )
 
-        query = TimeseriesMetricQueryBuilder(
+        series_query = TimeseriesMetricQueryBuilder(
             self.params,
             interval=3600,
             dataset=Dataset.PerformanceMetrics,
-            selected_columns=[f"sum({mri})"],
+            selected_columns=[aggregate],
             config=QueryBuilderConfig(
                 use_metrics_layer=True,
             ),
         )
 
-        result = query.run_query("test_query")
-
+        result = series_query.run_query("test_query")
         assert result["data"][:2] == [
             {
                 "sum_c_custom_website_click_none": 10.0,
@@ -3317,13 +3287,29 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
             },
         ]
-
         meta = result["meta"]
         assert len(meta) == 2
         assert meta[1]["name"] == "sum_c_custom_website_click_none"
 
-    def test_distribution_timeseries_metrics_query(self):
+        totals_query = MetricsQueryBuilder(
+            self.params,
+            granularity=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[aggregate],
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+        result = totals_query.run_query("test_query")
+        assert result["data"] == [{"sum_c_custom_website_click_none": 30.0}]
+        meta = result["meta"]
+        assert len(meta) == 1
+        assert meta[0]["name"] == "sum_c_custom_website_click_none"
+
+    def test_distribution_metrics_query(self):
         mri = "d:custom/sentry.process_profile.track_outcome@second"
+        aggregate = f"sum({mri})"
+
         for index, (value, phone) in enumerate(((10, "iPhone"), (20, "OnePlus"))):
             for multiplier in (1, 2, 3):
                 self.store_transaction_metric(
@@ -3336,19 +3322,18 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
                     use_case_id=UseCaseID.CUSTOM,
                 )
 
-        query = TimeseriesMetricQueryBuilder(
+        series_query = TimeseriesMetricQueryBuilder(
             self.params,
             interval=3600,
             dataset=Dataset.PerformanceMetrics,
-            selected_columns=[f"sum({mri})"],
+            selected_columns=[aggregate],
             query="phone:iPhone OR phone:OnePlus",
             config=QueryBuilderConfig(
                 use_metrics_layer=True,
             ),
         )
 
-        result = query.run_query("test_query")
-
+        result = series_query.run_query("test_query")
         assert result["data"][:2] == [
             {
                 "sum_d_custom_sentry_process_profile_track_outcome_second": 60.0,
@@ -3359,10 +3344,85 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
             },
         ]
-
         meta = result["meta"]
         assert len(meta) == 2
         assert meta[1]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"
+
+        totals_query = MetricsQueryBuilder(
+            self.params,
+            granularity=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[aggregate],
+            query="phone:iPhone OR phone:OnePlus",
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+        result = totals_query.run_query("test_query")
+        assert result["data"] == [
+            {"sum_d_custom_sentry_process_profile_track_outcome_second": 180.0}
+        ]
+        meta = result["meta"]
+        assert len(meta) == 1
+        assert meta[0]["name"] == "sum_d_custom_sentry_process_profile_track_outcome_second"
+
+    def test_set_metrics_query(self):
+        mri = "s:custom/user_click@none"
+        aggregate = f"count_unique({mri})"
+
+        for index, (user, country) in enumerate((("Marco", "IT"), ("Andrea", "DE"))):
+            # We store the same value two times to check for uniqueness in the result.
+            for i in range(0, 2):
+                self.store_transaction_metric(
+                    value=user,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_sets",
+                    tags={"country": country},
+                    timestamp=self.start + datetime.timedelta(hours=index),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        series_query = TimeseriesMetricQueryBuilder(
+            self.params,
+            interval=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[aggregate],
+            query="country:IT",
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+        result = series_query.run_query("test_query")
+        assert result["data"][:2] == [
+            {
+                "count_unique_s_custom_user_click_none": 1,
+                "time": (self.start + datetime.timedelta(hours=0)).isoformat(),
+            },
+            {
+                "count_unique_s_custom_user_click_none": 0,
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+            },
+        ]
+        meta = result["meta"]
+        assert len(meta) == 2
+        assert meta[1]["name"] == "count_unique_s_custom_user_click_none"
+
+        totals_query = MetricsQueryBuilder(
+            self.params,
+            granularity=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[aggregate],
+            query="country:IT",
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+        result = totals_query.run_query("test_query")
+        assert result["data"] == [{"count_unique_s_custom_user_click_none": 1}]
+        meta = result["meta"]
+        assert len(meta) == 1
+        assert meta[0]["name"] == "count_unique_s_custom_user_click_none"
 
     def test_distribution_query_generation(self):
         mri = "d:custom/sentry.process_profile.track_outcome@second"
