@@ -1,4 +1,5 @@
 import useOrganization from 'sentry/utils/useOrganization';
+import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/performance/database/settings';
 
 // TODO: Type more strictly, these should be limited to only valid aggregate
 // functions
@@ -9,7 +10,7 @@ export function useAvailableDurationAggregates(): Result {
 
   let availableAggregates: string[] = [];
 
-  availableAggregates.push('avg');
+  availableAggregates.push(DEFAULT_DURATION_AGGREGATE);
 
   if (organization.features?.includes('performance-database-view-percentiles')) {
     availableAggregates = [...availableAggregates, ...['p50', 'p75', 'p95', 'p99']];
