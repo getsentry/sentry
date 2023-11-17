@@ -25,6 +25,10 @@ type MetricMeta = {
   unit: string;
 };
 
+interface Options {
+  useCases?: UseCase[];
+}
+
 export enum MetricDisplayType {
   LINE = 'line',
   AREA = 'area',
@@ -34,10 +38,15 @@ export enum MetricDisplayType {
 
 export const defaultMetricDisplayType = MetricDisplayType.LINE;
 
+const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom'];
+
 export function useMetricsMeta(
-  projects: PageFilters['projects']
-): Record<string, MetricMeta> {
+  projects: PageFilters['projects'],
+  options?: Options
+): {data: Record<string, MetricMeta>; isLoading: boolean} {
   const {slug} = useOrganization();
+  const enabledUseCases = options?.useCases ?? DEFAULT_USE_CASES;
+
   const getKey = (useCase: UseCase): ApiQueryKey => {
     return [
       `/organizations/${slug}/metrics/meta/`,
@@ -45,36 +54,56 @@ export function useMetricsMeta(
     ];
   };
 
-  const opts = {
+  const commonOptions = {
     staleTime: Infinity,
   };
 
-  const {data: sessionsMeta = []} = useApiQuery<MetricMeta[]>(getKey('sessions'), opts);
-  const {data: txnsMeta = []} = useApiQuery<MetricMeta[]>(getKey('transactions'), opts);
-  const {data: customMeta = []} = useApiQuery<MetricMeta[]>(getKey('custom'), opts);
+  const sessionsMeta = useApiQuery<MetricMeta[]>(getKey('sessions'), {
+    ...commonOptions,
+    enabled: enabledUseCases.includes('sessions'),
+  });
+  const txnsMeta = useApiQuery<MetricMeta[]>(getKey('transactions'), {
+    ...commonOptions,
+    enabled: enabledUseCases.includes('transactions'),
+  });
+  const customMeta = useApiQuery<MetricMeta[]>(getKey('custom'), {
+    ...commonOptions,
+    enabled: enabledUseCases.includes('custom'),
+  });
 
-  return useMemo(
-    () =>
-      [...sessionsMeta, ...txnsMeta, ...customMeta].reduce((acc, metricMeta) => {
-        return {...acc, [metricMeta.mri]: metricMeta};
-      }, {}),
-    [sessionsMeta, txnsMeta, customMeta]
-  );
+  const combinedMeta = useMemo<Record<string, MetricMeta>>(() => {
+    return [
+      ...(sessionsMeta.data ?? []),
+      ...(txnsMeta.data ?? []),
+      ...(customMeta.data ?? []),
+    ].reduce((acc, metricMeta) => {
+      return {...acc, [metricMeta.mri]: metricMeta};
+    }, {});
+  }, [sessionsMeta.data, txnsMeta.data, customMeta.data]);
+
+  return {
+    data: combinedMeta,
+    isLoading: sessionsMeta.isLoading || txnsMeta.isLoading || customMeta.isLoading,
+  };
 }
 
 type MetricTag = {
   key: string;
 };
 
-export function useMetricsTags(mri: string, projects: PageFilters['projects']) {
+export function useMetricsTags(
+  mri: string | undefined,
+  projects: PageFilters['projects']
+) {
   const {slug} = useOrganization();
-  const useCase = getUseCaseFromMRI(mri);
+  const useCase = getUseCaseFromMRI(mri || '');
   return useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/`,
       {query: {metric: mri, useCase, project: projects}},
     ],
     {
+      enabled: !!mri,
       staleTime: Infinity,
     }
   );

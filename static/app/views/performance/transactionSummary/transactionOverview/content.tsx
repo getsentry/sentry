@@ -399,6 +399,7 @@ function SummaryContent({
             })}
             forceLoading={isLoading}
             referrer="performance.transactions_summary"
+            supportsInvestigationRule
           />
         </PerformanceAtScaleContextProvider>
 
