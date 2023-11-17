@@ -503,3 +503,40 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
 
         assert len(result["data"]) == 61
         assert result["totals"]["aggregate_value"] == 1.0
+
+    def test_aggregate_aliases(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    "transaction.duration",
+                    TransactionMRI.DURATION.value,
+                ),
+                aggregate="p95",
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 61
+        rows = result["data"]
+        for i in range(61):
+            assert rows[i]["aggregate_value"] == [i]
+            assert (
+                rows[i]["time"]
+                == (
+                    self.hour_ago.replace(second=0, microsecond=0) + timedelta(minutes=1 * i)
+                ).isoformat()
+            )
