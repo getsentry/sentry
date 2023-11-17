@@ -1565,6 +1565,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:transaction-metrics-extraction": False,
     # True if Relay should drop raw session payloads after extracting metrics from them.
     "organizations:release-health-drop-sessions": False,
+    # Enable ignoring archived issues in metric alerts
+    "organizations:metric-alert-ignore-archived": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1829,7 +1831,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
     # Enable new release UI
-    "organizations:release-ui-v2": False,
+    "organizations:releases-v2": False,
+    "organizations:releases-v2-st": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
