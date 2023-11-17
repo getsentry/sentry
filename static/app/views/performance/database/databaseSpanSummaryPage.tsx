@@ -26,7 +26,11 @@ import {
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {
+  SpanFunction,
+  SpanMetricsField,
+  SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
@@ -58,6 +62,13 @@ function SpanSummaryPage({params}: Props) {
 
   const queryFilter: SpanSummaryQueryFilters = endpoint
     ? {transactionName: endpoint, 'transaction.method': endpointMethod}
+    : {};
+
+  const seriesQueryFilters: SpanMetricsQueryFilters = endpoint
+    ? {
+        transaction: endpoint,
+        'transaction.method': endpointMethod,
+      }
     : {};
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
@@ -94,13 +105,13 @@ function SpanSummaryPage({params}: Props) {
   };
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    {...queryFilter, 'span.group': groupId},
+    {...seriesQueryFilters, 'span.group': groupId},
     ['spm()'],
     'api.starfish.span-summary-page-metrics-chart'
   );
 
   const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
-    {...queryFilter, 'span.group': groupId},
+    {...seriesQueryFilters, 'span.group': groupId},
     [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     'api.starfish.span-summary-page-metrics-chart'
   );

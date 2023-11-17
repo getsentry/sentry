@@ -76,14 +76,9 @@ declare const __LOADER__IS_LAZY__: any;
     });
   }
 
-  function onUnhandledRejection(e) {
+  function onUnhandledRejection(p) {
     enqueue({
-      p:
-        'reason' in e
-          ? e.reason
-          : 'detail' in e && 'reason' in e.detail
-          ? e.detail.reason
-          : e,
+      p,
     });
   }
 

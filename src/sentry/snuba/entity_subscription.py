@@ -18,7 +18,7 @@ from typing import (
     Union,
 )
 
-from snuba_sdk import Column, Condition, Op
+from snuba_sdk import Column, Condition, Join, Op, Request
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
@@ -178,7 +178,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         params: Optional[MutableMapping[str, Any]] = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
-        from sentry.search.events.builder import QueryBuilder
+        from sentry.search.events.builder import ErrorsQueryBuilder, QueryBuilder
 
         if params is None:
             params = {}
@@ -189,7 +189,15 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         if environment:
             params["environment"] = environment.name
 
-        return QueryBuilder(
+        query_builder_cls = QueryBuilder
+        # TODO: Remove this query when we remove the feature check
+        organization = Organization.objects.filter(project__id__in=project_ids)[0]
+        if self.dataset == Dataset.Events and features.has(
+            "organizations:metric-alert-ignore-archived", organization
+        ):
+            query_builder_cls = ErrorsQueryBuilder
+
+        return query_builder_cls(
             dataset=Dataset(self.dataset.value),
             query=query,
             selected_columns=[self.aggregate],
@@ -664,8 +672,16 @@ def determine_crash_rate_alert_entity(aggregate: str) -> EntityKey:
     return EntityKey.MetricsCounters if count_col_matched == "sessions" else EntityKey.MetricsSets
 
 
+def get_entity_key_from_request(request: Request) -> EntityKey:
+    match = request.query.match
+    if isinstance(match, Join):
+        # XXX: Is there a better way to handle this
+        match = match.relationships[0].lhs
+    return EntityKey(match.name)
+
+
 def get_entity_key_from_query_builder(query_builder: QueryBuilder) -> EntityKey:
-    return EntityKey(query_builder.get_snql_query().query.match.name)
+    return get_entity_key_from_request(query_builder.get_snql_query())
 
 
 def get_entity_subscription_from_snuba_query(

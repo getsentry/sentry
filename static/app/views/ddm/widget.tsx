@@ -28,6 +28,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
 import {MetricChart} from 'sentry/views/ddm/chart';
+import {MetricWidgetContextMenu} from 'sentry/views/ddm/contextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
@@ -127,18 +128,32 @@ export function MetricWidget({
   return (
     <MetricWidgetPanel key={widget.position}>
       <PanelBody>
-        <QueryBuilder
-          metricsQuery={{
-            mri: widget.mri,
-            query: widget.query,
-            op: widget.op,
-            groupBy: widget.groupBy,
-          }}
-          projects={projects}
-          displayType={widget.displayType}
-          onChange={widget.onChange}
-          powerUserMode={widget.powerUserMode}
-        />
+        <MetricWidgetHeader>
+          <QueryBuilder
+            metricsQuery={{
+              mri: widget.mri,
+              query: widget.query,
+              op: widget.op,
+              groupBy: widget.groupBy,
+            }}
+            projects={projects}
+            displayType={widget.displayType}
+            onChange={widget.onChange}
+            powerUserMode={widget.powerUserMode}
+          />
+          <MetricWidgetContextMenu
+            metricsQuery={{
+              mri: widget.mri,
+              query: widget.query,
+              op: widget.op,
+              groupBy: widget.groupBy,
+              projects,
+              datetime,
+              environments,
+            }}
+            displayType={widget.displayType}
+          />
+        </MetricWidgetHeader>
         {widget.mri ? (
           <MetricWidgetBody
             datetime={datetime}
@@ -159,6 +174,13 @@ export function MetricWidget({
     </MetricWidgetPanel>
   );
 }
+
+const MetricWidgetHeader = styled('div')`
+  display: flex;
+
+  justify-content: space-between;
+  margin-bottom: ${space(1)};
+`;
 
 function MetricWidgetBody({
   onChange,
