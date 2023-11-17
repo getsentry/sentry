@@ -375,7 +375,7 @@ def resolve_tags(
             conditions=[
                 resolve_tags(use_case_id, org_id, item, projects, allowed_tag_keys=allowed_tag_keys)
                 for item in input_.conditions
-            ]
+            ],
         )
     if isinstance(input_, Column):
         # If a column has the name belonging to the set, it means that we don't need to resolve its name.

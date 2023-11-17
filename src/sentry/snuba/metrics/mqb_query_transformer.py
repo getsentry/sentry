@@ -1,16 +1,20 @@
 import inspect
 from typing import Set
 
-from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularity, Op, BooleanCondition
+from snuba_sdk import (
+    AliasedExpression,
+    BooleanCondition,
+    Column,
+    Condition,
+    Function,
+    Granularity,
+    Op,
+)
 from snuba_sdk.query import Query
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics import (
-    FIELD_ALIAS_MAPPINGS,
-    OPERATIONS,
-    DerivedMetricException,
-)
+from sentry.snuba.metrics import FIELD_ALIAS_MAPPINGS, OPERATIONS, DerivedMetricException
 from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
@@ -182,9 +186,13 @@ def _get_mq_dict_params_and_conditions_from(conditions):
 
     for condition in conditions:
         if isinstance(condition, BooleanCondition):
-            inner_mq_dict, inner_conditions = _get_mq_dict_params_and_conditions_from(condition.conditions)
+            inner_mq_dict, inner_conditions = _get_mq_dict_params_and_conditions_from(
+                condition.conditions
+            )
             mq_dict.update(inner_mq_dict)
-            converted_conditions.append(BooleanCondition(op=condition.op, conditions=inner_conditions))
+            converted_conditions.append(
+                BooleanCondition(op=condition.op, conditions=inner_conditions)
+            )
         elif isinstance(condition.lhs, Column):
             if condition.lhs.name == "project_id":
                 mq_dict["project_ids"] = condition.rhs
@@ -426,9 +434,9 @@ def transform_mqb_query_to_metrics_query(
     is_alerts_query: bool = False,
 ) -> MetricsQuery:
     groupby, include_series, interval = _transform_groupby(query.groupby)
-    
+
     where_mq_dict, where_conditions = _get_mq_dict_params_and_conditions_from(query.where)
-    
+
     mq_dict = {
         "select": _transform_select(query.select),
         "groupby": groupby,
@@ -442,7 +450,7 @@ def transform_mqb_query_to_metrics_query(
         "is_alerts_query": is_alerts_query,
         "having": query.having,
         "where": where_conditions,
-        **where_mq_dict
+        **where_mq_dict,
     }
 
     # This code is just an edge case specific for the team_key_transaction derived operation.
