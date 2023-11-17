@@ -243,6 +243,8 @@ def timeseries_query(
             )
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
+            sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
+            result["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
 
             return {
                 "data": result["data"],

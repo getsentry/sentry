@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -1150,3 +1153,36 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
             group, agg, row1, row2 = group_count
             row_data = response.data[group][agg]["data"][:2]
             assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+
+    def _test_is_metrics_extracted_data(
+        self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
+    ) -> None:
+        features = {"organizations:on-demand-metrics-extraction": True}
+        spec = OnDemandMetricSpec(
+            field="count()",
+            query="transaction.duration:>1s",
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        self.store_on_demand_metric(1, spec=spec)
+        response = self.do_request(params, features=features)
+
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        # This is the main thing we want to test for
+        assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
+        assert meta["dataset"] == dataset
+
+        return meta
+
+    def test_is_metrics_extracted_data_is_included(self):
+        self._test_is_metrics_extracted_data(
+            {
+                "dataset": "metricsEnhanced",
+                "query": "transaction.duration:>=91",
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+            expected_on_demand_query=True,
+            dataset="metricsEnhanced",
+        )
