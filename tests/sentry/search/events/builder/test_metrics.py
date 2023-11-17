@@ -3424,53 +3424,62 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "count_unique_s_custom_user_click_none"
 
-    def test_distribution_query_generation(self):
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-
-        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string=mri)
+    def test_custom_metric_query_generation(self):
         indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string="my_tag")
 
-        query = AlertMetricsQueryBuilder(
-            {**self.params, "environment": self.environment.name},
-            granularity=3600,
-            query="my_tag:my_value",
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=[f"max({mri})"],
-            config=QueryBuilderConfig(
-                use_metrics_layer=True,
+        for aggregate, expected_aggregate, mri, expected_alias in (
+            ("sum", "sumIf", "c:custom/user.click@none", "sum_c_custom_user_click_none"),
+            (
+                "max",
+                "maxIf",
+                "d:custom/sentry.process_profile.track_outcome@second",
+                "max_d_custom_sentry_process_profile_track_outcome_second",
             ),
-        )
+            ("count_unique", "uniqIf", "s:custom/user@none", "count_unique_s_custom_user_none"),
+        ):
+            indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string=mri)
 
-        snql_request = query.get_snql_query()
-        assert snql_request.dataset == "generic_metrics"
+            query = AlertMetricsQueryBuilder(
+                {**self.params, "environment": self.environment.name},
+                granularity=3600,
+                query="my_tag:my_value",
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=[f"{aggregate}({mri})"],
+                config=QueryBuilderConfig(
+                    use_metrics_layer=True,
+                ),
+            )
 
-        snql_query = snql_request.query
-        self.assertCountEqual(
-            [
-                Function(
-                    "maxIf",
-                    [
-                        Column("value"),
-                        Function(
-                            "equals",
-                            [
-                                Column("metric_id"),
-                                indexer.resolve(
-                                    UseCaseID.CUSTOM,
-                                    self.organization.id,
-                                    mri,
-                                ),
-                            ],
-                        ),
-                    ],
-                    "max_d_custom_sentry_process_profile_track_outcome_second",
-                )
-            ],
-            snql_query.select,
-        )
+            snql_request = query.get_snql_query()
+            assert snql_request.dataset == "generic_metrics"
 
-        environment_id = indexer.resolve(UseCaseID.CUSTOM, self.organization.id, "environment")
-        environment_condition = Condition(
-            lhs=Column(name=f"tags_raw[{environment_id}]"), op=Op.EQ, rhs="development"
-        )
-        assert environment_condition in snql_query.where
+            snql_query = snql_request.query
+            self.assertCountEqual(
+                [
+                    Function(
+                        expected_aggregate,
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    indexer.resolve(
+                                        UseCaseID.CUSTOM,
+                                        self.organization.id,
+                                        mri,
+                                    ),
+                                ],
+                            ),
+                        ],
+                        expected_alias,
+                    )
+                ],
+                snql_query.select,
+            )
+
+            environment_id = indexer.resolve(UseCaseID.CUSTOM, self.organization.id, "environment")
+            environment_condition = Condition(
+                lhs=Column(name=f"tags_raw[{environment_id}]"), op=Op.EQ, rhs="development"
+            )
+            assert environment_condition in snql_query.where
