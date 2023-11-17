@@ -6,8 +6,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ThresholdsList from 'sentry/views/releases/thresholdsList/';
 
-import {THRESHOLDS_PATH} from '../utils/constants';
-
 describe('ReleaseThresholdsList', () => {
   const organization = Organization({
     slug: 'test-thresholds',
@@ -64,7 +62,7 @@ describe('ReleaseThresholdsList', () => {
       },
       new Set()
     );
-    routerContext.context.location.pathname = THRESHOLDS_PATH;
+    routerContext.context.location.pathname = '/release-thresholds/';
     render(<ThresholdsList />, {
       context: routerContext,
       organization,
@@ -90,7 +88,7 @@ describe('ReleaseThresholdsList', () => {
       },
       new Set()
     );
-    routerContext.context.location.pathname = THRESHOLDS_PATH;
+    routerContext.context.location.pathname = '/release-thresholds/';
     render(<ThresholdsList />, {context: routerContext, organization});
     expect(await screen.findByText('Thresholds')).toBeInTheDocument();
     expect(mockThresholdFetch).toHaveBeenCalledWith(
