@@ -20,8 +20,8 @@ from snuba_sdk import (
 )
 
 from sentry.api.paginator import (
-    MAX_SNUBA_ELEMENTS,
     BadPaginationError,
+    CallbackPaginator,
     ChainPaginator,
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
@@ -30,7 +30,6 @@ from sentry.api.paginator import (
     OffsetPaginator,
     Paginator,
     SequencePaginator,
-    SnubaRequestPaginator,
     reverse_bisect_left,
 )
 from sentry.incidents.models import AlertRule, Incident
@@ -891,7 +890,7 @@ class TestChainPaginator(SimpleTestCase):
         assert third.next.has_results is False
 
 
-def dummy_snuba_request_method(offset, limit, org_id, proj_id, timestamp):
+def dummy_snuba_request_method(limit, offset, org_id, proj_id, timestamp):
     referrer = "tests.sentry.api.test_paginator"
     query = Query(
         match=Entity("events"),
@@ -915,8 +914,8 @@ def dummy_snuba_request_method(offset, limit, org_id, proj_id, timestamp):
 
 
 @region_silo_test(stable=True)
-class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
-    cls = SnubaRequestPaginator
+class CallbackPaginatorTest(APITestCase, SnubaTestCase):
+    cls = CallbackPaginator
 
     def setUp(self):
         super().setUp()
@@ -933,20 +932,18 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
 
     def test_simple(self):
         paginator = self.cls(
-            limit=3,
-            request_method=dummy_snuba_request_method,
-            org_id=self.organization.id,
-            proj_id=self.project.id,
-            timestamp=self.now,
+            callback=lambda limit, offset: dummy_snuba_request_method(
+                limit, offset, self.organization.id, self.project.id, self.now
+            ),
         )
-        first_page = paginator.get_result()
+        first_page = paginator.get_result(limit=3)
         assert len(first_page.results) == 3
         assert first_page.results == [{"event_id": str(i) * 32} for i in range(3)]
         assert first_page.next.offset == 1
         assert first_page.next.has_results
         assert first_page.prev.has_results is False
 
-        second_page = paginator.get_result(cursor=first_page.next)
+        second_page = paginator.get_result(limit=3, cursor=first_page.next)
         assert len(second_page.results) == 3
         assert second_page.results == [{"event_id": str(i) * 32} for i in range(3, 6)]
         assert second_page.next.offset == 2
@@ -954,41 +951,9 @@ class SnubaRequestPaginatorTest(APITestCase, SnubaTestCase):
         assert second_page.prev.offset == 0
         assert second_page.prev.has_results
 
-        third_page = paginator.get_result(cursor=second_page.next)
+        third_page = paginator.get_result(limit=3, cursor=second_page.next)
         assert len(third_page.results) == 2
         assert third_page.results == [{"event_id": str(i) * 32} for i in range(6, 8)]
         assert third_page.next.has_results is False
         assert third_page.prev.offset == 1
         assert third_page.prev.has_results
-
-    def test_errors_when_limit_not_within_range(self):
-        with pytest.raises(ValueError):
-            self.cls(
-                limit=-1,
-                request_method=dummy_snuba_request_method,
-                org_id=self.organization.id,
-                proj_id=self.project.id,
-                timestamp=self.now,
-            )
-        with pytest.raises(ValueError):
-            self.cls(
-                limit=(MAX_SNUBA_ELEMENTS + 1),
-                request_method=dummy_snuba_request_method,
-                org_id=self.organization.id,
-                proj_id=self.project.id,
-                timestamp=self.now,
-            )
-
-    def test_get_result_errors_on_large_offset(self):
-        paginator = self.cls(
-            limit=MAX_SNUBA_ELEMENTS,
-            request_method=dummy_snuba_request_method,
-            org_id=self.organization.id,
-            proj_id=self.project.id,
-            timestamp=self.now,
-        )
-        first_page = paginator.get_result()
-        assert first_page.next == Cursor(MAX_SNUBA_ELEMENTS, 1, False, False)
-
-        with pytest.raises(BadPaginationError):
-            paginator.get_result(first_page.next)
