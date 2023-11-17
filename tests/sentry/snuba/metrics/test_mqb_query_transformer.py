@@ -1489,7 +1489,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
         ),
         id="having clauses are passed through",
     ),
-pytest.param(
+    pytest.param(
         Query(
             match=Entity("generic_metrics_distributions"),
             select=[
@@ -1574,7 +1574,8 @@ pytest.param(
             start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755),
             end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
             granularity=Granularity(3600),
-            where=[BooleanCondition(
+            where=[
+                BooleanCondition(
                     op=BooleanOp.AND,
                     conditions=[
                         Condition(
@@ -1588,7 +1589,8 @@ pytest.param(
                             rhs="foo",
                         ),
                     ],
-                )],
+                )
+            ],
             groupby=[MetricGroupByField(field="project_id")],
             having=[],
             orderby=[MetricOrderByField(field="project_id", direction=Direction.ASC)],
