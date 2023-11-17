@@ -606,6 +606,7 @@ def get_recipients_by_provider(
         actor_type=ActorType.USER,
     )
 
+    # TODO(jangjodi): Remove the try-except once INC-564 prevention steps are completed
     try:
         teams_by_provider_dict = {
             provider.value: [team.id for team in teams_by_provider[provider]]
