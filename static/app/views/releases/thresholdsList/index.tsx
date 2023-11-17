@@ -43,11 +43,8 @@ function ReleaseThresholdList({}: Props) {
       organization.features.includes('releases-v2') ||
       organization.features.includes('releases-v2-st');
     if (!hasV2ReleaseUIEnabled) {
-      router.push(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/releases/`,
-        })
-      );
+      const redirect = normalizeUrl(`/organizations/${organization.slug}/releases/`);
+      router.replace(redirect);
     }
   }, [router, organization]);
   const {projects} = useProjects();
