@@ -1000,7 +1000,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.monitors.tasks.clock_pulse",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
-        "options": {"expires": 600},
+        "options": {"expires": 60},
     },
     "clear-expired-snoozes": {
         "task": "sentry.tasks.clear_expired_snoozes",
@@ -1466,7 +1466,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
-    "organizations:monitors": True,
+    "organizations:monitors": False,
     # Enable participants purge
     "organizations:participants-purge": False,
     # Enable Performance view
@@ -1518,13 +1518,13 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable issue platform
-    "organizations:issue-platform": True,
+    "organizations:issue-platform": False,
     # Enable additional logging for issue platform
     "organizations:issue-platform-extra-logging": False,
     # Enable issue platform status change API for crons and SD issues
-    "organizations:issue-platform-api-crons-sd": True,
+    "organizations:issue-platform-api-crons-sd": False,
     # Enable issue platform feature changes for crons and SD issues
-    "organizations:issue-platform-crons-sd": True,
+    "organizations:issue-platform-crons-sd": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1565,8 +1565,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:transaction-metrics-extraction": False,
     # True if Relay should drop raw session payloads after extracting metrics from them.
     "organizations:release-health-drop-sessions": False,
-    # Enable ignoring archived issues in metric alerts
-    "organizations:metric-alert-ignore-archived": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1735,6 +1733,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-trial-ended-banner": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
+    # Enable the Replay Details > New timeline
+    "organizations:session-replay-new-timeline": False,
     # Enable the accessibility issues endpoint
     "organizations:session-replay-accessibility-issues": False,
     # Enable the new suggested assignees feature
@@ -1830,9 +1830,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
+    # Enable the new notification settings system
+    "organizations:notification-settings-v2": False,
     # Enable new release UI
-    "organizations:releases-v2": False,
-    "organizations:releases-v2-st": False,
+    "organizations:release-ui-v2": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
@@ -2611,7 +2612,7 @@ SENTRY_WATCHERS = (
 # generate fake data for local testing. You can also manually enable relay with the `--ingest` flag to `devserver`.
 # XXX: This is disabled by default as typical development workflows do not require end-to-end services running
 # and disabling optional services reduces resource consumption and complexity
-SENTRY_USE_RELAY = True
+SENTRY_USE_RELAY = False
 SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run
@@ -2968,10 +2969,9 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
-    # "debug": True,
+    "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
-    "relay_dsn": "https://88c90aa2ca8a4111845bcd7ee5b39cf9@o1338522.ingest.sentry.io/4504894696259584",
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
