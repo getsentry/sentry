@@ -90,6 +90,11 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def get_existing_usernames(self, *, usernames: List[str]) -> List[str]:
+        """Get all usernames from the set that belong to existing users."""
+
+    @rpc_method
+    @abstractmethod
     def get_organizations(
         self,
         *,

@@ -15,7 +15,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.http import get_server_hostname
 from sentry.models.files.utils import get_storage
 from sentry.models.relocation import Relocation, RelocationFile
-from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 
@@ -474,9 +473,7 @@ def get_bucket_name():
 
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
     # Only test existing users for collision and mutation.
-    existing_usernames = User.objects.filter(username__in=relocation.want_usernames).values_list(
-        "username", flat=True
-    )
+    existing_usernames = user_service.get_existing_usernames(usernames=relocation.want_usernames)
     filter_usernames_args = [
         "--filter-usernames",
         ",".join(existing_usernames) if existing_usernames else ",",
