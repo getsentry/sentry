@@ -447,7 +447,6 @@ def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[st
 
 
 def _extract_mri(args: List[str]) -> Optional[ParsedMRI]:
-    # We assume that you can't have an aggregate on an implicit custom metric, since if you pass just `count()`
     if len(args) == 0:
         return None
 
@@ -455,15 +454,10 @@ def _extract_mri(args: List[str]) -> Optional[ParsedMRI]:
 
 
 def _get_aggregate_supported_by(function: str, args: List[str]) -> SupportedBy:
-    try:
-        function_support = _get_function_support(function, args)
-        args_support = _get_args_support(args, function)
+    function_support = _get_function_support(function, args)
+    args_support = _get_args_support(args, function)
 
-        return SupportedBy.combine(function_support, args_support)
-    except InvalidSearchQuery:
-        logger.error(f"Failed to parse aggregate: {function}", exc_info=True)
-
-    return SupportedBy.neither()
+    return SupportedBy.combine(function_support, args_support)
 
 
 def _get_function_support(function: str, args: Sequence[str]) -> SupportedBy:
