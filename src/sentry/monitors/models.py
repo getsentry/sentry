@@ -35,7 +35,6 @@ from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
-from sentry.monitors.utils import get_checkin_margin_timedelta
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -306,6 +305,8 @@ class Monitor(Model):
         most recent checkin time. This is determined by the user-configured
         margin.
         """
+        from sentry.monitors.utils import get_checkin_margin_timedelta
+
         next_checkin = self.get_next_expected_checkin(last_checkin)
         return next_checkin + get_checkin_margin_timedelta(self.config.get("checkin_margin"))
 
