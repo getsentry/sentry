@@ -1622,8 +1622,12 @@ class NotifyingUsersTest(RelocationTaskTestCase):
 
             # Called once for each user imported, which is 2 for `fresh-install.json`
             assert mock_relocation_email.call_count == 2
-            assert mock_relocation_email.call_args_list[0][0][0].username == "admin@example.com"
-            assert mock_relocation_email.call_args_list[1][0][0].username == "member@example.com"
+            email_targets = [
+                mock_relocation_email.call_args_list[0][0][0].username,
+                mock_relocation_email.call_args_list[1][0][0].username,
+            ]
+            assert "admin@example.com" in email_targets
+            assert "member@example.com" in email_targets
 
             assert fake_message_builder.call_count == 0
             assert notifying_owner_mock.call_count == 1
