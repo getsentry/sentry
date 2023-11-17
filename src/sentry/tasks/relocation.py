@@ -46,7 +46,7 @@ from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
-from sentry.utils.env import gcp_project_id
+from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
 from sentry.utils.relocation import (
     RELOCATION_BLOB_SIZE,
     RELOCATION_FILE_TYPE,
@@ -246,6 +246,7 @@ def preprocessing_scan(uuid: str) -> None:
                 attempts_left,
                 ERR_PREPROCESSING_DECRYPTION,
             ):
+                log_gcp_credentials_details(logger)
                 decryptor = GCPKMSDecryptor.from_bytes(
                     json.dumps(get_default_crypto_key_version()).encode("utf-8")
                 )
@@ -365,6 +366,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         # once a day - if we've already done a relocation today, we should just copy that file
         # instead of doing this (expensive!) global export again.
         fp = BytesIO()
+        log_gcp_credentials_details(logger)
         export_in_config_scope(
             fp,
             encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
@@ -417,6 +419,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
         ERR_PREPROCESSING_INTERNAL,
     ):
         fp = BytesIO()
+        log_gcp_credentials_details(logger)
         export_in_user_scope(
             fp,
             encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
@@ -487,6 +490,7 @@ def preprocessing_complete(uuid: str) -> None:
 
         # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
         # during validation.
+        log_gcp_credentials_details(logger)
         kms_config_bytes = json.dumps(get_default_crypto_key_version()).encode("utf-8")
         storage.save(f"relocations/runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes))
 
@@ -964,6 +968,7 @@ def importing(uuid: str) -> None:
             .first()
         )
         relocation_data_fp = raw_relocation_file.file.getfile()
+        log_gcp_credentials_details(logger)
         kms_config_fp = BytesIO(json.dumps(get_default_crypto_key_version()).encode("utf-8"))
 
         with relocation_data_fp, kms_config_fp:
