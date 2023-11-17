@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import React, {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -34,7 +34,7 @@ import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {useModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
-function DatabaseLandingPage() {
+export function DatabaseLandingPage() {
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
   const location = useLocation();
@@ -75,7 +75,7 @@ function DatabaseLandingPage() {
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
+    <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -145,7 +145,7 @@ function DatabaseLandingPage() {
           )}
         </Layout.Main>
       </Layout.Body>
-    </ModulePageProviders>
+    </React.Fragment>
   );
 }
 
@@ -177,4 +177,12 @@ const SearchBarContainer = styled('div')`
 
 const LIMIT: number = 25;
 
-export default DatabaseLandingPage;
+function LandingPageWithProviders() {
+  return (
+    <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
+      <DatabaseLandingPage />
+    </ModulePageProviders>
+  );
+}
+
+export default LandingPageWithProviders;
