@@ -1972,8 +1972,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(
-                self.url
-                + f"?field=id&field=count_warnings&field=count_infos&query=id:{replay1_id}"
+                self.url + f"?field=id&field=count_warnings&field=count_infos&query=id:{replay1_id}"
             )
             assert response.status_code == 200
             response_data = response.json()
