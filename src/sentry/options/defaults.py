@@ -1700,7 +1700,7 @@ register(
 )
 
 register(
-    "releases_v2.enabled",
+    "releases_v2.single-tenant",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
