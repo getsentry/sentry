@@ -46,7 +46,6 @@ function ReleaseThresholdList({}: Props) {
       router.push(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: router.location.query,
         })
       );
     }
@@ -159,7 +158,7 @@ function ReleaseThresholdList({}: Props) {
   return (
     <PageFiltersContainer>
       <NoProjectMessage organization={organization}>
-        <Header router={router} hasV2ReleaseUIEnabled />
+        <Header router={router} hasV2ReleaseUIEnabled organization={organization} />
         <Layout.Body>
           <Layout.Main fullWidth>
             <FilterRow>

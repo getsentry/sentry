@@ -8,16 +8,16 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {MONITOR_PATH, THRESHOLDS_PATH} from '../utils/constants';
-
 type Props = {
+  organization: Organization;
   router: InjectedRouter;
   hasV2ReleaseUIEnabled?: boolean;
 };
 
-function Header({router, hasV2ReleaseUIEnabled = false}: Props) {
+function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
   const [selected, setSelected] = useState(router.location.pathname);
 
   const location = router.location;
@@ -31,17 +31,15 @@ function Header({router, hasV2ReleaseUIEnabled = false}: Props) {
   const tabs = hasV2ReleaseUIEnabled
     ? [
         {
-          key: MONITOR_PATH,
           label: t('Monitor'),
           description: '',
-          path: MONITOR_PATH,
+          path: normalizeUrl(`/organizations/${organization.slug}/releases/`),
         },
         {
-          key: THRESHOLDS_PATH,
           label: t('Thresholds'),
           description:
             'thresholds represent action alerts that will trigger once a threshold has been breached',
-          path: THRESHOLDS_PATH,
+          path: normalizeUrl(`/organizations/${organization.slug}/release-thresholds/`),
         },
       ]
     : [];
@@ -63,31 +61,33 @@ function Header({router, hasV2ReleaseUIEnabled = false}: Props) {
           />
         </Layout.Title>
       </Layout.HeaderContent>
-      <StyledTabs value={selected} onChange={onTabSelect}>
-        <TabList hideBorder>
-          {tabs.map(({key, label, description, path}) => {
-            const to_url = normalizeUrl({
-              query: {
-                ...queryParams,
-              },
-              pathname: path,
-            });
+      {hasV2ReleaseUIEnabled && (
+        <StyledTabs value={selected} onChange={onTabSelect}>
+          <TabList hideBorder>
+            {tabs.map(({label, description, path}) => {
+              const to_url = normalizeUrl({
+                query: {
+                  ...queryParams,
+                },
+                pathname: path,
+              });
 
-            return (
-              <TabList.Item key={key} to={to_url} textValue={label}>
-                <Tooltip
-                  title={description}
-                  position="bottom"
-                  isHoverable
-                  delay={SLOW_TOOLTIP_DELAY}
-                >
-                  {label}
-                </Tooltip>
-              </TabList.Item>
-            );
-          })}
-        </TabList>
-      </StyledTabs>
+              return (
+                <TabList.Item key={path} to={to_url} textValue={label}>
+                  <Tooltip
+                    title={description}
+                    position="bottom"
+                    isHoverable
+                    delay={SLOW_TOOLTIP_DELAY}
+                  >
+                    {label}
+                  </Tooltip>
+                </TabList.Item>
+              );
+            })}
+          </TabList>
+        </StyledTabs>
+      )}
     </Layout.Header>
   );
 }
