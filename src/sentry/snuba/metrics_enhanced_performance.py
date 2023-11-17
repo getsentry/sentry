@@ -60,7 +60,7 @@ def query(
                 has_metrics,
                 use_metrics_layer,
                 on_demand_metrics_enabled,
-                on_demand_metrics_type,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
             result["meta"]["datasetReason"] = dataset_reason
 
@@ -141,6 +141,7 @@ def timeseries_query(
                 functions_acl,
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -221,6 +222,7 @@ def top_events_timeseries(
                 include_other,
                 functions_acl,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:

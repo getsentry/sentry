@@ -51,7 +51,7 @@ def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
     # TODO(dcramer): do something with case of multiple matches
     try:
         if features.has("organizations:eventuser-from-snuba", projects[0].organization):
-            euser = EventUser.for_projects(projects, {key: value})[0]
+            euser = EventUser.for_projects(projects, {key: [value]})[0]
         else:
             lookup = EventUser_model.attr_from_keyword(key)
             euser = EventUser_model.objects.filter(

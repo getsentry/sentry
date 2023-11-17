@@ -51,16 +51,19 @@ class CryptoKeyVersion(NamedTuple):
     version: str
 
 
-# TODO(getsentry/team-ospo#215): These should be options, instead of hard coding.
-DEFAULT_CRYPTO_KEY_VERSION = CryptoKeyVersion(
-    project_id=gcp_project_id(),
-    location="global",
-    key_ring="relocation",
-    key="relocation",
-    # TODO(getsentry/team-ospo#190): This version should be pulled from an option, rather than hard
-    # coded.
-    version="1",
-)
+# No arguments, so we lazily cache the result after the first calculation.
+@lru_cache(maxsize=1)
+def get_default_crypto_key_version() -> CryptoKeyVersion:
+    # TODO(getsentry/team-ospo#215): These should be options, instead of hard coding.
+    return CryptoKeyVersion(
+        project_id=gcp_project_id(),
+        location="global",
+        key_ring="relocation",
+        key="relocation",
+        # TODO(getsentry/team-ospo#190): This version should be pulled from an option, rather than hard
+        # coded.
+        version="1",
+    )
 
 
 class EncryptionError(Exception):
@@ -432,3 +435,9 @@ class ImportFlags(NamedTuple):
     # `key`) or `Relay` (as identified by its unique `relay_id`) already exists, should we overwrite
     # it with the new value, or keep the existing one and discard the incoming value instead?
     overwrite_configs: bool = False
+
+    # A UUID with which to identify this import's `*ImportChunk` database entries. Useful for
+    # passing the calling `Relocation` model's UUID to all of the imports it triggered. If this flag
+    # is not provided, the import was called in a non-relocation context, like from the `sentry
+    # import` CLI command.
+    import_uuid: str | None = None

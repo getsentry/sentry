@@ -157,8 +157,6 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     default_per_page = 50
 
     def _new_get(self, request: Request, organization) -> Response:
-        projects = self.get_projects(request, organization)
-
         # We first parse the interval and date, since this is dependent on the query params.
         interval = parse_stats_period(request.GET.get("interval", "1h"))
         interval = int(3600 if interval is None else interval.total_seconds())
@@ -174,7 +172,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
             start=start,
             end=end,
             organization=organization,
-            projects=projects,
+            projects=self.get_projects(request, organization),
+            environments=self.get_environments(request, organization),
             # TODO: move referrers into a centralized place.
             referrer="metrics.data.api",
         )

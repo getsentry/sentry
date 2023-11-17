@@ -250,7 +250,7 @@ class MetricsQueryBuilder(QueryBuilder):
             ),
         ]
 
-        if spec.spec_type == MetricSpecType.DYNAMIC_QUERY:
+        if spec.spec_type == MetricSpecType.DYNAMIC_QUERY and spec.environment:
             where.append(Condition(lhs=Column("environment"), op=Op.EQ, rhs=spec.environment))
 
         if additional_where:
