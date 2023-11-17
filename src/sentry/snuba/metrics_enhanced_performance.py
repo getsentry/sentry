@@ -97,6 +97,7 @@ def query(
             has_metrics=has_metrics,
         )
         results["meta"]["isMetricsData"] = False
+        results["meta"]["isMetricsExtractedData"] = False
         results["meta"]["datasetReason"] = dataset_reason
 
         return results

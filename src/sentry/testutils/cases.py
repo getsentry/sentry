@@ -1893,23 +1893,22 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         additional_tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
     ):
-
         project: Project = default_project
         metric_spec = spec.to_metric_spec(project)
         metric_spec_tags = metric_spec["tags"] or [] if metric_spec else []
-        spec_tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
+        tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
 
         metric_type = spec._metric_type
+        if additional_tags:
+            # Additional tags might be needed to override field values from the spec.
+            tags.update(additional_tags)
 
         self.store_transaction_metric(
             value,
             metric=self.ON_DEMAND_KEY_MAP[metric_type],
             internal_metric=self.ON_DEMAND_MRI_MAP[metric_type],
             entity=self.ON_DEMAND_ENTITY_MAP[metric_type],
-            tags={
-                **spec_tags,
-                **additional_tags,  # Additional tags might be needed to override field values from the spec.
-            },
+            tags=tags,
             timestamp=timestamp,
         )
 
