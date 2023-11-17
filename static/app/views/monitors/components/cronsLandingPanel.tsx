@@ -13,6 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MonitorCreateForm from 'sentry/views/monitors/components/monitorCreateForm';
 import MonitorForm from 'sentry/views/monitors/components/monitorForm';
@@ -112,6 +113,7 @@ export function isValidGuide(guide?: string): guide is GuideKey {
 export function CronsLandingPanel() {
   const organization = useOrganization();
   const location = useLocation();
+  const {selection} = usePageFilters();
   const platform = decodeScalar(location.query?.platform) ?? null;
   const guide = decodeScalar(location.query?.guide);
 
@@ -159,8 +161,18 @@ export function CronsLandingPanel() {
   const guides = platformGuides[platform];
 
   function onCreateMonitor(data: Monitor) {
-    const url = normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`);
-    browserHistory.push(url);
+    const endpointOptions = {
+      query: {
+        project: selection.projects,
+        environment: selection.environments,
+      },
+    };
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
+        query: endpointOptions.query,
+      })
+    );
   }
 
   const hasNewOnboarding = organization.features.includes('crons-new-monitor-form');

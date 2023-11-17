@@ -12,7 +12,6 @@ import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {Monitor, MonitorStatus} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils';
 import {statusIconColorMap} from 'sentry/views/monitors/utils/constants';
@@ -132,11 +131,8 @@ export function TimelineTableRow({
 function MonitorDetails({monitor}: {monitor: Monitor}) {
   const organization = useOrganization();
   const schedule = scheduleAsText(monitor.config);
-  const router = useRouter();
 
-  const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/${
-    router.location.query.project ? `?prevUrl=${router.location.query.project}` : ''
-  }`;
+  const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/`;
 
   return (
     <DetailsContainer to={monitorDetailUrl}>
