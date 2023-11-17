@@ -1565,6 +1565,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:transaction-metrics-extraction": False,
     # True if Relay should drop raw session payloads after extracting metrics from them.
     "organizations:release-health-drop-sessions": False,
+    # Enable ignoring archived issues in metric alerts
+    "organizations:metric-alert-ignore-archived": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
