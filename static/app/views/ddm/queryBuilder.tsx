@@ -40,7 +40,7 @@ export function QueryBuilder({
   powerUserMode,
   onChange,
 }: QueryBuilderProps) {
-  const meta = useMetricsMeta(projects);
+  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
 
@@ -62,6 +62,17 @@ export function QueryBuilder({
       metric => metric.mri.includes(':custom/') || metric.mri === metricsQuery.mri
     );
   }, [meta, metricsQuery.mri, mriMode]);
+
+  // Reset the query data if the selected metric is no longer available
+  useEffect(() => {
+    if (
+      metricsQuery.mri &&
+      !isMetaLoading &&
+      !metaArr.find(metric => metric.mri === metricsQuery.mri)
+    ) {
+      onChange({mri: '', op: '', groupBy: []});
+    }
+  }, [isMetaLoading, metaArr, metricsQuery.mri, onChange]);
 
   if (!meta) {
     return null;
@@ -184,6 +195,8 @@ interface MetricSearchBarProps
   query?: string;
 }
 
+const EMPTY_ARRAY = [];
+
 export function MetricSearchBar({
   mri,
   disabled,
@@ -200,7 +213,7 @@ export function MetricSearchBar({
     [projectIds]
   );
 
-  const {data: tags = []} = useMetricsTags(mri, projectIdNumbers);
+  const {data: tags = EMPTY_ARRAY} = useMetricsTags(mri, projectIdNumbers);
 
   const supportedTags: TagCollection = useMemo(
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
