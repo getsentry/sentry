@@ -79,6 +79,7 @@ export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
   getTableFieldOptions: () => ({}),
+  getTableSortOptions: undefined,
 };
 
 function getMetricSeriesRequest(

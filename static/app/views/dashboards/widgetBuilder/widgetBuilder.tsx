@@ -207,6 +207,7 @@ function WidgetBuilder({
   const notDashboardsOrigin = [
     DashboardWidgetSource.DISCOVERV2,
     DashboardWidgetSource.ISSUE_DETAILS,
+    DashboardWidgetSource.DDM,
   ].includes(source);
 
   const api = useApi();
