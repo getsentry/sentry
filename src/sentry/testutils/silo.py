@@ -32,7 +32,7 @@ from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
 from sentry import deletions
-from sentry.db.models.base import ModelSiloLimit
+from sentry.db.models.base import BaseModel, ModelSiloLimit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.deletions.base import BaseDeletionTask
@@ -280,6 +280,54 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
         with override_settings(**overrides):
             yield
     else:
+        yield
+
+
+@contextmanager
+def assume_test_silo_mode_of(*models: Type[BaseModel], can_be_monolith: bool = True) -> Any:
+    """Potentially swap to the silo mode where the models are accessed.
+
+    The argument should be one or more model classes that are scoped to exactly one
+    non-monolith mode. That is, they must be tagged with `control_silo_only_model` or
+    `region_silo_only_model`. The enclosed context is swapped into the appropriate
+    mode, allowing the model to be accessed.
+
+    If no silo-scoped models are provided, no mode swap is performed.
+
+    The intent is that you list the cross-silo models that you intend to access
+    within the block. However, this is for the sake of expressiveness only. The
+    context will not actually check that you access only those models; it will allow
+    you to access any model that happens to share the same silo mode.
+    """
+    # Possible improvements for the future:
+    # 1. "Exempt" only the listed models; raise if other cross-silo models are accessed.
+    # 2. Check that every listed model is accessed; raise if unused ones are listed.
+
+    def unpack_modes() -> Iterable[SiloMode]:
+        for model in models:
+            try:
+                meta = getattr(model, "_meta")
+            except AttributeError as e:
+                raise ValueError(
+                    f"Expected a model class with a _meta attribute: {model.__name__}"
+                ) from e
+
+            silo_limit: ModelSiloLimit = getattr(meta, "silo_limit", None)
+            if silo_limit:
+                yield from silo_limit.modes
+
+    unique_modes = {mode for mode in unpack_modes() if mode != SiloMode.MONOLITH}
+    if not unique_modes:
+        yield
+        return
+    if len(unique_modes) > 1:
+        model_names = [m.__name__ for m in models]
+        raise ValueError(
+            f"Models ({model_names!r}) don't share a unique silo mode ({unique_modes!r})"
+        )
+    (mode,) = unique_modes
+
+    with assume_test_silo_mode(mode, can_be_monolith):
         yield
 
 
