@@ -714,19 +714,15 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
             method.setdefault("data", {})
-
-            mapped = mapper.remap_frame(
-                method["class_name"], method["name"], method["source_line"] or 0
-            )
-
             if method.get("signature"):
                 param_type, return_type = deobfuscate_signature(method["signature"], mapper)
                 method["signature"] = format_signature(param_type, return_type)
 
-            # in case we don't have line numbers but we do the signature,
+            # in case we don't have line numbers but we do have the signature,
             # we do a best-effort deobfuscation exploiting function parameters
             if method.get("source_line") is None and method.get("signature") is not None:
-                mapped = mapper.remap_frame(method["class_name"], method["name"], 0, param_type)
+                params = ",".join(param_type)
+                mapped = mapper.remap_frame(method["class_name"], method["name"], 0, params)
             else:
                 mapped = mapper.remap_frame(
                     method["class_name"], method["name"], method["source_line"] or 0
@@ -749,6 +745,12 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                     method["source_line"] = new_frame.line
 
                 bottom_class = mapped[-1].class_name
+
+                if method.get("source_line") is None and method.get("signature") is not None:
+                    # if we used parameters-based deobfuscation we won't have to deal with
+                    # inlines so we can just skip
+                    continue
+
                 method["inline_frames"] = [
                     {
                         "class_name": new_frame.class_name,
