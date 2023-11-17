@@ -1855,8 +1855,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-rate-limiting": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
-    # Enable logs for debugging weekly reports
-    "organizations:weekly-report-logs": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
