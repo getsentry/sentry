@@ -13,15 +13,17 @@ export type MetricsOperation =
 
 export type MetricsApiResponse = {
   end: string;
-  groups: {
-    by: Record<string, string>;
-    series?: Record<string, Array<number | null>>;
-    totals?: Record<string, number | null>;
-  }[];
+  groups: Group[];
   intervals: string[];
   meta: MetricsMeta[];
   query: string;
   start: string;
+};
+
+export type Group = {
+  by: Record<string, string>;
+  series: Record<string, Array<number | null>>;
+  totals: Record<string, number | null>;
 };
 
 export type MetricsTagCollection = Record<string, MetricsTag>;

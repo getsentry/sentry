@@ -9,6 +9,7 @@ import {
   getInterval,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {Group, MetricsApiResponse} from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
@@ -138,23 +139,6 @@ export type MetricsQuery = {
   query?: string;
 };
 
-// TODO(ddm): reuse from types/metrics.tsx
-type Group = {
-  by: Record<string, unknown>;
-  series: Record<string, number[]>;
-  totals: Record<string, number>;
-};
-
-// TODO(ddm): reuse from types/metrics.tsx
-export type MetricsData = {
-  end: string;
-  groups: Group[];
-  intervals: string[];
-  meta: MetricMeta[];
-  query: string;
-  start: string;
-};
-
 export function useMetricsData({
   mri,
   op,
@@ -189,7 +173,7 @@ export function useMetricsData({
     queryToSend.useNewMetricsLayer = true;
   }
 
-  return useApiQuery<MetricsData>(
+  return useApiQuery<MetricsApiResponse>(
     [`/organizations/${slug}/metrics/data/`, {query: queryToSend}],
     {
       retry: 0,
@@ -221,7 +205,7 @@ function getRefetchInterval(
 // 1. return data is undefined only during the initial load
 // 2. provides a callback to trim the data to a specific time range when chart zoom is used
 export function useMetricsDataZoom(props: MetricsQuery) {
-  const [metricsData, setMetricsData] = useState<MetricsData | undefined>();
+  const [metricsData, setMetricsData] = useState<MetricsApiResponse | undefined>();
   const {data: rawData, isLoading, isError, error} = useMetricsData(props);
 
   useEffect(() => {
@@ -230,7 +214,7 @@ export function useMetricsDataZoom(props: MetricsQuery) {
     }
   }, [rawData]);
 
-  const trimData = (start, end): MetricsData | undefined => {
+  const trimData = (start, end): MetricsApiResponse | undefined => {
     if (!metricsData) {
       return metricsData;
     }
@@ -429,4 +413,22 @@ export function clearQuery(router: InjectedRouter) {
     ...router.location,
     query: {},
   });
+}
+
+// TODO(ddm): there has to be a nicer way to do this
+export function getSeriesName(
+  group: Group,
+  isOnlyGroup = false,
+  groupBy: MetricsQuery['groupBy']
+) {
+  if (isOnlyGroup && !groupBy?.length) {
+    const mri = Object.keys(group.series)?.[0];
+    const parsed = parseMRI(mri);
+
+    return parsed?.name ?? '(none)';
+  }
+
+  return Object.entries(group.by)
+    .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
+    .join(', ');
 }
