@@ -155,7 +155,7 @@ class RpcImportError(RpcModel, Finding):
         return RpcImportErrorKind(self.kind)
 
     def pretty(self) -> str:
-        return f"RpcImportError(\n    kind: {self.get_kind()},{self._pretty_inner()}\n)"
+        return f"RpcImportError(\n    kind: {self.get_kind().value},{self._pretty_inner()}\n)"
 
     def to_dict(self) -> Dict[str, Any]:
         d = dict(self)
@@ -243,7 +243,7 @@ class RpcExportError(RpcModel, Finding):
         return RpcExportErrorKind(self.kind)
 
     def pretty(self) -> str:
-        return f"RpcExportError(\n    kind: {self.get_kind()},{self._pretty_inner()}\n)"
+        return f"RpcExportError(\n    kind: {self.get_kind().value},{self._pretty_inner()}\n)"
 
     def to_dict(self) -> Dict[str, Any]:
         d = dict(self)
