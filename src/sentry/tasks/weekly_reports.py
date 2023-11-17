@@ -271,8 +271,7 @@ def project_event_counts_for_organization(ctx):
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
     data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
 
-    # TODO(isabella): remove debug logging for sentry
-    if ctx.organization.slug == "sentry":
+    if features.has("organizations:weekly-report-logs", ctx.organization):  # TODO(isabella): remove
         logger.info(
             "project_event_counts_for_organization_query_result",
             extra={
@@ -885,15 +884,17 @@ def render_template_context(ctx, user_id):
                     }
                 )
             series.append((to_datetime(t), project_series))
-        if ctx.organization.slug == "sentry":
-            # TODO(isabella): remove debug logging for sentry
+        if features.has(
+            "organizations:weekly-report-logs", ctx.organization
+        ):  # TODO(isabella): remove
             logger.info(
                 "render_template_context.trends.totals",
                 extra={
-                    "error_count": total_error,
-                    "transaction_count": total_transaction,
-                    "replay_count": total_replays,
                     "project_count": len(projects_associated_with_user),
+                    "accepted_error_count": total_error,
+                    "dropped_error_count": total_dropped_error,
+                    "accepted_transaction_count": total_transaction,
+                    "dropped_transaction_count": total_dropped_transaction,
                 },
             )
         return {
@@ -1061,6 +1062,14 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
             f"Skipping report for {ctx.organization.id} to <User: {user_id}>, no qualifying reports to deliver."
         )
         return
+    if features.has("organizations:weekly-report-logs", ctx.organization):  # TODO(isabella): remove
+        logger.info(
+            "send_email.counts_per_day",
+            extra={
+                "errors_per_day": json.dumps(template_ctx.trends.error_maximum),
+                "transactions_per_day": json.dumps(template_ctx.trends.transaction_maximum),
+            },
+        )
 
     message = MessageBuilder(
         subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
