@@ -10,9 +10,10 @@ from uuid import uuid4
 import pytest
 import responses
 from django.utils import timezone
-from snuba_sdk import And, Column, Condition, Entity, Function, Op, Or, Query
+from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Or, Query, Relationship
 
 from sentry.incidents.logic import query_datasets_to_type
+from sentry.models.group import GroupStatus
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -149,6 +150,16 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     def test(self):
         sub = self.create_subscription(QuerySubscription.Status.CREATING)
         create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+    def test_status_join(self):
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            sub = self.create_subscription(
+                QuerySubscription.Status.CREATING, query="status:unresolved"
+            )
+            create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
@@ -562,10 +573,11 @@ class BuildSnqlQueryTest(TestCase):
         # This flag is used to expect None clauses instead of [], it has been done in order to account for how the
         # metrics layer generates snql.
         use_none_clauses=False,
+        expected_match=None,
     ):
+        aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
+        time_window = 3600
         with self.feature("organizations:metric-alert-ignore-archived"):
-            aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
-            time_window = 3600
             entity_subscription = get_entity_subscription(
                 query_type=query_type,
                 dataset=dataset,
@@ -584,34 +596,34 @@ class BuildSnqlQueryTest(TestCase):
                 },
             )
             snql_query = query_builder.get_snql_query()
-            select = self.string_aggregate_to_snql(query_type, dataset, aggregate, aggregate_kwargs)
-            if dataset == Dataset.Sessions:
-                col_name = "sessions" if "sessions" in aggregate else "users"
-                select.insert(
-                    0,
-                    Function(
-                        function="identity",
-                        parameters=[Column(name=col_name)],
-                        alias="_total_count",
-                    ),
-                )
-            # Select order seems to be unstable, so just arbitrarily sort by name, alias so that it's consistent
-            snql_query.query.select.sort(key=lambda q: (q.function, q.alias))
+        select = self.string_aggregate_to_snql(query_type, dataset, aggregate, aggregate_kwargs)
+        if dataset == Dataset.Sessions:
+            col_name = "sessions" if "sessions" in aggregate else "users"
+            select.insert(
+                0,
+                Function(
+                    function="identity", parameters=[Column(name=col_name)], alias="_total_count"
+                ),
+            )
+        # Select order seems to be unstable, so just arbitrarily sort by name, alias so that it's consistent
+        snql_query.query.select.sort(key=lambda q: (q.function, q.alias))
+        if expected_match is None:
             entity_name = get_entity_key_from_query_builder(query_builder).value
             entity_args = {"name": entity_name}
             if dataset == Dataset.Events:
                 entity_args["alias"] = entity_name
-            expected_query = Query(
-                match=Entity(**entity_args),
-                select=select,
-                where=expected_conditions,
-                groupby=None if use_none_clauses else [],
-                having=[],
-                orderby=None if use_none_clauses else [],
-            )
-            if granularity is not None:
-                expected_query = expected_query.set_granularity(granularity)
-            assert snql_query.query == expected_query
+            expected_match = Entity(**entity_args)
+        expected_query = Query(
+            match=expected_match,
+            select=select,
+            where=expected_conditions,
+            groupby=None if use_none_clauses else [],
+            having=[],
+            orderby=None if use_none_clauses else [],
+        )
+        if granularity is not None:
+            expected_query = expected_query.set_granularity(granularity)
+        assert snql_query.query == expected_query
 
     def string_aggregate_to_snql(self, query_type, dataset, aggregate, aggregate_kwargs):
         aggregate_builder_func = self.aggregate_mappings[query_type][dataset].get(
@@ -633,6 +645,28 @@ class BuildSnqlQueryTest(TestCase):
                 Condition(Column(name="type", entity=entity), Op.EQ, "error"),
                 Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
             ],
+        )
+
+    def test_join_status(self):
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+        g_entity = Entity("group_attributes", alias="ga")
+        self.run_test(
+            SnubaQuery.Type.ERROR,
+            Dataset.Events,
+            "count_unique(user)",
+            "status:unresolved",
+            [
+                And(
+                    [
+                        Condition(Column("type", entity=entity), Op.EQ, "error"),
+                        Condition(
+                            Column("group_status", entity=g_entity), Op.IN, [GroupStatus.UNRESOLVED]
+                        ),
+                    ]
+                ),
+                Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
+            ],
+            expected_match=Join([Relationship(entity, "attributes", g_entity)]),
         )
 
     def test_simple_performance_transactions(self):
