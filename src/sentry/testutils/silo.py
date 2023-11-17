@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
+    Collection,
     Dict,
     Iterable,
     List,
@@ -115,6 +116,11 @@ class _SiloModeTestModification:
     regions: tuple[Region, ...]
     stable: bool
 
+    # The default values can be treated as switches for desired global behavior,
+    # when we're ready to change.
+    include_monolith_run: bool = True
+    run_original_class_in_silo_mode: bool = False
+
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
         monolith_region = self.regions[0].name
@@ -155,18 +161,34 @@ class _SiloModeTestModification:
         new_class = type(name, (test_class,), new_methods)
         return cast(Type[TestCase], new_class)
 
+    def _arrange_silo_modes(self) -> tuple[SiloMode, Collection[SiloMode]]:
+        """Select which silo modes will be tested by the original and dynamic classes.
+
+        The return value is a (primary, secondary) pair. The "primary" silo mode is
+        the one to be tested by the decorated class without changing its name. The
+        "secondary" modes are tested by dynamically generated classes that are added
+        to the module namespace.
+        """
+        if len(self.silo_modes) == 1:
+            (silo_mode,) = self.silo_modes
+            if not self.include_monolith_run:
+                return silo_mode, ()
+            if self.run_original_class_in_silo_mode:
+                return silo_mode, (SiloMode.MONOLITH,)
+        return SiloMode.MONOLITH, self.silo_modes
+
     def _add_siloed_test_classes_to_module(self, test_class: Type[TestCase]) -> Type[TestCase]:
-        for silo_mode in self.silo_modes:
+        primary_mode, secondary_modes = self._arrange_silo_modes()
+        for silo_mode in secondary_modes:
             silo_mode_name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
             siloed_test_class = self._create_overriding_test_class(
                 test_class, silo_mode, f"__In{silo_mode_name}Mode"
             )
-
             module = sys.modules[test_class.__module__]
             setattr(module, siloed_test_class.__name__, siloed_test_class)
 
         # Return the value to be wrapped by the original decorator
-        return self._create_overriding_test_class(test_class, SiloMode.MONOLITH)
+        return self._create_overriding_test_class(test_class, primary_mode)
 
     def _mark_parameterized_by_silo_mode(self, test_method: TestMethod) -> TestMethod:
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
