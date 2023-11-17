@@ -87,9 +87,13 @@ class StructLogHandler(logging.StreamHandler):
         # structlog, we have to strip all of the default attributes from
         # a record because the RootLogger will take the 'extra' dictionary
         # and just turn them into attributes.
-        if logger is None:
-            logger = get_logger()
-        logger.log(**self.get_log_kwargs(record=record, logger=logger))
+        try:
+            if logger is None:
+                logger = get_logger()
+            logger.log(**self.get_log_kwargs(record=record, logger=logger))
+        except Exception:
+            if logging.raiseExceptions:
+                raise
 
 
 class MessageContainsFilter(logging.Filter):

@@ -325,10 +325,9 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     bootstrap_options(settings, config["options"])
 
-    configure_structlog()
+    logging.raiseExceptions = not settings.IS_PROD
 
-    if settings.ENVIRONMENT == "production":
-        logging.raiseExceptions = False
+    configure_structlog()
 
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
