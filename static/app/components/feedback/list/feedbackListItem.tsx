@@ -44,7 +44,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const organization = useOrganization();
     const isOpen = useIsSelectedFeedback({feedbackItem});
     const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
-    const crashReportId = feedbackItem.metadata.source === 'crash_report_embed_form';
+    const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
 
     return (
       <CardSpacing className={className} style={style} ref={ref}>
@@ -99,7 +99,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             {feedbackItem.assignedTo ? (
               <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
             ) : null}
-            {crashReportId && (
+            {isCrashReport && (
               <Tag type="error">
                 <Badge isOpen={isOpen}>
                   <IconFlag size="xs" color="red300" />
