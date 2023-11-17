@@ -10,7 +10,7 @@ import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.processing.strategies.run_task import RunTask
+from arroyo.processing.strategies.run_task_in_threads import RunTaskInThreads
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.conf import settings
 from django.db import router, transaction
@@ -620,7 +620,11 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
             except Exception:
                 logger.exception("Failed to process message payload")
 
-        return RunTask(
-            function=process_message,
+        return RunTaskInThreads(
+            processing_function=process_message,
             next_step=CommitOffsets(commit),
+            # XXX(epurkhiser): We'll tweak these values once we validate that
+            # the consumer is generally still working well.
+            concurrency=2,
+            max_pending_futures=2,
         )
