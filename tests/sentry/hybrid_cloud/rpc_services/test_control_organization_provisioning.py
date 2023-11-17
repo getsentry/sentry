@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 import pytest
 from django.db import IntegrityError, router, transaction
@@ -42,13 +42,20 @@ class TestControlOrganizationProvisioningBase(TestCase):
         )
 
     def generate_provisioning_args(
-        self, *, name: str, slug: str, user_id: int, default_team: bool
+        self,
+        *,
+        name: str,
+        slug: str,
+        default_team: bool,
+        user_id: Optional[int] = None,
+        email: Optional[str] = None,
     ) -> OrganizationProvisioningOptions:
         return OrganizationProvisioningOptions(
             provision_options=OrganizationOptions(
                 name=name,
                 slug=slug,
                 owning_user_id=user_id,
+                owning_email=email,
                 create_default_team=default_team,
                 is_test=False,
             ),
@@ -68,7 +75,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
             return OrganizationSlugReservation.objects.filter(organization_id=organization_id)
 
     def assert_slug_reservation_and_org_exist(
-        self, rpc_org_slug: RpcOrganizationSlugReservation, user_id
+        self, rpc_org_slug: RpcOrganizationSlugReservation, user_id: Optional[int] = None
     ):
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_slug_reservation = OrganizationSlugReservation.objects.get(
@@ -96,6 +103,17 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
         rpc_org_slug = self.provision_organization()
         self.assert_slug_reservation_and_org_exist(
             rpc_org_slug=rpc_org_slug, user_id=self.provision_user.id
+        )
+
+    def test_organization_provisioning_before_user_provisioning(self):
+        provisioning_options = self.generate_provisioning_args(
+            name="sentry", slug="sentry", email="test-owner@sentry.io", default_team=True
+        )
+        slug = control_organization_provisioning_rpc_service.provision_organization(
+            region_name="us", org_provision_args=provisioning_options
+        )
+        self.assert_slug_reservation_and_org_exist(
+            rpc_org_slug=slug,
         )
 
     def test_organization_already_provisioned_for_different_user(self):

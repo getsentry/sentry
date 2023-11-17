@@ -7,6 +7,7 @@ class OrganizationOptions(pydantic.BaseModel):
     name: str
     slug: str
     owning_user_id: Optional[int] = None
+    owning_email: Optional[str] = None
     create_default_team: bool = True
     is_test = False
 
