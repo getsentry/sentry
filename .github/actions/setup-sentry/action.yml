@@ -78,7 +78,7 @@ runs:
 
         ### pytest-sentry configuration ###
         if [ "$GITHUB_REPOSITORY" = "getsentry/sentry" ]; then
-          echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
+          echo "PYTEST_SENTRY_DSN=https://4a15e36813f94f2472af247cf09ca2f1@o1.ingest.sentry.io/4506243212967936" >> $GITHUB_ENV
           echo "PYTEST_SENTRY_TRACES_SAMPLE_RATE=0" >> $GITHUB_ENV
 
           # This records failures on master to sentry in order to detect flakey tests, as it's
