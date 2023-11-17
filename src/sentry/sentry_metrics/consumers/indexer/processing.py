@@ -1,5 +1,7 @@
+import cProfile
 import logging
 import random
+import time
 from typing import Any, Callable, Mapping
 
 import sentry_kafka_schemas
@@ -112,6 +114,7 @@ class MessageProcessor:
         4. Take a mapping of string -> int (indexed strings), and replace all of
            the messages strings into ints
         """
+        logger.info(f"Got batch of {len(outer_message.payload)}")
         should_index_tag_values = self._config.should_index_tag_values
         is_output_sliced = self._config.is_output_sliced or False
 
@@ -128,10 +131,14 @@ class MessageProcessor:
         with metrics.timer("metrics_consumer.check_cardinality_limits"), sentry_sdk.start_span(
             op="check_cardinality_limits"
         ):
-            cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
-            cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
-                self._config.use_case_id, batch.parsed_payloads_by_meta
-            )
+            with cProfile.Profile() as pr:
+                cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
+                cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
+                    self._config.use_case_id, batch.parsed_payloads_by_meta
+                )
+                pr.dump_stats(
+                    f"{int(time.time())}_{len(outer_message.payload)}_check_cardinality_limits.prof"
+                )
 
         sdk.set_measurement(
             "cardinality_limiter.keys_to_remove.len", len(cardinality_limiter_state.keys_to_remove)
@@ -156,6 +163,10 @@ class MessageProcessor:
             op="apply_cardinality_limits"
         ):
             # TODO: move to separate thread
-            cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
+            with cProfile.Profile() as pr:
+                cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
+                pr.dump_stats(
+                    f"{int(time.time())}_{len(outer_message.payload)}_apply_cardinality_limits.prof"
+                )
 
         return results
