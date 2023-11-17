@@ -15,7 +15,7 @@ interface Props {
   project: Project;
 }
 
-function buildAggregate(mri: string, op: string) {
+export function buildAggregate(mri: string, op: string) {
   return `${op}(${mri})`;
 }
 

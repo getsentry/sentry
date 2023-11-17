@@ -29,7 +29,11 @@ import {
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {buildAggregate} from 'sentry/views/alerts/rules/metric/mriField';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {MetricChart} from 'sentry/views/ddm/chart';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
@@ -191,10 +195,16 @@ type ContextMenuProps = {
 function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenuProps) {
   const organization = useOrganization();
   const router = useRouter();
-
+  const projects = useProjects();
+  const pageFilters = usePageFilters();
+  const firstProject = projects.projects.find(
+    p => p.id === pageFilters.selection.projects[0].toString()
+  );
   if (!organization.features.includes('ddm-experimental')) {
     return null;
   }
+
+  const isCreateAlertEnabled = firstProject && metricsQuery.mri && metricsQuery.op;
 
   return (
     <StyledDropdownMenuControl
@@ -202,7 +212,25 @@ function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenuProps) 
         {
           key: 'add-alert',
           label: t('Create Alert'),
-          disabled: true,
+          disabled: !isCreateAlertEnabled,
+          to: isCreateAlertEnabled
+            ? {
+                pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
+                query: {
+                  // Needed so alerts-create also collects environment via event view
+                  createFromDiscover: true,
+                  dataset: Dataset.GENERIC_METRICS,
+                  eventTypes: EventTypes.TRANSACTION,
+                  aggregate: buildAggregate(metricsQuery.mri, metricsQuery.op as string),
+                  // Forwarded to the BE. What do we do with it?
+                  referrer: 'ddm',
+                  // Event type also needs to be added to the query
+                  query: `${metricsQuery.query}  event.type:transaction`.trim(),
+                  environment: metricsQuery.environments,
+                  project: firstProject?.slug,
+                },
+              }
+            : undefined,
         },
         {
           key: 'add-dashoard',
