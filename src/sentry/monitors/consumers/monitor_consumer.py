@@ -181,6 +181,9 @@ def transform_checkin_uuid(
     try:
         check_in_guid = uuid.UUID(check_in_id)
     except ValueError:
+        pass
+
+    if check_in_guid is None:
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_guid_validation"},
@@ -190,9 +193,6 @@ def transform_checkin_uuid(
             "monitors.consumer.guid_validation_failed",
             extra={"guid": check_in_id, "slug": monitor_slug},
         )
-        return None, False
-
-    if check_in_guid is None:
         return None, False
 
     # When the UUID is empty we will default to looking for the most
