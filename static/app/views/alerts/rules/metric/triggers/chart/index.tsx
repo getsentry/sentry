@@ -299,7 +299,7 @@ class TriggersChart extends PureComponent<Props, State> {
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
       : showExtrapolatedChartData
       ? t('Estimated Transactions')
-      : t('Total Transactions');
+      : t('Total');
 
     return (
       <Fragment>

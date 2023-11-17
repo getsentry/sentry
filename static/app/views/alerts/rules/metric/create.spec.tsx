@@ -65,7 +65,7 @@ describe('Incident Rules Create', function () {
           interval: '60m',
           project: [2],
           query: 'event.type:error',
-          statsPeriod: '10000m',
+          statsPeriod: '9999m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
         },
