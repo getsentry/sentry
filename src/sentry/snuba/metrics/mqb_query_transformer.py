@@ -1,15 +1,6 @@
 import inspect
-from typing import Set
 
-from snuba_sdk import (
-    AliasedExpression,
-    BooleanCondition,
-    Column,
-    Condition,
-    Function,
-    Granularity,
-    Op,
-)
+from snuba_sdk import AliasedExpression, BooleanCondition, Column, Function, Granularity, Op
 from snuba_sdk.query import Query
 
 from sentry.api.utils import InvalidParams
