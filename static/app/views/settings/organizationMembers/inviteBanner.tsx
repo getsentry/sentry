@@ -85,7 +85,7 @@ export function InviteBanner({
       const githubMissingMembers = data?.filter(
         integrationMissingMembers => integrationMissingMembers.integration === 'github'
       )[0];
-      setMissingMembers(githubMissingMembers?.users);
+      setMissingMembers(githubMissingMembers?.users || []);
     } catch (err) {
       if (err.status !== 403) {
         addErrorMessage(t('Unable to fetching missing commit authors'));
@@ -114,7 +114,7 @@ export function InviteBanner({
     }
   }, [openInviteModal, location, isEligibleForBanner]);
 
-  if (isEligibleForBanner && showBanner && missingMembers) {
+  if (isEligibleForBanner && showBanner && missingMembers.length > 0) {
     trackAnalytics('github_invite_banner.viewed', {
       organization,
       members_shown: missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).length,
