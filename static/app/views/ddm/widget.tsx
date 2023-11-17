@@ -217,12 +217,11 @@ function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenuProps) 
             ? {
                 pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
                 query: {
-                  // Needed so alerts-create also collects environment via event view
+                  // Needed, so alerts-create also collects environment via event view
                   createFromDiscover: true,
                   dataset: Dataset.GENERIC_METRICS,
                   eventTypes: EventTypes.TRANSACTION,
                   aggregate: buildAggregate(metricsQuery.mri, metricsQuery.op as string),
-                  // Forwarded to the BE. What do we do with it?
                   referrer: 'ddm',
                   // Event type also needs to be added to the query
                   query: `${metricsQuery.query}  event.type:transaction`.trim(),
