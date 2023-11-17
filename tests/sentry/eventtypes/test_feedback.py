@@ -16,6 +16,7 @@ class GetMetadataTest(TestCase):
                     "message": "Foo",
                     "contact_email": "test@test.com",
                     "name": "Name Test",
+                    "source": "crash report widget",
                 }
             }
         }
@@ -23,4 +24,5 @@ class GetMetadataTest(TestCase):
             "message": "Foo",
             "contact_email": "test@test.com",
             "name": "Name Test",
+            "source": "crash report widget",
         }
