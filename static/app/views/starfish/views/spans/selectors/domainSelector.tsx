@@ -140,6 +140,7 @@ export function DomainSelector({
           query: {
             ...location.query,
             [SpanMetricsField.SPAN_DOMAIN]: newValue.value,
+            spansCursor: undefined,
           },
         });
       }}

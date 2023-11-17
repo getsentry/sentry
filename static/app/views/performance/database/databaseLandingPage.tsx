@@ -51,7 +51,7 @@ function DatabaseLandingPage() {
       query: {
         ...location.query,
         'span.description': newQuery === '' ? undefined : newQuery,
-        cursor: undefined,
+        spansCursor: undefined,
       },
     });
   };

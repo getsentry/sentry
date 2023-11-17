@@ -76,6 +76,7 @@ export function ActionSelector({
           query: {
             ...location.query,
             [SPAN_ACTION]: newValue.value,
+            spansCursor: undefined,
           },
         });
       }}
