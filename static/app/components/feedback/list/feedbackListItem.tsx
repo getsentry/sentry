@@ -80,7 +80,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay={false} />
             </span>
           </TextOverflow>
-          <span style={{gridArea: 'time'}}>
+          <span style={{gridArea: 'time', textAlign: 'right'}}>
             <TimeSince date={feedbackItem.firstSeen} />
           </span>
           <Flex justify="center" style={{gridArea: 'unread'}}>
@@ -102,20 +102,28 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             {feedbackItem.assignedTo ? (
               <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
             ) : null}
-            {hasReplayId && <Tag icon={<IconPlay />}>{t('Replay')}</Tag>}
+            {crashReportId && (
+              <Tag type="error">
+                <Badge isOpen={isOpen}>
+                  <IconFlag size="xs" color="red300" />
+                  {t('Crash Report')}
+                </Badge>
+              </Tag>
+            )}
+            {hasReplayId && (
+              <Tag type="highlight">
+                <Badge isOpen={isOpen}>
+                  <IconPlay size="xs" />
+                </Badge>
+              </Tag>
+            )}
           </div>
-          <Flex style={{gridArea: 'labels'}} gap={space(1)} align="center">
+          <Flex style={{gridArea: 'proj'}} gap={space(1)} align="center">
             <Flex align="center" gap={space(1.5)}>
-              <IconText isOpen={isOpen}>
+              <Badge isOpen={isOpen}>
                 <ProjectAvatar project={feedbackItem.project} size={12} />
                 <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
-              </IconText>
-              {crashReportId && (
-                <IconText isOpen={isOpen}>
-                  <IconFlag size="xs" />
-                  {t('Crash Report')}
-                </IconText>
-              )}
+              </Badge>
             </Flex>
           </Flex>
         </LinkedFeedbackCard>
@@ -124,7 +132,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
   }
 );
 
-const IconText = styled(Flex)<{isOpen: boolean}>`
+const Badge = styled(Flex)<{isOpen: boolean}>`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => (p.isOpen ? p.theme.gray100 : p.theme.gray400)};
@@ -154,7 +162,7 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-areas:
     'checkbox user time'
     'unread message message'
-    '. labels icons';
+    '. proj icons';
   gap: ${space(1)};
   place-items: stretch;
   align-items: center;
