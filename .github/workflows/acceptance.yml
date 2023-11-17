@@ -50,11 +50,11 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3, 4]
+        instance: [0, 1]
         pg-version: ['14']
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 5
+      MATRIX_INSTANCE_TOTAL: 2
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
