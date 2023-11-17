@@ -97,7 +97,7 @@ def targets(expected_models: list[Type[models.Model]]):
                 if num > 0:
                     raise AssertionError(f"Model {name} has {num} mistakes: {mistakes}")
 
-            return actual
+            return None
 
         return wrapped
 

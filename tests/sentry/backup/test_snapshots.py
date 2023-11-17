@@ -54,7 +54,7 @@ class SnapshotTests(BackupTestCase):
     def test_date_with_and_without_zeroed_millis(self):
         with TemporaryDirectory() as tmp_dir, pytest.raises(ValidationError) as execinfo:
             tmp_out_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            return self.import_export_fixture_then_validate(
+            self.import_export_fixture_then_validate(
                 tmp_out_path=tmp_out_path, fixture_file_name="datetime-millis.json"
             )
 
@@ -70,6 +70,6 @@ class SnapshotTests(BackupTestCase):
     def test_app_user_with_empty_email(self):
         with TemporaryDirectory() as tmp_dir:
             tmp_out_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            return self.import_export_fixture_then_validate(
+            self.import_export_fixture_then_validate(
                 tmp_out_path=tmp_out_path, fixture_file_name="app-user-with-empty-email.json"
             )
