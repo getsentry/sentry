@@ -182,7 +182,6 @@ class GithubProxyClient(IntegrationProxyClient):
 
 
 class GitHubClientMixin(GithubProxyClient):
-
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -611,7 +610,7 @@ class GitHubClientMixin(GithubProxyClient):
         """
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        return self.get(f"/repos/{repo}/labels")
+        return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
