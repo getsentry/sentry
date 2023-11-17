@@ -179,11 +179,13 @@ class _SiloModeTestModification:
 
     def _add_siloed_test_classes_to_module(self, test_class: Type[TestCase]) -> Type[TestCase]:
         primary_mode, secondary_modes = self._arrange_silo_modes()
+
         for silo_mode in secondary_modes:
             silo_mode_name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
             siloed_test_class = self._create_overriding_test_class(
                 test_class, silo_mode, f"__In{silo_mode_name}Mode"
             )
+
             module = sys.modules[test_class.__module__]
             setattr(module, siloed_test_class.__name__, siloed_test_class)
 
