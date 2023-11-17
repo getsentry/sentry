@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Union
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -14,14 +14,15 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.models.user import User
+from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
 from sentry.signals import (
     cron_monitor_created,
     first_cron_checkin_received,
     first_cron_monitor_created,
 )
 
-from .constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
-from .models import CheckInStatus, Monitor, MonitorCheckIn
+if TYPE_CHECKING:
+    from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
