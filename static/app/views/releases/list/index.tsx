@@ -8,6 +8,7 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -47,6 +48,7 @@ import withProjects from 'sentry/utils/withProjects';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import Header from '../components/header';
+import ReleaseFeedbackBanner from '../components/releaseFeedbackBanner';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
 
@@ -525,6 +527,8 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
           <Layout.Body>
             <Layout.Main fullWidth>
+              <ReleaseFeedbackBanner />
+
               {this.renderHealthCta()}
 
               <ReleasesPageFilterBar condensed>
@@ -589,6 +593,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {error
                 ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
+              <FeedbackWidget />
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>

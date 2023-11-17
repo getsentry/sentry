@@ -43,6 +43,7 @@ import {isIssueAlert} from '../../utils';
 
 type Props = {
   hasEditAccess: boolean;
+  listHasMigrationWarnings: boolean;
   onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
   onOwnerChange: (
     projectId: string,
@@ -65,6 +66,7 @@ function RuleListRow({
   onOwnerChange,
   hasEditAccess,
   showMigrationWarning,
+  listHasMigrationWarnings,
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
@@ -319,13 +321,15 @@ function RuleListRow({
     <ErrorBoundary>
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
         <FlexCenter>
-          {showMigrationWarning && (
+          {showMigrationWarning ? (
             <Tooltip
               title={t('The current thresholds for this alert could use some review')}
             >
               <StyledIconWarning />
             </Tooltip>
-          )}
+          ) : listHasMigrationWarnings ? (
+            <WarningPlaceholder />
+          ) : null}
           <Tooltip
             title={
               isIssueAlert(rule)
@@ -532,6 +536,12 @@ const Label = styled(TextOverflow)`
 const StyledIconWarning = styled(IconWarning)`
   margin-right: ${space(1)};
   color: ${p => p.theme.yellow400};
+`;
+
+const WarningPlaceholder = styled('div')`
+  margin-right: ${space(1)};
+  width: 16px;
+  flex-shrink: 0;
 `;
 
 export default RuleListRow;
