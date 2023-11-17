@@ -339,7 +339,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             meta = results.get("meta", {})
             fields_meta = meta.get("fields", {})
-            # print(f"meta: {meta}")
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
@@ -363,7 +362,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
             if not data:
                 return {"data": [], "meta": meta}
-            # print(meta)
             return {"data": data, "meta": meta}
 
     def handle_data(
@@ -597,7 +595,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # Return with requested yAxis as the key
         result = {}
         equations = 0
-        # breakpoint()
         meta = self.handle_results_with_meta(
             request,
             organization,
@@ -606,9 +603,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             True,
             dataset=dataset,
         )["meta"]
-        # breakpoint()
         for index, query_column in enumerate(query_columns):
-            # XXX: Do we serialize here?
             result[columns[index]] = serializer.serialize(
                 event_result,
                 resolve_axis_column(query_column, equations),

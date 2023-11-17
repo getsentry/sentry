@@ -434,7 +434,6 @@ def top_events_timeseries(
                 extra={"result_key": result_key, "top_event_keys": list(results.keys())},
             )
     for key, item in results.items():
-        # Over here we need to include it
         results[key] = SnubaTSResult(
             {
                 "data": discover.zerofill(
@@ -450,23 +449,6 @@ def top_events_timeseries(
             params["end"],
             rollup,
         )
-        # results[key] = {
-        #     "result": SnubaTSResult(
-        #         {
-        #             "data": discover.zerofill(
-        #                 item["data"], params["start"], params["end"], rollup, "time"
-        #             )
-        #             if zerofill_results
-        #             else item["data"],
-        #             "order": item["order"],
-        #         },
-        #         params["start"],
-        #         params["end"],
-        #         rollup,
-        #     ),
-        #     # XXX: How do I know if this is right?
-        #     "meta": {"isMetricsExtractedData": top_events_builder.use_on_demand},
-        # }
 
     return results
 

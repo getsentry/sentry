@@ -219,7 +219,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: Optional[datetime],
         ) -> SnubaTSResult:
             if top_events > 0:
-                # We return the result from here
                 return dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),

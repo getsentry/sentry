@@ -1083,7 +1083,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
             group, agg, row1, row2 = group_count
             row_data = response.data[group][agg]["data"][:2]
             assert [attrs for _, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
-            # print(f'isMetricsExtractedData: {response.data[group][agg]["meta"]["isMetricsData"]}')
+            assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
 
     def test_top_events_with_transaction_on_demand_and_no_environment(self):
         field = "count()"
