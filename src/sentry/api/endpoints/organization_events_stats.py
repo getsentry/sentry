@@ -252,13 +252,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 # their queries since right now the metrics layer has not full feature parity with the query builder.
                 use_metrics_layer=force_metrics_layer
                 or batch_features.get("organizations:use-metrics-layer", False),
-                on_demand_metrics_enabled=(
-                    batch_features.get("organizations:on-demand-metrics-extraction", False)
-                    or batch_features.get(
-                        "organizations:on-demand-metrics-extraction-widgets", False
-                    )
-                    and use_on_demand_metrics
-                ),
+                on_demand_metrics_enabled=use_on_demand_metrics
+                and batch_features.get("organizations:on-demand-metrics-extraction-widgets", False),
                 on_demand_metrics_type=on_demand_metrics_type,
             )
 
