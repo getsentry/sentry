@@ -209,13 +209,6 @@ def is_custom_metric(parsed_mri: ParsedMRI) -> bool:
     return parsed_mri.namespace == "custom"
 
 
-def is_transaction_metric(parsed_mri: ParsedMRI) -> bool:
-    """
-    A transaction mri is a mri which uses the transactions namespace.
-    """
-    return parsed_mri.namespace == "transactions"
-
-
 def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
     """
     A custom measurement won't use the custom namespace, but will be under the transaction namespace.
