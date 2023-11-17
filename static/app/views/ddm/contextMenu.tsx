@@ -13,8 +13,8 @@ import useRouter from 'sentry/utils/useRouter';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 
 type ContextMenuProps = {
+  displayType: MetricDisplayType;
   metricsQuery: MetricsQuery;
-  displayType?: MetricDisplayType;
 };
 
 export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenuProps) {
@@ -54,7 +54,7 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
 }
 
 function handleAddQueryToDashboard(
-  {projects, environments, datetime, op, mri}: MetricsQuery,
+  {projects, environments, datetime, op, mri, groupBy, query}: MetricsQuery,
   organization: Organization,
   router: InjectedRouter,
   displayType?: MetricDisplayType
@@ -75,6 +75,7 @@ function handleAddQueryToDashboard(
     displayType,
   };
 
+  const limit = !groupBy?.length ? 1 : 10;
   openAddToDashboardModal({
     organization,
     selection: {
@@ -86,13 +87,14 @@ function handleAddQueryToDashboard(
       title: 'DDM Widget',
       displayType,
       widgetType: 'custom-metrics',
+      limit,
       queries: [
         {
           name: '',
           aggregates: [field],
-          columns: [],
+          columns: groupBy ?? [],
           fields: [field],
-          conditions: '',
+          conditions: query,
         },
       ],
     },

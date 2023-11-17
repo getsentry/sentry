@@ -151,6 +151,7 @@ export function MetricWidget({
               datetime,
               environments,
             }}
+            displayType={widget.displayType}
           />
         </MetricWidgetHeader>
         {widget.mri ? (
