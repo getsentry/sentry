@@ -181,10 +181,13 @@ class ParsedMRI:
         return f"{self.entity}:{self.namespace}/{self.name}@{self.unit}"
 
 
-def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
+def parse_mri(mri_string: Optional[str]) -> Optional[ParsedMRI]:
     """
     Parse a mri string to determine its entity, namespace, name and unit.
     """
+    if mri_string is None:
+        return None
+
     match = MRI_SCHEMA_REGEX.match(mri_string)
     if match is None:
         return None

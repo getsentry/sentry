@@ -41,12 +41,7 @@ from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mri import (
-    ParsedMRI,
-    is_custom_metric,
-    is_transaction_metric,
-    parse_mri,
-)
+from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, is_custom_metric, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
@@ -418,18 +413,6 @@ def should_use_on_demand_metrics(
     if mri_aggregate is not None:
         if is_custom_metric(mri_aggregate):
             return False
-        elif is_transaction_metric(mri_aggregate):
-            from sentry.snuba.metrics import get_public_name_from_mri
-
-            # We extract the mri and try to compute its public name.
-            mri_string = mri_aggregate.mri_string
-            public_name = get_public_name_from_mri(mri_string)
-            if public_name == mri_string:
-                raise InvalidSearchQuery("The MRI doesn't belong to a publicly exposed metric")
-
-            # We convert the passed name to its public counterpart since this is required for the on demand
-            # check.
-            args[0] = public_name
         else:
             raise InvalidSearchQuery(
                 f"The supplied MRI belongs to an unsupported namespace '{mri_aggregate.namespace}'"

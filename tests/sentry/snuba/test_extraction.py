@@ -72,10 +72,6 @@ def test_should_use_on_demand(agg, query, result):
     [
         ("sum(c:custom/page_load@millisecond)", "release:a", False),
         ("sum(c:custom/page_load@millisecond)", "transaction.duration:>0", False),
-        ("avg(d:transactions/duration@millisecond)", "release:a", False),
-        ("avg(d:transactions/duration@millisecond)", "transaction.duration:>0", True),
-        ("p75(d:transactions/measurements.fcp@millisecond)", "release:a", False),
-        ("p75(d:transactions/measurements.fcp@millisecond)", "transaction.duration:>0", True),
     ],
 )
 def test_should_use_on_demand_with_mri(agg, query, result):
@@ -86,14 +82,14 @@ def test_should_use_on_demand_with_mri(agg, query, result):
     "agg, query, error",
     [
         (
-            "sum(c:transactions/count_per_root_project@none)",
+            "p75(d:transactions/measurements.fcp@millisecond)",
             "release:a",
-            "The MRI doesn't belong to a publicly exposed metric",
+            "The supplied MRI belongs to an unsupported namespace 'transactions'",
         ),
         (
-            "sum(c:transactions/count_per_root_project@none)",
+            "p75(d:transactions/measurements.fcp@millisecond)",
             "transaction.duration:>0",
-            "The MRI doesn't belong to a publicly exposed metric",
+            "The supplied MRI belongs to an unsupported namespace 'transactions'",
         ),
         (
             "p95(d:spans/duration@millisecond)",
@@ -132,7 +128,7 @@ class TestCreatesOndemandMetricSpec:
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
             ("p100(transaction.duration)", "transaction.duration:>0"),
-            # we dont support custom percentiles that can be mapped to one of standard percentiles
+            # we don't support custom percentiles that can be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
