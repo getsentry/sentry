@@ -1616,7 +1616,7 @@ def _construct_snuba_sdk_query(
     select,
     groupby=None,
     orderby=None,
-    where=[],
+    where=None,
     having=None,
     entity="generic_metrics_distributions",
 ):
