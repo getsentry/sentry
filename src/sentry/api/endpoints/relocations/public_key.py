@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.backup.helpers import GCPKMSEncryptor, get_default_crypto_key_version
+from sentry.utils.env import log_gcp_credentials_details
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class RelocationPublicKeyEndpoint(Endpoint):
             return Response({"detail": ERR_FEATURE_DISABLED}, status=400)
 
         # TODO(getsentry/team-ospo#190): We should support per-user keys in the future.
+        log_gcp_credentials_details(logger)
         public_key_pem = GCPKMSEncryptor.from_crypto_key_version(
             get_default_crypto_key_version()
         ).get_public_key_pem()
