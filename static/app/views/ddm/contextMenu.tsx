@@ -136,9 +136,10 @@ function useHandleAddQueryToDashboard(
 function useCreateAlertUrl(organization: Organization, metricsQuery: MetricsQuery) {
   const projects = useProjects();
   const pageFilters = usePageFilters();
-  const firstProjectSlug = projects.projects.find(
-    p => p.id === pageFilters.selection.projects[0].toString()
-  )?.slug;
+  const selectedProjects = pageFilters.selection.projects;
+  const firstProjectSlug =
+    selectedProjects.length > 0 &&
+    projects.projects.find(p => p.id === selectedProjects[0].toString())?.slug;
 
   return useMemo(() => {
     if (!firstProjectSlug || !metricsQuery.mri || !metricsQuery.op) {
