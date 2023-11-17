@@ -116,18 +116,16 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         # use .values() to speed up query
         previous_checkins = list(
             reversed(
-                MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
+                MonitorCheckIn.objects.filter(
+                    monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
+                )
+                .exclude(status=CheckInStatus.IN_PROGRESS)
                 .order_by("-date_added")
                 .values("id", "date_added", "status")[:failure_issue_threshold]
             )
         )
         # check for successive failed previous check-ins
-        if not all(
-            [
-                checkin["status"] not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
-                for checkin in previous_checkins
-            ]
-        ):
+        if not all([checkin["status"] != CheckInStatus.OK for checkin in previous_checkins]):
             return False
 
         # change monitor status + update fingerprint timestamp
