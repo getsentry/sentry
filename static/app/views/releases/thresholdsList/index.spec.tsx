@@ -11,7 +11,7 @@ import {THRESHOLDS_PATH} from '../utils/constants';
 describe('ReleaseThresholdsList', () => {
   const organization = Organization({
     slug: 'test-thresholds',
-    features: ['release-ui-v2'],
+    features: ['releases-v2'],
   });
 
   const {router, routerContext} = initializeOrg({
