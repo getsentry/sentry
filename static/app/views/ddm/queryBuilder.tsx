@@ -63,6 +63,7 @@ export function QueryBuilder({
     );
   }, [meta, metricsQuery.mri, mriMode]);
 
+  // Reset the query data if the selected metric is no longer available
   useEffect(() => {
     if (
       metricsQuery.mri &&
