@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -2607,7 +2610,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         ):
             return self.client.get(url, query, format="json")
 
-    def test_metrics_extracted_data_does_not_fall_back_with_fields(self):
+    def _test_is_metrics_extracted_data(
+        self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
+    ) -> None:
         spec = OnDemandMetricSpec(
             field="count()",
             query="transaction.duration:>1s",
@@ -2615,25 +2620,40 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         self.store_on_demand_metric(1, spec=spec)
+        response = self.do_request(params)
 
-        response = self.do_request(
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
+        assert meta["dataset"] == dataset
+
+        return meta
+
+    def test_is_metrics_extracted_data_is_included(self):
+        self._test_is_metrics_extracted_data(
             {
                 "field": ["count()"],
                 "dataset": "metricsEnhanced",
-                "onDemandType": "dynamic_query",
                 "query": "transaction.duration:>=91",
                 "useOnDemandMetrics": "true",
                 "yAxis": "count()",
-            }
+            },
+            expected_on_demand_query=True,
+            dataset="metricsEnhanced",
         )
-        assert response.status_code == 200, response.content
-        import pprint
 
-        pprint.pprint(response.content)
-        meta = response.data["meta"]
-
-        # assert meta["isMetricsData"]
-        assert meta["isMetricsExtractedData"]
+    def test_is_metrics_extracted_data_is_excluded(self):
+        self._test_is_metrics_extracted_data(
+            {
+                "field": ["count()"],
+                "query": "transaction.duration:>=91",
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+            # Since we do not include metricsEnhanced dataset it will fail
+            expected_on_demand_query=False,
+            dataset="discover",
+        )
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
