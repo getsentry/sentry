@@ -13,6 +13,7 @@ export type FeedbackIssue = Overwrite<
       name: string;
       title: string;
       value: string;
+      source?: null | string;
     };
     owners: null | unknown;
   }
