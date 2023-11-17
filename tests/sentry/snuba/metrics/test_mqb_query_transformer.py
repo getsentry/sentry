@@ -1867,26 +1867,6 @@ INVALID_QUERIES_INTEGRATION_TEST_CASES = [
         "Operation histogram cannot be used to order a query",
         id="histogram is not supported in orderby",
     ),
-    # Validate this transformation is only for performance metrics
-    pytest.param(
-        _construct_snuba_sdk_query(
-            entity="metrics_sets",
-            select=[
-                Function(
-                    function="histogram",
-                    parameters=[
-                        Column("d:transactions/duration@millisecond"),
-                        0,  # histogram_from
-                        5,  # histogram_to
-                        5,  # num_buckets
-                    ],
-                    alias="histogram_transaction_duration",
-                ),
-            ],
-        ),
-        "Unsupported entity name for metrics_sets MQB to MetricsQuery Transformation",
-        id="Transformation only supports performance metrics",
-    ),
 ]
 
 

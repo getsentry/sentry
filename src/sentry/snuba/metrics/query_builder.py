@@ -370,7 +370,8 @@ def resolve_tags(
         )
 
     if isinstance(input_, BooleanCondition):
-        return input_.__class__(
+        return BooleanCondition(
+            op=input_.op,
             conditions=[
                 resolve_tags(use_case_id, org_id, item, projects, allowed_tag_keys=allowed_tag_keys)
                 for item in input_.conditions

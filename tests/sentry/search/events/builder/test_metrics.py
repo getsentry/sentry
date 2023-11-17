@@ -3282,19 +3282,18 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "count_d_custom_sentry_process_profile_track_outcome_second"
 
-    def test_distribution_timeseries_metrics_query(self):
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
-            for multiplier in (1, 2, 3):
-                self.store_transaction_metric(
-                    value=value * multiplier,
-                    metric=mri,
-                    internal_metric=mri,
-                    entity="metrics_distributions",
-                    tags={},
-                    timestamp=self.start + datetime.timedelta(hours=index),
-                    use_case_id=UseCaseID.CUSTOM,
-                )
+    def test_count_timeseries_metrics_query(self):
+        mri = "c:custom/website_click@none"
+        for index, value in enumerate((10, 20)):
+            self.store_transaction_metric(
+                value=value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_counters",
+                tags={},
+                timestamp=self.start + datetime.timedelta(hours=index),
+                use_case_id=UseCaseID.CUSTOM,
+            )
 
         query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -3308,7 +3307,49 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
 
         result = query.run_query("test_query")
 
-        assert result["data"][:6] == [
+        assert result["data"][:2] == [
+            {
+                "sum_c_custom_website_click_none": 10.0,
+                "time": (self.start + datetime.timedelta(hours=0)).isoformat(),
+            },
+            {
+                "sum_c_custom_website_click_none": 20.0,
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+            },
+        ]
+
+        meta = result["meta"]
+        assert len(meta) == 2
+        assert meta[1]["name"] == "sum_c_custom_website_click_none"
+
+    def test_distribution_timeseries_metrics_query(self):
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+        for index, (value, phone) in enumerate(((10, "iPhone"), (20, "OnePlus"))):
+            for multiplier in (1, 2, 3):
+                self.store_transaction_metric(
+                    value=value * multiplier,
+                    metric=mri,
+                    internal_metric=mri,
+                    entity="metrics_distributions",
+                    tags={"phone": phone},
+                    timestamp=self.start + datetime.timedelta(hours=index),
+                    use_case_id=UseCaseID.CUSTOM,
+                )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            interval=3600,
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=[f"sum({mri})"],
+            query="phone:iPhone OR phone:OnePlus",
+            config=QueryBuilderConfig(
+                use_metrics_layer=True,
+            ),
+        )
+
+        result = query.run_query("test_query")
+
+        assert result["data"][:2] == [
             {
                 "sum_d_custom_sentry_process_profile_track_outcome_second": 60.0,
                 "time": (self.start + datetime.timedelta(hours=0)).isoformat(),
@@ -3316,22 +3357,6 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             {
                 "sum_d_custom_sentry_process_profile_track_outcome_second": 120.0,
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-            },
-            {
-                "sum_d_custom_sentry_process_profile_track_outcome_second": 180.0,
-                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-            },
-            {
-                "sum_d_custom_sentry_process_profile_track_outcome_second": 240.0,
-                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-            },
-            {
-                "sum_d_custom_sentry_process_profile_track_outcome_second": 300.0,
-                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-            },
-            {
-                "sum_d_custom_sentry_process_profile_track_outcome_second": 360.0,
-                "time": (self.start + datetime.timedelta(hours=5)).isoformat(),
             },
         ]
 
