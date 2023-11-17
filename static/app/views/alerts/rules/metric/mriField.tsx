@@ -39,7 +39,7 @@ function filterAndSortOperations(operations: string[]) {
 }
 
 function MriField({aggregate, project, onChange}: Props) {
-  const meta = useMetricsMeta([parseInt(project.id, 10)], {
+  const {data: meta} = useMetricsMeta([parseInt(project.id, 10)], {
     useCases: ['transactions', 'custom'],
   });
   const metaArr = useMemo(() => {
