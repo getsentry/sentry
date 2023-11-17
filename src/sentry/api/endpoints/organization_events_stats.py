@@ -253,7 +253,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 use_metrics_layer=force_metrics_layer
                 or batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=use_on_demand_metrics
-                and batch_features.get("organizations:on-demand-metrics-extraction-widgets", False),
+                and (
+                    batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
+                    or batch_features.get("organizations:on-demand-metrics-extraction", False)
+                ),
                 on_demand_metrics_type=on_demand_metrics_type,
             )
 
