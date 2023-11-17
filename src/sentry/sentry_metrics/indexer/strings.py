@@ -178,6 +178,8 @@ SHARED_TAG_STRINGS = {
     "failure": PREFIX + 262,
     # Escalating Issues
     "group": PREFIX + 263,
+    # Resource spans
+    "file_extension": PREFIX + 264,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
