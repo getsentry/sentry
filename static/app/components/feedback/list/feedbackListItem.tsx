@@ -119,12 +119,10 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             )}
           </div>
           <Flex style={{gridArea: 'proj'}} gap={space(1)} align="center">
-            <Flex align="center" gap={space(1.5)}>
-              <Badge isOpen={isOpen}>
-                <ProjectAvatar project={feedbackItem.project} size={12} />
-                <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
-              </Badge>
-            </Flex>
+            <Badge isOpen={isOpen}>
+              <ProjectAvatar project={feedbackItem.project} size={12} />
+              <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
+            </Badge>
           </Flex>
         </LinkedFeedbackCard>
       </CardSpacing>
