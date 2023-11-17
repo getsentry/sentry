@@ -53,7 +53,10 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.detector import DetectorPayload, TrendType
-from sentry.statistical_detectors.issue_platform_adapter import send_regression_to_platform
+from sentry.statistical_detectors.issue_platform_adapter import (
+    fingerprint_regression,
+    send_regression_to_platform,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -325,7 +328,7 @@ def _detect_transaction_trends(
         threshold=0.2,
     )
 
-    detector_store = redis.TransactionDetectorStore()
+    detector_store = redis.RedisDetectorStore(object_type="e")  # e for endpoint
 
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
@@ -651,7 +654,7 @@ def _detect_function_trends(
         threshold=0.2,
     )
 
-    detector_store = redis.RedisDetectorStore()
+    detector_store = redis.RedisDetectorStore(object_type="f")  # f for functions
 
     projects = Project.objects.filter(id__in=project_ids)
 
@@ -1001,6 +1004,8 @@ def query_transactions(
         DetectorPayload(
             project_id=row["project_id"],
             group=row["transaction_name"],
+            # take the first 16 chars of the fingerprint as that's sufficiently unique
+            fingerprint=fingerprint_regression(row["transaction_name"])[:16],
             count=row["count"],
             value=row["p95"],
             timestamp=start,
@@ -1047,6 +1052,7 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
         DetectorPayload(
             project_id=row["project.id"],
             group=row["fingerprint"],
+            fingerprint=row["fingerprint"],
             count=row["count()"],
             value=row["p95()"],
             timestamp=datetime.fromisoformat(row["timestamp"]),

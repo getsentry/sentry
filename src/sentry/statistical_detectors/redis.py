@@ -12,7 +12,10 @@ STATE_TTL = 24 * 60 * 60  # 1 day TTL
 
 
 class RedisDetectorStore(DetectorStore):
-    def __init__(self, client: RedisCluster | StrictRedis | None = None, ttl=STATE_TTL):
+    def __init__(
+        self, object_type: str, client: RedisCluster | StrictRedis | None = None, ttl=STATE_TTL
+    ):
+        self.object_type = object_type
         self.ttl = ttl
         self.client = self.get_redis_client() if client is None else client
 
@@ -43,18 +46,9 @@ class RedisDetectorStore(DetectorStore):
 
             pipeline.execute()
 
-    @staticmethod
-    def make_key(payload: DetectorPayload):
-        # sdf = statistical detector functions
-        return f"sdf:p:{payload.project_id}:f:{payload.group}"
+    def make_key(self, payload: DetectorPayload):
+        return f"sd:p:{payload.project_id}:{self.object_type}:{payload.fingerprint}"
 
     @staticmethod
     def get_redis_client() -> RedisCluster | StrictRedis:
         return redis.redis_clusters.get(settings.SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER)
-
-
-class TransactionDetectorStore(RedisDetectorStore):
-    @staticmethod
-    def make_key(payload: DetectorPayload):
-        # sdt = statistical detector transactions
-        return f"sdt:p:{payload.project_id}:t:{payload.group}"
