@@ -275,6 +275,7 @@ def project_event_counts_for_organization(ctx):
         logger.info(
             "project_event_counts_for_organization_query_result",
             extra={
+                "org_slug": ctx.organization.slug,
                 "report_start": ctx.start.isoformat(),
                 "report_end": (ctx.end + timedelta(days=1)).isoformat(),
                 "num_query_rows": len(data),
@@ -890,6 +891,7 @@ def render_template_context(ctx, user_id):
             logger.info(
                 "render_template_context.trends.totals",
                 extra={
+                    "org_slug": ctx.organization.slug,
                     "project_count": len(projects_associated_with_user),
                     "accepted_error_count": total_error,
                     "dropped_error_count": total_dropped_error,
@@ -1066,6 +1068,7 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
         logger.info(
             "send_email.counts_per_day",
             extra={
+                "org_slug": ctx.organization.slug,
                 "errors_per_day": json.dumps(template_ctx.trends.error_maximum),
                 "transactions_per_day": json.dumps(template_ctx.trends.transaction_maximum),
             },
