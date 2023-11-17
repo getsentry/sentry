@@ -2,7 +2,7 @@ default_install_hook_types: ['pre-commit', 'pre-push']
 
 exclude: >
   (?x)(
-      LICENSE$|
+      LICENSE.md$|
       \.snap$|
       \.map$|
       \.map\.js$|
