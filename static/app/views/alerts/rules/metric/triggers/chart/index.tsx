@@ -508,6 +508,7 @@ class TriggersChart extends PureComponent<Props, State> {
         currentSeriesNames={[aggregate]}
         partial={false}
         queryExtras={queryExtras}
+        useOnDemandMetrics
         dataLoadedCallback={onDataLoaded}
       >
         {({
