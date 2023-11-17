@@ -29,7 +29,10 @@ import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
-import {getForceMetricsLayerQueryExtras} from 'sentry/utils/ddm/features';
+import {
+  getForceMetricsLayerQueryExtras,
+  hasDdmAlertsSupport,
+} from 'sentry/utils/ddm/features';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
@@ -901,7 +904,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
                 <Aggregate>{aggregate}</Aggregate>
-                event.type:{eventTypes?.join(',')}
+                {!(hasDdmAlertsSupport(organization) && alertType === 'custom')
+                  ? `event.type:${eventTypes?.join(',')}`
+                  : ''}
               </AlertInfo>
             )}
           </ChartHeader>
@@ -1049,13 +1054,17 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           <List symbol="colored-numeric">
             <RuleConditionsForm
               project={project}
+              aggregate={aggregate}
               organization={organization}
               isMigration={isMigration}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}
               onFilterSearch={this.handleFilterUpdate}
-              allowChangeEventTypes={alertType === 'custom' || dataset === Dataset.ERRORS}
+              allowChangeEventTypes={
+                !(hasDdmAlertsSupport(organization) && alertType === 'custom') &&
+                (alertType === 'custom' || dataset === Dataset.ERRORS)
+              }
               alertType={alertType}
               dataset={dataset}
               timeWindow={timeWindow}
