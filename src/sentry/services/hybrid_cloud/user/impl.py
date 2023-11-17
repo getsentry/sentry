@@ -109,6 +109,10 @@ class DatabaseBackedUserService(UserService):
                 return [serialize_rpc_user(u) for u in qs.filter(email__iexact=username)]
         return []
 
+    def get_existing_usernames(self, *, usernames: List[str]) -> List[str]:
+        users = User.objects.filter(username__in=usernames)
+        return list(users.values_list("username", flat=True))
+
     def get_organizations(
         self,
         *,
