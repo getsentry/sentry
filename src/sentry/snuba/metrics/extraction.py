@@ -409,7 +409,12 @@ def should_use_on_demand_metrics(
     if not dataset or Dataset(dataset) not in supported_datasets:
         return False
 
-    mri_aggregate = _extract_mri(aggregate)
+    components = _extract_aggregate_components(aggregate)
+    if components is None:
+        return False
+
+    function, args = components
+    mri_aggregate = _extract_mri(args)
     if mri_aggregate is not None:
         if is_custom_metric(mri_aggregate):
             return False
@@ -424,11 +429,13 @@ def should_use_on_demand_metrics(
 
             # We convert the passed name to its public counterpart since this is required for the on demand
             # check.
-            aggregate = public_name
+            args[0] = public_name
         else:
-            raise InvalidSearchQuery("The supplied MRI belongs to an unsupported namespace")
+            raise InvalidSearchQuery(
+                f"The supplied MRI belongs to an unsupported namespace '{mri_aggregate.namespace}'"
+            )
 
-    aggregate_supported_by = _get_aggregate_supported_by(aggregate)
+    aggregate_supported_by = _get_aggregate_supported_by(function, args)
     query_supported_by = _get_query_supported_by(query)
     groupbys_supported_by = _get_groupbys_support(groupbys)
 
@@ -439,39 +446,39 @@ def should_use_on_demand_metrics(
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
 
-def _extract_mri(aggregate: str) -> Optional[ParsedMRI]:
-    try:
-        match = fields.is_function(aggregate)
-        if not match:
-            return None
-
-        function, _, args, _ = query_builder.parse_function(match)
-        # We assume that you can't have an aggregate on an implicit custom metric, thus we return false.
-        if len(args) == 0:
-            return None
-
-        return parse_mri(args[0])
-    except InvalidSearchQuery:
-        return None
-
-
-def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
+def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[str]]]:
     try:
         if is_equation(aggregate):
-            # TODO(Ogi): Implement support for equations
-            return SupportedBy.neither()
+            return None
 
         match = fields.is_function(aggregate)
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
 
         function, _, args, _ = query_builder.parse_function(match)
+        return function, args
+    except InvalidSearchQuery:
+        logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
+
+    return None
+
+
+def _extract_mri(args: List[str]) -> Optional[ParsedMRI]:
+    # We assume that you can't have an aggregate on an implicit custom metric, since if you pass just `count()`
+    if len(args) == 0:
+        return None
+
+    return parse_mri(args[0])
+
+
+def _get_aggregate_supported_by(function: str, args: List[str]) -> SupportedBy:
+    try:
         function_support = _get_function_support(function, args)
         args_support = _get_args_support(args, function)
 
         return SupportedBy.combine(function_support, args_support)
     except InvalidSearchQuery:
-        logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
+        logger.error(f"Failed to parse aggregate: {function}", exc_info=True)
 
     return SupportedBy.neither()
 

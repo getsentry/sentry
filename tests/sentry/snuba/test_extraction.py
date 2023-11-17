@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.api.event_search import ParenExpression, parse_search_query
+from sentry.exceptions import InvalidSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
@@ -70,11 +71,45 @@ def test_should_use_on_demand(agg, query, result):
     "agg, query, result",
     [
         ("sum(c:custom/page_load@millisecond)", "release:a", False),
+        ("sum(c:custom/page_load@millisecond)", "transaction.duration:>0", False),
         ("avg(d:transactions/duration@millisecond)", "release:a", False),
+        ("avg(d:transactions/duration@millisecond)", "transaction.duration:>0", True),
+        ("p75(d:transactions/measurements.fcp@millisecond)", "release:a", False),
+        ("p75(d:transactions/measurements.fcp@millisecond)", "transaction.duration:>0", True),
     ],
 )
 def test_should_use_on_demand_with_mri(agg, query, result):
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
+
+
+@pytest.mark.parametrize(
+    "agg, query, error",
+    [
+        (
+            "sum(c:transactions/count_per_root_project@none)",
+            "release:a",
+            "The MRI doesn't belong to a publicly exposed metric",
+        ),
+        (
+            "sum(c:transactions/count_per_root_project@none)",
+            "transaction.duration:>0",
+            "The MRI doesn't belong to a publicly exposed metric",
+        ),
+        (
+            "p95(d:spans/duration@millisecond)",
+            "release:a",
+            "The supplied MRI belongs to an unsupported namespace 'spans'",
+        ),
+        (
+            "p95(d:spans/duration@millisecond)",
+            "transaction.duration:>0",
+            "The supplied MRI belongs to an unsupported namespace 'spans'",
+        ),
+    ],
+)
+def test_should_use_on_demand_with_invalid_mri(agg, query, error):
+    with pytest.raises(InvalidSearchQuery, match=error):
+        should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query)
 
 
 def create_spec_if_needed(dataset, agg, query):
