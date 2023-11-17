@@ -21,6 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import Header from '../components/header';
 import {Threshold} from '../utils/types';
@@ -42,7 +43,12 @@ function ReleaseThresholdList({}: Props) {
       organization.features.includes('releases-v2') ||
       organization.features.includes('releases-v2-st');
     if (!hasV2ReleaseUIEnabled) {
-      router.replace('/releases/');
+      router.push(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/releases/`,
+          query: router.location.query,
+        })
+      );
     }
   }, [router, organization]);
   const {projects} = useProjects();
