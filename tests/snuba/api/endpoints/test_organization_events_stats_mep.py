@@ -1066,6 +1066,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 "useOnDemandMetrics": "true",
                 "onDemandType": "dynamic_query",
             },
+            features={"organizations:on-demand-metrics-extraction": True},
         )
 
         assert response.status_code == 200, response.content
@@ -1077,10 +1078,12 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
             ("bar,blue", "count_web_vitals(measurements.lcp, good)", 0.0, 1440.0),
         ]
         assert len(response.data.keys()) == 2
+        # breakpoint()
         for group_count in groups:
             group, agg, row1, row2 = group_count
             row_data = response.data[group][agg]["data"][:2]
-            assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+            assert [attrs for _, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+            # print(f'isMetricsExtractedData: {response.data[group][agg]["meta"]["isMetricsData"]}')
 
     def test_top_events_with_transaction_on_demand_and_no_environment(self):
         field = "count()"

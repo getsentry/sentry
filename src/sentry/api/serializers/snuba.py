@@ -261,6 +261,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             res["order"] = order
         elif "order" in result.data:
             res["order"] = result.data["order"]
+        # breakpoint()
         res["isMetricsData"] = result.data.get("isMetricsData", False)
         res["isMetricsExtractedData"] = result.data.get("isMetricsExtractedData", False)
 
