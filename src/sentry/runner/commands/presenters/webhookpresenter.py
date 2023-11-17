@@ -8,17 +8,17 @@ from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
 from sentry.utils import json
 
 
-class SlackPresenter(OptionsPresenter):
+class WebhookPresenter(OptionsPresenter):
     """
     Sends changes of runtime options made via sentry configoptions
     to a webhook url in a truncated json format. The webhook url can
-    be configured to your liking, but for this use case it is ideally
-    integrated with Slack.
+    be configured to your liking.
     """
 
     MAX_OPTION_VALUE_LENGTH = 30
 
-    def __init__(self) -> None:
+    def __init__(self, source: str) -> None:
+        self.source = source
         self.drifted_options: List[Tuple[str, Any]] = []
         self.channel_updated_options: List[str] = []
         self.updated_options: List[Tuple[str, Any, Any]] = []
@@ -29,7 +29,7 @@ class SlackPresenter(OptionsPresenter):
         self.invalid_type_options: List[Tuple[str, type, type]] = []
 
     @staticmethod
-    def is_slack_enabled():
+    def is_webhook_enabled():
         return (
             options.get("options_automator_slack_webhook_enabled")
             and settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL
@@ -54,7 +54,7 @@ class SlackPresenter(OptionsPresenter):
 
         json_data = {
             "region": region,
-            "source": "options-automator",
+            "source": self.source,
             "drifted_options": [
                 {"option_name": key, "option_value": self.truncate_value(value)}
                 for key, value in self.drifted_options
@@ -81,7 +81,6 @@ class SlackPresenter(OptionsPresenter):
                 for key, got_type, expected_type in self.invalid_type_options
             ],
         }
-
         self._send_to_webhook(json_data)
 
     def truncate_value(self, value: str) -> str:

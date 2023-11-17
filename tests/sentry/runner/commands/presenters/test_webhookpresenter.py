@@ -2,7 +2,7 @@ import pytest
 import responses
 from django.test import override_settings
 
-from sentry.runner.commands.presenters.slackpresenter import SlackPresenter
+from sentry.runner.commands.presenters.webhookpresenter import WebhookPresenter
 from sentry.utils import json
 
 
@@ -12,8 +12,8 @@ from sentry.utils import json
 def test_is_slack_enabled():
     responses.add(responses.POST, "https://test/", status=200)
 
-    presenter = SlackPresenter()
-    assert presenter.is_slack_enabled()
+    presenter = WebhookPresenter("options-automator")
+    assert presenter.is_webhook_enabled()
     presenter.set("option1", "value1")
     presenter.set("option2", "value2")
 
@@ -83,8 +83,8 @@ def test_is_slack_enabled():
 @responses.activate
 @override_settings(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/", SENTRY_REGION="test_region")
 def test_slack_presenter_empty():
-    presenter = SlackPresenter()
-    assert presenter.is_slack_enabled()
+    presenter = WebhookPresenter("options-automator")
+    assert presenter.is_webhook_enabled()
     presenter.flush()
 
     assert len(responses.calls) == 0
@@ -96,8 +96,8 @@ def test_slack_presenter_empty():
 def test_slack_presenter_methods_with_different_types():
     responses.add(responses.POST, "https://test/", status=200)
 
-    presenter = SlackPresenter()
-    assert presenter.is_slack_enabled()
+    presenter = WebhookPresenter("options-automator")
+    assert presenter.is_webhook_enabled()
 
     presenter.set("str_option", "string_value")
     presenter.set("bool_option", True)
