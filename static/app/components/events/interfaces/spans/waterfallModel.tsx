@@ -40,7 +40,8 @@ class WaterfallModel {
   constructor(
     event: Readonly<EventTransaction | AggregateEventTransaction>,
     affectedSpanIds?: string[],
-    focusedSpanIds?: string[]
+    focusedSpanIds?: string[],
+    hiddenSpanSubTrees?: Set<string>
   ) {
     this.event = event;
 
@@ -61,7 +62,7 @@ class WaterfallModel {
 
     // Set of span IDs whose sub-trees should be hidden. This is used for the
     // span tree toggling product feature.
-    this.hiddenSpanSubTrees = new Set();
+    this.hiddenSpanSubTrees = hiddenSpanSubTrees ?? new Set();
 
     // When viewing the span waterfall from a Performance Issue, a set of span IDs may be provided
 
