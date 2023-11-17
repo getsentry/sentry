@@ -245,7 +245,11 @@ function GroupHeader({
             crumbs={[
               {
                 label: 'Issues',
-                to: `/organizations/${organization.slug}/issues/${location.search}`,
+                to: {
+                  pathname: `/organizations/${organization.slug}/issues/`,
+                  // Sanitize sort queries from query
+                  query: omit(location.query, 'sort'),
+                },
               },
               {label: shortIdBreadcrumb},
             ]}

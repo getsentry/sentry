@@ -14,6 +14,7 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValue} from 'sentry/views/discover/table/types';
 
@@ -22,6 +23,7 @@ import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
+import {MetricsConfig} from './metrics';
 import {ReleasesConfig} from './releases';
 
 export type WidgetBuilderSearchBarProps = {
@@ -140,6 +142,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     queryIndex: number,
     organization: Organization,
     pageFilters: PageFilters,
+    onDemandControlContext?: OnDemandControlContext,
     referrer?: string,
     mepSetting?: MEPState | null
   ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
@@ -156,9 +159,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getTableRequest?: (
     api: Client,
+    widget: Widget,
     query: WidgetQuery,
     organization: Organization,
     pageFilters: PageFilters,
+    onDemandControlContext?: OnDemandControlContext,
     limit?: number,
     cursor?: string,
     referrer?: string,
@@ -208,16 +213,24 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
   ? typeof IssuesConfig
   : T extends WidgetType.RELEASE
   ? typeof ReleasesConfig
+  : T extends WidgetType.METRICS
+  ? typeof MetricsConfig
   : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
-): typeof IssuesConfig | typeof ReleasesConfig | typeof ErrorsAndTransactionsConfig {
+):
+  | typeof IssuesConfig
+  | typeof ReleasesConfig
+  | typeof MetricsConfig
+  | typeof ErrorsAndTransactionsConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
     case WidgetType.RELEASE:
       return ReleasesConfig;
+    case WidgetType.METRICS:
+      return MetricsConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

@@ -1,8 +1,9 @@
 import moment from 'moment';
+import {Member} from 'sentry-fixture/member';
 import {MissingMembers} from 'sentry-fixture/missingMembers';
 import {Organization} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
 import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
@@ -23,7 +24,7 @@ describe('inviteBanner', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/missing-members/',
       method: 'GET',
-      body: [],
+      body: [missingMembers],
     });
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
@@ -43,7 +44,6 @@ describe('inviteBanner', function () {
 
     render(
       <InviteBanner
-        missingMembers={missingMembers}
         onSendInvite={() => {}}
         organization={org}
         allowedRoles={[]}
@@ -67,7 +67,6 @@ describe('inviteBanner', function () {
 
     render(
       <InviteBanner
-        missingMembers={missingMembers}
         onSendInvite={() => {}}
         organization={org}
         allowedRoles={[]}
@@ -82,14 +81,13 @@ describe('inviteBanner', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('does not render banner if no missing members', function () {
+  it('does not render banner if no option', function () {
     const org = Organization({
       features: ['integrations-gh-invite'],
     });
 
     render(
       <InviteBanner
-        missingMembers={noMissingMembers}
         onSendInvite={() => {}}
         organization={org}
         allowedRoles={[]}
@@ -104,21 +102,83 @@ describe('inviteBanner', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('does not render banner if lacking org:write', function () {
+  it('does not render banner if no missing members', async function () {
+    const org = Organization({
+      features: ['integrations-gh-invite'],
+      githubNudgeInvite: true,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/missing-members/',
+      method: 'GET',
+      body: [noMissingMembers],
+    });
+
+    await act(async () => {
+      await render(
+        <InviteBanner
+          onSendInvite={() => {}}
+          organization={org}
+          allowedRoles={[]}
+          onModalClose={() => {}}
+        />
+      );
+    });
+
+    expect(
+      screen.queryByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render banner if no integration', async function () {
+    const org = Organization({
+      features: ['integrations-gh-invite'],
+      githubNudgeInvite: true,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/missing-members/',
+      method: 'GET',
+      body: [],
+    });
+
+    await act(async () => {
+      await render(
+        <InviteBanner
+          onSendInvite={() => {}}
+          organization={org}
+          allowedRoles={[]}
+          onModalClose={() => {}}
+        />
+      );
+    });
+
+    expect(
+      screen.queryByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render banner if lacking org:write', async function () {
     const org = Organization({
       features: ['integrations-gh-invite'],
       access: [],
+      githubNudgeInvite: true,
     });
 
-    render(
-      <InviteBanner
-        missingMembers={noMissingMembers}
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
-    );
+    await act(async () => {
+      await render(
+        <InviteBanner
+          onSendInvite={() => {}}
+          organization={org}
+          allowedRoles={[]}
+          onModalClose={() => {}}
+        />
+      );
+    });
 
     expect(
       screen.queryByRole('heading', {
@@ -147,7 +207,6 @@ describe('inviteBanner', function () {
 
     render(
       <InviteBanner
-        missingMembers={missingMembers}
         onSendInvite={() => {}}
         organization={org}
         allowedRoles={[]}
@@ -162,7 +221,7 @@ describe('inviteBanner', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not render banner if snoozed_ts days is shorter than threshold', function () {
+  it('does not render banner if snoozed_ts days is shorter than threshold', async function () {
     const org = Organization({
       features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
@@ -180,15 +239,16 @@ describe('inviteBanner', function () {
       body: {data: promptResponse},
     });
 
-    render(
-      <InviteBanner
-        missingMembers={missingMembers}
-        onSendInvite={() => {}}
-        organization={org}
-        allowedRoles={[]}
-        onModalClose={() => {}}
-      />
-    );
+    await act(async () => {
+      await render(
+        <InviteBanner
+          onSendInvite={() => {}}
+          organization={org}
+          allowedRoles={[]}
+          onModalClose={() => {}}
+        />
+      );
+    });
 
     expect(mockPrompt).toHaveBeenCalled();
     expect(
@@ -196,5 +256,66 @@ describe('inviteBanner', function () {
         name: 'Bring your full GitHub team on board in Sentry',
       })
     ).not.toBeInTheDocument();
+  });
+
+  it('invites member from banner', async function () {
+    const newMember = Member({
+      id: '6',
+      email: 'hello@sentry.io',
+      teams: [],
+      teamRoles: [],
+      flags: {
+        'idp:provisioned': false,
+        'idp:role-restricted': false,
+        'member-limit:restricted': false,
+        'partnership:restricted': false,
+        'sso:invalid': false,
+        'sso:linked': true,
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/missing-members/',
+      method: 'GET',
+      body: [
+        {
+          integration: 'github',
+          users: MissingMembers().slice(0, 5),
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/?referrer=github_nudge_invite',
+      method: 'POST',
+      body: newMember,
+    });
+
+    const org = Organization({
+      features: ['integrations-gh-invite'],
+      githubNudgeInvite: true,
+    });
+
+    render(
+      <InviteBanner
+        onSendInvite={() => {}}
+        organization={org}
+        allowedRoles={[]}
+        onModalClose={() => {}}
+      />
+    );
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Bring your full GitHub team on board in Sentry',
+      })
+    ).toBeInTheDocument();
+    expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
+    expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
+
+    const inviteButton = screen.queryAllByTestId('invite-missing-member')[0];
+    await userEvent.click(inviteButton);
+    expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(4);
+    expect(screen.getByText('See all 4 missing members')).toBeInTheDocument();
   });
 });

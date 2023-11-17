@@ -209,6 +209,7 @@ class DigestNotification(ProjectNotification):
                 "target_identifier": self.target_identifier,
                 "team_ids": team_ids,
                 "user_ids": user_ids,
+                "notification_uuid": self.notification_uuid,
             },
         )
 

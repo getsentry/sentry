@@ -193,6 +193,35 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
+    @override_options({"system.base-hostname": "example.com"})
+    @override_settings(ALLOWED_CREDENTIAL_ORIGINS=["http://docs.example.org"])
+    def test_allow_credentials_allowed_domain(self):
+        org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+
+        request = self.make_request(method="GET")
+        # Origin is an allowed domain
+        request.META["HTTP_ORIGIN"] = "http://docs.example.org"
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
+
+        response = _dummy_endpoint(request)
+        response.render()
+
+        assert response.status_code == 200, response.content
+        assert response["Access-Control-Allow-Origin"] == "http://docs.example.org"
+        assert response["Access-Control-Allow-Headers"] == (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage, X-CSRFToken"
+        )
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
+        assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
+        assert response["Access-Control-Allow-Credentials"] == "true"
+
     @override_options({"system.base-hostname": "acme.com"})
     def test_allow_credentials_incorrect(self):
         org = self.create_organization()

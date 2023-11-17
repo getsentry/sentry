@@ -17,6 +17,7 @@ from sentry.integrations.message_builder import (
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.actor import ActorTuple
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -154,6 +155,9 @@ def build_actions(
     status = group.get_status()
 
     def _ignore_button() -> MessageAction:
+        if group.issue_category == GroupCategory.FEEDBACK:
+            return None
+
         if status == GroupStatus.IGNORED:
             return MessageAction(
                 name="status",

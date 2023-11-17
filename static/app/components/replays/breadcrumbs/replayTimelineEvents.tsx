@@ -196,7 +196,7 @@ const IconNode = styled('div')<{colors: Color[]; frameCount: number}>`
 `;
 
 const TooltipWrapper = styled('div')`
-  max-height: calc(100vh - ${space(4)});
+  max-height: 80vh;
   overflow: auto;
 `;
 

@@ -74,7 +74,7 @@ describe('components/interfaces/utils', function () {
           ' "http://example.com/foo?foo=bar"'
       );
 
-      // Do not add data if data is empty
+      // Do not add `data` if `data` is missing
       expect(
         getCurlCommand({
           apiTarget: null,
@@ -89,7 +89,7 @@ describe('components/interfaces/utils', function () {
         })
       ).toEqual('curl \\\n "http://example.com/foo?foo=bar"');
 
-      // Do not add data if data is empty object
+      // Do not add `data` if `data` is empty object
       expect(
         getCurlCommand({
           apiTarget: null,
@@ -104,6 +104,48 @@ describe('components/interfaces/utils', function () {
           method: 'GET',
         })
       ).toEqual('curl \\\n "http://example.com/foo"');
+
+      // Filter out undefined headers
+      expect(
+        getCurlCommand({
+          apiTarget: null,
+          url: 'http://example.com/foo',
+          headers: [
+            ['Referer', 'http://example.com'],
+            ['Content-Type', 'application/json'],
+            undefined as any,
+          ],
+          data: '{"hello": "world"}',
+          method: 'GET',
+        })
+      ).toEqual(
+        'curl \\\n' +
+          ' -H "Content-Type: application/json" \\\n' +
+          ' -H "Referer: http://example.com" \\\n' +
+          ' --data "{\\"hello\\": \\"world\\"}" \\\n' +
+          ' "http://example.com/foo"'
+      );
+
+      // Filter out null headers
+      expect(
+        getCurlCommand({
+          apiTarget: null,
+          url: 'http://example.com/foo',
+          headers: [
+            ['Referer', 'http://example.com'],
+            ['Content-Type', 'application/json'],
+            null as any,
+          ],
+          data: '{"hello": "world"}',
+          method: 'GET',
+        })
+      ).toEqual(
+        'curl \\\n' +
+          ' -H "Content-Type: application/json" \\\n' +
+          ' -H "Referer: http://example.com" \\\n' +
+          ' --data "{\\"hello\\": \\"world\\"}" \\\n' +
+          ' "http://example.com/foo"'
+      );
 
       // Escape escaped strings.
       expect(

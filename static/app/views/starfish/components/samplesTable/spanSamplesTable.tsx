@@ -1,11 +1,17 @@
 import {CSSProperties} from 'react';
 import {Link} from 'react-router';
+import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconProfiling} from 'sentry/icons/iconProfiling';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
@@ -13,6 +19,9 @@ import {
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 import {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
+
+const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
 
 type Keys =
   | 'transaction_id'
@@ -20,10 +29,11 @@ type Keys =
   | 'timestamp'
   | 'duration'
   | 'p95_comparison'
-  | 'avg_comparison';
+  | 'avg_comparison'
+  | 'http.response_content_length';
 export type SamplesTableColumnHeader = GridColumnHeader<Keys>;
 
-const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
+export const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
   {
     key: 'transaction_id',
     name: 'Event ID',
@@ -119,16 +129,26 @@ export function SpanSamplesTable({
       );
     }
 
+    if (column.key === HTTP_RESPONSE_CONTENT_LENGTH) {
+      const size = parseInt(row[HTTP_RESPONSE_CONTENT_LENGTH], 10);
+      return <ResourceSize bytes={size} />;
+    }
     if (column.key === 'profile_id') {
-      return row.profile_id ? (
-        <Link
-          {...commonProps}
-          to={`/profiling/profile/${row.project}/${row.profile_id}/flamechart/`}
-        >
-          {row.profile_id.slice(0, 8)}
-        </Link>
-      ) : (
-        <div {...commonProps}>(no value)</div>
+      return (
+        <IconWrapper>
+          {row.profile_id ? (
+            <Tooltip title={t('View Profile')}>
+              <LinkButton
+                to={`/profiling/profile/${row.project}/${row.profile_id}/flamechart/`}
+                size="xs"
+              >
+                <IconProfiling size="xs" />
+              </LinkButton>
+            </Tooltip>
+          ) : (
+            <div {...commonProps}>(no value)</div>
+          )}
+        </IconWrapper>
       );
     }
 
@@ -167,3 +187,9 @@ export function SpanSamplesTable({
     </div>
   );
 }
+
+const IconWrapper = styled('div')`
+  text-align: right;
+  width: 100%;
+  height: 26px;
+`;

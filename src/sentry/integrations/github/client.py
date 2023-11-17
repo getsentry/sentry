@@ -229,17 +229,23 @@ class GitHubClientMixin(GithubProxyClient):
 
         Returns the merged pull request that introduced the commit to the repository. If the commit is not present in the default branch, will only return open pull requests associated with the commit.
         """
-        pullrequest: JSONData = self.get(f"/repos/{repo}/commits/{sha}/pulls")
-        return pullrequest
+        return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
-    def get_pullrequest(self, repo: str, pull_number: int) -> JSONData:
+    def get_pullrequest(self, repo: str, pull_number: str) -> JSONData:
         """
-        https://docs.github.com/en/free-pro-team@latest/rest/pulls/pulls?apiVersion=2022-11-28#get-a-pull-request
+        https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
 
         Returns the pull request details
         """
-        pullrequest: JSONData = self.get(f"/repos/{repo}/pulls/{pull_number}")
-        return pullrequest
+        return self.get(f"/repos/{repo}/pulls/{pull_number}")
+
+    def get_pullrequest_files(self, repo: str, pull_number: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
+
+        Returns up to 30 files associated with a pull request. Responses are paginated.
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
 
     def get_repo(self, repo: str) -> JSONData:
         """
@@ -694,7 +700,7 @@ class GitHubClientMixin(GithubProxyClient):
             "provider": "github",
             "organization_integration_id": self.org_integration_id,
         }
-        metrics.incr("sentry.integrations.github.get_blame_for_files")
+        metrics.incr("integrations.github.get_blame_for_files")
         rate_limit = self.get_rate_limit(specific_resource="graphql")
         if rate_limit.remaining < MINIMUM_REQUESTS:
             metrics.incr("integrations.github.get_blame_for_files.not_enough_requests_remaining")
@@ -715,6 +721,7 @@ class GitHubClientMixin(GithubProxyClient):
         cache_key = self.get_cache_key("/graphql", data)
         response = self.check_cache(cache_key)
         if response:
+            metrics.incr("integrations.github.get_blame_for_files.got_cached")
             logger.info(
                 "sentry.integrations.github.get_blame_for_files.got_cached",
                 extra=log_info,

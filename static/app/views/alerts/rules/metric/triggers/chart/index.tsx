@@ -33,7 +33,8 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getForceMetricsLayerQueryExtras} from 'sentry/utils/ddm/features';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
@@ -298,7 +299,7 @@ class TriggersChart extends PureComponent<Props, State> {
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
       : showExtrapolatedChartData
       ? t('Estimated Transactions')
-      : t('Total Transactions');
+      : t('Total');
 
     return (
       <Fragment>
@@ -385,12 +386,15 @@ class TriggersChart extends PureComponent<Props, State> {
       organization.features.includes('change-alerts') && comparisonDelta
     );
 
-    const queryExtras = getMetricDatasetQueryExtras({
-      organization,
-      location,
-      dataset,
-      newAlertOrQuery,
-    });
+    const queryExtras = {
+      ...getMetricDatasetQueryExtras({
+        organization,
+        location,
+        dataset,
+        newAlertOrQuery,
+      }),
+      ...getForceMetricsLayerQueryExtras(organization, dataset),
+    };
 
     if (isOnDemandMetricAlert) {
       return (

@@ -113,12 +113,12 @@ export const useTransactionSamplesWebVitalsQuery = ({
               });
             return {
               ...row,
-              score: totalScore,
-              clsScore,
-              fcpScore,
-              lcpScore,
-              ttfbScore,
-              fidScore,
+              score: totalScore ?? 0,
+              clsScore: clsScore ?? 0,
+              fcpScore: fcpScore ?? 0,
+              lcpScore: lcpScore ?? 0,
+              ttfbScore: ttfbScore ?? 0,
+              fidScore: fidScore ?? 0,
             };
           })
       : [];

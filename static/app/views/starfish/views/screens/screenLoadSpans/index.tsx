@@ -3,6 +3,7 @@ import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -13,7 +14,6 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -25,6 +25,7 @@ import {
   ScreenCharts,
   YAxis,
 } from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
+import {ScreenLoadEventSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamples';
 import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
@@ -58,12 +59,12 @@ function ScreenLoadSpans() {
   const crumbs: Crumb[] = [
     {
       to: screenLoadModule,
-      label: t('Screens'),
+      label: t('Mobile'),
       preservePageFilters: true,
     },
     {
       to: '',
-      label: decodeScalar(location.query.transaction),
+      label: t('Screen Summary'),
     },
   ];
 
@@ -86,6 +87,7 @@ function ScreenLoadSpans() {
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
+            <FeedbackWidget />
             <Layout.Main fullWidth>
               <PageErrorAlert />
               <StarfishPageFiltersContainer>
@@ -96,14 +98,35 @@ function ScreenLoadSpans() {
                     </PageFilterBar>
                     <ReleaseComparisonSelector />
                   </FilterContainer>
-                  <ScreenMetricsRibbon />
+                  <ScreenMetricsRibbon
+                    additionalFilters={[`transaction:${transactionName}`]}
+                  />
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreenCharts
-                yAxes={[YAxis.TTID, YAxis.TTFD]}
+                yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
               />
+              <SampleContainer>
+                <SampleContainerItem>
+                  <ScreenLoadEventSamples
+                    release={primaryRelease}
+                    sortKey="release1Samples"
+                    cursorName="release1Cursor"
+                    transaction={transactionName}
+                    showDeviceClassSelector
+                  />
+                </SampleContainerItem>
+                <SampleContainerItem>
+                  <ScreenLoadEventSamples
+                    release={secondaryRelease}
+                    sortKey="release2Samples"
+                    cursorName="release2Cursor"
+                    transaction={transactionName}
+                  />
+                </SampleContainerItem>
+              </SampleContainer>
               <ScreenLoadSpansTable
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
@@ -153,4 +176,15 @@ const FilterContainer = styled('div')`
   column-gap: ${space(1)};
   grid-template-rows: auto;
   grid-template-columns: auto 1fr;
+`;
+
+const SampleContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(2)};
+`;
+
+const SampleContainerItem = styled('div')`
+  flex: 1;
 `;

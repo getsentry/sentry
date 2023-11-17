@@ -60,7 +60,7 @@ def run_escalating_forecast() -> None:
 )
 @retry
 def generate_forecasts_for_projects(project_ids: List[int]) -> None:
-    query_until_escalating_groups = [
+    query_until_escalating_groups = (
         group
         for group in RangeQuerySetWrapper(
             Group.objects.filter(
@@ -74,7 +74,7 @@ def generate_forecasts_for_projects(project_ids: List[int]) -> None:
             step=ITERATOR_CHUNK,
         )
         if group.issue_type.should_detect_escalation(group.project.organization)
-    ]
+    )
 
     for until_escalating_groups in chunked(
         query_until_escalating_groups,

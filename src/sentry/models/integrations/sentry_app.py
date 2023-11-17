@@ -7,7 +7,6 @@ from typing import ClassVar, List
 from django.db import models, router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
-from django.utils.text import slugify
 from rest_framework.request import Request
 
 from sentry.backup.scopes import RelocationScope
@@ -73,15 +72,6 @@ UUID_CHARS_IN_SLUG = 6
 
 def default_uuid():
     return str(uuid.uuid4())
-
-
-def generate_slug(name: str, is_internal=False) -> str:
-    slug = slugify(name)
-    # for internal, add some uuid to make it unique
-    if is_internal:
-        slug = f"{slug}-{default_uuid()[:UUID_CHARS_IN_SLUG]}"
-
-    return slug
 
 
 def track_response_code(status, integration_slug, webhook_event):
@@ -162,6 +152,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     creator_label = models.TextField(null=True)
 
     popularity = models.PositiveSmallIntegerField(null=True, default=1)
+    metadata = JSONField(default=dict)
 
     objects: ClassVar[SentryAppManager] = SentryAppManager()
 

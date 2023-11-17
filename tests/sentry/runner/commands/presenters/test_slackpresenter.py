@@ -42,6 +42,7 @@ def test_is_slack_enabled():
 
     expected_json_data = {
         "region": "test_region",
+        "source": "options-automator",
         "drifted_options": [
             {"option_name": "option9", "option_value": "db_value9"},
             {"option_name": "option10", "option_value": "db_value10"},
@@ -74,8 +75,19 @@ def test_is_slack_enabled():
         ],
     }
 
-    assert responses.calls[1].response.status_code == 200
-    assert expected_json_data == json.loads(responses.calls[1].request.body)
+    assert responses.calls[0].response.status_code == 200
+    assert expected_json_data == json.loads(responses.calls[0].request.body)
+
+
+@pytest.mark.django_db
+@responses.activate
+@override_settings(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/", SENTRY_REGION="test_region")
+def test_slack_presenter_empty():
+    presenter = SlackPresenter()
+    assert presenter.is_slack_enabled()
+    presenter.flush()
+
+    assert len(responses.calls) == 0
 
 
 @pytest.mark.django_db
@@ -100,6 +112,7 @@ def test_slack_presenter_methods_with_different_types():
 
     expected_json_data = {
         "region": "test_region",
+        "source": "options-automator",
         "drifted_options": [{"option_name": "drifted", "option_value": "{'key': 'value'}"}],
         "updated_options": [{"option_name": "updated", "db_value": "1.0", "value": "0.0"}],
         "set_options": [
@@ -121,5 +134,5 @@ def test_slack_presenter_methods_with_different_types():
         ],
     }
 
-    assert responses.calls[1].response.status_code == 200
-    assert expected_json_data == json.loads(responses.calls[1].request.body)
+    assert responses.calls[0].response.status_code == 200
+    assert expected_json_data == json.loads(responses.calls[0].request.body)

@@ -24,7 +24,8 @@ export enum DisplayType {
 export enum WidgetType {
   DISCOVER = 'discover',
   ISSUE = 'issue',
-  RELEASE = 'metrics', // TODO(dashboards): Rename this on backend and then change here
+  RELEASE = 'metrics', // TODO(ddm): rename RELEASE to 'release', and METRICS to 'metrics'
+  METRICS = 'custom-metrics',
 }
 
 export type WidgetQuery = {
@@ -119,4 +120,5 @@ export enum DashboardWidgetSource {
   DASHBOARDS = 'dashboards',
   LIBRARY = 'library',
   ISSUE_DETAILS = 'issueDetail',
+  DDM = 'ddm',
 }

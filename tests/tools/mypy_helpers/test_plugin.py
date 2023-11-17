@@ -142,50 +142,6 @@ transaction.set_rollback(True, "default")
     assert ret == 0
 
 
-def test_field_descriptor_hack():
-    code = """\
-from __future__ import annotations
-
-from django.db import models
-
-class M1(models.Model):
-    f: models.Field[int, int] = models.IntegerField()
-
-class C:
-    f: int
-
-def f(inst: C | M1 | M2) -> int:
-    return inst.f
-
-# should also work with field subclasses
-class F(models.Field[int, int]):
-    pass
-
-class M2(models.Model):
-    f = F()
-
-def g(inst: C | M2) -> int:
-    return inst.f
-"""
-
-    # should be an error with default plugins
-    # mypy may fix this at some point hopefully: python/mypy#5570
-    ret, out = call_mypy(code, plugins=[])
-    assert ret
-    assert (
-        out
-        == """\
-<string>:12: error: Incompatible return value type (got "Union[int, Field[int, int]]", expected "int")  [return-value]
-<string>:22: error: Incompatible return value type (got "Union[int, F]", expected "int")  [return-value]
-Found 2 errors in 1 file (checked 1 source file)
-"""
-    )
-
-    # should be fixed with our special plugin
-    ret, _ = call_mypy(code)
-    assert ret == 0
-
-
 @pytest.mark.parametrize(
     "attr",
     (

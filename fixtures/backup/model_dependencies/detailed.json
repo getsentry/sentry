@@ -1160,6 +1160,42 @@
       ]
     ]
   },
+  "sentry.controlimportchunk": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.controlimportchunk",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "sentry_controlimportchunk",
+    "uniques": [
+      [
+        "import_uuid",
+        "min_ordinal",
+        "model"
+      ]
+    ]
+  },
+  "sentry.controlimportchunkreplica": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.controlimportchunkreplica",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_controlimportchunkreplica",
+    "uniques": [
+      [
+        "import_uuid",
+        "min_ordinal",
+        "model"
+      ]
+    ]
+  },
   "sentry.controloption": {
     "dangling": false,
     "foreign_keys": {},
@@ -1705,7 +1741,7 @@
       "file_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.file",
-        "nullable": false
+        "nullable": true
       },
       "group_id": {
         "kind": "ImplicitForeignKey",
@@ -1725,13 +1761,7 @@
       "Region"
     ],
     "table_name": "sentry_eventattachment",
-    "uniques": [
-      [
-        "event_id",
-        "file_id",
-        "project_id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.eventprocessingissue": {
     "dangling": false,
@@ -3814,7 +3844,7 @@
       "user_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.user",
-        "nullable": false
+        "nullable": true
       }
     },
     "model": "sentry.organizationslugreservation",
@@ -4595,6 +4625,24 @@
       ]
     ]
   },
+  "sentry.regionimportchunk": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.regionimportchunk",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_regionimportchunk",
+    "uniques": [
+      [
+        "import_uuid",
+        "min_ordinal",
+        "model"
+      ]
+    ]
+  },
   "sentry.regionoutbox": {
     "dangling": false,
     "foreign_keys": {},
@@ -4991,20 +5039,11 @@
   },
   "sentry.relocation": {
     "dangling": false,
-    "foreign_keys": {
-      "creator": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      },
-      "owner": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      }
-    },
+    "foreign_keys": {},
     "model": "sentry.relocation",
-    "relocation_dependencies": [],
+    "relocation_dependencies": [
+      "sentry.user"
+    ],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"

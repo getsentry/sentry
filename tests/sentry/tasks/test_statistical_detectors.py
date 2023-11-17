@@ -26,9 +26,8 @@ from sentry.tasks.statistical_detectors import (
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.snuba import SnubaTSResult
@@ -125,10 +124,13 @@ def test_run_detection_options(
 
     options = {
         "statistical_detectors.enable": enable,
-        "statistical_detectors.enable.projects.performance": [project.id]
+    }
+
+    features = {
+        "organizations:performance-statistical-detectors-ema": [project.organization.slug]
         if performance_project
         else [],
-        "statistical_detectors.enable.projects.profiling": [project.id]
+        "organizations:profiling-statistical-detectors-ema": [project.organization.slug]
         if profiling_project
         else [],
     }
@@ -142,7 +144,7 @@ def test_run_detection_options(
             },
         )
 
-    with freeze_time(timestamp), override_options(options), TaskRunner():
+    with freeze_time(timestamp), override_options(options), Feature(features):
         run_detection()
 
     if expected_performance_project:
@@ -178,15 +180,16 @@ def test_run_detection_options_multiple_batches(
         project.update(flags=F("flags").bitor(flags))
         projects.append(project)
 
-    project_ids = [project.id for project in projects]
-
     options = {
         "statistical_detectors.enable": True,
-        "statistical_detectors.enable.projects.performance": project_ids,
-        "statistical_detectors.enable.projects.profiling": project_ids,
     }
 
-    with freeze_time(timestamp), override_options(options), TaskRunner():
+    features = {
+        "organizations:performance-statistical-detectors-ema": [organization.slug],
+        "organizations:profiling-statistical-detectors-ema": [organization.slug],
+    }
+
+    with freeze_time(timestamp), override_options(options), Feature(features):
         run_detection()
 
     # total of 9 projects, broken into batches of 5 means batch sizes of 5 + 4
@@ -250,12 +253,7 @@ def test_detect_function_trends_options(
     timestamp,
     project,
 ):
-    with override_options(
-        {
-            "statistical_detectors.enable": enabled,
-            "statistical_detectors.enable.projects.profiling": [project.id],
-        }
-    ):
+    with override_options({"statistical_detectors.enable": enabled}):
         detect_function_trends([project.id], timestamp)
     assert query_functions.called == enabled
 
@@ -263,12 +261,7 @@ def test_detect_function_trends_options(
 @mock.patch("sentry.snuba.functions.query")
 @django_db_all
 def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
-    with override_options(
-        {
-            "statistical_detectors.enable": True,
-            "statistical_detectors.enable.projects.profiling": [project.id],
-        }
-    ):
+    with override_options({"statistical_detectors.enable": True}):
         detect_function_trends([project.id], timestamp)
 
     assert functions_query.called
@@ -302,12 +295,7 @@ def test_detect_transaction_trends(
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options(
-        {
-            "statistical_detectors.enable": True,
-            "statistical_detectors.enable.projects.performance": [project.id],
-        }
-    ), TaskRunner():
+    with override_options({"statistical_detectors.enable": True}):
         for ts in timestamps:
             detect_transaction_trends([project.organization.id], [project.id], ts)
     assert detect_transaction_change_points.apply_async.called
@@ -362,10 +350,9 @@ def test_detect_transaction_trends_ratelimit(
     with override_options(
         {
             "statistical_detectors.enable": True,
-            "statistical_detectors.enable.projects.performance": [project.id],
             "statistical_detectors.ratelimit.ema": ratelimit,
         }
-    ), TaskRunner():
+    ):
         for ts in timestamps:
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
@@ -454,12 +441,7 @@ def test_detect_function_trends(
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options(
-        {
-            "statistical_detectors.enable": True,
-            "statistical_detectors.enable.projects.profiling": [project.id],
-        }
-    ), TaskRunner():
+    with override_options({"statistical_detectors.enable": True}):
         for ts in timestamps:
             detect_function_trends([project.id], ts)
     assert detect_function_change_points.apply_async.called
@@ -513,10 +495,9 @@ def test_detect_function_trends_ratelimit(
     with override_options(
         {
             "statistical_detectors.enable": True,
-            "statistical_detectors.enable.projects.profiling": [project.id],
             "statistical_detectors.ratelimit.ema": ratelimit,
         }
-    ), TaskRunner():
+    ):
         for ts in timestamps:
             detect_function_trends([project.id], ts)
 
@@ -589,12 +570,15 @@ def test_detect_function_change_points(
         ]
     }
 
-    with override_options(
-        {
-            "statistical_detectors.enable": True,
-            "statistical_detectors.enable.projects.profiling": [project.id],
-        }
-    ):
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    features = {
+        "organizations:profiling-statistical-detectors-breakpoint": [project.organization.slug]
+    }
+
+    with override_options(options), Feature(features):
         detect_function_change_points([(project.id, fingerprint)], timestamp)
     assert mock_emit_function_regression_issue.called
 
@@ -759,20 +743,13 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_transactions_query(self) -> None:
-        with override_options(
-            {
-                "statistical_detectors.enable.projects.performance": [
-                    project.id for project in self.projects
-                ],
-            }
-        ):
-            res = query_transactions(
-                [self.org.id],
-                [p.id for p in self.projects],
-                self.hour_ago,
-                self.now,
-                self.num_transactions + 1,  # detect if any extra transactions are returned
-            )
+        res = query_transactions(
+            [self.org.id],
+            [p.id for p in self.projects],
+            self.hour_ago,
+            self.now,
+            self.num_transactions + 1,  # detect if any extra transactions are returned
+        )
 
         assert len(res) == len(self.projects) * self.num_transactions
         for trend_payload in res:
@@ -975,14 +952,13 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                 },
             ]
         }
-        with override_options(
-            {
-                "statistical_detectors.enable": True,
-                "statistical_detectors.enable.projects.performance": [
-                    project.id for project in self.projects
-                ],
-            }
-        ):
+
+        options = {"statistical_detectors.enable": True}
+        features = {
+            "organizations:performance-statistical-detectors-breakpoint": [self.org.slug],
+        }
+
+        with override_options(options), Feature(features):
             detect_transaction_change_points(
                 [
                     (self.projects[0].id, "transaction_1"),

@@ -6,6 +6,7 @@ from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
+    SearchQueryConverter,
     apdex_tag_spec,
     cleanup_query,
     failure_tag_spec,
@@ -426,6 +427,44 @@ def test_spec_with_has():
     }
 
 
+def test_spec_with_message():
+    spec = OnDemandMetricSpec(
+        "avg(measurements.lcp)", 'message:"issues" AND !message:"alerts" AND "api"'
+    )
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.transaction", "op": "glob", "value": ["*issues*"]},
+            {
+                "inner": {"name": "event.transaction", "op": "glob", "value": ["*alerts*"]},
+                "op": "not",
+            },
+            {"name": "event.transaction", "op": "glob", "value": ["*api*"]},
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_with_unknown_error_status():
+    spec = OnDemandMetricSpec(
+        "avg(measurements.lcp)", "transaction.status:unknown_error OR transaction.status:unknown"
+    )
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.contexts.trace.status", "op": "eq", "value": "unknown"},
+            {"name": "event.contexts.trace.status", "op": "eq", "value": "unknown"},
+        ],
+        "op": "or",
+    }
+
+
 def test_spec_ignore_fields():
     with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
     without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
@@ -615,3 +654,26 @@ def test_to_standard_metrics_query(dirty, clean):
     clean_tokens = parse_search_query(clean)
 
     assert cleaned_up_tokens == clean_tokens
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        (
+            "has:profile.id",
+            {
+                "op": "not",
+                "inner": {"op": "eq", "name": "event.contexts.profile.profile_id", "value": None},
+            },
+        ),
+        (
+            "profile.id:abc123",
+            {"op": "eq", "name": "event.contexts.profile.profile_id", "value": "abc123"},
+        ),
+    ],
+)
+def test_search_query_converter(query, expected):
+    tokens = parse_search_query(query)
+    converter = SearchQueryConverter(tokens)
+    condition = converter.convert()
+    assert expected == condition
