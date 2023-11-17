@@ -1,25 +1,31 @@
 import {ReactNode, useCallback, useState} from 'react';
 
 import Tag from 'sentry/components/tag';
+import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Widget} from 'sentry/views/dashboards/types';
 import {WIDGET_MAP_DENY_LIST} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 import {AutoSampleState, useMEPSettingContext} from './metricsEnhancedSetting';
+import {useOnDemandControl} from './onDemandControl';
 import {createDefinedContext} from './utils';
+
+export type MetricsResultsMetaMapKey = Widget;
+type ExtractedDataMap = Map<MetricsResultsMetaMapKey, boolean | undefined>;
 
 export interface MetricsEnhancedPerformanceDataContext {
   setIsMetricsData: (value?: boolean) => void;
-  setIsOnDemandData: (value?: boolean) => void;
   isMetricsData?: boolean;
-  isOnDemandData?: boolean;
 }
 
-const [_MEPDataProvider, _useMEPDataContext] =
+const [_MEPDataProvider, _useMEPDataContext, _Context] =
   createDefinedContext<MetricsEnhancedPerformanceDataContext>({
     name: 'MetricsEnhancedPerformanceDataContext',
   });
 
+export const MEPDataConsumer = _Context.Consumer;
+export const MEPDataContext = _Context;
 export function MEPDataProvider({
   children,
   chartSetting,
@@ -29,7 +35,6 @@ export function MEPDataProvider({
 }) {
   const {setAutoSampleState} = useMEPSettingContext();
   const [isMetricsData, _setIsMetricsData] = useState<boolean | undefined>(undefined); // Uses undefined to cover 'not initialized'
-  const [isOnDemandData, _setIsOnDemandData] = useState<boolean | undefined>(undefined); // Uses undefined to cover 'not initialized'
 
   const setIsMetricsData = useCallback(
     (value?: boolean) => {
@@ -47,16 +52,12 @@ export function MEPDataProvider({
     [setAutoSampleState, _setIsMetricsData, chartSetting]
   );
 
-  const setIsOnDemandData = useCallback(
-    (value?: boolean) => {
-      _setIsOnDemandData(value);
-    },
-    [_setIsOnDemandData]
-  );
-
   return (
     <_MEPDataProvider
-      value={{isMetricsData, setIsMetricsData, isOnDemandData, setIsOnDemandData}}
+      value={{
+        isMetricsData,
+        setIsMetricsData,
+      }}
     >
       {children}
     </_MEPDataProvider>
@@ -64,6 +65,39 @@ export function MEPDataProvider({
 }
 
 export const useMEPDataContext = _useMEPDataContext;
+
+// A provider for handling all metas on the page, should be used if your queries and components aren't
+// co-located since a local provider doesn't work in that case.
+export interface PerformanceDataMultipleMetaContext {
+  metricsExtractedDataMap: ExtractedDataMap;
+  setIsMetricsExtractedData: (mapKey: MetricsResultsMetaMapKey, value?: boolean) => void;
+}
+
+const [_MetricsResultsMetaProvider, _useMetricsResultsMeta] =
+  createDefinedContext<PerformanceDataMultipleMetaContext>({
+    name: 'PerformanceDataMultipleMetaContext',
+    strict: false,
+  });
+export const useMetricsResultsMeta = _useMetricsResultsMeta;
+
+export function MetricsResultsMetaProvider({children}: {children: ReactNode}) {
+  const [metricsExtractedDataMap, _setMetricsExtractedDataMap] = useState(new Map());
+
+  const setIsMetricsExtractedData = useCallback(
+    (mapKey: MetricsResultsMetaMapKey, value?: boolean) => {
+      metricsExtractedDataMap.set(mapKey, value);
+    },
+    [metricsExtractedDataMap]
+  );
+
+  return (
+    <_MetricsResultsMetaProvider
+      value={{setIsMetricsExtractedData, metricsExtractedDataMap}}
+    >
+      {children}
+    </_MetricsResultsMetaProvider>
+  );
+}
 
 export function getIsMetricsDataFromResults(
   results: any,
@@ -75,18 +109,6 @@ export function getIsMetricsDataFromResults(
     results?.histograms?.meta?.isMetricsData ??
     results?.tableData?.meta?.isMetricsData;
   return isMetricsData;
-}
-
-export function getIsOnDemandDataFromResults(
-  results: any,
-  field = ''
-): boolean | undefined {
-  const isOnDemandData =
-    results?.meta?.isOnDemandData ??
-    results?.seriesAdditionalInfo?.[field]?.isOnDemandData ??
-    results?.histograms?.meta?.isOnDemandData ??
-    results?.tableData?.meta?.isOnDemandData;
-  return isOnDemandData;
 }
 
 export function MEPTag() {
@@ -105,4 +127,31 @@ export function MEPTag() {
   const tagText = isMetricsData ? 'processed' : 'indexed';
 
   return <Tag data-test-id="has-metrics-data-tag">{tagText}</Tag>;
+}
+
+export function ExtractedMetricsTag(props: {queryKey: MetricsResultsMetaMapKey}) {
+  const resultsMeta = useMetricsResultsMeta();
+  const organization = useOrganization();
+  const {forceOnDemand} = useOnDemandControl();
+
+  const isMetricsExtractedData =
+    resultsMeta?.metricsExtractedDataMap.get(props.queryKey) || undefined;
+
+  if (!organization.features.includes('on-demand-metrics-extraction-experimental')) {
+    // Separate if for easier flag deletion
+    return null;
+  }
+
+  if (!forceOnDemand || isMetricsExtractedData === undefined) {
+    return null;
+  }
+
+  if (!isMetricsExtractedData) {
+    return <Tag style={{opacity: 0.25}}>{t('not extracted')}</Tag>;
+  }
+  return (
+    <Tag type="info" data-test-id="has-metrics-data-tag">
+      {t('extracted')}
+    </Tag>
+  );
 }
