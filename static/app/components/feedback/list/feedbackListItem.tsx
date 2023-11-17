@@ -13,7 +13,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCircleFill, IconFlag, IconPlay} from 'sentry/icons';
+import {IconAttachment, IconCircleFill, IconFlag, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -113,6 +113,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             {hasReplayId && (
               <Tag type="highlight">
                 <Badge isOpen={isOpen}>
+                  <IconAttachment size="xs" />
                   <IconPlay size="xs" />
                 </Badge>
               </Tag>

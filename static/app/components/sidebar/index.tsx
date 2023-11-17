@@ -373,7 +373,7 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
-        label={t('User Feedback')}
+        label={<div style={{overflow: 'hidden'}}>{t('User Feedback')}</div>}
         isBeta
         variant="short"
         to={`/organizations/${organization.slug}/feedback/`}
@@ -682,7 +682,6 @@ const SidebarSectionGroupPrimary = styled('div')`
 `;
 
 const PrimaryItems = styled('div')`
-  overflow: auto;
   flex: 1;
   display: flex;
   flex-direction: column;
