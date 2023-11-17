@@ -364,6 +364,7 @@ const SidebarItemLabel = styled('span')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  overflow: hidden;
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {
