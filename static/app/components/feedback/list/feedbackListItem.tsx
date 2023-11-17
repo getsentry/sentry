@@ -80,8 +80,8 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay={false} />
             </span>
           </TextOverflow>
-          <span style={{gridArea: 'time', textAlign: 'right'}}>
-            <TimeSince date={feedbackItem.firstSeen} />
+          <span style={{gridArea: 'time'}}>
+            <StyledTimeSince date={feedbackItem.firstSeen} />
           </span>
           <Flex justify="center" style={{gridArea: 'unread'}}>
             {feedbackItem.hasSeen ? null : (
@@ -91,12 +91,9 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           <div style={{gridArea: 'message'}}>
             <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
           </div>
-          <div
+          <RightAlignedIcons
             style={{
               gridArea: 'icons',
-              display: 'flex',
-              justifyContent: 'end',
-              gap: `${space(0.5)}`,
             }}
           >
             {feedbackItem.assignedTo ? (
@@ -118,7 +115,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
                 </Badge>
               </Tag>
             )}
-          </div>
+          </RightAlignedIcons>
           <Flex style={{gridArea: 'proj'}} gap={space(1)} align="center">
             <Badge isOpen={isOpen}>
               <ProjectAvatar project={feedbackItem.project} size={12} />
@@ -130,6 +127,16 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     );
   }
 );
+
+const StyledTimeSince = styled(TimeSince)`
+  text-align: right;
+`;
+
+const RightAlignedIcons = styled('div')`
+  display: flex;
+  justify-content: end;
+  gap: ${space(0.5)};
+`;
 
 const Badge = styled(Flex)<{isOpen: boolean}>`
   align-items: center;
