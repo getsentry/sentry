@@ -108,6 +108,15 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
         )
         self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp,
+                self.project.id,
+                "error",
+                replay1_id,
+                "a3a62ef6ac86415b83c2416fc2f76db1",
+            )
+        )
+        self.store_replays(
             mock_replay(
                 seq2_timestamp,
                 self.project.id,
@@ -153,5 +162,6 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 ],
                 count_segments=3,
                 activity=4,
+                count_errors=1,
             )
             assert_expected_response(response_data["data"], expected_response)
