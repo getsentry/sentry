@@ -18,17 +18,18 @@ from sentry.api.serializers.rest_framework.base import camel_to_snake_case, conv
 from sentry.backup.dependencies import NormalizedModelName, get_model
 from sentry.backup.exports import export_in_config_scope, export_in_user_scope
 from sentry.backup.helpers import (
-    DEFAULT_CRYPTO_KEY_VERSION,
     GCPKMSDecryptor,
     GCPKMSEncryptor,
     ImportFlags,
+    get_default_crypto_key_version,
     unwrap_encrypted_export_tarball,
 )
 from sentry.backup.imports import import_in_organization_scope
 from sentry.filestore.gcs import GoogleCloudStorage
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
-from sentry.models.importchunk import RegionImportChunk
+from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
+from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
 from sentry.models.organization import Organization
 from sentry.models.relocation import (
     Relocation,
@@ -38,7 +39,9 @@ from sentry.models.relocation import (
     ValidationStatus,
 )
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
@@ -47,11 +50,13 @@ from sentry.utils.env import gcp_project_id
 from sentry.utils.relocation import (
     RELOCATION_BLOB_SIZE,
     RELOCATION_FILE_TYPE,
+    EmailKind,
     OrderedTask,
     create_cloudbuild_yaml,
     fail_relocation,
     get_bucket_name,
     retry_task_or_fail_relocation,
+    send_relocation_update_email,
     start_relocation_task,
 )
 
@@ -110,10 +115,12 @@ ERR_IMPORTING_INTERNAL = "Internal error during importing."
 
 ERR_POSTPROCESSING_INTERNAL = "Internal error during postprocessing."
 
+ERR_NOTIFYING_INTERNAL = "Internal error during relocation notification."
+
 ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
 
 
-# TODO(getsentry/team-ospo#203): We should split this task in two, one for "small" imports of say
+# TODO(getsentry/team-ospo#216): We should split this task in two, one for "small" imports of say
 # <=10MB, and one for large imports >10MB. Then we should limit the number of daily executions of
 # the latter.
 @instrumented_task(
@@ -233,19 +240,18 @@ def preprocessing_scan(uuid: str) -> None:
 
             # Decrypt the DEK using Google KMS, and use the decrypted DEK to decrypt the encoded
             # JSON.
-            try:
+            with retry_task_or_fail_relocation(
+                relocation,
+                OrderedTask.PREPROCESSING_SCAN,
+                attempts_left,
+                ERR_PREPROCESSING_DECRYPTION,
+            ):
                 decryptor = GCPKMSDecryptor.from_bytes(
-                    json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8")
+                    json.dumps(get_default_crypto_key_version()).encode("utf-8")
                 )
                 plaintext_data_encryption_key = decryptor.decrypt_data_encryption_key(unwrapped)
                 fernet = Fernet(plaintext_data_encryption_key)
                 json_data = fernet.decrypt(unwrapped.encrypted_json_blob).decode("utf-8")
-            except Exception:
-                return fail_relocation(
-                    relocation,
-                    OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_DECRYPTION,
-                )
 
             # Grab usernames and org slugs from the JSON data.
             usernames = []
@@ -307,10 +313,19 @@ def preprocessing_scan(uuid: str) -> None:
             relocation.want_usernames = sorted(usernames)
             relocation.save()
 
-            # TODO(getsentry/team-ospo#203): The user's import data looks basically okay - we should
-            # use this opportunity to send a "your relocation request has been accepted and is in
-            # flight, please give it a couple hours" email.
             preprocessing_baseline_config.delay(uuid)
+
+            # The user's import data looks basically okay - we can use this opportunity to send a
+            # "your relocation request has been accepted and is in flight, please give it a few
+            # hours" email.
+            send_relocation_update_email(
+                relocation,
+                EmailKind.STARTED,
+                {
+                    "uuid": str(relocation.uuid),
+                    "orgs": relocation.want_org_slugs,
+                },
+            )
 
 
 @instrumented_task(
@@ -346,13 +361,13 @@ def preprocessing_baseline_config(uuid: str) -> None:
         attempts_left,
         ERR_PREPROCESSING_INTERNAL,
     ):
-        # TODO(getsentry/team-ospo#203): A very nice optimization here is to only pull this down
+        # TODO(getsentry/team-ospo#216): A very nice optimization here is to only pull this down
         # once a day - if we've already done a relocation today, we should just copy that file
         # instead of doing this (expensive!) global export again.
         fp = BytesIO()
         export_in_config_scope(
             fp,
-            encryptor=GCPKMSEncryptor.from_crypto_key_version(DEFAULT_CRYPTO_KEY_VERSION),
+            encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
         )
         fp.seek(0)
         kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
@@ -404,7 +419,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
         fp = BytesIO()
         export_in_user_scope(
             fp,
-            encryptor=GCPKMSEncryptor.from_crypto_key_version(DEFAULT_CRYPTO_KEY_VERSION),
+            encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
             user_filter=set(relocation.want_usernames),
         )
         fp.seek(0)
@@ -472,7 +487,7 @@ def preprocessing_complete(uuid: str) -> None:
 
         # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
         # during validation.
-        kms_config_bytes = json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8")
+        kms_config_bytes = json.dumps(get_default_crypto_key_version()).encode("utf-8")
         storage.save(f"relocations/runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes))
 
         # Upload the exports we'll be validating.
@@ -599,9 +614,14 @@ def _update_relocation_validation_attempt(
             if relocation_validation.status < status.value:
                 relocation_validation.status = status.value
                 relocation_validation_attempt.save()
-            return fail_relocation(
-                relocation, task, "Validation could not be completed. Please contact support."
+
+            transaction.on_commit(
+                lambda: fail_relocation(
+                    relocation, task, "Validation could not be completed. Please contact support."
+                ),
+                using=router.db_for_write(Relocation),
             )
+            return
 
         # All remaining statuses are final, so we can update the owning `RelocationValidation` now.
         assert status in {ValidationStatus.INVALID, ValidationStatus.VALID}
@@ -617,9 +637,15 @@ def _update_relocation_validation_attempt(
                 "Validation result: invalid",
                 extra={"uuid": relocation.uuid, "task": task.name},
             )
-            return fail_relocation(
-                relocation, task, "The data you provided failed validation. Please contact support."
+            transaction.on_commit(
+                lambda: fail_relocation(
+                    relocation,
+                    task,
+                    "The data you provided failed validation. Please contact support.",
+                ),
+                using=router.db_for_write(Relocation),
             )
+            return
 
         assert status == ValidationStatus.VALID
         relocation.step = Relocation.Step.IMPORTING.value
@@ -938,7 +964,7 @@ def importing(uuid: str) -> None:
             .first()
         )
         relocation_data_fp = raw_relocation_file.file.getfile()
-        kms_config_fp = BytesIO(json.dumps(DEFAULT_CRYPTO_KEY_VERSION).encode("utf-8"))
+        kms_config_fp = BytesIO(json.dumps(get_default_crypto_key_version()).encode("utf-8"))
 
         with relocation_data_fp, kms_config_fp:
             import_in_organization_scope(
@@ -991,7 +1017,7 @@ def postprocessing(uuid: str) -> None:
         ):
             imported_org_ids = imported_org_ids.union(set(chunk.inserted_map.values()))
 
-        # Do a sanity check on pk-mapping before we go an make anyone the owner of an org they did
+        # Do a sanity check on pk-mapping before we go and make anyone the owner of an org they did
         # not import - are all of these orgs plausibly ones that the user requested, based on slug
         # matching?
         imported_orgs = Organization.objects.filter(id__in=imported_org_ids)
@@ -1016,8 +1042,7 @@ def postprocessing(uuid: str) -> None:
                 role="owner",
             )
 
-        # TODO(getsentry/team-ospo#203): Add notifying task here.
-        completed.delay(uuid)
+        notifying_users.delay(uuid)
 
 
 @instrumented_task(
@@ -1034,12 +1059,55 @@ def notifying_users(uuid: str) -> None:
     Send an email to all users that have been imported, telling them to claim their accounts.
     """
 
-    # TODO(getsentry/team-ospo#203): Implement this.
-    pass
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        step=Relocation.Step.NOTIFYING,
+        task=OrderedTask.NOTIFYING_USERS,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.NOTIFYING_USERS,
+        attempts_left,
+        ERR_NOTIFYING_INTERNAL,
+    ):
+        imported_user_ids: set[int] = set()
+        chunks = ControlImportChunkReplica.objects.filter(
+            import_uuid=str(uuid), model="sentry.user"
+        )
+        for chunk in chunks:
+            imported_user_ids = imported_user_ids.union(set(chunk.inserted_map.values()))
+
+        # Do a sanity check on pk-mapping before we go and reset the passwords of random users - are
+        # all of these usernames plausibly ones that were included in the import, based on username
+        # prefix matching?
+        imported_users = user_service.get_many(filter={"user_ids": list(imported_user_ids)})
+        for user in imported_users:
+            matched_prefix = False
+            for username_prefix in relocation.want_usernames:
+                if user.username.startswith(username_prefix):
+                    matched_prefix = True
+                    break
+
+            # This should always be treated as an internal logic error, since we just wrote these
+            # orgs, so probably there is a serious bug with pk mapping.
+            assert matched_prefix is True
+
+        # Okay, everything seems fine - go ahead and send those emails.
+        for user in imported_users:
+            hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
+            LostPasswordHash.send_relocate_account_email(user, hash)
+
+        notifying_owner.delay(uuid)
 
 
 @instrumented_task(
-    name="sentry.relocation.notifying_owners",
+    name="sentry.relocation.notifying_owner",
     queue="relocation",
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
@@ -1047,13 +1115,37 @@ def notifying_users(uuid: str) -> None:
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
-def notifying_owners(uuid: str) -> None:
+def notifying_owner(uuid: str) -> None:
     """
     Send an email to the creator and owner, telling them that their relocation was successful.
     """
 
-    # TODO(getsentry/team-ospo#203): Implement this.
-    pass
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        step=Relocation.Step.NOTIFYING,
+        task=OrderedTask.NOTIFYING_OWNER,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.NOTIFYING_OWNER,
+        attempts_left,
+        ERR_NOTIFYING_INTERNAL,
+    ):
+        send_relocation_update_email(
+            relocation,
+            EmailKind.SUCCEEDED,
+            {
+                "uuid": str(relocation.uuid),
+                "orgs": relocation.want_org_slugs,
+            },
+        )
+        completed.delay(uuid)
 
 
 @instrumented_task(

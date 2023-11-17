@@ -5,6 +5,7 @@ import {Project} from 'sentry/types';
 import {PageFilters} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import useUrlParams from 'sentry/utils/useUrlParams';
 
 function getSelectedProjectList(
   selectedProjects: PageFilters['projects'],
@@ -44,4 +45,11 @@ export function useHaveSelectedProjectsSetupFeedback() {
     hasSetupOneFeedback: orgSetupOneOrMoreFeedback,
     fetching,
   };
+}
+
+export function useFeedbackHasSlug() {
+  const {getParamValue: getSlug} = useUrlParams('feedbackSlug', '');
+  const hasSlug = getSlug().length > 0;
+
+  return {hasSlug};
 }
