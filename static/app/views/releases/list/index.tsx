@@ -77,7 +77,9 @@ type State = {
 class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
-  hasV2ReleaseUIEnabled = this.props.organization.features.includes('release-ui-v2');
+  hasV2ReleaseUIEnabled =
+    this.props.organization.features.includes('releases-v2') ||
+    this.props.organization.features.includes('releases-v2-st');
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);

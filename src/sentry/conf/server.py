@@ -1831,7 +1831,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
     # Enable new release UI
-    "organizations:release-ui-v2": False,
+    "organizations:releases-v2": False,
+    "organizations:releases-v2-st": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI

@@ -38,7 +38,9 @@ function ReleaseThresholdList({}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   useEffect(() => {
-    const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
+    const hasV2ReleaseUIEnabled =
+      organization.features.includes('releases-v2') ||
+      organization.features.includes('releases-v2-st');
     if (!hasV2ReleaseUIEnabled) {
       router.replace('/releases/');
     }
