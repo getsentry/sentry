@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timedelta
+from threading import Lock
 from typing import Dict, Mapping, Optional
 
 import msgpack
@@ -12,6 +13,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
+from cachetools.func import ttl_cache
 from django.db import router, transaction
 from django.utils.text import slugify
 from sentry_sdk.tracing import Span, Transaction
@@ -57,6 +59,15 @@ LOCK_TIMEOUT = 1
 INITIAL_LOCK_DELAY = 0.01
 # lock exponent base
 LOCK_EXP_BASE = 2.0
+
+
+# Use the ttl_cache to keep our per-monitor-locks around in a thread safe
+# manor. We'll use this to ensure that we process checkins for a individual
+# monitor_environment in sequeunce, even though we're multi-threading our
+# consumer.
+@ttl_cache(maxsize=100_000, ttl=60)
+def get_monitor_lock(kry: str):
+    return Lock()
 
 
 def _ensure_monitor_with_config(
@@ -603,7 +614,19 @@ def _process_message(
         project_id = int(wrapper["project_id"])
         source_sdk = wrapper["sdk"]
 
-        _process_checkin(params, ts, start_time, project_id, source_sdk, txn)
+        slug = params.get("monitor_slug")
+        environment = params.get("environment", "none")
+
+        # We lock the check-in processing for the monitor environment to ensure
+        # our multi-threading consumer processes check-ins in order.
+        #
+        # XXX(epurkhiser): This may be a best-effort lock. It is possible one
+        # thread processes a later check-in before another. Luckily most
+        # open/close check-ins will have a decent gap in time between them.
+        lock = get_monitor_lock(f"{slug}-{environment}")
+
+        with lock:
+            _process_checkin(params, ts, start_time, project_id, source_sdk, txn)
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
