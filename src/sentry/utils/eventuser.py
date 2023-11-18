@@ -193,7 +193,7 @@ class EventUser:
                     min((target_unique_rows_fetched * OVERFETCH_FACTOR) + 1, MAX_FETCH_SIZE)
                 )
 
-        seen_eventuser_tags = set()
+        seen_eventuser_tags: Set[str] = set()
         while tries < max_tries:
             query_start_time = time.time()
             if query.limit:

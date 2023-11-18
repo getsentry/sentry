@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest import mock
+from unittest import SkipTest, mock
 
 from django.urls import reverse
 from django.utils import timezone
@@ -11,7 +11,13 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
 
-class ProjectUsersBaseTest:
+class ProjectUsersBaseTest(APITestCase):
+    @classmethod
+    def setUpClass(cls):
+        if cls is ProjectUsersBaseTest:
+            raise SkipTest("Skipping base class")
+        super().setUpClass()
+
     def setUp(self):
         super().setUp()
         self.project = self.create_project(date_added=(timezone.now() - timedelta(hours=2)))
@@ -22,6 +28,9 @@ class ProjectUsersBaseTest:
                 "project_slug": self.project.slug,
             },
         )
+        # Make mypy happy
+        self.euser1 = EventUser(None, None, None, None, None, None)
+        self.euser2 = EventUser(None, None, None, None, None, None)
 
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
@@ -101,7 +110,7 @@ class ProjectUsersBaseTest:
 
 
 @region_silo_test(stable=True)
-class EventUserModelProjectUsersTest(ProjectUsersBaseTest, APITestCase):
+class EventUserModelProjectUsersTest(ProjectUsersBaseTest):
     def setUp(self):
         super().setUp()
         self.euser1 = EventUser_model.objects.create(
@@ -121,7 +130,7 @@ class EventUserModelProjectUsersTest(ProjectUsersBaseTest, APITestCase):
 
 
 @region_silo_test(stable=True)
-class EventUserProjectUsersTest(ProjectUsersBaseTest, APITestCase, SnubaTestCase):
+class EventUserProjectUsersTest(ProjectUsersBaseTest, SnubaTestCase):
     def setUp(self):
         super().setUp()
         timestamp = iso_format(timezone.now() - timedelta(hours=1))

@@ -23,7 +23,7 @@ class EventUserModelSerializer(Serializer):
 
 @register(EventUser)
 class EventUserSerializer(Serializer):
-    def serialize(self, obj: EventUser, attrs, user):
+    def serialize(self, obj, attrs, user):
         return {
             "id": str(obj.id),
             "tagValue": obj.tag_value,
