@@ -46,6 +46,7 @@ class UserEmailManager(BaseManager["UserEmail"]):
 class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
     __relocation_dependencies__ = {"sentry.Email"}
+    __relocation_custom_ordinal__ = ["user", "email"]
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=75)
@@ -102,7 +103,7 @@ class UserEmail(ControlOutboxProducingModel):
         if old_pk is None:
             return None
 
-        # If we are merging users, ignore the imported email and use the merged user's email
+        # If we are merging users, ignore the imported email and use the existing user's email
         # instead.
         if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
             return None

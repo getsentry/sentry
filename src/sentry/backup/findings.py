@@ -37,6 +37,9 @@ class ComparatorFindingKind(FindingKind):
     # The instances of a particular model did not maintain total ordering of pks (that is, pks did not appear in ascending order, or appear multiple times).
     UnorderedInput = auto()
 
+    # Multiple instances of the same custom ordinal signature exist in the input.
+    DuplicateCustomOrdinal = auto()
+
     # The number of instances of a particular model on the left and right side of the input were not
     # equal.
     UnequalCounts = auto()

@@ -50,6 +50,11 @@ class BaseModel(models.Model):
     __relocation_scope__: RelocationScope | set[RelocationScope]
     __relocation_dependencies__: set[str]
 
+    # Some models have a globally unique identifier, like a UUID. This should be a set of one or
+    # more fields, none of which are foreign keys, that are `unique=True` or `unique_together` for
+    # an entire Sentry instance.
+    __relocation_custom_ordinal__: list[str] | None = None
+
     objects: ClassVar[BaseManager[Self]] = BaseManager()
 
     update = update
@@ -122,6 +127,21 @@ class BaseModel(models.Model):
             )
 
         return self.__relocation_scope__
+
+    @classmethod
+    def get_relocation_ordinal_fields(self) -> None | list[str]:
+        """
+        Retrieves the custom ordinal fields for models that may be re-used at import time (that is,
+        the `write_relocation_import()` method may return an `ImportKind` besides
+        `ImportKind.Inserted`). In such cases, we want an ordering of models by a globally unique
+        value that is not the `pk`, to ensure that merged and inserted models are still ordered
+        correctly with respect to one another.
+        """
+
+        if self.__relocation_custom_ordinal__ is None:
+            return None
+
+        return self.__relocation_custom_ordinal__
 
     @classmethod
     def get_possible_relocation_scopes(cls) -> set[RelocationScope]:
