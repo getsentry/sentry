@@ -29,3 +29,12 @@ export function useOrgNeedsMigration(): boolean {
   const hasFeatureFlag = hasMigrationFeatureFlag(organization);
   return hasTransactionAlerts && hasFeatureFlag;
 }
+
+export const hasErrorMigrationFeatureFlag = (organization: Organization): boolean =>
+  !organization.features.includes('metric-alert-ignore-archived');
+
+export const ruleNeedsErrorMigration = (
+  rule: CombinedMetricIssueAlerts | MetricRule
+): boolean => {
+  return 'dataset' in rule && rule.dataset === Dataset.ERRORS;
+};

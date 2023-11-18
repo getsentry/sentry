@@ -27,7 +27,9 @@ import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDe
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleStatus, Incident} from 'sentry/views/alerts/types';
 import {
+  hasErrorMigrationFeatureFlag,
   hasMigrationFeatureFlag,
+  ruleNeedsErrorMigration,
   ruleNeedsMigration,
 } from 'sentry/views/alerts/utils/migrationUi';
 
@@ -156,8 +158,10 @@ export default function MetricDetailsBody({
     isOnDemandMetricAlert(dataset, aggregate, query) &&
     shouldShowOnDemandMetricAlertUI(organization);
 
-  const showMigrationWarning =
+  const showTransactionMigrationWarning =
     hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+  const showErrorMigrationWarning =
+    hasErrorMigrationFeatureFlag(organization) && ruleNeedsErrorMigration(rule);
 
   const migrationFormLink =
     rule &&
@@ -203,7 +207,7 @@ export default function MetricDetailsBody({
             triggerLabel={relativeOptions[timePeriod.period ?? '']}
           />
 
-          {showMigrationWarning ? (
+          {showTransactionMigrationWarning ? (
             <Alert
               type="warning"
               showIcon
@@ -218,6 +222,26 @@ export default function MetricDetailsBody({
               }
             >
               {t('The current thresholds for this alert could use some review.')}
+            </Alert>
+          ) : null}
+
+          {showErrorMigrationWarning ? (
+            <Alert
+              type="warning"
+              showIcon
+              trailingItems={
+                <LinkButton
+                  to={migrationFormLink}
+                  size="xs"
+                  icon={<IconEdit size="xs" />}
+                >
+                  {t('Review Thresholds')}
+                </LinkButton>
+              }
+            >
+              {t(
+                'Sentry now supports excluding archived issues from metric alerts. Please review your alert thresholds.'
+              )}
             </Alert>
           ) : null}
 
