@@ -20,6 +20,7 @@ from sentry.utils.geo import geo_by_addr
 @control_silo_only_model
 class UserIP(Model):
     __relocation_scope__ = RelocationScope.User
+    __relocation_custom_ordinal__ = ["user", "ip_address"]
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     ip_address = models.GenericIPAddressField()
@@ -54,7 +55,7 @@ class UserIP(Model):
         if old_pk is None:
             return None
 
-        # If we are merging users, ignore the imported IP and use the merged user's IP instead.
+        # If we are merging users, ignore the imported IP and use the existing user's IP instead.
         if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
             return None
 
