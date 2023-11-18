@@ -101,7 +101,7 @@ class ProjectUsersBaseTest:
 
 
 @region_silo_test(stable=True)
-class EventUserModelProjectUsersTest(ProjectUsersBaseTest, APITestCase, SnubaTestCase):
+class EventUserModelProjectUsersTest(ProjectUsersBaseTest, APITestCase):
     def setUp(self):
         super().setUp()
         self.euser1 = EventUser_model.objects.create(

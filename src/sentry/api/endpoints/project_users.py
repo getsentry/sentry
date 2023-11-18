@@ -11,15 +11,6 @@ from sentry.models.eventuser import EventUser as EventUser_model
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.eventuser import EventUser
 
-QUERY_TO_SNUBA_FIELD_MAPPING = {
-    "id": "user_id",
-    "username": "user_name",
-    "email": "user_email",
-    "ip": ["ip_address_v4", "ip_address_v6"],
-}
-
-REFERRER = "sentry.api.endpoints.project_users"
-
 
 @region_silo_endpoint
 class ProjectUsersEndpoint(ProjectEndpoint):
