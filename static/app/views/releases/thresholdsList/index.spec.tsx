@@ -66,7 +66,9 @@ describe('ReleaseThresholdsList', () => {
       },
       new Set()
     );
-    routerContext.context.location.pathname = '/release-thresholds/';
+    routerContext.context.location.pathname = normalizeUrl(
+      `/organizations/${organization.slug}/release-thresholds/`
+    );
     render(<ThresholdsList />, {
       context: routerContext,
       organization,
@@ -92,7 +94,9 @@ describe('ReleaseThresholdsList', () => {
       },
       new Set()
     );
-    routerContext.context.location.pathname = '/release-thresholds/';
+    routerContext.context.location.pathname = normalizeUrl(
+      `/organizations/${organization.slug}/release-thresholds/`
+    );
     render(<ThresholdsList />, {context: routerContext, organization});
     expect(await screen.findByText('Thresholds')).toBeInTheDocument();
     expect(mockThresholdFetch).toHaveBeenCalledWith(

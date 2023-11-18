@@ -34,12 +34,24 @@ function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
           label: t('Monitor'),
           description: '',
           path: normalizeUrl(`/organizations/${organization.slug}/releases/`),
+          to: normalizeUrl({
+            query: {
+              ...queryParams,
+            },
+            pathname: `/organizations/${organization.slug}/releases/`,
+          }),
         },
         {
           label: t('Thresholds'),
           description:
             'thresholds represent action alerts that will trigger once a threshold has been breached',
           path: normalizeUrl(`/organizations/${organization.slug}/release-thresholds/`),
+          to: normalizeUrl({
+            query: {
+              ...queryParams,
+            },
+            pathname: `/organizations/${organization.slug}/release-thresholds/`,
+          }),
         },
       ]
     : [];
@@ -64,16 +76,9 @@ function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
       {hasV2ReleaseUIEnabled && (
         <StyledTabs value={selected} onChange={onTabSelect}>
           <TabList hideBorder>
-            {tabs.map(({label, description, path}) => {
-              const to_url = normalizeUrl({
-                query: {
-                  ...queryParams,
-                },
-                pathname: path,
-              });
-
+            {tabs.map(({label, description, path, to}) => {
               return (
-                <TabList.Item key={path} to={to_url} textValue={label}>
+                <TabList.Item key={path} to={to} textValue={label}>
                   <Tooltip
                     title={description}
                     position="bottom"
