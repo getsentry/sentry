@@ -1065,12 +1065,18 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
         )
         return
     if features.has("organizations:weekly-report-logs", ctx.organization):  # TODO(isabella): remove
+        trends = template_ctx.get("trends") if "trends" in template_ctx else None
+        errors_per_day = None
+        transactions_per_day = None
+        if trends:
+            errors_per_day = trends.get("error_maximum", None)
+            transactions_per_day = trends.get("transaction_maximum", None)
         logger.info(
             "send_email.counts_per_day",
             extra={
                 "org_slug": ctx.organization.slug,
-                "errors_per_day": json.dumps(template_ctx.trends.error_maximum),
-                "transactions_per_day": json.dumps(template_ctx.trends.transaction_maximum),
+                "errors_per_day": json.dumps(errors_per_day),
+                "transactions_per_day": json.dumps(transactions_per_day),
             },
         )
 
