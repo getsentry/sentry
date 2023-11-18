@@ -63,6 +63,26 @@ def log_gcp_credentials_details(logger) -> None:
         },
     )
 
+    try:
+        # this will only work inside a GCP machine
+        service_accounts = requests.get(
+            "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/",
+            headers={
+                "Metadata-Flavor": "Google",
+            },
+        ).text
+
+        logger.info(
+            "gcp.credentials.service_accounts",
+            extra={
+                "service_accounts": service_accounts,
+            },
+        )
+    except requests.exceptions.RequestException:
+        logger.info(
+            "Unable to get service accounts from metadata server, this only works inside gke pod or gcp machine"
+        )
+
 
 def is_split_db() -> bool:
     if len(settings.DATABASES) != 1:  # type: ignore
