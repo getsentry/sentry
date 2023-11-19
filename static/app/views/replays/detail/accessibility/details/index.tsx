@@ -6,26 +6,20 @@ import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import useUrlParams from 'sentry/utils/useUrlParams';
+import AccessibilityDetailsContent from 'sentry/views/replays/detail/accessibility/details/content';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
-import NetworkDetailsContent from 'sentry/views/replays/detail/network/details/content';
-import NetworkDetailsTabs, {
-  TabKey,
-} from 'sentry/views/replays/detail/network/details/tabs';
 
 type Props = {
-  isSetup: boolean;
-  item: null | SpanFrame;
+  item: null | HydratedA11yFrame;
   onClose: () => void;
   projectId: undefined | string;
   startTimestampMs: number;
 } & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
 
-function NetworkDetails({
+function AccessibilityDetails({
   isHeld,
-  isSetup,
   item,
   onClose,
   onDoubleClick,
@@ -33,18 +27,13 @@ function NetworkDetails({
   projectId,
   startTimestampMs,
 }: Props) {
-  const {getParamValue: getDetailTab} = useUrlParams('n_detail_tab', 'details');
-
   if (!item || !projectId) {
     return null;
   }
 
-  const visibleTab = getDetailTab() as TabKey;
-
   return (
     <Fragment>
       <StyledStacked>
-        <StyledNetworkDetailsTabs underlined={false} />
         <StyledSplitDivider
           data-is-held={isHeld}
           data-slide-direction="updown"
@@ -53,7 +42,7 @@ function NetworkDetails({
         />
         <CloseButtonWrapper>
           <Button
-            aria-label={t('Hide request details')}
+            aria-label={t('Hide accessibility details')}
             borderless
             icon={<IconClose isCircled size="sm" color="subText" />}
             onClick={(e: MouseEvent) => {
@@ -65,12 +54,10 @@ function NetworkDetails({
         </CloseButtonWrapper>
       </StyledStacked>
 
-      <NetworkDetailsContent
-        isSetup={isSetup}
+      <AccessibilityDetailsContent
         item={item}
         projectId={projectId}
         startTimestampMs={startTimestampMs}
-        visibleTab={visibleTab}
       />
     </Fragment>
   );
@@ -80,33 +67,6 @@ const StyledStacked = styled(Stacked)`
   position: relative;
   border-top: 1px solid ${p => p.theme.border};
   border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
-  /*
-  Use padding instead of margin so all the <li> will cover the <SplitDivider>
-  without taking 100% width.
-  */
-
-  & > li {
-    margin-right: 0;
-    padding-right: ${space(3)};
-    background: ${p => p.theme.surface400};
-    z-index: ${p => p.theme.zIndex.initial};
-  }
-  & > li:first-child {
-    padding-left: ${space(2)};
-  }
-  & > li:last-child {
-    padding-right: ${space(1)};
-  }
-
-  & > li > a {
-    padding-top: ${space(1)};
-    padding-bottom: ${space(0.5)};
-    height: 100%;
-    border-bottom: ${space(0.5)} solid transparent;
-  }
 `;
 
 const CloseButtonWrapper = styled('div')`
@@ -128,4 +88,4 @@ const StyledSplitDivider = styled(SplitDivider)`
   }
 `;
 
-export default NetworkDetails;
+export default AccessibilityDetails;
