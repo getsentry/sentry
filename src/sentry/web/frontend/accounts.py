@@ -29,6 +29,8 @@ from sentry.web.decorators import login_required, set_referrer_policy, signed_au
 from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm
 from sentry.web.helpers import render_to_response
 
+from sentry import ratelimits as ratelimiter
+
 logger = logging.getLogger("sentry.accounts")
 
 
@@ -160,50 +162,63 @@ relocate_confirm = partial(recover_confirm, mode="relocate")
 relocate_confirm = update_wrapper(relocate_confirm, recover)
 
 
+def check_email_rate_limit(key, limit, window):
+    if ratelimiter.is_limited(
+        key,
+        limit=limit,
+        window=window
+    ):
+        return True
+    return False
+
+def handle_primary_email(request):
+    email = request.POST.get("email")
+    try:
+        email_to_send = UserEmail.objects.get(user=request.user, email=email)
+    except UserEmail.DoesNotExist:
+        msg = _("There was an error confirming your email.")
+        level = messages.ERROR
+    else:
+        request.user.send_confirm_email_singular(email_to_send)
+        msg = _("A verification email has been sent to %s.") % (email)
+        level = messages.SUCCESS
+    return msg, level
+
+def handle_unverified_emails(request):
+    request.user.send_confirm_emails()
+    unverified_emails = [e.email for e in request.user.get_unverified_emails()]
+    msg = _("A verification email has been sent to %s.") % (", ").join(unverified_emails)
+    for email in unverified_emails:
+        logger.info(
+            "user.email.start_confirm",
+            extra={
+                "user_id": request.user.id,
+                "ip_address": request.META["REMOTE_ADDR"],
+                "email": email
+            }
+        )
+    return msg
+
 @login_required
 @require_http_methods(["POST"])
 def start_confirm_email(request):
-    from sentry import ratelimits as ratelimiter
-
-    if ratelimiter.is_limited(
-        f"auth:confirm-email:{request.user.id}",
-        limit=10,
-        window=60,  # 10 per minute should be enough for anyone
-    ):
+    key = F"auth:confirm-email:{request.user.id}"
+    if check_email_rate_limit(key, 10, 60):
         return HttpResponse(
-            "You have made too many email confirmation requests. Please try again later.",
+            "You have made  too many email confirmation requests. Please try again later.",
             content_type="text/plain",
-            status=429,
+            status=429
         )
 
     if "primary-email" in request.POST:
-        email = request.POST.get("email")
-        try:
-            email_to_send = UserEmail.objects.get(user_id=request.user.id, email=email)
-        except UserEmail.DoesNotExist:
-            msg = _("There was an error confirming your email.")
-            level = messages.ERROR
-        else:
-            request.user.send_confirm_email_singular(email_to_send)
-            msg = _("A verification email has been sent to %s.") % (email)
-            level = messages.SUCCESS
+        msg, level = handle_primary_email(request)
         messages.add_message(request, level, msg)
         return HttpResponseRedirect(reverse("sentry-account-settings"))
     elif request.user.has_unverified_emails():
-        request.user.send_confirm_emails()
-        unverified_emails = [e.email for e in request.user.get_unverified_emails()]
-        msg = _("A verification email has been sent to %s.") % (", ").join(unverified_emails)
-        for email in unverified_emails:
-            logger.info(
-                "user.email.start_confirm",
-                extra={
-                    "user_id": request.user.id,
-                    "ip_address": request.META["REMOTE_ADDR"],
-                    "email": email,
-                },
-            )
+        msg = handle_unverified_emails(request)
     else:
         msg = _("Your email (%s) has already been verified.") % request.user.email
+
     messages.add_message(request, messages.SUCCESS, msg)
     return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
 
