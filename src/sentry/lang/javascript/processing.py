@@ -196,8 +196,10 @@ def _is_built_in(abs_path, platform):
 # We want to make sure that some specific frames are always marked as non-inapp prior to going into grouping.
 def _normalize_nonhandled_frame(frame, data):
     abs_path = frame.get("abs_path")
+    is_native_frame = _is_native_frame(abs_path)
+    is_built_in = _is_built_in(abs_path, data.get("platform")
 
-    if abs_path and (_is_native_frame(abs_path) or _is_built_in(abs_path, data.get("platform"))):
+    if abs_path and (is_native_frame or is_built_in)):
         frame["in_app"] = False
 
     return frame
