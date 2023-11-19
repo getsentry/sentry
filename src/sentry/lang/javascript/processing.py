@@ -197,9 +197,9 @@ def _is_built_in(abs_path, platform):
 def _normalize_nonhandled_frame(frame, data):
     abs_path = frame.get("abs_path")
     is_native_frame = _is_native_frame(abs_path)
-    is_built_in = _is_built_in(abs_path, data.get("platform")
+    is_built_in = _is_built_in(abs_path, data.get("platform"))
 
-    if abs_path and (is_native_frame or is_built_in)):
+    if abs_path and (is_native_frame or is_built_in):
         frame["in_app"] = False
 
     return frame
