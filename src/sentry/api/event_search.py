@@ -198,7 +198,7 @@ def translate_wildcard(pat: str) -> str:
     """
 
     i, n = 0, len(pat)
-    res = ""
+    res = []
     while i < n:
         c = pat[i]
         i = i + 1
@@ -206,15 +206,15 @@ def translate_wildcard(pat: str) -> str:
         # Applied this basic patch to handle it:
         # https://bugs.python.org/file27570/issue8402.1.patch
         if c == "\\" and i < n:
-            res += re.escape(pat[i])
+            res.append(re.escape(pat[i]))
             i += 1
         elif c == "*":
-            res += ".*"
+            res.append(".*")
         elif c in "()[]?*+-|^$\\.&~# \t\n\r\v\f":
-            res += re.escape(c)
+            res.append(re.escape(c))
         else:
-            res += c
-    return "^" + res + "$"
+            res.append(c)
+    return "^" + "".join(res) + "$"
 
 
 def translate_escape_sequences(string: str) -> str:
