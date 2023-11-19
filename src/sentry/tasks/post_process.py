@@ -175,12 +175,18 @@ def should_issue_owners_ratelimit(project_id, group_id):
     Make sure that we do not accept more groups than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
     """
     cache_key = f"issue_owner_assignment_ratelimiter:{project_id}"
-    groups, window_start = cache.get(cache_key, (set(), datetime.now()))
+    data = cache.get(cache_key)
 
-    timeout = max(60 - (datetime.now() - window_start).total_seconds(), 0)
-    groups.add(group_id)
-
-    cache.set(cache_key, (groups, window_start), timeout)
+    if data is None:
+        groups = {group_id}
+        window_start = datetime.now()
+        cache.set(cache_key, (groups, window_start), 60)
+    else:
+        groups = set(data[0])
+        groups.add(group_id)
+        window_start = data[1]
+        timeout = max(60 - (datetime.now() - window_start).total_seconds(), 0)
+        cache.set(cache_key, (groups, window_start), timeout)
 
     return len(groups) > ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
 
