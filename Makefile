@@ -163,26 +163,6 @@ test-monolith-dbs: create-db
 	;
 	@echo ""
 
-test-snuba: create-db
-	@echo "--> Running snuba tests"
-	pytest tests \
-		-m snuba_ci \
-		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
-	@echo ""
-
-# snuba-full runs on API changes in Snuba
-test-snuba-full: create-db
-	@echo "--> Running full snuba tests"
-	pytest tests/snuba \
-		tests/sentry/eventstream/kafka \
-		tests/sentry/post_process_forwarder \
-		tests/sentry/snuba \
-		tests/sentry/search/events \
-		tests/sentry/event_manager \
-		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
-	pytest tests -vv -m snuba_ci
-	@echo ""
-
 test-tools:
 	@echo "--> Running tools tests"
 	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
