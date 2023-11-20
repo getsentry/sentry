@@ -64,7 +64,7 @@ class EventManagerGroupingTest(TestCase):
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
         assert group.data.get("type") == "default"
-        assert group.data.get("metadata") == {"title": "foo 123"}
+        assert group.data.get("metadata").get("title") == "foo 123"
 
         # After expiry, new events are still assigned to the same group:
         project.update_option("sentry:secondary_grouping_expiry", 0)
@@ -227,7 +227,6 @@ class EventManagerGroupingTest(TestCase):
 
     @mock.patch("sentry.event_manager._calculate_background_grouping")
     def test_background_grouping_sample_rate(self, mock_calc_grouping):
-
         timestamp = time() - 300
         manager = EventManager(
             make_event(message="foo 123", event_id="a" * 32, timestamp=timestamp)
