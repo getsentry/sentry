@@ -93,6 +93,23 @@ def test_cache(use_case_id: str) -> None:
         assert indexer_cache.get(namespace_2, f"{use_case_id}:1:blah:123") is None
 
 
+def test_cache_validate_stale_timestamp():
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": True,
+            "sentry-metrics.indexer.write-new-cache-namespace": True,
+        }
+    ):
+        namespace = "test"
+        key = "spans:1:key"
+        cache.clear()
+        cache.set(
+            indexer_cache._make_namespaced_cache_key(namespace, key),
+            indexer_cache._make_cache_val(1, 0),
+        )
+        assert indexer_cache.get_many(namespace, [key]) == {key: None}
+
+
 def test_cache_many(use_case_id: str) -> None:
     with override_options(
         {
