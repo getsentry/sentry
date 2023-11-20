@@ -858,7 +858,7 @@ urlpatterns += [
     # Restore organization
     re_path(
         r"^restore/",
-        react_page_view,
+        generic_react_page_view,
         name="sentry-customer-domain-restore-organization",
     ),
     # Project on-boarding
@@ -1017,7 +1017,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
-                    react_page_view,
+                    generic_react_page_view,
                     name="sentry-restore-organization",
                 ),
                 re_path(
