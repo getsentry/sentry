@@ -100,7 +100,7 @@ def _get_missing_organization_members(
             (select id from sentry_commitauthor
                 WHERE sentry_commitauthor.organization_id = %(org_id)s
                 AND NOT (
-                    (sentry_commitauthor.email IN (select concat(email, user_email) from sentry_organizationmember where organization_id = %(org_id)s and (email is not null or user_email is not null)
+                    (sentry_commitauthor.email IN (select coalesce(email, user_email) from sentry_organizationmember where organization_id = %(org_id)s and (email is not null or user_email is not null)
                 )
         OR sentry_commitauthor.external_id IS NULL))
     """
