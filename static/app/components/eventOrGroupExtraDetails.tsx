@@ -49,7 +49,7 @@ function EventOrGroupExtraDetails({
     substatus,
   } = data as Group;
 
-  const stats = useGroupStats(id);
+  const {lifetime, isUnhandled} = useGroupStats(data as Group);
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
@@ -75,13 +75,13 @@ function EventOrGroupExtraDetails({
           }
         />
       )}
-      {stats.isUnhandled && <UnhandledTag />}
-      {!stats.lifetime && !firstSeen && !lastSeen ? (
+      {isUnhandled && <UnhandledTag />}
+      {!lifetime && !firstSeen && !lastSeen ? (
         <Placeholder height="14px" width="100px" />
       ) : (
         <TimesTag
-          lastSeen={stats.lifetime?.lastSeen || lastSeen}
-          firstSeen={stats.lifetime?.firstSeen || firstSeen}
+          lastSeen={lifetime?.lastSeen || lastSeen}
+          firstSeen={lifetime?.firstSeen || firstSeen}
         />
       )}
       {/* Always display comment count on inbox */}

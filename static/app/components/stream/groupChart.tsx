@@ -34,7 +34,7 @@ function GroupChart({
   height = 24,
   showMarkLine = false,
 }: Props) {
-  const groupStats = useGroupStats(data.id);
+  const groupStats = useGroupStats(data);
   const stats: ReadonlyArray<TimeseriesValue> = statsPeriod
     ? groupStats.filtered
       ? groupStats.filtered.stats?.[statsPeriod]
