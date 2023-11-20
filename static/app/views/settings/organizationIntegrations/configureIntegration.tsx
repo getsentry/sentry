@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -35,6 +35,7 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -56,7 +57,13 @@ type Props = RouteComponentProps<
   {}
 >;
 
-type Tab = 'repos' | 'codeMappings' | 'userMappings' | 'teamMappings' | 'settings';
+const TABS = [
+  'repos',
+  'codeMappings',
+  'userMappings',
+  'teamMappings',
+  'settings',
+] as const;
 
 const makeIntegrationQuery = (
   organization: Organization,
@@ -73,8 +80,10 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const tab: Tab = location.query.tab || 'repos';
-  const {integrationId} = params;
+  const tab: (typeof TABS)[number] = TABS.includes(location.query.tab)
+    ? location.query.tab
+    : 'repos';
+  const {integrationId, providerKey} = params;
   const {
     data: config = {providers: []},
     isLoading: isLoadingConfig,
@@ -118,6 +127,18 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         }
       : {}
   );
+
+  useEffect(() => {
+    // This page should not be accessible by members (unless its github or gitlab)
+    const allowMemberConfiguration = ['github', 'gitlab'].includes(providerKey);
+    if (!allowMemberConfiguration && !organization.access.includes('org:integrations')) {
+      router.push(
+        normalizeUrl({
+          pathname: `/settings/${organization.slug}/integrations/${providerKey}/`,
+        })
+      );
+    }
+  }, [router, organization, providerKey]);
 
   if (isLoadingConfig || isLoadingIntegration || isLoadingPlugins) {
     return <LoadingIndicator />;
