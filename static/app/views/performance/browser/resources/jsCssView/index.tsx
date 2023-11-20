@@ -51,7 +51,7 @@ function JSCSSView() {
         throughputUnit={RESOURCE_THROUGHPUT_UNIT}
       />
 
-      <FilterOptionsContainer>
+      <FilterOptionsContainer columnCount={3}>
         <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
         <TransactionSelector
           value={filters[TRANSACTION] || ''}
@@ -161,9 +161,9 @@ export function TransactionSelector({
   );
 }
 
-export const FilterOptionsContainer = styled('div')`
+export const FilterOptionsContainer = styled('div')<{columnCount: number}>`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(${props => props.columnCount}, 1fr);
   gap: ${space(2)};
   margin-bottom: ${space(2)};
   max-width: 800px;

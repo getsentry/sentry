@@ -90,7 +90,7 @@ function ResourceSummary() {
       <Layout.Body>
         <Layout.Main fullWidth>
           <HeaderContainer>
-            <FilterOptionsContainer>
+            <FilterOptionsContainer columnCount={2}>
               <PageFilterBar condensed>
                 <ProjectPageFilter />
                 <DatePageFilter />

@@ -61,7 +61,7 @@ function ResourcesLandingPage() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FilterOptionsContainer>
+          <FilterOptionsContainer columnCount={2}>
             <PageFilterBar condensed>
               <ProjectPageFilter />
               <DatePageFilter />
