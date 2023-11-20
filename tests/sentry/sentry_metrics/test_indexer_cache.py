@@ -109,6 +109,9 @@ def test_cache_validate_stale_timestamp():
         )
         assert indexer_cache.get_many(namespace, [key]) == {key: None}
 
+        indexer_cache.set_many(namespace, {key: 1})
+        assert indexer_cache.get_many(namespace, [key]) == {key: 1}
+
 
 def test_cache_many(use_case_id: str) -> None:
     with override_options(
