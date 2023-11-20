@@ -1,5 +1,3 @@
-# mypy: ignore-errors
-
 import random
 from functools import wraps
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
