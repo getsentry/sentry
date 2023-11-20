@@ -16,7 +16,7 @@ import {
 } from 'sentry/views/starfish/types';
 
 export function getIntervalForMetricFunction(
-  metricFunction: Aggregate | SpanFunctions,
+  metricFunction: Aggregate | SpanFunctions | string,
   datetimeObj: DateTimeObject
 ) {
   const ladder = GRANULARITIES[metricFunction] ?? COUNTER_GRANULARITIES;

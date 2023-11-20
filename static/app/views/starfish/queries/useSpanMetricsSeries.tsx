@@ -11,11 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getIntervalForMetricFunction} from 'sentry/views/performance/database/getIntervalForMetricFunction';
 import {DEFAULT_INTERVAL} from 'sentry/views/performance/database/settings';
-import {
-  Aggregate,
-  SpanFunctions,
-  SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
+import {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
@@ -94,10 +90,7 @@ function getEventView(
         return DEFAULT_INTERVAL;
       }
 
-      return getIntervalForMetricFunction(
-        parseResult.name as Aggregate | SpanFunctions,
-        pageFilters.datetime
-      );
+      return getIntervalForMetricFunction(parseResult.name, pageFilters.datetime);
     }),
     result => {
       return intervalToMilliseconds(result);
