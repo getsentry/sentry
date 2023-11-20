@@ -1,3 +1,14 @@
+import type {GranularityLadder} from 'sentry/components/charts/utils';
+import {
+  FORTY_EIGHT_HOURS,
+  ONE_HOUR,
+  SIX_HOURS,
+  SIXTY_DAYS,
+  THIRTY_DAYS,
+  TWENTY_FOUR_HOURS,
+  TWO_WEEKS,
+} from 'sentry/components/charts/utils';
+
 export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.python': '1.29.2',
   'sentry.javascript': '7.63.0',
@@ -10,6 +21,27 @@ export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.android': '6.30.0',
 };
 
+export const DEFAULT_INTERVAL = '10m';
+
 export const DEFAULT_DURATION_AGGREGATE = 'avg';
 
 export const CHART_HEIGHT = 160;
+
+export const COUNTER_GRANULARITIES: GranularityLadder = [
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [TWENTY_FOUR_HOURS, '30m'],
+  [SIX_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '1m'],
+];
+
+export const DISTRIBUTION_GRANULARITIES: GranularityLadder = [
+  [TWO_WEEKS, '1d'],
+  [FORTY_EIGHT_HOURS, '1h'],
+  [TWENTY_FOUR_HOURS, '30m'],
+  [SIX_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '1m'],
+];

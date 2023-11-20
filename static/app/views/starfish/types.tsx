@@ -58,12 +58,22 @@ export type SpanMetricsQueryFilters = {
 
 export type SpanStringArrayFields = 'span.domain';
 
-export type SpanFunctions =
-  | 'sps'
-  | 'spm'
-  | 'count'
-  | 'time_spent_percentage'
-  | 'http_error_count';
+export const COUNTER_AGGREGATES = ['avg', 'min', 'max', 'p100'] as const;
+export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p95', 'p99'] as const;
+
+export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as const;
+
+export type Aggregate = (typeof AGGREGATES)[number];
+
+export const SPAN_FUNCTIONS = [
+  'sps',
+  'spm',
+  'count',
+  'time_spent_percentage',
+  'http_error_count',
+] as const;
+
+export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 export type MetricsResponse = {
   [Property in SpanNumberFields as `avg(${Property})`]: number;

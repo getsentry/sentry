@@ -18,6 +18,7 @@ export const SIXTY_DAYS = 86400;
 export const THIRTY_DAYS = 43200;
 export const TWO_WEEKS = 20160;
 export const ONE_WEEK = 10080;
+export const FORTY_EIGHT_HOURS = 2880;
 export const TWENTY_FOUR_HOURS = 1440;
 export const SIX_HOURS = 360;
 export const ONE_HOUR = 60;
