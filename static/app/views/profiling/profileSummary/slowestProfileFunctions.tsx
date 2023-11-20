@@ -11,7 +11,10 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {Frame} from 'sentry/utils/profiling/frame';
+import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
@@ -131,53 +134,78 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
         ) : (
           functions.map((fn, i) => {
             return (
-              <SlowestFunctionRow key={i}>
-                <SlowestFunctionMainRow>
-                  <div>
-                    <Link
-                      onClick={onSlowestFunctionClick}
-                      to={generateProfileFlamechartRouteWithQuery({
-                        orgSlug: organization.slug,
-                        projectSlug: project?.slug ?? '',
-                        profileId: (fn['examples()']?.[0] as string) ?? '',
-                        query: {
-                          // specify the frame to focus, the flamegraph will switch
-                          // to the appropriate thread when these are specified
-                          frameName: fn.function as string,
-                          framePackage: fn.package as string,
-                        },
-                      })}
-                    >
-                      <TextTruncateOverflow>{fn.function}</TextTruncateOverflow>
-                    </Link>
-                  </div>
-                  <div>
-                    <PerformanceDuration
-                      nanoseconds={fn['sum()'] as number}
-                      abbreviation
-                    />
-                  </div>
-                </SlowestFunctionMainRow>
-                <SlowestFunctionMetricsRow>
-                  <div>
-                    <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
-                  </div>
-                  <div>
-                    <Count value={fn['count()'] as number} />{' '}
-                    {tn('time', 'times', fn['count()'])}
-                    {', '}
-                    <PerformanceDuration
-                      nanoseconds={fn['p75()'] as number}
-                      abbreviation
-                    />
-                  </div>
-                </SlowestFunctionMetricsRow>
-              </SlowestFunctionRow>
+              <SlowestFunctionEntry
+                key={i}
+                func={fn}
+                organization={organization}
+                project={project}
+                onSlowestFunctionClick={onSlowestFunctionClick}
+              />
             );
           })
         )}
       </SlowestFunctionsList>
     </SlowestFunctionsContainer>
+  );
+}
+
+interface SlowestFunctionEntryProps {
+  func: EventsResultsDataRow<'function' | 'package' | 'count()' | 'p75()' | 'sum()'>;
+  onSlowestFunctionClick: () => void;
+  organization: Organization;
+  project: Project | null;
+}
+function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
+  const frame = useMemo(() => {
+    return new Frame(
+      {
+        key: 0,
+        name: props.func.function as string,
+        package: props.func.package as string,
+      },
+      props.project?.platform && /node|javascript/.test(props.project.platform)
+        ? props.project.platform
+        : undefined
+    );
+  }, [props.func, props.project]);
+
+  return (
+    <SlowestFunctionRow>
+      <SlowestFunctionMainRow>
+        <div>
+          <Link
+            onClick={props.onSlowestFunctionClick}
+            to={generateProfileFlamechartRouteWithQuery({
+              orgSlug: props.organization.slug,
+              projectSlug: props.project?.slug ?? '',
+              profileId: (props.func['examples()']?.[0] as string) ?? '',
+              query: {
+                // specify the frame to focus, the flamegraph will switch
+                // to the appropriate thread when these are specified
+                frameName: frame.name as string,
+                framePackage: frame.package as string,
+              },
+            })}
+          >
+            <TextTruncateOverflow>{frame.name}</TextTruncateOverflow>
+          </Link>
+        </div>
+        <div>
+          <PerformanceDuration nanoseconds={props.func['sum()'] as number} abbreviation />
+        </div>
+      </SlowestFunctionMainRow>
+      <SlowestFunctionMetricsRow>
+        <div>
+          <TextTruncateOverflow>{frame.package}</TextTruncateOverflow>
+        </div>
+        <div>
+          <Count value={props.func['count()'] as number} />{' '}
+          {tn('time', 'times', props.func['count()'])}
+          {', '}
+          <PerformanceDuration nanoseconds={props.func['p75()'] as number} abbreviation />
+        </div>
+      </SlowestFunctionMetricsRow>
+    </SlowestFunctionRow>
   );
 }
 
