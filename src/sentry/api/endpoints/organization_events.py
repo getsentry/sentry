@@ -250,8 +250,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             )
 
         on_demand_metrics_enabled = (
-            batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
-            or batch_features.get("organizations:on-demand-metrics-extraction", False)
+            batch_features.get("organizations:on-demand-metrics-extraction", False)
+            or batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
         ) and use_on_demand_metrics
 
         dataset = self.get_dataset(request)
