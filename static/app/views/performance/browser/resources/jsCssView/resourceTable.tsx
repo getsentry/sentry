@@ -40,7 +40,6 @@ const {SPM} = SpanFunction;
 type Row = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
-  file_extension: string;
   'http.decoded_response_content_length': number;
   'project.id': number;
   'resource.render_blocking_status': string;
@@ -133,7 +132,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === SPAN_OP) {
-      const fileExtension = row[FILE_EXTENSION];
+      const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
       const spanOp = row[key];
       if (fileExtension === 'js' || spanOp === 'resource.script') {
         return <span>{t('JavaScript')}</span>;
