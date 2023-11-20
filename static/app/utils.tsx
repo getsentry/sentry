@@ -201,7 +201,7 @@ export function formatBytesBase2(bytes?: number, fixPoints: number = 1): string 
   if (!bytes) {
     return '--B'
   }
-  
+
   if (bytes < thresh) {
     return bytes.toFixed(fixPoints) + ' B';
   }
