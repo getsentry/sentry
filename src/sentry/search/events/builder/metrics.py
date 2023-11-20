@@ -1411,8 +1411,8 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     tenant_ids=self.tenant_ids,
                 )
             ]
-        _, query_framework = self._create_query_framework()
 
+        _, query_framework = self._create_query_framework()
         queries: List[Request] = []
         for query_details in query_framework.values():
             if len(query_details.functions) > 0:
@@ -1465,6 +1465,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     )
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
+
             with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
                 metric_layer_result: Any = {
                     "data": [],
