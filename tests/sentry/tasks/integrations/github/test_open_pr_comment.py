@@ -8,6 +8,7 @@ from sentry.tasks.integrations.github.open_pr_comment import (
     get_top_5_issues_by_count_for_file,
     safe_for_comment,
 )
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -221,11 +222,13 @@ class TestGetFilenames(GithubCommentTestCase):
 
 
 @region_silo_test(stable=True)
-class TestGetIssues(GithubCommentTestCase):
+class TestGetIssues(TestCase):
     def setUp(self):
         super().setUp()
 
         self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
+        self.another_org = self.create_organization()
+        self.another_org_project = self.create_project(organization=self.another_org)
 
     def _create_event(self, filenames=None, project_id=None, timestamp=None, user_id=None):
         if timestamp is None:
