@@ -94,8 +94,8 @@ def _get_missing_organization_members(
             from sentry_repository
             where provider = %(provider)s
             and organization_id = %(org_id)s
-            and integration_id in (%(integration_ids)s)
-            )
+            and integration_id in %(integration_ids)s
+        )
         AND sentry_commit.author_id IN
             (select id from sentry_commitauthor
                 WHERE sentry_commitauthor.organization_id = %(org_id)s
@@ -110,14 +110,13 @@ def _get_missing_organization_members(
         AND NOT (UPPER(sentry_commitauthor.email::text) LIKE UPPER('%%+%%'))
         )
 
-        GROUP BY sentry_commitauthor.id ORDER BY commit__count DESC limit 50
-        """
+        GROUP BY sentry_commitauthor.id ORDER BY commit__count DESC limit 50"""
 
     param_dict = {
         "org_id": org_id,
         "date_added": date_added,
         "provider": "integrations:" + provider,
-        "integration_ids": ", ".join([str(id) for id in integration_ids]),
+        "integration_ids": tuple(integration_ids),
     }
 
     return list(CommitAuthor.objects.raw(query, param_dict))

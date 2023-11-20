@@ -56,6 +56,12 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.integration = self.create_integration(
             organization=self.organization, provider="github", name="Github", external_id="github:1"
         )
+        self.integration2 = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github2",
+            external_id="github:3",
+        )
         self.repo = self.create_repo(
             project=self.project, provider="integrations:github", integration_id=self.integration.id
         )
@@ -221,6 +227,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
     def test_no_github_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
+            self.integration2.delete()
 
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
@@ -229,6 +236,8 @@ class OrganizationMissingMembersTestCase(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.status = ObjectStatus.DISABLED
             self.integration.save()
+            self.integration2.status = ObjectStatus.DISABLED
+            self.integration2.save()
 
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
@@ -236,6 +245,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
     def test_nongithub_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
+            self.integration2.delete()
 
         integration = self.create_integration(
             organization=self.organization,
