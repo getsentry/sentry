@@ -1,6 +1,5 @@
 import {
   DateTimeObject,
-  findGranularityIntervalForMinutes,
   getDiffInMinutes,
   GranularityLadder,
 } from 'sentry/components/charts/utils';
@@ -20,8 +19,8 @@ export function getIntervalForMetricFunction(
   metricFunction: Aggregate | SpanFunctions,
   datetimeObj: DateTimeObject
 ) {
-  const granularities = GRANULARITIES[metricFunction] ?? COUNTER_GRANULARITIES;
-  return findGranularityIntervalForMinutes(getDiffInMinutes(datetimeObj), granularities);
+  const ladder = GRANULARITIES[metricFunction] ?? COUNTER_GRANULARITIES;
+  return ladder.getInterval(getDiffInMinutes(datetimeObj));
 }
 
 type GranularityLookup = {

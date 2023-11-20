@@ -1,5 +1,6 @@
 import type {EChartsOption, LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
+import orderBy from 'lodash/orderBy';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -182,20 +183,29 @@ export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
 }
 
 export type GranularityStep = [timeDiff: number, interval: string];
-export type GranularityLadder = GranularityStep[];
 
-/**
- * Given a duration in minutes and a `GranularityLadder` object picks the correct granularity at that duration and return the interval as a string e.g. `"10m"`
- */
-export function findGranularityIntervalForMinutes(
-  minutes: number,
-  granularities: GranularityLadder
-) {
-  const step = granularities.find(([threshold]) => {
-    return minutes >= threshold;
-  }) as GranularityStep; // This can never be undefined, because the first step is 0, so any duration has to be larger than at least the first
+export class GranularityLadder {
+  steps: GranularityStep[];
 
-  return step[1];
+  constructor(steps: GranularityStep[]) {
+    if (
+      !steps.some(step => {
+        return step[0] === 0;
+      })
+    ) {
+      throw new Error('At least one step in the ladder must start at 0');
+    }
+
+    this.steps = orderBy(steps, step => step[0], 'desc');
+  }
+
+  getInterval(minutes: number): string {
+    const step = this.steps.find(([threshold]) => {
+      return minutes >= threshold;
+    }) as GranularityStep; // This can never be undefined, because the constructor ensures that an invalid ladder cannot be created
+
+    return step[1];
+  }
 }
 
 export function getDiffInMinutes(datetimeObj: DateTimeObject): number {

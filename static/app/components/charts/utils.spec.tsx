@@ -1,6 +1,5 @@
 import {
   canIncludePreviousPeriod,
-  findGranularityIntervalForMinutes,
   getDiffInMinutes,
   getInterval,
   getSeriesApiInterval,
@@ -105,31 +104,22 @@ describe('Chart Utils', function () {
   });
 
   describe('findGranularityIntervalForMinutes()', function () {
-    const granularities: GranularityLadder = [
+    const ladder = new GranularityLadder([
       [THIRTY_DAYS, '1d'],
       [TWENTY_FOUR_HOURS, '30m'],
       [0, '15m'],
-    ];
+    ]);
 
     it('finds granularity at lower bound', function () {
-      expect(
-        findGranularityIntervalForMinutes(getDiffInMinutes({period: '2m'}), granularities)
-      ).toEqual('15m');
+      expect(ladder.getInterval(getDiffInMinutes({period: '2m'}))).toEqual('15m');
     });
 
     it('finds granularity between bounds', function () {
-      expect(
-        findGranularityIntervalForMinutes(getDiffInMinutes({period: '3d'}), granularities)
-      ).toEqual('30m');
+      expect(ladder.getInterval(getDiffInMinutes({period: '3d'}))).toEqual('30m');
     });
 
     it('finds granularity at upper bound', function () {
-      expect(
-        findGranularityIntervalForMinutes(
-          getDiffInMinutes({period: '60d'}),
-          granularities
-        )
-      ).toEqual('1d');
+      expect(ladder.getInterval(getDiffInMinutes({period: '60d'}))).toEqual('1d');
     });
   });
 
