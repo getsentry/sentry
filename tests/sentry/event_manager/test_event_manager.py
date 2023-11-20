@@ -1504,8 +1504,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
 
         assert (sdk_metadata := event.group.data.get("metadata").get("sdk"))  # type: ignore[union-attr]
-        assert sdk_metadata.get("name") == "sentry-native-unity"  # type: ignore[union-attr]
-        assert sdk_metadata.get("name_normalized") == "sentry.native.unity"  # type: ignore[union-attr]
+        assert sdk_metadata.get("name") == "sentry-native-unity"
+        assert sdk_metadata.get("name_normalized") == "sentry.native.unity"
 
     def test_no_message(self):
         # test that the message is handled gracefully
