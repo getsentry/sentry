@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, List
+from typing import Any, List, Optional
 
 import sentry_sdk
 from django.db import connection
@@ -43,6 +43,9 @@ class PullRequestIssue:
     title: str
     subtitle: str
     url: str
+    affected_users: Optional[int]
+    event_count: Optional[int]
+    is_handled: Optional[bool]
 
 
 class GithubAPIErrorType(Enum):
@@ -65,19 +68,21 @@ ISSUE_LOCKED_ERROR_MESSAGE = "Unable to create comment because issue is locked."
 RATE_LIMITED_MESSAGE = "API rate limit exceeded"
 
 
+def format_comment_subtitle(subtitle):
+    return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
+
+
+def format_comment_url(url, referrer):
+    return url + "?referrer=" + referrer
+
+
 def format_comment(issues: List[PullRequestIssue]):
-    def format_subtitle(subtitle):
-        return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
-
-    def format_url(url):
-        return url + "?referrer=" + GITHUB_PR_BOT_REFERRER
-
     issue_list = "\n".join(
         [
             SINGLE_ISSUE_TEMPLATE.format(
                 title=issue.title,
-                subtitle=format_subtitle(issue.subtitle),
-                url=format_url(issue.url),
+                subtitle=format_comment_subtitle(issue.subtitle),
+                url=format_comment_url(issue.url, GITHUB_PR_BOT_REFERRER),
             )
             for issue in issues
         ]

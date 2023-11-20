@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from django.db.models import Value
 from django.db.models.functions import StrIndex
@@ -18,7 +18,15 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE, GithubAPIErrorType
+from sentry.tasks.integrations.github.pr_comment import (
+    RATE_LIMITED_MESSAGE,
+    GithubAPIErrorType,
+    PullRequestIssue,
+    format_comment_subtitle,
+    format_comment_url,
+)
+from sentry.templatetags.sentry_helpers import small_count
+from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
@@ -30,6 +38,77 @@ OPEN_PR_METRIC_BASE = "github_open_pr_comment.{key}"
 OPEN_PR_MAX_FILES_CHANGED = 7
 # Caps the number of lines that can be modified in a PR to leave a comment
 OPEN_PR_MAX_LINES_CHANGED = 500
+
+COMMENT_BODY_TEMPLATE = """## 🚀 Sentry Issue Report
+You modified these files in this pull request and we noticed these issues associated with them.
+
+{issue_tables}
+---
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+ISSUE_TABLE_TEMPLATE = """📄 **{filename}**
+
+| Issue  | Additional Info |
+| :---------: | :--------: |
+{issue_rows}"""
+
+ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
+<summary><b>📄 {filename} (Click to Expand)</b></summary>
+
+| Issue  | Additional Info |
+| :---------: | :--------: |
+{issue_rows}
+</details>"""
+
+ISSUE_ROW_TEMPLATE = "| ‼️ [**{title}**]({url}) {subtitle} | `Handled:` **{is_handled}** `Event Count:` **{event_count}** `Users:` **{affected_users}** |"
+
+
+def format_open_pr_comment(issue_tables: List[str]) -> str:
+    return COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
+
+
+# for a single file, create a table
+def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggle=False) -> str:
+    issue_rows = "\n".join(
+        [
+            ISSUE_ROW_TEMPLATE.format(
+                title=issue.title,
+                subtitle=format_comment_subtitle(issue.subtitle),
+                url=format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
+                is_handled=str(issue.is_handled),
+                event_count=small_count(issue.event_count),
+                affected_users=small_count(issue.affected_users),
+            )
+            for issue in issues
+        ]
+    )
+
+    if toggle:
+        return ISSUE_TABLE_TOGGLE_TEMPLATE.format(filename=diff_filename, issue_rows=issue_rows)
+
+    return ISSUE_TABLE_TEMPLATE.format(filename=diff_filename, issue_rows=issue_rows)
+
+
+# for a single file, get the contents
+def get_issue_table_contents(issue_list: Dict[str, int]) -> List[PullRequestIssue]:
+    group_id_to_info = {}
+    for issue in issue_list:
+        group_id = issue.pop("group_id")
+        group_id_to_info[group_id] = issue
+
+    issues = Group.objects.filter(id__in=list(group_id_to_info.keys())).all()
+    return [
+        PullRequestIssue(
+            title=issue.title,
+            subtitle=issue.culprit,
+            url=issue.get_absolute_url(),
+            affected_users=group_id_to_info[issue.id]["affected_users"],
+            event_count=group_id_to_info[issue.id]["event_count"],
+            is_handled=bool(group_id_to_info[issue.id]["is_handled"]),
+        )
+        for issue in issues
+    ]
 
 
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
