@@ -39,20 +39,14 @@ const GroupStatsContext = createContext<UseQueryResult<
   Record<string, GroupStats>
 > | null>(null);
 
-export function useGroupStats(groupId: Group['id']): GroupStats;
-export function useGroupStats(): UseQueryResult<Record<string, GroupStats>>;
-export function useGroupStats(maybeGroupId?: Group['id']) {
+export function useGroupStats(group: Group): GroupStats {
   const ctx = useContext(GroupStatsContext);
 
   if (!ctx) {
-    throw new Error('GroupStatsContext was called ourside of GroupStatsProvider');
+    return group;
   }
 
-  if (typeof maybeGroupId === 'undefined') {
-    return ctx;
-  }
-
-  return ctx.data?.[maybeGroupId] ?? {};
+  return ctx.data?.[group.id] ?? group;
 }
 
 interface StatEndpointParams extends Partial<PageFilters['datetime']> {

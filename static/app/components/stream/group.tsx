@@ -286,7 +286,7 @@ function BaseGroupRow({
     );
   };
 
-  const stats = useGroupStats(group.id);
+  const stats = useGroupStats(group);
 
   // Use data.filtered to decide on which value to use
   // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
