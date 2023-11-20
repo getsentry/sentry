@@ -56,10 +56,6 @@ NAME_TO_MRI: Dict[str, Enum] = {}
 MRI_TO_NAME: Dict[str, str] = {}
 
 
-def is_mri(value: str) -> bool:
-    return MRI_SCHEMA_REGEX.match(value) is not None
-
-
 def get_mri(external_name: Union[Enum, str]) -> str:
     if not len(NAME_TO_MRI):
         create_name_mapping_layers()

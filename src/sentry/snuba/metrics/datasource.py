@@ -44,10 +44,11 @@ from sentry.snuba.metrics.fields.base import (
     get_derived_metrics,
     org_id_from_projects,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, is_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import (
     get_available_operations,
     is_custom_measurement,
+    is_mri,
     parse_mri,
 )
 from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery

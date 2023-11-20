@@ -36,7 +36,7 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import build_query_builder
 
-from ...snuba.metrics.naming_layer.mapping import is_mri
+from ...snuba.metrics.naming_layer.mri import is_mri
 from . import (
     CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS,
     QUERY_TYPE_VALID_DATASETS,

@@ -3352,6 +3352,11 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[f"max({mri})"],
             config=QueryBuilderConfig(
+                # We want to replicate the condition for the alerts in production, which has to cohexist
+                # with on demand metrics.
+                skip_time_conditions=True,
+                on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 use_metrics_layer=True,
             ),
         )

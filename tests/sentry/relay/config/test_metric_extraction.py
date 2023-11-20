@@ -133,6 +133,23 @@ def test_get_metric_extraction_config_single_alert(default_project):
 
 
 @django_db_all
+def test_get_metric_extraction_config_single_alert_with_mri(default_project):
+    with Feature(ON_DEMAND_METRICS):
+        create_alert(
+            "sum(c:custom/page_load@millisecond)", "transaction.duration:>=1000", default_project
+        )
+        create_alert(
+            "count(d:transactions/measurements.fcp@millisecond)",
+            "transaction.duration:>=1000",
+            default_project,
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config is None
+
+
+@django_db_all
 def test_get_metric_extraction_config_multiple_alerts(default_project):
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>=1000", default_project)
