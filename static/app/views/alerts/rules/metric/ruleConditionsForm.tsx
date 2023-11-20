@@ -26,11 +26,11 @@ import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {hasDdmAlertsSupport} from 'sentry/utils/ddm/features';
 import {getDisplayName} from 'sentry/utils/environment';
+import {fieldToMri} from 'sentry/utils/metrics';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import {parseAggregate} from 'sentry/views/alerts/rules/metric/mriField';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {
   convertDatasetEventTypesToSource,
@@ -458,7 +458,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
                   return hasDdmAlertsSupport(organization) ? (
                     <MetricSearchBar
-                      mri={parseAggregate(aggregate).mri}
+                      mri={fieldToMri(aggregate).mri}
                       projectIds={[project.id]}
                       placeholder={this.searchPlaceholder}
                       query={initialData.query}
