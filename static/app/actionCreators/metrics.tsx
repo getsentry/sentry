@@ -88,5 +88,7 @@ export const doMetricsRequest = (
 ): Promise<MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta]> => {
   const pathname = `/organizations/${orgSlug}/metrics/data/`;
 
-  return api.requestPromise(pathname, {includeAllArgs: true, query});
+  return api.requestPromise(pathname, {includeAllArgs: true, query}) as Promise<
+    MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta]
+  >;
 };
