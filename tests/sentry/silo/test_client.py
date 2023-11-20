@@ -1,12 +1,18 @@
+from unittest.mock import patch
+
 import responses
 from django.test import RequestFactory, override_settings
 from pytest import raises
 
+from sentry.exceptions import RestrictedIPAddress
+from sentry.net.http import Session
+from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo import SiloMode
 from sentry.silo.client import ControlSiloClient, RegionSiloClient, SiloClientError
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.socket import override_blacklist
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, RegionResolutionError
 from sentry.utils import json
@@ -95,3 +101,22 @@ class SiloClientTest(TestCase):
             assert response["X-Some-Header"] == "Some-Value"
             assert response.get(PROXY_SIGNATURE_HEADER) is None
             assert response[PROXY_DIRECT_LOCATION_HEADER] == path
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch.object(RegionSiloClient, "finalize_request", side_effect=lambda req: req)
+    @patch.object(Session, "send", side_effect=RestrictedIPAddress())
+    @override_blacklist("172.16.0.0/12")
+    def test_client_restricted_ip_address(self, mock_finalize_request, mock_session_send):
+        internal_region_address = "http://172.31.255.255:9000"
+        region = Region("eu", 1, internal_region_address, RegionCategory.MULTI_TENANT)
+        region_config = (region,)
+
+        with override_regions(region_config):
+            assert not mock_finalize_request.called
+
+            client = RegionSiloClient(region)
+            path = f"{internal_region_address}/api/0/imaginary-public-endpoint/"
+            request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
+            with raises(ApiHostError):
+                client.proxy_request(request)
+            assert mock_finalize_request.called

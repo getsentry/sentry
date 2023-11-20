@@ -1,14 +1,17 @@
 from unittest.mock import patch
 
 import pytest
+import responses
 from django.conf import settings
 from django.db import router
 from django.test import RequestFactory, override_settings
 
+from sentry.exceptions import RestrictedIPAddress
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloLimit, SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.socket import override_blacklist
 from sentry.testutils.region import override_region_config, override_regions
 from sentry.types.region import (
     Region,
@@ -21,6 +24,7 @@ from sentry.types.region import (
     get_local_region,
     get_region_by_name,
     get_region_for_organization,
+    load_from_config,
     subdomain_is_region,
 )
 from sentry.utils import json
@@ -233,3 +237,31 @@ class RegionMappingTest(TestCase):
             req = rf.get("/")
             setattr(req, "subdomain", "acme")
             assert not subdomain_is_region(req)
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
+    def test_validate_blacklisted_region_address(self):
+        region_config = [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "address": "http://172.31.255.255:9000",
+                "category": RegionCategory.MULTI_TENANT.name,
+            }
+        ]
+        with override_blacklist("172.16.0.0/12"), pytest.raises(RestrictedIPAddress):
+            load_from_config(region_config).validate_all()
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
+    def test_validate_region_addresses_in_control_silo(self):
+        region_config = [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "address": "http://172.31.255.255:9000",
+                "category": RegionCategory.MULTI_TENANT.name,
+            }
+        ]
+        with override_blacklist("127.0.0.1"):
+            responses.add(responses.GET, "http://172.31.255.255:9000", body="hello")
+            load_from_config(region_config).validate_all()

@@ -64,9 +64,14 @@ class Region:
     """Unused will be removed in the future"""
 
     def validate(self) -> None:
+        from sentry import http
         from sentry.utils.snowflake import REGION_ID
 
         REGION_ID.validate(self.snowflake_id)
+
+        # Validate that each region address is reachable from the control silo.
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            http.safe_urlopen(self.address)
 
     def to_url(self, path: str) -> str:
         """Resolve a path into a customer facing URL on this region's silo.
