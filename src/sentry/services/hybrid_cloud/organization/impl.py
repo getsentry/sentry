@@ -18,7 +18,13 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
@@ -623,11 +629,26 @@ class DatabaseBackedOrganizationService(OrganizationService):
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
 
-    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+    def get_organization_owner_members(
+        self, *, organization_id: int
+    ) -> List[RpcOrganizationMember]:
         org: Organization = Organization.objects.get(id=organization_id)
         owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
 
         return list(map(serialize_member, owner_members))
+
+    def record_pending_first_event_onboarding_task(
+        self, *, organization_id: str, project_id: str, user_id: Optional[int]
+    ) -> None:
+        project = Project.objects.get(organization_id=organization_id, project_id=project_id)
+
+        OrganizationOnboardingTask.objects.record(
+            organization_id=project.organization_id,
+            task=OnboardingTask.FIRST_EVENT,
+            status=OnboardingTaskStatus.PENDING,
+            user_id=user_id,
+            project_id=project.id,
+        )
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):

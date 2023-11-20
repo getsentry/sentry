@@ -10,9 +10,7 @@ from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.api.utils import customer_domain_path, generate_organization_url
-from sentry.models.project import Project
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.signals import first_event_pending
 from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
@@ -122,10 +120,11 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
 
     def handle(self, request: Request, organization, **kwargs) -> HttpResponse:
         if "project_id" in kwargs and request.GET.get("onboarding"):
-            project = Project.objects.filter(
-                organization=organization, slug=kwargs["project_id"]
-            ).first()
-            first_event_pending.send(project=project, user=request.user, sender=self)
+            organization_service.record_pending_first_event_onboarding_task(
+                organization_id=organization.id,
+                project_id=kwargs["project_id"],
+                user_id=request.user.id,
+            )
         request.organization = organization
         return self.handle_react(request)
 
