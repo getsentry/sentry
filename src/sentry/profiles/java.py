@@ -87,7 +87,7 @@ def byte_code_type_to_java_type(byte_code_type: str, mapper=None) -> str:
         return byte_code_type
 
 
-# deobfuscate_signature will parse and deeobfuscate a signature
+# deobfuscate_signature will parse and deobfuscate a signature
 # returns a tuple where the first element is the list of the function
 # parameters and the second one is the return type
 def deobfuscate_signature(signature: str, mapper=None) -> Tuple[Optional[List[str]], Optional[str]]:

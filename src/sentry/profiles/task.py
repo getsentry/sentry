@@ -720,7 +720,11 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
             # in case we don't have line numbers but we do have the signature,
             # we do a best-effort deobfuscation exploiting function parameters
-            if method.get("source_line") is None and method.get("signature") is not None:
+            if (
+                method.get("source_line") is None
+                and method.get("signature") is not None
+                and param_type is not None
+            ):
                 params = ",".join(param_type)
                 mapped = mapper.remap_frame(method["class_name"], method["name"], 0, params)
             else:
