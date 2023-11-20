@@ -19,7 +19,6 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     ),
     type: 'select',
     options: [
-      {value: '-1', label: t('Default')},
       {value: '1', label: t('On')},
       {value: '0', label: t('Off')},
     ],
@@ -33,7 +32,6 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     ),
     type: 'select',
     options: [
-      {value: '-1', label: t('Default')},
       {value: '0', label: t('Always')},
       {value: '1', label: t('Only on issues I subscribe to')},
       {value: '2', label: t('Never')},
@@ -48,7 +46,6 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     ),
     type: 'select',
     options: [
-      {value: '-1', label: t('Default')},
       {value: '2', label: t('Always')},
       {value: '3', label: t('Only on deploys with my commits')},
       {value: '4', label: t('Never')},

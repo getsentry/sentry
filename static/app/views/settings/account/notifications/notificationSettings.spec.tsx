@@ -12,7 +12,6 @@ function renderMockRequests({}: {}) {
     body: {
       personalActivityNotifications: true,
       selfAssignOnResolve: true,
-      weeklyReports: true,
     },
   });
 }

@@ -79,10 +79,14 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     help: t('Error, transaction, and attachment quota limits.'),
   },
   reports: {
-    name: 'weekly reports',
-    type: 'blank',
+    name: 'reports',
+    type: 'select',
     label: t('Weekly Reports'),
     help: t('A summary of the past week for an organization.'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
   },
   email: {
     name: 'email routing',
@@ -100,6 +104,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     ],
     help: t('Notifications about spikes on a per project basis.'),
   },
+  // legacy options
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
     type: 'select',
@@ -119,20 +124,6 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       [false as any, t('Off')],
     ],
     help: t("When you resolve an unassigned issue, we'll auto-assign it to you."),
-  },
-};
-
-export const NOTIFICATION_SETTING_FIELDS_V2: Record<string, Field> = {
-  ...NOTIFICATION_SETTING_FIELDS,
-  reports: {
-    name: 'reports',
-    type: 'select',
-    label: t('Weekly Reports'),
-    help: t('A summary of the past week for an organization.'),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ],
   },
 };
 
