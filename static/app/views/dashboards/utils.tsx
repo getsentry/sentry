@@ -42,6 +42,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {fieldToMri} from 'sentry/utils/metrics';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {
@@ -394,6 +395,32 @@ export function getWidgetReleasesUrl(
     environment: selection.environments,
   })}`;
   return releasesLocation;
+}
+
+export function getWidgetDDMUrl(
+  _widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const {start, end, utc, period} = selection.datetime;
+  const datetime =
+    start && end
+      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+      : {statsPeriod: period};
+
+  const ddmLocation = `/organizations/${organization.slug}/ddm/?${qs.stringify({
+    ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
+    widgets: JSON.stringify(
+      _widget.queries.map(query => {
+        const {mri, op} = fieldToMri(query.aggregates[0]);
+        return {mri, op, groupBy: query.columns, displayType: _widget.displayType};
+      })
+    ),
+  })}`;
+
+  return ddmLocation;
 }
 
 export function flattenErrors(

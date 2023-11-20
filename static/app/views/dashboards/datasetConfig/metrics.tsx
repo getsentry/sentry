@@ -66,6 +66,7 @@ export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse
   transformSeries: transformMetricsResponseToSeries,
   transformTable: transformMetricsResponseToTable,
   getTableFieldOptions: () => ({}),
+  getTimeseriesSortOptions: () => ({}),
   getTableSortOptions: undefined,
 };
 

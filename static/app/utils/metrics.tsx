@@ -11,6 +11,7 @@ import {
 import {t} from 'sentry/locale';
 import {Group, MetricsApiResponse} from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -307,6 +308,7 @@ export function parseMRI(mri?: string) {
   return {
     name,
     unit,
+
     mri: cleanMRI,
     useCase,
   };
@@ -431,4 +433,23 @@ export function getSeriesName(
   return Object.entries(group.by)
     .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
     .join(', ');
+}
+
+export function mriToField(mri: string, op: string): string {
+  return `${op}(${mri})`;
+}
+
+export function fieldToMri(field: string) {
+  const parsedFunction = parseFunction(field);
+  if (!parsedFunction) {
+    // We only allow aggregate functions for custom metric alerts
+    return {
+      mri: undefined,
+      op: undefined,
+    };
+  }
+  return {
+    mri: parsedFunction.arguments[0],
+    op: parsedFunction.name,
+  };
 }
