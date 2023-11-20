@@ -3272,6 +3272,8 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[aggregate],
             config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 use_metrics_layer=True,
             ),
         )
@@ -3297,6 +3299,8 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[aggregate],
             config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 use_metrics_layer=True,
             ),
         )
@@ -3329,6 +3333,8 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             selected_columns=[aggregate],
             query="phone:iPhone OR phone:OnePlus",
             config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 use_metrics_layer=True,
             ),
         )
@@ -3355,9 +3361,6 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             selected_columns=[aggregate],
             query="phone:iPhone OR phone:OnePlus",
             config=QueryBuilderConfig(
-                # We want to replicate the condition for the alerts in production, which has to cohexist
-                # with on demand metrics.
-                skip_time_conditions=True,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 use_metrics_layer=True,
@@ -3395,6 +3398,8 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             selected_columns=[aggregate],
             query="country:IT",
             config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 use_metrics_layer=True,
             ),
         )
@@ -3430,7 +3435,7 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
         assert meta[0]["name"] == "count_unique_s_custom_user_click_none"
 
     def test_custom_metric_query_generation(self):
-        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string="my_tag")
+        indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string="phone")
 
         for aggregate, expected_aggregate, mri, expected_alias in (
             ("sum", "sumIf", "c:custom/user.click@none", "sum_c_custom_user_click_none"),
@@ -3447,10 +3452,15 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             query = AlertMetricsQueryBuilder(
                 {**self.params, "environment": self.environment.name},
                 granularity=3600,
-                query="my_tag:my_value",
+                query="phone:iPhone",
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[f"{aggregate}({mri})"],
                 config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
+                    # We want to replicate the condition for the alerts in production, which has to coexist
+                    # with on demand metrics.
+                    skip_time_conditions=True,
                     use_metrics_layer=True,
                 ),
             )
@@ -3483,8 +3493,16 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
                 snql_query.select,
             )
 
-            environment_id = indexer.resolve(UseCaseID.CUSTOM, self.organization.id, "environment")
-            environment_condition = Condition(
-                lhs=Column(name=f"tags_raw[{environment_id}]"), op=Op.EQ, rhs="development"
-            )
-            assert environment_condition in snql_query.where
+            for expected_tag_key, expected_tag_value in (
+                ("environment", "development"),
+                ("phone", "iPhone"),
+            ):
+                tag_key_indexed = indexer.resolve(
+                    UseCaseID.CUSTOM, self.organization.id, expected_tag_key
+                )
+                tag_condition = Condition(
+                    lhs=Column(name=f"tags_raw[{tag_key_indexed}]"),
+                    op=Op.EQ,
+                    rhs=expected_tag_value,
+                )
+                assert tag_condition in snql_query.where
