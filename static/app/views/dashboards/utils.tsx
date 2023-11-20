@@ -415,7 +415,13 @@ export function getWidgetDDMUrl(
     widgets: JSON.stringify(
       _widget.queries.map(query => {
         const {mri, op} = fieldToMri(query.aggregates[0]);
-        return {mri, op, groupBy: query.columns, displayType: _widget.displayType};
+        return {
+          mri,
+          op,
+          groupBy: query.columns,
+          query: query.conditions ?? '',
+          displayType: _widget.displayType,
+        };
       })
     ),
   })}`;

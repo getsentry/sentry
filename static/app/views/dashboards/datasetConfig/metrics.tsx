@@ -168,7 +168,7 @@ function getMetricRequest(
   const requestData = getMetricsApiRequestQuery(
     {
       field: query.aggregates[0],
-      query: query.conditions[0],
+      query: query.conditions,
       groupBy: query.columns,
     },
     pageFilters,
