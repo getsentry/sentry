@@ -135,7 +135,6 @@ export default function GroupSidebar({
     );
   };
 
-  const hasParticipantsFeature = organization.features.includes('participants-purge');
   const renderParticipantData = () => {
     const {participants} = group;
     if (!participants.length) {
@@ -150,10 +149,6 @@ export default function GroupSidebar({
     );
 
     const getParticipantTitle = (): React.ReactNode => {
-      if (!hasParticipantsFeature) {
-        return `${group.participants.length}`;
-      }
-
       const individualText = tn(
         '%s Individual',
         '%s Individuals',
@@ -181,7 +176,7 @@ export default function GroupSidebar({
         users={userParticipants}
         teams={teamParticipants}
         avatarSize={28}
-        maxVisibleAvatars={hasParticipantsFeature ? 12 : 13}
+        maxVisibleAvatars={12}
         typeAvatars="participants"
       />
     );
@@ -199,23 +194,13 @@ export default function GroupSidebar({
           />
         </SidebarSection.Title>
         <SidebarSection.Content>
-          {hasParticipantsFeature ? (
-            <ParticipantList
-              users={userParticipants}
-              teams={teamParticipants}
-              description={t('participants')}
-            >
-              {avatars}
-            </ParticipantList>
-          ) : (
-            <StyledAvatarList
-              users={userParticipants}
-              teams={teamParticipants}
-              avatarSize={28}
-              maxVisibleAvatars={13}
-              typeAvatars="participants"
-            />
-          )}
+          <ParticipantList
+            users={userParticipants}
+            teams={teamParticipants}
+            description={t('participants')}
+          >
+            {avatars}
+          </ParticipantList>
         </SidebarSection.Content>
       </SmallerSidebarWrap>
     );
@@ -234,7 +219,7 @@ export default function GroupSidebar({
       <StyledAvatarList
         users={displayUsers}
         avatarSize={28}
-        maxVisibleAvatars={hasParticipantsFeature ? 12 : 13}
+        maxVisibleAvatars={12}
         renderTooltip={user => (
           <Fragment>
             {userDisplayName(user)}
@@ -257,13 +242,9 @@ export default function GroupSidebar({
           />
         </SidebarSection.Title>
         <SidebarSection.Content>
-          {hasParticipantsFeature ? (
-            <ParticipantList users={displayUsers} teams={[]} description={t('users')}>
-              {avatars}
-            </ParticipantList>
-          ) : (
-            avatars
-          )}
+          <ParticipantList users={displayUsers} teams={[]} description={t('users')}>
+            {avatars}
+          </ParticipantList>
         </SidebarSection.Content>
       </SmallerSidebarWrap>
     );
