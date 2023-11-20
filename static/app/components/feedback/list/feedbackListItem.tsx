@@ -129,7 +129,8 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 );
 
 const StyledTimeSince = styled(TimeSince)`
-  text-align: right;
+  display: flex;
+  justify-content: end;
 `;
 
 const RightAlignedIcons = styled('div')`
@@ -151,7 +152,7 @@ const CardSpacing = styled('div')`
 const LinkedFeedbackCard = styled(Link)`
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1.5)};
+  padding: ${space(1)} ${space(3)} ${space(1)} ${space(1.5)};
 
   color: ${p => p.theme.textColor};
   &:hover {
