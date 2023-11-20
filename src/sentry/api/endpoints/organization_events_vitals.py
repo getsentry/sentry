@@ -94,6 +94,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                     "poor": event_data.get(get_function_alias(f"count_web_vitals({vital}, poor)"))
                     or 0,
                 }
+        # XXX: Do something here?
         results["meta"] = {"isMetricsData": events_results["meta"].get("isMetricsData", False)}
 
         return Response(results)
