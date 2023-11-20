@@ -1,5 +1,4 @@
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -55,6 +54,7 @@ export enum IssueCategory {
   ERROR = 'error',
   CRON = 'cron',
   PROFILE = 'profile',
+  FEEDBACK = 'feedback',
 }
 
 export enum IssueType {
@@ -85,6 +85,9 @@ export enum IssueType {
   PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
   PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
   PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
+
+  // Feedback
+  FEEDBACK = 'feedback',
 }
 
 export enum IssueTitle {
@@ -693,12 +696,7 @@ export interface GroupUnresolved extends BaseGroup, GroupStats {
   statusDetails: {};
 }
 
-export type Group =
-  | GroupUnresolved
-  | GroupResolved
-  | GroupIgnored
-  | GroupReprocessing
-  | FeedbackIssue;
+export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
 
 export interface GroupTombstone {
   actor: AvatarUser;

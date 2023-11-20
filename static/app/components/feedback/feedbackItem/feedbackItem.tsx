@@ -26,7 +26,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconIssues, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event, Group} from 'sentry/types';
 import {GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -135,7 +135,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             <ErrorBoundary mini>
               <ExternalIssueList
                 project={feedbackItem.project}
-                group={feedbackItem}
+                group={feedbackItem as Group}
                 event={eventData}
                 showHeader={false}
               />
