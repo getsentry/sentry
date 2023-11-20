@@ -442,15 +442,19 @@ function MonitorForm({
                     name="config.failure_issue_threshold"
                     min={1}
                     placeholder="1"
-                    help={t('Create an issue after this many missed or error check-ins')}
-                    label={t('Tolerate Failures')}
+                    help={t(
+                      'Create a new issue when this many consecutive missed or error check-ins are processed.'
+                    )}
+                    label={t('Failure Tolerance')}
                   />
                   <NumberField
                     name="config.recovery_threshold"
                     min={1}
                     placeholder="1"
-                    help={t('Recover monitor status after this many healthy check-ins')}
-                    label={t('Recovery Threshold')}
+                    help={t(
+                      'Resolve the issue when this many consecutive healthy check-ins are processed.'
+                    )}
+                    label={t('Recovery Tolerance')}
                   />
                 </Fragment>
               )}
