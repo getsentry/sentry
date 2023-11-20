@@ -75,7 +75,7 @@ PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
 
-def get_performance_project_settings(projects: List[Project]):
+def get_performance_issue_settings(projects: List[Project]):
     project_settings = {}
 
     project_option_settings = ProjectOption.objects.get_value_bulk(
@@ -96,19 +96,6 @@ def get_performance_project_settings(projects: List[Project]):
     return project_settings
 
 
-def all_projects_with_settings():
-    for projects in chunked(
-        RangeQuerySetWrapper(
-            Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
-            step=100,
-        ),
-        100,
-    ):
-        project_settings = get_performance_project_settings(projects)
-        for project in projects:
-            yield project, project_settings[project]
-
-
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.run_detection",
     queue="performance.statistical_detector",
@@ -126,12 +113,14 @@ def run_detection() -> None:
     performance_projects_count = 0
     profiling_projects_count = 0
 
-    for project, project_settings in all_projects_with_settings():
+    for project in RangeQuerySetWrapper(
+        Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
+        step=100,
+    ):
         if project.flags.has_transactions and (
             features.has(
                 "organizations:performance-statistical-detectors-ema", project.organization
             )
-            and project_settings[InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value]
         ):
             performance_projects.append(project)
             performance_projects_count += 1
@@ -183,13 +172,25 @@ def run_detection() -> None:
     max_retries=0,
 )
 def detect_transaction_trends(
-    org_ids: List[int], project_ids: List[int], start: datetime, *args, **kwargs
+    _org_ids: List[int], project_ids: List[int], start: datetime, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
+    # Time to filter down to just the projects that have not opted out.
+    #
+    # If we filter this in the earlier step, it makes the initial dispatch
+    # task take longer than necessary.
+    projects = Project.objects.filter(id__in=project_ids)
+    settings = get_performance_issue_settings(projects)
+    projects = [
+        project
+        for project in projects
+        if settings[project][InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value]
+    ]
+
     ratelimit = options.get("statistical_detectors.ratelimit.ema")
-    trends = _detect_transaction_trends(org_ids, project_ids, start)
+    trends = _detect_transaction_trends(projects, start)
     regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
@@ -296,23 +297,21 @@ def _detect_transaction_change_points(
 
 
 def get_all_transaction_payloads(
-    org_ids: List[int], project_ids: List[int], start: datetime, end: datetime
+    projects: List[Project], start: datetime, end: datetime
 ) -> Generator[DetectorPayload, None, None]:
     projects_per_query = options.get("statistical_detectors.query.batch_size")
     assert projects_per_query > 0
 
-    for chunked_project_ids in chunked(project_ids, projects_per_query):
+    for chunked_projects in chunked(projects, projects_per_query):
         try:
-            yield from query_transactions(
-                org_ids, chunked_project_ids, start, end, TRANSACTIONS_PER_PROJECT
-            )
+            yield from query_transactions(chunked_projects, start, end, TRANSACTIONS_PER_PROJECT)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             continue
 
 
 def _detect_transaction_trends(
-    org_ids: List[int], project_ids: List[int], start: datetime
+    projects: List[Project], start: datetime
 ) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None]:
     unique_project_ids: Set[int] = set()
 
@@ -333,7 +332,7 @@ def _detect_transaction_trends(
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
     end = start + timedelta(hours=1)
-    all_transaction_payloads = get_all_transaction_payloads(org_ids, project_ids, start, end)
+    all_transaction_payloads = get_all_transaction_payloads(projects, start, end)
 
     for payloads in chunked(all_transaction_payloads, 100):
         transactions_count += len(payloads)
@@ -569,9 +568,10 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
-    ratelimit = options.get("statistical_detectors.ratelimit.ema")
+    projects = Project.objects.filter(id__in=project_ids)
 
-    trends = _detect_function_trends(project_ids, start)
+    ratelimit = options.get("statistical_detectors.ratelimit.ema")
+    trends = _detect_function_trends(projects, start)
     regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
@@ -638,7 +638,7 @@ def detect_function_change_points(
 
 
 def _detect_function_trends(
-    project_ids: List[int], start: datetime
+    projects: List[Project], start: datetime
 ) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None]:
     unique_project_ids: Set[int] = set()
 
@@ -655,8 +655,6 @@ def _detect_function_trends(
     )
 
     detector_store = RedisDetectorStore(detector_type=DetectorType.FUNCTION)
-
-    projects = Project.objects.filter(id__in=project_ids)
 
     for payloads in chunked(all_function_payloads(projects, start), 100):
         functions_count += len(payloads)
@@ -895,12 +893,14 @@ BACKEND_TRANSACTION_OPS = [
 
 
 def query_transactions(
-    org_ids: List[int],
-    project_ids: List[int],
+    projects: List[Project],
     start: datetime,
     end: datetime,
     transactions_per_project: int,
 ) -> List[DetectorPayload]:
+    org_ids = list({p.organization_id for p in projects})
+    project_ids = list({p.id for p in projects})
+
     use_case_id = UseCaseID.TRANSACTIONS
 
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
@@ -969,7 +969,7 @@ def query_transactions(
         ],
         where=[
             Condition(Column("org_id"), Op.IN, list(org_ids)),
-            Condition(Column("project_id"), Op.IN, list(project_ids)),
+            Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("metric_id"), Op.EQ, duration_metric_id),
