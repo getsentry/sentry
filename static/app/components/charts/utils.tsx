@@ -181,7 +181,7 @@ export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
   return '1h';
 }
 
-export type GranularityStep = [number, string];
+export type GranularityStep = [timeDiff: number, interval: string];
 export type GranularityLadder = GranularityStep[];
 
 /**
