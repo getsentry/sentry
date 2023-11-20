@@ -30,6 +30,7 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   PROJECT_ID,
   SPAN_GROUP,
+  FILE_EXTENSION,
 } = SpanMetricsField;
 
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
@@ -39,6 +40,7 @@ const {SPM} = SpanFunction;
 type Row = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
+  file_extension: string;
   'http.decoded_response_content_length': number;
   'project.id': number;
   'resource.render_blocking_status': string;
@@ -96,15 +98,22 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
-    const opPlatformMap = {
-      'resource.script': 'javascript',
-      'resource.css': 'css',
+    const getIcon = (spanOp: string, fileExtension: string) => {
+      if (spanOp === 'resource.script') {
+        return 'javascript';
+      }
+      if (fileExtension === 'css') {
+        return 'css';
+      }
+      return 'unknown';
     };
 
     if (key === SPAN_DESCRIPTION) {
       return (
         <DescriptionWrapper>
-          <PlatformIcon platform={opPlatformMap[row[SPAN_OP]] || 'unknown'} />
+          <PlatformIcon
+            platform={getIcon(row[SPAN_OP], row[FILE_EXTENSION]) || 'unknown'}
+          />
           <SpanDescriptionCell
             moduleName={ModuleName.HTTP}
             projectId={row[PROJECT_ID]}
@@ -124,16 +133,18 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === SPAN_OP) {
-      const opNameMap = {
-        'resource.script': t('JavaScript'),
-        'resource.img': t('Image'),
-        'resource.iframe': t('JavaScript (iframe)'),
-        'resource.css': t('Stylesheet'),
-        'resource.video': t('Video'),
-        'resource.audio': t('Audio'),
-      };
-      const opName = opNameMap[row[key]] || row[key];
-      return <span>{opName}</span>;
+      const fileExtension = row[FILE_EXTENSION];
+      const spanOp = row[key];
+      if (fileExtension === 'js' || spanOp === 'resource.script') {
+        return <span>{t('JavaScript')}</span>;
+      }
+      if (fileExtension === 'css') {
+        return <span>Stylesheet</span>;
+      }
+      if (['woff', 'woff2', 'ttf', 'otf', 'eot'].includes(fileExtension)) {
+        return <span>Font</span>;
+      }
+      return <span>{spanOp}</span>;
     }
     if (key === 'http.decoded_response_content_length') {
       const isUncompressed =

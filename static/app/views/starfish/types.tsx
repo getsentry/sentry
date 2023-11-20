@@ -31,6 +31,7 @@ export enum SpanMetricsField {
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
+  FILE_EXTENSION = 'file_extension',
 }
 
 export type SpanNumberFields =
