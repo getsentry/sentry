@@ -1019,7 +1019,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
 
         assert response.status_code == 200, response.content
 
-    def test_top_events_with_transaction_on_demand_foo(self):
+    def test_top_events_with_transaction_on_demand(self):
         field = "count()"
         field_two = "count_web_vitals(measurements.lcp, good)"
         groupbys = ["customtag1", "customtag2"]
@@ -1075,7 +1075,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 "dataset": "metricsEnhanced",
                 "useOnDemandMetrics": "true",
                 "onDemandType": "dynamic_query",
-            }
+            },
         )
 
         assert response.status_code == 200, response.content
