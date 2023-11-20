@@ -1,4 +1,6 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,6 +18,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
+class EmptyFlamegraphException extends Error {}
+
 export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
   const {selection} = usePageFilters();
   const [hideSystemFrames, setHideSystemFrames] = useLocalStorageState(
@@ -23,13 +27,20 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
     true
   );
 
-  const {data, isLoading} = useAggregateFlamegraphQuery({
+  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
     transaction,
     environments: selection.environments,
     projects: selection.projects,
     datetime: selection.datetime,
   });
   const isEmpty = data?.shared.frames.length === 0;
+
+  useEffect(() => {
+    if (isLoading || isError || data.shared.frames.length > 0) {
+      return;
+    }
+    Sentry.captureException(new EmptyFlamegraphException('Empty aggregate flamegraph'));
+  }, [data, isLoading, isError]);
 
   return (
     <Flex column gap={space(1)}>
