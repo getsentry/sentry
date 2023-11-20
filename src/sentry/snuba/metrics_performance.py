@@ -251,6 +251,7 @@ def timeseries_query(
             return {
                 "data": result["data"],
                 "isMetricsData": True,
+                "isMetricsExtractedData": metrics_query.use_on_demand,
                 "meta": result["meta"],
             }
 
