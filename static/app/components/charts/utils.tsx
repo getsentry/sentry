@@ -180,6 +180,23 @@ export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
   return '1h';
 }
 
+export type GranularityStep = [number, string];
+export type GranularityLadder = GranularityStep[];
+
+/**
+ * Given a duration in minutes and a `GranularityLadder` object picks the correct granularity at that duration and return the interval as a string e.g. `"10m"`
+ */
+export function findGranularityIntervalForMinutes(
+  minutes: number,
+  granularities: GranularityLadder
+) {
+  const step = granularities.find(([threshold]) => {
+    return minutes >= threshold;
+  }) as GranularityStep; // This can never be undefined, because the first step is 0, so any duration has to be larger than at least the first
+
+  return step[1];
+}
+
 export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
   const {period, start, end} = datetimeObj;
 
