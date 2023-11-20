@@ -143,6 +143,8 @@ function WidgetQueries({
 
   if (context) {
     setIsMetricsData = context.setIsMetricsData;
+  }
+  if (metricsMeta) {
     setIsMetricsExtractedData = metricsMeta.setIsMetricsExtractedData;
   }
 
