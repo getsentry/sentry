@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -96,6 +96,13 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     initialData: {},
   });
 
+  useEffect(() => {
+    if (defined(primaryRelease) || isReleasesLoading) {
+      return;
+    }
+    Sentry.captureException(new Error('Screen summary missing releases'));
+  }, [primaryRelease, isReleasesLoading]);
+
   const transformedReleaseSeries: {
     [yAxisName: string]: {
       [releaseVersion: string]: Series;
@@ -152,7 +159,6 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
   }
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
-    Sentry.captureException(new Error('Screen summary missing releases'));
     return (
       <Alert type="warning" showIcon>
         {t('Invalid selection. Try a different release or date range.')}
