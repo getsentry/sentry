@@ -95,12 +95,14 @@ const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
   [WidgetType.RELEASE]: DataSet.RELEASES,
+  [WidgetType.METRICS]: DataSet.METRICS,
 };
 
 export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
   [DataSet.ISSUES]: WidgetType.ISSUE,
   [DataSet.RELEASES]: WidgetType.RELEASE,
+  [DataSet.METRICS]: WidgetType.METRICS,
 };
 
 interface RouteParams {
@@ -176,6 +178,7 @@ function WidgetBuilder({
   }
 
   const hasReleaseHealthFeature = organization.features.includes('dashboards-rh-widget');
+  const hasCustomMetricsFeature = organization.features.includes('ddm-experimental');
 
   const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
     if (widgetType === WidgetType.RELEASE) {
@@ -204,6 +207,7 @@ function WidgetBuilder({
   const notDashboardsOrigin = [
     DashboardWidgetSource.DISCOVERV2,
     DashboardWidgetSource.ISSUE_DETAILS,
+    DashboardWidgetSource.DDM,
   ].includes(source);
 
   const api = useApi();
@@ -355,12 +359,7 @@ function WidgetBuilder({
     router.setRouteLeaveHook(route, onUnload);
   }, [isSubmitting, state.userHasModified, route, router]);
 
-  const widgetType =
-    state.dataSet === DataSet.EVENTS
-      ? WidgetType.DISCOVER
-      : state.dataSet === DataSet.ISSUES
-      ? WidgetType.ISSUE
-      : WidgetType.RELEASE;
+  const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
 
   const currentWidget = {
     title: state.title,
@@ -1121,6 +1120,7 @@ function WidgetBuilder({
                                 displayType={state.displayType}
                                 onChange={handleDataSetChange}
                                 hasReleaseHealthFeature={hasReleaseHealthFeature}
+                                hasCustomMetricsFeature={hasCustomMetricsFeature}
                               />
                               {isTabularChart && (
                                 <DashboardsMEPConsumer>

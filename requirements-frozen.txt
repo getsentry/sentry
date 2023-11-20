@@ -113,7 +113,7 @@ rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 rsa==4.8
 s3transfer==0.6.1
-sentry-arroyo==2.14.19
+sentry-arroyo==2.14.20
 sentry-kafka-schemas==0.1.34
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.35
@@ -136,7 +136,7 @@ unidiff==0.7.4
 uritemplate==4.1.1
 urllib3==1.26.11
 vine==1.3.0
-xmlsec==1.3.12
+xmlsec==1.3.13
 yarl==1.8.2
 zstandard==0.18.0
 

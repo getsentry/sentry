@@ -1565,6 +1565,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:transaction-metrics-extraction": False,
     # True if Relay should drop raw session payloads after extracting metrics from them.
     "organizations:release-health-drop-sessions": False,
+    # Enable ignoring archived issues in metric alerts
+    "organizations:metric-alert-ignore-archived": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1733,8 +1735,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-trial-ended-banner": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
-    # Enable the Replay Details > New timeline
-    "organizations:session-replay-new-timeline": False,
     # Enable the accessibility issues endpoint
     "organizations:session-replay-accessibility-issues": False,
     # Enable the new suggested assignees feature
@@ -1830,10 +1830,11 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
-    # Enable the new notification settings system
-    "organizations:notification-settings-v2": False,
     # Enable new release UI
-    "organizations:release-ui-v2": False,
+    "organizations:releases-v2": False,
+    "organizations:releases-v2-st": False,
+    # Enable the metrics layer for alerts queries.
+    "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
@@ -1856,6 +1857,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-rate-limiting": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
+    # Enable logs for debugging weekly reports
+    "organizations:weekly-report-logs": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -2059,6 +2062,10 @@ SENTRY_ENABLE_INVITES = True
 
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN: str | None = None
+
+# Origins that are allowed to use credentials. This list is in addition
+# to all subdomains of system.url-prefix
+ALLOWED_CREDENTIAL_ORIGINS: list[str] = []
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"

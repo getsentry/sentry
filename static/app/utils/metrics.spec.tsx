@@ -1,4 +1,13 @@
-import {formatMetricsUsingUnitAndOp, parseMRI} from 'sentry/utils/metrics';
+import {PageFilters} from 'sentry/types';
+import {
+  fieldToMri,
+  formatMetricsUsingUnitAndOp,
+  getDateTimeParams,
+  getMetricsApiRequestQuery,
+  getMetricsInterval,
+  getUseCaseFromMRI,
+  parseMRI,
+} from 'sentry/utils/metrics';
 
 describe('parseMRI', () => {
   it('should handle falsy values', () => {
@@ -83,5 +92,183 @@ describe('formatMetricsUsingUnitAndOp', () => {
   it('should format count operation as a number', () => {
     expect(formatMetricsUsingUnitAndOp(99, 'none', 'count')).toEqual('99');
     expect(formatMetricsUsingUnitAndOp(null, 'none', 'count')).toEqual('');
+  });
+});
+
+describe('getMetricsApiRequestQuery', () => {
+  it('should return the correct query object with default values', () => {
+    const metric = {field: 'sessions', query: 'error', groupBy: ['project']};
+    const filters = {
+      projects: [1],
+      environments: ['production'],
+      datetime: {start: '2023-01-01', end: '2023-01-31', period: null, utc: true},
+    };
+    const overrides = {};
+
+    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+
+    expect(result).toEqual({
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-31T00:00:00.000Z',
+      query: 'error',
+      project: [1],
+      environment: ['production'],
+      field: 'sessions',
+      useCase: 'sessions',
+      interval: '12h',
+      groupBy: ['project'],
+      allowPrivate: true,
+      per_page: 20,
+    });
+  });
+
+  it('should return the correct query object with default values (period)', () => {
+    const metric = {field: 'sessions', query: 'error', groupBy: ['project']};
+    const filters = {
+      projects: [1],
+      environments: ['production'],
+      datetime: {period: '7d', utc: true} as PageFilters['datetime'],
+    };
+    const overrides = {};
+
+    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+
+    expect(result).toEqual({
+      statsPeriod: '7d',
+      query: 'error',
+      project: [1],
+      environment: ['production'],
+      field: 'sessions',
+      useCase: 'sessions',
+      interval: '30m',
+      groupBy: ['project'],
+      allowPrivate: true,
+      per_page: 20,
+    });
+  });
+
+  it('should return the correct query object with overridden values', () => {
+    const metric = {field: 'sessions', query: 'error', groupBy: ['project']};
+    const filters = {
+      projects: [1],
+      environments: ['production'],
+      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
+    };
+    const overrides = {interval: '5m', groupBy: ['environment']};
+
+    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+
+    expect(result).toEqual({
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-02T00:00:00.000Z',
+      query: 'error',
+      project: [1],
+      environment: ['production'],
+      field: 'sessions',
+      useCase: 'sessions',
+      interval: '5m',
+      groupBy: ['environment'],
+      allowPrivate: true,
+      per_page: 20,
+    });
+  });
+});
+
+describe('getMetricsInterval', () => {
+  it('should return the correct interval for non-"1m" intervals', () => {
+    const dateTimeObj = {start: '2023-01-01', end: '2023-01-31'};
+    const useCase = 'sessions';
+
+    const result = getMetricsInterval(dateTimeObj, useCase);
+
+    expect(result).toBe('12h');
+  });
+
+  it('should return "10s" interval for "1m" interval within 60 minutes and custom use case', () => {
+    const dateTimeObj = {start: '2023-01-01', end: '2023-01-01T00:59:00.000Z'};
+    const useCase = 'custom';
+
+    const result = getMetricsInterval(dateTimeObj, useCase);
+
+    expect(result).toBe('10s');
+  });
+
+  it('should return "1m" interval for "1m" interval beyond 60 minutes', () => {
+    const dateTimeObj = {start: '2023-01-01', end: '2023-01-01T01:05:00.000Z'};
+    const useCase = 'sessions';
+
+    const result = getMetricsInterval(dateTimeObj, useCase);
+
+    expect(result).toBe('1m');
+  });
+});
+
+describe('getDateTimeParams', () => {
+  it('should return the correct object with "statsPeriod" when period is provided', () => {
+    const datetime = {start: '2023-01-01', end: '2023-01-31', period: '7d', utc: true};
+
+    const result = getDateTimeParams(datetime);
+
+    expect(result).toEqual({statsPeriod: '7d'});
+  });
+
+  it('should return the correct object with "start" and "end" when period is not provided', () => {
+    const datetime = {start: '2023-01-01', end: '2023-01-31', period: null, utc: true};
+    const result = getDateTimeParams(datetime);
+
+    expect(result).toEqual({
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-31T00:00:00.000Z',
+    });
+  });
+});
+
+describe('getUseCaseFromMRI', () => {
+  it('should return "custom" for mri containing "custom/"', () => {
+    const mri = 'd:custom/sentry.events.symbolicator.query_task@second';
+
+    const result = getUseCaseFromMRI(mri);
+
+    expect(result).toBe('custom');
+  });
+
+  it('should return "transactions" for mri containing "transactions/"', () => {
+    const mri = 'd:transactions/duration@second';
+
+    const result = getUseCaseFromMRI(mri);
+
+    expect(result).toBe('transactions');
+  });
+
+  it('should return "sessions" for other cases', () => {
+    const mri = 'e:test/project@timestamp';
+
+    const result = getUseCaseFromMRI(mri);
+
+    expect(result).toBe('sessions');
+  });
+});
+
+describe('fieldToMri', () => {
+  it('should return the correct mri and op from field', () => {
+    const field = 'op(c:test/project)';
+
+    const result = fieldToMri(field);
+
+    expect(result).toEqual({
+      mri: 'c:test/project',
+      op: 'op',
+    });
+  });
+
+  it('should return undefined mri and op for invalid field', () => {
+    const field = 'invalid-field';
+
+    const result = fieldToMri(field);
+
+    expect(result).toEqual({
+      mri: undefined,
+      op: undefined,
+    });
   });
 });

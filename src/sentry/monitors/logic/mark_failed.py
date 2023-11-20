@@ -14,7 +14,6 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
-from sentry.issues.producer import PayloadType
 from sentry.models.organization import Organization
 from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
 from sentry.monitors.models import (
@@ -117,18 +116,16 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         # use .values() to speed up query
         previous_checkins = list(
             reversed(
-                MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
+                MonitorCheckIn.objects.filter(
+                    monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
+                )
+                .exclude(status=CheckInStatus.IN_PROGRESS)
                 .order_by("-date_added")
                 .values("id", "date_added", "status")[:failure_issue_threshold]
             )
         )
         # check for successive failed previous check-ins
-        if not all(
-            [
-                checkin["status"] not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
-                for checkin in previous_checkins
-            ]
-        ):
+        if not all([checkin["status"] != CheckInStatus.OK for checkin in previous_checkins]):
             return False
 
         # change monitor status + update fingerprint timestamp
@@ -249,7 +246,7 @@ def create_issue_platform_occurrence(
     fingerprint=None,
 ):
     from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-    from sentry.issues.producer import produce_occurrence_to_kafka
+    from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 
     monitor_env = failed_checkin.monitor_environment
     current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
@@ -301,7 +298,7 @@ def create_issue_platform_occurrence(
         "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
         "environment": monitor_env.environment.name,
         "event_id": occurrence.event_id,
-        "fingerprint": fingerprint
+        "fingerprint": [fingerprint]
         if fingerprint
         else [
             "monitor",

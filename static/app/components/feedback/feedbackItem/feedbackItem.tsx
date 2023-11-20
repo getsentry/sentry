@@ -129,7 +129,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </TextCopyInput>
           </ErrorBoundary>
         </Section>
-        {feedbackItem.level === 'error' && crashReportId && (
+        {crashReportId && (
           <CrashReportSection
             organization={organization}
             crashReportId={crashReportId}

@@ -1109,7 +1109,7 @@ class BaseQueryBuilder:
         return AliasedExpression(column, self.tag_to_prefixed_map.get(name, name))
 
     def column(self, name: str) -> Column:
-        """Given an unresolved sentry name and return a snql column.
+        """Given an unresolved sentry column name and return a snql column.
 
         :param name: The unresolved sentry name.
         """

@@ -16,6 +16,7 @@ from snuba_sdk import (
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.dsl.dsl import parse_mql
 
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
@@ -144,9 +145,36 @@ class ExecutionResult:
         return self.result["meta"]
 
 
-class QueryParser:
+class MutableTimeseries:
     PERCENTILE_REGEX = re.compile(r"^p(\d{1,3})$")
 
+    def __init__(self, timeseries: Timeseries):
+        self._timeseries = timeseries
+
+    def inject_environments(self, environments: Sequence[Environment]) -> "MutableTimeseries":
+        if environments:
+            environment_names = [environment.name for environment in environments]
+            existing_filters = self._timeseries.filters[:] if self._timeseries.filters else []
+            self._timeseries = self._timeseries.set_filters(
+                existing_filters + [Condition(Column("environment"), Op.IN, environment_names)]
+            )
+
+        return self
+
+    def alias_operators(self) -> "MutableTimeseries":
+        # In case we have a percentile in the form `px` where `x` is in the range [0-100], we want to convert it to
+        # the quantiles operation which generalizes any percentile.
+        if (match := self.PERCENTILE_REGEX.match(self._timeseries.aggregate)) is not None:
+            percentile_value = float(match.group(1))
+            self._timeseries = self._timeseries.set_aggregate("quantiles", [percentile_value / 100])
+
+        return self
+
+    def get_mutated(self) -> Timeseries:
+        return self._timeseries
+
+
+class QueryParser:
     def __init__(
         self,
         fields: Sequence[str],
@@ -166,7 +194,7 @@ class QueryParser:
         if not self._query:
             return None
 
-        # TODO: implement parsing via the discover grammar.
+        # TODO: pass directly grammar to mql.
         filters = []
         matches = QUERY_REGEX.findall(self._query)
         for key, value in matches:
@@ -183,47 +211,43 @@ class QueryParser:
 
         return [Column(group_by) for group_by in self._group_bys]
 
-    def _transform_timeseries(self, timeseries: Timeseries) -> Timeseries:
-        """
-        Transforms a timeseries to a variant which is supported by the metrics layer.
-
-        For now, the only transformation that is being performed is the conversion of percentiles.
-        """
-        # In case we have a percentile in the form `px` where `x` is in the range [0-100], we want to convert it to
-        # the quantiles operation which generalizes any percentile.
-        if (match := self.PERCENTILE_REGEX.match(timeseries.aggregate)) is not None:
-            percentile_value = float(match.group(1))
-            return timeseries.set_aggregate("quantiles", [percentile_value / 100])
-
-        return timeseries
-
-    def _parse_mql(self, field: str) -> Timeseries:
+    def _parse_mql(
+        self,
+        field: str,
+        filters: Optional[Sequence[Condition]],
+        group_bys: Optional[Sequence[Column]],
+    ) -> MutableTimeseries:
         """
         Parses the field with the MQL grammar.
         """
-        parsed_query = parse_mql(field)
-        return self._transform_timeseries(parsed_query.query)
+        timeseries = parse_mql(field).query
+        modified_timeseries = timeseries.set_filters(filters).set_groupby(group_bys)
+        return MutableTimeseries(timeseries=modified_timeseries)
 
-    def parse_timeserieses(self) -> Generator[Timeseries, None, None]:
+    def generate_queries(
+        self, environments: Sequence[Environment]
+    ) -> Generator[Timeseries, None, None]:
         """
-        Parses the incoming fields with the MQL grammar.
-
-        Note that for now the filters and groupy are passed in, since we want to still keep the filtering
-        via the discover grammar.
+        Generates multiple timeseries queries given a base query.
         """
         if not self._fields:
             raise InvalidMetricsQueryError("You must query at least one field.")
 
+        # TODO: take the filters, parse them via the discover grammar and convert them to MQL filters, so that
+        #   we can leverage the conversion performed automatically by the snuba sdk.
         # We first parse the filters and group bys, which are then going to be applied on each individual query
         # that is executed.
         filters = self._parse_query()
         group_bys = self._parse_group_bys()
 
         for field in self._fields:
-            # TODO: take the filters, parse them via the discover grammar and convert them to MQL filters, so that
-            #   we can leverage the conversion performed automatically by the snuba sdk.
-            timeseries = self._parse_mql(field)
-            yield timeseries.set_filters(filters).set_groupby(group_bys)
+            # TODO: add mql string here.
+            yield (
+                self._parse_mql(field, filters, group_bys)
+                .inject_environments(environments)
+                .alias_operators()
+                .get_mutated()
+            )
 
 
 class QueryExecutor:
@@ -462,6 +486,7 @@ def run_metrics_query(
     end: datetime,
     organization: Organization,
     projects: Sequence[Project],
+    environments: Sequence[Environment],
     referrer: str,
 ):
     # Build the basic query that contains the metadata.
@@ -479,7 +504,7 @@ def run_metrics_query(
 
     # Parsing the input and iterating over each timeseries.
     parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
-    for timeseries in parser.parse_timeserieses():
+    for timeseries in parser.generate_queries(environments=environments):
         query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
         executor.schedule(query)
 
