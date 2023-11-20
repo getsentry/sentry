@@ -206,6 +206,91 @@ def transform_checkin_uuid(
     return check_in_guid, use_latest_checkin
 
 
+def update_existing_check_in(
+    txn: Transaction | Span,
+    metric_kwargs: Dict,
+    project_id: int,
+    monitor_environment: MonitorEnvironment,
+    start_time: datetime,
+    existing_check_in: MonitorCheckIn,
+    updated_status: CheckInStatus,
+    updated_duration: float,
+):
+    monitor = monitor_environment.monitor
+
+    if (
+        existing_check_in.project_id != project_id
+        or existing_check_in.monitor_id != monitor.id
+        or existing_check_in.monitor_environment_id != monitor_environment.id
+    ):
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={"source": "consumer", "status": "guid_mismatch"},
+        )
+        txn.set_tag("result", "guid_mismatch")
+        logger.info(
+            "monitors.consumer.guid_exists",
+            extra={
+                "guid": existing_check_in.guid.hex,
+                "slug": existing_check_in.monitor.slug,
+                "payload_slug": monitor.slug,
+            },
+        )
+        return
+
+    if existing_check_in.status in CheckInStatus.FINISHED_VALUES:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "checkin_finished"},
+        )
+        txn.set_tag("result", "checkin_finished")
+        logger.info(
+            "monitors.consumer.check_in_closed",
+            extra={
+                "guid": existing_check_in.guid.hex,
+                "slug": existing_check_in.monitor.slug,
+                "status": existing_check_in.status,
+                "updated_status": updated_status,
+            },
+        )
+        return
+
+    if updated_duration is None:
+        updated_duration = int((start_time - existing_check_in.date_added).total_seconds() * 1000)
+
+    if not valid_duration(updated_duration):
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "failed_duration_check"},
+        )
+        txn.set_tag("result", "failed_duration_check")
+        logger.info(
+            "monitors.consumer.invalid_implicit_duration",
+            extra={
+                "guid": existing_check_in.guid.hex,
+                "slug": existing_check_in.monitor.slug,
+                "duration": updated_duration,
+            },
+        )
+        return
+
+    # update date_added for heartbeat
+    date_updated = existing_check_in.date_updated
+    if updated_status == CheckInStatus.IN_PROGRESS:
+        date_updated = start_time
+
+    updated_timeout_at = get_new_timeout_at(existing_check_in, updated_status, start_time)
+
+    existing_check_in.update(
+        status=updated_status,
+        duration=updated_duration,
+        date_updated=date_updated,
+        timeout_at=updated_timeout_at,
+    )
+
+    return
+
+
 def _process_checkin(
     params: CheckinPayload,
     message_ts: datetime,
@@ -241,86 +326,6 @@ def _process_checkin(
     )
 
     if guid is None:
-        return
-
-    def update_existing_check_in(
-        existing_check_in: MonitorCheckIn,
-        updated_status: CheckInStatus,
-        updated_duration: float,
-        new_date_updated: datetime,
-    ):
-        if (
-            existing_check_in.project_id != project_id
-            or existing_check_in.monitor_id != monitor.id
-            or existing_check_in.monitor_environment_id != monitor_environment.id
-        ):
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={"source": "consumer", "status": "guid_mismatch"},
-            )
-            txn.set_tag("result", "guid_mismatch")
-            logger.info(
-                "monitors.consumer.guid_exists",
-                extra={
-                    "guid": existing_check_in.guid.hex,
-                    "slug": existing_check_in.monitor.slug,
-                    "payload_slug": monitor.slug,
-                },
-            )
-            return
-
-        if existing_check_in.status in CheckInStatus.FINISHED_VALUES:
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={**metric_kwargs, "status": "checkin_finished"},
-            )
-            txn.set_tag("result", "checkin_finished")
-            logger.info(
-                "monitors.consumer.check_in_closed",
-                extra={
-                    "guid": existing_check_in.guid.hex,
-                    "slug": existing_check_in.monitor.slug,
-                    "status": existing_check_in.status,
-                    "updated_status": updated_status,
-                },
-            )
-            return
-
-        if updated_duration is None:
-            updated_duration = int(
-                (start_time - existing_check_in.date_added).total_seconds() * 1000
-            )
-
-        if not valid_duration(updated_duration):
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={**metric_kwargs, "status": "failed_duration_check"},
-            )
-            txn.set_tag("result", "failed_duration_check")
-            logger.info(
-                "monitors.consumer.invalid_implicit_duration",
-                extra={
-                    "guid": existing_check_in.guid.hex,
-                    "slug": existing_check_in.monitor.slug,
-                    "duration": updated_duration,
-                },
-            )
-            return
-
-        # update date_added for heartbeat
-        date_updated = existing_check_in.date_updated
-        if updated_status == CheckInStatus.IN_PROGRESS:
-            date_updated = new_date_updated
-
-        updated_timeout_at = get_new_timeout_at(existing_check_in, updated_status, new_date_updated)
-
-        existing_check_in.update(
-            status=updated_status,
-            duration=updated_duration,
-            date_updated=date_updated,
-            timeout_at=updated_timeout_at,
-        )
-
         return
 
     monitor_config = params.pop("monitor_config", None)
@@ -480,7 +485,16 @@ def _process_checkin(
                         return
 
                 txn.set_tag("outcome", "process_existing_checkin")
-                update_existing_check_in(check_in, status, duration, start_time)
+                update_existing_check_in(
+                    txn,
+                    metric_kwargs,
+                    project_id,
+                    monitor_environment,
+                    start_time,
+                    check_in,
+                    status,
+                    duration,
+                )
 
             # 03-B
             # Create a brand new check-in object
@@ -525,7 +539,16 @@ def _process_checkin(
                 # locking this entire process?
                 if not created:
                     txn.set_tag("outcome", "process_existing_checkin_race_condition")
-                    update_existing_check_in(check_in, status, duration, start_time)
+                    update_existing_check_in(
+                        txn,
+                        metric_kwargs,
+                        project_id,
+                        monitor_environment,
+                        start_time,
+                        check_in,
+                        status,
+                        duration,
+                    )
                 else:
                     txn.set_tag("outcome", "create_new_checkin")
                     signal_first_checkin(project, monitor)
