@@ -144,12 +144,6 @@ class AuthorCommitsSerialized(TypedDict):
     commits: Sequence[MutableMapping[str, Any]]
 
 
-class AuthorCommitsWithReleaseSerialized(TypedDict):
-    author: Author
-    commits: Sequence[MutableMapping[str, Any]]
-    release: Release
-
-
 class AnnotatedFrame(TypedDict):
     frame: str
     commits: Sequence[Tuple[Commit, int]]

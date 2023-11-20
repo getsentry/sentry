@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from time import time
 
 from sentry.attachments import attachment_cache
@@ -15,7 +14,6 @@ from sentry.utils.canonical import CANONICAL_TYPES
 #       metadata (rather than generic log messages which aren't useful).
 
 
-_dist_re = re.compile(r"^[a-zA-Z0-9_.-]+$")
 logger = logging.getLogger("sentry.api")
 
 

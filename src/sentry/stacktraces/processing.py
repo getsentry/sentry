@@ -262,18 +262,6 @@ def _get_frames_metadata(frames: Sequence[dict[str, Any]], fallback_platform: st
     return {frame.get("platform", fallback_platform) for frame in frames}
 
 
-def _has_system_frames(frames):
-    """
-    Determines whether there are any frames in the stacktrace with in_app=false.
-    """
-
-    system_frames = 0
-    for frame in frames:
-        if not frame.get("in_app"):
-            system_frames += 1
-    return bool(system_frames) and len(frames) != system_frames
-
-
 def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
     """
     Ensures consistent values of in_app across a stacktrace. Returns a classification of the

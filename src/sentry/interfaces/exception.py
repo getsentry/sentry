@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from sentry.interfaces.base import Interface
@@ -9,9 +8,6 @@ from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
 __all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
-
-
-_type_value_re = re.compile(r"^(\w+):(.*)$")
 
 
 def upgrade_legacy_mechanism(data):

@@ -57,7 +57,6 @@ from sentry.utils import metrics
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
 _T = TypeVar("_T")
-_M = TypeVar("_M", bound=BaseModel)
 
 
 class OutboxFlushError(Exception):
