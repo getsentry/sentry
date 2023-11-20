@@ -155,7 +155,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     Sentry.captureException(new Error('Screen summary missing releases'));
     return (
       <Alert type="warning" showIcon>
-        {t('Invalid release! Try a different date range.')}
+        {t('Invalid selection. Try a different release or date range.')}
       </Alert>
     );
   }
