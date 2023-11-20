@@ -142,7 +142,7 @@ def get_top_5_issues_by_count_for_file(
                 [
                     Condition(Column("project_id"), Op.IN, project_ids),
                     Condition(Column("group_id"), Op.IN, group_ids),
-                    Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=30)),
+                    Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
                     Condition(Column("timestamp"), Op.LT, datetime.now()),
                     Condition(
                         Function("arrayElement", (Column("exception_frames.filename"), -1)),

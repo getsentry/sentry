@@ -259,7 +259,6 @@ class TestGetIssues(TestCase):
                 "user": {"id": user_id},
             },
             project_id=project_id,
-            assert_no_errors=False,
         )
 
     def test_simple(self):
@@ -288,7 +287,7 @@ class TestGetIssues(TestCase):
 
     def test_event_too_old(self):
         group_id = self._create_event(
-            timestamp=iso_format(before_now(days=30)), filenames=["bar.py", "baz.py"]
+            timestamp=iso_format(before_now(days=15)), filenames=["bar.py", "baz.py"]
         ).group.id
 
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
