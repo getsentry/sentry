@@ -49,6 +49,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:team-roles",
         "organizations:on-demand-metrics-prefill",
         "organizations:custom-metrics",
+        "organizations:customer-domains",
+        "organizations:frontend-domainsplit",
     ]
 
     permanent_project_features = [
