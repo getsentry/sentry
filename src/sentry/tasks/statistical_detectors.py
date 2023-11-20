@@ -46,14 +46,17 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
-from sentry.statistical_detectors import redis
 from sentry.statistical_detectors.algorithm import (
     MovingAverageDetectorState,
     MovingAverageRelativeChangeDetector,
     MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.detector import DetectorPayload, TrendType
-from sentry.statistical_detectors.issue_platform_adapter import send_regression_to_platform
+from sentry.statistical_detectors.issue_platform_adapter import (
+    fingerprint_regression,
+    send_regression_to_platform,
+)
+from sentry.statistical_detectors.redis import DetectorType, RedisDetectorStore
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -325,7 +328,7 @@ def _detect_transaction_trends(
         threshold=0.2,
     )
 
-    detector_store = redis.TransactionDetectorStore()
+    detector_store = RedisDetectorStore(detector_type=DetectorType.ENDPOINT)  # e for endpoint
 
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
@@ -651,7 +654,7 @@ def _detect_function_trends(
         threshold=0.2,
     )
 
-    detector_store = redis.RedisDetectorStore()
+    detector_store = RedisDetectorStore(detector_type=DetectorType.FUNCTION)
 
     projects = Project.objects.filter(id__in=project_ids)
 
@@ -1001,6 +1004,8 @@ def query_transactions(
         DetectorPayload(
             project_id=row["project_id"],
             group=row["transaction_name"],
+            # take the first 16 chars of the fingerprint as that's sufficiently unique
+            fingerprint=fingerprint_regression(row["transaction_name"])[:16],
             count=row["count"],
             value=row["p95"],
             timestamp=start,
@@ -1047,6 +1052,7 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
         DetectorPayload(
             project_id=row["project.id"],
             group=row["fingerprint"],
+            fingerprint=row["fingerprint"],
             count=row["count()"],
             value=row["p95()"],
             timestamp=datetime.fromisoformat(row["timestamp"]),

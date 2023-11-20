@@ -287,6 +287,7 @@ def test_detect_transaction_trends(
             DetectorPayload(
                 project_id=project.id,
                 group="/123",
+                fingerprint="/123",
                 count=100,
                 value=100 if i < n / 2 else 300,
                 timestamp=ts,
@@ -325,6 +326,7 @@ def test_detect_transaction_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group="/1",
+                fingerprint="/1",
                 count=100,
                 value=100 if i < n / 2 else 301,
                 timestamp=ts,
@@ -332,6 +334,7 @@ def test_detect_transaction_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group="/2",
+                fingerprint="/2",
                 count=100,
                 value=100 if i < n / 2 else 302,
                 timestamp=ts,
@@ -339,6 +342,7 @@ def test_detect_transaction_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group="/3",
+                fingerprint="/3",
                 count=100,
                 value=100 if i < n / 2 else 303,
                 timestamp=ts,
@@ -390,6 +394,7 @@ def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
         (project_id, group): DetectorPayload(
             project_id=project_id,
             group=f"{project_id}_{group}",
+            fingerprint=f"{project_id}_{group}",
             count=int(f"{project_id}_{group}"),
             value=int(f"{project_id}_{group}"),
             timestamp=timestamp,
@@ -433,6 +438,7 @@ def test_detect_function_trends(
             DetectorPayload(
                 project_id=project.id,
                 group=123,
+                fingerprint=123,
                 count=100,
                 value=100 if i < n / 2 else 300,
                 timestamp=ts,
@@ -470,6 +476,7 @@ def test_detect_function_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group=1,
+                fingerprint=1,
                 count=100,
                 value=100 if i < n / 2 else 301,
                 timestamp=ts,
@@ -477,6 +484,7 @@ def test_detect_function_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group=2,
+                fingerprint=2,
                 count=100,
                 value=100 if i < n / 2 else 302,
                 timestamp=ts,
@@ -484,6 +492,7 @@ def test_detect_function_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group=3,
+                fingerprint=3,
                 count=100,
                 value=100 if i < n / 2 else 303,
                 timestamp=ts,
@@ -637,6 +646,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             DetectorPayload(
                 project_id=project.id,
                 group=self.function_fingerprint({"package": "foo", "function": "foo"}),
+                fingerprint=self.function_fingerprint({"package": "foo", "function": "foo"}),
                 count=100,
                 value=pytest.approx(100),  # type: ignore[arg-type]
                 timestamp=self.hour_ago,
