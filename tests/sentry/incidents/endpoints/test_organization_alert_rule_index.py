@@ -753,6 +753,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
                 "organizations:ddm-experimental",
+                "organizations:use-metrics-layer-in-alerts",
             ]
         ):
             for mri in (
@@ -785,6 +786,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
                 "organizations:ddm-experimental",
+                "organizations:use-metrics-layer-in-alerts",
             ]
         ):
             test_params = {
