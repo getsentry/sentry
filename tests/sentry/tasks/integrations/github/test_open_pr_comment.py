@@ -230,7 +230,9 @@ class TestGetIssues(TestCase):
         self.another_org = self.create_organization()
         self.another_org_project = self.create_project(organization=self.another_org)
 
-    def _create_event(self, filenames=None, project_id=None, timestamp=None, user_id=None):
+    def _create_event(
+        self, timestamp=None, filenames=None, project_id=None, user_id=None, handled=True
+    ):
         if timestamp is None:
             timestamp = iso_format(before_now(seconds=5))
         if filenames is None:
@@ -246,11 +248,13 @@ class TestGetIssues(TestCase):
                 "exception": {
                     "values": [
                         {
-                            "type": "Error",
+                            "type": "Bleh",
+                            "value": "asdf",
                             "stacktrace": {
                                 "frames": [{"filename": filename} for filename in filenames],
                             },
-                        }
+                            "mechanism": {"handled": handled, "type": "generic"},
+                        },
                     ]
                 },
                 "user": {"id": user_id},
@@ -295,16 +299,20 @@ class TestGetIssues(TestCase):
 
     def test_fetches_top_five_issues(self):
         group_id_1 = [
-            self._create_event(filenames=["bar.py", "baz.py"], user_id=str(i)) for i in range(5)
+            self._create_event(filenames=["bar.py", "baz.py"], user_id=str(i), handled=False)
+            for i in range(5)
         ][0].group.id
         group_id_2 = [
-            self._create_event(filenames=["hello.py", "baz.py"], user_id=str(i)) for i in range(4)
+            self._create_event(filenames=["hello.py", "baz.py"], user_id=str(i), handled=True)
+            for i in range(4)
         ][0].group.id
         group_id_3 = [
-            self._create_event(filenames=["base.py", "baz.py"], user_id=str(i)) for i in range(3)
+            self._create_event(filenames=["base.py", "baz.py"], user_id=str(i), handled=False)
+            for i in range(3)
         ][0].group.id
         group_id_4 = [
-            self._create_event(filenames=["nom.py", "baz.py"], user_id=str(i)) for i in range(2)
+            self._create_event(filenames=["nom.py", "baz.py"], user_id=str(i), handled=True)
+            for i in range(2)
         ][0].group.id
         # 6th issue
         self._create_event(filenames=["nan.py", "baz.py"])
@@ -314,6 +322,8 @@ class TestGetIssues(TestCase):
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         users_affected = [issue["affected_users"] for issue in top_5_issues]
+        is_handled = [issue["is_handled"] for issue in top_5_issues]
 
         assert top_5_issue_ids == [self.group_id, group_id_1, group_id_2, group_id_3, group_id_4]
         assert users_affected == [6, 5, 4, 3, 2]
+        assert is_handled == [1, 0, 1, 0, 1]
