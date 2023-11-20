@@ -8,12 +8,12 @@ type Result = string[];
 export function useAvailableDurationAggregates(): Result {
   const organization = useOrganization();
 
-  let availableAggregates: string[] = [];
+  const availableAggregates: string[] = [];
 
   availableAggregates.push(DEFAULT_DURATION_AGGREGATE);
 
   if (organization.features?.includes('performance-database-view-percentiles')) {
-    availableAggregates = [...availableAggregates, ...['p50', 'p75', 'p95', 'p99']];
+    availableAggregates.push(...['p50', 'p75', 'p95', 'p99']);
   }
 
   return availableAggregates;
