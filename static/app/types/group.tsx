@@ -54,7 +54,6 @@ export enum IssueCategory {
   ERROR = 'error',
   CRON = 'cron',
   PROFILE = 'profile',
-  FEEDBACK = 'feedback',
 }
 
 export enum IssueType {
@@ -85,9 +84,6 @@ export enum IssueType {
   PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
   PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
   PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
-
-  // Feedback
-  FEEDBACK = 'feedback',
 }
 
 export enum IssueTitle {

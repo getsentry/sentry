@@ -135,7 +135,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             <ErrorBoundary mini>
               <ExternalIssueList
                 project={feedbackItem.project}
-                group={feedbackItem as Group}
+                group={feedbackItem as unknown as Group}
                 event={eventData}
                 showHeader={false}
               />
