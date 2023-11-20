@@ -65,6 +65,7 @@ import {
   getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
+  getWidgetDDMUrl,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
@@ -1143,6 +1144,10 @@ function OpenButton({
     case WidgetType.RELEASE:
       openLabel = t('Open in Releases');
       path = getWidgetReleasesUrl(widget, selection, organization);
+      break;
+    case WidgetType.METRICS:
+      openLabel = t('Open in DDM');
+      path = getWidgetDDMUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:

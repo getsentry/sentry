@@ -14,11 +14,11 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
+import {MetricsApiResponse, PageFilters} from 'sentry/types';
 import {
   defaultMetricDisplayType,
+  getSeriesName,
   MetricDisplayType,
-  MetricsData,
   MetricsQuery,
   parseMRI,
   updateQuery,
@@ -107,13 +107,6 @@ export function useMetricWidgets() {
   };
 }
 
-// TODO(ddm): reuse from types/metrics.tsx
-type Group = {
-  by: Record<string, unknown>;
-  series: Record<string, number[]>;
-  totals: Record<string, number>;
-};
-
 export function MetricWidget({
   widget,
   datetime,
@@ -201,9 +194,9 @@ function MetricWidgetBody({
     datetime,
   });
 
-  const [dataToBeRendered, setDataToBeRendered] = useState<MetricsData | undefined>(
-    undefined
-  );
+  const [dataToBeRendered, setDataToBeRendered] = useState<
+    MetricsApiResponse | undefined
+  >(undefined);
 
   const [hoveredLegend, setHoveredLegend] = useState('');
 
@@ -270,7 +263,10 @@ function MetricWidgetBody({
   );
 }
 
-function getChartSeries(data: MetricsData, {focusedSeries, groupBy, hoveredLegend}) {
+function getChartSeries(
+  data: MetricsApiResponse,
+  {focusedSeries, groupBy, hoveredLegend}
+) {
   // this assumes that all series have the same unit
   const parsed = parseMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
   const unit = parsed?.unit ?? '';
@@ -307,24 +303,7 @@ function getChartSeries(data: MetricsData, {focusedSeries, groupBy, hoveredLegen
     })) as Series[];
 }
 
-function getSeriesName(
-  group: Group,
-  isOnlyGroup = false,
-  groupBy: MetricsQuery['groupBy']
-) {
-  if (isOnlyGroup && !groupBy?.length) {
-    const mri = Object.keys(group.series)?.[0];
-    const parsed = parseMRI(mri);
-
-    return parsed?.name ?? '(none)';
-  }
-
-  return Object.entries(group.by)
-    .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
-    .join(', ');
-}
-
-function normalizeChartTimeParams(data: MetricsData) {
+function normalizeChartTimeParams(data: MetricsApiResponse) {
   const {
     start,
     end,
