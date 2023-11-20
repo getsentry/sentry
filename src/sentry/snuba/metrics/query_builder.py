@@ -28,7 +28,7 @@ from snuba_sdk import (
     Or,
     Query,
 )
-from snuba_sdk.conditions import BooleanCondition, ConditionGroup
+from snuba_sdk.conditions import And, BooleanCondition, ConditionGroup
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import SearchFilter
@@ -370,11 +370,17 @@ def resolve_tags(
         )
 
     if isinstance(input_, BooleanCondition):
+        additional_args = {"op": input_.op}
+        if isinstance(input_, Or) or isinstance(input_, And):
+            # In case we use `Or` or `And`, the operation doesn't need to be injected.
+            additional_args = {}
+
         return input_.__class__(
             conditions=[
                 resolve_tags(use_case_id, org_id, item, projects, allowed_tag_keys=allowed_tag_keys)
                 for item in input_.conditions
-            ]
+            ],
+            **additional_args,
         )
     if isinstance(input_, Column):
         # If a column has the name belonging to the set, it means that we don't need to resolve its name.
