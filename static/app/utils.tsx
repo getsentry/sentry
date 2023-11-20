@@ -199,7 +199,7 @@ export function formatBytesBase2(bytes?: number, fixPoints: number = 1): string 
   const units = ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
   const thresh = 1024;
   if (!bytes) {
-    return '--B'
+    return '--B';
   }
 
   if (bytes < thresh) {
