@@ -13,14 +13,14 @@ export type MetricsOperation =
 
 export type MetricsApiResponse = {
   end: string;
-  groups: Group[];
+  groups: MetricsGroup[];
   intervals: string[];
   meta: MetricsMeta[];
   query: string;
   start: string;
 };
 
-export type Group = {
+export type MetricsGroup = {
   by: Record<string, string>;
   series: Record<string, Array<number | null>>;
   totals: Record<string, number | null>;

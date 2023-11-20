@@ -9,7 +9,7 @@ import {
   getInterval,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {Group, MetricsApiResponse} from 'sentry/types/metrics';
+import {MetricsApiResponse, MetricsGroup} from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
@@ -419,7 +419,7 @@ export function clearQuery(router: InjectedRouter) {
 
 // TODO(ddm): there has to be a nicer way to do this
 export function getSeriesName(
-  group: Group,
+  group: MetricsGroup,
   isOnlyGroup = false,
   groupBy: MetricsQuery['groupBy']
 ) {
