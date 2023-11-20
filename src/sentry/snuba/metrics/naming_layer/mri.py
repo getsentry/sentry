@@ -199,6 +199,9 @@ def is_mri(mri_string: Optional[str]) -> bool:
     """
     Returns true if the passed value is a mri.
     """
+    if mri_string is None:
+        return False
+
     return parse_mri(mri_string) is not None
 
 

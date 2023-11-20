@@ -41,7 +41,7 @@ from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, is_custom_metric, parse_mri
+from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
@@ -411,12 +411,8 @@ def should_use_on_demand_metrics(
     function, args = components
     mri_aggregate = _extract_mri(args)
     if mri_aggregate is not None:
-        if is_custom_metric(mri_aggregate):
-            return False
-        else:
-            raise InvalidSearchQuery(
-                f"The supplied MRI belongs to an unsupported namespace '{mri_aggregate.namespace}'"
-            )
+        # For now, we do not support MRIs in on demand metrics.
+        return False
 
     aggregate_supported_by = _get_aggregate_supported_by(function, args)
     query_supported_by = _get_query_supported_by(query)
