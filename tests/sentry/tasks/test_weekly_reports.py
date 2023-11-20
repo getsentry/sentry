@@ -311,8 +311,13 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
 
+        org = self.create_organization()
+        team = self.create_team(org)
+        project = self.create_project(teams=[team])
+
         user = self.create_user()
-        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        # print("Created user with id", user.id)
+        self.create_member(teams=[team], user=user, organization=org)
 
         event1 = self.store_event(
             data={
@@ -322,7 +327,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
-            project_id=self.project.id,
+            project_id=project.id,
         )
 
         event2 = self.store_event(
@@ -333,12 +338,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-2"],
             },
-            project_id=self.project.id,
+            project_id=project.id,
         )
         self.store_outcomes(
             {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
+                "org_id": org.id,
+                "project_id": project.id,
                 "outcome": Outcome.ACCEPTED,
                 "category": DataCategory.ERROR,
                 "timestamp": three_days_ago,
@@ -349,8 +354,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         self.store_outcomes(
             {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
+                "org_id": org.id,
+                "project_id": project.id,
                 "outcome": Outcome.ACCEPTED,
                 "category": DataCategory.TRANSACTION,
                 "timestamp": three_days_ago,
@@ -372,7 +377,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         group2.resolved_at = two_days_ago
         group2.save()
 
-        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, org.id)
 
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
@@ -381,7 +386,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert message_params["template"] == "sentry/emails/reports/body.txt"
             assert message_params["html_template"] == "sentry/emails/reports/body.html"
 
-            assert context["organization"] == self.organization
+            assert context["organization"] == org
             assert context["issue_summary"] == {
                 "all_issue_count": 2,
                 "existing_issue_count": 0,
@@ -404,7 +409,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         record.assert_called_with(
             "weekly_report.sent",
             user_id=user.id,
-            organization_id=self.organization.id,
+            organization_id=org.id,
             notification_uuid=mock.ANY,
             user_project_count=1,
         )
