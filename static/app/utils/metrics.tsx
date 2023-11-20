@@ -10,6 +10,7 @@ import {
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -429,4 +430,23 @@ export function clearQuery(router: InjectedRouter) {
     ...router.location,
     query: {},
   });
+}
+
+export function mriToField(mri: string, op: string): string {
+  return `${op}(${mri})`;
+}
+
+export function fieldToMri(field: string) {
+  const parsedFunction = parseFunction(field);
+  if (!parsedFunction) {
+    // We only allow aggregate functions for custom metric alerts
+    return {
+      mri: undefined,
+      op: undefined,
+    };
+  }
+  return {
+    mri: parsedFunction.arguments[0],
+    op: parsedFunction.name,
+  };
 }
