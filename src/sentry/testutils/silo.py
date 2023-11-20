@@ -343,7 +343,7 @@ def assume_test_silo_mode_of(*models: Type[BaseModel], can_be_monolith: bool = T
                     f"Expected a model class with a _meta attribute: {model.__name__} did not have `_meta`"
                 ) from e
 
-            silo_limit: ModelSiloLimit = getattr(meta, "silo_limit", None)
+            silo_limit: ModelSiloLimit | None = getattr(meta, "silo_limit", None)
             if silo_limit:
                 yield from silo_limit.modes
 
