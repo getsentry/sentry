@@ -253,6 +253,14 @@ run twice as both REGION and MONOLITH modes.
 """
 
 
+# assume_test_silo_mode vs assume_test_silo_mode_of: What's the difference?
+#
+# These two functions are similar ways to express the same thing. Generally,
+# assume_test_silo_mode_of is preferable because it does more to communicate your
+# intent and matches the style used by functions such as `router.db_for_write`. But
+# assume_test_silo_mode is used in more places because it has existed longer.
+
+
 @contextmanager
 def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
@@ -299,9 +307,6 @@ def assume_test_silo_mode_of(*models: Type[BaseModel], can_be_monolith: bool = T
     context will not actually check that you access only those models; it will allow
     you to access any model that happens to share the same silo mode.
     """
-    # Possible improvements for the future:
-    # 1. "Exempt" only the listed models; raise if other cross-silo models are accessed.
-    # 2. Check that every listed model is accessed; raise if unused ones are listed.
 
     def unpack_modes() -> Iterable[SiloMode]:
         for model in models:
