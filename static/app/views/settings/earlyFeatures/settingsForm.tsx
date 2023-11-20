@@ -30,7 +30,7 @@ function EarlyFeaturesSettingsForm({organization, access, location}: Props) {
     staleTime: 0,
   });
 
-  const {data: featureFlags, isLoading: featurFlagsIsLoading} = useApiQuery<
+  const {data: featureFlags, isLoading: featureFlagsIsLoading} = useApiQuery<
     Pick<State, 'featureFlags'>
   >(['/internal/feature-flags/'], {
     staleTime: 0,
@@ -38,19 +38,17 @@ function EarlyFeaturesSettingsForm({organization, access, location}: Props) {
 
   const endpoint = `/internal/feature-flags/`;
 
-  if (authProviderIsLoading || featurFlagsIsLoading) {
+  if (authProviderIsLoading || featureFlagsIsLoading) {
     return <LoadingIndicator />;
   }
 
-  const initialData = Object.entries(featureFlags || {}).reduce(
-    (acc, [flag, obj]) => {
-      acc[flag] = obj.value;
-      return acc;
-    },
-    {} as {
-      [key: string]: boolean;
+  const initialData = {};
+  for (const flag in featureFlags) {
+    if (featureFlags.hasOwnProperty(flag)) {
+      const obj = featureFlags[flag];
+      initialData[flag] = obj.value;
     }
-  );
+  }
 
   const jsonFormSettings = {
     additionalFieldProps: {hasSsoEnabled: !!authProvider},
