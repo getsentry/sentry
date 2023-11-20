@@ -1291,7 +1291,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         query = {
             "field": ["id"],
-            "query": f"{constants.RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            "query": f"{constants.RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             "environment": [self.environment.name],
         }
         response = self.do_request(query)
@@ -1303,7 +1303,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         query = {
             "field": ["id"],
-            "query": f"!{constants.RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            "query": f"!{constants.RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
             "environment": [self.environment.name],
         }
         response = self.do_request(query)
@@ -1317,7 +1317,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         query = {
             "field": ["id"],
-            "query": f"{constants.RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            "query": f"{constants.RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value}, {ReleaseStages.REPLACED.value}]",
             "environment": [self.environment.name],
         }
         response = self.do_request(query)

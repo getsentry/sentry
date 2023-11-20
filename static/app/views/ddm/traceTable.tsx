@@ -368,8 +368,8 @@ const TitleOverlay = styled('span')`
   height: 46px;
   max-width: 250px;
   padding: 0px 16px;
-  background-color: rgb(250, 249, 251);
-  color: rgb(128, 112, 143);
+  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;

@@ -237,6 +237,7 @@ default_manager.add("organizations:transaction-name-mark-scrubbed-as-sanitized",
 default_manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:use-metrics-layer-in-alerts", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:user-feedback-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:old-user-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -263,9 +264,12 @@ default_manager.add("organizations:gitlab-disable-on-broken", OrganizationFeatur
 default_manager.add("organizations:sourcemaps-bundle-flat-file-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sourcemaps-upload-release-as-artifact-bundle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:release-ui-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:notification-settings-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:releases-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:releases-v2-st", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:source-maps-debugger-blue-thunder-edition", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:suspect-commits-all-frames", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:weekly-report-logs", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:metrics-api-new-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
