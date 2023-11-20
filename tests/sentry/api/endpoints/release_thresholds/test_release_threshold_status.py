@@ -814,3 +814,141 @@ class ErrorCountThresholdCheckTest(TestCase):
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
         assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+
+    def test_unordered_timeseries(self):
+        """
+        construct a timeseries with:
+        - a single release
+        - a single project
+        - no environment
+        - multiple timestamps both before and after our threshold window
+        - all disorganized
+        """
+        now = datetime.utcnow()
+        timeseries = [
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=3)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": now.isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=1)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+            {
+                "release": self.release1.version,
+                "project_id": self.project1.id,
+                "time": (now - timedelta(minutes=2)).isoformat(),
+                "environment": None,
+                "count()": 1,
+            },
+        ]
+
+        # current threshold within series
+        current_threshold_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 4,  # error counts _not_ be over threshold value
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=current_threshold_healthy, timeseries=timeseries)
+
+        # threshold equal to count
+        threshold_at_limit_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 1,  # error counts equal to threshold limit value
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=threshold_at_limit_healthy, timeseries=timeseries)
+
+        # past healthy threshold within series
+        past_threshold_healthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=2),
+            "end": now - timedelta(minutes=1),
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 2,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=past_threshold_healthy, timeseries=timeseries)
+
+        # threshold within series but trigger is under
+        threshold_under_unhealthy: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.UNDER_STR,
+            "value": 4,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert not is_error_count_healthy(
+            ethreshold=threshold_under_unhealthy, timeseries=timeseries
+        )
+
+        # threshold within series but end is in future
+        threshold_unfinished: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now + timedelta(minutes=5),
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 4,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+        }
+        assert is_error_count_healthy(ethreshold=threshold_unfinished, timeseries=timeseries)

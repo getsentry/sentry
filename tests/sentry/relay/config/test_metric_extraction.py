@@ -193,6 +193,23 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
 
 
 @django_db_all
+def test_get_metric_extraction_config_single_alert_with_mri(default_project):
+    with Feature(ON_DEMAND_METRICS):
+        create_alert(
+            "sum(c:custom/page_load@millisecond)", "transaction.duration:>=1000", default_project
+        )
+        create_alert(
+            "count(d:transactions/measurements.fcp@millisecond)",
+            "transaction.duration:>=1000",
+            default_project,
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config is None
+
+
+@django_db_all
 def test_get_metric_extraction_config_multiple_alerts(default_project):
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>=1000", default_project)
@@ -901,3 +918,46 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project)
             "mri": "c:transactions/on_demand@none",
             "tags": [{"key": "query_hash", "value": ANY}],
         }
+
+
+@django_db_all
+def test_get_metric_extraction_config_with_invalid_spec(default_project):
+    create_alert(
+        "count()",
+        "release.build:>231900000 transaction.duration:>=10",
+        default_project,
+        dataset=Dataset.PerformanceMetrics,
+    )
+    create_alert(
+        "count()", "transaction.duration:>=20", default_project, dataset=Dataset.PerformanceMetrics
+    )
+
+    with Feature({ON_DEMAND_METRICS: True}):
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 20.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@django_db_all
+def test_get_metric_extraction_config_with_no_spec(default_project):
+    create_alert(
+        "apdex(300)",
+        "",
+        default_project,
+        dataset=Dataset.PerformanceMetrics,
+    )
+
+    with Feature({ON_DEMAND_METRICS: True}):
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0].get("condition") is None

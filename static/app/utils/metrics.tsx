@@ -10,6 +10,7 @@ import {
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,6 +26,10 @@ type MetricMeta = {
   unit: string;
 };
 
+interface Options {
+  useCases?: UseCase[];
+}
+
 export enum MetricDisplayType {
   LINE = 'line',
   AREA = 'area',
@@ -34,10 +39,15 @@ export enum MetricDisplayType {
 
 export const defaultMetricDisplayType = MetricDisplayType.LINE;
 
+const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom'];
+
 export function useMetricsMeta(
-  projects: PageFilters['projects']
-): Record<string, MetricMeta> {
+  projects: PageFilters['projects'],
+  options?: Options
+): {data: Record<string, MetricMeta>; isLoading: boolean} {
   const {slug} = useOrganization();
+  const enabledUseCases = options?.useCases ?? DEFAULT_USE_CASES;
+
   const getKey = (useCase: UseCase): ApiQueryKey => {
     return [
       `/organizations/${slug}/metrics/meta/`,
@@ -45,36 +55,56 @@ export function useMetricsMeta(
     ];
   };
 
-  const opts = {
+  const commonOptions = {
     staleTime: Infinity,
   };
 
-  const {data: sessionsMeta = []} = useApiQuery<MetricMeta[]>(getKey('sessions'), opts);
-  const {data: txnsMeta = []} = useApiQuery<MetricMeta[]>(getKey('transactions'), opts);
-  const {data: customMeta = []} = useApiQuery<MetricMeta[]>(getKey('custom'), opts);
+  const sessionsMeta = useApiQuery<MetricMeta[]>(getKey('sessions'), {
+    ...commonOptions,
+    enabled: enabledUseCases.includes('sessions'),
+  });
+  const txnsMeta = useApiQuery<MetricMeta[]>(getKey('transactions'), {
+    ...commonOptions,
+    enabled: enabledUseCases.includes('transactions'),
+  });
+  const customMeta = useApiQuery<MetricMeta[]>(getKey('custom'), {
+    ...commonOptions,
+    enabled: enabledUseCases.includes('custom'),
+  });
 
-  return useMemo(
-    () =>
-      [...sessionsMeta, ...txnsMeta, ...customMeta].reduce((acc, metricMeta) => {
-        return {...acc, [metricMeta.mri]: metricMeta};
-      }, {}),
-    [sessionsMeta, txnsMeta, customMeta]
-  );
+  const combinedMeta = useMemo<Record<string, MetricMeta>>(() => {
+    return [
+      ...(sessionsMeta.data ?? []),
+      ...(txnsMeta.data ?? []),
+      ...(customMeta.data ?? []),
+    ].reduce((acc, metricMeta) => {
+      return {...acc, [metricMeta.mri]: metricMeta};
+    }, {});
+  }, [sessionsMeta.data, txnsMeta.data, customMeta.data]);
+
+  return {
+    data: combinedMeta,
+    isLoading: sessionsMeta.isLoading || txnsMeta.isLoading || customMeta.isLoading,
+  };
 }
 
 type MetricTag = {
   key: string;
 };
 
-export function useMetricsTags(mri: string, projects: PageFilters['projects']) {
+export function useMetricsTags(
+  mri: string | undefined,
+  projects: PageFilters['projects']
+) {
   const {slug} = useOrganization();
-  const useCase = getUseCaseFromMRI(mri);
+  const useCase = getUseCaseFromMRI(mri || '');
   return useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/`,
       {query: {metric: mri, useCase, project: projects}},
     ],
     {
+      enabled: !!mri,
       staleTime: Infinity,
     }
   );
@@ -139,7 +169,7 @@ export function useMetricsData({
   const useCase = getUseCaseFromMRI(mri);
   const field = op ? `${op}(${mri})` : mri;
 
-  const interval = getMetricsInterval(datetime, mri);
+  const interval = getMetricsInterval(datetime, useCase);
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
@@ -240,7 +270,7 @@ export function useMetricsDataZoom(props: MetricsQuery) {
 }
 
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
-function getMetricsInterval(dateTimeObj: DateTimeObject, mri: string) {
+export function getMetricsInterval(dateTimeObj: DateTimeObject, useCase: UseCase) {
   const interval = getInterval(dateTimeObj, 'metrics');
 
   if (interval !== '1m') {
@@ -248,7 +278,6 @@ function getMetricsInterval(dateTimeObj: DateTimeObject, mri: string) {
   }
 
   const diffInMinutes = getDiffInMinutes(dateTimeObj);
-  const useCase = getUseCaseFromMRI(mri);
 
   if (diffInMinutes <= 60 && useCase === 'custom') {
     return '10s';
@@ -257,7 +286,7 @@ function getMetricsInterval(dateTimeObj: DateTimeObject, mri: string) {
   return interval;
 }
 
-function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
+export function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
   return period
     ? {statsPeriod: period}
     : {start: moment(start).toISOString(), end: moment(end).toISOString()};
@@ -401,4 +430,23 @@ export function clearQuery(router: InjectedRouter) {
     ...router.location,
     query: {},
   });
+}
+
+export function mriToField(mri: string, op: string): string {
+  return `${op}(${mri})`;
+}
+
+export function fieldToMri(field: string) {
+  const parsedFunction = parseFunction(field);
+  if (!parsedFunction) {
+    // We only allow aggregate functions for custom metric alerts
+    return {
+      mri: undefined,
+      op: undefined,
+    };
+  }
+  return {
+    mri: parsedFunction.arguments[0],
+    op: parsedFunction.name,
+  };
 }

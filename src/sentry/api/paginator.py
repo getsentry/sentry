@@ -2,21 +2,25 @@ import bisect
 import functools
 import math
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable, Optional, Sequence
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
 from django.db.models.functions import Lower
+from snuba_sdk import Column, Direction, OrderBy, Query, Request
 
+from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult, build_cursor
 from sentry.utils.pagination_factory import PaginatorLike
+from sentry.utils.snuba import raw_snql_query
 
 quote_name = connections["default"].ops.quote_name
 
 
 MAX_LIMIT = 100
 MAX_HITS_LIMIT = 1000
+MAX_SNUBA_ELEMENTS = 10000
 
 
 def count_hits(queryset, max_hits):
@@ -741,6 +745,89 @@ class ChainPaginator:
 
         if next_cursor.has_results:
             results.pop()
+
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+
+
+class SnubaRequestPaginator:
+    def __init__(
+        self,
+        query: Query,
+        dataset: str,
+        app_id: str,
+        tenant_ids: dict,
+        order_by: Optional[str] = None,
+        limit: Optional[int] = None,
+        on_results: Optional[Callable[[Sequence[Any]], Any]] = None,
+    ):
+        self.query = query
+        if dataset not in {ds.value for ds in Dataset}:
+            raise ValueError(f"Dataset {dataset} does not exist")
+        self.dataset = dataset
+        self.app_id = app_id
+        self.tenant_ids = tenant_ids
+        if order_by:
+            if self.query.orderby:
+                raise Exception("Value provided for order_by when query already has one")
+            elif order_by.startswith("-"):
+                self.query = self.query.set_orderby([OrderBy(Column(order_by[1:]), Direction.DESC)])
+            else:
+                self.query = self.query.set_orderby([OrderBy(Column(order_by), Direction.ASC)])
+        elif not self.query.orderby:
+            raise Exception("Missing orderby for query")
+        if limit:
+            if self.query.limit:
+                raise Exception("Value provided for limit when query already has one")
+            elif limit <= 0:
+                raise ValueError("Limit must be positive")
+            elif limit > MAX_SNUBA_ELEMENTS:
+                raise ValueError(
+                    f"Limit too large, must be less than or equal to {MAX_SNUBA_ELEMENTS}"
+                )
+            self.query = self.query.set_limit(limit)
+        elif not self.query.limit:
+            self.query = self.query.set_limit(MAX_LIMIT)
+        self.on_results = on_results
+
+    def get_result(self, cursor: Cursor = None):
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        limit = self.query.limit.limit
+        # if the limit is equal to the max, we can only return 1 page
+        if limit != MAX_SNUBA_ELEMENTS:
+            self.query = self.query.set_limit(
+                limit + 1
+            )  # +1 to limit so that we can tell if there are more results left after the current page
+
+        # offset = "page" number * max number of items per page
+        offset = cursor.offset * cursor.value
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+        elif offset >= MAX_SNUBA_ELEMENTS:
+            raise BadPaginationError("Pagination offset too large")
+        self.query = self.query.set_offset(offset)
+
+        request = Request(
+            dataset=self.dataset,
+            app_id=self.app_id,
+            query=self.query,
+            tenant_ids=self.tenant_ids,
+        )
+
+        results = raw_snql_query(request, referrer=self.app_id)["data"]
+        assert len(results) <= limit + 1
+
+        self.query = self.query.set_limit(limit)  # reset limit to original
+
+        next_cursor = Cursor(limit, cursor.offset + 1, False, len(results) > limit)
+        prev_cursor = Cursor(limit, cursor.offset - 1, True, cursor.offset > 0)
+
+        if next_cursor.has_results:
+            results.pop()  # pop the last result bc we have more results than the limit by 1 on this page
 
         if self.on_results:
             results = self.on_results(results)

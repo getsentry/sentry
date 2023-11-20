@@ -35,10 +35,7 @@ import {
   ScreensTable,
   useTableQuery,
 } from 'sentry/views/starfish/views/screens/screensTable';
-import {
-  REPORT_FULLY_DRAWN_CONTENT,
-  SETUP_CONTENT,
-} from 'sentry/views/starfish/views/screens/setupContent';
+import {SETUP_CONTENT} from 'sentry/views/starfish/views/screens/setupContent';
 import {TabbedCodeSnippet} from 'sentry/views/starfish/views/screens/tabbedCodeSnippets';
 
 export enum YAxis {
@@ -173,7 +170,9 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const topEventsQuery = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
-    ...(topTransactions.length > 0 ? [`transaction:[${topTransactions.join()}]`] : []),
+    ...(topTransactions.length > 0
+      ? [`transaction:[${topTransactions.map(transaction => `"${transaction}"`).join()}]`]
+      : []),
     ...(additionalFilters ?? []),
   ]);
 
@@ -278,13 +277,15 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                   series: Object.values(
                     transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]]]
                   ),
-                  subtitle: t(
-                    '%s v. %s',
-                    formatVersionAndCenterTruncate(primaryRelease, 12),
-                    secondaryRelease
-                      ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                      : ''
-                  ),
+                  subtitle: primaryRelease
+                    ? t(
+                        '%s v. %s',
+                        formatVersionAndCenterTruncate(primaryRelease, 12),
+                        secondaryRelease
+                          ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                          : ''
+                      )
+                    : '',
                 },
               ]}
               chartHeight={chartHeight ?? 180}
@@ -293,13 +294,14 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             />
           </ChartsContainerItem>
 
-          <ChartsContainerItem key="ttfd">
-            {defined(hasTTFD) && !hasTTFD && yAxes[1] === YAxis.TTFD ? (
+          {defined(hasTTFD) && !hasTTFD && yAxes[1] === YAxis.TTFD ? (
+            <ChartsContainerWithHiddenOverflow>
               <ChartPanel title={CHART_TITLES[yAxes[1]]}>
                 <TabbedCodeSnippet tabs={SETUP_CONTENT} />
-                <TabbedCodeSnippet tabs={REPORT_FULLY_DRAWN_CONTENT} />
               </ChartPanel>
-            ) : (
+            </ChartsContainerWithHiddenOverflow>
+          ) : (
+            <ChartsContainerItem key="ttfd">
               <ScreensBarChart
                 chartOptions={[
                   {
@@ -309,21 +311,23 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                     series: Object.values(
                       transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]]]
                     ),
-                    subtitle: t(
-                      '%s v. %s',
-                      formatVersionAndCenterTruncate(primaryRelease, 12),
-                      secondaryRelease
-                        ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                        : ''
-                    ),
+                    subtitle: primaryRelease
+                      ? t(
+                          '%s v. %s',
+                          formatVersionAndCenterTruncate(primaryRelease, 12),
+                          secondaryRelease
+                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
+                            : ''
+                        )
+                      : '',
                   },
                 ]}
                 chartHeight={chartHeight ?? 180}
                 isLoading={isReleaseEventsLoading}
                 chartKey="screensChart1"
               />
-            )}
-          </ChartsContainerItem>
+            </ChartsContainerItem>
+          )}
         </Fragment>
       </ChartsContainer>
       <StyledSearchBar
@@ -378,9 +382,13 @@ const ChartsContainer = styled('div')`
   gap: ${space(2)};
 `;
 
-const ChartsContainerItem = styled('div')`
+const ChartsContainerWithHiddenOverflow = styled('div')`
   flex: 1;
   overflow: hidden;
+`;
+
+const ChartsContainerItem = styled('div')`
+  flex: 1;
 `;
 
 export const Spacer = styled('div')`

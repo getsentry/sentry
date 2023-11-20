@@ -3,6 +3,7 @@ import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -58,7 +59,7 @@ function ScreenLoadSpans() {
   const crumbs: Crumb[] = [
     {
       to: screenLoadModule,
-      label: t('Screens'),
+      label: t('Mobile'),
       preservePageFilters: true,
     },
     {
@@ -86,6 +87,7 @@ function ScreenLoadSpans() {
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
+            <FeedbackWidget />
             <Layout.Main fullWidth>
               <PageErrorAlert />
               <StarfishPageFiltersContainer>
@@ -96,7 +98,9 @@ function ScreenLoadSpans() {
                     </PageFilterBar>
                     <ReleaseComparisonSelector />
                   </FilterContainer>
-                  <ScreenMetricsRibbon />
+                  <ScreenMetricsRibbon
+                    additionalFilters={[`transaction:${transactionName}`]}
+                  />
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreenCharts

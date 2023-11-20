@@ -24,7 +24,9 @@ import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTa
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
+import {hasDdmAlertsSupport} from 'sentry/utils/ddm/features';
 import {getDisplayName} from 'sentry/utils/environment';
+import {fieldToMri} from 'sentry/utils/metrics';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
@@ -36,6 +38,7 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
 import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
+import {MetricSearchBar} from 'sentry/views/ddm/queryBuilder';
 
 import {getProjectOptions} from '../utils';
 
@@ -56,6 +59,7 @@ const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
 };
 
 type Props = {
+  aggregate: string;
   alertType: AlertType;
   api: Client;
   comparisonType: AlertRuleComparisonType;
@@ -316,7 +320,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {organization, disabled, alertType, timeWindow, onTimeWindowChange} =
+    const {organization, disabled, alertType, timeWindow, onTimeWindowChange, project} =
       this.props;
 
     return (
@@ -332,6 +336,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             help={null}
             organization={organization}
             disabled={disabled}
+            project={project}
             style={{
               ...this.formElemBaseStyle,
               flex: 1,
@@ -377,7 +382,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       dataset,
       isExtrapolatedChartData,
       isMigration,
+      aggregate,
+      project,
     } = this.props;
+
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -448,7 +456,21 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 flexibleControlStateSize
               >
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
-                  return (
+                  return hasDdmAlertsSupport(organization) ? (
+                    <MetricSearchBar
+                      mri={fieldToMri(aggregate).mri}
+                      projectIds={[project.id]}
+                      placeholder={this.searchPlaceholder}
+                      query={initialData.query}
+                      defaultQuery={initialData?.query ?? ''}
+                      useFormWrapper={false}
+                      searchSource="alert_builder"
+                      onChange={query => {
+                        onFilterSearch(query, true);
+                        onChange(query, {});
+                      }}
+                    />
+                  ) : (
                     <SearchContainer>
                       <StyledSearchBar
                         disallowWildcard={dataset === Dataset.SESSIONS}

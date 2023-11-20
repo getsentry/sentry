@@ -10,7 +10,7 @@ import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 export function useReleases(searchTerm?: string) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const {selection, isReady} = usePageFilters();
   const {environments, projects} = selection;
 
   const releaseResults = useApiQuery<Release[]>(
@@ -26,7 +26,7 @@ export function useReleases(searchTerm?: string) {
         },
       },
     ],
-    {staleTime: Infinity}
+    {staleTime: Infinity, enabled: isReady}
   );
 
   const newQuery: NewQuery = {
@@ -75,7 +75,11 @@ export function useReleases(searchTerm?: string) {
   };
 }
 
-export function useReleaseSelection() {
+export function useReleaseSelection(): {
+  isLoading: boolean;
+  primaryRelease: string | undefined;
+  secondaryRelease: string | undefined;
+} {
   const location = useLocation();
 
   const {data: releases, isLoading} = useReleases();
