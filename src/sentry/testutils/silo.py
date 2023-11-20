@@ -309,7 +309,7 @@ def assume_test_silo_mode_of(*models: Type[BaseModel], can_be_monolith: bool = T
                 meta = getattr(model, "_meta")
             except AttributeError as e:
                 raise ValueError(
-                    f"Expected a model class with a _meta attribute: {model.__name__}"
+                    f"Expected a model class with a _meta attribute: {model.__name__} did not have `_meta`"
                 ) from e
 
             silo_limit: ModelSiloLimit = getattr(meta, "silo_limit", None)
