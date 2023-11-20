@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import List, Mapping
 
 from django.conf import settings
@@ -11,8 +12,19 @@ from sentry.utils import redis
 STATE_TTL = 24 * 60 * 60  # 1 day TTL
 
 
+class DetectorType(Enum):
+    ENDPOINT = "e"
+    FUNCTION = "f"
+
+
 class RedisDetectorStore(DetectorStore):
-    def __init__(self, client: RedisCluster | StrictRedis | None = None, ttl=STATE_TTL):
+    def __init__(
+        self,
+        detector_type: DetectorType,
+        client: RedisCluster | StrictRedis | None = None,
+        ttl=STATE_TTL,
+    ):
+        self.detector_type = detector_type
         self.ttl = ttl
         self.client = self.get_redis_client() if client is None else client
 
@@ -43,18 +55,9 @@ class RedisDetectorStore(DetectorStore):
 
             pipeline.execute()
 
-    @staticmethod
-    def make_key(payload: DetectorPayload):
-        # sdf = statistical detector functions
-        return f"sdf:p:{payload.project_id}:f:{payload.group}"
+    def make_key(self, payload: DetectorPayload):
+        return f"sd:p:{payload.project_id}:{self.detector_type.value}:{payload.fingerprint}"
 
     @staticmethod
     def get_redis_client() -> RedisCluster | StrictRedis:
         return redis.redis_clusters.get(settings.SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER)
-
-
-class TransactionDetectorStore(RedisDetectorStore):
-    @staticmethod
-    def make_key(payload: DetectorPayload):
-        # sdt = statistical detector transactions
-        return f"sdt:p:{payload.project_id}:t:{payload.group}"
