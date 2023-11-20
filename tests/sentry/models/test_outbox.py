@@ -418,7 +418,7 @@ class RegionOutboxTest(TestCase):
 
         assert len(list(RegionOutbox.find_scheduled_shards())) == 2
 
-        ctx: ContextManager = outbox.process_coalesced()
+        ctx: ContextManager = outbox.process_coalesced(is_synchronous_flush=True)
         try:
             ctx.__enter__()
             assert RegionOutbox.objects.count() == 4
@@ -443,7 +443,11 @@ class RegionOutboxTest(TestCase):
                 call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
                 call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
                 call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
-                call("outbox.processed", 2, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+                call(
+                    "outbox.processed",
+                    2,
+                    tags={"category": "ORGANIZATION_MEMBER_UPDATE", "synchronous": 1},
+                ),
             ]
             assert mock_metrics.incr.mock_calls == expected
         except Exception as e:
