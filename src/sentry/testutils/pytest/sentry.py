@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+import math
 import os
 import random
 import shutil
@@ -350,11 +351,12 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     Hub.main.bind_client(None)
 
 
-def _shuffle(items: list[pytest.Item]) -> None:
+def _shuffle(items: list[pytest.Item], seed: int) -> None:
     # goal: keep classes together, keep modules together but otherwise shuffle
     # this prevents duplicate setup/teardown work
     nodes: dict[str, dict[str, pytest.Item | dict[str, pytest.Item]]]
     nodes = collections.defaultdict(dict)
+    random.seed(seed)
     for item in items:
         parts = item.nodeid.split("::", maxsplit=2)
         if len(parts) == 2:
@@ -383,14 +385,17 @@ def _shuffle(items: list[pytest.Item]) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """After collection, we need to select tests based on group and group strategy"""
+    """After collection, we need to select tests based on group and group strategy and sample
+    them if applicable"""
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
     grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
-
+    shuffler_seed = hash(os.environ.get("TEST_SHUFFLER_SEED", 0))
+    sample_rate = float(os.environ.get("TEST_SAMPLE_RATE", 1))
     keep, discard = [], []
 
+    # First decide what to discard based on the test shard
     for index, item in enumerate(items):
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
@@ -408,10 +413,18 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         else:
             discard.append(item)
 
+    # if this test run is sampling tests randomly, do that here with the tests that have been
+    # selected for this shard
+    if sample_rate < 1 and sample_rate > 0:
+        _shuffle(keep, shuffler_seed)
+        cutoff = math.ceil(len(keep) * sample_rate)
+        discard.extend(keep[cutoff:])
+        keep[:] = keep[0 : math.ceil(len(keep) * sample_rate)]
+
     items[:] = keep
 
     if os.environ.get("SENTRY_SHUFFLE_TESTS"):
-        _shuffle(items)
+        _shuffle(items, shuffler_seed)
 
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
