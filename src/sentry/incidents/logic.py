@@ -61,7 +61,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
-from sentry.snuba.metrics.naming_layer.mapping import is_mri
+from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,

@@ -525,7 +525,11 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return (
       <PageFiltersContainer showAbsolute={false}>
         <NoProjectMessage organization={organization}>
-          <Header router={router} hasV2ReleaseUIEnabled={this.hasV2ReleaseUIEnabled} />
+          <Header
+            router={router}
+            hasV2ReleaseUIEnabled={this.hasV2ReleaseUIEnabled}
+            organization={organization}
+          />
 
           <Layout.Body>
             <Layout.Main fullWidth>
