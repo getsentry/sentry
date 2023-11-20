@@ -22,6 +22,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -65,6 +66,11 @@ export default function FeedbackListPage({}: Props) {
                       query: undefined,
                       cursor: undefined,
                     },
+                  }}
+                  onClick={() => {
+                    trackAnalytics('feedback.index-old-ui-clicked', {
+                      organization,
+                    });
                   }}
                 >
                   {t('Go to Old User Feedback')}
