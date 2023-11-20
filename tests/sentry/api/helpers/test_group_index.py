@@ -411,25 +411,7 @@ class TestHandleIsBookmarked(TestCase):
             user_id=self.user.id,
             reason=GroupSubscriptionReason.bookmark,
         )
-
         handle_is_bookmarked(False, self.group_list, self.group_ids, self.project_lookup, self.user)
-
-        assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
-        assert GroupSubscription.objects.filter(
-            project=self.group.project,
-            group=self.group,
-            user_id=self.user.id,
-        ).exists()
-
-        # test with feature flag
-        GroupBookmark.objects.create(
-            group=self.group, user_id=self.user.id, project_id=self.group.project_id
-        )
-
-        with self.feature("organizations:participants-purge"):
-            handle_is_bookmarked(
-                False, self.group_list, self.group_ids, self.project_lookup, self.user
-            )
 
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert not GroupSubscription.objects.filter(group=self.group, user_id=self.user.id).exists()
@@ -547,8 +529,7 @@ class TestHandleAssignedTo(TestCase):
 
     @patch("sentry.analytics.record")
     def test_unassign(self, mock_record: Mock) -> None:
-
-        # assign
+        # first assign the issue
         handle_assigned_to(
             ActorTuple.from_actor_identifier(self.user.id),
             None,
@@ -557,42 +538,6 @@ class TestHandleAssignedTo(TestCase):
             self.project_lookup,
             self.user,
         )
-        # unassign
-        assigned_to = handle_assigned_to(
-            None, None, None, self.group_list, self.project_lookup, self.user
-        )
-
-        assert not GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
-        assert GroupSubscription.objects.filter(
-            group=self.group,
-            project=self.group.project,
-            user_id=self.user.id,
-            reason=GroupSubscriptionReason.assigned,
-        ).exists()
-
-        assert assigned_to is None
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
-        )
-
-    @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
-    def test_unassign_user_with_feature_flag(self, mock_record: Mock) -> None:
-        # first assign the issue
-        assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(self.user.id),
-            None,
-            None,
-            self.group_list,
-            self.project_lookup,
-            self.user,
-        )
-
         assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert GroupSubscription.objects.filter(
             group=self.group,
@@ -625,8 +570,7 @@ class TestHandleAssignedTo(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
-    def test_unassign_team_with_feature_flag(self, mock_record: Mock) -> None:
+    def test_unassign_team(self, mock_record: Mock) -> None:
         user1 = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")
         team1 = self.create_team()
@@ -689,9 +633,8 @@ class TestHandleAssignedTo(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
     @with_feature("organizations:team-workflow-notifications")
-    def test_unassign_team_with_both_feature_flags(self, mock_record: Mock) -> None:
+    def test_unassign_team_with_team_workflow_notifications_flag(self, mock_record: Mock) -> None:
         user1 = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")
         team1 = self.create_team()
@@ -742,7 +685,6 @@ class TestHandleAssignedTo(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
     def test_reassign_user(self, mock_record: Mock) -> None:
         user2 = self.create_user(email="meow@meow.meow")
 
@@ -844,7 +786,6 @@ class TestHandleAssignedTo(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
     def test_reassign_team(self, mock_record: Mock) -> None:
         user1 = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")
@@ -939,9 +880,8 @@ class TestHandleAssignedTo(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:participants-purge")
     @with_feature("organizations:team-workflow-notifications")
-    def test_reassign_team_with_both_flags(self, mock_record: Mock) -> None:
+    def test_reassign_team_with_team_workflow_notifications_flag(self, mock_record: Mock) -> None:
         user1 = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")
         team1 = self.create_team()
@@ -1016,7 +956,6 @@ class TestHandleAssignedTo(TestCase):
             had_to_deassign=True,
         )
 
-    @with_feature("organizations:participants-purge")
     def test_user_in_reassigned_team(self):
         """Test that the correct participants are present when re-assigning from user to team and vice versa"""
         user1 = self.create_user("foo@example.com")
