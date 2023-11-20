@@ -145,8 +145,6 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>"]
 
-SDK_METADATA_FIELDS_TO_KEEP = ("name", "version", "integrations")
-
 
 @dataclass
 class GroupInfo:
@@ -213,13 +211,13 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
     if not (sdk_metadata := event.data.get("sdk")):
         return {}
 
-    metadata = {"sdk": {}}
     try:
-        for key in SDK_METADATA_FIELDS_TO_KEEP:
-            if sdk_metadata.get(key):
-                metadata["sdk"][key] = sdk_metadata[key]
-        metadata["sdk"]["name_normalized"] = normalized_sdk_tag_from_event(event)
-        return metadata
+        return {
+            "sdk": {
+                "name": sdk_metadata.get("name") or "unknown",
+                "name_normalized": normalized_sdk_tag_from_event(event),
+            }
+        }
     except Exception:
         logger.warning("failed to set normalized SDK name", exc_info=True)
         return {}
