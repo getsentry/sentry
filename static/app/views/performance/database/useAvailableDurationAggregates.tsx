@@ -16,11 +16,5 @@ export function useAvailableDurationAggregates(): Result {
     availableAggregates = [...availableAggregates, ...['p50', 'p75', 'p95', 'p99']];
   }
 
-  // TODO: Enable this on the backend
-  const areLimitsEnabled = false;
-  if (areLimitsEnabled) {
-    availableAggregates.push('max');
-  }
-
   return availableAggregates;
 }
