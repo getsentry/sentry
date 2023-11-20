@@ -289,6 +289,7 @@ function Sidebar({location, organization}: Props) {
               <Feature features={['starfish-browser-resource-module-ui']}>
                 <SidebarItem
                   {...sidebarItemProps}
+                  isNew
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"

@@ -139,10 +139,10 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
         return <span>{t('JavaScript')}</span>;
       }
       if (fileExtension === 'css') {
-        return <span>Stylesheet</span>;
+        return <span>{t('Stylesheet')}</span>;
       }
       if (['woff', 'woff2', 'ttf', 'otf', 'eot'].includes(fileExtension)) {
-        return <span>Font</span>;
+        return <span>{t('Font')}</span>;
       }
       return <span>{spanOp}</span>;
     }
