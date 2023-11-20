@@ -120,7 +120,6 @@ def timeseries_query(
         else result["data"]
     )
 
-    # XXX: Do something here?
     result["meta"]["isMetricsData"] = True
 
     return SnubaTSResult(

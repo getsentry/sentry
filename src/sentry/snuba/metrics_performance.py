@@ -140,8 +140,6 @@ def bulk_timeseries_query(
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
             result = metrics_query.process_results(result)
             sentry_sdk.set_tag("performance.dataset", "metrics")
-            # XXX: Do we need to do something here?
-            # It's only used by organization_events_trends_v2.py
             result["meta"]["isMetricsData"] = True
 
             # Sometimes additional formatting needs to be done downstream
@@ -255,7 +253,6 @@ def timeseries_query(
                 "meta": result["meta"],
             }
 
-    # XXX Do we also need to handle this? (see line 309)
     if metrics_compatible:
         # We could run these two queries in a batch but this would require a big refactor in the `get_snql_query` method
         # of the TimeseriesMetricQueryBuilder. In case this becomes a performance bottleneck, we should invest more
@@ -518,7 +515,6 @@ def histogram_query(
         fields, min_value, max_value, user_query, params, data_filter, query_fn=query
     )
     if min_value is None or max_value is None:
-        # XXX: Do something here?
         return {"meta": {"isMetricsData": True}}
 
     histogram_params = discover.find_histogram_params(num_buckets, min_value, max_value, multiplier)
@@ -545,7 +541,6 @@ def histogram_query(
         return results
 
     result = normalize_histogram_results(fields, histogram_params, results)
-    # XXX: Do something here?
     result["meta"] = {"isMetricsData": True}
     return result
 

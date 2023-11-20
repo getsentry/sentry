@@ -208,7 +208,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "project": item["project_id"]
                         if experiment_use_project_id
                         else item["project"],
-                        # XXX: Do something here?
                         "isMetricsData": True,
                         "order": item["order"],
                     },
@@ -345,7 +344,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     request,
                     organization,
                     params["project_id"],
-                    # XXX: Do something here?
                     {"data": results["data"], "meta": {"isMetricsData": True}},
                     True,
                 ),
@@ -381,7 +379,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                             request,
                             organization,
                             params["project_id"],
-                            # XXX: Do something here?
                             {"data": [], "meta": {"isMetricsData": True}},
                             True,
                         ),
