@@ -21,6 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import Header from '../components/header';
 import {Threshold} from '../utils/types';
@@ -38,9 +39,12 @@ function ReleaseThresholdList({}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   useEffect(() => {
-    const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
+    const hasV2ReleaseUIEnabled =
+      organization.features.includes('releases-v2') ||
+      organization.features.includes('releases-v2-st');
     if (!hasV2ReleaseUIEnabled) {
-      router.replace('/releases/');
+      const redirect = normalizeUrl(`/organizations/${organization.slug}/releases/`);
+      router.replace(redirect);
     }
   }, [router, organization]);
   const {projects} = useProjects();
@@ -151,7 +155,7 @@ function ReleaseThresholdList({}: Props) {
   return (
     <PageFiltersContainer>
       <NoProjectMessage organization={organization}>
-        <Header router={router} hasV2ReleaseUIEnabled />
+        <Header router={router} hasV2ReleaseUIEnabled organization={organization} />
         <Layout.Body>
           <Layout.Main fullWidth>
             <FilterRow>

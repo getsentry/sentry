@@ -353,6 +353,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
                 "contact_email": "test@test.com",
                 "message": "test",
                 "name": "Name Test",
+                "source": "crash report widget",
             },
         )
         event = self.store_event(data={}, project_id=self.project.id)
@@ -367,6 +368,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "contact_email": "test@test.com",
             "message": "test",
             "name": "Name Test",
+            "source": "crash report widget",
         }
 
 
