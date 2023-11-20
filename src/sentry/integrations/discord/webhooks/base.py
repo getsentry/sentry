@@ -38,6 +38,11 @@ class DiscordInteractionsEndpoint(Endpoint):
     def __init__(self) -> None:
         super().__init__()
 
+    @classmethod
+    def respond_ping(cls) -> Response:
+        # https://discord.com/developers/docs/tutorials/upgrading-to-application-commands#adding-an-interactions-endpoint-url
+        return Response({"type": DiscordResponseTypes.PONG}, status=200)
+
     @csrf_exempt
     @transaction_start("DiscordInteractionsEndpoint")
     def post(self, request: Request) -> Response:
@@ -46,8 +51,7 @@ class DiscordInteractionsEndpoint(Endpoint):
             discord_request.validate()
 
             if discord_request.is_ping():
-                # https://discord.com/developers/docs/tutorials/upgrading-to-application-commands#adding-an-interactions-endpoint-url
-                return self.respond({"type": DiscordResponseTypes.PONG}, status=200)
+                return DiscordInteractionsEndpoint.respond_ping()
 
             elif discord_request.is_command():
                 analytics.record(

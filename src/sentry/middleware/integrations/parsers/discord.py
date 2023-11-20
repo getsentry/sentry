@@ -77,7 +77,10 @@ class DiscordRequestParser(BaseRequestParser):
 
         if self.view_class == DiscordInteractionsEndpoint:
             if self.discord_request:
-                if self.discord_request.is_command() or self.discord_request.is_ping():
+                if self.discord_request.is_ping():
+                    return DiscordInteractionsEndpoint.respond_ping()
+
+                if self.discord_request.is_command():
                     return self.get_response_from_first_region()
 
                 if self.discord_request.is_message_component():
