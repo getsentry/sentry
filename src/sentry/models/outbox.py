@@ -569,10 +569,12 @@ class OutboxBase(Model):
             yield next_shard_row
 
     @contextlib.contextmanager
-    def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
+    def process_coalesced(
+        self, is_synchronous_flush: bool
+    ) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
-        tags = {"category": "None"}
+        tags: dict[str, int | str] = {"category": "None", "synchronous": int(is_synchronous_flush)}
 
         if coalesced is not None:
             tags["category"] = OutboxCategory(self.category).name
@@ -615,12 +617,15 @@ class OutboxBase(Model):
         span.set_tag("outbox_category", OutboxCategory(message.category).name)
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 
-    def process(self) -> bool:
-        with self.process_coalesced() as coalesced:
+    def process(self, is_synchronous_flush: bool) -> bool:
+        with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
             if coalesced is not None:
                 with metrics.timer(
                     "outbox.send_signal.duration",
-                    tags={"category": OutboxCategory(coalesced.category).name},
+                    tags={
+                        "category": OutboxCategory(coalesced.category).name,
+                        "synchronous": int(is_synchronous_flush),
+                    },
                 ), sentry_sdk.start_span(op="outbox.process") as span:
                     self._set_span_data_for_coalesced_message(span=span, message=coalesced)
                     try:
@@ -662,7 +667,7 @@ class OutboxBase(Model):
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
-                shard_row.process()
+                shard_row.process(is_synchronous_flush=not flush_all)
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
