@@ -234,13 +234,14 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <ProfilingUpgradeButton
                     organization={organization}
                     priority="primary"
+                    onClick={onSetupProfilingClick}
                     fallback={
                       <Button onClick={onSetupProfilingClick} priority="primary">
                         {t('Set Up Profiling')}
                       </Button>
                     }
                   >
-                    {t('Update plan')}
+                    {t('Set Up Profiling')}
                   </ProfilingUpgradeButton>
                   <Button href="https://docs.sentry.io/product/profiling/" external>
                     {t('Read Docs')}
