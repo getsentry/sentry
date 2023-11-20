@@ -262,7 +262,6 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         elif "order" in result.data:
             res["order"] = result.data["order"]
         res["isMetricsData"] = result.data.get("isMetricsData", False)
-        res["isMetricsExtractedData"] = result.data.get("isMetricsExtractedData", False)
 
         if hasattr(result, "start") and hasattr(result, "end"):
             timeframe = calculate_time_frame(result.start, result.end, result.rollup)

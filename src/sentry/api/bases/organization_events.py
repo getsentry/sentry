@@ -525,6 +525,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                             dataset=dataset,
                         )
+                        # XXX: is this done for isMetricsData somewhere else?
+                        for c in query_columns:
+                            # At least one of the columns has required extracted data
+                            if results[key][c].get("meta", {}).get("isMetricsExtractedData"):
+                                results[key]["isMetricsExtractedData"] = True
+                                break
                     else:
                         results[key] = serializer.serialize(
                             event_result,

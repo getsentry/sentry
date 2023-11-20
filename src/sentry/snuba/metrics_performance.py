@@ -442,7 +442,8 @@ def top_events_timeseries(
                 if zerofill_results
                 else item["data"],
                 "order": item["order"],
-                # XXX: How do I know if this is right?
+                # XXX: One of the timeseries is using on_demand metrics, however, we add
+                # this meta value to all of them
                 "meta": {"isMetricsExtractedData": top_events_builder.use_on_demand},
             },
             params["start"],

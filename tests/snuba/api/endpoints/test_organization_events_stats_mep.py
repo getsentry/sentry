@@ -76,6 +76,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             data = response.data["data"]
             assert len(data) == 6
             assert response.data["isMetricsData"]
+            assert response.data["isMetricsExtracteData"] is False
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -106,6 +107,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             data = response.data["data"]
             assert len(data) == 2
             assert response.data["isMetricsData"]
+            assert response.data["isMetricsExtracteData"] is False
 
             assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
@@ -134,6 +136,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             data = response.data["data"]
             assert len(data) == 6
             assert response.data["isMetricsData"]
+            assert response.data["isMetricsExtracteData"] is False
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -164,6 +167,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             data = response.data["data"]
             assert len(data) == 6
             assert response.data["isMetricsData"]
+            assert response.data["isMetricsExtracteData"] is False
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -317,6 +321,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert not response.data["isMetricsData"]
         meta = response.data["meta"]
         assert meta["isMetricsData"] == response.data["isMetricsData"]
+        assert response.data["isMetricsExtracteData"] is False
 
     def test_explicit_not_mep(self):
         response = self.do_request(
@@ -336,6 +341,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert not response.data["isMetricsData"]
         meta = response.data["meta"]
         assert meta["isMetricsData"] == response.data["isMetricsData"]
+        assert response.data["isMetricsExtracteData"] is False
 
     def test_sum_transaction_duration(self):
         self.store_transaction_metric(123, timestamp=self.day_ago + timedelta(minutes=30))
@@ -353,6 +359,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         assert response.status_code == 200, response.content
         assert response.data["isMetricsData"]
+        assert response.data["isMetricsExtracteData"] is False
         assert [attrs for time, attrs in response.data["data"]] == [
             [{"count": 123}],
             [{"count": 1245}],
@@ -386,6 +393,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         assert response.status_code == 200, response.content
         assert response.data["isMetricsData"]
+        assert response.data["isMetricsExtracteData"] is False
         # For some reason, if all tests run, there is some shared state that makes this test have data in the second
         # time bucket, which is filled automatically by the zerofilling. In order to avoid this flaky failure, we will
         # only check that the first bucket contains the actual data.
@@ -434,6 +442,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         assert response.status_code == 200, response.content
         assert response.data["isMetricsData"]
+        assert response.data["isMetricsExtracteData"] is False
         assert [attrs for time, attrs in response.data["data"]] == [
             [{"count": 123}],
             [{"count": 1245}],
@@ -463,6 +472,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         meta = response.data["meta"]
         assert response.status_code == 200, response.content
         assert response.data["isMetricsData"]
+        assert response.data["isMetricsExtracteData"] is False
         assert meta["isMetricsData"]
         assert meta["fields"] == {"time": "date", "p99_measurements_custom": "size"}
         assert meta["units"] == {"time": None, "p99_measurements_custom": "kibibyte"}
@@ -1009,7 +1019,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
 
         assert response.status_code == 200, response.content
 
-    def test_top_events_with_transaction_on_demand(self):
+    def test_top_events_with_transaction_on_demand_foo(self):
         field = "count()"
         field_two = "count_web_vitals(measurements.lcp, good)"
         groupbys = ["customtag1", "customtag2"]
@@ -1081,7 +1091,9 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
             group, agg, row1, row2 = group_count
             row_data = response.data[group][agg]["data"][:2]
             assert [attrs for _, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+
             assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
+            assert response.data[group]["isMetricsExtractedData"]
 
     def test_top_events_with_transaction_on_demand_and_no_environment(self):
         field = "count()"
@@ -1153,7 +1165,10 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
         for group_count in groups:
             group, agg, row1, row2 = group_count
             row_data = response.data[group][agg]["data"][:2]
-            assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+            assert [attrs for _, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+
+            assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
+            assert response.data[group]["isMetricsExtractedData"]
 
     def _test_is_metrics_extracted_data(
         self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
