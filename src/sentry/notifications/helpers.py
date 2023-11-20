@@ -689,11 +689,6 @@ def get_providers_for_recipient(
     return user_providers
 
 
-def should_use_notifications_v2(organization: Organization):
-    # TODO: remove function
-    return True
-
-
 def recipient_is_user(recipient: RpcActor | Team | RpcUser | User) -> bool:
     from sentry.models.user import User
 
