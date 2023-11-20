@@ -285,7 +285,7 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
 
 @contextmanager
 def assume_test_silo_mode_of(*models: Type[BaseModel], can_be_monolith: bool = True) -> Any:
-    """Potentially swap to the silo mode where the models are accessed.
+    """Potentially swap to the silo mode to match the provided model classes.
 
     The argument should be one or more model classes that are scoped to exactly one
     non-monolith mode. That is, they must be tagged with `control_silo_only_model` or
