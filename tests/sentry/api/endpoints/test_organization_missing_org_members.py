@@ -73,6 +73,19 @@ class OrganizationMissingMembersTestCase(APITestCase):
         not_shared_domain_author.save()
         self.create_commit(repo=self.repo, author=not_shared_domain_author)
 
+        self.invited_member = self.create_member(
+            email="invited@example.com",
+            organization=self.organization,
+        )
+        self.invited_member.user_email = "invited@example.com"
+        self.invited_member.save()
+        self.invited_member_commit_author = self.create_commit_author(
+            project=self.project, email="invited@example.com"
+        )
+        self.invited_member_commit_author.external_id = "github:invited"
+        self.invited_member_commit_author.save()
+        self.create_commit(repo=self.repo, author=self.invited_member_commit_author)
+
         self.login_as(self.user)
 
     def test_shared_domain_filter(self):
