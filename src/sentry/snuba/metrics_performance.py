@@ -78,7 +78,9 @@ def query(
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
+        results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
         sentry_sdk.set_tag("performance.dataset", "metrics")
+        sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
         return results
 
 

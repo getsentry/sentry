@@ -2,7 +2,7 @@ default_install_hook_types: ['pre-commit', 'pre-push']
 
 exclude: >
   (?x)(
-      LICENSE$|
+      LICENSE.md$|
       \.snap$|
       \.map$|
       \.map\.js$|
@@ -55,6 +55,20 @@ repos:
         # exclude the overrides file from this linter -- it doesn't apply at all
         exclude: ^requirements-getsentry-overrides\.txt$
         additional_dependencies: [packaging==21.3]
+      - id: requirements-overrides
+        name: use pinned archives (see comment in file)
+        stages: [commit]
+        language: pygrep
+        entry: |
+          (?x)
+          ^
+          # it's a comment line
+          (?!\#.*$)
+          # it's a blank line
+          (?!$)
+          # it's a pinned archive
+          (?![a-z-]+[ ]@[ ]https://github\.com/getsentry/[^/]+/archive/[a-f0-9]{40}\.zip$)
+        files: ^requirements-getsentry-overrides\.txt$
       - id: check-mypy-bypass
         name: do not bypass the type checker
         entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b)'
