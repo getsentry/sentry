@@ -248,8 +248,7 @@ class TestGetIssues(TestCase):
                 "exception": {
                     "values": [
                         {
-                            "type": "Bleh",
-                            "value": "asdf",
+                            "type": "Error",
                             "stacktrace": {
                                 "frames": [{"filename": filename} for filename in filenames],
                             },
