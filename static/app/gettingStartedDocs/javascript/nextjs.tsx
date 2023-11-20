@@ -98,7 +98,7 @@ export const steps = ({dsn, projectSlug, organization}: Props): LayoutProps['ste
         </DSNText>
         {organization && (
           <TextCopyInput
-            onCopy={() => trackAnalytics('onboarding:nextjs-dsn-copied', {organization})}
+            onCopy={() => trackAnalytics('onboarding.nextjs-dsn-copied', {organization})}
           >
             {dsn}
           </TextCopyInput>
