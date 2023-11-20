@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from snuba_sdk import Column, Entity, Flags, Join, Query, Relationship, Request
+from snuba_sdk import Column, Condition, Entity, Flags, Join, Op, Query, Relationship, Request
 
 from sentry.api.issue_search import convert_query_values, convert_status_value
 from sentry.search.events.builder import QueryBuilder
@@ -37,6 +37,18 @@ class ErrorsQueryBuilder(QueryBuilder):
             self.match = Join([Relationship(error_entity, "attributes", group_entity)])
         else:
             raise Exception("Unexpected number of entities")
+
+    def resolve_params(self):
+        conditions = super().resolve_params()
+        if len(self.entities) == 2:
+            conditions.append(
+                Condition(
+                    Column("project_id", entity=Entity("group_attributes", alias="ga")),
+                    Op.IN,
+                    self.params.project_ids,
+                )
+            )
+        return conditions
 
     def resolve_query(
         self,

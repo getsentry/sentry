@@ -720,6 +720,7 @@ class EntitySubscriptionTestCase(TestCase):
                 ]
             ),
             Condition(Column("project_id", entity=e_entity), Op.IN, [self.project.id]),
+            Condition(Column("project_id", entity=g_entity), Op.IN, [self.project.id]),
         ]
 
 
