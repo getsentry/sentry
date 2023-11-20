@@ -139,8 +139,22 @@ class UserService(RpcService):
     @rpc_method
     @abstractmethod
     def get_or_create_user_by_email(
-        self, *, email: str, ident: Optional[str] = None, referrer: Optional[str] = None
+        self,
+        *,
+        email: str,
+        ident: Optional[str] = None,
+        referrer: Optional[str] = None,
     ) -> RpcUser:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_user_by_email(
+        self,
+        *,
+        email: str,
+        ident: Optional[str] = None,
+    ) -> Optional[RpcUser]:
         pass
 
     @rpc_method

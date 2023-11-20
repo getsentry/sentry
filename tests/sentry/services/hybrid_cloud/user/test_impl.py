@@ -20,6 +20,10 @@ class DatabaseBackedUserService(TestCase):
         assert new_user_count == old_user_count + 1
         assert user.flags.newsletter_consent_prompt
 
+    def test_get_no_existing(self):
+        rpc_user = user_service.get_user_by_email(email="test@email.com")
+        assert rpc_user is None
+
     def test_get_or_create_user(self):
         user1 = self.create_user(email="test@email.com", username="1")
         user2 = self.create_user(email="test@email.com", username="2")
