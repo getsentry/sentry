@@ -452,5 +452,5 @@ You modified these files in this pull request and we noticed these issues associ
 </details>
 ---
 
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+<sub>Did you find this useful? React with a 👍 or 👎 or let us know in #proj-github-pr-comments</sub>"""
         )

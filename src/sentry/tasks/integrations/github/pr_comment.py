@@ -43,9 +43,9 @@ class PullRequestIssue:
     title: str
     subtitle: str
     url: str
-    affected_users: Optional[int]
-    event_count: Optional[int]
-    is_handled: Optional[bool]
+    affected_users: Optional[int] = None
+    event_count: Optional[int] = None
+    is_handled: Optional[bool] = None
 
 
 class GithubAPIErrorType(Enum):

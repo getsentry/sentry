@@ -45,7 +45,7 @@ You modified these files in this pull request and we noticed these issues associ
 {issue_tables}
 ---
 
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+<sub>Did you find this useful? React with a 👍 or 👎 or let us know in #proj-github-pr-comments</sub>"""
 
 ISSUE_TABLE_TEMPLATE = """📄 **{filename}**
 
@@ -91,7 +91,7 @@ def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggl
 
 
 # for a single file, get the contents
-def get_issue_table_contents(issue_list: Dict[str, int]) -> List[PullRequestIssue]:
+def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullRequestIssue]:
     group_id_to_info = {}
     for issue in issue_list:
         group_id = issue.pop("group_id")
