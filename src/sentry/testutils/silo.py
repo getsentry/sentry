@@ -153,7 +153,7 @@ class SiloModeTestDecorator:
     def __call__(
         self,
         decorated_obj: Any = None,
-        stable: bool = False,
+        stable: bool = True,
         regions: Sequence[Region] | None = None,
     ) -> Any:
         if decorated_obj:
