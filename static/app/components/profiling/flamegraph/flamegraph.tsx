@@ -81,7 +81,7 @@ import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
 
-function getTransactionConfigSpace(
+function getMaxConfigSpace(
   profileGroup: ProfileGroup,
   transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string
@@ -291,8 +291,15 @@ function Flamegraph(): ReactElement {
       return null;
     }
 
-    return new SpanChart(spanTree, {unit: profile.unit});
-  }, [spanTree, profile]);
+    return new SpanChart(spanTree, {
+      unit: profile.unit,
+      configSpace: getMaxConfigSpace(
+        profileGroup,
+        profiledTransaction.type === 'resolved' ? profiledTransaction.data : null,
+        profile.unit
+      ),
+    });
+  }, [spanTree, profile, profileGroup, profiledTransaction]);
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
@@ -325,7 +332,7 @@ function Flamegraph(): ReactElement {
     const newFlamegraph = new FlamegraphModel(profile, threadId, {
       inverted: view === 'bottom up',
       sort: sorting,
-      configSpace: getTransactionConfigSpace(
+      configSpace: getMaxConfigSpace(
         profileGroup,
         profiledTransaction.type === 'resolved' ? profiledTransaction.data : null,
         profile.unit
