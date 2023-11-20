@@ -364,13 +364,8 @@ class TestGetCommentIssues(TestCase):
             )
             for i in range(2)
         ][0].group.id
-        top_5_issues = [
-            {"group_id": 1, "event_count": 6, "affected_users": 6, "is_handled": 1},
-            {"group_id": 2, "event_count": 5, "affected_users": 5, "is_handled": 0},
-            {"group_id": 3, "event_count": 4, "affected_users": 4, "is_handled": 1},
-            {"group_id": 4, "event_count": 3, "affected_users": 3, "is_handled": 0},
-            {"group_id": 5, "event_count": 2, "affected_users": 2, "is_handled": 1},
-        ]
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
         affected_users = [issue["affected_users"] for issue in top_5_issues]
         event_count = [issue["event_count"] for issue in top_5_issues]
         is_handled = [bool(issue["is_handled"]) for issue in top_5_issues]
