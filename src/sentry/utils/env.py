@@ -49,9 +49,7 @@ def log_gcp_credentials_details(logger) -> None:
 
             logger.info(
                 "gcp.credentials.file_found",
-                extra={
-                    "adc": adc,
-                },
+                extra={"adc": adc.get("quota_project_id", "")},
             )
 
     # Checking User credentials set up by using the Google Cloud CLI
