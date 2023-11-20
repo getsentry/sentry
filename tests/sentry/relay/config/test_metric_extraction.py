@@ -884,3 +884,20 @@ def test_get_metric_extraction_config_with_invalid_spec(default_project):
             "mri": "c:transactions/on_demand@none",
             "tags": [{"key": "query_hash", "value": ANY}],
         }
+
+
+@django_db_all
+def test_get_metric_extraction_config_with_no_spec(default_project):
+    create_alert(
+        "apdex(300)",
+        "",
+        default_project,
+        dataset=Dataset.PerformanceMetrics,
+    )
+
+    with Feature({ON_DEMAND_METRICS: True}):
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0].get("condition") is None
