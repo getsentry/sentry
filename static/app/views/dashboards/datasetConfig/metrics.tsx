@@ -7,7 +7,7 @@ import {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {getSeriesName} from 'sentry/utils/metrics';
+import {getMetricsInterval, getSeriesName} from 'sentry/utils/metrics';
 import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
 
@@ -52,7 +52,6 @@ export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse
     ),
   getSeriesRequest: getMetricSeriesRequest,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
-  // TODO(ddm): check if we need a MetricSearchBar
   SearchBar: MetricSearchBar,
   handleOrderByReset: handleMetricTableOrderByReset,
   supportedDisplayTypes: [
@@ -197,7 +196,7 @@ function getMetricRequest(
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,
-  interval?: string,
+  widgetInterval?: string,
   limit?: number,
   cursor?: string
 ) {
@@ -205,6 +204,9 @@ function getMetricRequest(
   const {start, end, period} = datetime;
 
   const columns = query.columns;
+
+  // we use the metrics interval by default, falling back to the widget interval
+  const interval = getMetricsInterval(datetime, 'custom') ?? widgetInterval;
 
   const requestData = {
     field: query.aggregates,
