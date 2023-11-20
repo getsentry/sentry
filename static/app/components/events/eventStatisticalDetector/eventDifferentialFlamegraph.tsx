@@ -4,6 +4,8 @@ import * as Sentry from '@sentry/react';
 import {Event} from 'sentry/types';
 import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 
+import {useTransactionsDelta} from './transactionsDeltaProvider';
+
 interface EventDifferenialFlamegraphProps {
   event: Event;
 }
@@ -33,13 +35,13 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
   }, [isValid, fingerprint, breakpoint]);
 
   const projectID = parseInt(props.event.projectID, 10);
+  const transactions = useTransactionsDelta();
 
-  // @todo use the data to render a flamegraph
   useDifferentialFlamegraphQuery({
     projectID,
     breakpoint,
     environments: [],
-    transaction: '',
+    transaction: transactions.data?.data?.[0]?.transaction as string,
   });
 
   if (!isValid) {
