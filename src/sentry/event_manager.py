@@ -727,11 +727,10 @@ class EventManager:
 
         metric_tags = {"from_relay": str("_relay_processed" in job["data"])}
 
-        metrics.distribution(
+        metrics.timing(
             "events.latency",
             job["received_timestamp"] - job["recorded_timestamp"],
             tags=metric_tags,
-            unit="second",
         )
         metrics.distribution("events.size.data.post_save", job["event"].size, tags=metric_tags)
         metrics.incr(

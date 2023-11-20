@@ -366,9 +366,7 @@ def merge_export_blobs(data_export_id, **kwargs):
                     data_export.finalize_upload(file=file)
 
                 time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
-                metrics.distribution(
-                    "dataexport.duration", time_elapsed, sample_rate=1.0, unit="second"
-                )
+                metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)
                 logger.info("dataexport.end", extra={"data_export_id": data_export_id})
                 metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
         except Exception as error:

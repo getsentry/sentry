@@ -579,12 +579,11 @@ class OutboxBase(Model):
         if coalesced is not None:
             tags["category"] = OutboxCategory(self.category).name
             assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
-            metrics.distribution(
+            metrics.timing(
                 "outbox.coalesced_net_queue_time",
                 datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
-                unit="second",
             )
 
         yield coalesced
@@ -597,19 +596,17 @@ class OutboxBase(Model):
             )
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
-            metrics.distribution(
+            metrics.timing(
                 "outbox.processing_lag",
                 datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
                 - first_coalesced.scheduled_from.timestamp(),
                 tags=tags,
-                unit="second",
             )
-            metrics.distribution(
+            metrics.timing(
                 "outbox.coalesced_net_processing_time",
                 datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
-                unit="second",
             )
 
     def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):

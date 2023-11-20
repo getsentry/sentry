@@ -765,7 +765,7 @@ def _do_save_event(
                     attachment_cache.delete(cache_key)
 
             if start_time:
-                metrics.distribution(
+                metrics.timing(
                     "events.time-to-process",
                     time() - start_time,
                     instance=data["platform"],
@@ -774,7 +774,6 @@ def _do_save_event(
                         if reprocessing2.is_reprocessed_event(data)
                         else "false",
                     },
-                    unit="second",
                 )
 
             time_synthetic_monitoring_event(data, project_id, start_time)
@@ -813,21 +812,19 @@ def time_synthetic_monitoring_event(
         "source": extra["source"],
     }
 
-    metrics.distribution(
+    metrics.timing(
         "events.synthetic-monitoring.time-to-ingest-total",
         now - data["timestamp"],
         tags=tags,
         sample_rate=1.0,
-        unit="second",
     )
 
     if start_time:
-        metrics.distribution(
+        metrics.timing(
             "events.synthetic-monitoring.time-to-process",
             now - start_time,
             tags=tags,
             sample_rate=1.0,
-            unit="second",
         )
     return True
 

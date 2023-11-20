@@ -673,11 +673,10 @@ def post_process_group(
             run_post_process_job(job)
 
         if not is_reprocessed and event.data.get("received"):
-            metrics.distribution(
+            metrics.timing(
                 "events.time-to-post-process",
                 time() - event.data["received"],
                 instance=event.data["platform"],
-                unit="second",
             )
 
 

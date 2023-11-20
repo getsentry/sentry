@@ -830,11 +830,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
             # When it's a simple django-only search, we count_hits like normal
             results = paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
-            metrics.distribution(
+            metrics.timing(
                 "snuba.search.query",
                 (timezone.now() - now).total_seconds(),
                 tags={"postgres_only": True},
-                unit="second",
             )
             return results
 
@@ -1009,11 +1008,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         groups = Group.objects.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
 
-        metrics.distribution(
+        metrics.timing(
             "snuba.search.query",
             (timezone.now() - now).total_seconds(),
             tags={"postgres_only": False},
-            unit="second",
         )
         return paginator_results
 

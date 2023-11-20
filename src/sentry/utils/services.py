@@ -548,7 +548,7 @@ def callback_timing(
     if sample_rate is not None:
         metric_kwargs["sample_rate"] = sample_rate
 
-    metrics.distribution(
+    metrics.timing(
         f"{metric_name}.timing_ms",
         primary_duration_ms,
         tags={
@@ -557,7 +557,6 @@ def callback_timing(
             "status": primary_status,
             "primary": "true",
         },
-        unit="second",
         **metric_kwargs,  # type: ignore
     )
 

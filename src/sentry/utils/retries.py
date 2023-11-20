@@ -175,10 +175,9 @@ class TimedRetryPolicy(RetryPolicy):
             if self.metric_instance:
                 from sentry.utils import metrics
 
-                metrics.distribution(
+                metrics.timing(
                     "timedretrypolicy.duration",
                     self.clock.time() - start,
                     instance=self.metric_instance,
                     tags=self.metric_tags,
-                    unit="second",
                 )
