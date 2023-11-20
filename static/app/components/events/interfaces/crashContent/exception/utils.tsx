@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment, ReactElement, ReactNode} from 'react';
 
 import type {Frame} from 'sentry/types';
 import {getFileExtension} from 'sentry/utils/fileExtension';
@@ -23,9 +23,9 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
 }
 
 // Detects URLs in text and renders them with anchor tags
-export function Linkify({exceptionText}: {exceptionText?: string}): React.ReactElement {
+export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement {
   if (!exceptionText) {
-    return <React.Fragment>{''}</React.Fragment>;
+    return <Fragment>{''}</Fragment>;
   }
 
   const urlRegex =
@@ -47,7 +47,7 @@ export function Linkify({exceptionText}: {exceptionText?: string}): React.ReactE
   const parts = exceptionText.split(urlRegex);
   const urls = exceptionText.match(urlRegex);
 
-  const elements: React.ReactNode[] = parts.flatMap((part, index) => {
+  const elements: ReactNode[] = parts.flatMap((part, index) => {
     const link =
       urls && urls[index] ? (
         <a
@@ -62,10 +62,10 @@ export function Linkify({exceptionText}: {exceptionText?: string}): React.ReactE
 
     // Combine the text part and its following URL into a React Fragment
     // Each part of the text and each link is given a unique key for React's rendering optimization
-    return [<React.Fragment key={`text-${index}`}>{part}</React.Fragment>, link];
+    return [<Fragment key={`text-${index}`}>{part}</Fragment>, link];
   });
 
-  return <React.Fragment>{elements}</React.Fragment>;
+  return <Fragment>{elements}</Fragment>;
 }
 
 // Maps the SDK name to the url token for docs
