@@ -112,7 +112,7 @@ jobs:
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
-          install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
       - name: run tests
         run: make test-tools
       - name: Handle artifacts
