@@ -1,3 +1,5 @@
+import React from 'react';
+
 import type {Frame} from 'sentry/types';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -18,6 +20,32 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
     // If all absolute paths do not have a file extension, we do not want to show this alert
     (!!frame.absPath && !getFileExtension(filename))
   );
+}
+
+// need to add comments
+export function Linkify({exceptionText}: {exceptionText?: string}): React.ReactElement {
+  if (!exceptionText) {
+    return <React.Fragment>{''}</React.Fragment>;
+  }
+
+  const urlRegex =
+    /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*)/gi;
+
+  const parts = exceptionText.split(urlRegex);
+  const urls = exceptionText.match(urlRegex);
+
+  const elements: React.ReactNode[] = parts.flatMap((part, index) => {
+    const link =
+      urls && urls[index] ? (
+        <a key={`link-${index}`} href={urls[index]}>
+          {urls[index]}
+        </a>
+      ) : null;
+
+    return [<React.Fragment key={`text-${index}`}>{part}</React.Fragment>, link];
+  });
+
+  return <React.Fragment>{elements}</React.Fragment>;
 }
 
 // Maps the SDK name to the url token for docs

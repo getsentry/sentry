@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -6,6 +6,7 @@ import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebuggerData,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
+import {Linkify} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
@@ -175,7 +176,7 @@ export function Content({
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
             <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
           ) : (
-            exc.value
+            <Linkify exceptionText={exc.value} />
           )}
         </StyledPre>
         <ToggleExceptionButton
