@@ -78,6 +78,8 @@ def _get_missing_organization_members(
             )
 
     date_added = (timezone.now() - timedelta(days=30)).strftime("%Y-%m-%d, %H:%M:%S")
+    integration_ids_string = ", ".join([str(id) for id in integration_ids])
+    integration_query = f" and integration_id in ({integration_ids_string}))"
 
     query = """
         SELECT sentry_commitauthor.id, sentry_commitauthor.organization_id, sentry_commitauthor.name, sentry_commitauthor.email, sentry_commitauthor.external_id, COUNT(sentry_commit.id) AS commit__count FROM sentry_commitauthor
@@ -93,9 +95,9 @@ def _get_missing_organization_members(
             select id
             from sentry_repository
             where provider = %(provider)s
-            and organization_id = %(org_id)s
-            and integration_id in (%(integration_ids)s)
-            )
+            and organization_id = %(org_id)s"""
+    query += integration_query
+    query += """
         AND sentry_commit.author_id IN
             (select id from sentry_commitauthor
                 WHERE sentry_commitauthor.organization_id = %(org_id)s
@@ -110,14 +112,12 @@ def _get_missing_organization_members(
         AND NOT (UPPER(sentry_commitauthor.email::text) LIKE UPPER('%%+%%'))
         )
 
-        GROUP BY sentry_commitauthor.id ORDER BY commit__count DESC limit 50
-        """
+        GROUP BY sentry_commitauthor.id ORDER BY commit__count DESC limit 50"""
 
     param_dict = {
         "org_id": org_id,
         "date_added": date_added,
         "provider": "integrations:" + provider,
-        "integration_ids": ", ".join([str(id) for id in integration_ids]),
     }
 
     return list(CommitAuthor.objects.raw(query, param_dict))
