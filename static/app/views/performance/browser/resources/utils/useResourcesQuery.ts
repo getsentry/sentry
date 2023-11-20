@@ -21,6 +21,7 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
   HTTP_RESPONSE_CONTENT_LENGTH,
   PROJECT_ID,
+  FILE_EXTENSION,
 } = SpanMetricsField;
 
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
@@ -79,6 +80,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
         'project.id',
         `${TIME_SPENT_PERCENTAGE}()`,
         `sum(${SPAN_SELF_TIME})`,
+        FILE_EXTENSION,
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
@@ -122,6 +124,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
     [`time_spent_percentage()`]: row[`${TIME_SPENT_PERCENTAGE}()`] as number,
     ['count_unique(transaction)']: row['count_unique(transaction)'] as number,
     [`sum(span.self_time)`]: row[`sum(${SPAN_SELF_TIME})`] as number,
+    [FILE_EXTENSION]: row[FILE_EXTENSION]?.toString(),
   }));
 
   return {...result, data: data || []};
@@ -139,15 +142,23 @@ export const getDomainFilter = (selectedDomain: string | undefined) => {
   return [`${SPAN_DOMAIN}:${selectedDomain}`];
 };
 
+const SPAN_OP_FILTER = {
+  'resource.script': [`${SPAN_OP}:resource.script`],
+  'resource.css': [`${FILE_EXTENSION}:css`],
+  'resource.font': [`${FILE_EXTENSION}:[woff,woff2,ttf,otf,eot]`],
+};
+
 export const getResourceTypeFilter = (
   selectedSpanOp: string | undefined,
   defaultResourceTypes: string[] | undefined
 ) => {
   let resourceFilter: string[] = [`${SPAN_OP}:resource.*`];
   if (selectedSpanOp) {
-    resourceFilter = [`${SPAN_OP}:${selectedSpanOp}`];
+    resourceFilter = SPAN_OP_FILTER[selectedSpanOp] || [`${SPAN_OP}:${selectedSpanOp}`];
   } else if (defaultResourceTypes) {
-    resourceFilter = [`${SPAN_OP}:[${defaultResourceTypes.join(',')}]`];
+    resourceFilter = [
+      defaultResourceTypes.map(type => SPAN_OP_FILTER[type]).join(' OR '),
+    ];
   }
   return resourceFilter;
 };
