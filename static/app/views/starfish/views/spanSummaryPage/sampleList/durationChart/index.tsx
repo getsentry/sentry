@@ -8,10 +8,7 @@ import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {isNearAverage} from 'sentry/views/starfish/components/samplesTable/common';
-import {
-  SpanSummaryQueryFilters,
-  useSpanMetrics,
-} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
@@ -76,23 +73,17 @@ function DurationChart({
   const {setPageError} = usePageError();
   const pageFilter = usePageFilters();
 
-  const filters: SpanSummaryQueryFilters = {
-    transactionName,
-  };
-
-  const seriesQueryFilters: SpanMetricsQueryFilters = {
+  const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
   };
 
   if (transactionMethod) {
     filters['transaction.method'] = transactionMethod;
-    seriesQueryFilters['transaction.method'] = transactionMethod;
   }
 
   if (release) {
     filters.release = release;
-    seriesQueryFilters.release = release;
   }
 
   const {
@@ -100,13 +91,12 @@ function DurationChart({
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
-    seriesQueryFilters,
+    filters,
     [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );
 
   const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
-    groupId,
     filters,
     [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
     'api.starfish.span-summary-panel-samples-table-avg'

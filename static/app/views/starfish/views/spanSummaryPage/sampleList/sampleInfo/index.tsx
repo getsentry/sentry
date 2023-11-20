@@ -34,7 +34,8 @@ function SampleInfo(props: Props) {
   const displayedMetrics = props.displayedMetrics ?? DEFAULT_DISPLAYED_METRICS;
 
   const filters = {
-    transactionName,
+    'span.group': groupId,
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
@@ -42,7 +43,6 @@ function SampleInfo(props: Props) {
   }
 
   const {data: spanMetrics, error} = useSpanMetrics(
-    groupId,
     filters,
     [
       SPAN_OP,

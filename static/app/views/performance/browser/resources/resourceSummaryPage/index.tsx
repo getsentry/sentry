@@ -38,16 +38,21 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data: spanMetrics} = useSpanMetrics(groupId, {}, [
-    `avg(${SPAN_SELF_TIME})`,
-    `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-    `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
-    `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
-    `sum(${SPAN_SELF_TIME})`,
-    'spm()',
-    SPAN_DESCRIPTION,
-    'time_spent_percentage()',
-  ]);
+  const {data: spanMetrics} = useSpanMetrics(
+    {
+      'span.group': groupId,
+    },
+    [
+      `avg(${SPAN_SELF_TIME})`,
+      `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+      `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
+      `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
+      `sum(${SPAN_SELF_TIME})`,
+      'spm()',
+      SPAN_DESCRIPTION,
+      'time_spent_percentage()',
+    ]
+  );
 
   return (
     <ModulePageProviders

@@ -15,10 +15,8 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
-import {
-  SpanSummaryQueryFilters,
-  useSpanMetrics,
-} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -48,22 +46,25 @@ function SpanSummaryPage({params, location}: Props) {
 
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
-  const queryFilter: SpanSummaryQueryFilters = endpoint
-    ? {transactionName: endpoint, 'transaction.method': endpointMethod}
-    : {};
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+  };
+
+  if (endpoint) {
+    filters.transaction = endpoint;
+  }
+
+  if (endpointMethod) {
+    filters['transaction.method'] = endpointMethod;
+  }
 
   const sort =
     fromSorts(location.query[QueryParameterNames.ENDPOINTS_SORT]).filter(
       isAValidSort
     )[0] ?? DEFAULT_SORT; // We only allow one sort on this table in this view
 
-  if (endpointMethod && queryFilter) {
-    queryFilter['transaction.method'] = endpointMethod;
-  }
-
   const {data: spanMetrics, isLoading: isSpanMetricsLoading} = useSpanMetrics(
-    groupId,
-    queryFilter,
+    filters,
     ['span.op', 'span.group', 'project.id', 'sps()'],
     'api.starfish.span-summary-page-metrics'
   );

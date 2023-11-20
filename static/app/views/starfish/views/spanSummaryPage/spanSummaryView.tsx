@@ -44,16 +44,17 @@ export function SpanSummaryView({groupId}: Props) {
 
   const {data: fullSpan} = useFullSpanFromTrace(groupId);
 
-  const queryFilter = endpoint
-    ? {
-        transactionName: endpoint,
-        'transaction.method': endpointMethod,
-      }
-    : {};
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+  };
+
+  if (endpoint) {
+    filters.transaction = endpoint;
+    filters['transaction.method'] = endpointMethod;
+  }
 
   const {data: spanMetrics} = useSpanMetrics(
-    groupId,
-    queryFilter,
+    filters,
     [
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
