@@ -3,6 +3,8 @@ import {RouteComponentProps} from 'react-router';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -16,9 +18,12 @@ type Props = {
 } & RouteComponentProps<{}, {}>;
 
 function OrganizationGeneralSettings(props: Props) {
+  const {isSelfHosted} = useLegacyStore(ConfigStore);
   const {organization} = props;
   const access = new Set(organization.access);
-
+  if (!isSelfHosted) {
+    return null;
+  }
   return (
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />

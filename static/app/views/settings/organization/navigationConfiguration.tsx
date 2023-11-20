@@ -96,7 +96,7 @@ const organizationNavigation: NavigationSection[] = [
         title: t('Early Features'),
         description: t('Manage early access features'),
         badge: () => <FeatureBadge type="new" />,
-        show: ({organization}) => organization?.isEarlyAdopter || false,
+        show: ({isSelfHosted}) => isSelfHosted || false,
         id: 'early-features',
         recordAnalytics: true,
       },
