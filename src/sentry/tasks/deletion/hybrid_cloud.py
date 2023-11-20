@@ -294,13 +294,14 @@ def _process_tombstone_reconciliation(
                 f"{field.model.__name__}.{field.name} has unexpected on_delete={field.on_delete}, could not process delete!"
             )
 
-        metrics.timing(
+        metrics.distribution(
             "deletion.hybrid_cloud.processing_lag",
             datetime.datetime.now().timestamp() - oldest_seen.timestamp(),
             tags=dict(
                 field_name=f"{model._meta.db_table}.{field.name}",
                 watermark=prefix,
             ),
+            unit="second",
         )
 
     return has_more

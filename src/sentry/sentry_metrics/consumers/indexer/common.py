@@ -150,7 +150,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         new_message = Message(Value(self.__batch.messages, last.committable))
         if self.__batch_start is not None:
             elapsed_time = time.time() - self.__batch_start
-            metrics.timing("batch_messages.build_time", elapsed_time)
+            metrics.distribution("batch_messages.build_time", elapsed_time, unit="second")
 
         try:
             self.__next_step.submit(new_message)

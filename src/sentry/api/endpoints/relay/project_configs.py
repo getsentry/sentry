@@ -210,9 +210,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 for org_id in orgs:
                     OrganizationOption.objects.get_all_values(org_id)
 
-        metrics.timing("relay_project_configs.projects_requested", len(project_ids))
-        metrics.timing("relay_project_configs.projects_fetched", len(projects))
-        metrics.timing("relay_project_configs.orgs_fetched", len(orgs))
+        metrics.distribution("relay_project_configs.projects_requested", len(project_ids))
+        metrics.distribution("relay_project_configs.projects_fetched", len(projects))
+        metrics.distribution("relay_project_configs.orgs_fetched", len(orgs))
 
         configs: MutableMapping[str, ProjectConfig] = {}
         for public_key in public_keys:
@@ -280,9 +280,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
             for key in ProjectKey.objects.filter(project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
 
-        metrics.timing("relay_project_configs.projects_requested", len(project_ids))
-        metrics.timing("relay_project_configs.projects_fetched", len(projects))
-        metrics.timing("relay_project_configs.orgs_fetched", len(orgs))
+        metrics.distribution("relay_project_configs.projects_requested", len(project_ids))
+        metrics.distribution("relay_project_configs.projects_fetched", len(projects))
+        metrics.distribution("relay_project_configs.orgs_fetched", len(orgs))
 
         configs: MutableMapping[str, ProjectConfig] = {}
         for project_id in project_ids:

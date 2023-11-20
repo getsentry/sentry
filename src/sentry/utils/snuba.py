@@ -330,7 +330,7 @@ def timer(name, prefix="snuba.client"):
     try:
         yield
     finally:
-        metrics.timing(f"{prefix}.{name}", time.time() - t)
+        metrics.distribution(f"{prefix}.{name}", time.time() - t, unit="second")
 
 
 @contextmanager

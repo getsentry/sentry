@@ -1063,7 +1063,7 @@ class Release(Model):
                     ],
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
-                metrics.timing("release.set_commits.duration", time() - start)
+                metrics.distribution("release.set_commits.duration", time() - start, unit="second")
 
         # fill any missing ReleaseHeadCommit entries
         for repo_id, commit_id in head_commit_by_repo.items():
