@@ -50,7 +50,12 @@ export function Linkify({exceptionText}: {exceptionText?: string}): React.ReactE
   const elements: React.ReactNode[] = parts.flatMap((part, index) => {
     const link =
       urls && urls[index] ? (
-        <a key={`link-${index}`} href={urls[index]}>
+        <a
+          key={`link-${index}`}
+          href={urls[index]}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {urls[index]}
         </a>
       ) : null;
