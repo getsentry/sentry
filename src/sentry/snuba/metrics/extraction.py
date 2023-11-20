@@ -1112,8 +1112,8 @@ class OnDemandMetricSpec:
     def _process_query(self) -> Optional[RuleCondition]:
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
-        # We extend the parsed query with other conditions that we want to inject externally from the query.
-        # If it is a simple query, we encode the environment in the query hash, instead of emitting it as a tag of the metric.
+        # We extend the parsed query with other conditions that we want to inject externally from the query. If it is
+        # a simple query, we encode the environment in the query hash, instead of emitting it as a tag of the metric.
         if self.spec_type == MetricSpecType.SIMPLE_QUERY:
             parsed_query = self._extend_parsed_query(parsed_query)
 

@@ -233,7 +233,9 @@ def test_spec_query_with_parentheses_and_environment():
 
 def test_spec_count_if_query_with_environment():
     spec = OnDemandMetricSpec(
-        "count_if(transaction.duration,equals,300)", "http.method:GET", "production"
+        "count_if(transaction.duration,equals,300)",
+        "(http.method:GET AND endpoint:/hello)",
+        "production",
     )
 
     assert spec._metric_type == "c"
@@ -242,12 +244,14 @@ def test_spec_count_if_query_with_environment():
     assert spec.condition == {
         "inner": [
             {"name": "event.environment", "op": "eq", "value": "production"},
-            {"name": "event.request.method", "op": "eq", "value": "GET"},
             {
-                "name": "event.duration",
-                "op": "eq",
-                "value": 300.0,
+                "inner": [
+                    {"name": "event.request.method", "op": "eq", "value": "GET"},
+                    {"name": "event.tags.endpoint", "op": "eq", "value": "/hello"},
+                ],
+                "op": "and",
             },
+            {"name": "event.duration", "op": "eq", "value": 300.0},
         ],
         "op": "and",
     }
@@ -590,15 +594,15 @@ def test_cleanup_with_environment_injection(query):
 
     # We test with both new and old env logic, in this case queries should be identical in both logics since we
     # scrape away parentheses.
-    for updated_env_login in (True, False):
+    for updated_env_logic in (True, False):
         spec = OnDemandMetricSpec(
-            field, query, environment=environment, use_updated_env_logic=updated_env_login
+            field, query, environment=environment, use_updated_env_logic=updated_env_logic
         )
         transformed_spec = OnDemandMetricSpec(
             field,
             transformed_query,
             environment=environment,
-            use_updated_env_logic=updated_env_login,
+            use_updated_env_logic=updated_env_logic,
         )
 
         assert spec.query_hash == transformed_spec.query_hash
