@@ -139,6 +139,8 @@ class TransactionMRI(Enum):
     SPAN_SELF_TIME = "d:spans/exclusive_time@millisecond"
     SPAN_SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 
+    SPAN_LLM_TOTAL_TOKENS = "c:spans/llm.total_tokens_used"
+
     COUNT_ON_DEMAND = "c:transactions/on_demand@none"
     DIST_ON_DEMAND = "d:transactions/on_demand@none"
     SET_ON_DEMAND = "s:transactions/on_demand@none"
@@ -155,6 +157,8 @@ class SpanMRI(Enum):
     RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
     DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
     RESPONSE_TRANSFER_SIZE = "d:spans/http.response_transfer_size@byte"
+
+    SPAN_LLM_TOTAL_TOKENS = "c:spans/llm.total_tokens_used"
 
     # Derived
     ALL = "e:spans/all@none"

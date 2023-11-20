@@ -97,7 +97,6 @@ def is_current_event_safe():
     """
 
     with configure_scope() as scope:
-
         # Scope was explicitly marked as unsafe
         if scope._tags.get(UNSAFE_TAG):
             return False
@@ -243,6 +242,7 @@ class Dsns(NamedTuple):
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["send_client_reports"] = True
+    sdk_options["debug"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["release"] = (
@@ -255,6 +255,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
         sentry_saas=sdk_options.pop("relay_dsn", None),
         experimental=sdk_options.pop("experimental_dsn", None),
     )
+    print(sdk_options, dsns)
 
     return sdk_options, dsns
 
@@ -282,6 +283,7 @@ def configure_sdk():
         sentry_saas_transport = None
     elif internal_project_key and internal_project_key.dsn_private:
         transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
+        print(transport)
         sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         sentry_saas_transport = None
@@ -327,6 +329,7 @@ def configure_sdk():
             self._capture_anything("capture_event", event)
 
         def _capture_anything(self, method_name, *args, **kwargs):
+            print(args, kwargs)
             # Experimental events will be sent to the experimental transport.
             if experimental_transport:
                 rate = options.get("store.use-experimental-dsn-sample-rate")

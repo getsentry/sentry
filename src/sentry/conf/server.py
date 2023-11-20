@@ -1430,9 +1430,9 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
-    "organizations:ddm-ui": False,
+    "organizations:ddm-ui": True,
     # Enables experimental WIP ddm related features
-    "organizations:ddm-experimental": False,
+    "organizations:ddm-experimental": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1606,7 +1606,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
     # Enable metrics enhanced performance in dashboards
-    "organizations:dashboards-mep": False,
+    "organizations:dashboards-mep": True,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1626,7 +1626,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
     # Adds the ttid & ttfd vitals to the frontend
-    "organizations:mobile-vitals": False,
+    "organizations:mobile-vitals": True,
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable new page filter UI
@@ -1639,69 +1639,69 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable project selection on the stats page
     "organizations:project-stats": True,
     # Enable performance change explorer panel on trends page
-    "organizations:performance-change-explorer": False,
+    "organizations:performance-change-explorer": True,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
-    "organizations:performance-chart-interpolation": False,
+    "organizations:performance-chart-interpolation": True,
     # Enable views for anomaly detection
-    "organizations:performance-anomaly-detection-ui": False,
+    "organizations:performance-anomaly-detection-ui": True,
     # Enable histogram view in span details
-    "organizations:performance-span-histogram-view": False,
+    "organizations:performance-span-histogram-view": True,
     # Enable performance on-boarding checklist
-    "organizations:performance-onboarding-checklist": False,
+    "organizations:performance-onboarding-checklist": True,
     # Enable transaction name only search
-    "organizations:performance-transaction-name-only-search": False,
+    "organizations:performance-transaction-name-only-search": True,
     # Enable transaction name only search on indexed
-    "organizations:performance-transaction-name-only-search-indexed": False,
+    "organizations:performance-transaction-name-only-search-indexed": True,
     # Re-enable histograms for Metrics Enhanced Performance Views
-    "organizations:performance-mep-reintroduce-histograms": False,
+    "organizations:performance-mep-reintroduce-histograms": True,
     # Enable showing INP web vital in default views
-    "organizations:performance-vitals-inp": False,
+    "organizations:performance-vitals-inp": True,
     # Enables a longer stats period for the performance landing page
-    "organizations:performance-landing-page-stats-period": False,
+    "organizations:performance-landing-page-stats-period": True,
     # Enable internal view for bannerless MEP view
-    "organizations:performance-mep-bannerless-ui": False,
+    "organizations:performance-mep-bannerless-ui": True,
     # Enable updated landing page widget designs
-    "organizations:performance-new-widget-designs": False,
+    "organizations:performance-new-widget-designs": True,
     # Enable metrics-backed transaction summary view
-    "organizations:performance-metrics-backed-transaction-summary": False,
+    "organizations:performance-metrics-backed-transaction-summary": True,
     # Enable new trends
-    "organizations:performance-new-trends": False,
+    "organizations:performance-new-trends": True,
     # Enable debug views for trendsv2 to be used internally
-    "organizations:performance-trendsv2-dev-only": False,
+    "organizations:performance-trendsv2-dev-only": True,
     # Enabled creating issues out of trends
-    "organizations:performance-trends-issues": False,
+    "organizations:performance-trends-issues": True,
     # Bypass 30 day date range selection when fetching new trends data
-    "organizations:performance-trends-new-data-date-range-default": False,
+    "organizations:performance-trends-new-data-date-range-default": True,
     # Enable consecutive db performance issue type
-    "organizations:performance-consecutive-db-issue": False,
+    "organizations:performance-consecutive-db-issue": True,
     # Enable consecutive http performance issue type
-    "organizations:performance-consecutive-http-detector": False,
+    "organizations:performance-consecutive-http-detector": True,
     # Enable consecutive http performance issue type
-    "organizations:performance-large-http-payload-detector": False,
+    "organizations:performance-large-http-payload-detector": True,
     # Enable slow DB performance issue type
-    "organizations:performance-slow-db-issue": False,
+    "organizations:performance-slow-db-issue": True,
     # Enable N+1 API Calls performance issue type
-    "organizations:performance-n-plus-one-api-calls-detector": False,
+    "organizations:performance-n-plus-one-api-calls-detector": True,
     # Enable compressed assets performance issue type
-    "organizations:performance-issues-compressed-assets-detector": False,
+    "organizations:performance-issues-compressed-assets-detector": True,
     # Enable render blocking assets performance issue type
-    "organizations:performance-issues-render-blocking-assets-detector": False,
+    "organizations:performance-issues-render-blocking-assets-detector": True,
     # Enable MN+1 DB performance issue type
-    "organizations:performance-issues-m-n-plus-one-db-detector": False,
+    "organizations:performance-issues-m-n-plus-one-db-detector": True,
     # Enable FE/BE for tracing without performance
-    "organizations:performance-tracing-without-performance": False,
+    "organizations:performance-tracing-without-performance": True,
     # Enable database view powered by span metrics
-    "organizations:performance-database-view": False,
+    "organizations:performance-database-view": True,
     # Enable database view percentile graphs
-    "organizations:performance-database-view-percentiles": False,
+    "organizations:performance-database-view-percentiles": True,
     # Enable removing the fallback for metrics compatibility
-    "organizations:performance-remove-metrics-compatibility-fallback": False,
+    "organizations:performance-remove-metrics-compatibility-fallback": True,
     # Enable performance score calculation for transactions in relay
-    "organizations:performance-calculate-score-relay": False,
+    "organizations:performance-calculate-score-relay": True,
     # Enable screens view powered by span metrics
-    "organizations:performance-screens-view": False,
+    "organizations:performance-screens-view": True,
     # Enable the new Related Events feature
-    "organizations:related-events": False,
+    "organizations:related-events": True,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1740,21 +1740,21 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
-    "organizations:starfish-view": False,
+    "organizations:starfish-view": True,
     # Enables the resource module ui
-    "organizations:starfish-browser-resource-module-ui": False,
+    "organizations:starfish-browser-resource-module-ui": True,
     # Enable the aggregate span waterfall view
-    "organizations:starfish-aggregate-span-waterfall": False,
+    "organizations:starfish-aggregate-span-waterfall": True,
     # Enable starfish endpoint that's used for regressing testing purposes
-    "organizations:starfish-test-endpoint": False,
+    "organizations:starfish-test-endpoint": True,
     # Enable starfish dropdown on the webservice view for switching chart visualization
-    "organizations:starfish-wsv-chart-dropdown": False,
+    "organizations:starfish-wsv-chart-dropdown": True,
     # Enable browser starfish webvitals module view
-    "organizations:starfish-browser-webvitals": False,
+    "organizations:starfish-browser-webvitals": True,
     # Enable browser starfish webvitals module pageoverview v2 view
-    "organizations:starfish-browser-webvitals-pageoverview-v2": False,
+    "organizations:starfish-browser-webvitals-pageoverview-v2": True,
     # Enable browser starfish webvitals module to use backend provided performance scores
-    "organizations:starfish-browser-webvitals-use-backend-scores": False,
+    "organizations:starfish-browser-webvitals-use-backend-scores": True,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
@@ -1881,15 +1881,15 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Workflow 2.0 Auto associate commits to commit sha release
     "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
-    "projects:span-metrics-extraction": False,
-    "projects:span-metrics-extraction-ga-modules": False,
-    "projects:span-metrics-extraction-all-modules": False,
-    "projects:span-metrics-extraction-resource": False,
+    "projects:span-metrics-extraction": True,
+    "projects:span-metrics-extraction-ga-modules": True,
+    "projects:span-metrics-extraction-all-modules": True,
+    "projects:span-metrics-extraction-resource": True,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
-    "organizations:custom-metrics": False,
+    "organizations:custom-metrics": True,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
     # temporary boost the sample rate of particular transactions)
-    "organizations:investigation-bias": False,
+    "organizations:investigation-bias": True,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # Don't add feature defaults down here! Please add them in their associated

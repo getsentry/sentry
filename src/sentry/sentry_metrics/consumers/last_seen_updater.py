@@ -134,6 +134,7 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         initial_value: Callable[[], Set[int]] = lambda: set()
 
         def do_update(message: Message[Set[int]]) -> None:
+            print("HERE(((((((((((((((((((())))))))))))))))))))")
             table = TABLE_MAPPING[self.__use_case_id]
             seen_ints = message.payload
 

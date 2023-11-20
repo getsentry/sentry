@@ -1470,7 +1470,7 @@ register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMAT
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
-register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("span_descs.bump-lifetime-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # === Backpressure related runtime options ===
 
