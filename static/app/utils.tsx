@@ -198,8 +198,12 @@ export function formatBytesBase10(bytes: number, u: number = 0) {
 export function formatBytesBase2(bytes?: number, fixPoints: number = 1): string {
   const units = ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
   const thresh = 1024;
+  if (!bytes) {
+    return '--B'
+  }
+  
   if (bytes < thresh) {
-    return bytes?.toFixed(fixPoints) || '--' + ' B';
+    return bytes.toFixed(fixPoints) + ' B';
   }
 
   let u = -1;
