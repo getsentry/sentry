@@ -17,6 +17,7 @@ class TrendType(Enum):
 class DetectorPayload:
     project_id: int
     group: str | int
+    fingerprint: str | int
     count: float
     value: float
     timestamp: datetime
