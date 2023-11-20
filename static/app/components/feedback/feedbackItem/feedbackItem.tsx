@@ -18,11 +18,12 @@ import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
+import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconLink} from 'sentry/icons';
+import {IconIssues, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
@@ -129,6 +130,18 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </TextCopyInput>
           </ErrorBoundary>
         </Section>
+        {eventData && (
+          <Section icon={<IconIssues size="xs" />} title={t('Issue Tracking')}>
+            <ErrorBoundary mini>
+              <ExternalIssueList
+                project={feedbackItem.project}
+                group={feedbackItem}
+                event={eventData}
+                showHeader={false}
+              />
+            </ErrorBoundary>
+          </Section>
+        )}
         {crashReportId && (
           <CrashReportSection
             organization={organization}

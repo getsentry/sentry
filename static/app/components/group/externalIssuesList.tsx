@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 import type {
   Group,
   GroupIntegration,
@@ -32,6 +33,7 @@ type Props = {
   event: Event;
   group: Group;
   project: Project;
+  showHeader?: boolean;
 };
 
 const issueTrackingFilterKey = 'issueTrackingFilter';
@@ -108,7 +110,13 @@ function useIssueTrackingFilter() {
   return issueTrackingFilter;
 }
 
-function ExternalIssueList({components, group, event, project}: Props) {
+function ExternalIssueList({
+  components,
+  group,
+  event,
+  project,
+  showHeader = true,
+}: Props) {
   const organization = useOrganization();
   const {
     data: integrations,
@@ -124,7 +132,9 @@ function ExternalIssueList({components, group, event, project}: Props) {
   if (isLoading) {
     return (
       <SidebarSection.Wrap data-test-id="linked-issues">
-        <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
+        {showHeader ? (
+          <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
+        ) : null}
         <SidebarSection.Content>
           <Placeholder height="120px" />
         </SidebarSection.Content>
@@ -238,8 +248,13 @@ function ExternalIssueList({components, group, event, project}: Props) {
   const showSetup = actions.length === 0;
 
   return (
-    <SidebarSection.Wrap data-test-id="linked-issues">
-      <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
+    <SidebarSection.Wrap
+      data-test-id="linked-issues"
+      style={showHeader ? undefined : {marginBottom: space(2)}}
+    >
+      {showHeader ? (
+        <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
+      ) : null}
       <SidebarSection.Content>
         {showSetup && (
           <AlertLink
