@@ -1,3 +1,5 @@
+import {DateString} from 'sentry/types/core';
+
 export type MetricsType = 'set' | 'counter' | 'distribution' | 'numeric';
 
 export type MetricsOperation =
@@ -10,6 +12,26 @@ export type MetricsOperation =
   | 'p75'
   | 'p95'
   | 'p99';
+
+export type MetricsApiRequestMetric = {
+  field: string;
+  query: string;
+  groupBy?: string[];
+};
+
+export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
+  interval: string;
+  end?: DateString;
+  environment?: string[];
+  includeSeries?: number;
+  includeTotals?: number;
+  orderBy?: string;
+  per_page?: number;
+  project?: number[];
+  star?: DateString;
+  statsPeriod?: string;
+  useNewMetricsLayer?: boolean;
+};
 
 export type MetricsApiResponse = {
   end: string;

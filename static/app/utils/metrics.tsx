@@ -9,7 +9,12 @@ import {
   getInterval,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, MetricsGroup} from 'sentry/types/metrics';
+import {
+  MetricsApiRequestMetric,
+  MetricsApiRequestQuery,
+  MetricsApiResponse,
+  MetricsGroup,
+} from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
@@ -149,10 +154,42 @@ export function useMetricsData({
   query,
   groupBy,
 }: MetricsQuery) {
-  const {slug, features} = useOrganization();
-  const useCase = getUseCaseFromMRI(mri);
+  const organization = useOrganization();
+
+  const useNewMetricsLayer = organization.features.includes(
+    'metrics-api-new-metrics-layer'
+  );
+
   const field = op ? `${op}(${mri})` : mri;
 
+  const queryToSend = getMetricsApiRequestQuery(
+    {
+      field,
+      query: `${query}`,
+      groupBy,
+    },
+    {datetime, projects, environments},
+    {useNewMetricsLayer}
+  );
+
+  return useApiQuery<MetricsApiResponse>(
+    [`/organizations/${organization.slug}/metrics/data/`, {query: queryToSend}],
+    {
+      retry: 0,
+      staleTime: 0,
+      refetchOnReconnect: true,
+      refetchOnWindowFocus: true,
+      refetchInterval: data => getRefetchInterval(data, queryToSend.interval),
+    }
+  );
+}
+
+export function getMetricsApiRequestQuery(
+  {field, query, groupBy}: MetricsApiRequestMetric,
+  {projects, environments, datetime}: PageFilters,
+  overrides: Partial<MetricsApiRequestQuery>
+): MetricsApiRequestQuery {
+  const useCase = getUseCaseFromMRI(fieldToMri(field).mri);
   const interval = getMetricsInterval(datetime, useCase);
 
   const queryToSend = {
@@ -167,23 +204,9 @@ export function useMetricsData({
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // max result groups
     per_page: 20,
-    useNewMetricsLayer: false,
   };
 
-  if (features.includes('metrics-api-new-metrics-layer')) {
-    queryToSend.useNewMetricsLayer = true;
-  }
-
-  return useApiQuery<MetricsApiResponse>(
-    [`/organizations/${slug}/metrics/data/`, {query: queryToSend}],
-    {
-      retry: 0,
-      staleTime: 0,
-      refetchOnReconnect: true,
-      refetchOnWindowFocus: true,
-      refetchInterval: data => getRefetchInterval(data, interval),
-    }
-  );
+  return {...queryToSend, ...overrides};
 }
 
 function getRefetchInterval(

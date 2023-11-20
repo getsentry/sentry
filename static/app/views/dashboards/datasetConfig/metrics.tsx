@@ -7,12 +7,11 @@ import {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {getMetricsInterval, getSeriesName} from 'sentry/utils/metrics';
+import {getMetricsApiRequestQuery, getSeriesName} from 'sentry/utils/metrics';
 import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
 
 import {DisplayType, Widget, WidgetQuery} from '../types';
-import {getWidgetInterval} from '../utils';
 
 import {DatasetConfig, handleOrderByReset} from './base';
 
@@ -36,20 +35,8 @@ export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse
     organization: Organization,
     pageFilters: PageFilters,
     __?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string
-  ) =>
-    getMetricRequest(
-      0,
-      1,
-      api,
-      query,
-      organization,
-      pageFilters,
-      undefined,
-      limit,
-      cursor
-    ),
+    limit?: number
+  ) => getMetricRequest(api, query, organization, pageFilters, limit),
   getSeriesRequest: getMetricSeriesRequest,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   SearchBar: MetricSearchBar,
@@ -77,24 +64,7 @@ function getMetricSeriesRequest(
   pageFilters: PageFilters
 ) {
   const query = widget.queries[queryIndex];
-  const {displayType, limit} = widget;
-
-  const {datetime} = pageFilters;
-  const {start, end, period} = datetime;
-
-  const includeTotals = query.columns.length > 0 ? 1 : 0;
-  const interval = getWidgetInterval(displayType, {start, end, period}, widget.interval);
-
-  return getMetricRequest(
-    1,
-    includeTotals,
-    api,
-    query,
-    organization,
-    pageFilters,
-    interval,
-    limit
-  );
+  return getMetricRequest(api, query, organization, pageFilters, widget.limit);
 }
 
 function handleMetricTableOrderByReset(widgetQuery: WidgetQuery, newFields: string[]) {
@@ -190,44 +160,26 @@ export function transformMetricsResponseToSeries(
 }
 
 function getMetricRequest(
-  includeSeries: number,
-  includeTotals: number,
   api: Client,
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,
-  widgetInterval?: string,
-  limit?: number,
-  cursor?: string
+  limit?: number
 ) {
-  const {environments, projects, datetime} = pageFilters;
-  const {start, end, period} = datetime;
+  const requestData = getMetricsApiRequestQuery(
+    {
+      field: query.aggregates[0],
+      query: query.conditions[0],
+      groupBy: query.columns,
+    },
+    pageFilters,
+    {
+      per_page: query.columns.length === 0 ? 1 : limit,
+      useNewMetricsLayer: false,
+    }
+  );
 
-  const columns = query.columns;
-
-  // we use the metrics interval by default, falling back to the widget interval
-  const interval = getMetricsInterval(datetime, 'custom') ?? widgetInterval;
-
-  const requestData = {
-    field: query.aggregates,
-    orgSlug: organization.slug,
-    end,
-    environment: environments,
-    groupBy: columns,
-    limit: columns.length === 0 ? 1 : limit,
-    orderBy: '',
-    interval,
-    project: projects,
-    query: query.conditions,
-    start,
-    statsPeriod: period,
-    includeAllArgs: true,
-    cursor,
-    includeSeries,
-    includeTotals,
-  };
-
-  return doMetricsRequest(api, requestData) as Promise<
+  return doMetricsRequest(api, organization.slug, requestData) as Promise<
     [MetricsApiResponse, string | undefined, ResponseMeta | undefined]
   >;
 }
