@@ -26,6 +26,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
     """
 
     __relocation_scope__ = RelocationScope.Config
+    __relocation_custom_ordinal__ = ["name"]
 
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, null=True)

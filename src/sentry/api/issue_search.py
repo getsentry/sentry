@@ -6,6 +6,7 @@ from typing import Callable, Iterable, List, Mapping, Optional, Sequence, Set, U
 from sentry import features
 from sentry.api.event_search import (
     AggregateFilter,
+    ParenExpression,
     SearchConfig,
     SearchFilter,
     SearchKey,
@@ -26,7 +27,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERATORS
-from sentry.search.events.filter import to_list
+from sentry.search.events.filter import ParsedTerms, to_list
 from sentry.search.utils import (
     DEVICE_CLASS,
     get_teams_for_users,
@@ -36,6 +37,7 @@ from sentry.search.utils import (
     parse_substatus_value,
     parse_user_value,
 )
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 
 is_filter_translation = {
@@ -239,10 +241,11 @@ value_converters: Mapping[str, ValueConverter] = {
 
 
 def convert_query_values(
-    search_filters: list[SearchFilter],
+    search_filters: ParsedTerms,
     projects: Sequence[Project],
-    user: User,
+    user: Optional[User | RpcUser],
     environments: Optional[Sequence[Environment]],
+    value_converters=value_converters,
 ) -> List[SearchFilter]:
     """
     Accepts a collection of SearchFilter objects and converts their values into
@@ -251,12 +254,23 @@ def convert_query_values(
     :param projects: List of projects being searched across
     :param user: The user making the search
     :param environments: The environments to consider when making the search
+    :param value_converters: A dictionary of functions that convert search filter values into different formats.
     :return: New collection of `SearchFilters`, which may have converted values.
     """
 
     def convert_search_filter(
         search_filter: SearchFilter, organization: Organization
     ) -> SearchFilter:
+        if isinstance(search_filter, ParenExpression):
+            return search_filter._replace(
+                children=[
+                    child if isinstance(child, str) else convert_search_filter(child, organization)
+                    for child in search_filter.children
+                ]
+            )
+        elif isinstance(search_filter, str):
+            return search_filter
+
         if search_filter.key.name == "empty_stacktrace.js_console":
             if not features.has(
                 "organizations:javascript-console-error-tag", organization, actor=None
@@ -287,13 +301,15 @@ def convert_query_values(
         return search_filter
 
     def expand_substatus_query_values(
-        search_filters: list[SearchFilter], org: Organization
+        search_filters: ParsedTerms, org: Organization
     ) -> list[SearchFilter]:
         first_status_incl = None
         first_status_excl = None
         includes_status_filter = False
         includes_substatus_filter = False
         for search_filter in search_filters:
+            if isinstance(search_filter, (ParenExpression, str)):
+                continue
             if search_filter.key.name == "substatus":
                 if not features.has("organizations:escalating-issues", org):
                     raise InvalidSearchQuery(
