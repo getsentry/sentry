@@ -76,13 +76,8 @@ export const steps = ({dsn, projectSlug, organization}: Props): LayoutProps['ste
             })}
           </ListItem>
         </List>
-      </Fragment>
-    ),
-  },
-  {
-    type: StepType.MANUAL,
-    description: (
-      <Fragment>
+        <br />
+        <ManualSetupTitle>{t('Manual Setup')}</ManualSetupTitle>
         <p>
           {tct('Alternatively, you can also [manualSetupLink:set up the SDK manually].', {
             manualSetupLink: (
@@ -101,17 +96,13 @@ export const steps = ({dsn, projectSlug, organization}: Props): LayoutProps['ste
             )}
           </p>
         </DSNText>
-        <div>
-          {organization && (
-            <TextCopyInput
-              onCopy={() =>
-                trackAnalytics('onboarding:nextjs-dsn-copied', {organization})
-              }
-            >
-              {dsn}
-            </TextCopyInput>
-          )}
-        </div>
+        {organization && (
+          <TextCopyInput
+            onCopy={() => trackAnalytics('onboarding:nextjs-dsn-copied', {organization})}
+          >
+            {dsn}
+          </TextCopyInput>
+        )}
       </Fragment>
     ),
   },
@@ -129,4 +120,9 @@ export default GettingStartedWithNextJs;
 
 const DSNText = styled('div')`
   margin-bottom: ${space(0.5)};
+`;
+
+const ManualSetupTitle = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: bold;
 `;
