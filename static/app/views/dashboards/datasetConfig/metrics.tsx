@@ -1,6 +1,5 @@
 import omit from 'lodash/omit';
 
-import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
@@ -179,9 +178,12 @@ function getMetricRequest(
     }
   );
 
-  return doMetricsRequest(api, organization.slug, requestData) as Promise<
-    [MetricsApiResponse, string | undefined, ResponseMeta | undefined]
-  >;
+  const pathname = `/organizations/${organization.slug}/metrics/data/`;
+
+  return api.requestPromise(pathname, {
+    includeAllArgs: true,
+    query: requestData,
+  }) as Promise<[MetricsApiResponse, string | undefined, ResponseMeta | undefined]>;
 }
 
 const mapResponse = (data: MetricsApiResponse, field: string[]): MetricsApiResponse => {

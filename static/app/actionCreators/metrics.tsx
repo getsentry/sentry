@@ -1,12 +1,7 @@
 import {Client, ResponseMeta} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {
-  DateString,
-  MetricsApiRequestQuery,
-  MetricsApiResponse,
-  Organization,
-} from 'sentry/types';
+import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 export type DoReleaseHealthRequestOptions = {
@@ -79,16 +74,4 @@ export const doReleaseHealthRequest = (
   const pathname = `/organizations/${orgSlug}/metrics/data/`;
 
   return api.requestPromise(pathname, {includeAllArgs, query: urlQuery});
-};
-
-export const doMetricsRequest = (
-  api: Client,
-  orgSlug: string,
-  query: MetricsApiRequestQuery
-): Promise<MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta]> => {
-  const pathname = `/organizations/${orgSlug}/metrics/data/`;
-
-  return api.requestPromise(pathname, {includeAllArgs: true, query}) as Promise<
-    MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta]
-  >;
 };
