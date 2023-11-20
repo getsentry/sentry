@@ -46,7 +46,6 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
-from sentry.statistical_detectors import redis
 from sentry.statistical_detectors.algorithm import (
     MovingAverageDetectorState,
     MovingAverageRelativeChangeDetector,
@@ -57,6 +56,7 @@ from sentry.statistical_detectors.issue_platform_adapter import (
     fingerprint_regression,
     send_regression_to_platform,
 )
+from sentry.statistical_detectors.redis import DetectorType, RedisDetectorStore
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -328,7 +328,7 @@ def _detect_transaction_trends(
         threshold=0.2,
     )
 
-    detector_store = redis.RedisDetectorStore(object_type="e")  # e for endpoint
+    detector_store = RedisDetectorStore(detector_type=DetectorType.ENDPOINT)  # e for endpoint
 
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
@@ -654,7 +654,7 @@ def _detect_function_trends(
         threshold=0.2,
     )
 
-    detector_store = redis.RedisDetectorStore(object_type="f")  # f for functions
+    detector_store = RedisDetectorStore(detector_type=DetectorType.FUNCTION)
 
     projects = Project.objects.filter(id__in=project_ids)
 

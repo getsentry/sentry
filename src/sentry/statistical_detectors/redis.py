@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import List, Mapping
 
 from django.conf import settings
@@ -11,11 +12,19 @@ from sentry.utils import redis
 STATE_TTL = 24 * 60 * 60  # 1 day TTL
 
 
+class DetectorType(Enum):
+    ENDPOINT = "e"
+    FUNCTION = "f"
+
+
 class RedisDetectorStore(DetectorStore):
     def __init__(
-        self, object_type: str, client: RedisCluster | StrictRedis | None = None, ttl=STATE_TTL
+        self,
+        detector_type: DetectorType,
+        client: RedisCluster | StrictRedis | None = None,
+        ttl=STATE_TTL,
     ):
-        self.object_type = object_type
+        self.detector_type = detector_type
         self.ttl = ttl
         self.client = self.get_redis_client() if client is None else client
 
@@ -47,7 +56,7 @@ class RedisDetectorStore(DetectorStore):
             pipeline.execute()
 
     def make_key(self, payload: DetectorPayload):
-        return f"sd:p:{payload.project_id}:{self.object_type}:{payload.fingerprint}"
+        return f"sd:p:{payload.project_id}:{self.detector_type.value}:{payload.fingerprint}"
 
     @staticmethod
     def get_redis_client() -> RedisCluster | StrictRedis:
