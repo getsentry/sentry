@@ -132,7 +132,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === SPAN_OP) {
-      const fileExtension = row[SPAN_DESCRIPTION].split('.').slice(-1)[0];
+      const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
       const spanOp = row[key];
       if (fileExtension === 'js' || spanOp === 'resource.script') {
         return <span>{t('JavaScript')}</span>;
