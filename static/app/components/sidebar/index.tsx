@@ -523,6 +523,7 @@ function Sidebar({location, organization}: Props) {
                 {profiling}
                 {ddm}
                 {replays}
+                {feedback}
                 {monitors}
                 {alerts}
               </SidebarSection>
@@ -532,7 +533,6 @@ function Sidebar({location, organization}: Props) {
                 {dashboards}
                 {releases}
                 {userFeedback}
-                {feedback}
               </SidebarSection>
 
               <SidebarSection>
