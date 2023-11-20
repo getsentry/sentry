@@ -64,6 +64,7 @@ const TABS = [
   'teamMappings',
   'settings',
 ] as const;
+type Tab = (typeof TABS)[number];
 
 const makeIntegrationQuery = (
   organization: Organization,
@@ -80,9 +81,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const tab: (typeof TABS)[number] = TABS.includes(location.query.tab)
-    ? location.query.tab
-    : 'repos';
+  const tab: Tab = TABS.includes(location.query.tab) ? location.query.tab : 'repos';
   const {integrationId, providerKey} = params;
   const {
     data: config = {providers: []},
