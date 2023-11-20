@@ -745,6 +745,35 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         self.features["organizations:use-metrics-layer"] = True
         self.additional_params = {"forceMetricsLayer": "true"}
 
+    def test_counter_standard_metric(self):
+        mri = "c:transactions/usage@none"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            self.store_transaction_metric(
+                value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_counters",
+                timestamp=self.day_ago + timedelta(minutes=index),
+                use_case_id=UseCaseID.CUSTOM,
+            )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1m",
+                "yAxis": [f"sum({mri})"],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+                **self.additional_params,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        for (_, value), expected_value in zip(data, [10, 20, 30, 40, 50, 60]):
+            assert value[0]["count"] == expected_value  # type:ignore
+
     def test_counter_custom_metric(self):
         mri = "c:custom/sentry.process_profile.track_outcome@second"
         for index, value in enumerate((10, 20, 30, 40, 50, 60)):
@@ -1021,6 +1050,78 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                 "interval": "1h",
                 "orderby": ["-count()"],
                 "environment": "production",
+                "query": query,
+                "yAxis": yAxis,
+                "field": [
+                    "count()",
+                    "count_web_vitals(measurements.lcp, good)",
+                    "customtag1",
+                    "customtag2",
+                ],
+                "topEvents": 5,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        groups = [
+            ("foo,red", "count()", 0.0, 1488.0),
+            ("foo,red", "count_web_vitals(measurements.lcp, good)", 0.0, 0.0),
+            ("bar,blue", "count()", 0.0, 0.0),
+            ("bar,blue", "count_web_vitals(measurements.lcp, good)", 0.0, 1440.0),
+        ]
+        assert len(response.data.keys()) == 2
+        for group_count in groups:
+            group, agg, row1, row2 = group_count
+            row_data = response.data[group][agg]["data"][:2]
+            assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+
+    def test_top_events_with_transaction_on_demand_and_no_environment(self):
+        field = "count()"
+        field_two = "count_web_vitals(measurements.lcp, good)"
+        groupbys = ["customtag1", "customtag2"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                hour * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "foo",
+                    "customtag2": "red",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                hour * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "bar",
+                    "customtag2": "blue",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
+
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
                 "query": query,
                 "yAxis": yAxis,
                 "field": [

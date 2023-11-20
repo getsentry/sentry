@@ -41,6 +41,7 @@ from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
@@ -55,7 +56,7 @@ QUERY_HASH_KEY = "query_hash"
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
 # Maps from Discover's field names to event protocol paths. See Relay's
-# ``FieldValueProvider`` for supported fields. All fields need to be prefixed
+# ``Getter`` implementation for ``Event`` for supported fields. All fields need to be prefixed
 # with "event.".
 # List of UI supported search fields is defined in sentry/static/app/utils/fields/index.ts
 _SEARCH_TO_PROTOCOL_FIELDS = {
@@ -111,6 +112,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "transaction.op": "contexts.trace.op",
     "http.status_code": "contexts.response.status_code",
     "unreal.crash_type": "contexts.unreal.crash_type",
+    "profile.id": "contexts.profile.profile_id",
     # Computed fields
     "transaction.duration": "duration",
     "release.build": "release.build",
@@ -402,7 +404,17 @@ def should_use_on_demand_metrics(
     if not dataset or Dataset(dataset) not in supported_datasets:
         return False
 
-    aggregate_supported_by = _get_aggregate_supported_by(aggregate)
+    components = _extract_aggregate_components(aggregate)
+    if components is None:
+        return False
+
+    function, args = components
+    mri_aggregate = _extract_mri(args)
+    if mri_aggregate is not None:
+        # For now, we do not support MRIs in on demand metrics.
+        return False
+
+    aggregate_supported_by = _get_aggregate_supported_by(function, args)
     query_supported_by = _get_query_supported_by(query)
     groupbys_supported_by = _get_groupbys_support(groupbys)
 
@@ -413,25 +425,35 @@ def should_use_on_demand_metrics(
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
 
-def _get_aggregate_supported_by(aggregate: str) -> SupportedBy:
+def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[str]]]:
     try:
         if is_equation(aggregate):
-            # TODO(Ogi): Implement support for equations
-            return SupportedBy.neither()
+            return None
 
         match = fields.is_function(aggregate)
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
 
         function, _, args, _ = query_builder.parse_function(match)
-        function_support = _get_function_support(function, args)
-        args_support = _get_args_support(args, function)
-
-        return SupportedBy.combine(function_support, args_support)
+        return function, args
     except InvalidSearchQuery:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
 
-    return SupportedBy.neither()
+    return None
+
+
+def _extract_mri(args: List[str]) -> Optional[ParsedMRI]:
+    if len(args) == 0:
+        return None
+
+    return parse_mri(args[0])
+
+
+def _get_aggregate_supported_by(function: str, args: List[str]) -> SupportedBy:
+    function_support = _get_function_support(function, args)
+    args_support = _get_args_support(args, function)
+
+    return SupportedBy.combine(function_support, args_support)
 
 
 def _get_function_support(function: str, args: Sequence[str]) -> SupportedBy:

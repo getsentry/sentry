@@ -11,31 +11,24 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {RateUnits} from 'sentry/utils/discover/fields';
-import {formatRate} from 'sentry/utils/formatters';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DurationAggregateSelector} from 'sentry/views/performance/database/durationAggregateSelector';
+import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
-import {
-  AVAILABLE_DURATION_AGGREGATE_OPTIONS,
-  DEFAULT_DURATION_AGGREGATE,
-} from 'sentry/views/performance/database/settings';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
+import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
+import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
-import {
-  SpanSummaryQueryFilters,
-  useSpanMetrics,
-} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {
+  SpanFunction,
+  SpanMetricsField,
+  SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {getThroughputChartTitle} from 'sentry/views/starfish/views/spans/types';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -59,36 +52,26 @@ function SpanSummaryPage({params}: Props) {
   const organization = useOrganization();
   const location = useLocation<Query>();
 
-  const arePercentilesEnabled = organization.features?.includes(
-    'performance-database-view-percentiles'
-  );
-
-  let durationAggregate = arePercentilesEnabled
-    ? decodeScalar(location.query.aggregate, DEFAULT_DURATION_AGGREGATE)
-    : DEFAULT_DURATION_AGGREGATE;
-
-  if (
-    !AVAILABLE_DURATION_AGGREGATE_OPTIONS.map(option => option.value).includes(
-      durationAggregate
-    )
-  ) {
-    durationAggregate = DEFAULT_DURATION_AGGREGATE;
-  }
+  const {selectedAggregate} = useAvailableDurationAggregates();
 
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
-  const queryFilter: SpanSummaryQueryFilters = endpoint
-    ? {transactionName: endpoint, 'transaction.method': endpointMethod}
-    : {};
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+  };
+
+  if (endpoint) {
+    filters.transaction = endpoint;
+    filters['transaction.method'] = endpointMethod;
+  }
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
   const {data: fullSpan} = useFullSpanFromTrace(groupId);
 
   const {data: spanMetrics} = useSpanMetrics(
-    groupId,
-    queryFilter,
+    filters,
     [
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
@@ -116,16 +99,14 @@ function SpanSummaryPage({params}: Props) {
   };
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    groupId,
-    queryFilter,
+    filters,
     ['spm()'],
     'api.starfish.span-summary-page-metrics-chart'
   );
 
   const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
-    groupId,
-    queryFilter,
-    [`${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    filters,
+    [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     'api.starfish.span-summary-page-metrics-chart'
   );
 
@@ -189,50 +170,19 @@ function SpanSummaryPage({params}: Props) {
 
           <BlockContainer>
             <Block>
-              <ChartPanel
-                title={getThroughputChartTitle(span?.[SpanMetricsField.SPAN_OP])}
-              >
-                <Chart
-                  height={CHART_HEIGHT}
-                  data={[throughputData['spm()']]}
-                  loading={isThroughputDataLoading}
-                  utc={false}
-                  chartColors={[THROUGHPUT_COLOR]}
-                  isLineChart
-                  definedAxisTicks={4}
-                  aggregateOutputFormat="rate"
-                  rateUnit={RateUnits.PER_MINUTE}
-                  tooltipFormatterOptions={{
-                    valueFormatter: value => formatRate(value, RateUnits.PER_MINUTE),
-                  }}
-                />
-              </ChartPanel>
+              <ThroughputChart
+                series={throughputData['spm()']}
+                isLoading={isThroughputDataLoading}
+              />
             </Block>
 
             <Block>
-              <ChartPanel
-                title={
-                  arePercentilesEnabled ? (
-                    <DurationAggregateSelector aggregate={durationAggregate} />
-                  ) : (
-                    t('Average Duration')
-                  )
+              <DurationChart
+                series={
+                  durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
                 }
-              >
-                <Chart
-                  height={CHART_HEIGHT}
-                  data={[
-                    durationData[
-                      `${durationAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
-                    ],
-                  ]}
-                  loading={isDurationDataLoading}
-                  utc={false}
-                  chartColors={[AVG_COLOR]}
-                  isLineChart
-                  definedAxisTicks={4}
-                />
-              </ChartPanel>
+                isLoading={isDurationDataLoading}
+              />
             </Block>
           </BlockContainer>
 
@@ -255,8 +205,6 @@ function SpanSummaryPage({params}: Props) {
     </ModulePageProviders>
   );
 }
-
-const CHART_HEIGHT = 160;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',

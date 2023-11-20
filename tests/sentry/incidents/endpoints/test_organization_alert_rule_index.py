@@ -745,6 +745,67 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 == "Performance alerts must use the `generic_metrics` dataset"
             )
 
+    def test_alert_with_metric_mri(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+                "organizations:ddm-experimental",
+                "organizations:use-metrics-layer-in-alerts",
+            ]
+        ):
+            for mri in (
+                "sum(c:transactions/count_per_root_project@none)",
+                "p95(d:transactions/duration@millisecond)",
+                "count_unique(s:transactions/user@none)",
+                "avg(d:custom/sentry.process_profile.symbolicate.process@second)",
+            ):
+                test_params = {
+                    **self.alert_rule_dict,
+                    "aggregate": mri,
+                    "dataset": "generic_metrics",
+                }
+
+                resp = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **test_params,
+                )
+
+                assert "id" in resp.data
+                alert_rule = AlertRule.objects.get(id=resp.data["id"])
+                assert resp.data == serialize(alert_rule, self.user)
+
+    def test_alert_with_metric_mri_on_wrong_dataset(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+                "organizations:ddm-experimental",
+                "organizations:use-metrics-layer-in-alerts",
+            ]
+        ):
+            test_params = {
+                **self.alert_rule_dict,
+                "aggregate": "sum(c:sessions/session@none)",
+                "dataset": "metrics",
+            }
+
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **test_params,
+            )
+
+            assert (
+                resp.data["nonFieldErrors"][0]
+                == "You can use an MRI only on alerts on performance metrics"
+            )
+
 
 # TODO(Gabe): Rewrite this test to properly annotate the silo mode
 @freeze_time()

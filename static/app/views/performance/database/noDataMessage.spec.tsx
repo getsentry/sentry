@@ -31,6 +31,30 @@ describe('NoDataMessage', () => {
     }));
   });
 
+  it('does not show anything while data is loading', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+
+    const eventsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+      },
+    });
+
+    render(<NoDataMessage />);
+
+    await waitFor(() => expect(eventsMock).toHaveBeenCalled());
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher('No queries found.'))
+    ).not.toBeInTheDocument();
+
+    await tick();
+  });
+
   it('does not show anything if there is recent data', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',

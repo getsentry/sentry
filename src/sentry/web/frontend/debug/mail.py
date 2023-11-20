@@ -739,6 +739,48 @@ def relocate_account(request):
 
 
 @login_required
+def relocation_failed(request):
+    return MailPreview(
+        html_template="sentry/emails/relocation_failed.html",
+        text_template="sentry/emails/relocation_failed.txt",
+        context={
+            "domain": get_server_hostname(),
+            "datetime": timezone.now(),
+            "uuid": str(uuid.uuid4().hex),
+            "reason": "This is a sample failure reason",
+        },
+    ).render(request)
+
+
+@login_required
+def relocation_started(request):
+    return MailPreview(
+        html_template="sentry/emails/relocation_started.html",
+        text_template="sentry/emails/relocation_started.txt",
+        context={
+            "domain": get_server_hostname(),
+            "datetime": timezone.now(),
+            "uuid": str(uuid.uuid4().hex),
+            "orgs": ["testsentry", "testgetsentry"],
+        },
+    ).render(request)
+
+
+@login_required
+def relocation_succeeded(request):
+    return MailPreview(
+        html_template="sentry/emails/relocation_succeeded.html",
+        text_template="sentry/emails/relocation_succeeded.txt",
+        context={
+            "domain": get_server_hostname(),
+            "datetime": timezone.now(),
+            "uuid": str(uuid.uuid4().hex),
+            "orgs": ["testsentry", "testgetsentry"],
+        },
+    ).render(request)
+
+
+@login_required
 def org_delete_confirm(request):
     from sentry.models.auditlogentry import AuditLogEntry
 

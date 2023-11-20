@@ -109,6 +109,10 @@ class DatabaseBackedUserService(UserService):
                 return [serialize_rpc_user(u) for u in qs.filter(email__iexact=username)]
         return []
 
+    def get_existing_usernames(self, *, usernames: List[str]) -> List[str]:
+        users = User.objects.filter(username__in=usernames)
+        return list(users.values_list("username", flat=True))
+
     def get_organizations(
         self,
         *,
@@ -177,38 +181,47 @@ class DatabaseBackedUserService(UserService):
         self, *, email: str, ident: Optional[str] = None, referrer: Optional[str] = None
     ) -> RpcUser:
         with transaction.atomic(router.db_for_write(User)):
-            user_query = User.objects.filter(email__iexact=email, is_active=True)
-            # Create User if it doesn't exist
-            if not user_query.exists():
-                user = User.objects.create(
-                    username=f"{slugify(str.split(email, '@')[0])}-{uuid4().hex}",
-                    email=email,
-                    name=email,
-                )
-                user_signup.send_robust(
-                    sender=self, user=user, source="api", referrer=referrer or "unknown"
-                )
-                user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
-            else:
-                # Users are not supposed to have the same email but right now our auth pipeline let this happen
-                # So let's not break the user experience. Instead return the user with auth identity of ident or
-                # the first user if ident is None
-                user = user_query[0]
-                if user_query.count() > 1:
-                    logger.warning("Email has multiple users", extra={"email": email})
-                    if ident:
-                        identity_query = AuthIdentity.objects.filter(
-                            user__in=user_query, ident=ident
-                        )
-                        if identity_query.exists():
-                            user = identity_query[0].user
-                        if identity_query.count() > 1:
-                            logger.warning(
-                                "Email has two auth identity for the same ident",
-                                extra={"email": email},
-                            )
+            rpc_user = self.get_user_by_email(email=email, ident=ident)
+            if rpc_user:
+                return rpc_user
 
+            # Create User if it doesn't exist
+            user = User.objects.create(
+                username=f"{slugify(str.split(email, '@')[0])}-{uuid4().hex}",
+                email=email,
+                name=email,
+            )
+            user_signup.send_robust(
+                sender=self, user=user, source="api", referrer=referrer or "unknown"
+            )
+            user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
             return serialize_rpc_user(user)
+
+    def get_user_by_email(
+        self,
+        *,
+        email: str,
+        ident: Optional[str] = None,
+    ) -> Optional[RpcUser]:
+        user_query = User.objects.filter(email__iexact=email, is_active=True)
+        if user_query.exists():
+            # Users are not supposed to have the same email but right now our auth pipeline let this happen
+            # So let's not break the user experience. Instead return the user with auth identity of ident or
+            # the first user if ident is None
+            user = user_query[0]
+            if user_query.count() > 1:
+                logger.warning("Email has multiple users", extra={"email": email})
+                if ident:
+                    identity_query = AuthIdentity.objects.filter(user__in=user_query, ident=ident)
+                    if identity_query.exists():
+                        user = identity_query[0].user
+                    if identity_query.count() > 1:
+                        logger.warning(
+                            "Email has two auth identity for the same ident",
+                            extra={"email": email},
+                        )
+            return serialize_rpc_user(user)
+        return None
 
     def verify_any_email(self, *, email: str) -> bool:
         user_email = UserEmail.objects.filter(email__iexact=email).first()

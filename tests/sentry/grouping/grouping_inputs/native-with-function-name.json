@@ -11,9 +11,7 @@
       }
     ]
   },
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {

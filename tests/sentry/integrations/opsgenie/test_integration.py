@@ -38,6 +38,16 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         "provider": "cool-name",
         "api_key": "123-key",
     }
+    eu_config_no_key = {
+        "base_url": "https://api.eu.opsgenie.com/",
+        "provider": "chill-name",
+        "api_key": "",
+    }
+    eu_config_with_key = {
+        "base_url": "https://api.eu.opsgenie.com/",
+        "provider": "chill-name",
+        "api_key": "123-key",
+    }
 
     def setUp(self):
         super().setUp()
@@ -61,6 +71,20 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert org_integration.config == {"team_table": []}
         assert integration.external_id == "cool-name"
         assert integration.name == "cool-name"
+        assert integration.metadata["domain_name"] == "cool-name.app.opsgenie.com"
+
+    def test_eu_installation_no_key(self):
+        self.assert_setup_flow(self.eu_config_no_key)
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
+
+        assert org_integration.config["team_table"] == []
+        assert org_integration.organization_id == self.organization.id
+        assert org_integration.config == {"team_table": []}
+        assert integration.external_id == "chill-name"
+        assert integration.name == "chill-name"
+        assert integration.metadata["domain_name"] == "chill-name.app.eu.opsgenie.com"
 
     def test_installation_with_key(self):
         self.assert_setup_flow(self.config_with_key)
@@ -78,6 +102,25 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert org_integration.organization_id == self.organization.id
         assert integration.external_id == "cool-name"
         assert integration.name == "cool-name"
+        assert integration.metadata["domain_name"] == "cool-name.app.opsgenie.com"
+
+    def test_eu_installation_with_key(self):
+        self.assert_setup_flow(self.eu_config_with_key)
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
+
+        assert org_integration.config["team_table"] == [
+            {
+                "team": "my-first-key",
+                "id": f"{org_integration.id}-my-first-key",
+                "integration_key": "123-key",
+            }
+        ]
+        assert org_integration.organization_id == self.organization.id
+        assert integration.external_id == "chill-name"
+        assert integration.name == "chill-name"
+        assert integration.metadata["domain_name"] == "chill-name.app.eu.opsgenie.com"
 
     @responses.activate
     def test_update_config_valid(self):

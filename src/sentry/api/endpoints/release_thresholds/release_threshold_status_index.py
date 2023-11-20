@@ -375,16 +375,17 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
     enriched threshold (ethreshold) includes `start`, `end`, and a constructed `key` identifier
     """
     total_count = 0
-    threshold_environment: str | None = None
-    for i in timeseries:
+    threshold_environment: str | None = (
+        ethreshold["environment"]["name"] if ethreshold["environment"] else None
+    )
+    sorted_series = sorted(timeseries, key=lambda x: x["time"])
+    for i in sorted_series:
         if parser.parse(i["time"]) > ethreshold["end"]:
             # timeseries are ordered chronologically
             # So if we're past our threshold.end, we can skip the rest
             logger.info("Reached end of threshold window. Breaking")
             metrics.incr("release.threshold_health_status.is_error_count_healthy.break_loop")
             break
-        if ethreshold["environment"]:
-            threshold_environment = ethreshold["environment"]["name"]
         if (
             parser.parse(i["time"]) <= ethreshold["start"]  # ts is before our threshold start
             or parser.parse(i["time"]) > ethreshold["end"]  # ts is after our threshold end
@@ -401,16 +402,10 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
     logger.info(
         "is_error_count_healthy",
         extra={
-            "key": ethreshold["key"],
-            "environment": threshold_environment,
-            "release": ethreshold["release"],
-            "project": ethreshold["project_id"],
+            "threshold": ethreshold,
             "total_count": total_count,
-            "value": ethreshold["value"],
-            "trigger_type": ethreshold["trigger_type"],
-            "start": ethreshold["start"],
-            "end": ethreshold["end"],
             "error_count_data": timeseries,
+            "threshold_environment": threshold_environment,
         },
     )
 

@@ -59,7 +59,7 @@ function ScreenLoadSpans() {
   const crumbs: Crumb[] = [
     {
       to: screenLoadModule,
-      label: t('Screens'),
+      label: t('Mobile'),
       preservePageFilters: true,
     },
     {
@@ -98,7 +98,9 @@ function ScreenLoadSpans() {
                     </PageFilterBar>
                     <ReleaseComparisonSelector />
                   </FilterContainer>
-                  <ScreenMetricsRibbon />
+                  <ScreenMetricsRibbon
+                    additionalFilters={[`transaction:${transactionName}`]}
+                  />
                 </Container>
               </StarfishPageFiltersContainer>
               <ScreenCharts

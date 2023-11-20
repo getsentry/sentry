@@ -7,6 +7,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
+import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
@@ -159,13 +160,13 @@ function SidebarItem({
   );
 
   const tooltipLabel = (
-    <Fragment>
+    <Flex align="center">
       {label} {badges}
-    </Fragment>
+    </Flex>
   );
 
   return (
-    <Tooltip disabled={!collapsed} title={tooltipLabel} position={placement}>
+    <Tooltip disabled={!collapsed && !isTop} title={tooltipLabel} position={placement}>
       <StyledSidebarItem
         {...props}
         id={`sidebar-item-${id}`}
@@ -363,6 +364,7 @@ const SidebarItemLabel = styled('span')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  overflow: hidden;
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {
