@@ -80,7 +80,6 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
         'project.id',
         `${TIME_SPENT_PERCENTAGE}()`,
         `sum(${SPAN_SELF_TIME})`,
-        FILE_EXTENSION,
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
@@ -124,7 +123,6 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
     [`time_spent_percentage()`]: row[`${TIME_SPENT_PERCENTAGE}()`] as number,
     ['count_unique(transaction)']: row['count_unique(transaction)'] as number,
     [`sum(span.self_time)`]: row[`sum(${SPAN_SELF_TIME})`] as number,
-    [FILE_EXTENSION]: row[FILE_EXTENSION]?.toString(),
   }));
 
   return {...result, data: data || []};
