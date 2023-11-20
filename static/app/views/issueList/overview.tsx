@@ -648,8 +648,6 @@ class IssueListOverview extends Component<Props, State> {
         }
         GroupStore.add(data);
 
-        // this.fetchStats(data.map((group: BaseGroup) => group.id));
-
         const hits = resp.getResponseHeader('X-Hits');
         const queryCount =
           typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
