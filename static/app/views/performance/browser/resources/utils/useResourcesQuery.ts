@@ -4,7 +4,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {
+  ModuleFilters,
+  useResourceModuleFilters,
+} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
@@ -18,6 +21,7 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
   HTTP_RESPONSE_CONTENT_LENGTH,
   PROJECT_ID,
+  FILE_EXTENSION,
 } = SpanMetricsField;
 
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
@@ -31,6 +35,25 @@ type Props = {
 
 export const DEFAULT_RESOURCE_FILTERS = ['!span.description:"browser-extension://*"'];
 
+export const getResourcesEventViewQuery = (
+  resourceFilters: Partial<ModuleFilters>,
+  defaultResourceTypes: string[] | undefined
+): string[] => {
+  return [
+    ...DEFAULT_RESOURCE_FILTERS,
+    ...(resourceFilters.transaction
+      ? [`transaction:"${resourceFilters.transaction}"`]
+      : []),
+    ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
+    ...getDomainFilter(resourceFilters[SPAN_DOMAIN]),
+    ...(resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]
+      ? [
+          `${RESOURCE_RENDER_BLOCKING_STATUS}:${resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]}`,
+        ]
+      : [`!${RESOURCE_RENDER_BLOCKING_STATUS}:blocking`]),
+  ];
+};
+
 export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -38,21 +61,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
   const {slug: orgSlug} = useOrganization();
 
   const queryConditions = [
-    ...(!query
-      ? [
-          ...DEFAULT_RESOURCE_FILTERS,
-          ...(resourceFilters.transaction
-            ? [`transaction:"${resourceFilters.transaction}"`]
-            : []),
-          ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
-          ...getDomainFilter(resourceFilters[SPAN_DOMAIN]),
-          ...(resourceFilters['resource.render_blocking_status']
-            ? [
-                `resource.render_blocking_status:${resourceFilters['resource.render_blocking_status']}`,
-              ]
-            : [`!resource.render_blocking_status:blocking`]),
-        ]
-      : []),
+    ...(!query ? getResourcesEventViewQuery(resourceFilters, defaultResourceTypes) : []),
     query,
   ];
 
@@ -71,6 +80,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
         'project.id',
         `${TIME_SPENT_PERCENTAGE}()`,
         `sum(${SPAN_SELF_TIME})`,
+        FILE_EXTENSION,
       ],
       name: 'Resource module - resource table',
       query: queryConditions.join(' '),
@@ -114,6 +124,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
     [`time_spent_percentage()`]: row[`${TIME_SPENT_PERCENTAGE}()`] as number,
     ['count_unique(transaction)']: row['count_unique(transaction)'] as number,
     [`sum(span.self_time)`]: row[`sum(${SPAN_SELF_TIME})`] as number,
+    [FILE_EXTENSION]: row[FILE_EXTENSION]?.toString(),
   }));
 
   return {...result, data: data || []};
@@ -131,15 +142,23 @@ export const getDomainFilter = (selectedDomain: string | undefined) => {
   return [`${SPAN_DOMAIN}:${selectedDomain}`];
 };
 
+const SPAN_OP_FILTER = {
+  'resource.script': [`${SPAN_OP}:resource.script`],
+  'resource.css': [`${FILE_EXTENSION}:css`],
+  'resource.font': [`${FILE_EXTENSION}:[woff,woff2,ttf,otf,eot]`],
+};
+
 export const getResourceTypeFilter = (
   selectedSpanOp: string | undefined,
   defaultResourceTypes: string[] | undefined
 ) => {
   let resourceFilter: string[] = [`${SPAN_OP}:resource.*`];
   if (selectedSpanOp) {
-    resourceFilter = [`${SPAN_OP}:${selectedSpanOp}`];
+    resourceFilter = SPAN_OP_FILTER[selectedSpanOp] || [`${SPAN_OP}:${selectedSpanOp}`];
   } else if (defaultResourceTypes) {
-    resourceFilter = [`${SPAN_OP}:[${defaultResourceTypes.join(',')}]`];
+    resourceFilter = [
+      defaultResourceTypes.map(type => SPAN_OP_FILTER[type]).join(' OR '),
+    ];
   }
   return resourceFilter;
 };

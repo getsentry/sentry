@@ -6,9 +6,13 @@ import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
+import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
-import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
+import {
+  useFeedbackHasSlug,
+  useHaveSelectedProjectsSetupFeedback,
+} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -28,6 +32,7 @@ interface Props extends RouteComponentProps<{}, {}, {}> {}
 export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
+  const {hasSlug} = useFeedbackHasSlug();
   const location = useLocation();
 
   return (
@@ -40,14 +45,11 @@ export default function FeedbackListPage({}: Props) {
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <Tooltip
-                title={tct(
-                  'View [link:error-associated feedback reports] from before November 3rd, 2023.',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
-                    ),
-                  }
-                )}
+                title={tct('View [link:error-associated feedback reports].', {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
+                  ),
+                })}
                 position="left"
                 isHoverable
               >
@@ -74,11 +76,12 @@ export default function FeedbackListPage({}: Props) {
             <ErrorBoundary>
               <LayoutGrid>
                 <FeedbackFilters style={{gridArea: 'filters'}} />
-                {hasSetupOneFeedback ? (
+                {hasSetupOneFeedback || hasSlug ? (
                   <Fragment>
                     <Container style={{gridArea: 'list'}}>
                       <FeedbackList />
                     </Container>
+                    <FeedbackSearch style={{gridArea: 'search'}} />
                     <Container style={{gridArea: 'details'}}>
                       <FeedbackItemLoader />
                     </Container>
@@ -109,7 +112,7 @@ const LayoutGrid = styled('div')`
   grid-template-columns: minmax(390px, 1fr) 2fr;
   grid-template-rows: max-content 1fr;
   grid-template-areas:
-    'filters details'
+    'filters search'
     'list details';
   gap: ${space(2)};
   place-items: stretch;

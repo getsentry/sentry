@@ -415,7 +415,7 @@ export class Client {
 
     let data = options.data;
 
-    if (data !== undefined && method !== 'GET') {
+    if (data !== undefined && method !== 'GET' && !(data instanceof FormData)) {
       data = JSON.stringify(data);
     }
 

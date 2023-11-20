@@ -33,6 +33,7 @@ def query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type=None,
 ):
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
@@ -59,6 +60,7 @@ def query(
                 has_metrics,
                 use_metrics_layer,
                 on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
             result["meta"]["datasetReason"] = dataset_reason
 
@@ -95,6 +97,7 @@ def query(
             has_metrics=has_metrics,
         )
         results["meta"]["isMetricsData"] = False
+        results["meta"]["isMetricsExtractedData"] = False
         results["meta"]["datasetReason"] = dataset_reason
 
         return results
@@ -115,6 +118,7 @@ def timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type=None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -137,6 +141,7 @@ def timeseries_query(
                 functions_acl,
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -191,6 +196,7 @@ def top_events_timeseries(
     include_other=False,
     functions_acl=None,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type=None,
 ):
     metrics_compatible = False
     equations, columns = categorize_columns(selected_columns)
@@ -216,6 +222,7 @@ def top_events_timeseries(
                 include_other,
                 functions_acl,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -277,6 +284,7 @@ def histogram_query(
     normalize_results=True,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.

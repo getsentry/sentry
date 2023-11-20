@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from snuba_sdk import And, Column, Condition, Function, Op
+from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Relationship
 
 from sentry.exceptions import (
     IncompatibleMetricsQuery,
@@ -9,6 +9,7 @@ from sentry.exceptions import (
     InvalidSearchQuery,
     UnsupportedQuerySubscription,
 )
+from sentry.models.group import GroupStatus
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -212,7 +213,7 @@ class EntitySubscriptionTestCase(TestCase):
         ]
 
     def test_get_entity_subscription_for_metrics_dataset_for_users_with_metrics_layer(self) -> None:
-        with Feature("organizations:use-metrics-layer"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             org_id = self.organization.id
             use_case_id = UseCaseID.SESSIONS
 
@@ -343,7 +344,7 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_for_metrics_dataset_for_sessions_with_metrics_layer(
         self,
     ) -> None:
-        with Feature("organizations:use-metrics-layer"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             org_id = self.organization.id
             use_case_id = UseCaseID.SESSIONS
             aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
@@ -500,7 +501,7 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_for_performance_metrics_dataset_with_metrics_layer(
         self,
     ) -> None:
-        with Feature("organizations:use-metrics-layer"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             aggregate = "percentile(transaction.duration,.95)"
             entity_subscription = get_entity_subscription(
                 query_type=SnubaQuery.Type.PERFORMANCE,
@@ -560,7 +561,7 @@ class EntitySubscriptionTestCase(TestCase):
         mri = "d:custom/sentry.process_profile.track_outcome@second"
         indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string=mri)
 
-        with Feature("organizations:use-metrics-layer"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             aggregate = f"max({mri})"
             entity_subscription = get_entity_subscription(
                 query_type=SnubaQuery.Type.PERFORMANCE,
@@ -615,7 +616,7 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_with_multiple_entities_with_metrics_layer(
         self,
     ) -> None:
-        with Feature("organizations:use-metrics-layer"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             aggregate = "percentile(transaction.duration,.95)"
             entity_subscription = get_entity_subscription(
                 query_type=SnubaQuery.Type.PERFORMANCE,
@@ -651,30 +652,75 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.get_entity_extra_params() == {}
         assert entity_subscription.dataset == Dataset.Events
 
-        snql_query = entity_subscription.build_query_builder(
-            "release:latest", [self.project.id], None
-        ).get_snql_query()
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            snql_query = entity_subscription.build_query_builder(
+                "release:latest", [self.project.id], None
+            ).get_snql_query()
         assert snql_query.query.select == [
             Function(
                 function="uniq",
-                parameters=[Column(name="tags[sentry:user]")],
+                parameters=[Column(name="tags[sentry:user]", entity=entity)],
                 alias="count_unique_user",
             )
         ]
         assert snql_query.query.where == [
             And(
                 [
-                    Condition(Column("type"), Op.EQ, "error"),
+                    Condition(Column("type", entity=entity), Op.EQ, "error"),
                     Condition(
                         Function(
-                            function="ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                            function="ifNull",
+                            parameters=[Column(name="tags[sentry:release]", entity=entity), ""],
                         ),
                         Op.IN,
                         [""],
                     ),
                 ]
             ),
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
+            Condition(Column("project_id", entity=entity), Op.IN, [self.project.id]),
+        ]
+
+    def test_get_entity_subscription_for_events_dataset_with_join(self) -> None:
+        aggregate = "count_unique(user)"
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            aggregate=aggregate,
+            time_window=3600,
+        )
+        assert isinstance(entity_subscription, EventsEntitySubscription)
+        assert entity_subscription.aggregate == aggregate
+        assert entity_subscription.get_entity_extra_params() == {}
+        assert entity_subscription.dataset == Dataset.Events
+
+        e_entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+        g_entity = Entity("group_attributes", alias="ga")
+
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            snql_query = entity_subscription.build_query_builder(
+                "status:unresolved", [self.project.id], None
+            ).get_snql_query()
+        assert snql_query.query.match == Join([Relationship(e_entity, "attributes", g_entity)])
+        assert snql_query.query.select == [
+            Function(
+                function="uniq",
+                parameters=[Column(name="tags[sentry:user]", entity=e_entity)],
+                alias="count_unique_user",
+            )
+        ]
+        assert snql_query.query.where == [
+            And(
+                [
+                    Condition(Column("type", entity=e_entity), Op.EQ, "error"),
+                    Condition(
+                        Column("group_status", entity=g_entity), Op.IN, [GroupStatus.UNRESOLVED]
+                    ),
+                ]
+            ),
+            Condition(Column("project_id", entity=e_entity), Op.IN, [self.project.id]),
+            Condition(Column("project_id", entity=g_entity), Op.IN, [self.project.id]),
         ]
 
 
@@ -879,7 +925,7 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 )
 
             if supported_with_metrics_layer:
-                with Feature("organizations:use-metrics-layer"):
+                with Feature("organizations:use-metrics-layer-in-alerts"):
                     assert expected_entity_key == get_entity_key_from_snuba_query(
                         snuba_query, self.organization.id, self.project.id
                     )

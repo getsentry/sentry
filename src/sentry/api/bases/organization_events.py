@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple
@@ -36,6 +38,7 @@ from sentry.snuba import (
     spans_indexed,
     spans_metrics,
 )
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
@@ -290,6 +293,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             has_results="true" if bool(cursor) else "false",
         )
 
+    def handle_on_demand(self, request: Request) -> tuple[bool, MetricSpecType]:
+        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
+        on_demand_metric_type = MetricSpecType.SIMPLE_QUERY
+        on_demand_metric_type_value = request.GET.get("onDemandType")
+        if use_on_demand_metrics and on_demand_metric_type_value:
+            on_demand_metric_type = MetricSpecType(on_demand_metric_type_value)
+
+        return use_on_demand_metrics, on_demand_metric_type
+
     def handle_unit_meta(
         self, meta: Dict[str, str]
     ) -> Tuple[Dict[str, str], Dict[str, Optional[str]]]:
@@ -330,11 +342,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
+                isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
                     "units": units,
                     "isMetricsData": isMetricsData,
+                    "isMetricsExtractedData": isMetricsExtractedData,
                     "tips": meta.get("tips", {}),
                     "datasetReason": meta.get("datasetReason", discover.DEFAULT_DATASET_REASON),
                 }
@@ -343,8 +357,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             else:
                 meta = fields_meta
 
-            if "isMetricsData" not in meta:
-                meta["isMetricsData"] = False
+            meta["isMetricsData"] = meta.get("isMetricsData", False)
+            meta["isMetricsExtractedData"] = meta.get("isMetricsExtractedData", False)
 
             if not data:
                 return {"data": [], "meta": meta}

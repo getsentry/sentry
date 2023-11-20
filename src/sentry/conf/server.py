@@ -11,7 +11,18 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Final, Mapping, MutableSequence, Optional, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    List,
+    Mapping,
+    MutableSequence,
+    Optional,
+    Union,
+    overload,
+)
 from urllib.parse import urlparse
 
 import sentry
@@ -547,7 +558,7 @@ AUTHENTICATION_BACKENDS = (
     "social_auth.backends.visualstudio.VisualStudioBackend",
 )
 
-AUTH_PASSWORD_VALIDATORS = [
+AUTH_PASSWORD_VALIDATORS: List[Dict[str, Any]] = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -562,6 +573,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+    {
+        "NAME": "sentry.auth.password_validation.PwnedPasswordsValidator",
+        "OPTIONS": {"threshold": 20},
     },
 ]
 
@@ -1130,6 +1145,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 10 minutes
         "schedule": crontab(minute="*/10"),
     },
+    "clean_custom_rule_notifications": {
+        "task": "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
+        # Run every 7 minutes
+        "schedule": crontab(minute="*/7"),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
@@ -1411,6 +1431,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:customer-domains": False,
     # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Enables experimental WIP ddm related features
+    "organizations:ddm-experimental": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1543,6 +1565,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:transaction-metrics-extraction": False,
     # True if Relay should drop raw session payloads after extracting metrics from them.
     "organizations:release-health-drop-sessions": False,
+    # Enable ignoring archived issues in metric alerts
+    "organizations:metric-alert-ignore-archived": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1711,8 +1735,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-trial-ended-banner": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
-    # Enable the Replay Details > New timeline
-    "organizations:session-replay-new-timeline": False,
     # Enable the accessibility issues endpoint
     "organizations:session-replay-accessibility-issues": False,
     # Enable the new suggested assignees feature
@@ -1808,10 +1830,11 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
-    # Enable the new notification settings system
-    "organizations:notification-settings-v2": False,
     # Enable new release UI
-    "organizations:release-ui-v2": False,
+    "organizations:releases-v2": False,
+    "organizations:releases-v2-st": False,
+    # Enable the metrics layer for alerts queries.
+    "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
@@ -1834,6 +1857,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-rate-limiting": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
+    # Enable logs for debugging weekly reports
+    "organizations:weekly-report-logs": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -2037,6 +2062,10 @@ SENTRY_ENABLE_INVITES = True
 
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN: str | None = None
+
+# Origins that are allowed to use credentials. This list is in addition
+# to all subdomains of system.url-prefix
+ALLOWED_CREDENTIAL_ORIGINS: list[str] = []
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"
@@ -3303,6 +3332,7 @@ KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
 KAFKA_GROUP_ATTRIBUTES = "group-attributes"
+KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 
 # spans
 KAFKA_INGEST_SPANS = "ingest-spans"
@@ -3358,6 +3388,7 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
     KAFKA_INGEST_SPANS: {"cluster": "default"},
     KAFKA_SNUBA_SPANS: {"cluster": "default"},
+    KAFKA_SHARED_RESOURCES_USAGE: {"cluster": "default"},
 }
 
 
@@ -3879,3 +3910,34 @@ SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
+
+# Backwards compatibility for URLs that don't
+# have enough context to route via organization.
+# New usage of these endpoints uses region domains,
+# but existing customers have been using these routes
+# on the main domain for a long time.
+REGION_PINNED_URL_NAMES = {
+    # These paths have organization scoped aliases
+    "sentry-api-0-builtin-symbol-sources",
+    "sentry-api-0-grouping-configs",
+    # These paths are used by relay which is implicitly region scoped
+    "sentry-api-0-relays-index",
+    "sentry-api-0-relay-register-challenge",
+    "sentry-api-0-relay-register-response",
+    "sentry-api-0-relay-projectconfigs",
+    "sentry-api-0-relay-projectids",
+    "sentry-api-0-relay-publickeys",
+    "sentry-api-0-relays-healthcheck",
+    "sentry-api-0-relays-details",
+    # Backwards compatibility for US customers.
+    # New usage of these is region scoped.
+    "sentry-error-page-embed",
+    "sentry-release-hook",
+    "sentry-api-0-projects",
+    "sentry-account-email-unsubscribe-incident",
+    "sentry-account-email-unsubscribe-issue",
+    "sentry-account-email-unsubscribe-project",
+}
+
+# Shared resource ids for accounting
+EVENT_PROCESSING_STORE = "rc_processing_redis"

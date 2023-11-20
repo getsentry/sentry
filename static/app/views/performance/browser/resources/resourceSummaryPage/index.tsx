@@ -38,14 +38,21 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data: spanMetrics} = useSpanMetrics(groupId, {}, [
-    `avg(${SPAN_SELF_TIME})`,
-    `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-    `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
-    `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
-    'spm()',
-    SPAN_DESCRIPTION,
-  ]);
+  const {data: spanMetrics} = useSpanMetrics(
+    {
+      'span.group': groupId,
+    },
+    [
+      `avg(${SPAN_SELF_TIME})`,
+      `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+      `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
+      `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
+      `sum(${SPAN_SELF_TIME})`,
+      'spm()',
+      SPAN_DESCRIPTION,
+      'time_spent_percentage()',
+    ]
+  );
 
   return (
     <ModulePageProviders
@@ -88,7 +95,9 @@ function ResourceSummary() {
                 <ProjectPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <RenderBlockingSelector value={filters[RESOURCE_RENDER_BLOCKING_STATUS]} />
+              <RenderBlockingSelector
+                value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
+              />
             </FilterOptionsContainer>
             <ResourceInfo
               avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
@@ -98,6 +107,8 @@ function ResourceSummary() {
               avgTransferSize={spanMetrics[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`]}
               avgDuration={spanMetrics[`avg(${SPAN_SELF_TIME})`]}
               throughput={spanMetrics['spm()']}
+              timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
+              timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
             />
           </HeaderContainer>
           <ResourceSummaryCharts groupId={groupId} />
@@ -106,6 +117,7 @@ function ResourceSummary() {
             transactionRoute="/performance/browser/pageloads/"
             groupId={groupId}
             transactionName={transaction as string}
+            additionalFields={[HTTP_RESPONSE_CONTENT_LENGTH]}
           />
         </Layout.Main>
       </Layout.Body>

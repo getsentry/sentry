@@ -46,14 +46,17 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
-from sentry.statistical_detectors import redis
 from sentry.statistical_detectors.algorithm import (
     MovingAverageDetectorState,
     MovingAverageRelativeChangeDetector,
     MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.detector import DetectorPayload, TrendType
-from sentry.statistical_detectors.issue_platform_adapter import send_regression_to_platform
+from sentry.statistical_detectors.issue_platform_adapter import (
+    fingerprint_regression,
+    send_regression_to_platform,
+)
+from sentry.statistical_detectors.redis import DetectorType, RedisDetectorStore
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -64,10 +67,10 @@ from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 
-FUNCTIONS_PER_PROJECT = 100
+FUNCTIONS_PER_PROJECT = 50
 FUNCTIONS_PER_BATCH = 1_000
 TRANSACTIONS_PER_PROJECT = 50
-TRANSACTIONS_PER_BATCH = 10
+TRANSACTIONS_PER_BATCH = 1_000
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
@@ -117,13 +120,6 @@ def run_detection() -> None:
 
     now = django_timezone.now()
 
-    enabled_performance_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.performance")
-    )
-    enabled_profiling_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.profiling")
-    )
-
     performance_projects = []
     profiling_projects = []
 
@@ -136,7 +132,6 @@ def run_detection() -> None:
                 "organizations:performance-statistical-detectors-ema", project.organization
             )
             and project_settings[InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value]
-            or project.id in enabled_performance_projects
         ):
             performance_projects.append(project)
             performance_projects_count += 1
@@ -151,7 +146,6 @@ def run_detection() -> None:
 
         if project.flags.has_profiles and (
             features.has("organizations:profiling-statistical-detectors-ema", project.organization)
-            or project.id in enabled_profiling_projects
         ):
             profiling_projects.append(project.id)
             profiling_projects_count += 1
@@ -225,10 +219,6 @@ def detect_transaction_change_points(
     if not options.get("statistical_detectors.enable"):
         return
 
-    enabled_performance_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.performance")
-    )
-
     projects_by_id = {
         project.id: project
         for project in Project.objects.filter(
@@ -238,7 +228,6 @@ def detect_transaction_change_points(
             features.has(
                 "organizations:performance-statistical-detectors-breakpoint", project.organization
             )
-            or project.id in enabled_performance_projects
         )
     }
 
@@ -273,7 +262,7 @@ def _detect_transaction_change_points(
     trend_function = "p95(transaction.duration)"
 
     for chunk in chunked(
-        query_transactions_timeseries(transactions, start, trend_function), TRANSACTIONS_PER_BATCH
+        query_transactions_timeseries(transactions, start, trend_function), TIMESERIES_PER_BATCH
     ):
         data = {}
         for project_id, transaction_name, result in chunk:
@@ -339,7 +328,7 @@ def _detect_transaction_trends(
         threshold=0.2,
     )
 
-    detector_store = redis.TransactionDetectorStore()
+    detector_store = RedisDetectorStore(detector_type=DetectorType.ENDPOINT)  # e for endpoint
 
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
@@ -615,10 +604,6 @@ def detect_function_change_points(
     breakpoint_count = 0
     emitted_count = 0
 
-    enabled_profiling_projects: Set[int] = set(
-        options.get("statistical_detectors.enable.projects.profiling")
-    )
-
     projects_by_id = {
         project.id: project
         for project in Project.objects.filter(
@@ -628,7 +613,6 @@ def detect_function_change_points(
             features.has(
                 "organizations:profiling-statistical-detectors-breakpoint", project.organization
             )
-            or project.id in enabled_profiling_projects
         )
     }
 
@@ -670,7 +654,7 @@ def _detect_function_trends(
         threshold=0.2,
     )
 
-    detector_store = redis.RedisDetectorStore()
+    detector_store = RedisDetectorStore(detector_type=DetectorType.FUNCTION)
 
     projects = Project.objects.filter(id__in=project_ids)
 
@@ -1020,6 +1004,8 @@ def query_transactions(
         DetectorPayload(
             project_id=row["project_id"],
             group=row["transaction_name"],
+            # take the first 16 chars of the fingerprint as that's sufficiently unique
+            fingerprint=fingerprint_regression(row["transaction_name"])[:16],
             count=row["count"],
             value=row["p95"],
             timestamp=start,
@@ -1066,6 +1052,7 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
         DetectorPayload(
             project_id=row["project.id"],
             group=row["fingerprint"],
+            fingerprint=row["fingerprint"],
             count=row["count()"],
             value=row["p95()"],
             timestamp=datetime.fromisoformat(row["timestamp"]),

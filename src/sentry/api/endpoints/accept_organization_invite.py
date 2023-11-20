@@ -35,8 +35,6 @@ def get_invite_state(
     user_id: int,
 ) -> Optional[RpcUserInviteContext]:
     if organization_slug is None:
-        logger.info("organization.member_invite.no_slug", extra={"member_id": member_id})
-
         member_mapping: OrganizationMemberMapping | None = None
         member_mappings: Mapping[int, OrganizationMemberMapping] = {
             omm.organization_id: omm
@@ -61,6 +59,17 @@ def get_invite_state(
             organization_id=member_mapping.organization_id,
             organization_member_id=member_id,
             user_id=user_id,
+        )
+
+        logger.info(
+            "organization.member_invite.no_slug",
+            extra={
+                "member_id": member_id,
+                "org_id": member_mapping.organization_id,
+                "token_expired": invite_context.member.token_expired
+                if invite_context and invite_context.member
+                else -1,
+            },
         )
     else:
         invite_context = organization_service.get_invite_by_slug(

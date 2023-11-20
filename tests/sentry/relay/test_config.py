@@ -609,19 +609,6 @@ def test_txnames_ready(default_project, num_clusterer_runs):
 
 
 @django_db_all
-def test_accept_span_desc_rules(default_project):
-    with Feature({"projects:span-metrics-extraction": True}), mock.patch(
-        "sentry.relay.config.get_sorted_rules",
-        return_value=[
-            ("**/test/*/**", 0),
-        ],
-    ):
-        config = get_project_config(default_project).to_dict()["config"]
-        _validate_project_config(config)
-        assert "spanDescriptionRules" in config
-
-
-@django_db_all
 @region_silo_test(stable=True)
 def test_project_config_setattr(default_project):
     project_cfg = ProjectConfig(default_project)
@@ -764,23 +751,74 @@ def test_performance_calculate_score(default_project):
         config = get_project_config(default_project, full_config=True).to_dict()["config"]
 
         validate_project_config(json.dumps(config), strict=True)
-        performance_score = config["performanceScore"]
-        assert performance_score == {
-            "profiles": [
-                {
-                    "name": "Desktop",
-                    "scoreComponents": [
-                        {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
-                        {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
-                        {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
-                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                        {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Chrome",
-                    },
-                }
-            ]
+        performance_score = config["performanceScore"]["profiles"]
+        assert performance_score[0] == {
+            "name": "Chrome",
+            "scoreComponents": [
+                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
+                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
+                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
+                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Chrome",
+            },
+        }
+        assert performance_score[1] == {
+            "name": "Firefox",
+            "scoreComponents": [
+                {"measurement": "fcp", "weight": 0.30, "p10": 900.0, "p50": 1600.0},
+                {"measurement": "fid", "weight": 0.55, "p10": 100.0, "p50": 300.0},
+                {"measurement": "ttfb", "weight": 0.15, "p10": 200.0, "p50": 400.0},
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Firefox",
+            },
+        }
+        assert performance_score[2] == {
+            "name": "Safari",
+            "scoreComponents": [
+                {"measurement": "fcp", "weight": 0.60, "p10": 900.0, "p50": 1600.0},
+                {"measurement": "ttfb", "weight": 0.40, "p10": 200.0, "p50": 400.0},
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Safari",
+            },
+        }
+        assert performance_score[3] == {
+            "name": "Edge",
+            "scoreComponents": [
+                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
+                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
+                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
+                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge",
+            },
+        }
+        assert performance_score[4] == {
+            "name": "Opera",
+            "scoreComponents": [
+                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
+                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
+                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
+                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera",
+            },
         }

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
 
 import sentry_sdk
+from sentry_relay.processing import validate_sampling_condition
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -22,13 +23,14 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
+    MetricSpecType,
     OnDemandMetricSpec,
     RuleCondition,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -270,6 +272,7 @@ def _convert_widget_query_to_metric(
             None,
             prefilling,
             groupbys=widget_query.columns,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
         ):
             _log_on_demand_metric_spec(
                 project_id=project.id,
@@ -371,6 +374,7 @@ def _convert_aggregate_and_query_to_metric(
     query: str,
     environment: Optional[str],
     prefilling: bool,
+    spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
     groupbys: Optional[Sequence[str]] = None,
 ) -> Optional[HashedMetricSpec]:
     """
@@ -388,9 +392,38 @@ def _convert_aggregate_and_query_to_metric(
             query=query,
             environment=environment,
             groupbys=groupbys,
+            spec_type=spec_type,
         )
 
-        return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)
+        metric_spec = on_demand_spec.to_metric_spec(project)
+        # TODO: switch to validate_rule_condition
+        if (condition := metric_spec.get("condition")) is not None:
+            validate_sampling_condition(json.dumps(condition))
+        else:
+            metrics.incr(
+                "on_demand_metrics.missing_condition_spec",
+                tags={"prefilling": prefilling},
+            )
+
+        return on_demand_spec.query_hash, metric_spec
+    except ValueError:
+        # raised by validate_sampling_condition or metric_spec lacking "condition"
+        metrics.incr(
+            "on_demand_metrics.invalid_metric_spec",
+            tags={"prefilling": prefilling},
+        )
+        logger.error(
+            "Invalid on-demand metric spec",
+            exc_info=True,
+            extra={
+                "dataset": dataset,
+                "aggregate": aggregate,
+                "query": query,
+                "groupbys": groupbys,
+            },
+        )
+
+        return None
     except Exception as e:
         # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
         # Sentry console.
