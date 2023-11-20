@@ -104,7 +104,7 @@ describe('Chart Utils', function () {
     });
   });
 
-  describe('findFinestGranularityForMinutes()', function () {
+  describe('findGranularityIntervalForMinutes()', function () {
     const granularities: GranularityLadder = [
       [THIRTY_DAYS, '1d'],
       [TWENTY_FOUR_HOURS, '30m'],
