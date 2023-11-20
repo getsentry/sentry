@@ -1597,6 +1597,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
     "organizations:integrations-opsgenie-migration": False,
+    # Enable stacktrace linking
+    "organizations:integrations-stacktrace-link": True,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
