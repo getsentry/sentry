@@ -130,18 +130,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </TextCopyInput>
           </ErrorBoundary>
         </Section>
-        {eventData && (
-          <Section icon={<IconIssues size="xs" />} title={t('Issue Tracking')}>
-            <ErrorBoundary mini>
-              <ExternalIssueList
-                project={feedbackItem.project}
-                group={feedbackItem as unknown as Group}
-                event={eventData}
-                showHeader={false}
-              />
-            </ErrorBoundary>
-          </Section>
-        )}
         {crashReportId && (
           <CrashReportSection
             organization={organization}
@@ -155,6 +143,18 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             organization={organization}
             replayId={replayId}
           />
+        )}
+        {eventData && (
+          <Section icon={<IconIssues size="xs" />} title={t('Issue Tracking')}>
+            <ErrorBoundary mini>
+              <ExternalIssueList
+                project={feedbackItem.project}
+                group={feedbackItem as unknown as Group}
+                event={eventData}
+                showHeader={false}
+              />
+            </ErrorBoundary>
+          </Section>
         )}
         <TagsSection tags={tags} />
       </OverflowPanelItem>

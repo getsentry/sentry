@@ -250,7 +250,7 @@ function ExternalIssueList({
   return (
     <SidebarSection.Wrap
       data-test-id="linked-issues"
-      style={showHeader ? undefined : {marginBottom: space(2)}}
+      style={showHeader ? undefined : {marginBottom: space(2), maxWidth: '200px'}}
     >
       {showHeader ? (
         <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
