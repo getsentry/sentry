@@ -4,14 +4,13 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ThresholdsList from 'sentry/views/releases/thresholdsList/';
-
-import {THRESHOLDS_PATH} from '../utils/constants';
 
 describe('ReleaseThresholdsList', () => {
   const organization = Organization({
     slug: 'test-thresholds',
-    features: ['release-ui-v2'],
+    features: ['releases-v2'],
   });
 
   const {router, routerContext} = initializeOrg({
@@ -43,13 +42,16 @@ describe('ReleaseThresholdsList', () => {
     const {router: flaglessRouter, routerContext: flaglessRouterContext} = initializeOrg({
       organization: organization2,
     });
+    const expectedRedirect = normalizeUrl(
+      `/organizations/${organization2.slug}/releases/`
+    );
     render(<ThresholdsList />, {
       context: flaglessRouterContext,
       organization: organization2,
     });
 
     expect(flaglessRouter.replace).toHaveBeenCalledTimes(1);
-    expect(flaglessRouter.replace).toHaveBeenCalledWith(`/releases/`);
+    expect(flaglessRouter.replace).toHaveBeenCalledWith(expectedRedirect);
   });
 
   it('fetches release thresholds for selected projects', async () => {
@@ -64,7 +66,9 @@ describe('ReleaseThresholdsList', () => {
       },
       new Set()
     );
-    routerContext.context.location.pathname = THRESHOLDS_PATH;
+    routerContext.context.location.pathname = normalizeUrl(
+      `/organizations/${organization.slug}/release-thresholds/`
+    );
     render(<ThresholdsList />, {
       context: routerContext,
       organization,
@@ -90,7 +94,9 @@ describe('ReleaseThresholdsList', () => {
       },
       new Set()
     );
-    routerContext.context.location.pathname = THRESHOLDS_PATH;
+    routerContext.context.location.pathname = normalizeUrl(
+      `/organizations/${organization.slug}/release-thresholds/`
+    );
     render(<ThresholdsList />, {context: routerContext, organization});
     expect(await screen.findByText('Thresholds')).toBeInTheDocument();
     expect(mockThresholdFetch).toHaveBeenCalledWith(

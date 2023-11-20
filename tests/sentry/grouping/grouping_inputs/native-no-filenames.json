@@ -4,9 +4,7 @@
   "environment": "debug",
   "platform": "native",
   "logger": "log_demo",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {

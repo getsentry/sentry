@@ -156,6 +156,14 @@ const TimelineRow = styled('div')<{singleMonitorView?: boolean}>`
       }
     `}
 
+  &:last-child > *:first-child {
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
+  }
+
+  &:last-child > *:last-child {
+    border-bottom-right-radius: ${p => p.theme.borderRadius};
+  }
+
   > * {
     transition: background 50ms ease-in-out;
   }

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, List, MutableMapping, Optional
+from typing import Any, Callable, Dict, List, MutableMapping, Optional
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -34,6 +34,7 @@ from sentry.services.hybrid_cloud.user import (
     UserSerializeType,
     UserUpdateArgs,
 )
+from sentry.services.hybrid_cloud.user.model import RpcVerifyUserEmail, UserIdEmailArgs
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import UserService
 from sentry.signals import user_signup
@@ -107,6 +108,10 @@ class DatabaseBackedUserService(UserService):
                 # email isn't guaranteed unique
                 return [serialize_rpc_user(u) for u in qs.filter(email__iexact=username)]
         return []
+
+    def get_existing_usernames(self, *, usernames: List[str]) -> List[str]:
+        users = User.objects.filter(username__in=usernames)
+        return list(users.values_list("username", flat=True))
 
     def get_organizations(
         self,
@@ -226,6 +231,17 @@ class DatabaseBackedUserService(UserService):
         flag = User.flags.newsletter_consent_prompt
         user.update(flags=F("flags").bitor(flag))
         user.send_confirm_emails(is_new_user=True)
+
+    def verify_user_emails(
+        self, *, user_id_emails: List[UserIdEmailArgs]
+    ) -> Dict[int, RpcVerifyUserEmail]:
+        results = {}
+        for user_id_email in user_id_emails:
+            user_id = user_id_email["user_id"]
+            email = user_id_email["email"]
+            exists = UserEmail.objects.filter(user_id=user_id, email__iexact=email).exists()
+            results[user_id] = RpcVerifyUserEmail(email=email, exists=exists)
+        return results
 
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
