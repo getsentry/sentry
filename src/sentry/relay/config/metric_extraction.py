@@ -397,8 +397,8 @@ def _convert_aggregate_and_query_to_metric(
 
         metric_spec = on_demand_spec.to_metric_spec(project)
         # TODO: switch to validate_rule_condition
-        if metric_spec.get("condition"):
-            validate_sampling_condition(json.dumps(metric_spec["condition"]))
+        if (condition := metric_spec.get("condition")) is not None:
+            validate_sampling_condition(json.dumps(condition))
         else:
             metrics.incr(
                 "on_demand_metrics.missing_condition_spec",
