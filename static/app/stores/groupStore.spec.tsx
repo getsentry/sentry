@@ -25,11 +25,11 @@ describe('GroupStore', function () {
     it('should update matching existing entries', function () {
       GroupStore.items = [g('1'), g('2')];
 
-      GroupStore.add([g('1', {count: '1337'}), g('3')]);
+      GroupStore.add([g('1', {shortId: '1337'}), g('3')]);
 
       expect(GroupStore.getAllItemIds()).toEqual(['1', '2', '3']);
       expect(GroupStore.items[0]).toEqual(
-        expect.objectContaining({id: '1', count: '1337'})
+        expect.objectContaining({id: '1', shortId: '1337'})
       );
     });
 
@@ -50,10 +50,10 @@ describe('GroupStore', function () {
     it('should update matching existing entries', function () {
       GroupStore.items = [g('1'), g('2')];
 
-      GroupStore.addToFront([g('1', {count: '1337'}), g('3')]);
+      GroupStore.addToFront([g('1', {shortId: '1337'}), g('3')]);
 
       expect(GroupStore.getAllItems()).toEqual([
-        expect.objectContaining({id: '1', count: '1337'}),
+        expect.objectContaining({id: '1', shortId: '1337'}),
         g('3'),
         g('2'),
       ]);

@@ -672,22 +672,22 @@ export interface BaseGroup {
   substatus?: GroupSubstatus | null;
 }
 
-export interface GroupReprocessing extends BaseGroup, GroupStats {
+export interface GroupReprocessing extends BaseGroup {
   status: GroupStatus.REPROCESSING;
   statusDetails: ReprocessingStatusDetails;
 }
 
-export interface GroupResolved extends BaseGroup, GroupStats {
+export interface GroupResolved extends BaseGroup {
   status: GroupStatus.RESOLVED;
   statusDetails: ResolvedStatusDetails;
 }
 
-export interface GroupIgnored extends BaseGroup, GroupStats {
+export interface GroupIgnored extends BaseGroup {
   status: GroupStatus.IGNORED;
   statusDetails: IgnoredStatusDetails;
 }
 
-export interface GroupUnresolved extends BaseGroup, GroupStats {
+export interface GroupUnresolved extends BaseGroup {
   status: GroupStatus.UNRESOLVED;
   statusDetails: {};
 }
