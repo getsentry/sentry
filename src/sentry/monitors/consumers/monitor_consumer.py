@@ -85,10 +85,12 @@ def _ensure_monitor_with_config(
     validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
-        logger.info(
-            "monitors.consumer.invalid_config",
-            extra={"slug": monitor_slug, **config},
-        )
+        extra = {
+            "slug": monitor_slug,
+            "config": config,
+            "errors": validator.errors,
+        }
+        logger.info("monitors.consumer.invalid_config", extra=extra)
         return monitor
 
     validated_config = validator.validated_data
