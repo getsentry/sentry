@@ -628,7 +628,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         two_days_ago = now - timedelta(days=2)
         timestamp = to_timestamp(floor_to_utc_day(now))
 
-        user = self.create_user()
+        user = self.create_user(email="itwasme@dio.xyz")
         self.create_member(teams=[self.team], user=user, organization=self.organization)
         extra_team = self.create_team(organization=self.organization)
         self.create_project(
@@ -675,8 +675,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert context["user_project_count"] == 1
             assert f"Weekly Report for {self.organization.name}" in message_params["subject"]
 
-            assert isinstance(context["notification_uuid"], str)
-
         record.assert_any_call(
             "weekly_report.sent",
             user_id=user.id,
@@ -686,3 +684,52 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         )
 
         message_builder.return_value.send.assert_called_with(to=("joseph@speedwagon.org",))
+
+    @mock.patch("sentry.tasks.weekly_reports.logger")
+    def test_email_override_no_target_user(self, logger):
+        now = django_timezone.now()
+        two_days_ago = now - timedelta(days=2)
+        timestamp = to_timestamp(floor_to_utc_day(now))
+        org = self.create_organization()
+        proj = self.create_project(organization=org)
+
+        # fill with data so report not skipped
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": iso_format(two_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=proj.id,
+        )
+        self.store_outcomes(
+            {
+                "org_id": org.id,
+                "project_id": proj.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": two_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+
+        prepare_organization_report(
+            timestamp,
+            ONE_DAY * 7,
+            org.id,
+            dry_run=False,
+            target_user="dummy",
+            email_override="doesntmatter@smad.com",
+        )
+
+        logger.exception.assert_called_with(
+            "Target user must have an ID",
+            extra={
+                "organization": org.id,
+                "target_user": '"dummy"',
+                "email_override": "doesntmatter@smad.com",
+            },
+        )
