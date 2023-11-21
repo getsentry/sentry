@@ -2,6 +2,8 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.conf.server import SENTRY_EARLY_FEATURES
@@ -11,6 +13,11 @@ from sentry.runner.settings import configure, discover_configs
 @all_silo_endpoint
 class InternalFeatureFlagsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
+    owner = ApiOwner.RELOCATION
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
 
     def get(self, request: Request) -> Response:
         if not settings.SENTRY_SELF_HOSTED:
