@@ -374,11 +374,10 @@ class ReactPageViewTest(TestCase):
     def test_onboarding_with_project_id(self):
         org = self.create_organization(owner=self.user)
         project = self.create_project(organization=org)
-        group = self.create_group(project=project)
 
         self.login_as(self.user)
         response = self.client.get(
-            f"/{org.slug}/{project.id}/issues/{group.id}/?onboarding=1",
+            f"/{org.slug}/{project.id}/?onboarding=1",
             SERVER_NAME=f"{org.slug}.testserver",
             follow=True,
         )
