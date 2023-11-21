@@ -20,12 +20,14 @@ export interface OnDemandControlContext {
   isControlEnabled?: boolean;
 }
 
-const [_OnDemandControlProvider, useOnDemandControl, _context] =
+const [_OnDemandControlProvider, _useOnDemandControl, _context] =
   createDefinedContext<OnDemandControlContext>({
     name: 'OnDemandControlContext',
+    strict: false,
   });
 
 export const OnDemandControlConsumer = _context.Consumer;
+export const useOnDemandControl = _useOnDemandControl;
 
 export function OnDemandControlProvider({
   children,
@@ -130,11 +132,15 @@ export const shouldUseOnDemandMetrics = (
 
 export function ToggleOnDemand() {
   const org = useOrganization();
-  const onDemand = useOnDemandControl();
+  const onDemand = _useOnDemandControl();
 
   const toggle = useCallback(() => {
     onDemand.setForceOnDemand(!onDemand.forceOnDemand);
   }, [onDemand]);
+
+  if (!onDemand) {
+    return null;
+  }
 
   if (!org.features.includes('on-demand-metrics-extraction-experimental')) {
     return null;
