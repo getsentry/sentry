@@ -12,6 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   EMPTY_OPTION_VALUE,
   EmptyContainer,
@@ -140,6 +141,7 @@ export function DomainSelector({
           query: {
             ...location.query,
             [SpanMetricsField.SPAN_DOMAIN]: newValue.value,
+            [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
       }}

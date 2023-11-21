@@ -665,6 +665,11 @@ class BuildSnqlQueryTest(TestCase):
                     ]
                 ),
                 Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
+                Condition(
+                    Column(name="project_id", entity=g_entity),
+                    Op.IN,
+                    [self.project.id],
+                ),
             ],
             expected_match=Join([Relationship(entity, "attributes", g_entity)]),
         )
