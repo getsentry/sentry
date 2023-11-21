@@ -64,10 +64,6 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         return self.store_event(data, project_id=project_id)
 
-    def test_404s_without_feature_flag(self):
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == 404, response.content
-
     def test_transaction_name_required(self):
         response = self.client.get(
             self.url,
