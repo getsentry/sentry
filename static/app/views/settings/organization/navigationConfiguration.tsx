@@ -1,3 +1,4 @@
+import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import {NavigationSection} from 'sentry/views/settings/types';
 
@@ -88,6 +89,15 @@ const organizationNavigation: NavigationSection[] = [
           'Manage organization-level integrations, including: Slack, Github, Bitbucket, Jira, and Azure DevOps'
         ),
         id: 'integrations',
+        recordAnalytics: true,
+      },
+      {
+        path: `${pathPrefix}/early-features/`,
+        title: t('Early Features'),
+        description: t('Manage early access features'),
+        badge: () => <FeatureBadge type="new" />,
+        show: ({isSelfHosted}) => isSelfHosted || false,
+        id: 'early-features',
         recordAnalytics: true,
       },
     ],
