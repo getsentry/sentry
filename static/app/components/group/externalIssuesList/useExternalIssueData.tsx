@@ -1,33 +1,22 @@
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
+import {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
 import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
 import useFetchSentryAppData from 'sentry/components/group/externalIssuesList/useFetchSentryAppData';
 import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
-import PluginActions from 'sentry/components/group/pluginActions';
-import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
-import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Group, GroupIntegration, Project, SentryAppComponent} from 'sentry/types';
+import type {Group, GroupIntegration, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
+import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
 
 type Props = {
-  components: SentryAppComponent[];
   event: Event;
   group: Group;
   project: Project;
 };
 
-type ExternalIssueComponent = {
-  key: string;
-  render: () => React.ReactNode;
-  disabled?: boolean;
-  hasLinkedIssue?: boolean;
-};
-
-export default function useExternalIssueData({components, group, event, project}: Props) {
+export default function useExternalIssueData({group, event, project}: Props) {
   const organization = useOrganization();
   const {
     data: integrations,
@@ -37,6 +26,7 @@ export default function useExternalIssueData({components, group, event, project}
   useFetchSentryAppData({group, organization});
   const issueTrackingFilter = useIssueTrackingFilter();
 
+  const components = useSentryAppComponentsStore({componentType: 'issue-link'});
   const externalIssues = useLegacyStore(ExternalIssueStore);
   const sentryAppInstallations = useLegacyStore(SentryAppInstallationStore);
 
@@ -63,16 +53,15 @@ export default function useExternalIssueData({components, group, event, project}
 
     return [...activeIntegrationsByProvider.entries()].map(
       ([provider, configurations]) => ({
+        type: 'integration-issue',
         key: provider,
         disabled: false,
         hasLinkedIssue: configurations.some(x => x.externalIssues.length > 0),
-        render: () => (
-          <ExternalIssueActions
-            configurations={configurations}
-            group={group}
-            onChange={() => refetchIntegrations()}
-          />
-        ),
+        props: {
+          configurations,
+          group,
+          onChange: refetchIntegrations,
+        },
       })
     );
   };
@@ -92,22 +81,20 @@ export default function useExternalIssueData({components, group, event, project}
         const issue = (externalIssues || []).find(i => i.serviceType === sentryApp.slug);
 
         return {
+          type: 'sentry-app-issue',
           key: sentryApp.slug,
           disabled,
           hasLinkedIssue: !!issue,
-          render: () => (
-            <ErrorBoundary key={sentryApp.slug} mini>
-              <SentryAppExternalIssueActions
-                group={group}
-                organization={organization}
-                event={event}
-                sentryAppComponent={component}
-                sentryAppInstallation={installation}
-                externalIssue={issue}
-                disabled={disabled}
-              />
-            </ErrorBoundary>
-          ),
+          props: {
+            sentryApp,
+            group,
+            organization,
+            event,
+            sentryAppComponent: component,
+            sentryAppInstallation: installation,
+            externalIssue: issue,
+            disabled,
+          },
         };
       })
       .filter((x): x is ExternalIssueComponent => x !== null);
@@ -115,24 +102,26 @@ export default function useExternalIssueData({components, group, event, project}
 
   const renderPluginIssues = (): ExternalIssueComponent[] => {
     return group.pluginIssues?.map((plugin, i) => ({
+      type: 'plugin-issue',
       key: `plugin-issue-${i}`,
       disabled: false,
       hasLinkedIssue: true,
-      render: () => <PluginActions group={group} project={project} plugin={plugin} />,
+      props: {
+        group,
+        project,
+        plugin,
+      },
     }));
   };
 
   const renderPluginActions = (): ExternalIssueComponent[] => {
     return (
       group.pluginActions?.map((plugin, i) => ({
+        type: 'plugin-action',
         key: `plugin-action-${i}`,
         disabled: false,
         hasLinkedIssue: false,
-        render: () => (
-          <IssueSyncListElement externalIssueLink={plugin[1]}>
-            {plugin[0]}
-          </IssueSyncListElement>
-        ),
+        props: {plugin},
       })) ?? []
     );
   };

@@ -9,8 +9,12 @@ import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
 
 import ExternalIssuesList from '.';
+
+jest.mock('sentry/utils/useSentryAppComponentsStore');
+const mockUseSentryAppComponentsStore = jest.mocked(useSentryAppComponentsStore);
 
 describe('ExternalIssuesList', () => {
   const event = Event();
@@ -38,9 +42,10 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
+    mockUseSentryAppComponentsStore.mockReturnValue([]);
     render(
       <ExternalIssuesList
-        components={[]}
+        // components={[]}
         group={group}
         project={project}
         event={event}
@@ -65,9 +70,10 @@ describe('ExternalIssuesList', () => {
         app: component.sentryApp,
       }),
     ]);
+    mockUseSentryAppComponentsStore.mockReturnValue([component]);
     render(
       <ExternalIssuesList
-        components={[component]}
+        // components={[component]}
         group={group}
         project={project}
         event={event}
@@ -103,9 +109,10 @@ describe('ExternalIssuesList', () => {
       body: [],
     });
     const component = SentryAppComponent();
+    mockUseSentryAppComponentsStore.mockReturnValue([component]);
     render(
       <ExternalIssuesList
-        components={[component]}
+        // components={[component]}
         group={group}
         project={project}
         event={event}
