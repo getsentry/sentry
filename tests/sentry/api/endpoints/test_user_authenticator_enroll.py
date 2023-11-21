@@ -268,7 +268,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test(stable=True, include_monolith_run=True)
 class AcceptOrganizationInviteTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
