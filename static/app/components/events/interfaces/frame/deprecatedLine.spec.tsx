@@ -12,7 +12,6 @@ describe('Frame - Line', function () {
     absPath: null,
     colNo: null,
     context: [],
-    errors: null,
     filename: null,
     function: null,
     inApp: false,
@@ -196,7 +195,6 @@ describe('Frame - Line', function () {
         colNo: null,
         inApp: false,
         trust: null,
-        errors: null,
         vars: null,
       };
 
