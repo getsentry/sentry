@@ -640,7 +640,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def record_pending_first_event_onboarding_task(
         self, *, organization_id: str, project_id: str, user_id: Optional[int]
     ) -> None:
-        project = Project.objects.get(organization_id=organization_id, project_id=project_id)
+        project = Project.objects.get(organization_id=organization_id, id=project_id)
 
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
