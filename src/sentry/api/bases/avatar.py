@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Generic, TypeVar
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -9,6 +9,8 @@ from rest_framework.response import Response
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
 from sentry.models.avatars.base import AvatarBase
+
+AvatarT = TypeVar("AvatarT", bound=AvatarBase)
 
 
 class AvatarSerializer(serializers.Serializer):
@@ -35,10 +37,13 @@ class AvatarSerializer(serializers.Serializer):
         return attrs
 
 
-class AvatarMixin:
+class AvatarMixin(Generic[AvatarT]):
     object_type: ClassVar[str]
-    model: ClassVar[type[AvatarBase]]
-    serializer_cls = AvatarSerializer
+    serializer_cls: ClassVar[type[serializers.Serializer]] = AvatarSerializer
+
+    @property
+    def model(self) -> type[AvatarT]:
+        raise NotImplementedError
 
     def get(self, request: Request, **kwargs: Any) -> Response:
         obj = kwargs.pop(self.object_type, None)
@@ -50,7 +55,7 @@ class AvatarMixin:
     def get_avatar_filename(self, obj):
         return f"{obj.id}.png"
 
-    def parse(self, request: Request, **kwargs: Any) -> tuple[Any, AvatarSerializer]:
+    def parse(self, request: Request, **kwargs: Any) -> tuple[Any, serializers.Serializer]:
         obj = kwargs.pop(self.object_type, None)
 
         serializer = self.serializer_cls(
@@ -58,7 +63,7 @@ class AvatarMixin:
         )
         return (obj, serializer)
 
-    def save_avatar(self, obj: Any, serializer: AvatarSerializer, **kwargs: Any) -> AvatarBase:
+    def save_avatar(self, obj: Any, serializer: serializers.Serializer, **kwargs: Any) -> AvatarT:
         result = serializer.validated_data
 
         return self.model.save_avatar(

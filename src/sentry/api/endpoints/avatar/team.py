@@ -6,7 +6,7 @@ from sentry.models.avatars.team_avatar import TeamAvatar
 
 
 @region_silo_endpoint
-class TeamAvatarEndpoint(AvatarMixin, TeamEndpoint):
+class TeamAvatarEndpoint(AvatarMixin[TeamAvatar], TeamEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,

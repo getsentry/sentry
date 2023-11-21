@@ -21,8 +21,6 @@ def get_user_avatar_url(user: User | RpcUser, size: int = 20) -> str:
         except UserAvatar.DoesNotExist:
             return ""
     elif user.avatar:
-        if user.avatar is None:
-            return ""
         ident = user.avatar.ident
     else:
         return ""
