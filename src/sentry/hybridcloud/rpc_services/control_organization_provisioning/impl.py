@@ -155,6 +155,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
         with outbox_context(
             transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
         ):
+            # TODO @GabeVillalobos: add email/user_id pair to be able to check for idempotency
             org_slug_res = OrganizationSlugReservation(
                 slug=slug,
                 organization_id=org_id,
