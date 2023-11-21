@@ -821,7 +821,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
                 external_id="TXXXXXXX1",
                 metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
             )
-        self.integration.add_organization(self.organization, self.user)
+            self.integration.add_organization(self.organization, self.user)
         test_params = self.valid_params.copy()
         test_params["triggers"] = [
             {
