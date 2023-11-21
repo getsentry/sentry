@@ -1386,6 +1386,31 @@ if os.environ.get("OPENAPIGENERATE", False):
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
+SENTRY_EARLY_FEATURES = {
+    "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
+    "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
+    "organizations:anr-analyze-frames": "Enable anr frame analysis",
+    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
+    "organizations:device-classification": "Enable device.class as a selectable column",
+    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
+    "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
+    "organizations:performance-new-trends": "Enable new trends",
+    "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
+    "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
+    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
+    "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
+    "organizations:integrations-opsgenie-migration": "Enable one-click migration from Opsgenie plugin",
+    "organizations:integrations-gh-invite": "Enables inviting new members based on GitHub commit activity",
+    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
+    "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
+    "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
+    "organizations:performance-span-histogram-view": "Enable histogram view in span details",
+    "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
+    "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
+    "organizations:anr-improvements": "Enable anr improvements ui",
+    "organizations:source-maps-debugger-blue-thunder-edition": "Enable source maps debugger",
+}
+
 SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables user registration.
     "auth:register": True,
