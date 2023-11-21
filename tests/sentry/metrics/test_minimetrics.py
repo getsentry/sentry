@@ -309,3 +309,17 @@ def test_unit_is_correctly_propagated_for_distribution(sentry_sdk, unit, expecte
 
     backend.distribution(**params)
     assert sentry_sdk.metrics.distribution.call_args.kwargs == {**params, "unit": expected_unit}
+
+
+@pytest.mark.parametrize(
+    "unit,default,expected_result",
+    [
+        (None, None, "none"),
+        (None, "my_default", "my_default"),
+        ("second", None, "second"),
+        ("second", "my_default", "second"),
+    ],
+)
+def test_to_minimetrics_unit(unit, default, expected_result):
+    result = MiniMetricsMetricsBackend._to_minimetrics_unit(unit, default)
+    assert result == expected_result
