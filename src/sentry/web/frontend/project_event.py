@@ -4,9 +4,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
-from sentry.web.frontend.base import ProjectView
+from sentry.web.frontend.base import ProjectView, region_silo_view
 
 
+@region_silo_view
 class ProjectEventRedirect(ProjectView):
     required_scope = "event:read"
 
