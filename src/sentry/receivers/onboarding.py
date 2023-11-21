@@ -25,7 +25,6 @@ from sentry.signals import (
     event_processed,
     first_cron_checkin_received,
     first_cron_monitor_created,
-    first_event_pending,
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
@@ -100,17 +99,6 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
         )
-
-
-@first_event_pending.connect(weak=False)
-def record_raven_installed(project, user, **kwargs):
-    OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=OnboardingTask.FIRST_EVENT,
-        status=OnboardingTaskStatus.PENDING,
-        user_id=user.id if user else None,
-        project_id=project.id,
-    )
 
 
 @first_event_received.connect(weak=False)

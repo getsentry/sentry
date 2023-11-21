@@ -122,7 +122,6 @@ event_accepted = BetterSignal()  # ["ip", "data", "project"]
 
 # Organization Onboarding Signals
 project_created = BetterSignal()  # ["project", "user", "user_id", "default_rules"]
-first_event_pending = BetterSignal()  # ["project", "user"]
 
 first_event_received = BetterSignal()  # ["project", "event"]
 # We use signal for consistency with other places but

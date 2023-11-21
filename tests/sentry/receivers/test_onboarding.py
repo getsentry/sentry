@@ -18,7 +18,6 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import (
     alert_rule_created,
     event_processed,
-    first_event_pending,
     first_event_received,
     first_replay_received,
     first_transaction_received,
@@ -59,30 +58,6 @@ class OrganizationOnboardingTaskTest(TestCase):
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization, task=OnboardingTask.FIRST_EVENT
         )
-        assert task.status == OnboardingTaskStatus.COMPLETE
-        assert task.project_id == project.id
-        assert task.date_completed == project.first_event
-
-    def test_existing_pending_task(self):
-        now = django_timezone.now()
-        project = self.create_project(first_event=now)
-
-        first_event_pending.send(project=project, user=self.user, sender=type(project))
-
-        task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization, task=OnboardingTask.FIRST_EVENT
-        )
-
-        assert task.status == OnboardingTaskStatus.PENDING
-        assert task.project_id == project.id
-
-        event = self.store_event(data={}, project_id=project.id)
-        first_event_received.send(project=project, event=event, sender=type(project))
-
-        task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization, task=OnboardingTask.FIRST_EVENT
-        )
-
         assert task.status == OnboardingTaskStatus.COMPLETE
         assert task.project_id == project.id
         assert task.date_completed == project.first_event
@@ -169,18 +144,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             organization=project.organization,
             task=OnboardingTask.FIRST_PROJECT,
             status=OnboardingTaskStatus.COMPLETE,
-        )
-        assert task is not None
-
-    def test_first_event_pending(self):
-        now = django_timezone.now()
-        project = self.create_project(first_event=now)
-        first_event_pending.send(project=project, user=self.user, sender=type(project))
-
-        task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization,
-            task=OnboardingTask.FIRST_EVENT,
-            status=OnboardingTaskStatus.PENDING,
         )
         assert task is not None
 

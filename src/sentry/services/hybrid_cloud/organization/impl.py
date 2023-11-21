@@ -623,7 +623,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
 
-    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+    def get_organization_owner_members(
+        self, *, organization_id: int
+    ) -> List[RpcOrganizationMember]:
         org: Organization = Organization.objects.get(id=organization_id)
         owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
 
