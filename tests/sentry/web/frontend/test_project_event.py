@@ -2,6 +2,7 @@ from django.urls import reverse
 
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -30,6 +31,19 @@ class ProjectEventTest(SnubaTestCase, TestCase):
         self.assertRedirects(
             resp,
             f"/organizations/{self.org.slug}/issues/{self.event.group_id}/events/{self.event.event_id}/",
+        )
+
+    @with_feature("organizations:customer-domains")
+    def test_redirect_to_event_customer_domain(self):
+        resp = self.client.get(
+            reverse(
+                "sentry-project-event-redirect",
+                args=[self.org.slug, self.project.slug, self.event.event_id],
+            )
+        )
+        assert (
+            resp["Location"]
+            == f"http://{self.org.slug}.testserver/issues/{self.event.group_id}/events/{self.event.event_id}/"
         )
 
     def test_event_not_found(self):
