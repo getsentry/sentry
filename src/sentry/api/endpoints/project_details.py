@@ -46,17 +46,12 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import has_alert_integration
-from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.tasks.recap_servers import (
     RECAP_SERVER_TOKEN_OPTION,
     RECAP_SERVER_URL_OPTION,
     poll_project_recap_server,
 )
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -94,10 +89,6 @@ class DynamicSamplingBiasSerializer(serializers.Serializer):
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField(
         help_text="Enables starring the project within the projects tab. Can be updated with **`project:read`** permission.",
-        required=False,
-    )
-    isSubscribed = serializers.BooleanField(
-        help_text="Subscribes the member for notifications related to the project. Can be updated with **`project:read`** permission.",
         required=False,
     )
 
@@ -551,7 +542,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Update various attributes and configurable settings for the given project.
 
         Note that solely having the **`project:read`** scope restricts updatable settings to
-        `isBookmarked` and `isSubscribed`.
+        `isBookmarked`.
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
@@ -746,22 +737,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("allowedDomains"):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
-
-        if "isSubscribed" in result:
-            logger.info(
-                "project.edit.subscribed",
-                extra={
-                    "project_id": project.id,
-                    "user_id": request.user.id,
-                },
-            )
-            notifications_service.update_settings(
-                external_provider=ExternalProviders.EMAIL,
-                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-                setting_option=get_option_value_from_boolean(result.get("isSubscribed")),
-                actor=RpcActor(id=request.user.id, actor_type=ActorType.USER),
-                project_id=project.id,
-            )
 
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])

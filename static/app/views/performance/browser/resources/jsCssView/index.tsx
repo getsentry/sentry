@@ -27,7 +27,11 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
 } = BrowserStarfishFields;
 
-export const DEFAULT_RESOURCE_TYPES = ['resource.script', 'resource.css'];
+export const DEFAULT_RESOURCE_TYPES = [
+  'resource.script',
+  'resource.css',
+  'resource.font',
+];
 
 type Option = {
   label: string;
@@ -71,6 +75,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
     {value: '', label: 'All'},
     {value: 'resource.script', label: `${t('JavaScript')} (.js)`},
     {value: 'resource.css', label: `${t('Stylesheet')} (.css)`},
+    {value: 'resource.font', label: `${t('Font')} (.woff, .woff2, .ttf, .otf, .eot)`},
   ];
   return (
     <SelectControlWithProps
