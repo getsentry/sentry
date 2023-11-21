@@ -1192,6 +1192,7 @@ function WidgetBuilder({
                                       organization={organization}
                                       tags={tags}
                                       dataSet={state.dataSet}
+                                      queries={state.queries}
                                     />
                                   )}
                                   {displaySortByStep && (

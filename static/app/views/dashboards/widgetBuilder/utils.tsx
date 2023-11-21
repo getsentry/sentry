@@ -1,9 +1,15 @@
+import {useEffect, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
 import {t} from 'sentry/locale';
-import {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
+import {
+  Organization,
+  OrganizationSummary,
+  SelectValue,
+  TagCollection,
+} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
@@ -16,6 +22,9 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import useApi from 'sentry/utils/useApi';
+import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
   Widget,
@@ -406,3 +415,55 @@ export function getResultsLimit(numQueries: number, numYAxes: number) {
 export function getIsTimeseriesChart(displayType: DisplayType) {
   return [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType);
 }
+
+export const useTableFieldOptions = (
+  organization: Organization,
+  tags: TagCollection,
+  widgetType?: WidgetType
+) => {
+  const {customMeasurements} = useCustomMeasurements();
+  const api = useApi();
+  const datasetConfig = getDatasetConfig(widgetType);
+
+  const [fieldOptions, setFieldOptions] = useState(
+    datasetConfig.getTableFieldOptions(organization, tags, customMeasurements, api)
+  );
+
+  useEffect(() => {
+    const fetchTableFieldOptions = async () => {
+      const options = await datasetConfig.getTableFieldOptions(
+        organization,
+        tags,
+        customMeasurements,
+        api
+      );
+      setFieldOptions(options);
+    };
+
+    fetchTableFieldOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [widgetType]);
+
+  return fieldOptions;
+};
+
+export const useGroupByOptions = (organization, tags, widgetType, queries) => {
+  const [groupByOptions, setGroupByOptions] = useState<Record<string, any>>({});
+  const {getGroupByFieldOptions} = getDatasetConfig(widgetType);
+  const api = useApi();
+
+  useEffect(() => {
+    const fetchGroupByFieldOptions = async () => {
+      if (getGroupByFieldOptions) {
+        const options = await getGroupByFieldOptions(organization, tags, api, queries);
+        setGroupByOptions(options);
+      } else {
+        setGroupByOptions({});
+      }
+    };
+
+    fetchGroupByFieldOptions();
+  }, [api, organization, tags, getGroupByFieldOptions, queries]);
+
+  return groupByOptions;
+};

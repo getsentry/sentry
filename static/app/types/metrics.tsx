@@ -14,7 +14,7 @@ export type MetricsOperation =
   | 'p99';
 
 export type MetricsApiRequestMetric = {
-  field: string;
+  field: string | string[];
   query: string;
   groupBy?: string[];
 };

@@ -476,3 +476,16 @@ export function fieldToMri(field: string) {
     op: parsedFunction.name,
   };
 }
+
+export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
+  const uniqueOperations = [
+    ...new Set(metrics.flatMap(field => field.operations).filter(isAllowedOp)),
+  ].sort();
+
+  const groupedByOp = uniqueOperations.reduce((result, op) => {
+    result[op] = metrics.filter(field => field.operations.includes(op));
+    return result;
+  }, {});
+
+  return groupedByOp;
+}

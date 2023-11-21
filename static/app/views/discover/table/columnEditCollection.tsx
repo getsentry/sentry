@@ -572,6 +572,9 @@ class ColumnEditCollection extends Component<Props, State> {
             })
           );
 
+    // TODO(ddm): support multiple columns and equations, then remove this check
+    const showActionButtons = source !== WidgetType.METRICS;
+
     return (
       <div className={className}>
         {this.renderGhost({gridColumns, singleColumn})}
@@ -609,32 +612,34 @@ class ColumnEditCollection extends Component<Props, State> {
             gridColumns,
           });
         })}
-        <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-          <Actions gap={1} showAliasField={showAliasField}>
-            <Button
-              size="sm"
-              aria-label={t('Add a Column')}
-              onClick={this.handleAddColumn}
-              title={title}
-              disabled={!canAdd}
-              icon={<IconAdd isCircled size="xs" />}
-            >
-              {t('Add a Column')}
-            </Button>
-            {source !== WidgetType.ISSUE && source !== WidgetType.RELEASE && (
+        {showActionButtons && (
+          <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
+            <Actions gap={1} showAliasField={showAliasField}>
               <Button
                 size="sm"
-                aria-label={t('Add an Equation')}
-                onClick={this.handleAddEquation}
+                aria-label={t('Add a Column')}
+                onClick={this.handleAddColumn}
                 title={title}
                 disabled={!canAdd}
                 icon={<IconAdd isCircled size="xs" />}
               >
-                {t('Add an Equation')}
+                {t('Add a Column')}
               </Button>
-            )}
-          </Actions>
-        </RowContainer>
+              {source !== WidgetType.ISSUE && source !== WidgetType.RELEASE && (
+                <Button
+                  size="sm"
+                  aria-label={t('Add an Equation')}
+                  onClick={this.handleAddEquation}
+                  title={title}
+                  disabled={!canAdd}
+                  icon={<IconAdd isCircled size="xs" />}
+                >
+                  {t('Add an Equation')}
+                </Button>
+              )}
+            </Actions>
+          </RowContainer>
+        )}
       </div>
     );
   }
