@@ -1,4 +1,3 @@
-import functools
 import logging
 import re
 
@@ -34,26 +33,38 @@ throwaways = frozenset(
 )
 
 
+def get_JSONEncoder(skipkeys=False):
+    return json.JSONEncoder(
+        separators=(",", ":"),
+        ignore_nan=True,
+        skipkeys=skipkeys,
+        ensure_ascii=True,
+        check_circular=True,
+        allow_nan=True,
+        indent=None,
+        encoding="utf-8",
+        default=_json_fallback_handler,
+    )
+
+
+JSONEncoder_skipkeys = get_JSONEncoder(skipkeys=True)
+JSONEncoder_no_skipkeys = get_JSONEncoder(skipkeys=False)
+
+
 class JSONRenderer:
-    @functools.cached_property
-    def JSONEncoder(self):
+    def __call__(self, logger, name, event_dict):
         # importing inside of the function to avoid circular imports
         from django.conf import settings  # NOQA isort:skip # pylint:disable=import-outside-toplevel
 
-        return json.JSONEncoder(
-            separators=(",", ":"),
-            ignore_nan=True,
-            skipkeys=settings.IS_PROD,  # in Production, we want to skip non-serializable keys, rather than raise an exception
-            ensure_ascii=True,
-            check_circular=True,
-            allow_nan=True,
-            indent=None,
-            encoding="utf-8",
-            default=_json_fallback_handler,
-        )
-
-    def __call__(self, logger, name, event_dict):
-        return self.JSONEncoder.encode(event_dict)
+        try:
+            return JSONEncoder_no_skipkeys.encode(event_dict)
+        except Exception:
+            logging.warning("Failed to serialize event", exc_info=True)
+            # in Production, we want to skip non-serializable keys, rather than raise an exception
+            if settings.IS_PROD:
+                return JSONEncoder_skipkeys.encode(event_dict)
+            else:
+                raise
 
 
 class HumanRenderer:
