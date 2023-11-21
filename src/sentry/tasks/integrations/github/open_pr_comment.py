@@ -50,14 +50,14 @@ You modified these files in this pull request and we noticed these issues associ
 ISSUE_TABLE_TEMPLATE = """📄 **{filename}**
 
 | Issue  | Additional Info |
-| :---------: | :--------: |
+| :--------- | :-------- |
 {issue_rows}"""
 
 ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
 <summary><b>📄 {filename} (Click to Expand)</b></summary>
 
 | Issue  | Additional Info |
-| :---------: | :--------: |
+| :--------- | :-------- |
 {issue_rows}
 </details>"""
 

@@ -431,7 +431,7 @@ You modified these files in this pull request and we noticed these issues associ
 📄 **tests/sentry/tasks/integrations/github/test_open_pr_comment.py**
 
 | Issue  | Additional Info |
-| :---------: | :--------: |
+| :--------- | :-------- |
 | ‼️ [**file1 0**](http://testserver/organizations/baz/issues/0/?referrer=github-open-pr-bot) subtitle0 | `Handled:` **True** `Event Count:` **5k** `Users:` **5k** |
 | ‼️ [**file1 1**](http://testserver/organizations/baz/issues/1/?referrer=github-open-pr-bot) subtitle1 | `Handled:` **True** `Event Count:` **4k** `Users:` **4k** |
 | ‼️ [**file1 2**](http://testserver/organizations/baz/issues/2/?referrer=github-open-pr-bot) subtitle2 | `Handled:` **True** `Event Count:` **3k** `Users:` **3k** |
@@ -441,7 +441,7 @@ You modified these files in this pull request and we noticed these issues associ
 <summary><b>📄 tests/sentry/tasks/integrations/github/test_pr_comment.py (Click to Expand)</b></summary>
 
 | Issue  | Additional Info |
-| :---------: | :--------: |
+| :--------- | :-------- |
 | ‼️ [**file1 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) subtitle0 | `Handled:` **False** `Event Count:` **20k** `Users:` **20k** |
 | ‼️ [**file1 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) subtitle1 | `Handled:` **False** `Event Count:` **10k** `Users:` **10k** |
 </details>
