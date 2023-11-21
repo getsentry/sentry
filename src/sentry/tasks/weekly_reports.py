@@ -647,7 +647,17 @@ def fetch_key_performance_issue_groups(ctx):
 def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
     # Specify a sentry user to send this email.
     if email_override:
-        send_email(ctx, target_user, dry_run=dry_run, email_override=email_override)
+        try:
+            send_email(ctx, target_user.id, dry_run=dry_run, email_override=email_override)
+        except AttributeError:
+            logger.exception(
+                "deliver_reports.email_override",
+                extra={
+                    "dry_run": dry_run,
+                    "target_user": json.dumps(target_user),
+                    "email_override": email_override,
+                },
+            )
     else:
         user_list = list(
             OrganizationMember.objects.filter(
