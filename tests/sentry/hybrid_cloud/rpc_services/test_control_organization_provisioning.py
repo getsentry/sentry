@@ -13,6 +13,7 @@ from sentry.hybridcloud.rpc_services.control_organization_provisioning.impl impo
     InvalidOrganizationProvisioningException,
 )
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
@@ -85,6 +86,8 @@ class TestControlOrganizationProvisioningBase(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             organization = Organization.objects.get(id=rpc_org_slug.organization_id)
             owner_id = organization.default_owner_id
+            owner = OrganizationMember.objects.get(organization=organization)
+            assert owner.role == "owner"
 
         assert org_slug_reservation.organization_id == organization.id
         assert rpc_org_slug.slug == org_slug_reservation.slug == organization.slug
