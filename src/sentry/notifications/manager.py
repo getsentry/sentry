@@ -140,7 +140,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         organization: Organization | int | None = None,
         actor: RpcActor | None = None,
         skip_provider_updates: bool = False,
-        organization_id_for_team: Optional[int] = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -185,7 +184,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 team_id=team_id,
                 project=project,
                 organization=organization,
-                organization_id_for_team=organization_id_for_team,
             )
         else:
             if not validate(type, value):
