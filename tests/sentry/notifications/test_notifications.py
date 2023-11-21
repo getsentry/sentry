@@ -18,6 +18,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
@@ -90,15 +91,16 @@ class ActivityNotificationTest(APITestCase):
             scopes=[],
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
-        url = "/api/0/users/me/notification-settings/"
-        data = {
-            "workflow": {"user": {"me": {"email": "always", "slack": "always"}}},
-            "deploy": {"user": {"me": {"email": "always", "slack": "always"}}},
-            "alerts": {"user": {"me": {"email": "always", "slack": "always"}}},
-        }
         self.login_as(self.user)
-        response = self.client.put(url, format="json", data=data)
-        assert response.status_code == 204, response.content
+        # modify settings
+        for type in ["workflow", "deploy", "alerts"]:
+            NotificationSettingOption.objects.create(
+                user_id=self.user.id,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                type=type,
+                value="always",
+            )
 
         responses.add(
             method=responses.POST,
