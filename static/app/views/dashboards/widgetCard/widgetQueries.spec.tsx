@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFilters} from 'sentry/types';
+import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -18,7 +19,9 @@ describe('Dashboards > WidgetQueries', function () {
 
   const renderWithProviders = component =>
     render(
-      <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+      <MetricsResultsMetaProvider>
+        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+      </MetricsResultsMetaProvider>
     );
 
   const multipleQueryWidget = {
@@ -682,31 +685,33 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Simulate a re-render with a new query alias
     rerender(
-      <MEPSettingProvider forceTransactions={false}>
-        <WidgetQueries
-          api={new MockApiClient()}
-          widget={{
-            ...lineWidget,
-            queries: [
-              {
-                conditions: 'event.type:error',
-                fields: ['count()'],
-                aggregates: ['count()'],
-                columns: [],
-                name: 'this query alias changed',
-                orderby: '',
-              },
-            ],
-          }}
-          organization={initialData.organization}
-          selection={selection}
-        >
-          {props => {
-            childProps = props;
-            return <div data-test-id="child" />;
-          }}
-        </WidgetQueries>
-      </MEPSettingProvider>
+      <MetricsResultsMetaProvider>
+        <MEPSettingProvider forceTransactions={false}>
+          <WidgetQueries
+            api={new MockApiClient()}
+            widget={{
+              ...lineWidget,
+              queries: [
+                {
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                  name: 'this query alias changed',
+                  orderby: '',
+                },
+              ],
+            }}
+            organization={initialData.organization}
+            selection={selection}
+          >
+            {props => {
+              childProps = props;
+              return <div data-test-id="child" />;
+            }}
+          </WidgetQueries>
+        </MEPSettingProvider>
+      </MetricsResultsMetaProvider>
     );
 
     // Did not re-query
