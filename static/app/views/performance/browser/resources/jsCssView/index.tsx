@@ -17,6 +17,7 @@ import {
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {ModuleName} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 import {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 
@@ -27,7 +28,11 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
 } = BrowserStarfishFields;
 
-export const DEFAULT_RESOURCE_TYPES = ['resource.script', 'resource.css'];
+export const DEFAULT_RESOURCE_TYPES = [
+  'resource.script',
+  'resource.css',
+  'resource.font',
+];
 
 type Option = {
   label: string;
@@ -71,6 +76,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
     {value: '', label: 'All'},
     {value: 'resource.script', label: `${t('JavaScript')} (.js)`},
     {value: 'resource.css', label: `${t('Stylesheet')} (.css)`},
+    {value: 'resource.font', label: `${t('Font')} (.woff, .woff2, .ttf, .otf, .eot)`},
   ];
   return (
     <SelectControlWithProps
@@ -83,6 +89,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
           query: {
             ...location.query,
             [RESOURCE_TYPE]: newValue?.value,
+            [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
       }}
@@ -154,6 +161,7 @@ export function TransactionSelector({
           query: {
             ...location.query,
             [TRANSACTION]: newValue?.value,
+            [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
       }}
