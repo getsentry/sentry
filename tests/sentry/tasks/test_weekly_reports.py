@@ -636,16 +636,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         )  # create an extra project to ensure our email only gets the user's project
 
         # fill with data so report not skipped
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "message",
-                "timestamp": iso_format(two_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
@@ -697,16 +687,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         self.create_project(organization=self.organization)
 
         # fill with data so report not skipped
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "message",
-                "timestamp": iso_format(two_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
@@ -754,16 +734,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         proj = self.create_project(organization=org)
 
         # fill with data so report not skipped
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "message",
-                "timestamp": iso_format(two_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-                "fingerprint": ["group-1"],
-            },
-            project_id=proj.id,
-        )
         self.store_outcomes(
             {
                 "org_id": org.id,
