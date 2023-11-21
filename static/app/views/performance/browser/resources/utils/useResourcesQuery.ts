@@ -45,13 +45,15 @@ export const getResourcesEventViewQuery = (
     ...(resourceFilters.transaction
       ? [`transaction:"${resourceFilters.transaction}"`]
       : []),
-    ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
     ...getDomainFilter(resourceFilters[SPAN_DOMAIN]),
     ...(resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]
       ? [
           `${RESOURCE_RENDER_BLOCKING_STATUS}:${resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]}`,
         ]
       : [`!${RESOURCE_RENDER_BLOCKING_STATUS}:blocking`]),
+    'AND (',
+    ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
+    ')',
   ];
 };
 
@@ -145,7 +147,7 @@ export const getDomainFilter = (selectedDomain: string | undefined) => {
     return [`!has:${SPAN_DOMAIN}`];
   }
 
-  return [`${SPAN_DOMAIN}:${selectedDomain}`];
+  return [`${SPAN_DOMAIN}:"${selectedDomain}"`];
 };
 
 const SPAN_OP_FILTER = {
