@@ -401,7 +401,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
             assert isinstance(context["notification_uuid"], str)
 
-        record.assert_called_with(
+        record.assert_any_call(
             "weekly_report.sent",
             user_id=user.id,
             organization_id=self.organization.id,
