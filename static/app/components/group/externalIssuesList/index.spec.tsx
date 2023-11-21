@@ -3,6 +3,8 @@ import {Group} from 'sentry-fixture/group';
 import {JiraIntegration} from 'sentry-fixture/jiraIntegration';
 import {Organization} from 'sentry-fixture/organization';
 import {Project} from 'sentry-fixture/project';
+import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
+import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -57,9 +59,9 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
-    const component = TestStubs.SentryAppComponent();
+    const component = SentryAppComponent();
     SentryAppInstallationStore.load([
-      TestStubs.SentryAppInstallation({
+      SentryAppInstallation({
         app: component.sentryApp,
       }),
     ]);
@@ -100,7 +102,7 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
-    const component = TestStubs.SentryAppComponent();
+    const component = SentryAppComponent();
     render(
       <ExternalIssuesList
         components={[component]}

@@ -1,6 +1,3 @@
-import {Fragment} from 'react';
-
-import AlertLink from 'sentry/components/alertLink';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
 import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
@@ -9,16 +6,12 @@ import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/u
 import PluginActions from 'sentry/components/group/pluginActions';
 import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
-import Placeholder from 'sentry/components/placeholder';
-import * as SidebarSection from 'sentry/components/sidebarSection';
-import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Group, GroupIntegration, Project, SentryAppComponent} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
-import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 type Props = {
   components: SentryAppComponent[];
@@ -34,7 +27,7 @@ type ExternalIssueComponent = {
   hasLinkedIssue?: boolean;
 };
 
-function useExternalIssueData({components, group, event, project}: Props) {
+export default function useExternalIssueData({components, group, event, project}: Props) {
   const organization = useOrganization();
   const {
     data: integrations,
@@ -161,49 +154,3 @@ function useExternalIssueData({components, group, event, project}: Props) {
     actions,
   };
 }
-
-function ExternalIssueList({components, group, event, project}: Props) {
-  const organization = useOrganization();
-
-  const {isLoading, actions} = useExternalIssueData({
-    components,
-    group,
-    event,
-    project,
-  });
-
-  if (isLoading) {
-    return (
-      <SidebarSection.Wrap data-test-id="linked-issues">
-        <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
-        <SidebarSection.Content>
-          <Placeholder height="120px" />
-        </SidebarSection.Content>
-      </SidebarSection.Wrap>
-    );
-  }
-
-  return (
-    <SidebarSection.Wrap data-test-id="linked-issues">
-      <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
-      <SidebarSection.Content>
-        {actions.length ? (
-          actions.map(({render, key}) => <Fragment key={key}>{render()}</Fragment>)
-        ) : (
-          <AlertLink
-            priority="muted"
-            size="small"
-            to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
-          >
-            {t('Track this issue in Jira, GitHub, etc.')}
-          </AlertLink>
-        )}
-        {}
-      </SidebarSection.Content>
-    </SidebarSection.Wrap>
-  );
-}
-
-export default withSentryAppComponents(ExternalIssueList, {
-  componentType: 'issue-link',
-});
