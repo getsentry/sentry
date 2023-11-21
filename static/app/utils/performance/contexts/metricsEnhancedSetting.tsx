@@ -24,7 +24,6 @@ export interface MetricsEnhancedSettingContext {
 const [_MEPSettingProvider, _useMEPSettingContext, _MEPSettingContext] =
   createDefinedContext<MetricsEnhancedSettingContext>({
     name: 'MetricsEnhancedSettingContext',
-    strict: false,
   });
 
 export const MEPConsumer = _MEPSettingContext.Consumer;
