@@ -32,6 +32,8 @@ const CHART_HEIGHT = 140;
 type Props = {
   appliedFilters: ModuleFilters;
   moduleName: ModuleName;
+  eventView?: EventView;
+  extraQuery?: string[];
   spanCategory?: string;
   throughputUnit?: RateUnits;
 };
@@ -51,10 +53,14 @@ export function SpanTimeCharts({
   appliedFilters,
   spanCategory,
   throughputUnit = RateUnits.PER_MINUTE,
+  extraQuery,
 }: Props) {
   const {selection} = usePageFilters();
 
   const eventView = getEventView(moduleName, selection, appliedFilters, spanCategory);
+  if (extraQuery) {
+    eventView.query += ` ${extraQuery.join(' ')}`;
+  }
 
   const {isLoading} = useSpansQuery({
     eventView,
