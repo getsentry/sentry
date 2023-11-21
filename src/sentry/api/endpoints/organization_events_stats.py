@@ -106,6 +106,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:use-metrics-layer",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
+            "organizations:on-demand-metrics-extraction-widgets",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -253,7 +254,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 use_metrics_layer=force_metrics_layer
                 or batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=use_on_demand_metrics
-                and batch_features.get("organizations:on-demand-metrics-extraction", False),
+                and (
+                    batch_features.get("organizations:on-demand-metrics-extraction", False)
+                    or batch_features.get(
+                        "organizations:on-demand-metrics-extraction-widgets", False
+                    )
+                ),
                 on_demand_metrics_type=on_demand_metrics_type,
             )
 
