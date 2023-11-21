@@ -112,4 +112,50 @@ describe('useSpanMetricsSeries', () => {
       },
     });
   });
+
+  it('adjusts interval based on the yAxis', async () => {
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {rerender, waitForNextUpdate} = reactHooks.renderHook(
+      ({yAxis}) => useSpanMetricsSeries({}, yAxis),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          yAxis: ['avg(span.self_time)', 'spm()'],
+        },
+      }
+    );
+
+    expect(eventsRequest).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        method: 'GET',
+        query: expect.objectContaining({
+          interval: '30m',
+          yAxis: ['avg(span.self_time)', 'spm()'],
+        }),
+      })
+    );
+
+    rerender({
+      yAxis: ['p95(span.self_time)', 'spm()'],
+    });
+
+    expect(eventsRequest).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        method: 'GET',
+        query: expect.objectContaining({
+          interval: '1h',
+          yAxis: ['p95(span.self_time)', 'spm()'],
+        }),
+      })
+    );
+
+    await waitForNextUpdate();
+  });
 });
