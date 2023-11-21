@@ -119,12 +119,6 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         return super().handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request: Request, organization, **kwargs) -> HttpResponse:
-        if "project_id" in kwargs and request.GET.get("onboarding"):
-            organization_service.record_pending_first_event_onboarding_task(
-                organization_id=organization.id,
-                project_id=kwargs["project_id"],
-                user_id=request.user.id,
-            )
         request.organization = organization
         return self.handle_react(request)
 

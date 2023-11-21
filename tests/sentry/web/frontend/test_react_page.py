@@ -3,11 +3,6 @@ from fnmatch import fnmatch
 from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.models.organization import OrganizationStatus
-from sentry.models.organizationonboardingtask import (
-    OnboardingTask,
-    OnboardingTaskStatus,
-    OrganizationOnboardingTask,
-)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
@@ -370,23 +365,3 @@ class ReactPageViewTest(TestCase):
         )
         assert response.status_code == 200
         assert "Document-Policy" not in response.headers
-
-    def test_onboarding_with_project_id(self):
-        org = self.create_organization(owner=self.user)
-        project = self.create_project(organization=org)
-
-        self.login_as(self.user)
-        response = self.client.get(
-            f"/{org.slug}/{project.id}/?onboarding=1",
-            SERVER_NAME=f"{org.slug}.testserver",
-            follow=True,
-        )
-
-        assert response.status_code == 200
-        org_onboarding_task_qs = OrganizationOnboardingTask.objects.filter(organization_id=org.id)
-        assert org_onboarding_task_qs.count() == 1
-        onboarding_task = org_onboarding_task_qs.first()
-        assert onboarding_task.project_id == project.id
-        assert onboarding_task.user_id == self.user.id
-        assert onboarding_task.status == OnboardingTaskStatus.PENDING
-        assert onboarding_task.task == OnboardingTask.FIRST_EVENT

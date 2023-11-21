@@ -368,13 +368,6 @@ class OrganizationService(RpcService):
     ) -> List[RpcOrganizationMember]:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def record_pending_first_event_onboarding_task(
-        self, *, organization_id: str, project_id: str, user_id: Optional[int]
-    ) -> None:
-        pass
-
 
 class OrganizationSignalService(abc.ABC):
     @abc.abstractmethod
