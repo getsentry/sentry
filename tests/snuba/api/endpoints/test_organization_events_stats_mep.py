@@ -933,7 +933,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
 
 
 @region_silo_test
-class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
+class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandWidgets(
     MetricsEnhancedPerformanceTestCase
 ):
     endpoint = "sentry-api-0-organization-events-stats"
@@ -949,9 +949,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_slug": self.project.organization.slug},
         )
-        self.features = {
-            "organizations:performance-use-metrics": True,
-        }
+        self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
     def do_request(self, data, url=None, features=None):
         if features is None:
@@ -1155,10 +1153,72 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
         for group_count in groups:
             group, agg, row1, row2 = group_count
             row_data = response.data[group][agg]["data"][:2]
-            assert [attrs for _, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+            assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
 
             assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
             assert response.data[group]["isMetricsExtractedData"]
+
+    def test_timeseries_on_demand_with_multiple_percentiles(self):
+        field = "p75(measurements.fcp)"
+        field_two = "p75(measurements.lcp)"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
+        spec_two = OnDemandMetricSpec(
+            field=field_two, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        assert (
+            spec._query_str_for_hash
+            == "event.measurements.fcp.value;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}"
+        )
+        assert (
+            spec_two._query_str_for_hash
+            == "event.measurements.lcp.value;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}"
+        )
+
+        for count in range(0, 4):
+            self.store_on_demand_metric(
+                count * 100,
+                spec=spec,
+                timestamp=self.day_ago + timedelta(hours=1),
+            )
+            self.store_on_demand_metric(
+                count * 200.0,
+                spec=spec_two,
+                timestamp=self.day_ago + timedelta(hours=1),
+            )
+
+        yAxis = [field, field_two]
+
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": [field],
+                "query": query,
+                "yAxis": yAxis,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert response.data["p75(measurements.fcp)"]["meta"]["isMetricsExtractedData"]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"]
+        assert response.data["p75(measurements.fcp)"]["data"] == [
+            (1700474400, [{"count": 0}]),
+            (1700478000, [{"count": 225.0}]),
+        ]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsExtractedData"]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"]
+        assert response.data["p75(measurements.lcp)"]["data"] == [
+            (1700474400, [{"count": 0}]),
+            (1700478000, [{"count": 450.0}]),
+        ]
 
     def _test_is_metrics_extracted_data(
         self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
