@@ -33,7 +33,7 @@ throwaways = frozenset(
 )
 
 
-def get_JSONEncoder(skipkeys=False):
+def _get_JSONEncoder(skipkeys=False):
     return json.JSONEncoder(
         separators=(",", ":"),
         ignore_nan=True,
@@ -47,8 +47,8 @@ def get_JSONEncoder(skipkeys=False):
     )
 
 
-JSONEncoder_skipkeys = get_JSONEncoder(skipkeys=True)
-JSONEncoder_no_skipkeys = get_JSONEncoder(skipkeys=False)
+_JSONEncoder_skipkeys = _get_JSONEncoder(skipkeys=True)
+_JSONEncoder_no_skipkeys = _get_JSONEncoder(skipkeys=False)
 
 
 class JSONRenderer:
@@ -57,14 +57,14 @@ class JSONRenderer:
         from django.conf import settings  # NOQA isort:skip # pylint:disable=import-outside-toplevel
 
         try:
-            return JSONEncoder_no_skipkeys.encode(event_dict)
+            return _JSONEncoder_no_skipkeys.encode(event_dict)
         except Exception:
             logging.warning("Failed to serialize event", exc_info=True)
             # in Production, we want to skip non-serializable keys, rather than raise an exception
             if settings.DEBUG:
                 raise
             else:
-                return JSONEncoder_skipkeys.encode(event_dict)
+                return _JSONEncoder_skipkeys.encode(event_dict)
 
 
 class HumanRenderer:
