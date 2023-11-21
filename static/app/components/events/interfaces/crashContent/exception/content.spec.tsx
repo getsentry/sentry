@@ -82,7 +82,6 @@ describe('Exception Content', function () {
                       symbol: null,
                       module: '<unknown module>',
                       lineNo: null,
-                      errors: null,
                       package: null,
                       absPath:
                         'https://sentry.io/hiventy/kraken-prod/issues/438681831/?referrer=slack#',

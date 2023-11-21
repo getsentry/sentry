@@ -61,7 +61,6 @@ describe('StackTracePreview', () => {
       lineNo: 0,
       absPath: null,
       context: [],
-      errors: null,
       inApp: false,
       instructionAddr: null,
       module: null,

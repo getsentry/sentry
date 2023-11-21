@@ -366,7 +366,6 @@ function NativeFrame({
           hasContextRegisters={hasContextRegisters(registers)}
           emptySourceNotation={emptySourceNotation}
           hasAssembly={hasAssembly(frame, platform)}
-          expandable={expandable}
           isExpanded={expanded}
           registersMeta={registersMeta}
           frameMeta={frameMeta}

@@ -523,7 +523,6 @@ export class DeprecatedLine extends Component<Props, State> {
       expanded: this.state.isExpanded,
       collapsed: !this.state.isExpanded,
       'system-frame': !data.inApp,
-      'frame-errors': data.errors,
       'leads-to-app': this.leadsToApp(),
     });
     const props = {className};
@@ -541,7 +540,6 @@ export class DeprecatedLine extends Component<Props, State> {
           hasContextRegisters={hasContextRegisters(this.props.registers)}
           emptySourceNotation={this.props.emptySourceNotation}
           hasAssembly={hasAssembly(data, this.props.platform)}
-          expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
           registersMeta={this.props.registersMeta}
           frameMeta={this.props.frameMeta}

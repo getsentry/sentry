@@ -39,7 +39,6 @@ type Props = {
   registers: {[key: string]: string};
   className?: string;
   emptySourceNotation?: boolean;
-  expandable?: boolean;
   frameMeta?: Record<any, any>;
   hasAssembly?: boolean;
   hasContextRegisters?: boolean;
@@ -72,7 +71,6 @@ function Context({
   hasContextRegisters = false,
   isExpanded = false,
   hasAssembly = false,
-  expandable = false,
   emptySourceNotation = false,
   registers,
   components,
@@ -147,12 +145,6 @@ function Context({
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
       data-test-id="frame-context"
     >
-      {defined(frame.errors) && (
-        <li className={expandable ? 'expandable error' : 'error'} key="errors">
-          {frame.errors.join(', ')}
-        </li>
-      )}
-
       {frame.context &&
         contextLines.map((line, index) => {
           const isActive = activeLineNumber === line[0];

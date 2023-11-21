@@ -39,7 +39,6 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
                     colNo: null,
                     inApp: false,
                     trust: null,
-                    errors: null,
                     vars: null,
                     lock: {
                       type: LockType.BLOCKED,
@@ -89,7 +88,6 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
                     colNo: null,
                     inApp: false,
                     trust: null,
-                    errors: null,
                     vars: null,
                     lock: {
                       type: LockType.BLOCKED,
@@ -184,7 +182,6 @@ describe('anrRootCause', function () {
               colNo: null,
               inApp: false,
               trust: null,
-              errors: null,
               vars: null,
               lock: {
                 type: LockType.WAITING,
@@ -209,7 +206,6 @@ describe('anrRootCause', function () {
               colNo: null,
               inApp: false,
               trust: null,
-              errors: null,
               vars: null,
             },
           ],
