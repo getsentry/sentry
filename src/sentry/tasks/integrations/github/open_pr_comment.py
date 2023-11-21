@@ -125,7 +125,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
         )
         for issue in issues
     ]
-    pull_request_issues.sort(key=lambda k: k.event_count, reverse=True)
+    pull_request_issues.sort(key=lambda k: k.event_count or 0, reverse=True)
 
     return pull_request_issues
 
@@ -318,7 +318,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     ]
 
     top_issues_per_file = [
-        get_top_5_issues_by_count_for_file(projects, sentry_filenames)
+        get_top_5_issues_by_count_for_file(list(projects), list(sentry_filenames))
         for projects, sentry_filenames in reverse_codemappings
     ]
 
@@ -336,8 +336,8 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     comment_body = format_open_pr_comment(issue_tables)
 
     # list all issues in the comment
-    issue_list = list(itertools.chain.from_iterable(top_issues_per_file))
-    issue_list = [issue["group_id"] for issue in issue_list]
+    issue_list: List[Dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
+    issue_id_list: List[int] = [issue["group_id"] for issue in issue_list]
 
     try:
         create_or_update_comment(
@@ -347,7 +347,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             pr_key=pull_request.key,
             comment_body=comment_body,
             pullrequest_id=pull_request.id,
-            issue_list=issue_list,
+            issue_list=issue_id_list,
             comment_type=CommentType.OPEN_PR,
             metrics_base=OPEN_PR_METRICS_BASE,
         )

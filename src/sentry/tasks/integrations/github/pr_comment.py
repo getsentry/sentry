@@ -155,7 +155,7 @@ def create_or_update_comment(
     comment_body: str,
     pullrequest_id: int,
     issue_list: List[int],
-    comment_type: CommentType = CommentType.MERGED_PR,
+    comment_type: int = CommentType.MERGED_PR,
     metrics_base=MERGED_PR_METRICS_BASE,
 ):
     # client will raise ApiError if the request is not successful
