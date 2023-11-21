@@ -201,7 +201,7 @@ describe('MetricAlertDetails', () => {
     );
 
     expect(
-      await screen.findByRole('link', {name: 'Review Thresholds'})
+      await screen.findByRole('button', {name: 'Review Thresholds'})
     ).toBeInTheDocument();
   });
 });
