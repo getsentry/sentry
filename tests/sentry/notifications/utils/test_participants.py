@@ -73,7 +73,7 @@ class _ParticipantsTest(TestCase):
         slack: Iterable[int] = (),
     ) -> None:
         expected: dict[ExternalProviders, set[RpcActor]] = collections.defaultdict(set)
-        for (provider, user_ids) in [
+        for provider, user_ids in [
             (ExternalProviders.EMAIL, email),
             (ExternalProviders.SLACK, slack),
         ]:
@@ -319,7 +319,6 @@ class GetSendToOwnersTest(_ParticipantsTest):
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
                 team_id=self.team2.id,
-                organization_id_for_team=self.organization.id,
             )
 
             self.integration.add_organization(self.project.organization, self.user)
