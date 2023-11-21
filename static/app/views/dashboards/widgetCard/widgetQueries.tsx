@@ -171,7 +171,7 @@ function WidgetQueries({
     setIsMetricsExtractedData?.(
       widget,
       isSeriesMetricsExtractedDataResults.every(Boolean) &&
-        isSerieswMetricsExtractedDataResults.some(Boolean)
+        isSeriesMetricsExtractedDataResults.some(Boolean)
     );
   };
 
