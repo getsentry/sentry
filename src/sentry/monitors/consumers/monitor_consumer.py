@@ -388,7 +388,7 @@ def _process_checkin(
         txn.set_tag("result", "failed_validation")
         logger.info(
             "monitors.consumer.monitor_validation_failed",
-            extra={"guid": guid.hex, **params},
+            extra={"guid": guid.hex, "project": project.id, **params},
         )
         return
 
