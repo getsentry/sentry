@@ -183,7 +183,7 @@ def prepare_organization_report(
             "Target user must have an ID",
             extra={
                 "organization": organization_id,
-                "target_user": json.dumps(target_user),
+                "target_user": target_user,
                 "email_override": email_override,
             },
         )

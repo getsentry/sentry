@@ -729,7 +729,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             "Target user must have an ID",
             extra={
                 "organization": org.id,
-                "target_user": '"dummy"',
+                "target_user": "dummy",
                 "email_override": "doesntmatter@smad.com",
             },
         )
