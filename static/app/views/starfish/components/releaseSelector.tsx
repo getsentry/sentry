@@ -129,7 +129,7 @@ function LabelDetails(props: LabelDetailsProps) {
 export function ReleaseComparisonSelector() {
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   return (
-    <PageFilterBar condensed>
+    <StyledPageSelector condensed>
       <ReleaseSelector
         selectorKey="primaryRelease"
         selectorValue={primaryRelease}
@@ -142,14 +142,22 @@ export function ReleaseComparisonSelector() {
         selectorValue={secondaryRelease}
         key="secondaryRelease"
       />
-    </PageFilterBar>
+    </StyledPageSelector>
   );
 }
 
 const StyledCompactSelect = styled(CompactSelect)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     max-width: 275px;
+  }
+`;
+
+const StyledPageSelector = styled(PageFilterBar)`
+  & > * {
     min-width: 135px;
+    &:last-child {
+      min-width: 135px;
+    }
   }
 `;
 
