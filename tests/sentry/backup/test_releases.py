@@ -97,9 +97,9 @@ class ReleaseTests(BackupTestCase):
             # Return the export so that we can ensure that all models were seen.
             return exported
 
-    def test_at_23_10_0(self):
+    def test_at_23_11_0(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            _, snapshot_refval = read_snapshot_file(self.get_snapshot_path("23.10.0"))
+            _, snapshot_refval = read_snapshot_file(self.get_snapshot_path("23.11.0"))
             snapshot_data = yaml.safe_load(snapshot_refval)
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "w") as f:
@@ -108,9 +108,9 @@ class ReleaseTests(BackupTestCase):
             with open(tmp_path, "rb") as f:
                 import_in_global_scope(f)
 
-    def test_at_23_9_1(self):
+    def test_at_23_10_0(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            _, snapshot_refval = read_snapshot_file(self.get_snapshot_path("23.9.1"))
+            _, snapshot_refval = read_snapshot_file(self.get_snapshot_path("23.10.0"))
             snapshot_data = yaml.safe_load(snapshot_refval)
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "w") as f:

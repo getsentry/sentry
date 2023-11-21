@@ -1,7 +1,6 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import Count from 'sentry/components/count';
@@ -89,17 +88,6 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
     limit: SLOWEST_FUNCTIONS_LIMIT,
     cursor: functionsCursor,
   });
-
-  useEffect(() => {
-    if (
-      functionsQuery.isLoading ||
-      functionsQuery.isError ||
-      functionsQuery.data?.data?.length > 0
-    ) {
-      return;
-    }
-    Sentry.captureMessage('No regressed functions detected for flamegraph');
-  }, [functionsQuery.data, functionsQuery.isLoading, functionsQuery.isError]);
 
   const onChangeFunctionType = useCallback(v => setFunctionType(v.value), []);
   const functions = functionsQuery.data?.data ?? [];
