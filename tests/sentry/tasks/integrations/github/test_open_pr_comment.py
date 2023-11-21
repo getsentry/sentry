@@ -407,10 +407,12 @@ class TestFormatComment(TestCase):
             for i in range(5)
         ]
         file2 = "tests/sentry/tasks/integrations/github/test_pr_comment.py"
+
+        # test truncating the issue description
         file2_issues = [
             PullRequestIssue(
-                title="file1 " + str(i),
-                subtitle="subtitle" + str(i),
+                title="SoftTimeLimitExceeded " + str(i),
+                subtitle="sentry.tasks.low_priority_symbolication.scan_for_suspect" + str(i),
                 url=f"http://testserver/organizations/{self.organization.slug}/issues/{str(i+5)}/",
                 affected_users=(2 - i) * 10000,
                 event_count=(2 - i) * 10000,
@@ -442,8 +444,8 @@ You modified these files in this pull request and we noticed these issues associ
 
 | Issue  | Additional Info |
 | :--------- | :-------- |
-| ‼️ [**file1 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) subtitle0 | `Handled:` **False** `Event Count:` **20k** `Users:` **20k** |
-| ‼️ [**file1 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) subtitle1 | `Handled:` **False** `Event Count:` **10k** `Users:` **10k** |
+| ‼️ [**SoftTimeLimitExceeded 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... | `Handled:` **False** `Event Count:` **20k** `Users:` **20k** |
+| ‼️ [**SoftTimeLimitExceeded 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... | `Handled:` **False** `Event Count:` **10k** `Users:` **10k** |
 </details>
 ---
 

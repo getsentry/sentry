@@ -22,7 +22,6 @@ from sentry.tasks.integrations.github.pr_comment import (
     RATE_LIMITED_MESSAGE,
     GithubAPIErrorType,
     PullRequestIssue,
-    format_comment_subtitle,
     format_comment_url,
 )
 from sentry.templatetags.sentry_helpers import small_count
@@ -63,9 +62,17 @@ ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
 
 ISSUE_ROW_TEMPLATE = "| ‼️ [**{title}**]({url}) {subtitle} | `Handled:` **{is_handled}** `Event Count:` **{event_count}** `Users:` **{affected_users}** |"
 
+ISSUE_DESCRIPTION_LENGTH = 52
+
 
 def format_open_pr_comment(issue_tables: List[str]) -> str:
     return COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
+
+
+def format_open_pr_comment_subtitle(title_length, subtitle):
+    # the title length + " " + subtitle should be <= 52
+    subtitle_length = ISSUE_DESCRIPTION_LENGTH - title_length - 1
+    return subtitle[: subtitle_length - 3] + "..." if len(subtitle) > subtitle_length else subtitle
 
 
 # for a single file, create a table
@@ -74,7 +81,7 @@ def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggl
         [
             ISSUE_ROW_TEMPLATE.format(
                 title=issue.title,
-                subtitle=format_comment_subtitle(issue.subtitle),
+                subtitle=format_open_pr_comment_subtitle(len(issue.title), issue.subtitle),
                 url=format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
                 is_handled=str(issue.is_handled),
                 event_count=small_count(issue.event_count),
