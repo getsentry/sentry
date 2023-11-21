@@ -1043,7 +1043,7 @@ function WidgetBuilder({
         }}
       >
         <CustomMeasurementsProvider organization={organization} selection={selection}>
-          <OnDemandControlProvider>
+          <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
               <DashboardsMEPProvider>
                 <MetricsCardinalityProvider

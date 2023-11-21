@@ -156,6 +156,9 @@ function WidgetQueries({
       if (rawResults.isMetricsData !== undefined) {
         isSeriesMetricsDataResults.push(rawResults.isMetricsData);
       }
+      if (rawResults.isMetricsExtractedData !== undefined) {
+        isSeriesMetricsExtractedDataResults.push(rawResults.isMetricsExtractedData);
+      }
       isSeriesMetricsExtractedDataResults.push(rawResults.isMetricsExtractedData);
     } else {
       Object.keys(rawResults).forEach(key => {
@@ -163,7 +166,9 @@ function WidgetQueries({
         if (rawResult.isMetricsData !== undefined) {
           isSeriesMetricsDataResults.push(rawResult.isMetricsData);
         }
-        isSeriesMetricsExtractedDataResults.push(rawResult.isMetricsExtractedData);
+        if (rawResult.isMetricsExtractedData !== undefined) {
+          isSeriesMetricsExtractedDataResults.push(rawResult.isMetricsExtractedData);
+        }
       });
     }
     // If one of the queries is sampled, then mark the whole thing as sampled
@@ -181,7 +186,9 @@ function WidgetQueries({
     if (rawResults.meta?.isMetricsData !== undefined) {
       isTableMetricsDataResults.push(rawResults.meta.isMetricsData);
     }
-    isTableMetricsExtractedDataResults.push(rawResults.meta.isMetricsExtractedData);
+    if (rawResults.meta?.isMetricsExtractedData !== undefined) {
+      isTableMetricsExtractedDataResults.push(rawResults.meta.isMetricsExtractedData);
+    }
     // If one of the queries is sampled, then mark the whole thing as sampled
     setIsMetricsData?.(!isTableMetricsDataResults.includes(false));
     setIsMetricsExtractedData?.(
