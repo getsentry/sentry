@@ -109,15 +109,13 @@ class SiloModeTestDecorator:
     def __call__(
         self,
         decorated_obj: Any = None,
-        stable: bool = True,
+        stable: bool = False,
         regions: Sequence[Region] = (),
-        include_monolith_run: bool = False,
     ) -> Any:
         mod = _SiloModeTestModification(
             silo_modes=self.silo_modes,
             regions=tuple(regions or _DEFAULT_TEST_REGIONS),
             stable=stable,
-            include_monolith_run=include_monolith_run,
         )
 
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
@@ -130,9 +128,11 @@ class _SiloModeTestModification:
     silo_modes: frozenset[SiloMode]
     regions: tuple[Region, ...]
     stable: bool
-    include_monolith_run: bool
 
-    run_original_class_in_silo_mode: bool = True
+    # The default values can be treated as switches for desired global behavior,
+    # when we're ready to change.
+    include_monolith_run: bool = True
+    run_original_class_in_silo_mode: bool = False
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
@@ -184,7 +184,7 @@ class _SiloModeTestModification:
         """
         if len(self.silo_modes) == 1:
             (silo_mode,) = self.silo_modes
-            if not (self.include_monolith_run or settings.FORCE_SILOED_TESTS):
+            if not self.include_monolith_run:
                 return silo_mode, ()
             if self.run_original_class_in_silo_mode:
                 return silo_mode, (SiloMode.MONOLITH,)

@@ -471,7 +471,7 @@ class PerfIssuePlatformIssueUniqueUserFrequencyConditionTestCase(
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test(stable=False)
+@region_silo_test
 class ErrorIssueEventFrequencyPercentConditionTestCase(
     ErrorEventMixin, EventFrequencyPercentConditionTestCase
 ):
