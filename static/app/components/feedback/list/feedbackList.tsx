@@ -8,7 +8,7 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
+import noResultsImg from 'sentry-images/spot/feedback-no-results.svg';
 
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
@@ -31,7 +31,7 @@ const cellMeasurer = {
 function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
   return (
     <Wrapper>
-      <img src={waitingForEventImg} alt="No feedback found spot illustration" />
+      <img src={noResultsImg} alt="No feedback found spot illustration" />
       <EmptyMessage>{title}</EmptyMessage>
       <p>{subtitle}</p>
     </Wrapper>
@@ -181,6 +181,7 @@ const Wrapper = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
+  margin-top: ${space(2)};
   font-weight: 600;
   color: ${p => p.theme.gray400};
 
