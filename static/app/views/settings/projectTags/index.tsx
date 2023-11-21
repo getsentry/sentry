@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -68,6 +69,9 @@ function ProjectTags(props: Props) {
         [`/projects/${organization.slug}/${projectId}/tags/`],
         oldTags => oldTags.filter(tag => tag.key !== key)
       );
+    },
+    onError: () => {
+      addErrorMessage(t('An error occurred while deleting the tag'));
     },
   });
 
