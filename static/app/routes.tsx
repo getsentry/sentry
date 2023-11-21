@@ -255,6 +255,16 @@ function buildRoutes() {
       />
       {usingCustomerDomain && (
         <Route
+          path="/restore/"
+          component={make(() => import('sentry/views/organizationRestore'))}
+        />
+      )}
+      <Route
+        path="/organizations/:orgId/restore/"
+        component={make(() => import('sentry/views/organizationRestore'))}
+      />
+      {usingCustomerDomain && (
+        <Route
           path="/join-request/"
           component={withDomainRequired(
             make(() => import('sentry/views/organizationJoinRequest'))
