@@ -829,7 +829,6 @@ class Factories:
                 )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
     def store_event(data, project_id, assert_no_errors=True, sent_at=None):
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
@@ -1250,7 +1249,7 @@ class Factories:
             )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.CONTROL)
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_userreport(project, event_id=None, **kwargs):
         event = Factories.store_event(
             data={
