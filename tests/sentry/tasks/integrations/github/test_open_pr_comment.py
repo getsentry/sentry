@@ -646,3 +646,16 @@ class TestOpenPRCommentWorkflow(GithubCommentTestCase):
         mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.error", tags={"type": "missing_integration"}
         )
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=False)
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    def test_comment_workflow_not_safe_for_comment(
+        self, mock_metrics, mock_pr_filenames, mock_safe_for_comment
+    ):
+        open_pr_comment_workflow(self.pr.id)
+
+        assert not mock_pr_filenames.called
+        mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.error", tags={"type": "unsafe_for_comment"}
+        )
