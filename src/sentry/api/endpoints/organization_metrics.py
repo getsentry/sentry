@@ -62,7 +62,7 @@ class OrganizationMetricsLocationsEndpoint(OrganizationEndpoint):
             projects=self.get_projects(request, organization),
         )
 
-        return Response(code_locations, status=200)
+        return Response({"data": code_locations}, status=200)
 
 
 @region_silo_endpoint

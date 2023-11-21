@@ -1,5 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Sequence
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -47,6 +48,9 @@ class OrganizationMetricsLocationsTest(MetricsAPIBaseTestCase):
         )
         self.redis_client.sadd(cache_key, value)
 
+    def _round_to_day(self, time: datetime) -> int:
+        return int(time.timestamp() / 86400) * 86400
+
     def _store_code_locations(
         self,
         organization: Organization,
@@ -55,8 +59,7 @@ class OrganizationMetricsLocationsTest(MetricsAPIBaseTestCase):
         days: int,
     ):
         timestamps = [
-            int((self.current_time - timedelta(days=day)).timestamp() / 86400) * 86400
-            for day in range(0, days + 1)
+            self._round_to_day(self.current_time - timedelta(days=day)) for day in range(0, days)
         ]
         for project in projects:
             for metric_mri in metric_mris:
@@ -76,15 +79,14 @@ class OrganizationMetricsLocationsTest(MetricsAPIBaseTestCase):
                         self._mock_code_location("main.py"),
                     )
 
-    def test_get_locations_simple(self):
+    def test_get_locations_with_stats_period(self):
         projects = [self.create_project(name="project_1")]
-        # self.create_project(name="project_2")]
         mris = [
             "d:custom/sentry.process_profile.track_outcome@second",
-            # "d:custom/sentry.test.track_outcome@second",
         ]
 
-        self._store_code_locations(self.organization, projects, mris, 1)
+        # We specify two days, since we are querying a stats period of 1 day, thus from one day to another.
+        self._store_code_locations(self.organization, projects, mris, 2)
 
         response = self.get_success_response(
             self.organization.slug,
@@ -92,7 +94,112 @@ class OrganizationMetricsLocationsTest(MetricsAPIBaseTestCase):
             project=[project.id for project in projects],
             statsPeriod="1d",
         )
-        assert response.data == [
-            {"key": "tag1", "value": "value1"},
-            {"key": "tag1", "value": "value2"},
+        data = response.data["data"]
+
+        assert len(data) == 2
+
+        query = data[0]["query"]
+        assert query["metric_mri"] == mris[0]
+        assert query["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
+
+        query = data[1]["query"]
+        assert query["metric_mri"] == mris[0]
+        assert query["timestamp"] == self._round_to_day(self.current_time)
+
+        code_locations = data[0]["code_locations"]
+        assert len(code_locations) == 2
+        for index, filename in enumerate(("main.py", "script.py")):
+            assert code_locations[index]["filename"] == filename
+
+        code_locations = data[0]["code_locations"]
+        assert len(code_locations) == 2
+        for index, filename in enumerate(("main.py", "script.py")):
+            assert code_locations[index]["filename"] == filename
+
+    def test_get_locations_with_start_and_end(self):
+        projects = [self.create_project(name="project_1")]
+        mris = [
+            "d:custom/sentry.process_profile.track_outcome@second",
         ]
+
+        # We specify two days, since we are querying a stats period of 1 day, thus from one day to another.
+        self._store_code_locations(self.organization, projects, mris, 2)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=mris,
+            project=[project.id for project in projects],
+            # We use an interval of 1 day but shifted by 1 day in the past.
+            start=(self.current_time - timedelta(days=2)).isoformat(),
+            end=(self.current_time - timedelta(days=1)).isoformat(),
+        )
+        data = response.data["data"]
+
+        assert len(data) == 1
+
+        query = data[0]["query"]
+        assert query["metric_mri"] == mris[0]
+        assert query["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
+
+        code_locations = data[0]["code_locations"]
+        assert len(code_locations) == 2
+        for index, filename in enumerate(("main.py", "script.py")):
+            assert code_locations[index]["filename"] == filename
+
+    def test_get_locations_with_start_and_end_and_no_data(self):
+        projects = [self.create_project(name="project_1")]
+        mris = ["d:custom/sentry.process_profile.track_outcome@second"]
+
+        # We specify two days, since we are querying a stats period of 1 day, thus from one day to another.
+        self._store_code_locations(self.organization, projects, mris, 2)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=mris,
+            project=[project.id for project in projects],
+            # We use an interval outside which we have no data.
+            start=(self.current_time - timedelta(days=3)).isoformat(),
+            end=(self.current_time - timedelta(days=2)).isoformat(),
+        )
+        data = response.data["data"]
+
+        assert len(data) == 0
+
+    @patch("sentry.sentry_metrics.querying.metadata.CodeLocationsFetcher._get_code_locations")
+    @patch("sentry.sentry_metrics.querying.metadata.CodeLocationsFetcher.BATCH_SIZE", 10)
+    def test_get_locations_batching(self, get_code_locations_mock):
+        get_code_locations_mock.return_value = []
+
+        projects = [self.create_project(name="project_1")]
+        mris = ["d:custom/sentry.process_profile.track_outcome@second"]
+
+        self.get_success_response(
+            self.organization.slug,
+            metric=mris,
+            project=[project.id for project in projects],
+            statsPeriod="90d",
+        )
+
+        # With a window of 90 days, it means that we are actually requesting 91 days, thus we have 10 batches of 10
+        # elements each.
+        assert len(get_code_locations_mock.mock_calls) == 10
+
+    def test_get_locations_with_corrupted_location(self):
+        project = self.create_project(name="project_1")
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+
+        self._store_code_location(
+            self.organization.id,
+            project.id,
+            mri,
+            self._round_to_day(self.current_time),
+            '}"invalid": "json"{',
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            metric=[mri],
+            project=[project.id],
+            statsPeriod="1d",
+            status_code=500,
+        )

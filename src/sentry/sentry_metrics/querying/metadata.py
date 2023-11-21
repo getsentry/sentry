@@ -1,15 +1,33 @@
-from collections import namedtuple
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Generator, Optional, Sequence, Set
+from typing import Generator, List, Optional, Sequence, Set, TypedDict
 
 from sentry.api.utils import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_ingest
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 DAY_IN_SECONDS = 86400
+
+
+class CodeLocationQuery(TypedDict):
+    organization_id: int
+    project_id: int
+    metric_mri: str
+    timestamp: int
+
+
+class CodeLocationPayload(TypedDict):
+    function: Optional[str]
+    module: Optional[str]
+    filename: Optional[str]
+    abs_path: Optional[str]
+    lineno: Optional[int]
+
+
+class MetricCodeLocations(TypedDict):
+    query: CodeLocationQuery
+    code_locations: Sequence[CodeLocationPayload]
 
 
 def _get_day_timestamps(
@@ -37,50 +55,14 @@ def get_cache_key_for_code_location(
     return f"mm:l:{{{organization_id}}}:{project_id}:{encoded_mri}:{timestamp}"
 
 
-@dataclass(frozen=True)
-class CodeLocationQuery:
-    organization_id: int
-    project_id: int
-    metric_mri: str
-    timestamp: int
-
-    def build_cache_key(self) -> str:
-        return get_cache_key_for_code_location(
-            organization_id=self.organization_id,
-            project_id=self.project_id,
-            metric_mri=self.metric_mri,
-            timestamp=self.timestamp,
-        )
-
-
-@dataclass(frozen=True)
-class CodeLocationPayload:
-    function: Optional[str]
-    module: Optional[str]
-    filename: Optional[str]
-    abs_path: Optional[str]
-    lineno: Optional[int]
-
-    @staticmethod
-    def from_json(json_string: str) -> "CodeLocationPayload":
-        json_object = json.loads(json_string)
-        return CodeLocationPayload(
-            function=json_object.get("function"),
-            module=json_object.get("module"),
-            filename=json_object.get("filename"),
-            abs_path=json_object.get("abs_path"),
-            lineno=json_object.get("lineno"),
-        )
-
-
-MetricCodeLocations = namedtuple("MetricCodeLocations", "query code_locations")
-
-
 class CodeLocationsFetcher:
     # The maximum number of keys that can be fetched by the fetcher.
     #
     # The estimation was naively done by supposing at most 10 metrics with 2 projects and at most 90 timestamps.
     MAXIMUM_KEYS = 2000
+    # The size of the batch of keys that are fetched by endpoint.
+    #
+    # Batching is done via Redis pipeline and the goal is to improve the performance of the system.
     BATCH_SIZE = 50
 
     def __init__(
@@ -118,25 +100,51 @@ class CodeLocationsFetcher:
                         timestamp=timestamp,
                     )
 
+    def _parse_code_location_payload(self, encoded_location: str) -> CodeLocationPayload:
+        try:
+            decoded_location = json.loads(encoded_location)
+            return CodeLocationPayload(
+                function=decoded_location.get("function"),
+                module=decoded_location.get("module"),
+                filename=decoded_location.get("filename"),
+                abs_path=decoded_location.get("abs_path"),
+                lineno=decoded_location.get("lineno"),
+            )
+        except Exception:
+            raise InvalidParams("Invalid code location payload encountered")
+
+    @metrics.wraps("ddm.code_locations.load_from_redis", tags={"batch_size": BATCH_SIZE})
     def _get_code_locations(
         self, queries: Sequence[CodeLocationQuery]
     ) -> Sequence[MetricCodeLocations]:
         pipeline = self._redis_client.pipeline()
         for query in queries:
-            pipeline.smembers(query.build_cache_key())
+            cache_key = get_cache_key_for_code_location(
+                query["organization_id"],
+                query["project_id"],
+                query["metric_mri"],
+                query["timestamp"],
+            )
+            pipeline.smembers(cache_key)
 
         code_locations = []
         for query, locations in zip(queries, pipeline.execute()):
             if not locations:
                 continue
 
-            parsed_locations = [CodeLocationPayload.from_json(location) for location in locations]
-            code_locations.append(MetricCodeLocations(query=query, code_locations=parsed_locations))
+            parsed_locations = [
+                self._parse_code_location_payload(location) for location in locations
+            ]
+            # To maintain consistent ordering, we sort by filename.
+            sorted_locations = sorted(
+                parsed_locations, key=lambda value: value.get("filename") or ""
+            )
+            code_locations.append(MetricCodeLocations(query=query, code_locations=sorted_locations))
 
         return code_locations
 
     def fetch(self) -> Sequence[MetricCodeLocations]:
-        code_locations = []
+        code_locations: List[MetricCodeLocations] = []
         for queries in self._in_batches(self._code_location_queries(), self.BATCH_SIZE):
             # We are assuming that code locations have each a unique query, thus we don't perform any merging or
             # de-duplication.
@@ -148,7 +156,7 @@ class CodeLocationsFetcher:
     def _in_batches(
         generator: Generator[CodeLocationQuery, None, None], size: int
     ) -> Generator[Sequence[CodeLocationQuery], None, None]:
-        batch = []
+        batch: List[CodeLocationQuery] = []
         for value in generator:
             if len(batch) < size:
                 batch.append(value)
@@ -169,10 +177,9 @@ def get_code_locations(
     organization: Organization,
     projects: Sequence[Project],
 ) -> Sequence[MetricCodeLocations]:
-    fetcher = CodeLocationsFetcher(
+    return CodeLocationsFetcher(
         organization=organization,
         projects=set(projects),
         metric_mris=set(metric_mris),
         timestamps=_get_day_timestamps(start, end),
-    )
-    return fetcher.fetch()
+    ).fetch()
