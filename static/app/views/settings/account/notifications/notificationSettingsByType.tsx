@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -21,9 +23,10 @@ import {
   DefaultSettings,
   NotificationOptionsObject,
   NotificationProvidersObject,
+  SupportedProviders,
 } from './constants';
 import {ACCOUNT_NOTIFICATION_FIELDS} from './fields';
-import {NOTIFICATION_SETTING_FIELDS_V2, QUOTA_FIELDS} from './fields2';
+import {NOTIFICATION_SETTING_FIELDS, QUOTA_FIELDS} from './fields2';
 import NotificationSettingsByEntity from './notificationSettingsByEntity';
 import {Identity} from './types';
 import UnlinkedAlert from './unlinkedAlert';
@@ -63,7 +66,7 @@ const getQueryParams = (notificationType: string) => {
 };
 
 class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State> {
-  // topLevelOptionFormModel = new TopLevelOptionFormModel(this.props.notificationType);
+  providerModel = new FormModel();
 
   getDefaultState(): State {
     return {
@@ -150,21 +153,30 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     };
   }
 
-  getProviderInitialData(): {[key: string]: string[]} {
+  isProviderSupported = (provider: SupportedProviders) => {
+    // email is always possible
+    if (provider === 'email') {
+      return true;
+    }
+    return this.getLinkedOrgs(provider).length > 0;
+  };
+
+  getProviders(): SupportedProviders[] {
     const {notificationType} = this.props;
     const {notificationProviders, defaultSettings} = this.state;
 
     const relevantProviderSettings = notificationProviders.filter(
       option => option.scopeType === 'user' && option.type === notificationType
     );
-    // user has no settings saved so use default
-    if (relevantProviderSettings.length === 0 && defaultSettings) {
-      return {provider: defaultSettings.providerDefaults};
-    }
-    const providers = relevantProviderSettings
-      .filter(option => option.value === 'always')
-      .map(option => option.provider);
-    return {provider: providers};
+
+    const providers =
+      // if user has no settings saved so use default
+      relevantProviderSettings.length === 0 && defaultSettings
+        ? defaultSettings?.providerDefaults
+        : relevantProviderSettings
+            .filter(option => option.value === 'always')
+            .map(option => option.provider);
+    return providers.filter(this.isProviderSupported);
   }
 
   getFields(): Field[] {
@@ -195,7 +207,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     } else {
       const defaultField: Field = Object.assign(
         {},
-        NOTIFICATION_SETTING_FIELDS_V2[notificationType],
+        NOTIFICATION_SETTING_FIELDS[notificationType],
         {
           help,
           defaultValue: 'always',
@@ -217,20 +229,12 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
 
   getProviderFields(): Field[] {
     const {notificationType} = this.props;
-    const {organizationIntegrations} = this.state;
     // get the choices but only the ones that are available to the user
     const choices = (
-      NOTIFICATION_SETTING_FIELDS_V2.provider.choices as [string, string][]
-    ).filter(([providerSlug]) => {
-      if (providerSlug === 'email') {
-        return true;
-      }
-      return organizationIntegrations.some(
-        organizationIntegration => organizationIntegration.provider.slug === providerSlug
-      );
-    });
+      NOTIFICATION_SETTING_FIELDS.provider.choices as [SupportedProviders, string][]
+    ).filter(([providerSlug]) => this.isProviderSupported(providerSlug));
 
-    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS_V2.provider, {
+    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {
       choices,
       getData: data => {
         return {
@@ -246,14 +250,18 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     return fields;
   }
 
-  getUnlinkedOrgs = (): OrganizationSummary[] => {
+  getLinkedOrgs = (provider: SupportedProviders): OrganizationSummary[] => {
     const {organizations} = this.props;
     const {identities, organizationIntegrations} = this.state;
     const integrationExternalIDsByOrganizationID = Object.fromEntries(
-      organizationIntegrations.map(organizationIntegration => [
-        organizationIntegration.organizationId,
-        organizationIntegration.externalId,
-      ])
+      organizationIntegrations
+        .filter(
+          organizationIntegration => organizationIntegration.provider.key === provider
+        )
+        .map(organizationIntegration => [
+          organizationIntegration.organizationId,
+          organizationIntegration.externalId,
+        ])
     );
 
     const identitiesByExternalId = Object.fromEntries(
@@ -263,8 +271,14 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     return organizations.filter(organization => {
       const externalID = integrationExternalIDsByOrganizationID[organization.id];
       const identity = identitiesByExternalId[externalID];
-      return identity === undefined || identity === null;
+      return !!identity;
     });
+  };
+
+  getUnlinkedOrgs = (provider: SupportedProviders): OrganizationSummary[] => {
+    const linkedOrgs = this.getLinkedOrgs(provider);
+    const {organizations} = this.props;
+    return organizations.filter(organization => !linkedOrgs.includes(organization));
   };
 
   handleRemoveNotificationOption = async (id: string) => {
@@ -327,8 +341,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
   renderBody() {
     const {notificationType} = this.props;
     const {notificationOptions} = this.state;
-    const hasSlack = true;
-    const unlinkedOrgs = this.getUnlinkedOrgs();
+    const unlinkedSlackOrgs = this.getUnlinkedOrgs('slack');
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
     const entityType = isGroupedByProject(notificationType) ? 'project' : 'organization';
     return (
@@ -336,9 +349,16 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
         <SentryDocumentTitle title={title} />
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
-        {hasSlack && unlinkedOrgs.length > 0 && (
-          <UnlinkedAlert organizations={unlinkedOrgs} />
-        )}
+        <Observer>
+          {() => {
+            return this.providerModel
+              .getValue('provider')
+              ?.toString()
+              .includes('slack') && unlinkedSlackOrgs.length > 0 ? (
+              <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+            ) : null;
+          }}
+        </Observer>
         <Form
           saveOnBlur
           apiMethod="PUT"
@@ -360,7 +380,8 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             saveOnBlur
             apiMethod="PUT"
             apiEndpoint="/users/me/notification-providers/"
-            initialData={this.getProviderInitialData()}
+            initialData={{provider: this.getProviders()}}
+            model={this.providerModel}
           >
             <BottomJsonForm fields={this.getProviderFields()} />
           </Form>

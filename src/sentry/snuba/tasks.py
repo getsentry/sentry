@@ -14,6 +14,7 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     BaseEntitySubscription,
     get_entity_key_from_query_builder,
+    get_entity_key_from_request,
     get_entity_key_from_snuba_query,
     get_entity_subscription,
     get_entity_subscription_from_snuba_query,
@@ -21,7 +22,7 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
-from sentry.utils.snuba import SnubaError, _snuba_pool
+from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
 
 if TYPE_CHECKING:
     from sentry.search.events.builder import QueryBuilder
@@ -243,10 +244,17 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
         "resolution": snuba_query.resolution,
         **entity_subscription.get_entity_extra_params(),
     }
+    if SNUBA_INFO:
+        import pprint
 
+        print(  # NOQA: only prints when an env variable is set
+            f"subscription.body:\n {pprint.pformat(body)}"
+        )
+
+    entity_key = get_entity_key_from_request(snql_query)
     response = _snuba_pool.urlopen(
         "POST",
-        f"/{snuba_query.dataset}/{snql_query.query.match.name}/subscriptions",
+        f"/{snuba_query.dataset}/{entity_key.value}/subscriptions",
         body=json.dumps(body),
     )
     if response.status != 202:

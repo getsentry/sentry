@@ -9,7 +9,14 @@ import {
   getInterval,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {
+  MetricsApiRequestMetric,
+  MetricsApiRequestQuery,
+  MetricsApiResponse,
+  MetricsGroup,
+} from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,6 +32,10 @@ type MetricMeta = {
   unit: string;
 };
 
+interface Options {
+  useCases?: UseCase[];
+}
+
 export enum MetricDisplayType {
   LINE = 'line',
   AREA = 'area',
@@ -34,10 +45,15 @@ export enum MetricDisplayType {
 
 export const defaultMetricDisplayType = MetricDisplayType.LINE;
 
+const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom'];
+
 export function useMetricsMeta(
-  projects: PageFilters['projects']
-): Record<string, MetricMeta> {
+  projects: PageFilters['projects'],
+  options?: Options
+): {data: Record<string, MetricMeta>; isLoading: boolean} {
   const {slug} = useOrganization();
+  const enabledUseCases = options?.useCases ?? DEFAULT_USE_CASES;
+
   const getKey = (useCase: UseCase): ApiQueryKey => {
     return [
       `/organizations/${slug}/metrics/meta/`,
@@ -45,36 +61,56 @@ export function useMetricsMeta(
     ];
   };
 
-  const opts = {
+  const commonOptions = {
     staleTime: Infinity,
   };
 
-  const {data: sessionsMeta = []} = useApiQuery<MetricMeta[]>(getKey('sessions'), opts);
-  const {data: txnsMeta = []} = useApiQuery<MetricMeta[]>(getKey('transactions'), opts);
-  const {data: customMeta = []} = useApiQuery<MetricMeta[]>(getKey('custom'), opts);
+  const sessionsMeta = useApiQuery<MetricMeta[]>(getKey('sessions'), {
+    ...commonOptions,
+    enabled: enabledUseCases.includes('sessions'),
+  });
+  const txnsMeta = useApiQuery<MetricMeta[]>(getKey('transactions'), {
+    ...commonOptions,
+    enabled: enabledUseCases.includes('transactions'),
+  });
+  const customMeta = useApiQuery<MetricMeta[]>(getKey('custom'), {
+    ...commonOptions,
+    enabled: enabledUseCases.includes('custom'),
+  });
 
-  return useMemo(
-    () =>
-      [...sessionsMeta, ...txnsMeta, ...customMeta].reduce((acc, metricMeta) => {
-        return {...acc, [metricMeta.mri]: metricMeta};
-      }, {}),
-    [sessionsMeta, txnsMeta, customMeta]
-  );
+  const combinedMeta = useMemo<Record<string, MetricMeta>>(() => {
+    return [
+      ...(sessionsMeta.data ?? []),
+      ...(txnsMeta.data ?? []),
+      ...(customMeta.data ?? []),
+    ].reduce((acc, metricMeta) => {
+      return {...acc, [metricMeta.mri]: metricMeta};
+    }, {});
+  }, [sessionsMeta.data, txnsMeta.data, customMeta.data]);
+
+  return {
+    data: combinedMeta,
+    isLoading: sessionsMeta.isLoading || txnsMeta.isLoading || customMeta.isLoading,
+  };
 }
 
 type MetricTag = {
   key: string;
 };
 
-export function useMetricsTags(mri: string, projects: PageFilters['projects']) {
+export function useMetricsTags(
+  mri: string | undefined,
+  projects: PageFilters['projects']
+) {
   const {slug} = useOrganization();
-  const useCase = getUseCaseFromMRI(mri);
+  const useCase = getUseCaseFromMRI(mri || '');
   return useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/`,
       {query: {metric: mri, useCase, project: projects}},
     ],
     {
+      enabled: !!mri,
       staleTime: Infinity,
     }
   );
@@ -109,23 +145,6 @@ export type MetricsQuery = {
   query?: string;
 };
 
-// TODO(ddm): reuse from types/metrics.tsx
-type Group = {
-  by: Record<string, unknown>;
-  series: Record<string, number[]>;
-  totals: Record<string, number>;
-};
-
-// TODO(ddm): reuse from types/metrics.tsx
-export type MetricsData = {
-  end: string;
-  groups: Group[];
-  intervals: string[];
-  meta: MetricMeta[];
-  query: string;
-  start: string;
-};
-
 export function useMetricsData({
   mri,
   op,
@@ -135,10 +154,42 @@ export function useMetricsData({
   query,
   groupBy,
 }: MetricsQuery) {
-  const {slug, features} = useOrganization();
-  const useCase = getUseCaseFromMRI(mri);
+  const organization = useOrganization();
+
+  const useNewMetricsLayer = organization.features.includes(
+    'metrics-api-new-metrics-layer'
+  );
+
   const field = op ? `${op}(${mri})` : mri;
 
+  const queryToSend = getMetricsApiRequestQuery(
+    {
+      field,
+      query: `${query}`,
+      groupBy,
+    },
+    {datetime, projects, environments},
+    {useNewMetricsLayer}
+  );
+
+  return useApiQuery<MetricsApiResponse>(
+    [`/organizations/${organization.slug}/metrics/data/`, {query: queryToSend}],
+    {
+      retry: 0,
+      staleTime: 0,
+      refetchOnReconnect: true,
+      refetchOnWindowFocus: true,
+      refetchInterval: data => getRefetchInterval(data, queryToSend.interval),
+    }
+  );
+}
+
+export function getMetricsApiRequestQuery(
+  {field, query, groupBy}: MetricsApiRequestMetric,
+  {projects, environments, datetime}: PageFilters,
+  overrides: Partial<MetricsApiRequestQuery>
+): MetricsApiRequestQuery {
+  const useCase = getUseCaseFromMRI(fieldToMri(field).mri);
   const interval = getMetricsInterval(datetime, useCase);
 
   const queryToSend = {
@@ -153,23 +204,9 @@ export function useMetricsData({
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // max result groups
     per_page: 20,
-    useNewMetricsLayer: false,
   };
 
-  if (features.includes('metrics-api-new-metrics-layer')) {
-    queryToSend.useNewMetricsLayer = true;
-  }
-
-  return useApiQuery<MetricsData>(
-    [`/organizations/${slug}/metrics/data/`, {query: queryToSend}],
-    {
-      retry: 0,
-      staleTime: 0,
-      refetchOnReconnect: true,
-      refetchOnWindowFocus: true,
-      refetchInterval: data => getRefetchInterval(data, interval),
-    }
-  );
+  return {...queryToSend, ...overrides};
 }
 
 function getRefetchInterval(
@@ -192,7 +229,7 @@ function getRefetchInterval(
 // 1. return data is undefined only during the initial load
 // 2. provides a callback to trim the data to a specific time range when chart zoom is used
 export function useMetricsDataZoom(props: MetricsQuery) {
-  const [metricsData, setMetricsData] = useState<MetricsData | undefined>();
+  const [metricsData, setMetricsData] = useState<MetricsApiResponse | undefined>();
   const {data: rawData, isLoading, isError, error} = useMetricsData(props);
 
   useEffect(() => {
@@ -201,7 +238,7 @@ export function useMetricsDataZoom(props: MetricsQuery) {
     }
   }, [rawData]);
 
-  const trimData = (start, end): MetricsData | undefined => {
+  const trimData = (start, end): MetricsApiResponse | undefined => {
     if (!metricsData) {
       return metricsData;
     }
@@ -294,6 +331,7 @@ export function parseMRI(mri?: string) {
   return {
     name,
     unit,
+
     mri: cleanMRI,
     useCase,
   };
@@ -400,4 +438,41 @@ export function clearQuery(router: InjectedRouter) {
     ...router.location,
     query: {},
   });
+}
+
+// TODO(ddm): there has to be a nicer way to do this
+export function getSeriesName(
+  group: MetricsGroup,
+  isOnlyGroup = false,
+  groupBy: MetricsQuery['groupBy']
+) {
+  if (isOnlyGroup && !groupBy?.length) {
+    const mri = Object.keys(group.series)?.[0];
+    const parsed = parseMRI(mri);
+
+    return parsed?.name ?? '(none)';
+  }
+
+  return Object.entries(group.by)
+    .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
+    .join(', ');
+}
+
+export function mriToField(mri: string, op: string): string {
+  return `${op}(${mri})`;
+}
+
+export function fieldToMri(field: string) {
+  const parsedFunction = parseFunction(field);
+  if (!parsedFunction) {
+    // We only allow aggregate functions for custom metric alerts
+    return {
+      mri: undefined,
+      op: undefined,
+    };
+  }
+  return {
+    mri: parsedFunction.arguments[0],
+    op: parsedFunction.name,
+  };
 }

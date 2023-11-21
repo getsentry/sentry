@@ -123,7 +123,11 @@ urlpatterns = [
     re_path(r"^debug/mail/confirm-email/$", sentry.web.frontend.debug.mail.confirm_email),
     re_path(r"^debug/mail/recover-account/$", sentry.web.frontend.debug.mail.recover_account),
     re_path(r"^debug/mail/relocate-account/$", sentry.web.frontend.debug.mail.relocate_account),
+    re_path(r"^debug/mail/relocation-failed/$", sentry.web.frontend.debug.mail.relocation_failed),
     re_path(r"^debug/mail/relocation-started/$", sentry.web.frontend.debug.mail.relocation_started),
+    re_path(
+        r"^debug/mail/relocation-succeeded/$", sentry.web.frontend.debug.mail.relocation_succeeded
+    ),
     re_path(r"^debug/mail/unable-to-delete-repo/$", DebugUnableToDeleteRepository.as_view()),
     re_path(r"^debug/mail/unable-to-fetch-commits/$", DebugUnableToFetchCommitsEmailView.as_view()),
     re_path(r"^debug/mail/unassigned/$", DebugUnassignedEmailView.as_view()),

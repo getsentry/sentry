@@ -81,8 +81,6 @@ USE_CASE_ID = UseCaseID.SESSIONS
 
 logger = logging.getLogger(__name__)
 
-_K1 = TypeVar("_K1")
-_K2 = TypeVar("_K2")
 _V = TypeVar("_V")
 
 

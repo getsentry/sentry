@@ -114,7 +114,7 @@ export function InviteBanner({
     }
   }, [openInviteModal, location, isEligibleForBanner]);
 
-  if (isEligibleForBanner && showBanner && missingMembers) {
+  if (isEligibleForBanner && showBanner && missingMembers.length > 0) {
     trackAnalytics('github_invite_banner.viewed', {
       organization,
       members_shown: missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).length,

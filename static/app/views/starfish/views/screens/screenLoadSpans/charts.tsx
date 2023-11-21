@@ -1,6 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import Alert from 'sentry/components/alert';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
@@ -12,6 +14,7 @@ import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatVersion} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -93,6 +96,13 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     initialData: {},
   });
 
+  useEffect(() => {
+    if (defined(primaryRelease) || isReleasesLoading) {
+      return;
+    }
+    Sentry.captureException(new Error('Screen summary missing releases'));
+  }, [primaryRelease, isReleasesLoading]);
+
   const transformedReleaseSeries: {
     [yAxisName: string]: {
       [releaseVersion: string]: Series;
@@ -119,7 +129,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
 
           const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
           transformedReleaseSeries[yAxis][release] = {
-            seriesName: label,
+            seriesName: formatVersion(label),
             color,
             data,
           };
@@ -146,6 +156,14 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
 
   if (isReleasesLoading) {
     return <LoadingContainer />;
+  }
+
+  if (!defined(primaryRelease) && !isReleasesLoading) {
+    return (
+      <Alert type="warning" showIcon>
+        {t('Invalid selection. Try a different release or date range.')}
+      </Alert>
+    );
   }
 
   const transformedEvents: {
@@ -182,13 +200,15 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
       const release = row.release;
       const isPrimary = release === primaryRelease;
       yAxes.forEach(val => {
-        transformedEvents[YAXIS_COLUMNS[val]][release].data[index] = {
-          name: deviceClass,
-          value: row[YAXIS_COLUMNS[val]],
-          itemStyle: {
-            color: isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1],
-          },
-        } as SeriesDataUnit;
+        if (transformedEvents[YAXIS_COLUMNS[val]][release]) {
+          transformedEvents[YAXIS_COLUMNS[val]][release].data[index] = {
+            name: deviceClass,
+            value: row[YAXIS_COLUMNS[val]],
+            itemStyle: {
+              color: isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1],
+            },
+          } as SeriesDataUnit;
+        }
       });
     });
   }
