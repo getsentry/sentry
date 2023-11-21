@@ -123,10 +123,6 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
             field: 'count()',
             kind: 'desc',
           },
-          {
-            field: YAXIS_COLUMNS[YAxis.TTID],
-            kind: 'desc',
-          },
         ];
 
         // Change data set to metrics
@@ -215,7 +211,6 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
               {...pick(provided, eventsRequestQueryProps)}
               api={api}
               yAxis={yAxis}
-              limit={1}
               includePrevious={includePreviousParam}
               includeTransformedData
               partial={partialDataParam}
