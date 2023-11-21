@@ -29,6 +29,10 @@ import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
+import {
+  getForceMetricsLayerQueryExtras,
+  hasDdmAlertsSupport,
+} from 'sentry/utils/ddm/features';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
@@ -626,7 +630,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       transaction.setData('actions', sanitizedTriggers);
 
       const hasMetricDataset = organization.features.includes('mep-rollout-flag');
-
+      const dataset = this.determinePerformanceDataset();
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
         this.api,
@@ -647,13 +651,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             : {}),
           // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset: this.determinePerformanceDataset(),
+          dataset,
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
           wizardV3: 'true',
           referrer: location?.query?.referrer,
           sessionId,
+          ...getForceMetricsLayerQueryExtras(organization, dataset),
         }
       );
       // if we get a 202 back it means that we have an async task
@@ -899,7 +904,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
                 <Aggregate>{aggregate}</Aggregate>
-                event.type:{eventTypes?.join(',')}
+                {!(hasDdmAlertsSupport(organization) && alertType === 'custom')
+                  ? `event.type:${eventTypes?.join(',')}`
+                  : ''}
               </AlertInfo>
             )}
           </ChartHeader>
@@ -1047,13 +1054,17 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           <List symbol="colored-numeric">
             <RuleConditionsForm
               project={project}
+              aggregate={aggregate}
               organization={organization}
               isMigration={isMigration}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}
               onFilterSearch={this.handleFilterUpdate}
-              allowChangeEventTypes={alertType === 'custom' || dataset === Dataset.ERRORS}
+              allowChangeEventTypes={
+                !(hasDdmAlertsSupport(organization) && alertType === 'custom') &&
+                (alertType === 'custom' || dataset === Dataset.ERRORS)
+              }
               alertType={alertType}
               dataset={dataset}
               timeWindow={timeWindow}

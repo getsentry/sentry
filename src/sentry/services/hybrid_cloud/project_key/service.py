@@ -51,7 +51,6 @@ class ProjectKeyService(RpcService):
         region_name: str,
         project_ids: List[str],
         role: ProjectKeyRole,
-        limit: int = 100,
     ) -> List[RpcProjectKey]:
         pass
 

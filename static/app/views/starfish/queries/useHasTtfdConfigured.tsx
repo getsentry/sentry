@@ -47,7 +47,7 @@ export function useTTFDConfigured(additionalFilters?: string[]) {
     staleTime: Infinity,
   });
 
-  const hasTTFD: boolean | undefined = result.data
+  const hasTTFD: boolean | undefined = result.data?.data?.length
     ? !(
         result.data.data?.[0]['avg(measurements.time_to_initial_display)'] !== 0 &&
         result.data.data?.[0]['avg(measurements.time_to_full_display)'] === 0

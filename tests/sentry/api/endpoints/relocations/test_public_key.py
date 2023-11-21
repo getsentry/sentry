@@ -10,11 +10,11 @@ from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, gen
 from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 @patch(
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
-@region_silo_test
 class RelocationPublicKeyTest(APITestCase):
     endpoint = "sentry-api-0-relocations-public-key"
 

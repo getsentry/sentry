@@ -31,7 +31,7 @@ googleapis-common-protos>=1.56.4
 google-crc32c>=1.5.0
 isodate>=0.6.1
 jsonschema>=3.2.0
-lxml>=4.9.1
+lxml>=4.9.3
 maxminddb>=2.3
 mistune>=2.0.3
 mmh3>=4.0.0
@@ -78,7 +78,7 @@ ua-parser>=0.10.0
 unidiff>=0.7.4
 urllib3[brotli]>=1.26.9
 brotli>=1.0.9
-pyuwsgi==2.0.20.0
+pyuwsgi==2.0.23
 zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
 

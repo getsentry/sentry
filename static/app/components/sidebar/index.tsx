@@ -280,7 +280,7 @@ function Sidebar({location, organization}: Props) {
                   isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
                   isBeta={SCREENS_RELEASE_LEVEL === 'beta'}
                   isNew={SCREENS_RELEASE_LEVEL === 'new'}
-                  label={t('Screens')}
+                  label={t('Mobile')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
                   icon={<SubitemDot collapsed />}
@@ -340,13 +340,6 @@ function Sidebar({location, organization}: Props) {
           label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/browser/interactions`}
           id="performance-browser-interactions"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Screens')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/mobile/screens/`}
-          id="starfish-mobile-screen-loads"
           icon={<SubitemDot collapsed={collapsed} />}
         />
       </SidebarAccordion>
