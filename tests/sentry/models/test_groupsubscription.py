@@ -27,7 +27,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SubscribeTest(TestCase):
     def test_simple(self):
         group = self.create_group()
@@ -193,7 +193,7 @@ class SubscribeTest(TestCase):
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.org = self.create_organization()

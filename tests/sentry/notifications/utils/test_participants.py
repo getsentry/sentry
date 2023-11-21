@@ -85,7 +85,7 @@ class _ParticipantsTest(TestCase):
         assert actual == expected
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSendToMemberTest(_ParticipantsTest):
     def get_send_to_member(
         self, project: Optional[Project] = None, user_id: Optional[int] = None
@@ -141,7 +141,7 @@ class GetSendToMemberTest(_ParticipantsTest):
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSendToTeamTest(_ParticipantsTest):
     def setUp(self):
         super().setUp()
@@ -259,7 +259,7 @@ class GetSendToTeamTest(_ParticipantsTest):
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSendToOwnersTest(_ParticipantsTest):
     def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, Set[RpcActor]]:
         return get_send_to(
@@ -707,7 +707,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetOwnersCase(_ParticipantsTest):
     def setUp(self):
         self.user_1 = self.create_user(email="paul@atreides.space")
@@ -849,7 +849,7 @@ class GetOwnersCase(_ParticipantsTest):
         assert owner_reason is None
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSendToFallthroughTest(_ParticipantsTest):
     def setUp(self):
         self.user2 = self.create_user(email="baz@example.com", is_active=True)

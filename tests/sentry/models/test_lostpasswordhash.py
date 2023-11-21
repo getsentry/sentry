@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class LostPasswordTest(TestCase):
     def test_send_recover_mail(self):
         password_hash = LostPasswordHash.objects.create(user=self.user)

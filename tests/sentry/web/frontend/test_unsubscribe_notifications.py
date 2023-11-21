@@ -50,7 +50,7 @@ class Base:
             assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UnsubscribeIssueNotificationsTest(Base.UnsubscribeNotificationsBase):
     view_name = "sentry-account-email-unsubscribe-issue"
 
@@ -67,7 +67,7 @@ class UnsubscribeIssueNotificationsTest(Base.UnsubscribeNotificationsBase):
         ).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UnsubscribeIncidentNotificationsTest(Base.UnsubscribeNotificationsBase):
     view_name = "sentry-account-email-unsubscribe-incident"
 

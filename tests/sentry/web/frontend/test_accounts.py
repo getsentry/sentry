@@ -14,7 +14,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, regi
 from sentry.utils import linksign
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestAccounts(TestCase):
     @cached_property
     def path(self):
@@ -183,7 +183,7 @@ class TestAccounts(TestCase):
                 assert resp[header_name] == "strict-origin-when-cross-origin"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EmailUnsubscribeProjectTest(TestCase):
     def setUp(self):
         super().setUp()

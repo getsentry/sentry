@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokensListTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-tokens"
 
@@ -106,7 +106,7 @@ class OrgAuthTokensListTest(APITestCase):
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokenCreateTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-tokens"
     method = "POST"
@@ -179,7 +179,7 @@ class OrgAuthTokenCreateTest(APITestCase):
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokensPermissionTest(PermissionTestCase):
     postData = {"name": "token-1"}
 

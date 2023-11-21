@@ -198,7 +198,7 @@ class RelocationTaskTestCase(TestCase):
         fake_message_builder.return_value.send_async.return_value = Mock()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.tasks.relocation.preprocessing_scan.delay")
 class UploadingCompleteTest(RelocationTaskTestCase):
@@ -260,7 +260,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_UPLOADING_FAILED
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
@@ -592,7 +592,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
@@ -702,7 +702,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
@@ -817,7 +817,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert relocation.status == Relocation.Status.FAILURE.value
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.tasks.relocation.validating_start.delay")
 class PreprocessingCompleteTest(RelocationTaskTestCase):
@@ -947,7 +947,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.tasks.relocation.CloudBuildClient",
     new_callable=lambda: FakeCloudBuildClient,
@@ -1072,7 +1072,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_VALIDATING_MAX_RUNS
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.tasks.relocation.CloudBuildClient",
     new_callable=lambda: FakeCloudBuildClient,
@@ -1290,7 +1290,7 @@ def mock_invalid_finding(storage: Storage, uuid: str):
     )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.tasks.relocation.importing.delay")
 class ValidatingCompleteTest(RelocationTaskTestCase):
@@ -1431,7 +1431,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_VALIDATING_INTERNAL
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
@@ -1477,7 +1477,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
             ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.tasks.relocation.notifying_users.delay")
 class PostprocessingTest(RelocationTaskTestCase):
@@ -1583,7 +1583,7 @@ class PostprocessingTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_POSTPROCESSING_INTERNAL
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.tasks.relocation.notifying_owner.delay")
 class NotifyingUsersTest(RelocationTaskTestCase):
@@ -1678,7 +1678,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_NOTIFYING_INTERNAL
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.tasks.relocation.completed.delay")
 class NotifyingOwnerTest(RelocationTaskTestCase):
@@ -1771,7 +1771,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_NOTIFYING_INTERNAL
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CompletedTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -1788,7 +1788,7 @@ class CompletedTest(RelocationTaskTestCase):
         assert not relocation.failure_reason
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,

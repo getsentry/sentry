@@ -29,7 +29,7 @@ from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
     def test_project(self):
         user = self.create_user()
