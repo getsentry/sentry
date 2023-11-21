@@ -61,10 +61,10 @@ class JSONRenderer:
         except Exception:
             logging.warning("Failed to serialize event", exc_info=True)
             # in Production, we want to skip non-serializable keys, rather than raise an exception
-            if settings.IS_PROD:
-                return JSONEncoder_skipkeys.encode(event_dict)
-            else:
+            if settings.DEBUG:
                 raise
+            else:
+                return JSONEncoder_skipkeys.encode(event_dict)
 
 
 class HumanRenderer:
