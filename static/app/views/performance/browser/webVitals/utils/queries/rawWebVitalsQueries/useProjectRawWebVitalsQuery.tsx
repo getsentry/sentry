@@ -12,7 +12,7 @@ type Props = {
   transaction?: string;
 };
 
-export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}) => {
+export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props = {}) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -32,9 +32,6 @@ export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}
         'count_web_vitals(measurements.fid, any)',
         'count_web_vitals(measurements.ttfb, any)',
         'count()',
-        'failure_count()',
-        'p95(transaction.duration)',
-        'eps()',
       ],
       name: 'Web Vitals',
       query:
