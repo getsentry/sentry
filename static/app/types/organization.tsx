@@ -273,11 +273,13 @@ export type EventsStats = {
   end?: number;
   isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
+  isMetricsExtractedData?: boolean;
   meta?: {
     fields: Record<string, AggregationOutputType>;
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string>;
+    isMetricsExtractedData?: boolean;
   };
   order?: number;
   start?: number;
