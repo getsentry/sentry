@@ -27,7 +27,7 @@ import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDe
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleStatus, Incident} from 'sentry/views/alerts/types';
 import {
-  hasErrorMigrationFeatureFlag,
+  hasIgnoreArchivedFeatureFlag,
   hasMigrationFeatureFlag,
   ruleNeedsErrorMigration,
   ruleNeedsMigration,
@@ -161,7 +161,7 @@ export default function MetricDetailsBody({
   const showTransactionMigrationWarning =
     hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
   const showErrorMigrationWarning =
-    hasErrorMigrationFeatureFlag(organization) && ruleNeedsErrorMigration(rule);
+    hasIgnoreArchivedFeatureFlag(organization) && ruleNeedsErrorMigration(rule);
 
   const migrationFormLink =
     rule &&
