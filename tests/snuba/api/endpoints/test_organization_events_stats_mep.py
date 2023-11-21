@@ -1177,9 +1177,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             == "event.measurements.lcp.value;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}"
         )
 
-        # Include transaction duration in indexer since it's in the query.
-        indexer.record(UseCaseID.TRANSACTIONS, self.organization.id, "transaction.duration")
-
         for count in range(0, 4):
             self.store_on_demand_metric(
                 count * 100,
@@ -1211,10 +1208,14 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 
         assert response.status_code == 200, response.content
 
+        assert response.data["p75(measurements.fcp)"]["meta"]["isMetricsExtractedData"] == True
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"] == True
         assert response.data["p75(measurements.fcp)"]["data"] == [
             (1700474400, [{"count": 0}]),
             (1700478000, [{"count": 225.0}]),
         ]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsExtractedData"] == True
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"] == True
         assert response.data["p75(measurements.lcp)"]["data"] == [
             (1700474400, [{"count": 0}]),
             (1700478000, [{"count": 450.0}]),
