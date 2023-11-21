@@ -109,9 +109,11 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
         provisioning_options = self.generate_provisioning_args(
             name="sentry", slug="sentry", email="test-owner@sentry.io", default_team=True
         )
+        print("options created", provisioning_options)
         slug = control_organization_provisioning_rpc_service.provision_organization(
             region_name="us", org_provision_args=provisioning_options
         )
+        print("slug created", slug)
         self.assert_slug_reservation_and_org_exist(
             rpc_org_slug=slug,
         )
