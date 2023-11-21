@@ -732,7 +732,9 @@ class EventManager:
             job["received_timestamp"] - job["recorded_timestamp"],
             tags=metric_tags,
         )
-        metrics.distribution("events.size.data.post_save", job["event"].size, tags=metric_tags)
+        metrics.distribution(
+            "events.size.data.post_save", job["event"].size, tags=metric_tags, unit="byte"
+        )
         metrics.incr(
             "events.post_save.normalize.errors",
             amount=len(job["data"].get("errors") or ()),
