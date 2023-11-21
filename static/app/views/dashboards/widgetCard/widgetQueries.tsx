@@ -159,7 +159,9 @@ function WidgetQueries({
       if (rawResults.isMetricsExtractedData !== undefined) {
         isSeriesMetricsExtractedDataResults.push(rawResults.isMetricsExtractedData);
       }
-      isSeriesMetricsExtractedDataResults.push(rawResults.isMetricsExtractedData);
+      isSeriesMetricsExtractedDataResults.push(
+        rawResults.isMetricsExtractedData || rawResults.meta?.isMetricsExtractedData
+      );
     } else {
       Object.keys(rawResults).forEach(key => {
         const rawResult: EventsStats = rawResults[key];
@@ -167,7 +169,9 @@ function WidgetQueries({
           isSeriesMetricsDataResults.push(rawResult.isMetricsData);
         }
         if (rawResult.isMetricsExtractedData !== undefined) {
-          isSeriesMetricsExtractedDataResults.push(rawResult.isMetricsExtractedData);
+          isSeriesMetricsExtractedDataResults.push(
+            rawResult.isMetricsExtractedData || rawResult.meta?.isMetricsExtractedData
+          );
         }
       });
     }

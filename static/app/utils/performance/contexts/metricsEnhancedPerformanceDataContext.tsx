@@ -12,7 +12,7 @@ import {useOnDemandControl} from './onDemandControl';
 import {createDefinedContext} from './utils';
 
 export type MetricsResultsMetaMapKey = Widget;
-type ExtractedDataMap = Map<MetricsResultsMetaMapKey, boolean | undefined>;
+type ExtractedDataMap = Map<string, boolean | undefined>;
 
 export interface MetricsEnhancedPerformanceDataContext {
   setIsMetricsData: (value?: boolean) => void;
@@ -85,7 +85,9 @@ export function MetricsResultsMetaProvider({children}: {children: ReactNode}) {
 
   const setIsMetricsExtractedData = useCallback(
     (mapKey: MetricsResultsMetaMapKey, value?: boolean) => {
-      metricsExtractedDataMap.set(mapKey, value);
+      if (mapKey.id) {
+        metricsExtractedDataMap.set(mapKey.id, value);
+      }
     },
     [metricsExtractedDataMap]
   );
@@ -141,7 +143,7 @@ export function ExtractedMetricsTag(props: {queryKey: MetricsResultsMetaMapKey})
   const {forceOnDemand} = _onDemandControl;
 
   const isMetricsExtractedData =
-    resultsMeta?.metricsExtractedDataMap.get(props.queryKey) || undefined;
+    resultsMeta?.metricsExtractedDataMap.get(props.queryKey.id ?? '') || undefined;
 
   if (!organization.features.includes('on-demand-metrics-extraction-experimental')) {
     // Separate if for easier flag deletion
