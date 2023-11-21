@@ -525,9 +525,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                             dataset=dataset,
                         )
-                        results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
-                            results, key, query_columns
-                        )
+                        if request.query_params.get("useOnDemandMetrics") == "true":
+                            results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
+                                results, key, query_columns
+                            )
                     else:
                         results[key] = serializer.serialize(
                             event_result,
