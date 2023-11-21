@@ -184,7 +184,7 @@ class _SiloModeTestModification:
         """
         if len(self.silo_modes) == 1:
             (silo_mode,) = self.silo_modes
-            if not self.include_monolith_run:
+            if not (self.include_monolith_run or settings.FORCE_SILOED_TESTS):
                 return silo_mode, ()
             if self.run_original_class_in_silo_mode:
                 return silo_mode, (SiloMode.MONOLITH,)
