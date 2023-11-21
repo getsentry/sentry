@@ -476,3 +476,23 @@ export function fieldToMri(field: string) {
     op: parsedFunction.name,
   };
 }
+
+// This is a workaround as the alert builder requires a valid aggregate to be set
+export const DEFAULT_METRIC_ALERT_AGGREGATE = 'sum(c:custom/my_metric@none)';
+
+export const formatMriAggregate = (aggregate: string) => {
+  if (aggregate === DEFAULT_METRIC_ALERT_AGGREGATE) {
+    return t('Select a metric to get started');
+  }
+
+  const {mri, op} = fieldToMri(aggregate);
+  const parsed = parseMRI(mri);
+
+  if (!parsed) {
+    return aggregate;
+  }
+
+  const {name, unit} = parsed;
+
+  return `${op}(${name}@${unit})`;
+};

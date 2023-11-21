@@ -183,7 +183,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       },
     ];
 
-    if (organization.features.includes('performance-view') && alertType === 'custom') {
+    if (
+      organization.features.includes('performance-view') &&
+      (alertType === 'custom_transactions' || alertType === 'custom_metrics')
+    ) {
       dataSourceOptions.push({
         label: t('Transactions'),
         options: [
@@ -228,13 +231,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   value === Datasource.TRANSACTION
                     ? DEFAULT_TRANSACTION_AGGREGATE
                     : DEFAULT_AGGREGATE;
-                if (alertType === 'custom' && aggregate !== newAggregate) {
+                if (alertType === 'custom_transactions' && aggregate !== newAggregate) {
                   model.setValue('aggregate', newAggregate);
                 }
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
                   DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
+
                 model.setValue('dataset', datasetFromDataSource);
                 model.setValue('eventTypes', eventTypes);
               }}

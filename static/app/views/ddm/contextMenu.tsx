@@ -7,7 +7,12 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {MetricDisplayType, MetricsQuery, mriToField} from 'sentry/utils/metrics';
+import {
+  MetricDisplayType,
+  MetricsQuery,
+  mriToField,
+  parseMRI,
+} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -142,7 +147,12 @@ function useCreateAlertUrl(organization: Organization, metricsQuery: MetricsQuer
     projects.projects.find(p => p.id === selectedProjects[0].toString())?.slug;
 
   return useMemo(() => {
-    if (!firstProjectSlug || !metricsQuery.mri || !metricsQuery.op) {
+    if (
+      !firstProjectSlug ||
+      !metricsQuery.mri ||
+      !metricsQuery.op ||
+      parseMRI(metricsQuery.mri)?.useCase !== 'custom'
+    ) {
       return undefined;
     }
 

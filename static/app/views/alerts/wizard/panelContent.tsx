@@ -119,10 +119,18 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
     illustration: diagramCLS,
   },
-  custom: {
+  custom_transactions: {
     description: t(
-      'Alert on metrics which are not listed above, such as first paint (FP), first contentful paint (FCP), and time to first byte (TTFB).'
+      'Alert on performance metrics which are not listed above, such as first paint (FP), first contentful paint (FCP), and time to first byte (TTFB).'
     ),
+    examples: [
+      t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
+      t('When the average TTFB of a page is longer than 600 millliseconds.'),
+    ],
+    illustration: diagramCustom,
+  },
+  custom_metrics: {
+    description: t('Alert on your custom metrics.'),
     examples: [
       t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
       t('When the average TTFB of a page is longer than 600 millliseconds.'),
