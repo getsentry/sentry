@@ -1,5 +1,6 @@
-import {CSSProperties, forwardRef} from 'react';
+import {CSSProperties, forwardRef, ReactNode} from 'react';
 import {browserHistory} from 'react-router';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -10,15 +11,18 @@ import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasRep
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
-import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconAttachment, IconCircleFill, IconFlag, IconPlay} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconCircleFill, IconIssues, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -31,12 +35,26 @@ interface Props {
   style?: CSSProperties;
 }
 
+function FeedbackIcon({tooltipText, icon}: {icon: ReactNode; tooltipText: string}) {
+  return <StyledTooltip title={tooltipText}>{icon}</StyledTooltip>;
+}
+
 function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
   const [, feedbackId] = feedbackSlug.split(':') ?? [];
   return feedbackId === feedbackItem.id;
+}
+
+function MutedText({children, isOpen}: {children: ReactNode; isOpen: boolean}) {
+  const config = useLegacyStore(ConfigStore);
+
+  return (
+    <ThemeProvider theme={isOpen || config.theme === 'dark' ? lightTheme : darkTheme}>
+      <StyledText>{children}</StyledText>
+    </ThemeProvider>
+  );
 }
 
 const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
@@ -89,44 +107,51 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             )}
           </Flex>
           <div style={{gridArea: 'message'}}>
-            <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
+            <MutedText isOpen={isOpen}>
+              <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
+            </MutedText>
           </div>
           <RightAlignedIcons
             style={{
               gridArea: 'icons',
             }}
           >
-            {feedbackItem.assignedTo ? (
-              <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
-            ) : null}
             {isCrashReport && (
-              <Tag type="error">
-                <Badge isOpen={isOpen}>
-                  <IconFlag size="xs" color="red300" />
-                  {t('Crash Report')}
-                </Badge>
-              </Tag>
+              <FeedbackIcon
+                tooltipText={t('Linked Issue')}
+                icon={<IconIssues size="xs" />}
+              />
             )}
             {hasReplayId && (
-              <Tag type="highlight">
-                <Badge isOpen={isOpen}>
-                  <IconAttachment size="xs" />
-                  <IconPlay size="xs" />
-                </Badge>
-              </Tag>
+              <FeedbackIcon
+                tooltipText={t('Linked Replay')}
+                icon={<IconPlay size="xs" />}
+              />
+            )}
+            {feedbackItem.assignedTo && (
+              <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
             )}
           </RightAlignedIcons>
           <Flex style={{gridArea: 'proj'}} gap={space(1)} align="center">
-            <Badge isOpen={isOpen}>
-              <ProjectAvatar project={feedbackItem.project} size={12} />
+            <ProjectAvatar project={feedbackItem.project} size={12} />
+            <MutedText isOpen={isOpen}>
               <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
-            </Badge>
+            </MutedText>
           </Flex>
         </LinkedFeedbackCard>
       </CardSpacing>
     );
   }
 );
+
+const StyledText = styled('div')`
+  color: ${p => p.theme.gray200};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: flex;
+  align-items: center;
+`;
 
 const StyledTimeSince = styled(TimeSince)`
   display: flex;
@@ -136,13 +161,7 @@ const StyledTimeSince = styled(TimeSince)`
 const RightAlignedIcons = styled('div')`
   display: flex;
   justify-content: end;
-  gap: ${space(0.5)};
-`;
-
-const Badge = styled(Flex)<{isOpen: boolean}>`
-  align-items: center;
-  gap: ${space(0.5)};
-  color: ${p => (p.isOpen ? p.theme.gray100 : p.theme.gray400)};
+  gap: ${space(0.75)};
 `;
 
 const CardSpacing = styled('div')`
