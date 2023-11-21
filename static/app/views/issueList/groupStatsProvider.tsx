@@ -107,7 +107,13 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
   };
 
   const statsQuery = reactQuery.useQuery<Record<string, GroupStats>, RequestError>(
-    [`/organizations/${props.organization.slug}/issues-stats/`],
+    [
+      `/organizations/${props.organization.slug}/issues-stats/`,
+      props.selection,
+      props.period,
+      props.query,
+      props.groupIds,
+    ],
     queryFn,
     {
       enabled: props.groupIds.length > 0,
