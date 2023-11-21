@@ -96,7 +96,7 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
             )
             if resp.status_code != 200:
                 raise snuba.SnubaError(
-                    f"HTTP {resp.status_code} response from Snuba! {resp.content}"
+                    f"HTTP {resp.status_code} response from Snuba! {resp.content.decode('utf-8')}"
                 )
             return None
         except urllib3.exceptions.HTTPError as err:
