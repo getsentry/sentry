@@ -685,8 +685,68 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         message_builder.return_value.send.assert_called_with(to=("joseph@speedwagon.org",))
 
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    def test_email_override_no_target_user(self, message_builder, record):
+        now = django_timezone.now()
+        two_days_ago = now - timedelta(days=2)
+        timestamp = to_timestamp(floor_to_utc_day(now))
+
+        # create some extra projects; we expect to receive a report with all projects included
+        self.create_project(organization=self.organization)
+        self.create_project(organization=self.organization)
+
+        # fill with data so report not skipped
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": iso_format(two_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": two_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+
+        prepare_organization_report(
+            timestamp,
+            ONE_DAY * 7,
+            self.organization.id,
+            dry_run=False,
+            target_user=None,
+            email_override="jonathan@speedwagon.org",
+        )
+
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert context["organization"] == self.organization
+            assert context["user_project_count"] == 3
+
+        record.assert_any_call(
+            "weekly_report.sent",
+            user_id=None,
+            organization_id=self.organization.id,
+            notification_uuid=mock.ANY,
+            user_project_count=3,
+        )
+
+        message_builder.return_value.send.assert_called_with(to=("jonathan@speedwagon.org",))
+
     @mock.patch("sentry.tasks.weekly_reports.logger")
-    def test_email_override_no_target_user(self, logger):
+    def test_email_override_invalid_target_user(self, logger):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
         timestamp = to_timestamp(floor_to_utc_day(now))

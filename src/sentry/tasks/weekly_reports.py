@@ -657,7 +657,10 @@ def fetch_key_performance_issue_groups(ctx):
 def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
     # Specify a sentry user to send this email.
     if email_override:
-        send_email(ctx, target_user.id, dry_run=dry_run, email_override=email_override)
+        target_user_id = (
+            target_user.id if target_user else None
+        )  # if None, generates report for a user with access to all projects
+        send_email(ctx, target_user_id, dry_run=dry_run, email_override=email_override)
     else:
         user_list = list(
             OrganizationMember.objects.filter(
