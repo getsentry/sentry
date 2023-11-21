@@ -132,7 +132,13 @@ export function MEPTag() {
 export function ExtractedMetricsTag(props: {queryKey: MetricsResultsMetaMapKey}) {
   const resultsMeta = useMetricsResultsMeta();
   const organization = useOrganization();
-  const {forceOnDemand} = useOnDemandControl();
+  const _onDemandControl = useOnDemandControl();
+
+  if (!_onDemandControl) {
+    return null;
+  }
+
+  const {forceOnDemand} = _onDemandControl;
 
   const isMetricsExtractedData =
     resultsMeta?.metricsExtractedDataMap.get(props.queryKey) || undefined;

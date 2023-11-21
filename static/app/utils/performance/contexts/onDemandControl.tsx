@@ -23,6 +23,7 @@ export interface OnDemandControlContext {
 const [_OnDemandControlProvider, _useOnDemandControl, _context] =
   createDefinedContext<OnDemandControlContext>({
     name: 'OnDemandControlContext',
+    strict: false,
   });
 
 export const OnDemandControlConsumer = _context.Consumer;
@@ -136,6 +137,10 @@ export function ToggleOnDemand() {
   const toggle = useCallback(() => {
     onDemand.setForceOnDemand(!onDemand.forceOnDemand);
   }, [onDemand]);
+
+  if (!onDemand) {
+    return null;
+  }
 
   if (!org.features.includes('on-demand-metrics-extraction-experimental')) {
     return null;
