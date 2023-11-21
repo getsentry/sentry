@@ -1,8 +1,11 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 
 import AlertLink from 'sentry/components/alertLink';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ExternalIssueActions from 'sentry/components/group/externalIssueActions';
+import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
+import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
+import useFetchSentryAppData from 'sentry/components/group/externalIssuesList/useFetchSentryAppData';
+import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
 import PluginActions from 'sentry/components/group/pluginActions';
 import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
@@ -12,18 +15,8 @@ import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {
-  Group,
-  GroupIntegration,
-  OrganizationSummary,
-  PlatformExternalIssue,
-  Project,
-  SentryAppComponent,
-} from 'sentry/types';
+import type {Group, GroupIntegration, Project, SentryAppComponent} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
@@ -34,79 +27,12 @@ type Props = {
   project: Project;
 };
 
-const issueTrackingFilterKey = 'issueTrackingFilter';
-
 type ExternalIssueComponent = {
   component: React.ReactNode;
   key: string;
   disabled?: boolean;
   hasLinkedIssue?: boolean;
 };
-
-function makeIntegrationsQueryKey(
-  group: Group,
-  organization: OrganizationSummary
-): ApiQueryKey {
-  return [`/organizations/${organization.slug}/issues/${group.id}/integrations/`];
-}
-
-function useFetchIntegrations({
-  group,
-  organization,
-}: {
-  group: Group;
-  organization: OrganizationSummary;
-}) {
-  return useApiQuery<GroupIntegration[]>(makeIntegrationsQueryKey(group, organization), {
-    staleTime: Infinity,
-  });
-}
-
-// We want to do this explicitly so that we can handle errors gracefully,
-// instead of the entire component not rendering.
-//
-// Part of the API request here is fetching data from the Sentry App, so
-// we need to be more conservative about error cases since we don't have
-// control over those services.
-//
-function useFetchSentryAppData({
-  group,
-  organization,
-}: {
-  group: Group;
-  organization: OrganizationSummary;
-}) {
-  const {data} = useApiQuery<PlatformExternalIssue[]>(
-    [`/organizations/${organization.slug}/issues/${group.id}/external-issues/`],
-    {staleTime: 30_000}
-  );
-
-  useEffect(() => {
-    if (data) {
-      ExternalIssueStore.load(data);
-    }
-  }, [data]);
-}
-
-function useIssueTrackingFilter() {
-  const location = useLocation();
-  const issueTrackingQueryParam = location.query.issueTracking;
-  const [issueTracking, setIssueTracking] = useLocalStorageState<string>(
-    issueTrackingFilterKey,
-    'all'
-  );
-  const issueTrackingFilter = ['', 'all'].includes(issueTracking)
-    ? undefined
-    : issueTracking;
-
-  useEffect(() => {
-    if (typeof issueTrackingQueryParam === 'string') {
-      setIssueTracking(issueTrackingQueryParam);
-    }
-  }, [issueTrackingQueryParam, setIssueTracking]);
-
-  return issueTrackingFilter;
-}
 
 function ExternalIssueList({components, group, event, project}: Props) {
   const organization = useOrganization();

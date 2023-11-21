@@ -1,16 +1,19 @@
+import {Event} from 'sentry-fixture/event';
+import {Group} from 'sentry-fixture/group';
 import {JiraIntegration} from 'sentry-fixture/jiraIntegration';
 import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 
-import ExternalIssuesList from './externalIssuesList';
+import ExternalIssuesList from '.';
 
 describe('ExternalIssuesList', () => {
-  const event = TestStubs.Event();
-  const group = TestStubs.Group();
-  const project = TestStubs.Project();
+  const event = Event();
+  const group = Group();
+  const project = Project();
   const organization = Organization();
 
   beforeEach(() => {
