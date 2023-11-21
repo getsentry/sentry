@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.testutils.silo import validate_protected_queries
+from sentry.testutils.silo import strip_silo_mode_test_suffix, validate_protected_queries
 
 
 def test_validate_protected_queries__no_queries():
@@ -99,3 +99,11 @@ def test_validate_protected_queries__fenced_and_not():
     ]
     with pytest.raises(AssertionError):
         validate_protected_queries(queries)
+
+
+def test_strip_silo_mode_test_suffix():
+    assert strip_silo_mode_test_suffix("SomeTest") == "SomeTest"
+    assert strip_silo_mode_test_suffix("SomeTest__InMonolithMode") == "SomeTest"
+    assert strip_silo_mode_test_suffix("SomeTest__InControlMode") == "SomeTest"
+    assert strip_silo_mode_test_suffix("SomeTest__InRegionMode") == "SomeTest"
+    assert strip_silo_mode_test_suffix("SomeTest__InAnotherMode") == "SomeTest__InAnotherMode"

@@ -69,6 +69,19 @@ class AncestorAlreadySiloDecoratedException(Exception):
     pass
 
 
+def _get_test_name_suffix(silo_mode: SiloMode) -> str:
+    name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
+    return f"__In{name}Mode"
+
+
+def strip_silo_mode_test_suffix(name: str) -> str:
+    for silo_mode in SiloMode:
+        suffix = _get_test_name_suffix(silo_mode)
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return name
+
+
 class SiloModeTestDecorator:
     """Decorate a test case that is expected to work in a given silo mode.
 
@@ -181,9 +194,8 @@ class _SiloModeTestModification:
         primary_mode, secondary_modes = self._arrange_silo_modes()
 
         for silo_mode in secondary_modes:
-            silo_mode_name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
             siloed_test_class = self._create_overriding_test_class(
-                test_class, silo_mode, f"__In{silo_mode_name}Mode"
+                test_class, silo_mode, _get_test_name_suffix(silo_mode)
             )
 
             module = sys.modules[test_class.__module__]
