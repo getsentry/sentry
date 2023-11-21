@@ -25,6 +25,14 @@
         }
     },
     {
+        "model": "sentry.email",
+        "pk": 3,
+        "fields": {
+            "email": "testing@example.com",
+            "date_added": "2023-06-22T22:59:54.521Z"
+        }
+    },
+    {
         "model": "sentry.authenticator",
         "pk": 3,
         "fields": {
