@@ -363,6 +363,9 @@ def insta_snapshot(request, log):
             if subname is not None:
                 name += f"_{subname}"
 
+            # If testing in an alternative silo mode, use the same snapshot as the
+            # base test. This would need to change if we want different snapshots for
+            # different silo modes.
             parent_name = strip_silo_mode_test_suffix(request.node.parent.name)
 
             reference_file = os.path.join(
