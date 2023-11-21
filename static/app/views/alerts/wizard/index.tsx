@@ -68,6 +68,15 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
       metricRuleTemplate = {...metricRuleTemplate, dataset: Dataset.METRICS};
     }
 
+    if (
+      !organization.features.includes('metric-alert-ignore-archived') &&
+      metricRuleTemplate?.dataset === Dataset.ERRORS
+    ) {
+      // Pre-fill status:unresolved for error metric alerts
+      // Filters out events in issues that are archived or resolved
+      metricRuleTemplate = {...metricRuleTemplate, query: 'status:unresolved'};
+    }
+
     const renderNoAccess = p => (
       <Hovercard
         body={
