@@ -3,7 +3,7 @@ from __future__ import annotations
 import collections
 import math
 import os
-import random
+import random as random_module
 import shutil
 import sys
 from datetime import datetime
@@ -356,7 +356,7 @@ def _shuffle(items: list[pytest.Item], seed: int) -> None:
     # this prevents duplicate setup/teardown work
     nodes: dict[str, dict[str, pytest.Item | dict[str, pytest.Item]]]
     nodes = collections.defaultdict(dict)
-    random.seed(seed)
+    random = random_module.Random(seed)
     for item in items:
         parts = item.nodeid.split("::", maxsplit=2)
         if len(parts) == 2:
@@ -384,17 +384,16 @@ def _shuffle(items: list[pytest.Item], seed: int) -> None:
     items[:] = new_items
 
 
-def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """After collection, we need to select tests based on group and group strategy and sample
-    them if applicable"""
-
-    total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
-    current_group = int(os.environ.get("TEST_GROUP", 0))
-    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
-    shuffler_seed = hash(os.environ.get("TEST_SHUFFLER_SEED", 0))
-    sample_rate = float(os.environ.get("TEST_SAMPLE_RATE", 1))
+def _get_keep_and_discard_items(
+    items: list[pytest.Item],
+    total_groups: int,
+    current_group: int,
+    grouping_strategy: str,
+    shuffle_tests: bool,
+    shuffler_seed: int,
+    sample_rate: float,
+) -> tuple[list[pytest.Item], list[pytest.Item]]:
     keep, discard = [], []
-
     # First decide what to discard based on the test shard
     for index, item in enumerate(items):
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
@@ -421,10 +420,34 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         discard.extend(keep[cutoff:])
         keep[:] = keep[0 : math.ceil(len(keep) * sample_rate)]
 
-    items[:] = keep
+    if shuffle_tests:
+        _shuffle(keep, shuffler_seed)
 
-    if os.environ.get("SENTRY_SHUFFLE_TESTS"):
-        _shuffle(items, shuffler_seed)
+    return keep, discard
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """After collection, we need to select tests based on group and group strategy and sample
+    them if applicable"""
+
+    total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
+    current_group = int(os.environ.get("TEST_GROUP", 0))
+    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
+    shuffler_seed = hash(os.environ.get("TEST_SHUFFLER_SEED", 0))
+    sample_rate = float(os.environ.get("TEST_SAMPLE_RATE", 1))
+    shuffle_tests = bool(os.environ.get("SENTRY_SHUFFLE_TESTS", False))
+
+    keep, discard = _get_keep_and_discard_items(
+        items,
+        total_groups,
+        current_group,
+        grouping_strategy,
+        shuffle_tests,
+        shuffler_seed,
+        sample_rate,
+    )
+
+    items[:] = keep
 
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
