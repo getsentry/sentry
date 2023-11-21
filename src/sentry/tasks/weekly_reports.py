@@ -651,7 +651,7 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
             send_email(ctx, target_user.id, dry_run=dry_run, email_override=email_override)
         except AttributeError:
             logger.exception(
-                "deliver_reports.email_override",
+                "deliver_reports.email_override.error",
                 extra={
                     "dry_run": dry_run,
                     "target_user": json.dumps(target_user),
