@@ -602,7 +602,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(audit_log_entry) == 1
 
 
-class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
+@region_silo_test(stable=True)
+class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
+    method = "put"
+
     def _mock_slack_response(self, url: str, body: dict[str, Any], status: int = 200) -> None:
         responses.add(
             method=responses.GET,
@@ -811,13 +814,14 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         )
         self.login_as(self.user)
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
         test_params = self.valid_params.copy()
         test_params["triggers"] = [
             {
@@ -936,7 +940,10 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         )  # Did not increment from the last assertion because we early out on the validation error
 
 
-class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsPutEndpointTest):
+@region_silo_test(stable=True)
+class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
+    method = "put"
+
     def test_sentry_app(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
