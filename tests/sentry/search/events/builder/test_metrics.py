@@ -2724,13 +2724,62 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query=query_str,
             selected_columns=["eps()", "epm()", "not_on_demand"],
             config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
+                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY
             ),
         )
         assert query._on_demand_metric_spec_map
         assert query._on_demand_metric_spec_map["eps()"]
         assert query._on_demand_metric_spec_map["epm()"]
         assert "not_on_demand" not in query._on_demand_metric_spec_map
+
+    def test_on_demand_map_with_multiple_percentiles(self):
+
+        field = "p75(measurements.fcp)"
+        field_two = "p75(measurements.lcp)"
+        groupbys = []
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        for day in range(0, 4):
+            self.store_on_demand_metric(
+                day * 250,
+                spec=spec,
+                timestamp=self.start + datetime.timedelta(days=0),
+            )
+            self.store_on_demand_metric(
+                day * 500,
+                spec=spec_two,
+                timestamp=self.start + datetime.timedelta(days=0),
+            )
+
+        query_str = "transaction.duration:>=100"
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query_str,
+            selected_columns=["p75(measurements.fcp)", "p75(measurements.lcp)"],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY
+            ),
+        )
+        assert query._on_demand_metric_spec_map
+        assert query._on_demand_metric_spec_map["p75(measurements.fcp)"]
+        assert query._on_demand_metric_spec_map["p75(measurements.lcp)"]
+
+        result = query.run_query("test_query")
+        assert result["data"][:1] == [
+            {
+                "time": self.start.isoformat(),
+                "p75_measurements_fcp": 562.5,
+                "p75_measurements_lcp": 1125.0,
+            },
+        ]
 
     def _test_user_misery(
         self, user_to_frustration: list[Tuple[str, bool]], expected_user_misery: float
