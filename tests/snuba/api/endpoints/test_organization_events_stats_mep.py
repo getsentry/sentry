@@ -1153,13 +1153,10 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
     def test_timeseries_on_demand_with_multiple_percentiles(self):
         field = "p75(measurements.fcp)"
         field_two = "p75(measurements.lcp)"
-        groupbys = []
         query = "transaction.duration:>=100"
-        spec = OnDemandMetricSpec(
-            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
-        )
+        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
         spec_two = OnDemandMetricSpec(
-            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+            field=field_two, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
         )
 
         assert (
