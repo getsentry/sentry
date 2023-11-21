@@ -76,9 +76,6 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     ) -> None:
         from sentry.models.team import Team
 
-        if not features.has("organizations:participants-purge", group.organization):
-            return
-
         if not previous_assignee:
             return
 

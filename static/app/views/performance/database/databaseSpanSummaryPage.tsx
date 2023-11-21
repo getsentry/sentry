@@ -17,14 +17,11 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
-import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
+import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
-import {
-  SpanSummaryQueryFilters,
-  useSpanMetrics,
-} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {
   SpanFunction,
@@ -55,29 +52,26 @@ function SpanSummaryPage({params}: Props) {
   const organization = useOrganization();
   const location = useLocation<Query>();
 
-  const {selectedAggregate} = useAvailableDurationAggregates();
+  const [selectedAggregate] = useSelectedDurationAggregate();
 
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
-  const queryFilter: SpanSummaryQueryFilters = endpoint
-    ? {transactionName: endpoint, 'transaction.method': endpointMethod}
-    : {};
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+  };
 
-  const seriesQueryFilters: SpanMetricsQueryFilters = endpoint
-    ? {
-        transaction: endpoint,
-        'transaction.method': endpointMethod,
-      }
-    : {};
+  if (endpoint) {
+    filters.transaction = endpoint;
+    filters['transaction.method'] = endpointMethod;
+  }
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
   const {data: fullSpan} = useFullSpanFromTrace(groupId);
 
   const {data: spanMetrics} = useSpanMetrics(
-    groupId,
-    queryFilter,
+    filters,
     [
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
@@ -105,13 +99,13 @@ function SpanSummaryPage({params}: Props) {
   };
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    {...seriesQueryFilters, 'span.group': groupId},
+    filters,
     ['spm()'],
     'api.starfish.span-summary-page-metrics-chart'
   );
 
   const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
-    {...seriesQueryFilters, 'span.group': groupId},
+    filters,
     [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     'api.starfish.span-summary-page-metrics-chart'
   );

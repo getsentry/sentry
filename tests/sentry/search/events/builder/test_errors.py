@@ -46,11 +46,14 @@ class ErrorsQueryBuilderTest(TestCase):
             )
         ]
         assert query.query.where == [
-            Condition(
-                Column("group_status", entity=Entity("group_attributes", alias="ga")), Op.IN, [0]
-            ),
+            Condition(Column("group_status", entity=g_entity), Op.IN, [0]),
             Condition(
                 Column("project_id", entity=Entity("events", alias="events")),
+                Op.IN,
+                self.projects,
+            ),
+            Condition(
+                Column("project_id", entity=g_entity),
                 Op.IN,
                 self.projects,
             ),
