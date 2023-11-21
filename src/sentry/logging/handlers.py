@@ -1,3 +1,4 @@
+import functools
 import logging
 import re
 
@@ -6,18 +7,6 @@ from structlog import get_logger
 from structlog.processors import _json_fallback_handler
 
 from sentry.utils import json, metrics
-
-_default_encoder = json.JSONEncoder(
-    separators=(",", ":"),
-    ignore_nan=True,
-    skipkeys=False,
-    ensure_ascii=True,
-    check_circular=True,
-    allow_nan=True,
-    indent=None,
-    encoding="utf-8",
-    default=_json_fallback_handler,
-).encode
 
 # These are values that come default from logging.LogRecord.
 # They are defined here:
@@ -46,8 +35,25 @@ throwaways = frozenset(
 
 
 class JSONRenderer:
+    @functools.cached_property
+    def JSONEncoder(self):
+        # importing inside of the function to avoid circular imports
+        from django.conf import settings  # NOQA isort:skip # pylint:disable=import-outside-toplevel
+
+        return json.JSONEncoder(
+            separators=(",", ":"),
+            ignore_nan=True,
+            skipkeys=settings.IS_PROD,  # in Production, we want to skip non-serializable keys, rather than raise an exception
+            ensure_ascii=True,
+            check_circular=True,
+            allow_nan=True,
+            indent=None,
+            encoding="utf-8",
+            default=_json_fallback_handler,
+        )
+
     def __call__(self, logger, name, event_dict):
-        return _default_encoder(event_dict)
+        return self.JSONEncoder.encode(event_dict)
 
 
 class HumanRenderer:

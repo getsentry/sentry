@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.logging.handlers import StructLogHandler
+from sentry.logging.handlers import JSONRenderer, StructLogHandler
 
 
 @pytest.fixture
@@ -67,3 +67,48 @@ def test_log_to_metric(metrics):
 
     logger.warning("Some other problem we don't care about")
     assert metrics.incr.call_count == 0
+
+
+@mock.patch("logging.raiseExceptions", True)
+def test_emit_invalid_keys_nonprod(handler):
+    logger = mock.MagicMock()
+    logger.log.side_effect = TypeError("invalid keys")
+    with pytest.raises(TypeError):
+        handler.emit(make_logrecord(), logger=logger)
+
+
+@mock.patch("logging.raiseExceptions", False)
+def test_emit_invalid_keys_prod(handler):
+    logger = mock.MagicMock()
+    logger.log.side_effect = TypeError("invalid keys")
+    handler.emit(make_logrecord(), logger=logger)
+
+
+@mock.patch("django.conf.settings.IS_PROD", False)
+def test_JSONRenderer_nonprod():
+    renderer = JSONRenderer()
+    with pytest.raises(TypeError):
+        renderer(None, None, {"foo": {mock.Mock(): "foo"}})
+
+
+@mock.patch("django.conf.settings.IS_PROD", True)
+def test_JSONRenderer_prod():
+    renderer = JSONRenderer()
+    renderer(None, None, {"foo": {mock.Mock(): "foo"}})
+
+
+@mock.patch("logging.raiseExceptions", True)
+def test_logging_raiseExcpetions_enabled_generic_logging(caplog):
+    logger = logging.getLogger(__name__)
+    snafu = mock.MagicMock()
+    snafu.__str__.side_effect = Exception("snafu")
+    with pytest.raises(Exception, match="snafu"):
+        logger.log(logging.INFO, snafu)
+
+
+@mock.patch("logging.raiseExceptions", False)
+def test_logging_raiseExcpetions_disabled_generic_logging(caplog):
+    logger = logging.getLogger(__name__)
+    snafu = mock.MagicMock()
+    snafu.__str__.side_effect = Exception("snafu")
+    logger.log(logging.INFO, snafu)

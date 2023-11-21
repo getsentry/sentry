@@ -99,7 +99,7 @@ _env_cache: dict[str, object] = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
-IS_PROD = ENVIRONMENT == "production"
+IS_PRODUCTION = IS_PROD = ENVIRONMENT == "production"
 
 IS_DEV = ENVIRONMENT == "development"
 
