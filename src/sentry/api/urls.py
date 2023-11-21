@@ -374,6 +374,7 @@ from .endpoints.organization_metrics import (
     OrganizationMetricDetailsEndpoint,
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsEndpoint,
+    OrganizationMetricsLocationsEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
@@ -1905,6 +1906,11 @@ ORGANIZATION_URLS = [
                 ),
             ]
         ),
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/metrics/locations/$",
+        OrganizationMetricsLocationsEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-locations",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/meta/$",

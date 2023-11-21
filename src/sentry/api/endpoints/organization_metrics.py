@@ -10,6 +10,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.metadata import get_code_locations
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -42,11 +43,34 @@ def get_use_case_id(request: Request) -> UseCaseID:
 
 
 @region_silo_endpoint
+class OrganizationMetricsLocationsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    """Get code locations of one or more metrics for a given set of projects in a time interval"""
+
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    def get(self, request: Request, organization) -> Response:
+        start, end = get_date_range_from_params(request.GET)
+
+        code_locations = get_code_locations(
+            metric_mris=request.GET.getlist("metric", []),
+            start=start,
+            end=end,
+            organization=organization,
+            projects=self.get_projects(request, organization),
+        )
+
+        return Response(code_locations, status=200)
+
+
+@region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
-    """Get metric name, available operations and the metric unit"""
+    """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
