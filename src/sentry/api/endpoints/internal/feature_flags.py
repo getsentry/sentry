@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.conf.server import SENTRY_FEATURES_DESCRIPTIONS
+from sentry.data.config.selfhosted_early_features import FEATURES
 from sentry.runner.settings import configure, discover_configs
 
 
@@ -17,10 +17,10 @@ class InternalFeatureFlagsEndpoint(Endpoint):
             return Response("You are not self-hosting Sentry.", status=403)
 
         result = {}
-        for key in SENTRY_FEATURES_DESCRIPTIONS:
+        for key in FEATURES:
             result[key] = {
                 "value": settings.SENTRY_FEATURES.get(key, False),
-                "description": SENTRY_FEATURES_DESCRIPTIONS[key],
+                "description": FEATURES[key],
             }
 
         return Response(result)
@@ -30,9 +30,7 @@ class InternalFeatureFlagsEndpoint(Endpoint):
             return Response("You are not self-hosting Sentry.", status=403)
 
         data = request.data.keys()
-        valid_feature_flags = [
-            flag for flag in data if SENTRY_FEATURES_DESCRIPTIONS.get(flag, False)
-        ]
+        valid_feature_flags = [flag for flag in data if FEATURES.get(flag, False)]
         _, py, yml = discover_configs()
         # Open the file for reading and writing
         with open(py, "r+") as file:
