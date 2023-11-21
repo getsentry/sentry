@@ -16,6 +16,7 @@ import {
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
+import {getResourceTypeFilter} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
@@ -42,6 +43,11 @@ type Option = {
 function JSCSSView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
+  const extraQuery = [
+    'AND (',
+    ...getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES),
+    ')',
+  ];
 
   const spanTimeChartsFilters: ModuleFilters = {
     'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
@@ -54,6 +60,7 @@ function JSCSSView() {
         moduleName={ModuleName.OTHER}
         appliedFilters={spanTimeChartsFilters}
         throughputUnit={RESOURCE_THROUGHPUT_UNIT}
+        extraQuery={extraQuery}
       />
 
       <FilterOptionsContainer>
