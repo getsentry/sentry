@@ -29,7 +29,6 @@ export function SpanDescriptionLink({
     project: projectId,
     endpoint,
     endpointMethod,
-    cursor: undefined,
   };
 
   return (

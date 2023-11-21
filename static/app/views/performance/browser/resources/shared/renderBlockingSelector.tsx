@@ -6,6 +6,7 @@ import SelectControlWithProps, {
   Option,
 } from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const {RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetricsField;
 
@@ -29,7 +30,7 @@ function RenderBlockingSelector({value}: {value?: string}) {
           query: {
             ...location.query,
             [RESOURCE_RENDER_BLOCKING_STATUS]: newValue?.value,
-            cursor: undefined,
+            [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
       }}
