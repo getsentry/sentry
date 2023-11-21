@@ -8,7 +8,6 @@ import pytest
 from django.urls import reverse
 
 from sentry.models.environment import Environment
-from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
@@ -1208,14 +1207,14 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 
         assert response.status_code == 200, response.content
 
-        assert response.data["p75(measurements.fcp)"]["meta"]["isMetricsExtractedData"] == True
-        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"] == True
+        assert response.data["p75(measurements.fcp)"]["meta"]["isMetricsExtractedData"]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"]
         assert response.data["p75(measurements.fcp)"]["data"] == [
             (1700474400, [{"count": 0}]),
             (1700478000, [{"count": 225.0}]),
         ]
-        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsExtractedData"] == True
-        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"] == True
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsExtractedData"]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"]
         assert response.data["p75(measurements.lcp)"]["data"] == [
             (1700474400, [{"count": 0}]),
             (1700478000, [{"count": 450.0}]),
