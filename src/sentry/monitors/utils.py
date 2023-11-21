@@ -246,6 +246,12 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
             {
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
             },
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": monitor.slug,
+            },
         ],
         "createdBy": {
             "email": user.email,
@@ -254,15 +260,6 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
         },
         "dateCreated": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         "environment": alert_rule.get("environment", None),
-        "filterMatch": "all",
-        "filters": [
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": monitor.slug,
-            }
-        ],
         "frequency": 1440,
         "name": f"Monitor Alert: {monitor.name}"[:64],
         "owner": None,
@@ -284,7 +281,9 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
     return alert_rule_data
 
 
-def update_alert_rule(request: Request, project: Project, alert_rule: Rule, alert_rule_data: dict):
+def update_alert_rule(
+    request: Request, project: Project, monitor: Monitor, alert_rule: Rule, alert_rule_data: dict
+):
     actions = []
     for target in alert_rule_data.get("targets", []):
         target_identifier = target["target_identifier"]
@@ -313,8 +312,22 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
             "project": project,
             "actions": data.get("actions", []),
             "environment": data.get("environment", None),
+            "name": f"Monitor Alert: {monitor.name}"[:64],
             # TODO(davidenwang): This is kind of a hack to get around updater removing conditions if not passed
-            "conditions": alert_rule.data.get("conditions", []),
+            "conditions": [
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                },
+                {
+                    "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
+                },
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "value": monitor.slug,
+                },
+            ],
         }
 
         updated_rule = Updater.run(rule=alert_rule, request=request, **kwargs)
