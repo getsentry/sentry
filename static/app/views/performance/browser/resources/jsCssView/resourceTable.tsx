@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -7,9 +8,10 @@ import GridEditable, {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
@@ -21,6 +23,7 @@ import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/s
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 const {
@@ -61,9 +64,12 @@ type Props = {
 
 function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
     defaultResourceTypes,
+    cursor,
   });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
@@ -159,6 +165,13 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     return <span>{row[key]}</span>;
   };
 
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
+    });
+  };
+
   return (
     <Fragment>
       <GridEditable
@@ -182,7 +195,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
         }}
         location={location}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }

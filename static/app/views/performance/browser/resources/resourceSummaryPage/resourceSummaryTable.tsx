@@ -41,7 +41,7 @@ function ResourceSummaryTable() {
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
   const filters = useResourceModuleFilters();
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
   const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {
     sort,
     cursor,
@@ -121,7 +121,7 @@ function ResourceSummaryTable() {
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
+      query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
   };
 

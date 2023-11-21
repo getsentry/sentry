@@ -28,6 +28,7 @@ const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Props = {
   sort: ValidSort;
+  cursor?: string;
   defaultResourceTypes?: string[];
   limit?: number;
   query?: string;
@@ -54,7 +55,13 @@ export const getResourcesEventViewQuery = (
   ];
 };
 
-export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Props) => {
+export const useResourcesQuery = ({
+  sort,
+  defaultResourceTypes,
+  query,
+  limit,
+  cursor,
+}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const resourceFilters = useResourceModuleFilters();
@@ -102,6 +109,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
     options: {
       refetchOnWindowFocus: false,
     },
+    cursor,
   });
 
   const data = result?.data?.data.map(row => ({
