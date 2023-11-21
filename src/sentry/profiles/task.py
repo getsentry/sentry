@@ -694,8 +694,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
         # we still need to decode signatures
         for m in profile["profile"]["methods"]:
             if m.get("signature"):
-                param_type, return_type = deobfuscate_signature(m["signature"])
-                m["signature"] = format_signature(param_type, return_type)
+                types = deobfuscate_signature(m["signature"])
+                m["signature"] = format_signature(types)
         return
 
     with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
@@ -715,16 +715,17 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
         for method in profile["profile"]["methods"]:
             method.setdefault("data", {})
             if method.get("signature"):
-                param_type, return_type = deobfuscate_signature(method["signature"], mapper)
-                method["signature"] = format_signature(param_type, return_type)
+                types = deobfuscate_signature(method["signature"], mapper)
+                method["signature"] = format_signature(types)
 
             # in case we don't have line numbers but we do have the signature,
             # we do a best-effort deobfuscation exploiting function parameters
             if (
                 method.get("source_line") is None
                 and method.get("signature") is not None
-                and param_type is not None
+                and types is not None
             ):
+                param_type, _ = types
                 params = ",".join(param_type)
                 mapped = mapper.remap_frame(method["class_name"], method["name"], 0, params)
             else:

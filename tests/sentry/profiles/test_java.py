@@ -50,5 +50,5 @@ def mapper(tmp_path):
     ],
 )
 def test_deobfuscate_signature(mapper, obfuscated, expected):
-    param_type, return_type = deobfuscate_signature(obfuscated, mapper)
-    assert format_signature(param_type, return_type) == expected
+    types = deobfuscate_signature(obfuscated, mapper)
+    assert format_signature(types) == expected
