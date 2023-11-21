@@ -5,7 +5,6 @@ export type FineTuneField = {
   description: string;
   title: string;
   type: 'select';
-  defaultFieldName?: string;
   defaultValue?: string;
   options?: SelectValue<string>[];
 };
