@@ -482,6 +482,7 @@ CSP_IMG_SRC = [
     "'self'",
     "blob:",
     "data:",
+    "https://gravatar.com",
     "https://secure.gravatar.com",
 ]
 
