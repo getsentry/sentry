@@ -47,6 +47,7 @@ export function DomainSelector({
           query: {
             ...location.query,
             [SPAN_DOMAIN]: newValue?.value,
+            cursor: undefined,
           },
         });
       }}

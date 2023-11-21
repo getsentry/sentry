@@ -159,6 +159,7 @@ export function TransactionSelector({
           query: {
             ...location.query,
             [TRANSACTION]: newValue?.value,
+            cursor: undefined,
           },
         });
       }}

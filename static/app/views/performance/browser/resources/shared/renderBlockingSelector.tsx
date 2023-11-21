@@ -29,6 +29,7 @@ function RenderBlockingSelector({value}: {value?: string}) {
           query: {
             ...location.query,
             [RESOURCE_RENDER_BLOCKING_STATUS]: newValue?.value,
+            cursor: undefined,
           },
         });
       }}
