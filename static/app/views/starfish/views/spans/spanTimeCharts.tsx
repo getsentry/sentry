@@ -98,6 +98,7 @@ export function SpanTimeCharts({
               moduleName={moduleName}
               filters={appliedFilters}
               throughputUnit={throughputUnit}
+              extraQuery={extraQuery}
             />
           </ChartPanel>
         </ChartsContainerItem>
