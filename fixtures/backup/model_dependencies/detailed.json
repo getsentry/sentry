@@ -154,7 +154,7 @@
       "user_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.user",
-        "nullable": false
+        "nullable": true
       }
     },
     "model": "hybridcloud.organizationslugreservationreplica",

@@ -26,7 +26,7 @@ import {
   SupportedProviders,
 } from './constants';
 import {ACCOUNT_NOTIFICATION_FIELDS} from './fields';
-import {NOTIFICATION_SETTING_FIELDS_V2, QUOTA_FIELDS} from './fields2';
+import {NOTIFICATION_SETTING_FIELDS, QUOTA_FIELDS} from './fields2';
 import NotificationSettingsByEntity from './notificationSettingsByEntity';
 import {Identity} from './types';
 import UnlinkedAlert from './unlinkedAlert';
@@ -207,7 +207,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     } else {
       const defaultField: Field = Object.assign(
         {},
-        NOTIFICATION_SETTING_FIELDS_V2[notificationType],
+        NOTIFICATION_SETTING_FIELDS[notificationType],
         {
           help,
           defaultValue: 'always',
@@ -231,10 +231,10 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     const {notificationType} = this.props;
     // get the choices but only the ones that are available to the user
     const choices = (
-      NOTIFICATION_SETTING_FIELDS_V2.provider.choices as [SupportedProviders, string][]
+      NOTIFICATION_SETTING_FIELDS.provider.choices as [SupportedProviders, string][]
     ).filter(([providerSlug]) => this.isProviderSupported(providerSlug));
 
-    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS_V2.provider, {
+    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {
       choices,
       getData: data => {
         return {
