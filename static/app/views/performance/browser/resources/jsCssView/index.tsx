@@ -43,16 +43,17 @@ type Option = {
 function JSCSSView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
-  const extraQuery = [
-    'AND (',
-    ...getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES),
-    ')',
-  ];
 
   const spanTimeChartsFilters: ModuleFilters = {
     'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
     ...(filters[SPAN_DOMAIN] ? {[SPAN_DOMAIN]: filters[SPAN_DOMAIN]} : {}),
   };
+
+  const extraQuery = [
+    'AND (',
+    ...getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES),
+    ')',
+  ];
 
   return (
     <Fragment>
