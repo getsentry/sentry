@@ -19,7 +19,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.environment import EnvironmentProject
 from sentry.models.integrations.integration import Integration
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -29,13 +28,11 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
@@ -378,7 +375,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             teams=[self.team],
             role="member",
         )
-        # members are only allowed to update 'isBookmarked' and 'isSubscribed' fields
+        # members are only allowed to update 'isBookmarked' fields
         token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
         response = self.client.put(
@@ -720,27 +717,6 @@ class ProjectUpdateTest(APITestCase):
         assert not ProjectBookmark.objects.filter(
             project_id=self.project.id, user_id=self.user.id
         ).exists()
-
-    def test_subscription(self):
-        self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="true")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            value0 = NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.EMAIL,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                user_id=self.user.id,
-                project=self.project,
-            )
-            assert value0 == NotificationSettingOptionValues.ALWAYS
-
-        self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="false")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            value1 = NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.EMAIL,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                user_id=self.user.id,
-                project=self.project,
-            )
-        assert value1 == NotificationSettingOptionValues.NEVER
 
     def test_security_token(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")

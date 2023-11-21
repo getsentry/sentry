@@ -280,7 +280,7 @@ function Sidebar({location, organization}: Props) {
                   isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
                   isBeta={SCREENS_RELEASE_LEVEL === 'beta'}
                   isNew={SCREENS_RELEASE_LEVEL === 'new'}
-                  label={t('Screens')}
+                  label={t('Mobile')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
                   icon={<SubitemDot collapsed />}
@@ -289,6 +289,7 @@ function Sidebar({location, organization}: Props) {
               <Feature features={['starfish-browser-resource-module-ui']}>
                 <SidebarItem
                   {...sidebarItemProps}
+                  isNew
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"
@@ -522,6 +523,7 @@ function Sidebar({location, organization}: Props) {
                 {profiling}
                 {ddm}
                 {replays}
+                {feedback}
                 {monitors}
                 {alerts}
               </SidebarSection>
@@ -531,7 +533,6 @@ function Sidebar({location, organization}: Props) {
                 {dashboards}
                 {releases}
                 {userFeedback}
-                {feedback}
               </SidebarSection>
 
               <SidebarSection>

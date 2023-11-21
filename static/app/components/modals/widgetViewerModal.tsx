@@ -65,6 +65,7 @@ import {
   getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
+  getWidgetDDMUrl,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
@@ -84,6 +85,7 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import MetricWidgetQueries from 'sentry/views/dashboards/widgetCard/metricWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -790,6 +792,32 @@ function WidgetViewerModal(props: Props) {
             {renderReleaseTable}
           </ReleaseWidgetQueries>
         );
+      case WidgetType.METRICS:
+        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
+          return renderReleaseTable({
+            tableResults: tableData,
+            loading: false,
+            pageLinks: defaultPageLinks,
+          });
+        }
+        return (
+          <MetricWidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalTableSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            cursor={cursor}
+            dashboardFilters={dashboardFilters}
+          >
+            {/* TODO(ddm): Check if we need to use a diffrent implementation, for now we fallback to release table */}
+            {renderReleaseTable}
+          </MetricWidgetQueries>
+        );
       case WidgetType.DISCOVER:
       default:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
@@ -1116,6 +1144,10 @@ function OpenButton({
     case WidgetType.RELEASE:
       openLabel = t('Open in Releases');
       path = getWidgetReleasesUrl(widget, selection, organization);
+      break;
+    case WidgetType.METRICS:
+      openLabel = t('Open in DDM');
+      path = getWidgetDDMUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:

@@ -78,7 +78,8 @@ function ResourcesLandingPage() {
 
           {(!filters[SPAN_OP] ||
             filters[SPAN_OP] === 'resource.script' ||
-            filters[SPAN_OP] === 'resource.css') && <JSCSSView />}
+            filters[SPAN_OP] === 'resource.css' ||
+            filters[SPAN_OP] === 'resource.font') && <JSCSSView />}
 
           {filters[SPAN_OP] === 'resource.img' && <ImageView />}
         </Layout.Main>

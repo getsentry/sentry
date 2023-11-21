@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from rest_framework.request import Request
 
 from sentry.integrations.discord.requests.base import DiscordRequest
@@ -46,10 +47,12 @@ class DiscordRequestParser(BaseRequestParser):
 
             self.discord_request = discord_request
 
-            logger.info(
-                f"{self.provider}.get_integration_from_request.discord_interactions_endpoint",
-                extra={"path": self.request.path, "guild_id": discord_request.guild_id},
-            )
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("path", self.request.path)
+                scope.set_extra("guild_id", discord_request.guild_id)
+                sentry_sdk.capture_message(
+                    f"{self.provider}.get_integration_from_request.discord_interactions_endpoint"
+                )
 
             return Integration.objects.filter(
                 provider=self.provider,
@@ -74,7 +77,10 @@ class DiscordRequestParser(BaseRequestParser):
 
         if self.view_class == DiscordInteractionsEndpoint:
             if self.discord_request:
-                if self.discord_request.is_command() or self.discord_request.is_ping():
+                if self.discord_request.is_ping():
+                    return DiscordInteractionsEndpoint.respond_ping()
+
+                if self.discord_request.is_command():
                     return self.get_response_from_first_region()
 
                 if self.discord_request.is_message_component():

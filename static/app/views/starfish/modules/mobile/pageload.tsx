@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -22,12 +23,12 @@ export default function PageloadModule() {
   const organization = useOrganization();
 
   return (
-    <SentryDocumentTitle title={t('Screens')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Mobile')} orgSlug={organization.slug}>
       <Layout.Page>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Screens')}</Layout.Title>
+              <Layout.Title>{t('Mobile')}</Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
 
@@ -44,7 +45,9 @@ export default function PageloadModule() {
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </Container>
-                <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
+                <ErrorBoundary mini>
+                  <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
+                </ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
