@@ -1467,8 +1467,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
-    # Enable participants purge
-    "organizations:participants-purge": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
@@ -1833,6 +1831,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable new release UI
     "organizations:releases-v2": False,
     "organizations:releases-v2-st": False,
+    # Enable the metrics layer for alerts queries.
+    "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI

@@ -322,9 +322,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             )
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
-        # We want to use the metrics layer for ddm, since it supports custom metrics.
         self.use_metrics_layer = features.has(
-            "organizations:ddm-experimental", Organization.objects.get_from_cache(id=self.org_id)
+            "organizations:use-metrics-layer-in-alerts",
+            Organization.objects.get_from_cache(id=self.org_id),
         )
         self.on_demand_metrics_enabled = features.has(
             "organizations:on-demand-metrics-extraction",
@@ -372,13 +372,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             return strings
 
         return resolve_tag_values(self._get_use_case_id(), self.org_id, strings)
-
-    def _get_environment_condition(self, environment_name: str) -> Condition:
-        return Condition(
-            Column(self.resolve_tag_key_if_needed("environment")),
-            Op.EQ,
-            self.resolve_tag_value_if_needed(environment_name),
-        )
 
     def build_query_builder(
         self,
