@@ -1002,6 +1002,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route
+        path="early-features/"
+        name={t('Early Features')}
+        component={make(() => import('sentry/views/settings/earlyFeatures'))}
+      />
     </Route>
   );
 
