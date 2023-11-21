@@ -498,7 +498,7 @@ $checkInId = \Sentry\captureCheckIn(
 // 🟢 Notify Sentry your job has completed successfully:
 \Sentry\captureCheckIn(
     slug: '<monitor-slug>',
-    status: CheckInStatus::inProgress(),
+    status: CheckInStatus::ok(),
     checkInId: $checkInId,
 );`;
 

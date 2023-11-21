@@ -98,6 +98,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
         <ChartPanel title={t('Average Resource Size')}>
           <Chart
             height={160}
+            aggregateOutputFormat="size"
             data={[
               spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
               spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
