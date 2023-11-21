@@ -7,8 +7,3 @@
 # the format is:
 # # comment explaining what you're doing
 # library-name @ https://github.com/getsentry/<repo>/archive/<40 char sha>.zip
-
-
-# This overrides our sentry-python version to use a version with
-# configurable gzip compression
-sentry-sdk @ https://github.com/getsentry/sentry-python/archive/1b445c61d1e263ccd04d823307b3a03a6945dc8a.zip
