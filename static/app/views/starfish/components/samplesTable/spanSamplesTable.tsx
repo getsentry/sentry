@@ -11,6 +11,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -81,6 +83,7 @@ export function SpanSamplesTable({
   columnOrder,
 }: Props) {
   const location = useLocation();
+  const organization = useOrganization();
 
   function handleMouseOverBodyCell(row: SpanTableRow) {
     if (onMouseOverSample) {
@@ -121,7 +124,9 @@ export function SpanSamplesTable({
     if (column.key === 'transaction_id') {
       return (
         <Link
-          to={`/performance/${row.project}:${row['transaction.id']}#span-${row.span_id}`}
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/performance/${row.project}:${row['transaction.id']}#span-${row.span_id}`
+          )}
           {...commonProps}
         >
           {row['transaction.id'].slice(0, 8)}
@@ -139,7 +144,9 @@ export function SpanSamplesTable({
           {row.profile_id ? (
             <Tooltip title={t('View Profile')}>
               <LinkButton
-                to={`/profiling/profile/${row.project}/${row.profile_id}/flamechart/`}
+                to={normalizeUrl(
+                  `/organizations/${organization.slug}/profiling/profile/${row.project}/${row.profile_id}/flamechart/`
+                )}
                 size="xs"
               >
                 <IconProfiling size="xs" />

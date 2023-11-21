@@ -28,6 +28,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {DeviceClassSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/deviceClassSelector';
@@ -117,7 +118,11 @@ export function ScreenLoadEventSamples({
 
     if (column.key === 'id') {
       return (
-        <Link to={`/performance/${row['project.name']}:${row.id}`}>
+        <Link
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/performance/${row['project.name']}:${row.id}`
+          )}
+        >
           {row.id.slice(0, 8)}
         </Link>
       );
