@@ -165,10 +165,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
         fields: field,
         component: provided => {
           const eventView = props.eventView.clone();
-          const extraQueryParams = getMEPParamsIfApplicable(
-            mepSetting,
-            props.chartSetting
-          );
+          let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
           const pageFilterDatetime = {
             start: provided.start,
             end: provided.end,
@@ -195,7 +192,13 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
           eventView.additionalConditions.setFilterValues('transaction', [
             provided.widgetData.list.data[selectedListIndex].transaction as string,
           ]);
+
           eventView.dataset = DiscoverDatasets.METRICS;
+          extraQueryParams = {
+            ...extraQueryParams,
+            dataset: DiscoverDatasets.METRICS,
+          };
+
           eventView.fields = [
             {field: 'avg(measurements.time_to_initial_display)'},
             {field: 'release'},
@@ -220,7 +223,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
               interval={interval}
               hideError
               onError={pageError.setPageError}
-              queryExtras={{...extraQueryParams, dataset: 'metrics'}}
+              queryExtras={extraQueryParams}
               topEvents={2}
               referrer="performance-line-chart-widget"
             />
