@@ -1,12 +1,18 @@
-import {useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import keyBy from 'lodash/keyBy';
+import omit from 'lodash/omit';
+import {Highlight} from 'prism-react-renderer';
+import Prism from 'prismjs';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
@@ -19,6 +25,8 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {getFileExtension} from 'sentry/utils/fileExtension';
+import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -26,7 +34,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {parseAssembly} from '../utils';
 
 import {Assembly} from './assembly';
-import ContextLine from './contextLine';
+import ContextLineNumber from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
@@ -65,6 +73,25 @@ export function getLineCoverage(
   return [lineCoverage, hasCoverage];
 }
 
+const useLoadPrismLanguage = (fileExtension: string, hasSyntaxHighlighting: boolean) => {
+  useEffect(() => {
+    if (!hasSyntaxHighlighting || !fileExtension) {
+      return;
+    }
+
+    loadPrismLanguage(fileExtension, {
+      onError: () => {
+        Sentry.withScope(scope => {
+          scope.setTag('prism_language', fileExtension);
+          Sentry.captureException(
+            new Error('Prism.js failed to load language for stack trace')
+          );
+        });
+      },
+    });
+  }, [fileExtension, hasSyntaxHighlighting]);
+};
+
 function Context({
   hasContextVars = false,
   hasContextSource = false,
@@ -81,6 +108,10 @@ function Context({
   frameMeta,
   registersMeta,
 }: Props) {
+  const hasSyntaxHighlighting =
+    organization?.features?.includes('issue-details-stacktrace-syntax-highlighting') ??
+    false;
+
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -102,6 +133,9 @@ function Context({
         isExpanded,
     }
   );
+
+  const fileExtension = getFileExtension(frame.filename || '') ?? '';
+  useLoadPrismLanguage(fileExtension, hasSyntaxHighlighting);
 
   /**
    * frame.lineNo is the highlighted frame in the middle of the context
@@ -138,6 +172,9 @@ function Context({
 
   const startLineNo = hasContextSource ? frame.context[0][0] : 0;
   const hasStacktraceLink = frame.inApp && !!frame.filename && isExpanded;
+
+  const prismClassName = fileExtension ? `language-${fileExtension}` : '';
+
   return (
     <Wrapper
       start={startLineNo}
@@ -145,42 +182,109 @@ function Context({
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
       data-test-id="frame-context"
     >
-      {frame.context &&
-        contextLines.map((line, index) => {
-          const isActive = activeLineNumber === line[0];
-          const hasComponents = isActive && components.length > 0;
-          const showStacktraceLink = hasStacktraceLink && isActive;
+      {frame.context && hasSyntaxHighlighting ? (
+        <Highlight
+          language={fileExtension}
+          code={contextLines.map(([, code]) => code).join('\n')}
+          prism={Prism}
+        >
+          {({getLineProps, getTokenProps, tokens}) => (
+            <CodeWrapper className={prismClassName}>
+              <pre className={prismClassName}>
+                <code className={prismClassName}>
+                  {tokens.map((line, i) => {
+                    const contextLine = contextLines[i];
+                    const isActive = activeLineNumber === contextLine[0];
+                    const hasComponents = isActive && components.length > 0;
+                    const showStacktraceLink = hasStacktraceLink && isActive;
 
-          return (
-            <ContextLine
-              key={index}
-              line={line}
-              isActive={isActive}
-              coverage={lineCoverage[index]}
-            >
-              {hasComponents && (
-                <ErrorBoundary mini>
-                  <OpenInContextLine
-                    key={index}
-                    lineNo={line[0]}
-                    filename={frame.filename || ''}
-                    components={components}
-                  />
-                </ErrorBoundary>
-              )}
-              {showStacktraceLink && (
-                <ErrorBoundary customComponent={null}>
-                  <StacktraceLink
-                    key={index}
-                    line={line[1]}
-                    frame={frame}
-                    event={event}
-                  />
-                </ErrorBoundary>
-              )}
-            </ContextLine>
-          );
-        })}
+                    return (
+                      <Fragment key={i}>
+                        <ContextLineWrapper
+                          {...omit(getLineProps({line}), 'style')}
+                          isActive={isActive}
+                        >
+                          <ContextLineNumber
+                            lineNumber={contextLine[0]}
+                            isActive={isActive}
+                            coverage={lineCoverage[i]}
+                          />
+                          <ContextLineCode>
+                            {line.map((token, key) => (
+                              <span
+                                key={key}
+                                {...omit(getTokenProps({token}), 'style')}
+                              />
+                            ))}
+                          </ContextLineCode>
+                        </ContextLineWrapper>
+                        {hasComponents && (
+                          <ErrorBoundary mini>
+                            <OpenInContextLine
+                              key={i}
+                              lineNo={contextLine[0]}
+                              filename={frame.filename || ''}
+                              components={components}
+                            />
+                          </ErrorBoundary>
+                        )}
+                        {showStacktraceLink && (
+                          <ErrorBoundary customComponent={null}>
+                            <StacktraceLink
+                              key={i}
+                              line={contextLine[1]}
+                              frame={frame}
+                              event={event}
+                            />
+                          </ErrorBoundary>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </code>
+              </pre>
+            </CodeWrapper>
+          )}
+        </Highlight>
+      ) : null}
+
+      {frame.context && !hasSyntaxHighlighting
+        ? contextLines.map((line, index) => {
+            const isActive = activeLineNumber === line[0];
+            const hasComponents = isActive && components.length > 0;
+            const showStacktraceLink = hasStacktraceLink && isActive;
+
+            return (
+              <ContextLine
+                key={index}
+                line={line}
+                isActive={isActive}
+                coverage={lineCoverage[index]}
+              >
+                {hasComponents && (
+                  <ErrorBoundary mini>
+                    <OpenInContextLine
+                      key={index}
+                      lineNo={line[0]}
+                      filename={frame.filename || ''}
+                      components={components}
+                    />
+                  </ErrorBoundary>
+                )}
+                {showStacktraceLink && (
+                  <ErrorBoundary customComponent={null}>
+                    <StacktraceLink
+                      key={index}
+                      line={line[1]}
+                      frame={frame}
+                      event={event}
+                    />
+                  </ErrorBoundary>
+                )}
+              </ContextLine>
+            );
+          })
+        : null}
 
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
@@ -219,6 +323,21 @@ const Wrapper = styled('ol')<{startLineNo: number}>`
   }
 `;
 
+const CodeWrapper = styled('div')`
+  position: relative;
+  padding: 0;
+
+  ${p => prismStyles(p.theme)}
+  && pre {
+    white-space: pre-wrap;
+    margin: 0;
+    overflow: hidden;
+    background: ${p => p.theme.background};
+    padding: 0;
+    border-radius: 0;
+  }
+`;
+
 const EmptyContext = styled('div')`
   display: flex;
   align-items: center;
@@ -226,4 +345,19 @@ const EmptyContext = styled('div')`
   padding: 20px;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const ContextLineWrapper = styled('div')<{isActive: boolean}>`
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: ${space(1)};
+  background: ${p =>
+    p.isActive ? 'var(--prism-highlight-background)' : p.theme.background};
+  padding-right: ${space(2)};
+`;
+
+const ContextLineCode = styled('div')`
+  line-height: 24px;
+  white-space: pre-wrap;
+  vertical-align: middle;
 `;

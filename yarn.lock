@@ -4652,7 +4652,7 @@ clone-deep@^4.0.1:
     kind-of "^6.0.2"
     shallow-clone "^3.0.0"
 
-clsx@^1.0.4, clsx@^1.1.1:
+clsx@^1.0.4, clsx@^1.1.1, clsx@^1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/clsx/-/clsx-1.2.1.tgz#0ddc4a20a549b59c93a4116bb26f5294ca17dc12"
   integrity sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==
@@ -9592,6 +9592,14 @@ pretty-format@^29.0.0, pretty-format@^29.6.2:
     "@jest/schemas" "^29.6.0"
     ansi-styles "^5.0.0"
     react-is "^18.0.0"
+
+prism-react-renderer@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/prism-react-renderer/-/prism-react-renderer-2.2.0.tgz#f199b15716e0b8d0ccfd1986ff6fa226fb7ff2b1"
+  integrity sha512-j4AN0VkEr72598+47xDvpzeYyeh/wPPRNTt9nJFZqIZUxwGKwYqYgt7RVigZ3ZICJWJWN84KEuMKPNyypyhNIw==
+  dependencies:
+    "@types/prismjs" "^1.26.0"
+    clsx "^1.2.1"
 
 prismjs@^1.29.0:
   version "1.29.0"
