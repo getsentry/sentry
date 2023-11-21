@@ -139,7 +139,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.data["count"] == 1
 
     def test_errors_dataset_event(self):
-        """Test that the issuePlatform dataset returns data for a generic issue's short ID"""
+        """Test that the errors dataset returns data for an issue's short ID"""
         with self.options({"issues.group_attributes.send_kafka": True}):
             group_1 = self.store_event(
                 data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
