@@ -63,7 +63,9 @@ export function WebVitalsDetailPanel({
   const location = useLocation();
 
   const {data: projectData} = useProjectRawWebVitalsQuery({});
-  const {data: projectScoreData} = useProjectWebVitalsScoresQuery({});
+  const {data: projectScoreData} = useProjectWebVitalsScoresQuery({
+    enabled: USE_STORED_SCORES,
+  });
 
   const projectScore = USE_STORED_SCORES
     ? calculatePerformanceScoreFromStoredTableDataRow(projectScoreData?.data?.[0])

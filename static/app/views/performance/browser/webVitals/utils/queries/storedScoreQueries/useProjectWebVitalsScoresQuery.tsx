@@ -8,6 +8,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   dataset?: DiscoverDatasets;
+  enabled?: boolean;
   tag?: Tag;
   transaction?: string;
 };
@@ -16,6 +17,7 @@ export const useProjectWebVitalsScoresQuery = ({
   transaction,
   tag,
   dataset,
+  enabled = true,
 }: Props = {}) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -53,9 +55,10 @@ export const useProjectWebVitalsScoresQuery = ({
     orgSlug: organization.slug,
     cursor: '',
     options: {
-      enabled: pageFilters.isReady,
+      enabled: pageFilters.isReady && enabled,
       refetchOnWindowFocus: false,
     },
     skipAbort: true,
+    referrer: 'api.performance.browser.web-vitals.project-scores',
   });
 };

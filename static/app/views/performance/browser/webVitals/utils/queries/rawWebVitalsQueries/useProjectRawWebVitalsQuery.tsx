@@ -55,5 +55,6 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
       refetchOnWindowFocus: false,
     },
     skipAbort: true,
+    referrer: 'api.performance.browser.web-vitals.project',
   });
 };

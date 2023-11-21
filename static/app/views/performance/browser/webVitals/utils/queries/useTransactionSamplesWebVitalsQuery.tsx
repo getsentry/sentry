@@ -79,6 +79,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
       enabled: enabled && pageFilters.isReady,
       refetchOnWindowFocus: false,
     },
+    referrer: 'api.performance.browser.web-vitals.transaction',
   });
 
   const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : null);

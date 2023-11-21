@@ -75,6 +75,7 @@ export function PagePerformanceTable() {
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({
       transaction: query,
+      enabled: USE_STORED_SCORES,
     });
 
   const projectScore = USE_STORED_SCORES
@@ -265,7 +266,7 @@ export function PagePerformanceTable() {
         <StyledPagination
           pageLinks={pageLinks}
           disabled={
-            isProjectScoresLoading ||
+            (USE_STORED_SCORES && isProjectScoresLoading) ||
             isProjectWebVitalsQueryLoading ||
             isTransactionWebVitalsQueryLoading
           }
@@ -296,7 +297,7 @@ export function PagePerformanceTable() {
       <GridContainer>
         <GridEditable
           isLoading={
-            isProjectScoresLoading ||
+            (USE_STORED_SCORES && isProjectScoresLoading) ||
             isProjectWebVitalsQueryLoading ||
             isTransactionWebVitalsQueryLoading
           }

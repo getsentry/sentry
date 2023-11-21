@@ -77,6 +77,7 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction, tag}: Props) =>
       enabled: pageFilters.isReady,
       refetchOnWindowFocus: false,
     },
+    referrer: 'api.performance.browser.web-vitals.timeseries-scores',
   });
 
   const data: WebVitalsScoreBreakdown = {

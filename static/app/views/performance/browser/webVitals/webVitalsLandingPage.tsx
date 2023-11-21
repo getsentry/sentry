@@ -42,12 +42,12 @@ export default function WebVitalsLandingPage() {
 
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({});
+    useProjectWebVitalsScoresQuery({enabled: USE_STORED_SCORES});
 
   const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
 
   const projectScore =
-    isProjectScoresLoading || isLoading || noTransactions
+    (USE_STORED_SCORES && isProjectScoresLoading) || isLoading || noTransactions
       ? undefined
       : USE_STORED_SCORES
       ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
@@ -95,7 +95,9 @@ export default function WebVitalsLandingPage() {
               <PerformanceScoreChartContainer>
                 <PerformanceScoreChart
                   projectScore={projectScore}
-                  isProjectScoreLoading={isLoading || isProjectScoresLoading}
+                  isProjectScoreLoading={
+                    isLoading || (USE_STORED_SCORES && isProjectScoresLoading)
+                  }
                   webVital={state.webVital}
                 />
               </PerformanceScoreChartContainer>

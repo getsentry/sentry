@@ -69,6 +69,7 @@ export const useTransactionRawWebVitalsQuery = ({
       enabled: pageFilters.isReady && enabled,
       refetchOnWindowFocus: false,
     },
+    referrer: 'api.performance.browser.web-vitals.transactions',
   });
 
   const tableData: RowWithScore[] =
