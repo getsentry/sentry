@@ -23,6 +23,7 @@ import type {
 } from 'echarts';
 import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
+import {CanvasRenderer, SVGRenderer} from 'echarts/renderers';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -72,6 +73,7 @@ const handleClick = (clickSeries: any, instance: ECharts) => {
 };
 
 echarts.use(AriaComponent);
+echarts.use([SVGRenderer, CanvasRenderer]);
 
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;

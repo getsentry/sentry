@@ -113,13 +113,14 @@ function GroupChart({
   return (
     <LazyRender containerHeight={showMarkLine ? 30 : height}>
       <MiniBarChart
+        renderer="canvas"
+        hideDelay={50}
         height={showMarkLine ? 36 : height}
         isGroupedByDate
         showTimeInTooltip
         series={series}
         colors={colors}
         emphasisColors={emphasisColors}
-        hideDelay={50}
         showMarkLineLabel={showMarkLine}
       />
     </LazyRender>
