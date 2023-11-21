@@ -24,6 +24,32 @@ export const TWENTY_FOUR_HOURS = 1440;
 export const SIX_HOURS = 360;
 export const ONE_HOUR = 60;
 
+export type GranularityStep = [timeDiff: number, interval: string];
+
+export class GranularityLadder {
+  steps: GranularityStep[];
+
+  constructor(steps: GranularityStep[]) {
+    if (
+      !steps.some(step => {
+        return step[0] === 0;
+      })
+    ) {
+      throw new Error('At least one step in the ladder must start at 0');
+    }
+
+    this.steps = orderBy(steps, step => step[0], 'desc');
+  }
+
+  getInterval(minutes: number): string {
+    const step = this.steps.find(([threshold]) => {
+      return minutes >= threshold;
+    }) as GranularityStep; // This can never be undefined, because the constructor ensures that an invalid ladder cannot be created
+
+    return step[1];
+  }
+}
+
 /**
  * If there are more releases than this number we hide "Releases" series by default
  */
@@ -56,156 +82,64 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
 
 export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
 
+const highFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '4h'],
+  [THIRTY_DAYS, '1h'],
+  [TWENTY_FOUR_HOURS, '30m'],
+  [ONE_HOUR, '5m'],
+  [0, '1m'],
+]);
+
+const mediumFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '4h'],
+  [TWENTY_FOUR_HOURS, '1h'],
+  [ONE_HOUR, '15m'],
+  [0, '5m'],
+]);
+
+const lowFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '2d'],
+  [THIRTY_DAYS, '1d'],
+  [TWO_WEEKS, '12h'],
+  [TWENTY_FOUR_HOURS, '6h'],
+  [ONE_HOUR, '1h'],
+  [0, '10m'],
+]);
+
+const metricsFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [TWENTY_FOUR_HOURS, '30m'],
+  [SIX_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '1m'],
+]);
+
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-  if (diffInMinutes >= SIXTY_DAYS) {
-    // Greater than or equal to 60 days
-    if (fidelity === 'high') {
-      return '4h';
-    }
-    if (fidelity === 'medium') {
-      return '1d';
-    }
-    if (fidelity === 'metrics') {
-      return '1d';
-    }
-    return '2d';
-  }
-
-  if (diffInMinutes >= THIRTY_DAYS) {
-    // Greater than or equal to 30 days
-    if (fidelity === 'high') {
-      return '1h';
-    }
-    if (fidelity === 'medium') {
-      return '4h';
-    }
-    if (fidelity === 'metrics') {
-      return '12h';
-    }
-    return '1d';
-  }
-
-  if (diffInMinutes >= TWO_WEEKS) {
-    if (fidelity === 'high') {
-      return '30m';
-    }
-    if (fidelity === 'medium') {
-      return '1h';
-    }
-    if (fidelity === 'metrics') {
-      return '4h';
-    }
-    return '12h';
-  }
-
-  if (diffInMinutes > TWENTY_FOUR_HOURS) {
-    // Between 24 hours and 14 days
-    if (fidelity === 'high') {
-      return '30m';
-    }
-    if (fidelity === 'medium') {
-      return '1h';
-    }
-    if (fidelity === 'metrics') {
-      return '30m';
-    }
-    return '6h';
-  }
-
-  if (diffInMinutes > SIX_HOURS) {
-    // Between six hours and 24 hours
-    if (fidelity === 'high') {
-      return '5m';
-    }
-
-    if (fidelity === 'medium') {
-      return '15m';
-    }
-
-    if (fidelity === 'metrics') {
-      return '5m';
-    }
-    return '1h';
-  }
-
-  if (diffInMinutes > ONE_HOUR) {
-    // Between 1 hour and 6 hours
-    if (fidelity === 'high') {
-      return '5m';
-    }
-    if (fidelity === 'medium') {
-      return '15m';
-    }
-    if (fidelity === 'metrics') {
-      return '1m';
-    }
-    return '1h';
-  }
-
-  // Less than or equal to 1 hour
-  if (fidelity === 'high') {
-    return '1m';
-  }
-  if (fidelity === 'medium') {
-    return '5m';
-  }
-  if (fidelity === 'metrics') {
-    return '1m';
-  }
-  return '10m';
+  return {
+    high: highFidelityLadder,
+    medium: mediumFidelityLadder,
+    low: lowFidelityLadder,
+    metrics: metricsFidelityLadder,
+  }[fidelity].getInterval(diffInMinutes);
 }
 
 /**
  * Duplicate of getInterval, except that we do not support <1h granularity
  * Used by OrgStatsV2 API
  */
+const seriesAPILadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '4h'],
+  [SIX_HOURS, '1h'],
+  [0, '5m'],
+]);
 export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
-  const diffInMinutes = getDiffInMinutes(datetimeObj);
-
-  if (diffInMinutes >= SIXTY_DAYS) {
-    // Greater than or equal to 60 days
-    return '1d';
-  }
-
-  if (diffInMinutes >= THIRTY_DAYS) {
-    // Greater than or equal to 30 days
-    return '4h';
-  }
-
-  if (diffInMinutes < SIX_HOURS) {
-    // Less than 6 hours
-    return '5m';
-  }
-
-  return '1h';
-}
-
-export type GranularityStep = [timeDiff: number, interval: string];
-
-export class GranularityLadder {
-  steps: GranularityStep[];
-
-  constructor(steps: GranularityStep[]) {
-    if (
-      !steps.some(step => {
-        return step[0] === 0;
-      })
-    ) {
-      throw new Error('At least one step in the ladder must start at 0');
-    }
-
-    this.steps = orderBy(steps, step => step[0], 'desc');
-  }
-
-  getInterval(minutes: number): string {
-    const step = this.steps.find(([threshold]) => {
-      return minutes >= threshold;
-    }) as GranularityStep; // This can never be undefined, because the constructor ensures that an invalid ladder cannot be created
-
-    return step[1];
-  }
+  return seriesAPILadder.getInterval(getDiffInMinutes(datetimeObj));
 }
 
 export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
