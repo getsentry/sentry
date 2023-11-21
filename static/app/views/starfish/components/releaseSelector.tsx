@@ -149,6 +149,7 @@ export function ReleaseComparisonSelector() {
 const StyledCompactSelect = styled(CompactSelect)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     max-width: 275px;
+    min-width: 135px;
   }
 `;
 
