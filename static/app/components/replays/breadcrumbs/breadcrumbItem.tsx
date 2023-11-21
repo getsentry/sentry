@@ -6,6 +6,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {Flex} from 'sentry/components/profiling/flex';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {Extraction} from 'sentry/utils/replays/extractDomNodes';
@@ -113,13 +114,17 @@ function BreadcrumbItem({
           </CodeContainer>
         ) : null}
 
-        {traces?.flattenedTraces.map((flatTrace, i) => (
-          <TraceGrid
-            key={i}
-            flattenedTrace={flatTrace}
-            onDimensionChange={onDimensionChange}
-          />
-        ))}
+        {traces ? (
+          <Flex column gap={space(1)}>
+            {traces?.flattenedTraces.map((flatTrace, i) => (
+              <TraceGrid
+                key={i}
+                flattenedTrace={flatTrace}
+                onDimensionChange={onDimensionChange}
+              />
+            ))}
+          </Flex>
+        ) : null}
 
         {projectSlug ? <CrumbProject projectSlug={projectSlug} /> : null}
       </CrumbDetails>

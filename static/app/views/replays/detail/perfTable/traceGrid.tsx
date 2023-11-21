@@ -1,20 +1,20 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {LinkButton} from 'sentry/components/button';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import {Flex} from 'sentry/components/profiling/flex';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
 import toPercent from 'sentry/utils/number/toPercent';
-import toPixels from 'sentry/utils/number/toPixels';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import ResizeableContainer from 'sentry/views/replays/detail/perfTable/resizeableContainer';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {FlattenedTrace} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
-import useVirtualScrolling from 'sentry/views/replays/detail/perfTable/useVirtualScrolling';
-
-const EMDASH = '\u2013';
 
 interface Props {
   flattenedTrace: FlattenedTrace;
@@ -22,80 +22,50 @@ interface Props {
 }
 
 export default function TraceGrid({flattenedTrace, onDimensionChange}: Props) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions<HTMLDivElement>({elementRef: measureRef});
 
-  const scrollableWindowRef = useRef<HTMLDivElement>(null);
-  const scrollableContentRef = useRef<HTMLDivElement>(null);
-  const {offsetX, reclamp: adjustScrollPosition} = useVirtualScrolling({
-    windowRef: scrollableWindowRef,
-    contentRef: scrollableContentRef,
-  });
-
   const hasSize = width > 0;
+  useEffect(() => {
+    if (hasSize) {
+      onDimensionChange();
+    }
+  }, [hasSize, onDimensionChange]);
+
+  const trace = flattenedTrace[0].trace;
+  const project = projects.find(p => p.id === String(trace.project_id));
 
   return (
-    <Relative ref={measureRef}>
-      {hasSize ? (
-        <ResizeableContainer
-          containerWidth={width}
-          min={100}
-          max={width - 100}
-          onResize={() => {
-            adjustScrollPosition();
-            onDimensionChange();
-          }}
-        >
-          <OverflowHidden ref={scrollableWindowRef}>
-            <TxnList
-              ref={scrollableContentRef}
-              style={{
-                transform: `translate(${toPixels(offsetX)}, 0)`,
-                minWidth: 'max-content',
-              }}
-            >
-              <SpanNameList flattenedTrace={flattenedTrace} />
-            </TxnList>
-          </OverflowHidden>
+    <Flex column gap={space(1)}>
+      <Relative ref={measureRef}>
+        {hasSize ? (
           <OverflowHidden>
             <TxnList>
               <SpanDurations flattenedTrace={flattenedTrace} />
             </TxnList>
           </OverflowHidden>
-        </ResizeableContainer>
-      ) : null}
-    </Relative>
-  );
-}
-
-function SpanNameList({flattenedTrace}: {flattenedTrace: FlattenedTrace}) {
-  const {projects} = useProjects();
-
-  return (
-    <Fragment>
-      {flattenedTrace.map(flattened => {
-        const project = projects.find(p => p.id === String(flattened.trace.project_id));
-
-        const labelStyle = {
-          paddingLeft: `calc(${space(2)} * ${flattened.indent})`,
-        };
-
-        return (
-          <TxnCell key={flattened.trace.event_id + '_name'}>
-            <TxnLabel style={labelStyle}>
-              <ProjectAvatar size={12} project={project as Project} />
-              <strong>{flattened.trace['transaction.op']}</strong>
-              <span>{EMDASH}</span>
-              <span>{flattened.trace.transaction}</span>
-            </TxnLabel>
-          </TxnCell>
-        );
-      })}
-    </Fragment>
+        ) : null}
+      </Relative>
+      <Flex>
+        <LinkButton
+          size="xs"
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/performance/${project?.platform}:${trace.event_id}/`
+          )}
+        >
+          {t('Show full trace')}
+        </LinkButton>
+      </Flex>
+    </Flex>
   );
 }
 
 function SpanDurations({flattenedTrace}: {flattenedTrace: FlattenedTrace}) {
+  const {projects} = useProjects();
+
   const traces = flattenedTrace.map(flattened => flattened.trace);
   const startTimestampMs = Math.min(...traces.map(trace => trace.start_timestamp)) * 1000;
   const endTimestampMs = Math.max(
@@ -104,21 +74,31 @@ function SpanDurations({flattenedTrace}: {flattenedTrace: FlattenedTrace}) {
 
   return (
     <Fragment>
-      {flattenedTrace.map(flattened => (
-        <TwoColumns key={flattened.trace.event_id + '_duration'}>
-          <TxnCell>
-            <TxnDurationBar
-              style={{
-                ...barCSSPosition(startTimestampMs, endTimestampMs, flattened.trace),
-                background: pickBarColor(flattened.trace.transaction['transaction.op']),
-              }}
-            />
-          </TxnCell>
-          <TxnCell>
-            <TxnDuration>{flattened.trace['transaction.duration']}ms</TxnDuration>
-          </TxnCell>
-        </TwoColumns>
-      ))}
+      {flattenedTrace.map(flattened => {
+        const project = projects.find(p => p.id === String(flattened.trace.project_id));
+
+        return (
+          <TwoColumns key={flattened.trace.event_id + '_duration'}>
+            <TxnCell>
+              <TxnDurationBar
+                style={{
+                  ...barCSSPosition(startTimestampMs, endTimestampMs, flattened.trace),
+                  background: pickBarColor(flattened.trace.transaction['transaction.op']),
+                }}
+              >
+                {project?.platform ? (
+                  <Tooltip title={project.platform} containerDisplayMode="inline-flex">
+                    <PlatformIcon platform={project.platform} size={12} />
+                  </Tooltip>
+                ) : null}
+              </TxnDurationBar>
+            </TxnCell>
+            <TxnCell>
+              <TxnDuration>{flattened.trace['transaction.duration']}ms</TxnDuration>
+            </TxnCell>
+          </TwoColumns>
+        );
+      })}
     </Fragment>
   );
 }
@@ -166,14 +146,6 @@ const TxnCell = styled('div')`
   overflow: hidden;
 `;
 
-const TxnLabel = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-
-  align-items: center;
-  white-space: nowrap;
-`;
-
 const TxnDuration = styled('div')`
   display: flex;
   flex: 1 1 auto;
@@ -183,11 +155,11 @@ const TxnDuration = styled('div')`
 
 const TxnDurationBar = styled('div')`
   position: absolute;
+  display: flex;
   content: '';
   top: 50%;
   transform: translate(0, -50%);
-  height: ${space(1.5)};
-  margin-block: ${space(0.25)};
+  padding: ${space(0.25)};
   user-select: none;
   min-width: 1px;
 `;

@@ -17,12 +17,13 @@ interface IndentedTraceDetailed {
   trace: TraceFullDetailed;
 }
 
-export type FlattenedTrace = IndentedTraceDetailed[];
+export type FlattenedTraces = IndentedTraceDetailed[];
 
 export interface ReplayTraceRow {
   durationMs: number;
-  flattenedTraces: FlattenedTrace[];
+  flattenedTraces: FlattenedTraces[];
   lcpFrames: LargestContentfulPaintFrame[];
+  longestSpans: TraceFullDetailed[];
   offsetMs: number;
   paintFrames: PaintFrame[];
   replayFrame: ReplayFrame;
@@ -63,6 +64,7 @@ export default function useReplayPerfData({replay}: Props) {
 
     const collection = new Map<ReplayFrame, ReplayTraceRow>();
     const frames = replay.getChapterFrames();
+    // const longestTraceRow: ReplayTrace['longestTraceRow'] = undefined;
 
     frames.forEach((thisFrame, i) => {
       const nextFrame = frames[i + 1] as ReplayFrame | undefined;
@@ -85,21 +87,27 @@ export default function useReplayPerfData({replay}: Props) {
         ? tracesAfterThis.filter(trace => trace.timestamp * 1000 < nextFrame.timestampMs)
         : tracesAfterThis;
       const flattenedTraces = relatedTraces.map(trace => mapTraces(0, [trace]));
+      const longestSpans = relatedTraces.map(trace => {
+        return trace;
+      });
 
       collection.set(thisFrame, {
         durationMs: nextFrame ? nextFrame.timestampMs - thisFrame.timestampMs : 0,
+        flattenedTraces,
         lcpFrames,
+        longestSpans,
         offsetMs: thisFrame.offsetMs,
         paintFrames,
         replayFrame: thisFrame,
         timestampMs: thisFrame.timestampMs,
         traces: relatedTraces,
-        flattenedTraces,
       });
     });
 
     setData(collection);
   }, [replay, traces]);
+
+  console.log({data});
 
   return {
     data,

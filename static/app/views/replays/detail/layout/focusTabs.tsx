@@ -18,14 +18,14 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
   const hasA11yTab = organization.features.includes('session-replay-a11y-tab');
 
   // The new trace table inside Breadcrumb items:
-  const hasTraceTable = organization.features.includes('session-replay-trace-table');
+  // const hasTraceTable = organization.features.includes('session-replay-trace-table');
 
   return {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
-    [TabKey.TRACE]: hasTraceTable ? null : t('Trace'),
+    [TabKey.TRACE]: t('Trace'),
     [TabKey.PERF]: null,
     [TabKey.A11Y]: hasA11yTab ? (
       <Fragment>
