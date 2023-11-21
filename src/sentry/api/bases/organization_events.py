@@ -525,11 +525,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                             dataset=dataset,
                         )
-                        for c in query_columns:
-                            # At least one of the columns has required extracted data
-                            if results[key][c].get("meta", {}).get("isMetricsExtractedData"):
-                                results[key]["isMetricsExtractedData"] = True
-                                break
+                        results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
+                            results, key, query_columns
+                        )
                     else:
                         results[key] = serializer.serialize(
                             event_result,
@@ -583,6 +581,21 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 )["meta"]
 
             return serialized_result
+
+    def _query_if_extracted_data(
+        self, results: dict[str, Any], key: str, query_columns: list[str]
+    ) -> bool:
+        ret_value = False
+        try:
+            for c in query_columns:
+                # At least one of the columns has required extracted data
+                if results[key][c].get("meta", {}).get("isMetricsExtractedData"):
+                    ret_value = True
+                    break
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+
+        return ret_value
 
     def serialize_multiple_axis(
         self,
