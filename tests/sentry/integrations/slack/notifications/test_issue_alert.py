@@ -292,7 +292,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
             actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
         )
 
         rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
@@ -350,7 +349,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_disabled_org_integration_for_team(self, mock_func):
-
         # update the team's notification settings
         ExternalActor.objects.create(
             team_id=self.team.id,
@@ -365,7 +363,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
             actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -466,7 +463,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
             actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
         )
 
         g_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
@@ -566,7 +562,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
             actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
         )
 
         event = self.store_event(
@@ -647,7 +642,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
             actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
         )
         # add a new project
         project2 = self.create_project(
@@ -711,7 +705,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
             actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
         )
         # remove the project from the team
         self.project.remove_team(self.team)

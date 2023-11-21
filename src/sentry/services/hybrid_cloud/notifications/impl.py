@@ -66,7 +66,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
             organization=organization_id,
             actor=actor,
             skip_provider_updates=skip_provider_updates,
-            organization_id_for_team=organization_id_for_team,
         )
 
     def bulk_update_settings(
