@@ -170,7 +170,7 @@ function WidgetQueries({
         }
         if (rawResult.isMetricsExtractedData !== undefined) {
           isSeriesMetricsExtractedDataResults.push(
-            rawResults.isMetricsExtractedData || rawResult.meta.isMetricsExtractedData
+            rawResult.isMetricsExtractedData || rawResult.meta?.isMetricsExtractedData
           );
         }
       });
