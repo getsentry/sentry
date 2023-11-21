@@ -89,6 +89,8 @@ def send_snapshot_values(
 
 def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
+        # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
+        # write to the issue platform directly
         try:
             resp = requests.post(
                 f"{settings.SENTRY_SNUBA}/tests/entities/group_attributes/insert",
@@ -102,8 +104,6 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
     else:
-        # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
-        # write to the issue platform directly
         payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
         _attribute_snapshot_producer.produce(Topic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
 
