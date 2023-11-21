@@ -1540,6 +1540,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:set-grouping-config": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enables syntax highlighting in the stack trace
+    "organizations:issue-details-stacktrace-syntax-highlighting": False,
     # Enable issue platform
     "organizations:issue-platform": False,
     # Enable additional logging for issue platform
