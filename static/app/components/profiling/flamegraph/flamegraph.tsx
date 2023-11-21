@@ -775,7 +775,7 @@ function Flamegraph(): ReactElement {
         canvas: spansCanvas,
         model: spanChart,
         options: {
-          inverted: flamegraph.inverted,
+          inverted: false,
           minWidth: spanChart.minSpanDuration,
           barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
@@ -790,7 +790,7 @@ function Flamegraph(): ReactElement {
 
       return newView;
     },
-    [spanChart, spansCanvas, flamegraph.inverted, flamegraphView, flamegraphTheme.SIZES]
+    [spanChart, spansCanvas, flamegraphView, flamegraphTheme.SIZES]
   );
 
   // We want to make sure that the views have the same min zoom levels so that

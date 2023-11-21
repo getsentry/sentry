@@ -70,7 +70,8 @@ class SpanChart {
         Math.min(...this.spanTrees.map(t => t.root.span.start_timestamp))
     );
 
-    this.configSpace = options.configSpace ?? new Rect(0, 0, duration, this.depth);
+    this.configSpace =
+      options.configSpace?.withHeight(this.depth) ?? new Rect(0, 0, duration, this.depth);
     this.root.end = duration;
     this.root.duration = duration;
   }

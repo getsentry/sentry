@@ -140,14 +140,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         end: datetime,
         rollup: int,
-    ) -> Dict[int, Dict[str, float]]:
+    ) -> Dict[int, float]:
 
         project_ids = [p.id for p in projects]
 
         select = [
-            MetricField(metric_mri=SessionMRI.CRASHED.value, alias="crashed", op=None),
-            # named it 'init' to keep the same name as the original tag
-            MetricField(metric_mri=SessionMRI.ALL.value, alias="init", op=None),
+            MetricField(metric_mri=SessionMRI.CRASH_FREE_RATE.value, alias="rate", op=None),
         ]
 
         groupby = [
@@ -161,6 +159,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             end=end,
             granularity=Granularity(rollup),
             groupby=groupby,
+            include_series=False,
+            include_totals=True,
         )
         result = get_series(projects=projects, metrics_query=query, use_case_id=USE_CASE_ID)
 
@@ -169,33 +169,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for group in groups:
             project_id = get_path(group, "by", "project_id")
             assert project_id is not None
-            totals = get_path(group, "totals")
+            totals = get_path(group, "totals", "rate")
             assert totals is not None
-            ret_val[project_id] = totals
+            ret_val[project_id] = totals * 100
 
         return ret_val
-
-    @staticmethod
-    def _compute_crash_free_rate(data: Dict[str, float]) -> Optional[float]:
-        total_session_count = data.get("init")
-
-        if total_session_count is None:
-            total_session_count = 0
-
-        crash_count = data.get("crashed")
-
-        if crash_count is None:
-            crash_count = 0
-
-        if total_session_count == 0:
-            return None
-
-        crash_free_rate = 1.0 - (crash_count / total_session_count)
-
-        # If crash count is larger than total session count for some reason
-        crash_free_rate = 100 * max(0.0, crash_free_rate)
-
-        return crash_free_rate
 
     def is_metrics_based(self) -> bool:
         return True
@@ -232,11 +210,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rollup,
         )
 
-        for project_id, project_data in previous.items():
-            projects_crash_free_rate_dict[project_id][
-                "previousCrashFreeRate"
-            ] = self._compute_crash_free_rate(project_data)
-
         current = self._get_crash_free_rate_data(
             org_id,
             projects,
@@ -245,10 +218,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rollup,
         )
 
-        for project_id, project_data in current.items():
-            projects_crash_free_rate_dict[project_id][
-                "currentCrashFreeRate"
-            ] = self._compute_crash_free_rate(project_data)
+        for project_id, project_data in projects_crash_free_rate_dict.items():
+            project_data["previousCrashFreeRate"] = previous.get(project_id)
+            project_data["currentCrashFreeRate"] = current.get(project_id)
 
         return projects_crash_free_rate_dict
 
