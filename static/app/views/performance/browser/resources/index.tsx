@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -52,10 +51,7 @@ function ResourcesLandingPage() {
             ]}
           />
 
-          <Layout.Title>
-            {t('Resources')}
-            <FeatureBadge type="alpha" />
-          </Layout.Title>
+          <Layout.Title>{t('Resources')}</Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
