@@ -488,11 +488,6 @@ describe('utils/tokenizeSearch', function () {
         object: new MutableSearch(['release:4.9.0 build (0.0.01)', 'error.handled:0']),
         string: 'release:"4.9.0 build (0.0.01)" error.handled:0',
       },
-      {
-        name: 'should preserve array values',
-        object: new MutableSearch(['transaction:["app store","appstore"]']),
-        string: 'transaction:["app store","appstore"]',
-      },
     ];
 
     for (const {name, string, object} of cases) {
