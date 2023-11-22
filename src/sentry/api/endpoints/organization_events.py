@@ -254,6 +254,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
         ) and use_on_demand_metrics
 
+        force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
+
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
@@ -283,7 +285,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
                 has_metrics=use_metrics,
-                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                use_metrics_layer=force_metrics_layer
+                or batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
             )
