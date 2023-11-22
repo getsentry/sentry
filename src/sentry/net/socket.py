@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import ipaddress
 import socket
+from typing import Callable
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -100,8 +101,15 @@ def is_safe_hostname(hostname: str | None) -> bool:
 
 # Modifed version of urllib3.util.connection.create_connection.
 def safe_create_connection(
-    address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, socket_options=None
+    address,
+    timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
+    source_address=None,
+    socket_options=None,
+    is_ipaddress_permitted: Callable[[str], bool] | None = is_ipaddress_allowed,
 ):
+    if is_ipaddress_permitted is None:
+        is_ipaddress_permitted = is_ipaddress_allowed
+
     host, port = address
     if host.startswith("["):
         host = host.strip("[]")
@@ -126,7 +134,7 @@ def safe_create_connection(
 
         # Begin custom code.
         ip = sa[0]
-        if not is_ipaddress_allowed(ip):
+        if not is_ipaddress_permitted(ip):
             # I am explicitly choosing to be overly aggressive here. This means
             # the first IP that matches that hits our restricted set of IP networks,
             # we reject all records. In theory, there might be IP addresses that

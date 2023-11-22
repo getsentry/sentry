@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import socket
 from socket import error as SocketError
 from socket import timeout as SocketTimeout
+from typing import Callable
 
 from requests import Session as _Session
 from requests.adapters import DEFAULT_POOLBLOCK, HTTPAdapter
@@ -20,6 +23,14 @@ class SafeConnectionMixin:
     HACK(mattrobenolt): Most of this is yanked out of core urllib3
     to override `_new_conn` with the ability to create our own socket.
     """
+
+    is_ipaddress_permitted: Callable[[str], bool] | None = None
+
+    def __init__(
+        self, *args, is_ipaddress_permitted: Callable[[str], bool] | None = None, **kwargs
+    ):
+        self.is_ipaddress_permitted = is_ipaddress_permitted
+        super().__init__(*args, **kwargs)
 
     # urllib3.connection.HTTPConnection.host
     # These `host` properties need rebound otherwise `self._dns_host` doesn't
@@ -64,7 +75,12 @@ class SafeConnectionMixin:
 
         try:
             # Begin custom code.
-            conn = safe_create_connection((self._dns_host, self.port), self.timeout, **extra_kw)
+            conn = safe_create_connection(
+                (self._dns_host, self.port),
+                self.timeout,
+                is_ipaddress_permitted=self.is_ipaddress_permitted,
+                **extra_kw,
+            )
             # End custom code.
 
         except SocketTimeout:
@@ -116,6 +132,14 @@ class BlacklistAdapter(HTTPAdapter):
     rather than the default PoolManager.
     """
 
+    is_ipaddress_permitted: Callable[[str], bool] | None = None
+
+    def __init__(self, is_ipaddress_permitted: Callable[[str], bool] | None = None) -> None:
+        # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
+        # `urllib3.connectionpool.ConnectionPool` instances managed by `SafePoolManager`.
+        self.is_ipaddress_permitted = is_ipaddress_permitted
+        super().__init__()
+
     def init_poolmanager(self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs):
         self._pool_connections = connections
         self._pool_maxsize = maxsize
@@ -126,6 +150,7 @@ class BlacklistAdapter(HTTPAdapter):
             maxsize=maxsize,
             block=block,
             strict=True,
+            is_ipaddress_permitted=self.is_ipaddress_permitted,
             **pool_kwargs,
         )
         # End custom code.
@@ -160,10 +185,10 @@ class Session(_Session):
 
 
 class SafeSession(Session):
-    def __init__(self):
+    def __init__(self, is_ipaddress_permitted: Callable[[str], bool] | None = None) -> None:
         Session.__init__(self)
         self.headers.update({"User-Agent": USER_AGENT})
-        adapter = BlacklistAdapter()
+        adapter = BlacklistAdapter(is_ipaddress_permitted=is_ipaddress_permitted)
         self.mount("https://", adapter)
         self.mount("http://", adapter)
 
