@@ -630,7 +630,7 @@ export class Results extends Component<Props, State> {
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
-                {!query.includes('event.type:error') && <SampleDataAlert />}
+                <SampleDataAlert query={query} />
                 <MetricsCardinalityProvider
                   organization={organization}
                   location={location}
