@@ -3,9 +3,12 @@ from typing import Dict
 from django.urls import reverse
 from rest_framework import status
 
+from sentry import options
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.types.region import get_region_by_name
+from sentry.utils.security.orgauthtoken_token import parse_token
 
 
 @control_silo_test(stable=True)
@@ -135,6 +138,12 @@ class OrgAuthTokenCreateTest(APITestCase):
         assert tokenDb.token_hashed != token.get("token")
         assert tokenDb.get_scopes() == token.get("scopes")
         assert tokenDb.created_by.id == self.user.id
+
+        # Assert that region and control URLs are both set correctly
+        token_payload = parse_token(token=token.get("token"))
+        assert token_payload.get("region_url", None)
+        assert token_payload.get("region_url") == get_region_by_name(name="us").address
+        assert token_payload.get("url") == options.get("system.url-prefix")
 
     def test_no_name(self):
         payload: Dict[str, str] = {}
