@@ -33,7 +33,6 @@ import {space} from 'sentry/styles/space';
 import {
   BaseGroup,
   Group,
-  GroupStats,
   IssueCategory,
   Organization,
   PageFilters,
@@ -58,7 +57,10 @@ import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
-import {GroupStatsProvider} from 'sentry/views/issueList/groupStatsProvider';
+import {
+  GroupStatsProvider,
+  GroupStatsQuery,
+} from 'sentry/views/issueList/groupStatsProvider';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 import IssueListActions from './actions';
@@ -299,7 +301,6 @@ class IssueListOverview extends Component<Props, State> {
 
   private _poller: any;
   private _lastRequest: any;
-  private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
 
   getQueryFromSavedSearchOrLocation({
@@ -602,9 +603,6 @@ class IssueListOverview extends Component<Props, State> {
 
     if (this._lastRequest) {
       this._lastRequest.cancel();
-    }
-    if (this._lastStatsRequest) {
-      this._lastStatsRequest.cancel();
     }
     if (this._lastFetchCountsRequest) {
       this._lastFetchCountsRequest.cancel();
@@ -1008,9 +1006,6 @@ class IssueListOverview extends Component<Props, State> {
     if (this._lastRequest) {
       this._lastRequest.cancel();
     }
-    if (this._lastStatsRequest) {
-      this._lastStatsRequest.cancel();
-    }
     if (this._lastFetchCountsRequest) {
       this._lastFetchCountsRequest.cancel();
     }
@@ -1168,25 +1163,30 @@ class IssueListOverview extends Component<Props, State> {
     };
   };
 
-  onStatsRequestPromise = (promise: Promise<Record<string, GroupStats>>) => {
-    promise
-      .then(data => {
-        if (!data || !data[0]) {
-          return;
+  onStatsRequestPromise = (query: GroupStatsQuery) => {
+    switch (query.status) {
+      case 'loading':
+        break;
+      case 'success':
+        const data = Object.values(query.data ?? {});
+        if (data && data[0]) {
+          // The type being cast was wrong in the previous implementations as well
+          // because inference was broken. Ignore it for now.
+          this.trackTabViewed(this.state.groupIds, data as Group[]);
         }
-        this.trackTabViewed(this.state.groupIds, data[0] as unknown as Group[]);
-      })
-      .catch(err => {
-        this.setState({
-          error: parseApiError(err),
-        });
-      })
-      .finally(() => {
         const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
         if (currentTransaction?.op === 'navigation') {
           currentTransaction.finish();
         }
-      });
+        break;
+      case 'error':
+        this.setState({
+          // Missing our custom getResponseHeader function, but parseApiError does not require it
+          error: parseApiError(query?.error),
+        });
+        break;
+      default:
+    }
   };
 
   render() {
@@ -1273,7 +1273,7 @@ class IssueListOverview extends Component<Props, State> {
                     organization={this.props.organization}
                     period={this.getGroupStatsPeriod()}
                     query={this.getQuery()}
-                    onRequest={this.onStatsRequestPromise}
+                    onRequestStatusChange={this.onStatsRequestPromise}
                   >
                     <GroupListBody
                       memberList={this.state.memberList}
