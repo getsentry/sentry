@@ -43,6 +43,6 @@ export const ruleNeedsErrorMigration = (
     'dataset' in rule &&
     rule.dataset === Dataset.ERRORS &&
     'query' in rule &&
-    !rule.query.includes('status:unresolved')
+    !rule.query.includes('is:unresolved')
   );
 };

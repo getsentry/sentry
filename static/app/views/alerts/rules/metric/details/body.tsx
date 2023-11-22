@@ -240,7 +240,7 @@ export default function MetricDetailsBody({
               }
             >
               {t(
-                'Sentry supports excluding archived issues from metric alerts. Please make sure to review your alert thresholds after editing your alert rule.'
+                "Alert rules can now exclude errors associated with archived issues. Please make sure to review the rule's alert thresholds after editing."
               )}
             </Alert>
           ) : null}

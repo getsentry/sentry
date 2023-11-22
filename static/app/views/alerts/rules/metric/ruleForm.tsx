@@ -196,7 +196,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       ruleNeedsErrorMigration(rule);
     // TODO(issues): Does this need to be smarter about where its inserting the new filter?
     const query = isErrorMigration
-      ? `status:unresolved ${rule.query ?? ''}`
+      ? `is:unresolved ${rule.query ?? ''}`
       : rule.query ?? '';
 
     return {
