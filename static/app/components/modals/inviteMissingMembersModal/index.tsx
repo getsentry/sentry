@@ -41,6 +41,7 @@ export function InviteMissingMembersModal({
   organization,
   allowedRoles,
   closeModal,
+  modalContainerRef,
 }: InviteMissingMembersModalProps) {
   const initialMemberInvites = (missingMembers || []).map(member => ({
     email: member.email,
@@ -254,10 +255,11 @@ export function InviteMissingMembersModal({
                 aria-label={t('Role')}
                 data-test-id="select-role"
                 disabled={false}
+                value={member.role}
                 roles={allowedRoles}
                 disableUnallowed
                 onChange={value => setRole(value?.value, i)}
-                menuPortalTarget={document.body}
+                menuPortalTarget={modalContainerRef.current}
                 isInsideModal
               />
               <TeamSelector
@@ -269,7 +271,7 @@ export function InviteMissingMembersModal({
                 onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
                 multiple
                 clearable
-                menuPortalTarget={document.body}
+                menuPortalTarget={modalContainerRef.current}
                 isInsideModal
               />
             </Fragment>

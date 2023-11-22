@@ -75,6 +75,10 @@ type ModalRenderProps = {
    * Closes the modal
    */
   closeModal: () => void;
+  /**
+   * Reference to the modal's container.
+   */
+  modalContainerRef: React.RefObject<HTMLDivElement>;
 };
 
 /**
@@ -175,14 +179,6 @@ function GlobalModal({onClose}: Props) {
   // Close the modal when the browser history changes
   useEffect(() => browserHistory.listen(() => actionCloseModal()), []);
 
-  const renderedChild = renderer?.({
-    CloseButton: makeCloseButton(closeModal),
-    Header: makeClosableHeader(closeModal),
-    Body: ModalBody,
-    Footer: ModalFooter,
-    closeModal,
-  });
-
   // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
 
@@ -193,6 +189,15 @@ function GlobalModal({onClose}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const clickClose = (e: React.MouseEvent) =>
     containerRef.current === e.target && allowBackdropClickClose && closeModal();
+
+  const renderedChild = renderer?.({
+    CloseButton: makeCloseButton(closeModal),
+    Header: makeClosableHeader(closeModal),
+    Body: ModalBody,
+    Footer: ModalFooter,
+    modalContainerRef: containerRef,
+    closeModal,
+  });
 
   return createPortal(
     <Fragment>
