@@ -37,34 +37,7 @@ describe('ResourcesLandingPage', function () {
   });
 
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
-
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {statsPeriod: '10d'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
-    jest.mocked(useOrganization).mockReturnValue(organization);
+    setupMocks(organization);
     setupMockRequests(organization);
   });
 
@@ -100,6 +73,37 @@ describe('ResourcesLandingPage', function () {
     );
   });
 });
+
+const setupMocks = (organization: DetailedOrganization) => {
+  jest.mocked(usePageFilters).mockReturnValue({
+    isReady: true,
+    desyncedFilters: new Set(),
+    pinnedFilters: new Set(),
+    shouldPersist: true,
+    selection: {
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+      environments: [],
+      projects: [],
+    },
+  });
+
+  jest.mocked(useLocation).mockReturnValue({
+    pathname: '',
+    search: '',
+    query: {statsPeriod: '10d'},
+    hash: '',
+    state: undefined,
+    action: 'PUSH',
+    key: '',
+  });
+
+  jest.mocked(useOrganization).mockReturnValue(organization);
+};
 
 const setupMockRequests = (organization: DetailedOrganization) => {
   requestMocks.mainTable = MockApiClient.addMockResponse({
