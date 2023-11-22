@@ -49,12 +49,14 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor
+from sentry.receivers import create_default_projects
 from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -738,6 +740,19 @@ class ScopingTests(ImportTestCase):
             ControlImportChunkReplica.objects.values("import_uuid").first()
             == RegionImportChunk.objects.values("import_uuid").first()
         )
+
+    def test_global_import_initial_model_deletion(self):
+        create_default_projects()
+
+        file_path = get_fixture_path("backup", "fresh-install.json")
+        with open(file_path, "rb") as tmp_file:
+            import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert Project.objects.count() == 1
+        assert ProjectKey.objects.count() == 1
+        assert Organization.objects.count() == 1
+        assert OrganizationMember.objects.count() == 2
+        assert Team.objects.count() == 1
 
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests

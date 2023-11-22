@@ -441,7 +441,32 @@ def import_in_global_scope(
     Sentry instance, some behaviors in this scope are different from the others. In particular,
     superuser privileges are not sanitized. This method can be thought of as a "pure"
     backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
+    During the setup of a fresh Sentry instance, there are a couple of models that are automatically created.
+    The Sentry org, a Sentry team, and an internal project. During a global import, we want to avoid persisting
+    these default models and start from scratch.
     """
+
+    from django.core.management.color import no_style
+    from django.db import connection
+
+    from sentry.models.organization import Organization
+    from sentry.models.organizationmember import OrganizationMember
+    from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
+    from sentry.models.team import Team
+
+    models_to_delete = [Project, ProjectKey, Organization, OrganizationMember, Team]
+
+    # Global imports will never be run in production, ever
+    with unguarded_write(using="default"):
+        for model in models_to_delete:
+            model.objects.all().delete()
+
+    # Reset the primary key sequences so all models removed start from an id of 1 to avoid DSNs changing
+    sequence_sql = connection.ops.sequence_reset_sql(no_style(), models_to_delete)
+    with connection.cursor() as cursor:
+        for sql in sequence_sql:
+            cursor.execute(sql)
 
     return _import(
         src,
