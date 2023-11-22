@@ -40,9 +40,12 @@ class ProjectUsersBaseTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
-            [str(self.euser1.id), str(self.euser2.id)]
-        )
+        if self.euser1.id is None and self.euser2.id is None:
+            assert list(map(lambda x: x["id"], response.data)) == [None, None]
+        else:
+            assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+                [str(self.euser1.id), str(self.euser2.id)]
+            )
         mock_record.assert_any_call(
             "eventuser_endpoint.request",
             project_id=self.project.id,
@@ -64,7 +67,10 @@ class ProjectUsersBaseTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.euser2.id)
+        if self.euser2.id is None:
+            assert response.data[0]["id"] is None
+        else:
+            assert response.data[0]["id"] == str(self.euser2.id)
 
         response = self.client.get(f"{self.path}?query=username:ba", format="json")
 
@@ -78,7 +84,10 @@ class ProjectUsersBaseTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.euser1.id)
+        if self.euser1.id is None:
+            assert response.data[0]["id"] is None
+        else:
+            assert response.data[0]["id"] == str(self.euser1.id)
 
         response = self.client.get(f"{self.path}?query=email:@example.com", format="json")
 
@@ -92,7 +101,10 @@ class ProjectUsersBaseTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.euser1.id)
+        if self.euser1.id is None:
+            assert response.data[0]["id"] is None
+        else:
+            assert response.data[0]["id"] == str(self.euser1.id)
 
         response = self.client.get(f"{self.path}?query=id:3", format="json")
 
@@ -106,7 +118,10 @@ class ProjectUsersBaseTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.euser2.id)
+        if self.euser2.id is None:
+            assert response.data[0]["id"] is None
+        else:
+            assert response.data[0]["id"] == str(self.euser2.id)
 
 
 @region_silo_test(stable=True)
