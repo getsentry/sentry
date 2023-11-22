@@ -110,7 +110,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
     group_id_to_info = {}
     for issue in issue_list:
         group_id = issue["group_id"]
-        group_id_to_info[group_id] = {k: v for k, v in issue.items() if k != "group_id"}
+        group_id_to_info[group_id] = dict(filter(lambda k: k[0] != "group_id", issue.items()))
 
     issues = Group.objects.filter(id__in=list(group_id_to_info.keys())).all()
 
@@ -261,12 +261,15 @@ def get_top_5_issues_by_count_for_file(
     name="sentry.tasks.integrations.open_pr_comment_workflow", silo_mode=SiloMode.REGION
 )
 def open_pr_comment_workflow(pr_id: int) -> None:
+    # CHECKS
+    # check PR exists to get PR key
     try:
         pull_request = PullRequest.objects.get(id=pr_id)
     except PullRequest.DoesNotExist:
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_pr"})
         return
 
+    # check org option
     org_id = pull_request.organization_id
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
@@ -283,6 +286,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         logger.info("github.open_pr_comment.option_missing", extra={"organization_id": org_id})
         return
 
+    # check PR repo exists to get repo name
     try:
         repo = Repository.objects.get(id=pull_request.repository_id)
     except Repository.DoesNotExist:
@@ -290,6 +294,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_repo"})
         return
 
+    # check integration exists to hit Github API with client
     integration = integration_service.get_integration(integration_id=repo.integration_id)
     if not integration:
         logger.info("github.open_pr_comment.integration_missing", extra={"organization_id": org_id})
@@ -298,10 +303,9 @@ def open_pr_comment_workflow(pr_id: int) -> None:
 
     installation = integration.get_installation(organization_id=org_id)
 
-    # GitHubAppsClient (GithubClientMixin)
-    # TODO(cathy): create helper function to fetch client for repo
     client = installation.get_client()
 
+    # CREATING THE COMMENT
     if not safe_for_comment(gh_client=client, repository=repo, pull_request=pull_request):
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(key="error"),
@@ -314,6 +318,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     issue_table_contents = {}
     top_issues_per_file = []
 
+    # fetch issues related to the files
     for pr_filename in pr_filenames:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
             org_id, pr_filename
@@ -330,10 +335,11 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         issue_table_contents[pr_filename] = get_issue_table_contents(top_issues)
 
     if not len(issue_table_contents):
-        # no issues for files in PR
+        # don't leave a comment if no issues for files in PR
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="no_issues"))
         return
 
+    # format issues per file into comment
     issue_tables = []
     first_table = True
     for pr_filename in pr_filenames:
