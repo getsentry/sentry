@@ -43,14 +43,9 @@ describe('ExternalIssuesList', () => {
       body: [],
     });
     mockUseSentryAppComponentsStore.mockReturnValue([]);
-    render(
-      <ExternalIssuesList
-        group={group}
-        project={project}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<ExternalIssuesList group={group} project={project} event={event} />, {
+      organization,
+    });
     expect(await screen.findByText(setupCTA)).toBeInTheDocument();
   });
 
@@ -70,14 +65,9 @@ describe('ExternalIssuesList', () => {
       }),
     ]);
     mockUseSentryAppComponentsStore.mockReturnValue([component]);
-    render(
-      <ExternalIssuesList
-        group={group}
-        project={project}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<ExternalIssuesList group={group} project={project} event={event} />, {
+      organization,
+    });
     expect(await screen.findByText('Foo Issue')).toBeInTheDocument();
     expect(screen.queryByText(setupCTA)).not.toBeInTheDocument();
   });
@@ -108,14 +98,9 @@ describe('ExternalIssuesList', () => {
     });
     const component = SentryAppComponent();
     mockUseSentryAppComponentsStore.mockReturnValue([component]);
-    render(
-      <ExternalIssuesList
-        group={group}
-        project={project}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<ExternalIssuesList group={group} project={project} event={event} />, {
+      organization,
+    });
     expect(await screen.findByText('Test-Sentry/github-test#13')).toBeInTheDocument();
     const externalIssues = screen.getAllByTestId('external-issue-item');
     expect(externalIssues[0]).toHaveTextContent('Test-Sentry/github-test#13');
