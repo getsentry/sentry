@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import ipaddress
 from typing import Any, Iterable, Mapping
 
+from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
+from django.utils.encoding import force_str
 from requests import Request
 
+from sentry.http import build_session
+from sentry.net.http import SafeSession
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -14,6 +19,10 @@ from sentry.silo.util import (
     clean_proxy_headers,
 )
 from sentry.types.region import Region, get_region_by_name
+
+ALLOWED_REGION_IP_ADDRESSES = frozenset(
+    ipaddress.ip_address(force_str(ip, strings_only=True)) for ip in settings.SENTRY_REGION_SILO_IPS
+)
 
 
 class SiloClientError(Exception):
@@ -106,6 +115,16 @@ class BaseSiloClient(BaseApiClient):
         return client_response
 
 
+def validate_region_ip_address(ip: str) -> bool:
+    """
+    Checks if the provided IP address is a Region Silo IP address.
+    """
+    if not ALLOWED_REGION_IP_ADDRESSES:
+        return False
+    ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))
+    return ip_address in ALLOWED_REGION_IP_ADDRESSES
+
+
 class RegionSiloClient(BaseSiloClient):
     access_modes = [SiloMode.CONTROL]
 
@@ -121,3 +140,10 @@ class RegionSiloClient(BaseSiloClient):
         # Ensure the region is registered
         self.region = get_region_by_name(region.name)
         self.base_url = self.region.address
+
+    def build_session(self) -> SafeSession:
+        """
+        Generates a safe Requests session for the API client to use.
+        This injects a customer
+        """
+        return build_session(is_ipaddress_permitted=validate_region_ip_address)

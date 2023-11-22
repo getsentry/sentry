@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import socket
+from functools import partial
 from socket import error as SocketError
 from socket import timeout as SocketTimeout
 from typing import Callable
@@ -103,11 +104,21 @@ class SafeHTTPSConnection(SafeConnectionMixin, HTTPSConnection):
     pass
 
 
-class SafeHTTPConnectionPool(HTTPConnectionPool):
+class InjectIPAddressMixin:
+    def __init__(
+        self, *args, is_ipaddress_permitted: Callable[[str], bool] | None = None, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.ConnectionCls = partial(
+            self.ConnectionCls, is_ipaddress_permitted=is_ipaddress_permitted
+        )
+
+
+class SafeHTTPConnectionPool(InjectIPAddressMixin, HTTPConnectionPool):
     ConnectionCls = SafeHTTPConnection
 
 
-class SafeHTTPSConnectionPool(HTTPSConnectionPool):
+class SafeHTTPSConnectionPool(InjectIPAddressMixin, HTTPSConnectionPool):
     ConnectionCls = SafeHTTPSConnection
 
 
@@ -118,11 +129,15 @@ class SafePoolManager(PoolManager):
     ConnectionPool classes to create.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self, *args, is_ipaddress_permitted: Callable[[str], bool] | None = None, **kwargs
+    ):
         PoolManager.__init__(self, *args, **kwargs)
         self.pool_classes_by_scheme = {
-            "http": SafeHTTPConnectionPool,
-            "https": SafeHTTPSConnectionPool,
+            "http": partial(SafeHTTPConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted),
+            "https": partial(
+                SafeHTTPSConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted
+            ),
         }
 
 

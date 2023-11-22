@@ -1,12 +1,16 @@
+from unittest.mock import patch
+
 import responses
 from django.test import RequestFactory, override_settings
 from pytest import raises
 
+from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo import SiloMode
-from sentry.silo.client import RegionSiloClient, SiloClientError
+from sentry.silo.client import RegionSiloClient, SiloClientError, validate_region_ip_address
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
+from sentry.testutils.hybrid_cloud import override_allowed_region_silo_ip_addresses
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, RegionResolutionError
 from sentry.utils import json
@@ -85,3 +89,65 @@ class SiloClientTest(TestCase):
             assert response["X-Some-Header"] == "Some-Value"
             assert response.get(PROXY_SIGNATURE_HEADER) is None
             assert response[PROXY_DIRECT_LOCATION_HEADER] == path
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_invalid_region_silo_ip_address(self):
+        internal_region_address = "http://172.31.255.31:9000"
+        region = Region("eu", 1, internal_region_address, RegionCategory.MULTI_TENANT)
+        region_config = (region,)
+
+        # Disallow any region silo ip address by default.
+        with override_regions(region_config), raises(ApiHostError):
+            client = RegionSiloClient(region)
+            path = f"{internal_region_address}/api/0/imaginary-public-endpoint/"
+            request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
+            client.proxy_request(request)
+
+        with override_regions(region_config), override_allowed_region_silo_ip_addresses(
+            "172.31.255.255"
+        ), raises(ApiHostError):
+            client = RegionSiloClient(region)
+            path = f"{internal_region_address}/api/0/imaginary-public-endpoint/"
+            request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
+            client.proxy_request(request)
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_allowed_region_silo_ip_addresses("172.31.255.255")
+    def test_client_restricted_ip_address(self):
+        internal_region_address = "http://172.31.255.255:9000"
+        region = Region("eu", 1, internal_region_address, RegionCategory.MULTI_TENANT)
+        region_config = (region,)
+
+        with override_regions(region_config), patch(
+            "sentry.silo.client.validate_region_ip_address"
+        ) as mock_validate_region_ip_address:
+            client = RegionSiloClient(region)
+            path = f"{internal_region_address}/api/0/imaginary-public-endpoint/"
+            request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
+
+            class BailOut(Exception):
+                pass
+
+            def validate_region_ip_address(ip):
+                assert ip == "172.31.255.255"
+                # We can't use responses library for this unit test as it hooks Session.send. So we assert that the
+                # validate_region_ip_address function is properly called for the proxy request code path.
+                raise BailOut()
+
+            mock_validate_region_ip_address.side_effect = validate_region_ip_address
+
+            assert mock_validate_region_ip_address.call_count == 0
+            with raises(BailOut):
+                client.proxy_request(request)
+                assert mock_validate_region_ip_address.call_count == 1
+
+
+def test_validate_region_ip_address():
+    with override_allowed_region_silo_ip_addresses():
+        assert validate_region_ip_address("172.31.255.255") is False
+
+    with override_allowed_region_silo_ip_addresses("192.88.99.0"):
+        assert validate_region_ip_address("172.31.255.255") is False
+
+    with override_allowed_region_silo_ip_addresses("192.88.99.0", "172.31.255.255"):
+        assert validate_region_ip_address("172.31.255.255") is True

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import ipaddress
 import os
 import threading
+from contextlib import contextmanager
 from typing import Any, Callable, Iterator, List, Set, Type, TypedDict
 
 from django.db import connections, transaction
@@ -14,6 +16,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.scheduledeletion import BaseScheduledDeletion, get_regional_scheduled_deletion
 from sentry.silo import SiloMode
+from sentry.silo import client as silo_client
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -256,3 +259,15 @@ def use_split_dbs() -> bool:
     # in stone.
     SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
     return not SENTRY_USE_MONOLITH_DBS
+
+
+@contextmanager
+def override_allowed_region_silo_ip_addresses(*allowed_ip_addresses):
+    original_allowed_ips = frozenset(silo_client.ALLOWED_REGION_IP_ADDRESSES)
+    silo_client.ALLOWED_REGION_IP_ADDRESSES = frozenset(
+        ipaddress.ip_address(str(ip)) for ip in allowed_ip_addresses
+    )
+    try:
+        yield
+    finally:
+        silo_client.ALLOWED_REGION_IP_ADDRESSES = original_allowed_ips
