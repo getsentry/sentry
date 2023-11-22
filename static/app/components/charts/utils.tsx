@@ -1,5 +1,6 @@
 import type {EChartsOption, LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
+import orderBy from 'lodash/orderBy';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -18,6 +19,7 @@ export const SIXTY_DAYS = 86400;
 export const THIRTY_DAYS = 43200;
 export const TWO_WEEKS = 20160;
 export const ONE_WEEK = 10080;
+export const FORTY_EIGHT_HOURS = 2880;
 export const TWENTY_FOUR_HOURS = 1440;
 export const SIX_HOURS = 360;
 export const ONE_HOUR = 60;
@@ -178,6 +180,32 @@ export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
   }
 
   return '1h';
+}
+
+export type GranularityStep = [timeDiff: number, interval: string];
+
+export class GranularityLadder {
+  steps: GranularityStep[];
+
+  constructor(steps: GranularityStep[]) {
+    if (
+      !steps.some(step => {
+        return step[0] === 0;
+      })
+    ) {
+      throw new Error('At least one step in the ladder must start at 0');
+    }
+
+    this.steps = orderBy(steps, step => step[0], 'desc');
+  }
+
+  getInterval(minutes: number): string {
+    const step = this.steps.find(([threshold]) => {
+      return minutes >= threshold;
+    }) as GranularityStep; // This can never be undefined, because the constructor ensures that an invalid ladder cannot be created
+
+    return step[1];
+  }
 }
 
 export function getDiffInMinutes(datetimeObj: DateTimeObject): number {

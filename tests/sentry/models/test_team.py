@@ -192,7 +192,6 @@ class TeamDeletionTest(TestCase):
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.ALWAYS,
                 team_id=team.id,
-                organization_id_for_team=org.id,
             )
 
         assert Team.objects.filter(id=team.id).exists()

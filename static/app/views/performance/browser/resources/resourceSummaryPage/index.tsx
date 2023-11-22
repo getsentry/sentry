@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -80,15 +80,13 @@ function ResourceSummary() {
             ]}
           />
 
-          <Layout.Title>
-            {spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
-            <FeatureBadge type="alpha" />
-          </Layout.Title>
+          <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
+          <FeedbackWidget />
           <HeaderContainer>
             <FilterOptionsContainer>
               <PageFilterBar condensed>

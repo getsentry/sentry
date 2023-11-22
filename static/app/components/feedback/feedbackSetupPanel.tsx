@@ -1,19 +1,34 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import newFeatureImg from 'sentry-images/spot/new-feature.svg';
+import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
 import {LinkButton} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackSetupPanel() {
+  const organization = useOrganization();
+
+  useEffect(() => {
+    trackAnalytics('feedback.index-setup-viewed', {
+      organization,
+    });
+  }, [organization]);
+
   const docsButton = (
     <LinkButton
       external
       href="https://github.com/getsentry/sentry-javascript/blob/develop/packages/feedback/README.md"
       priority="primary"
+      onClick={() => {
+        trackAnalytics('feedback.index-setup-button-clicked', {
+          organization,
+        });
+      }}
     >
       {t('Set Up Now')}
     </LinkButton>
@@ -23,7 +38,7 @@ export default function FeedbackSetupPanel() {
     <Panel>
       <Container>
         <IlloBox>
-          <img src={newFeatureImg} />
+          <img src={feedbackOnboardingImg} />
         </IlloBox>
         <StyledBox>
           <Fragment>
