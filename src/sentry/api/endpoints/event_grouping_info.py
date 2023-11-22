@@ -3,6 +3,7 @@ import logging
 from django.http import HttpRequest, HttpResponse
 
 from sentry import eventstore
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -65,7 +67,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         except GroupingConfigNotFound:
             raise ResourceDoesNotExist(detail="Unknown grouping config")
 
-        for (key, variant) in variants.items():
+        for key, variant in variants.items():
             d = variant.as_dict()
             # Since the hashes are generated on the fly and might no
             # longer match the stored ones we indicate if the hash
