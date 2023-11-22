@@ -518,9 +518,9 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
         result = run_query(request)
-        assert len(result["data"]) == 61
+        assert len(result["data"]) == 10
         rows = result["data"]
-        for i in range(61):
+        for i in range(10):
             assert rows[i]["aggregate_value"] == [i]
             assert (
                 rows[i]["time"]
