@@ -18,7 +18,6 @@ import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {Frame} from 'sentry/utils/profiling/frame';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -191,19 +190,6 @@ function SlowestFunctionEntry({
   const score = Math.ceil((((func['sum()'] as number) ?? 0) / totalDuration) * BARS);
   const palette = new Array(BARS).fill([CHART_PALETTE[0][0]]);
 
-  const frame = useMemo(() => {
-    return new Frame(
-      {
-        key: 0,
-        name: func.function as string,
-        package: func.package as string,
-      },
-      project?.platform && /node|javascript/.test(project.platform)
-        ? project.platform
-        : undefined
-    );
-  }, [func, project]);
-
   const userQuery = useMemo(() => {
     const conditions = new MutableSearch(query);
 
@@ -236,7 +222,7 @@ function SlowestFunctionEntry({
           </Tooltip>
         )}
         <FunctionName>
-          <Tooltip title={frame.package}>{frame.name}</Tooltip>
+          <Tooltip title={func.package}>{func.function}</Tooltip>
         </FunctionName>
         <Tooltip
           title={tct('Appeared [count] times for a total time spent of [totalSelfTime]', {
@@ -293,8 +279,8 @@ function SlowestFunctionEntry({
                     projectSlug: project.slug,
                     profileId: examples[0],
                     query: {
-                      frameName: frame.name,
-                      framePackage: frame.package,
+                      frameName: func.function as string,
+                      framePackage: func.package as string,
                     },
                   });
                   transactionCol = (
