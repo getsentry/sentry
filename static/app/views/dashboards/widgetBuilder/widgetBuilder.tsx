@@ -881,7 +881,6 @@ function WidgetBuilder({
     });
 
     const pathQuery = {
-      widgetType: widgetData.widgetType,
       displayType: widgetData.displayType,
       interval: widgetData.interval,
       title: widgetData.title,
