@@ -167,7 +167,7 @@ function getTagsForMetric(
         fieldOptions[`field:${tag.key}`] = {
           label: tag.key,
           value: {
-            kind: FieldValueKind.FIELD,
+            kind: FieldValueKind.TAG,
             meta: {name: tag.key, dataType: 'string'},
           },
         };

@@ -451,11 +451,18 @@ export const useGroupByOptions = (organization, tags, widgetType, queries) => {
   const [groupByOptions, setGroupByOptions] = useState<Record<string, any>>({});
   const {getGroupByFieldOptions} = getDatasetConfig(widgetType);
   const api = useApi();
+  const {customMeasurements} = useCustomMeasurements();
 
   useEffect(() => {
     const fetchGroupByFieldOptions = async () => {
       if (getGroupByFieldOptions) {
-        const options = await getGroupByFieldOptions(organization, tags, api, queries);
+        const options = await getGroupByFieldOptions(
+          organization,
+          tags,
+          customMeasurements,
+          api,
+          queries
+        );
         setGroupByOptions(options);
       } else {
         setGroupByOptions({});
@@ -463,7 +470,7 @@ export const useGroupByOptions = (organization, tags, widgetType, queries) => {
     };
 
     fetchGroupByFieldOptions();
-  }, [api, organization, tags, getGroupByFieldOptions, queries]);
+  }, [api, organization, tags, customMeasurements, getGroupByFieldOptions, queries]);
 
   return groupByOptions;
 };
