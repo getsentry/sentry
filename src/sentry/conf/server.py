@@ -1862,6 +1862,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable new release UI
     "organizations:releases-v2": False,
     "organizations:releases-v2-st": False,
+    "organizations:releases-v2-banner": False,
     # Enable the metrics layer for alerts queries.
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
