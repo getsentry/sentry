@@ -240,7 +240,6 @@ def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
                 )
                 return True
 
-            # project.organization_id TODO
             if project.organization_id in options.get(
                 "profiling.android.deobfuscation_v2_org_ids"
             ) or random.random() < options.get("profiling.android.deobfuscation_v2_sample_rate"):
