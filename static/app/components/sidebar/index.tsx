@@ -631,6 +631,7 @@ const responsiveFlex = css`
 
   @media (max-width: ${theme.breakpoints.medium}) {
     flex-direction: row;
+    align-items: center;
   }
 `;
 
