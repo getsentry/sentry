@@ -15,10 +15,12 @@ from sentry import options
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.utils.email import email_to_group_id
+from sentry.web.frontend.base import control_silo_view
 
 logger = logging.getLogger("sentry.mailgun")
 
 
+@control_silo_view
 class MailgunInboundWebhookView(View):
     def verify(self, api_key, token, timestamp, signature):
         return constant_time_compare(

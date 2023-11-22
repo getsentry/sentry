@@ -57,6 +57,7 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
   const {data, isLoading} = useTableQuery({
     eventView,
     enabled: !isReleasesLoading,
+    referrer: 'api.starfish.mobile-screen-totals',
   });
 
   const undefinedText = '--';

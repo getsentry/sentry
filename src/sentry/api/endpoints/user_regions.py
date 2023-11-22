@@ -32,6 +32,7 @@ class UserRegionsEndpoint(UserEndpoint):
         org_mappings = (
             OrganizationMapping.objects.filter(organization_id__in=organization_ids)
             .distinct("region_name")
+            .order_by("region_name")
             .values_list("region_name", flat=True)
         )
         regions = [get_region_by_name(region_name).api_serialize() for region_name in org_mappings]

@@ -6,10 +6,11 @@ from rest_framework.request import Request
 
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.models.identity import IdentityProvider
-from sentry.web.frontend.base import ControlSiloOrganizationView
+from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 
+@control_silo_view
 class AccountIdentityAssociateView(ControlSiloOrganizationView):
     @method_decorator(never_cache)
     def handle(self, request: Request, organization, provider_key, external_id) -> HttpResponse:

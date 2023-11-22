@@ -103,6 +103,7 @@ export function ScreenLoadSpansTable({
   const {data, isLoading, pageLinks} = useTableQuery({
     eventView,
     enabled: true,
+    referrer: 'api.starfish.mobile-span-table',
   });
 
   const eventViewColumns = eventView.getColumns();
