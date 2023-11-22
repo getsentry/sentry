@@ -88,30 +88,7 @@ def timeseries_query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: Optional[MetricSpecType] = None,
 ):
-    """
-    High-level API for doing arbitrary user timeseries queries against events.
-
-    This function operates on the public event schema and
-    virtual fields/aggregate functions for selected columns and
-    conditions are supported through this function.
-
-    This function is intended to only get timeseries based
-    results and thus requires the `rollup` parameter.
-
-    Returns a SnubaTSResult object that has been zerofilled in
-    case of gaps.
-
-    selected_columns (Sequence[str]) List of public aliases to fetch.
-    query (str) Filter query string to create conditions from.
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
-    rollup (int) The bucket width in seconds
-    referrer (str|None) A referrer string to help locate the origin of this query.
-    comparison_delta: A timedelta used to convert this into a comparison query. We make a second
-    query time-shifted back by comparison_delta, and compare the results to get the % change for each
-    time bucket. Requires that we only pass
-    allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
-    """
-    with sentry_sdk.start_span(op="issueplatform", description="timeseries.filter_transform"):
+    with sentry_sdk.start_span(op="errors", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = ErrorsTimeseriesQueryBuilder(
             Dataset.Events,
