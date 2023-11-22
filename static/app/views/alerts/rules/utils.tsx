@@ -103,5 +103,5 @@ export function getAlertRuleActionCategory(rule: MetricRule) {
 }
 
 export function shouldUseErrorsDiscoverDataset(query: string, dataset: Dataset) {
-  return dataset === Dataset.ERRORS && query?.includes('status:unresolved');
+  return dataset === Dataset.ERRORS && query?.includes('is:unresolved');
 }

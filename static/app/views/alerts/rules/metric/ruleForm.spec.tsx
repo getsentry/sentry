@@ -464,7 +464,7 @@ describe('Incident Rules Form', () => {
       expect(onSubmitSuccess).toHaveBeenCalled();
       const formModel = onSubmitSuccess.mock.calls[0][1] as FormModel;
       expect(formModel.getData()).toEqual(
-        expect.objectContaining({query: 'status:unresolved example-error'})
+        expect.objectContaining({query: 'is:unresolved example-error'})
       );
     });
   });
