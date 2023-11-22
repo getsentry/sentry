@@ -151,7 +151,7 @@
     }
     this.element.parentNode.removeChild(this.element);
     if (window.parent) {
-      window.parent.postMessage('reportdialog_closed', '*');
+      window.parent.postMessage('__sentry_reportdialog_closed__', '*');
     }
   };
 

@@ -38,7 +38,7 @@ class ErrorPageEmbedTest(AcceptanceTestCase):
 
     def wait_for_reportdialog_closed_message(self):
         self.browser.wait_until_script_execution(
-            """return window.__error_page_embed_received_message__ === 'reportdialog_closed'"""
+            """return window.__error_page_embed_received_message__ === '__sentry_reportdialog_closed__'"""
         )
 
     def test_closed_message_received_on_close_button_click(self):
