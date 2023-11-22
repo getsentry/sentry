@@ -44,6 +44,11 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         self.additional_params = dict()
 
     def do_request(self, data, url=None, features=None):
+        data = {
+            **data,
+            **self.additional_params,
+        }
+
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
@@ -69,7 +74,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": "metricsEnhanced",
-                    **self.additional_params,
                 },
             )
             assert response.status_code == 200, response.content
@@ -99,7 +103,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": "metricsEnhanced",
-                    **self.additional_params,
                 },
             )
             assert response.status_code == 200, response.content
@@ -127,7 +130,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": "metricsEnhanced",
-                    **self.additional_params,
                 },
             )
             assert response.status_code == 200, response.content
@@ -157,7 +159,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": "metricsEnhanced",
-                    **self.additional_params,
                 },
             )
             assert response.status_code == 200, response.content
@@ -186,7 +187,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "yAxis": ["failure_rate()"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -216,7 +216,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "yAxis": ["p75(measurements.lcp)", "p75(transaction.duration)"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -241,7 +240,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": ["epm()", "eps()", "tpm()", "p50(transaction.duration)"],
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
 
@@ -261,7 +259,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": "count_unique(user)",
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -281,7 +278,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "query": query,
                     "yAxis": ["epm()"],
                     "dataset": "metricsEnhanced",
-                    **self.additional_params,
                 },
             )
             assert response.status_code == 200, response.content
@@ -310,7 +306,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "yAxis": ["epm()"],
                 "dataset": "metricsEnhanced",
                 "preventMetricAggregates": "1",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -329,7 +324,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "query": "",
                 "yAxis": ["epm()"],
                 "metricsEnhanced": "0",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -348,7 +342,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": "sum(transaction.duration)",
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -381,7 +374,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "yAxis": "sum(transaction.duration)",
                 "comparisonDelta": 86400,
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -429,7 +421,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": "sum(measurements.datacenter_memory)",
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -457,7 +448,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": "p99(measurements.custom)",
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
         meta = response.data["meta"]
@@ -502,7 +492,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "p50(measurements.datacenter_memory)",
                 ],
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -557,7 +546,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "query": "transaction.duration:<5s",
                 "yAxis": "sum(transaction.duration)",
                 "dataset": "metrics",
-                **self.additional_params,
             },
         )
         assert response.status_code == 400, response.content
@@ -578,7 +566,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "sum(transaction.duration)",
                 ],
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -604,7 +591,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "sum(transaction.duration)",
                 ],
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -628,7 +614,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": "p99(measurements.custom)",
                 "query": "",
-                **self.additional_params,
             },
         )
 
@@ -661,7 +646,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "p99(measurements.another.custom)",
                 ],
                 "query": "",
-                **self.additional_params,
             },
         )
 
@@ -696,7 +680,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "field": ["count()", "project"],
                 "topEvents": 5,
                 "dataset": "metrics",
-                **self.additional_params,
             },
         )
 
@@ -728,7 +711,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "field": ["p75(transaction.duration)", "transaction"],
                 "topEvents": 5,
                 "dataset": "metrics",
-                **self.additional_params,
             },
         )
 
@@ -768,7 +750,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
                 "yAxis": [f"sum({mri})"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
 
@@ -797,7 +778,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
                 "yAxis": [f"sum({mri})"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
 
@@ -827,7 +807,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
                 "yAxis": [f"min({mri})", f"max({mri})", f"p90({mri})"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
 
@@ -867,7 +846,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
                 "yAxis": [f"count_unique({mri})"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
 
@@ -905,7 +883,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
                 ],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
-                **self.additional_params,
             },
         )
 

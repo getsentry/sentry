@@ -59,7 +59,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             "organizations:performance-use-metrics": True,
         }
 
+        self.additional_params = dict()
+
     def do_request(self, query, features=None):
+        query = {**query, **self.additional_params}
+
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
@@ -2644,6 +2648,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
+        self.additional_params = {"forceMetricsLayer": "true"}
 
     @pytest.mark.xfail(reason="Not supported")
     def test_time_spent(self):
