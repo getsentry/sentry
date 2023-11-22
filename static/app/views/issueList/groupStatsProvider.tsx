@@ -1,4 +1,4 @@
-import {createContext, useContext} from 'react';
+import {createContext, useContext, useEffect} from 'react';
 import {dropUndefinedKeys} from '@sentry/utils';
 import * as reactQuery from '@tanstack/react-query';
 
@@ -62,14 +62,16 @@ interface StatEndpointParams extends Partial<PageFilters['datetime']> {
   statsPeriod?: string | null;
 }
 
-interface GroupStatsProviderProps {
+export type GroupStatsQuery = UseQueryResult<Record<string, GroupStats>, RequestError>;
+
+export interface GroupStatsProviderProps {
   children: React.ReactNode;
   groupIds: Group['id'][];
   organization: Organization;
   period: string;
 
   selection: PageFilters;
-  onRequest?: (promise: Promise<Record<string, GroupStats>>) => void;
+  onRequestStatusChange?: (query: GroupStatsQuery) => void;
   query?: string;
 }
 
@@ -99,10 +101,6 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
         return map;
       });
 
-    if (props.onRequest) {
-      props.onRequest(promise);
-    }
-
     return promise;
   };
 
@@ -120,6 +118,13 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
       staleTime: Infinity,
     }
   );
+
+  const onRequestStatusChange = props.onRequestStatusChange;
+  useEffect(() => {
+    onRequestStatusChange?.(statsQuery);
+    // We only want to fire the observer when the status changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statsQuery.status, onRequestStatusChange]);
 
   return (
     <GroupStatsContext.Provider value={statsQuery}>
