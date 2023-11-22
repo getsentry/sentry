@@ -458,9 +458,10 @@ def import_in_global_scope(
     models_to_delete = [Project, ProjectKey, Organization, OrganizationMember, Team]
 
     # Global imports will never be run in production, ever
-    with unguarded_write(using="default"):
-        for model in models_to_delete:
-            model.objects.all().delete()
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        with unguarded_write(using="default"):
+            for model in models_to_delete:
+                model.objects.all().delete()
 
     # Reset the primary key sequences so all models removed start from an id of 1 to avoid DSNs changing
     sequence_sql = connection.ops.sequence_reset_sql(no_style(), models_to_delete)

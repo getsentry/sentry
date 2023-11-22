@@ -742,6 +742,8 @@ class ScopingTests(ImportTestCase):
         )
 
     def test_global_import_initial_model_deletion(self):
+        if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+            return
         create_default_projects()
 
         file_path = get_fixture_path("backup", "fresh-install.json")
