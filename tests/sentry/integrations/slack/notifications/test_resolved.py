@@ -6,7 +6,7 @@ from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.helpers.slack import get_attachment
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
@@ -26,8 +26,7 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved(self, mock_func):
+    def test_resolved(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is resolved
         """
@@ -51,8 +50,7 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved_performance_issue(self, mock_func, occurrence):
+    def test_resolved_performance_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is resolved
         """
@@ -76,8 +74,7 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved_generic_issue(self, mock_func, occurrence):
+    def test_resolved_generic_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is resolved
         """
