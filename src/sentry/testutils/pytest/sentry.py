@@ -386,12 +386,12 @@ def _shuffle(items: list[pytest.Item], seed: int) -> None:
 
 def _get_keep_and_discard_items(
     items: list[pytest.Item],
-    total_groups: int,
-    current_group: int,
-    grouping_strategy: str,
-    shuffle_tests: bool,
-    shuffler_seed: int,
-    sample_rate: float,
+    total_groups: int = 1,
+    current_group: int = 0,
+    grouping_strategy: str = "scope",
+    shuffle_tests: bool = False,
+    shuffler_seed: int = 0,
+    sample_rate: float = 1.0,
 ) -> tuple[list[pytest.Item], list[pytest.Item]]:
     keep, discard = [], []
     # First decide what to discard based on the test shard

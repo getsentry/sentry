@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, cast
+from typing import cast
 
 import pytest
 
@@ -26,26 +26,22 @@ def _assert_shuffled(
 
 
 @pytest.mark.parametrize(
-    "num_items,total_groups,current_group,grouping_strategy,shuffle_tests,shuffler_seed,sample_rate,num_expected_keep_items,check_function",
+    ("total_groups", "shuffle_tests", "sample_rate", "num_expected_keep_items"),
     [
-        pytest.param(100, 1, 0, "scope", False, 0, 1.0, 100, None, id="no deselection"),
-        pytest.param(12, 3, 0, "scope", False, 0, 1.0, 5, None, id="basic sharding"),
-        pytest.param(12, 3, 0, "scope", False, 0, 0.25, 2, None, id="sampling and sharding"),
-        pytest.param(100, 1, 0, "scope", True, 0, 1.0, 100, _assert_shuffled, id="basic shuffle"),
+        pytest.param(1, False, 1.0, 100, id="no deselection"),
+        pytest.param(3, False, 1.0, 28, id="basic sharding"),
+        pytest.param(3, False, 0.25, 7, id="sampling and sharding"),
     ],
 )
 def test_keep_discard(
-    num_items: int,
     total_groups: int,
-    current_group: int,
-    grouping_strategy: str,
     shuffle_tests: bool,
-    shuffler_seed: int,
     sample_rate: float,
     num_expected_keep_items: int,
-    check_function: Callable[[list[pytest.Item], list[pytest.Item], list[pytest.Item]], None]
-    | None,
 ) -> None:
+    shuffler_seed = 0
+    num_items = 100
+    current_group = 0
     items = cast(
         "list[pytest.Item]", [MockItem(f"TestClass{i}::function_name{i}") for i in range(num_items)]
     )
@@ -53,15 +49,24 @@ def test_keep_discard(
         items,
         total_groups,
         current_group,
-        grouping_strategy,
+        "scope",
         shuffle_tests,
         shuffler_seed,
         sample_rate,
     )
     assert len(keep) == num_expected_keep_items
     assert len(keep) + len(discard) == len(items)
-    if check_function is not None:
-        check_function(keep, discard, items)
+
+
+def test_shuffle() -> None:
+    items = cast(
+        "list[pytest.Item]", [MockItem(f"TestClass{i}::function_name{i}") for i in range(100)]
+    )
+    keep, discard = _get_keep_and_discard_items(
+        items,
+        shuffle_tests=True,
+    )
+    _assert_shuffled(keep, discard, items)
 
 
 def test_deterministic_sample():
