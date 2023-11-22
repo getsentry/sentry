@@ -116,6 +116,10 @@ INTERNAL_IPS = ()
 # List of IP subnets which should not be accessible
 SENTRY_DISALLOWED_IPS = ()
 
+# List of Region silo IP addresses which are accessible from the control silo.
+# These are individual IP addresses, not subnets (CIDR notation).
+SENTRY_REGION_SILO_IPS = ()
+
 # When resolving DNS for external sources (source map fetching, webhooks, etc),
 # ensure that domains are fully resolved first to avoid poking internal
 # search domains.
