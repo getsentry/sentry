@@ -6,8 +6,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.lostpasswordhash import LostPasswordHash
-from sentry.models.notificationsetting import NotificationSetting
-from sentry.notifications.types import NotificationSettingOptionValues
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
@@ -210,7 +209,7 @@ class EmailUnsubscribeProjectTest(TestCase):
         assert resp.status_code == 302
         assert resp["Location"] == "/auth/login/"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert NotificationSetting.objects.count() == 0, "No settings should be saved"
+            assert NotificationSettingOption.objects.count() == 0, "No settings should be saved"
 
     def test_post_success(self):
         url = urlparse(self.signed_link)
@@ -218,9 +217,11 @@ class EmailUnsubscribeProjectTest(TestCase):
         assert resp.status_code == 302
         assert resp["Location"] == "/auth/login/"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            setting = NotificationSetting.objects.filter(
+            setting = NotificationSettingOption.objects.filter(
                 user_id=self.user.id,
+                scope_type="project",
                 scope_identifier=self.project.id,
-                value=NotificationSettingOptionValues.NEVER.value,
+                type="alerts",
+                value="never",
             )
             assert setting.get(), "Setting should be saved"
