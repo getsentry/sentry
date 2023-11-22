@@ -40,8 +40,7 @@ class SlackPluginTest(PluginTestCase):
 
         notification = Notification(event=event, rule=rule)
 
-        with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.notify(notification)
+        self.plugin.notify(notification)
 
         request = responses.calls[0].request
         payload = json.loads(parse_qs(request.body)["payload"][0])
@@ -56,8 +55,7 @@ class SlackPluginTest(PluginTestCase):
                     ],
                     "fallback": "[bar] Hello world",
                     "title": "Hello world",
-                    "title_link": "http://example.com/organizations/baz/issues/%s/?referrer=slack"
-                    % group.id,
+                    "title_link": group.get_absolute_url(params={"referrer": "slack"}),
                 }
             ],
         }
@@ -78,8 +76,7 @@ class SlackPluginTest(PluginTestCase):
 
         notification = Notification(event=event, rule=rule)
 
-        with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.notify(notification)
+        self.plugin.notify(notification)
 
         request = responses.calls[0].request
         payload = json.loads(parse_qs(request.body)["payload"][0])
@@ -91,8 +88,7 @@ class SlackPluginTest(PluginTestCase):
                     "fields": [{"short": True, "value": "bar", "title": "Project"}],
                     "fallback": "[bar] Hello world",
                     "title": "Hello world",
-                    "title_link": "http://example.com/organizations/baz/issues/%s/?referrer=slack"
-                    % group.id,
+                    "title_link": group.get_absolute_url(params={"referrer": "slack"}),
                 }
             ],
         }
