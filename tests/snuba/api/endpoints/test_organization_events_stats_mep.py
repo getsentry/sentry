@@ -1209,10 +1209,16 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 
         assert response.data["p75(measurements.fcp)"]["meta"]["isMetricsExtractedData"]
         assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"]
-        assert [attrs for time, attrs in response.data["p75(measurements.fcp)"]["data"]] == [[{"count": 0}], [{"count": 225.0}]]
+        assert [attrs for time, attrs in response.data["p75(measurements.fcp)"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 225.0}],
+        ]
         assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsExtractedData"]
         assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"]
-        assert [attrs for time, attrs in response.data["p75(measurements.lcp)"]["data"]] == [[{"count": 0}], [{"count": 450.0}]]
+        assert [attrs for time, attrs in response.data["p75(measurements.lcp)"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 450.0}],
+        ]
 
     def _test_is_metrics_extracted_data(
         self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
