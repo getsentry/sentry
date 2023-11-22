@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
@@ -82,6 +83,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (TeamProjectPermission,)
+    owner = ApiOwner.ENTERPRISE
 
     @extend_schema(
         operation_id="List a Team's Projects",

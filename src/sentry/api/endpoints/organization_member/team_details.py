@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
@@ -101,6 +102,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationTeamMemberPermission,)
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
