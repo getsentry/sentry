@@ -12,7 +12,6 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
-from django.conf import settings
 from django.db import router, transaction
 from django.utils.text import slugify
 from sentry_sdk.tracing import Span, Transaction
@@ -46,11 +45,6 @@ from sentry.monitors.utils import (
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
-from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.locking.manager import LockManager
-from sentry.utils.services import build_instance_from_options
-
-locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 logger = logging.getLogger(__name__)
 
@@ -85,10 +79,12 @@ def _ensure_monitor_with_config(
     validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
-        logger.info(
-            "monitors.consumer.invalid_config",
-            extra={"slug": monitor_slug, **config},
-        )
+        extra = {
+            "slug": monitor_slug,
+            "config": config,
+            "errors": validator.errors,
+        }
+        logger.info("monitors.consumer.invalid_config", extra=extra)
         return monitor
 
     validated_config = validator.validated_data
@@ -433,14 +429,9 @@ def _process_checkin(
 
     # 03
     # Create or update check-in
-    lock = locks.get(f"checkin-creation:{guid.hex}", duration=LOCK_TIMEOUT, name="checkin_creation")
+
     try:
-        # use lock.blocking_acquire() as default lock.acquire() fast fails if
-        # lock is in use. We absolutely want to wait to acquire this lock
-        # otherwise we would drop the check-in.
-        with lock.blocking_acquire(
-            INITIAL_LOCK_DELAY, float(LOCK_TIMEOUT), exp_base=LOCK_EXP_BASE
-        ), transaction.atomic(router.db_for_write(Monitor)):
+        with transaction.atomic(router.db_for_write(Monitor)):
             status = getattr(CheckInStatus, validated_params["status"].upper())
             trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
             duration = validated_params["duration"]
@@ -572,16 +563,6 @@ def _process_checkin(
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "complete"},
             )
-    except UnableToAcquireLock:
-        metrics.incr(
-            "monitors.checkin.result",
-            tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
-        )
-        txn.set_tag("result", "failed_checkin_creation_lock")
-        logger.info(
-            "monitors.consumer.lock_failed",
-            extra={"guid": guid.hex, "slug": monitor_slug},
-        )
     except Exception:
         # Skip this message and continue processing in the consumer.
         metrics.incr(
