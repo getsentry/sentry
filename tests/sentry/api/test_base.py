@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry_sdk import Scope
 from sentry_sdk.utils import exc_info_from_error
 
-from sentry.api.base import Endpoint, EndpointSiloLimit, resolve_region
+from sentry.api.base import Endpoint, EndpointSiloLimit
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.apikey import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
@@ -17,7 +17,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_region_config
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
-from sentry.types.region import RegionCategory, clear_global_regions
+from sentry.types.region import RegionCategory, clear_global_regions, subdomain_is_region
 from sentry.utils.cursors import Cursor
 
 
@@ -507,7 +507,7 @@ class CustomerDomainTest(APITestCase):
         def request_with_subdomain(subdomain):
             request = self.make_request(method="GET")
             request.subdomain = subdomain
-            return resolve_region(request)
+            return subdomain_is_region(request)
 
         region_config = [
             {
@@ -524,9 +524,9 @@ class CustomerDomainTest(APITestCase):
             },
         ]
         with override_region_config(region_config):
-            assert request_with_subdomain("us") == "us"
-            assert request_with_subdomain("eu") == "eu"
-            assert request_with_subdomain("sentry") is None
+            assert request_with_subdomain("us")
+            assert request_with_subdomain("eu")
+            assert not request_with_subdomain("sentry")
 
 
 class EndpointSiloLimitTest(APITestCase):

@@ -92,7 +92,7 @@ class TestGetEventSeverity(TestCase):
             {"logentry": {"message": "Dogs are great!"}},
         ]
         for case in cases:
-            manager = EventManager(make_event(level="info", **case))
+            manager = EventManager(make_event(**case))
             event = manager.save(self.project.id)
 
             severity = _get_severity_score(event)
@@ -100,7 +100,7 @@ class TestGetEventSeverity(TestCase):
             payload = {
                 "message": "Dogs are great!",
                 "has_stacktrace": 0,
-                "log_level": "info",
+                "log_level": "error",
                 "handled": 1,
             }
 
@@ -239,6 +239,29 @@ class TestGetEventSeverity(TestCase):
             },
         )
         assert severity is None
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+    )
+    @patch("sentry.event_manager.logger.info")
+    def test_info_events_yield_zero_severity(
+        self,
+        mock_logger_info: MagicMock,
+        mock_urlopen: MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(
+                level="info",
+                exception={"values": [{"type": "InfoEvent", "value": "Super Cool Info"}]},
+            )
+        )
+        event = manager.save(self.project.id)
+
+        severity = _get_severity_score(event)
+        assert severity == 0
+
+        mock_urlopen.assert_not_called()
+        mock_logger_info.assert_not_called()
 
 
 @region_silo_test

@@ -12,7 +12,6 @@ from sentry.models.commit import Commit
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.project import Project
@@ -23,7 +22,6 @@ from sentry.models.user import User
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
-    NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
 from sentry.notifications.utils.participants import (
@@ -311,16 +309,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             ),
             fallthrough=True,
         )
-
-        # turn off slack for teams
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                team_id=self.team2.id,
-            )
-
             self.integration.add_organization(self.project.organization, self.user)
 
     def create_sample_commit(self, user: User) -> Commit:
@@ -390,20 +379,21 @@ class GetSendToOwnersTest(_ParticipantsTest):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             # Project-independent setting.
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
+            NotificationSettingOption.objects.create(
                 user_id=self.user2.id,
+                scope_type="user",
+                scope_identifier=self.user2.id,
+                type="alerts",
+                value="always",
             )
 
             # Per-project setting.
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
+            NotificationSettingOption.objects.create(
                 user_id=self.user2.id,
-                project=self.project,
+                scope_type="project",
+                scope_identifier=self.project.id,
+                type="alerts",
+                value="never",
             )
 
         self.assert_recipients_are(
@@ -876,11 +866,13 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         # turn off slack for teams
         with assume_test_silo_mode(SiloMode.CONTROL):
             for user in [self.user, self.user2, self.user3]:
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
+                NotificationSettingProvider.objects.create(
                     user_id=user.id,
+                    scope_type="user",
+                    scope_identifier=user.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
         with assume_test_silo_mode(SiloMode.CONTROL):
             # disable Slack
