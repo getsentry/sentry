@@ -18,8 +18,8 @@ INVALID_EMAIL_MSG = (
 @control_silo_endpoint
 class UserNotificationEmailEndpoint(UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
 
