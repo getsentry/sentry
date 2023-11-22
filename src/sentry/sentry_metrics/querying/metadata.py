@@ -4,7 +4,7 @@ from typing import Generator, List, Optional, Sequence, Set, TypedDict
 from sentry.api.utils import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.utils import get_redis_client_for_ingest
+from sentry.sentry_metrics.querying.utils import fnv1a_32, get_redis_client_for_ingest
 from sentry.utils import json, metrics
 
 DAY_IN_SECONDS = 86400
@@ -50,9 +50,11 @@ def _get_day_timestamps(
 def get_cache_key_for_code_location(
     organization_id: int, project_id: int, metric_mri: str, timestamp: int
 ) -> str:
-    # TODO: implement mri conversion.
-    encoded_mri = metric_mri
-    return f"mm:l:{{{organization_id}}}:{project_id}:{encoded_mri}:{timestamp}"
+    # We opted to use this hash function since it is quite fast and has 1 collision every 50k entries approximately,
+    # which for our case is more than enough since we discriminate via organization, project and timestamp, meaning that
+    # it's highly unlikely that a project has more than 50k unique metric mris.
+    hashed_mri = fnv1a_32(metric_mri.encode("utf-8"))
+    return f"mm:l:{{{organization_id}}}:{project_id}:{hashed_mri}:{timestamp}"
 
 
 class CodeLocationsFetcher:
