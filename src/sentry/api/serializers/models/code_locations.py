@@ -21,6 +21,7 @@ class CodeLocationsSerializer(Serializer):
             "module": code_location_payload.get("module"),
             "filename": code_location_payload.get("filename"),
             "absPath": code_location_payload.get("abs_path"),
+            "lineno": code_location_payload.get("lineno"),
         }
 
     def serialize(self, obj, attrs, user):

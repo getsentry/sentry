@@ -181,6 +181,39 @@ class OrganizationMetricsCodeLocationsTest(MetricsAPIBaseTestCase):
         # elements each.
         assert len(get_code_locations_mock.mock_calls) == 10
 
+    def test_get_locations_with_incomplete_location(self):
+        project = self.create_project(name="project_1")
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+
+        self._store_code_location(
+            self.organization.id,
+            project.id,
+            mri,
+            self._round_to_day(self.current_time),
+            '{"lineno": 10}',
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=[project.id],
+            statsPeriod="1d",
+        )
+        data = response.data["data"]
+
+        assert len(data) == 1
+
+        assert data[0]["mri"] == mri
+        assert data[0]["timestamp"] == self._round_to_day(self.current_time)
+
+        code_locations = data[0]["codeLocations"]
+        assert len(code_locations) == 1
+        assert code_locations[0]["lineno"] == 10
+        # We check that all the remaining elements are `None`.
+        del code_locations[0]["lineno"]
+        for value in code_locations[0].values():
+            assert value is None
+
     def test_get_locations_with_corrupted_location(self):
         project = self.create_project(name="project_1")
         mri = "d:custom/sentry.process_profile.track_outcome@second"
