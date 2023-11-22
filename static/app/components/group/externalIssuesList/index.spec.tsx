@@ -110,7 +110,6 @@ describe('ExternalIssuesList', () => {
     mockUseSentryAppComponentsStore.mockReturnValue([component]);
     render(
       <ExternalIssuesList
-        // components={[component]}
         group={group}
         project={project}
         event={event}
