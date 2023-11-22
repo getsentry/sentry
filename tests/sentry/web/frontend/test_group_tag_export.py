@@ -89,7 +89,6 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         )
         self.verify_test(response)
 
-    @override_regions(region_config)
     def test_region_subdomain_no_conflict_with_slug(self):
         # When a request to a web view contains both
         # a region subdomain and org slug, we shouldn't conflate
@@ -104,6 +103,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
                 "key": self.key,
             },
         )
-        resp = self.client.get(url, HTTP_HOST="us.testserver")
-        assert resp.status_code == 200
-        assert "Location" not in resp
+        with override_regions(region_config):
+            resp = self.client.get(url, HTTP_HOST="us.testserver")
+            assert resp.status_code == 200
+            assert "Location" not in resp
