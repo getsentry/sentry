@@ -2821,6 +2821,7 @@ class MonitorTestCase(APITestCase):
             action_match="any",
             conditions=conditions,
             actions=actions,
+            filterMatch="all",
             frequency=5,
             environment=self.environment.id,
         ).call()

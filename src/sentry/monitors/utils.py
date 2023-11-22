@@ -246,12 +246,6 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
             {
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
             },
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": monitor.slug,
-            },
         ],
         "createdBy": {
             "email": user.email,
@@ -260,6 +254,15 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
         },
         "dateCreated": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         "environment": alert_rule.get("environment", None),
+        "filterMatch": "all",
+        "filters": [
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": monitor.slug,
+            },
+        ],
         "frequency": 1440,
         "name": f"Monitor Alert: {monitor.name}"[:64],
         "owner": None,
@@ -313,7 +316,6 @@ def update_alert_rule(
             "actions": data.get("actions", []),
             "environment": data.get("environment", None),
             "name": f"Monitor Alert: {monitor.name}"[:64],
-            # TODO(davidenwang): This is kind of a hack to get around updater removing conditions if not passed
             "conditions": [
                 {
                     "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",

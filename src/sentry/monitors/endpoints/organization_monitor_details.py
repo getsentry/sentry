@@ -146,6 +146,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     params["config"] = monitor.config
 
                 params["config"]["alert_rule_id"] = alert_rule_id
+                monitor.update(**params)
 
         return self.respond(serialize(monitor, request.user))
 
