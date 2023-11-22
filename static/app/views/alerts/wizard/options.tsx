@@ -243,7 +243,9 @@ export function datasetSupportedTags(
 ): TagCollection | undefined {
   return mapValues(
     {
-      [Dataset.ERRORS]: undefined,
+      [Dataset.ERRORS]: org.features.includes('metric-alert-ignore-archived')
+        ? [FieldKey.IS]
+        : undefined,
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
         : transactionSupportedTags(org),
