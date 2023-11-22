@@ -12,23 +12,16 @@ from sentry.utils.http import is_using_customer_domain
 class OrganizationAbsoluteUrlMixin:
     slug: str | models.Field[str, str]
 
-    __has_customer_domain: bool | None = None
-
     def _has_customer_domain(self) -> bool:
         """
         Check if the current organization is using or has access to customer domains.
         Memoize result of feature flag check as this happens often
         """
-        if self.__has_customer_domain is not None:
-            return self.__has_customer_domain
-
         request = env.request
         if request and is_using_customer_domain(request):
-            self.__has_customer_domain = True
-        else:
-            self.__has_customer_domain = features.has("organizations:customer-domains", self)
+            return True
 
-        return self.__has_customer_domain
+        return features.has("organizations:customer-domains", self)
 
     def absolute_url(
         self, path: str, query: Optional[str] = None, fragment: Optional[str] = None
