@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import cached_property
 from typing import Optional
 
 from django.db import models
@@ -13,20 +12,22 @@ from sentry.utils.http import is_using_customer_domain
 class OrganizationAbsoluteUrlMixin:
     slug: str | models.Field[str, str]
 
-    @cached_property
-    def __has_customer_domain(self) -> bool:
+    __has_customer_domain: bool | None = None
+
+    def _has_customer_domain(self) -> bool:
         """
         Check if the current organization is using or has access to customer domains.
+        Memoize result of feature flag check as this happens often
         """
+        if self.__has_customer_domain is not None:
+            return self.__has_customer_domain
 
         request = env.request
         if request and is_using_customer_domain(request):
-            return True
+            self.__has_customer_domain = True
+        else:
+            self.__has_customer_domain = features.has("organizations:customer-domains", self)
 
-        return features.has("organizations:customer-domains", self)
-
-    def _has_customer_domain(self) -> bool:
-        # For getsentry compatibility
         return self.__has_customer_domain
 
     def absolute_url(
@@ -39,7 +40,7 @@ class OrganizationAbsoluteUrlMixin:
         customer-domains are active.
         """
         return self.organization_absolute_url(
-            self.__has_customer_domain, self.slug, path=path, query=query, fragment=fragment
+            self._has_customer_domain(), self.slug, path=path, query=query, fragment=fragment
         )
 
     @staticmethod
