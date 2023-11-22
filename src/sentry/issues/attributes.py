@@ -4,6 +4,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional, Union
 
+import requests
+import urllib3
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
@@ -16,7 +18,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned
-from sentry.utils import json, metrics
+from sentry.utils import json, metrics, snuba
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -86,8 +88,24 @@ def send_snapshot_values(
 
 
 def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
-    payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
-    _attribute_snapshot_producer.produce(Topic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
+    if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
+        # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
+        # write to snuba directly
+        try:
+            resp = requests.post(
+                f"{settings.SENTRY_SNUBA}/tests/entities/group_attributes/insert",
+                data=json.dumps([snapshot]),
+            )
+            if resp.status_code != 200:
+                raise snuba.SnubaError(
+                    f"HTTP {resp.status_code} response from Snuba! {resp.content.decode('utf-8')}"
+                )
+            return None
+        except urllib3.exceptions.HTTPError as err:
+            raise snuba.SnubaError(err)
+    else:
+        payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
+        _attribute_snapshot_producer.produce(Topic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
 
 
 def _retrieve_group_values(group_id: int) -> GroupValues:

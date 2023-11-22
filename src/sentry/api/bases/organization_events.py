@@ -30,6 +30,7 @@ from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
+    errors,
     functions,
     issue_platform,
     metrics_enhanced_performance,
@@ -49,6 +50,7 @@ from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 # ie. metricsEnhanced is not a real dataset
 DATASET_OPTIONS = {
     "discover": discover,
+    "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
     "profiles": profiles,

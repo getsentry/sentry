@@ -125,13 +125,15 @@ def format_time(data, start, end, rollup, orderby):
     return rv
 
 
-def zerofill(data, start, end, rollup, orderby):
+def zerofill(data, start, end, rollup, orderby, time_col_name=None):
     rv = []
     start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
     end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
     data_by_time = {}
 
     for obj in data:
+        if time_col_name:
+            obj["time"] = obj.pop(time_col_name)
         # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
         if isinstance(obj["time"], str):
             # `datetime.fromisoformat` is new in Python3.7 and before Python3.11, it is not a full
