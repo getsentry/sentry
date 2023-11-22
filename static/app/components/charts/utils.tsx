@@ -85,16 +85,16 @@ export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
 const highFidelityLadder = new GranularityLadder([
   [SIXTY_DAYS, '4h'],
   [THIRTY_DAYS, '1h'],
-  [TWENTY_FOUR_HOURS, '30m'],
-  [ONE_HOUR, '5m'],
+  [TWENTY_FOUR_HOURS + 1, '30m'],
+  [ONE_HOUR + 1, '5m'],
   [0, '1m'],
 ]);
 
 const mediumFidelityLadder = new GranularityLadder([
   [SIXTY_DAYS, '1d'],
   [THIRTY_DAYS, '4h'],
-  [TWENTY_FOUR_HOURS, '1h'],
-  [ONE_HOUR, '15m'],
+  [TWENTY_FOUR_HOURS + 1, '1h'],
+  [ONE_HOUR + 1, '15m'],
   [0, '5m'],
 ]);
 
@@ -102,8 +102,8 @@ const lowFidelityLadder = new GranularityLadder([
   [SIXTY_DAYS, '2d'],
   [THIRTY_DAYS, '1d'],
   [TWO_WEEKS, '12h'],
-  [TWENTY_FOUR_HOURS, '6h'],
-  [ONE_HOUR, '1h'],
+  [TWENTY_FOUR_HOURS + 1, '6h'],
+  [ONE_HOUR + 1, '1h'],
   [0, '10m'],
 ]);
 
