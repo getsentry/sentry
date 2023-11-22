@@ -142,11 +142,6 @@ type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & 
   query: string[];
 };
 
-type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
-  groups: string[];
-  expand?: string | string[];
-};
-
 class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
 
@@ -460,44 +455,6 @@ class IssueListOverview extends Component<Props, State> {
     loadOrganizationTags(api, organization.slug, selection);
   }
 
-  fetchStats = (groups: string[]) => {
-    // If we have no groups to fetch, just skip stats
-    if (!groups.length) {
-      return;
-    }
-    const requestParams: StatEndpointParams = {
-      ...this.getEndpointParams(),
-      groups,
-    };
-    // If no stats period values are set, use default
-    if (!requestParams.statsPeriod && !requestParams.start) {
-      requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
-    }
-
-    this._lastStatsRequest = this.props.api.request(this.groupStatsEndpoint, {
-      method: 'GET',
-      data: qs.stringify(requestParams),
-      success: data => {
-        if (!data) {
-          return;
-        }
-        GroupStore.onPopulateStats(groups, data);
-        this.trackTabViewed(groups, data);
-      },
-      error: err => {
-        this.setState({
-          error: parseApiError(err),
-        });
-      },
-      complete: () => {
-        this._lastStatsRequest = null;
-
-        // End navigation transaction to prevent additional page requests from impacting page metrics.
-        // Other transactions include stacktrace preview request
-      },
-    });
-  };
-
   fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
     const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
@@ -690,8 +647,6 @@ class IssueListOverview extends Component<Props, State> {
           GroupStore.loadInitialData(data);
         }
         GroupStore.add(data);
-
-        // this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
         const queryCount =
