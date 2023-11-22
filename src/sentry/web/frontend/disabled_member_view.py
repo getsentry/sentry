@@ -4,10 +4,12 @@ from rest_framework.request import Request
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.web.frontend.base import control_silo_view
 
 from .react_page import ReactPageView
 
 
+@control_silo_view
 class DisabledMemberView(ReactPageView):
     def is_member_disabled_from_limit(self, request: Request, organization):
         return False
