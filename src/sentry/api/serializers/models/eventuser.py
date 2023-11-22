@@ -25,7 +25,7 @@ class EventUserModelSerializer(Serializer):
 class EventUserSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": str(obj.id),
+            "id": str(obj.id) if obj.id is not None else obj.id,
             "tagValue": obj.tag_value,
             "identifier": obj.user_ident,
             "username": obj.username,
