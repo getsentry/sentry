@@ -35,15 +35,16 @@ export default function JsonViewer(props: ViewerProps) {
     );
   }
 
-  const attachmentJson = query.data as string;
-
-  if (!attachmentJson) {
+  if (!query.data) {
     return null;
   }
 
   let json;
   try {
-    json = JSON.parse(attachmentJson);
+    /**
+     * The api might return a string or an object depending on headers and filename.
+     */
+    json = typeof query.data === 'object' ? query.data : JSON.parse(query.data as string);
   } catch (e) {
     json = null;
   }

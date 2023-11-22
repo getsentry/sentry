@@ -50,4 +50,25 @@ describe('JsonViewer', () => {
     expect(await screen.findByText('"key"')).toBeInTheDocument();
     expect(await screen.findByText('"value"')).toBeInTheDocument();
   });
+
+  it('renders JSON sucessfully parsed by the api client', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/?download`,
+      headers: {'content-type': 'application/json'},
+      // Not a string, the mock api client will just return this object
+      body: {key: 'value'},
+    });
+
+    render(
+      <JsonViewer
+        attachment={attachment}
+        eventId={event.id}
+        orgId={organization.id}
+        projectSlug={project.slug}
+      />
+    );
+
+    expect(await screen.findByText('"key"')).toBeInTheDocument();
+    expect(await screen.findByText('"value"')).toBeInTheDocument();
+  });
 });
