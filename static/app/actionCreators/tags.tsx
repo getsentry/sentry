@@ -65,7 +65,8 @@ export function fetchOrganizationTags(
   TagStore.reset();
 
   const url = `/organizations/${orgId}/tags/`;
-  const query: Query = {use_cache: '1'};
+  // Default fetching the last 7 days of tags
+  const query: Query = {use_cache: '1', statsPeriod: '7d'};
   if (projectIds) {
     query.project = projectIds;
   }
