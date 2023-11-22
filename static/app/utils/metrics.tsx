@@ -492,7 +492,7 @@ export const formatMriAggregate = (aggregate: string) => {
     return aggregate;
   }
 
-  const {name, unit} = parsed;
+  const {name} = parsed;
 
-  return `${op}(${name}@${unit})`;
+  return `${op}(${name})`;
 };

@@ -130,10 +130,14 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     illustration: diagramCustom,
   },
   custom_metrics: {
-    description: t('Alert on your custom metrics.'),
+    description: t(
+      'Alert on custom metrics that you have configured and are not related to errors, transactions or sessions.'
+    ),
     examples: [
-      t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
-      t('When the average TTFB of a page is longer than 600 millliseconds.'),
+      t('When your number of sign-ups dropped by 10% compared to the previous week.'),
+      t(
+        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
+      ),
     ],
     illustration: diagramCustom,
   },
