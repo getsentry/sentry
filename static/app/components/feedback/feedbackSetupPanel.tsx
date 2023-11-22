@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import newFeatureImg from 'sentry-images/spot/new-feature.svg';
+import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
 import {LinkButton} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
@@ -38,7 +38,7 @@ export default function FeedbackSetupPanel() {
     <Panel>
       <Container>
         <IlloBox>
-          <img src={newFeatureImg} />
+          <img src={feedbackOnboardingImg} />
         </IlloBox>
         <StyledBox>
           <Fragment>
