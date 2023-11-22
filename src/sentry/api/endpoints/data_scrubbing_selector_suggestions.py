@@ -17,7 +17,7 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.DISCOVER_N_DASHBOARDS
+    owner = ApiOwner.OWNERS_INGEST
 
     def get(self, request: Request, organization) -> Response:
         """
