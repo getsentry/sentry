@@ -3942,7 +3942,7 @@ SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 
 # Backwards compatibility for URLs that don't
 # have enough context to route via organization.
-# New usage of these endpoints uses region domains,
+# New usage of these endpoints should use the region domains,
 # but existing customers have been using these routes
 # on the main domain for a long time.
 REGION_PINNED_URL_NAMES = {
@@ -3962,10 +3962,9 @@ REGION_PINNED_URL_NAMES = {
     # New usage of these is region scoped.
     "sentry-error-page-embed",
     "sentry-release-hook",
+    "sentry-api-0-organizations",
     "sentry-api-0-projects",
-    "sentry-account-email-unsubscribe-incident",
-    "sentry-account-email-unsubscribe-issue",
-    "sentry-account-email-unsubscribe-project",
+    "sentry-api-0-accept-project-transfer",
 }
 
 # Shared resource ids for accounting
