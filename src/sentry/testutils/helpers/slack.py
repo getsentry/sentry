@@ -94,7 +94,7 @@ def link_team(team: Team, integration: Integration, channel_name: str, channel_i
 
 def send_notification(provider, *args_list):
     if provider == ExternalProviders.SLACK:
-        send_notification_as_slack(*args_list, {})
+        send_notification_as_slack(*args_list)
 
 
 def get_channel(index=0):
