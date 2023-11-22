@@ -9,7 +9,7 @@ def get_redis_client_for_metrics_meta() -> Any:
     """
     Returns the redis client which is used for the Redis cluster that stores metrics metadata.
     """
-    cluster_key = settings.SENTRY_METRICS_META_REDIS_CLUSTER
+    cluster_key = settings.SENTRY_METRIC_META_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)
 
 
