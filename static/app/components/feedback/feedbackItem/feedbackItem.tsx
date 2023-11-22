@@ -14,16 +14,16 @@ import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedback
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import IssueTrackingSection from 'sentry/components/feedback/feedbackItem/issueTrackingSection';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
-import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconIssues, IconLink} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group} from 'sentry/types';
@@ -108,6 +108,17 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
               </Button>
             </ErrorBoundary>
           </Flex>
+          {eventData && (
+            <Flex align="flex-start" wrap="wrap" gap={space(2)}>
+              <ErrorBoundary mini>
+                <IssueTrackingSection
+                  group={feedbackItem as unknown as Group}
+                  project={feedbackItem.project}
+                  event={eventData}
+                />
+              </ErrorBoundary>
+            </Flex>
+          )}
         </Flex>
       </HeaderPanelItem>
       <OverflowPanelItem>
@@ -143,18 +154,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             organization={organization}
             replayId={replayId}
           />
-        )}
-        {eventData && (
-          <Section icon={<IconIssues size="xs" />} title={t('Issue Tracking')}>
-            <ErrorBoundary mini>
-              <ExternalIssueList
-                project={feedbackItem.project}
-                group={feedbackItem as unknown as Group}
-                event={eventData}
-                showHeader={false}
-              />
-            </ErrorBoundary>
-          </Section>
         )}
         <TagsSection tags={tags} />
       </OverflowPanelItem>
