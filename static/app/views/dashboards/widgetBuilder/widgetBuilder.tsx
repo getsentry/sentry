@@ -248,7 +248,7 @@ function WidgetBuilder({
         {
           ...defaultWidgetQuery,
           orderby:
-            defaultWidgetQuery.orderby ??
+            defaultWidgetQuery.orderby ||
             (datasetConfig.getTableSortOptions
               ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
                   .value
