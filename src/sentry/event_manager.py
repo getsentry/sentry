@@ -2129,6 +2129,10 @@ def _get_severity_score(event: Event) -> float | None:
     logger_data = {"event_id": event.data["event_id"], "op": op}
     severity = None
 
+    # If the event is info-level, auto-mark as low severity
+    if LOG_LEVELS_MAP[event.data["level"]] <= logging.INFO:
+        return 0
+
     # We're using the title (which truncates the error message) rather than the full error type and
     # message here because the `exception` property in event data (where they live) isn't mirrored
     # to BigQuery for storage space reasons (stacktraces can be enormous). Since the ML model is
