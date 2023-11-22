@@ -128,6 +128,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 data=monitor.get_audit_log_data(),
             )
 
+        # Update alert rule after in case slug or name changed
         if "alert_rule" in result:
             # Check to see if rule exists
             alert_rule = monitor.get_alert_rule()

@@ -2818,10 +2818,10 @@ class MonitorTestCase(APITestCase):
             name="New Cool Rule",
             owner=None,
             project=self.project,
-            action_match="any",
             conditions=conditions,
-            actions=actions,
             filterMatch="all",
+            action_match="any",
+            actions=actions,
             frequency=5,
             environment=self.environment.id,
         ).call()
