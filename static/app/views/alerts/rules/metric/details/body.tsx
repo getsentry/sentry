@@ -235,12 +235,12 @@ export default function MetricDetailsBody({
                   size="xs"
                   icon={<IconEdit size="xs" />}
                 >
-                  {t('Review Thresholds')}
+                  {t('Exclude archived issues')}
                 </LinkButton>
               }
             >
               {t(
-                'Sentry now supports excluding archived issues from metric alerts. Please review your alert thresholds.'
+                'Sentry supports excluding archived issues from metric alerts. Please make sure to review your alert thresholds after editing your alert rule.'
               )}
             </Alert>
           ) : null}
