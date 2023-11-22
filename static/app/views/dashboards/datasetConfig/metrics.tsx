@@ -13,6 +13,7 @@ import {
   getSeriesName,
   getUseCaseFromMRI,
   groupByOp,
+  parseMRI,
 } from 'sentry/utils/metrics';
 import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
@@ -60,18 +61,52 @@ export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse
   transformSeries: transformMetricsResponseToSeries,
   transformTable: transformMetricsResponseToTable,
   getTableFieldOptions: getFields,
-  getTimeseriesSortOptions: () => ({}),
-  getTableSortOptions: () => [],
+  getTimeseriesSortOptions: getMetricTimeseriesSortOptions,
+  getTableSortOptions: getMetricTableSortOptions,
   filterTableOptions: filterMetricOperations,
-  filterYAxisOptions: () => {
-    return (option: FieldValueOption) => filterMetricOperations(option);
-  },
+  filterYAxisOptions: () => option => filterMetricOperations(option),
   filterAggregateParams: filterMetricMRIs,
-  filterYAxisAggregateParams: () => {
-    return (option: FieldValueOption) => filterMetricMRIs(option);
-  },
+  filterYAxisAggregateParams: () => option => filterMetricMRIs(option),
   getGroupByFieldOptions: getTagsForMetric,
 };
+
+function getMetricTimeseriesSortOptions(_, widgetQuery) {
+  if (!widgetQuery.columns) {
+    return [];
+  }
+
+  return widgetQuery.columns.reduce((acc, column) => {
+    return {
+      ...acc,
+      [column]: {
+        label: column,
+        value: {
+          kind: FieldValueKind.TAG,
+          meta: {
+            name: column,
+            dataType: 'string',
+          },
+        },
+      },
+    };
+  }, {});
+}
+
+function getMetricTableSortOptions(_, widgetQuery) {
+  if (!widgetQuery.fields[0]) {
+    return [];
+  }
+
+  return widgetQuery.fields.map((field, i) => {
+    const parsed = parseMRI(fieldToMri(field).mri);
+    const alias = widgetQuery.fieldAliases?.[i];
+
+    return {
+      label: alias ?? parsed?.name ?? '',
+      value: parsed?.mri ?? '',
+    };
+  });
+}
 
 function getFields(
   organization: Organization,
