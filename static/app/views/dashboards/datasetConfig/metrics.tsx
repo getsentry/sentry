@@ -300,6 +300,7 @@ function getMetricRequest(
       },
     ] as any);
   }
+  const per_page = limit && Number(limit) >= 10 ? limit : 10;
 
   const requestData = getMetricsApiRequestQuery(
     {
@@ -309,7 +310,7 @@ function getMetricRequest(
     },
     pageFilters,
     {
-      per_page: query.columns.length === 0 ? 1 : limit,
+      per_page,
       useNewMetricsLayer: false,
     }
   );

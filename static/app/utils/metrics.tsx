@@ -203,7 +203,7 @@ export function getMetricsApiRequestQuery(
     groupBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // max result groups
-    per_page: 20,
+    per_page: 10,
   };
 
   return {...queryToSend, ...overrides};
