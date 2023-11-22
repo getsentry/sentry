@@ -1,16 +1,25 @@
+import {Event} from 'sentry-fixture/event';
+import {Group} from 'sentry-fixture/group';
 import {JiraIntegration} from 'sentry-fixture/jiraIntegration';
 import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
+import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
+import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
 
-import ExternalIssuesList from './externalIssuesList';
+import ExternalIssuesList from '.';
+
+jest.mock('sentry/utils/useSentryAppComponentsStore');
+const mockUseSentryAppComponentsStore = jest.mocked(useSentryAppComponentsStore);
 
 describe('ExternalIssuesList', () => {
-  const event = TestStubs.Event();
-  const group = TestStubs.Group();
-  const project = TestStubs.Project();
+  const event = Event();
+  const group = Group();
+  const project = Project();
   const organization = Organization();
 
   beforeEach(() => {
@@ -33,15 +42,10 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
-    render(
-      <ExternalIssuesList
-        components={[]}
-        group={group}
-        project={project}
-        event={event}
-      />,
-      {organization}
-    );
+    mockUseSentryAppComponentsStore.mockReturnValue([]);
+    render(<ExternalIssuesList group={group} project={project} event={event} />, {
+      organization,
+    });
     expect(await screen.findByText(setupCTA)).toBeInTheDocument();
   });
 
@@ -54,21 +58,16 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
-    const component = TestStubs.SentryAppComponent();
+    const component = SentryAppComponent();
     SentryAppInstallationStore.load([
-      TestStubs.SentryAppInstallation({
+      SentryAppInstallation({
         app: component.sentryApp,
       }),
     ]);
-    render(
-      <ExternalIssuesList
-        components={[component]}
-        group={group}
-        project={project}
-        event={event}
-      />,
-      {organization}
-    );
+    mockUseSentryAppComponentsStore.mockReturnValue([component]);
+    render(<ExternalIssuesList group={group} project={project} event={event} />, {
+      organization,
+    });
     expect(await screen.findByText('Foo Issue')).toBeInTheDocument();
     expect(screen.queryByText(setupCTA)).not.toBeInTheDocument();
   });
@@ -97,16 +96,11 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
-    const component = TestStubs.SentryAppComponent();
-    render(
-      <ExternalIssuesList
-        components={[component]}
-        group={group}
-        project={project}
-        event={event}
-      />,
-      {organization}
-    );
+    const component = SentryAppComponent();
+    mockUseSentryAppComponentsStore.mockReturnValue([component]);
+    render(<ExternalIssuesList group={group} project={project} event={event} />, {
+      organization,
+    });
     expect(await screen.findByText('Test-Sentry/github-test#13')).toBeInTheDocument();
     const externalIssues = screen.getAllByTestId('external-issue-item');
     expect(externalIssues[0]).toHaveTextContent('Test-Sentry/github-test#13');

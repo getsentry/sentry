@@ -5,7 +5,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ExternalIssueActions from 'sentry/components/group/externalIssueActions';
+import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
 
 describe('ExternalIssueActions', function () {
   const group = TestStubs.Group();
