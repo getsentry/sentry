@@ -5,7 +5,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class TombstoneTest(TransactionTestCase):
     def test_writing_control_models(self):
         with assume_test_silo_mode(SiloMode.REGION):

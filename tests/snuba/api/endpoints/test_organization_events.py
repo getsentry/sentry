@@ -93,7 +93,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})

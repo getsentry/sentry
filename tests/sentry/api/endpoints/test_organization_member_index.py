@@ -18,7 +18,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberSerializerTest(TestCase):
     def test_valid(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -156,7 +156,7 @@ class OrganizationMemberListTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -463,7 +463,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         self.assert_org_member_mapping(org_member=member)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
@@ -601,7 +601,7 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 

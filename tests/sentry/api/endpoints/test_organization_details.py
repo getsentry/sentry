@@ -77,7 +77,7 @@ class MockAccess:
         return False
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -337,7 +337,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -886,7 +886,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
@@ -996,7 +996,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=400)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 

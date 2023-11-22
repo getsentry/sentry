@@ -8,7 +8,7 @@ from sentry.testutils.silo import no_silo_test
 from sentry.utils.retries import TimedRetryPolicy
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationOnboardingTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

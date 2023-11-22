@@ -6,7 +6,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 @django_db_all(transaction=True)
-@region_silo_test(stable=True)
+@region_silo_test
 def test_get_or_create_project():
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")

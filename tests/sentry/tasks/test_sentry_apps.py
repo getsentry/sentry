@@ -93,7 +93,7 @@ MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse, Non
 MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException, None)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestSendAlertEvent(TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(organization=self.organization)
