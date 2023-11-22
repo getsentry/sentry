@@ -528,6 +528,42 @@ class TestOpenPRCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=True)
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
     @responses.activate
+    def test_comment_workflow_early_return(
+        self,
+        mock_metrics,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
+        mock_pr_filenames.return_value = ["foo.py"]
+        # no codemappings
+        mock_reverse_codemappings.return_value = ([], [])
+        mock_issues.return_value = []
+
+        open_pr_comment_workflow(self.pr.id)
+
+        pull_request_comment_query = PullRequestComment.objects.all()
+        assert len(pull_request_comment_query) == 0
+        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
+
+        # has codemappings but no issues
+        mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
+
+        open_pr_comment_workflow(self.pr.id)
+
+        pull_request_comment_query = PullRequestComment.objects.all()
+        assert len(pull_request_comment_query) == 0
+        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch(
+        "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
+    )
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=True)
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    @responses.activate
     def test_comment_workflow_api_error(
         self,
         mock_metrics,

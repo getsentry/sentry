@@ -311,28 +311,46 @@ def open_pr_comment_workflow(pr_id: int) -> None:
 
     pr_filenames = get_pr_filenames(gh_client=client, repository=repo, pull_request=pull_request)
 
-    # projects and filenames in sentry for each PR filename
-    reverse_codemappings = [
-        get_projects_and_filenames_from_source_file(org_id, pr_filename)
-        for pr_filename in pr_filenames
-    ]
+    issue_table_contents = {}
+    top_issues_per_file = []
 
-    top_issues_per_file = [
-        get_top_5_issues_by_count_for_file(list(projects), list(sentry_filenames))
-        for projects, sentry_filenames in reverse_codemappings
-    ]
+    for pr_filename in pr_filenames:
+        projects, sentry_filenames = get_projects_and_filenames_from_source_file(
+            org_id, pr_filename
+        )
+        if not len(projects) or not len(sentry_filenames):
+            continue
 
-    # format tables in the comment
-    issue_table_contents = [
-        get_issue_table_contents(issue_list) for issue_list in top_issues_per_file
-    ]
-    issue_tables = [format_issue_table(pr_filenames[0], issue_table_contents[0])]
-    issue_tables.extend(
-        [
-            format_issue_table(pr_filenames[i], issue_table_contents[i], toggle=True)
-            for i in range(1, len(pr_filenames))
-        ]
-    )
+        top_issues = get_top_5_issues_by_count_for_file(list(projects), list(sentry_filenames))
+        if not len(top_issues):
+            continue
+
+        top_issues_per_file.append(top_issues)
+
+        issue_table_contents[pr_filename] = get_issue_table_contents(top_issues)
+
+    if not len(issue_table_contents):
+        # no issues for files in PR
+        metrics.incr(OPEN_PR_METRICS_BASE.format(key="no_issues"))
+        return
+
+    issue_tables = []
+    first_table = True
+    for pr_filename in pr_filenames:
+        issue_table_content = issue_table_contents.get(pr_filename, None)
+
+        if issue_table_content is None:
+            continue
+
+        if first_table:
+            issue_table = format_issue_table(pr_filename, issue_table_content)
+            first_table = False
+        else:
+            # toggle all tables but the first one
+            issue_table = format_issue_table(pr_filename, issue_table_content, toggle=True)
+
+        issue_tables.append(issue_table)
+
     comment_body = format_open_pr_comment(issue_tables)
 
     # list all issues in the comment
