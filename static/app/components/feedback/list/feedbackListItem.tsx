@@ -7,6 +7,7 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import IssueTrackingSignalsWrapper from 'sentry/components/feedback/list/issueTrackingSignalsWrapper';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -35,7 +36,13 @@ interface Props {
   style?: CSSProperties;
 }
 
-function FeedbackIcon({tooltipText, icon}: {icon: ReactNode; tooltipText: string}) {
+export function FeedbackIcon({
+  tooltipText,
+  icon,
+}: {
+  icon: ReactNode;
+  tooltipText: string;
+}) {
   return <StyledTooltip title={tooltipText}>{icon}</StyledTooltip>;
 }
 
@@ -116,6 +123,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               gridArea: 'icons',
             }}
           >
+            <IssueTrackingSignalsWrapper feedbackIssue={feedbackItem} />
             {isCrashReport && (
               <FeedbackIcon
                 tooltipText={t('Linked Issue')}
@@ -129,7 +137,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               />
             )}
             {feedbackItem.assignedTo && (
-              <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
+              <StyledAvatar actor={feedbackItem.assignedTo} size={16} />
             )}
           </RightAlignedIcons>
           <Flex style={{gridArea: 'proj'}} gap={space(1)} align="center">
@@ -153,6 +161,11 @@ const StyledTooltip = styled(Tooltip)`
   align-items: center;
 `;
 
+const StyledAvatar = styled(ActorAvatar)`
+  display: flex;
+  align-items: center;
+`;
+
 const StyledTimeSince = styled(TimeSince)`
   display: flex;
   justify-content: end;
@@ -162,6 +175,7 @@ const RightAlignedIcons = styled('div')`
   display: flex;
   justify-content: end;
   gap: ${space(0.75)};
+  align-items: center;
 `;
 
 const CardSpacing = styled('div')`
