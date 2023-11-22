@@ -62,7 +62,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/users/[^/]+/ips/$'),
   new RegExp('^api/0/users/[^/]+/notification-settings/$'),
   new RegExp('^api/0/users/[^/]+/notifications/$'),
-  new RegExp('^api/0/users/[^/]+/notifications/[^/]+/$'),
+  new RegExp('^api/0/users/[^/]+/notifications/email/$'),
   new RegExp('^api/0/users/[^/]+/notification-options/$'),
   new RegExp('^api/0/users/[^/]+/notification-options/[^/]+/$'),
   new RegExp('^api/0/users/[^/]+/notification-providers/$'),
