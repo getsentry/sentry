@@ -13,20 +13,14 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
-from sentry.notifications.types import (
-    NotificationSettingOptionValues,
-    NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
-)
+from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -304,13 +298,13 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-                NotificationSetting.objects.update_settings(
-                    provider,
-                    NotificationSettingTypes.WORKFLOW,
-                    NotificationSettingOptionValues.NEVER,
-                    user_id=user.id,
-                )
+            NotificationSettingOption.objects.create(
+                user_id=user.id,
+                scope_type="user",
+                scope_identifier=user.id,
+                value="never",
+                type="workflow",
+            )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert not result["isSubscribed"]
@@ -323,16 +317,14 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         GroupSubscription.objects.create(
             user_id=user.id, group=group, project=group.project, is_active=True
         )
-
-        for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                NotificationSetting.objects.update_settings(
-                    provider,
-                    NotificationSettingTypes.WORKFLOW,
-                    NotificationSettingOptionValues.NEVER,
-                    user_id=user.id,
-                    project=group.project.id,
-                )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingOption.objects.create(
+                user_id=user.id,
+                scope_type="project",
+                scope_identifier=group.project.id,
+                value="never",
+                type="workflow",
+            )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert not result["isSubscribed"]

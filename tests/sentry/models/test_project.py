@@ -18,7 +18,6 @@ from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
@@ -436,21 +435,16 @@ class FilterToSubscribedUsersTest(TestCase):
 
     def test_global_enabled(self):
         user = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=user.id,
-        )
         self.run_test({user}, {user})
 
     def test_global_disabled(self):
         user = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingOption.objects.create(
             user_id=user.id,
+            scope_type="user",
+            scope_identifier=user.id,
+            type="alerts",
+            value="never",
         )
         self.run_test({user}, set())
 
@@ -477,18 +471,12 @@ class FilterToSubscribedUsersTest(TestCase):
 
     def test_project_disabled(self):
         user = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOption.objects.create(
             user_id=user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            user_id=user.id,
-            project=self.project,
+            scope_type="project",
+            scope_identifier=self.project.id,
+            type="alerts",
+            value="never",
         )
         self.run_test({user}, set())
 

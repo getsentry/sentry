@@ -2,7 +2,6 @@ from django.core import mail
 
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.release import Release
@@ -12,9 +11,7 @@ from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeEnum,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -63,38 +60,15 @@ class ReleaseTestCase(ActivityTestCase):
         self.commit3 = self.another_commit(2, "c", self.user4, repository)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user3.id,
-                organization=self.org,
-            )
-
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.NEVER,
-                user_id=self.user4.id,
-                organization=self.org,
-            )
-
             # added to make sure org default above takes precedent
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user4.id,
-            )
-
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.create(
                 scope_type=NotificationScopeEnum.ORGANIZATION.value,
                 scope_identifier=self.org.id,
                 user_id=self.user3.id,
                 type=NotificationSettingEnum.DEPLOY.value,
                 value=NotificationSettingsOptionEnum.ALWAYS.value,
             )
-            NotificationSettingProvider.objects.create_or_update(
+            NotificationSettingProvider.objects.create(
                 scope_type=NotificationScopeEnum.ORGANIZATION.value,
                 scope_identifier=self.org.id,
                 user_id=self.user3.id,
@@ -103,14 +77,14 @@ class ReleaseTestCase(ActivityTestCase):
                 value=NotificationSettingsOptionEnum.ALWAYS.value,
             )
 
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.create(
                 scope_type=NotificationScopeEnum.ORGANIZATION.value,
                 scope_identifier=self.org.id,
                 user_id=self.user4.id,
                 type=NotificationSettingEnum.DEPLOY.value,
                 value=NotificationSettingsOptionEnum.NEVER.value,
             )
-            NotificationSettingProvider.objects.create_or_update(
+            NotificationSettingProvider.objects.create(
                 scope_type=NotificationScopeEnum.ORGANIZATION.value,
                 scope_identifier=self.org.id,
                 user_id=self.user4.id,
@@ -120,14 +94,14 @@ class ReleaseTestCase(ActivityTestCase):
             )
 
             # added to make sure org default above takes precedent
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.create(
                 scope_type=NotificationScopeEnum.USER.value,
                 scope_identifier=self.user4.id,
                 user_id=self.user4.id,
                 type=NotificationSettingEnum.DEPLOY.value,
                 value=NotificationSettingsOptionEnum.ALWAYS.value,
             )
-            NotificationSettingProvider.objects.create_or_update(
+            NotificationSettingProvider.objects.create(
                 scope_type=NotificationScopeEnum.USER.value,
                 scope_identifier=self.user4.id,
                 user_id=self.user4.id,
@@ -252,19 +226,12 @@ class ReleaseTestCase(ActivityTestCase):
         self.create_member(user=user6, organization=self.org, teams=[self.team])
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=user6.id,
-            )
-            NotificationSettingProvider.objects.update_or_create(
-                provider=ExternalProviderEnum.EMAIL.value,
-                type=NotificationSettingEnum.DEPLOY.value,
-                user_id=user6.id,
+            NotificationSettingOption.objects.create(
                 scope_type=NotificationScopeEnum.USER.value,
                 scope_identifier=user6.id,
-                defaults={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+                user_id=user6.id,
+                type=NotificationSettingEnum.DEPLOY.value,
+                value=NotificationSettingsOptionEnum.ALWAYS.value,
             )
 
         release, deploy = self.another_release("b")

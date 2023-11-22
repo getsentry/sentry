@@ -4,7 +4,6 @@ from typing import Mapping
 
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
@@ -13,9 +12,7 @@ from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeEnum,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -777,15 +774,6 @@ class GetParticipantsTest(TestCase):
         # explicit participation, included by default
         self._assert_subscribers_are(group)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                user_id=user.id,
-                project=project,
-            )
-
         # explicit participation, participating only
         self._assert_subscribers_are(group)
 
@@ -795,12 +783,12 @@ class GetParticipantsTest(TestCase):
         self._assert_subscribers_are(group)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.ALWAYS,
+            NotificationSettingOption.objects.create(
+                scope_type="project",
+                scope_identifier=project.id,
+                type="workflow",
                 user_id=user.id,
-                project=project,
+                value="always",
             )
 
         # explicit participation, explicit participating only
