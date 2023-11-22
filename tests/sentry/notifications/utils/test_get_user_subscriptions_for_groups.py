@@ -8,7 +8,7 @@ from sentry.testutils.silo import no_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class GetUserSubscriptionsForGroupsTestCase(TestCase):
     def setUp(self) -> None:
         self.group_subscription = GroupSubscription(is_active=True)

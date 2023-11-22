@@ -15,7 +15,7 @@ from sentry.utils.samples import load_data
 pytestmark = requires_snuba
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class ListMonitorCheckInsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-check-in-index"

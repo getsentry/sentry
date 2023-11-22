@@ -13,7 +13,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestRefresher(TestCase):
     def setUp(self):
         self.orm_install = self.create_sentry_app_installation()

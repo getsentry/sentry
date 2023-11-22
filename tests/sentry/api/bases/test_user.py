@@ -21,7 +21,7 @@ def get_request(user: User | None = None) -> Request:
     return request
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class UserPermissionTest(TestCase):
     user_permission = UserPermission()
 
@@ -59,11 +59,11 @@ class BaseUserEndpointTest:
         assert kwargs["user"].id == user.id
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserEndpointTest(BaseUserEndpointTest, TestCase):
     endpoint = UserEndpoint()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RegionSiloUserEndpointTest(BaseUserEndpointTest, TestCase):
     endpoint = RegionSiloUserEndpoint()

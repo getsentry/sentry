@@ -15,7 +15,7 @@ from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BitbucketRepositoryProviderTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -140,7 +140,7 @@ class BitbucketRepositoryProviderTest(TestCase):
             assert "requires an integration id" in str(e)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
     provider_name = "integrations:bitbucket"
 

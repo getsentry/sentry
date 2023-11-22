@@ -12,7 +12,7 @@ def get_sentry_app_avatars(sentry_app: SentryApp):
     return [serialize(avatar) for avatar in sentry_app.avatar.all()]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-components"
 
@@ -49,7 +49,7 @@ class SentryAppComponentsTest(APITestCase):
         }
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationSentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-organization-sentry-app-components"
 

@@ -20,7 +20,7 @@ from sentry.utils.snuba import QueryMemoryLimitExceeded
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @apply_feature_flag_on_cls("organizations:global-views")
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-index"

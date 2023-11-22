@@ -25,7 +25,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.http import absolute_uri
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class VstsWebhookWorkItemTest(APITestCase):
     def setUp(self):
         self.access_token = "1234567890"

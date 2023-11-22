@@ -25,7 +25,7 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

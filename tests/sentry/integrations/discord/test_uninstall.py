@@ -19,7 +19,7 @@ GUILD_ID = "guild-id"
 LEAVE_GUILD_URL = f"{DiscordClient.base_url}{USERS_GUILD_URL.format(guild_id=GUILD_ID)}"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DiscordUninstallTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
     method = "delete"

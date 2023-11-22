@@ -15,7 +15,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class PluginRequestParserTest(TestCase):
     get_response = MagicMock()
     factory = RequestFactory()

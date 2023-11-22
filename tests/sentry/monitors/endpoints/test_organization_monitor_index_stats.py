@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(datetime(2022, 3, 21, 7, 57, tzinfo=timezone.utc))
 class OrganizationMonitorIndexStatsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index-stats"

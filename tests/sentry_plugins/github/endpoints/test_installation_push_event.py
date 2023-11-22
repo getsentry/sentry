@@ -10,7 +10,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE_INSTALLATION
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class InstallationPushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation

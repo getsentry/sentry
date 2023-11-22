@@ -22,7 +22,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseTestCase(ActivityTestCase):
     def setUp(self):
         super().setUp()

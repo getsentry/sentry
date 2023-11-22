@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class LoginTest(APITestCase):
     def test_simple(self):
         user = self.create_user(email="a@example.com")
@@ -21,7 +21,7 @@ class LoginTest(APITestCase):
         assert response.status_code == 200, response.content
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class LogoutTest(APITestCase):
     def test_simple(self):
         user = self.create_user(email="a@example.com")

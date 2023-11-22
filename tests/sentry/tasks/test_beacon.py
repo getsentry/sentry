@@ -13,7 +13,7 @@ from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class SendBeaconTest(TestCase):
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")

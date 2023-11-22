@@ -124,7 +124,7 @@ class ProjectUsersBaseTest(APITestCase):
             assert response.data[0]["id"] == str(self.euser2.id)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventUserModelProjectUsersTest(ProjectUsersBaseTest):
     def setUp(self):
         super().setUp()
@@ -144,7 +144,7 @@ class EventUserModelProjectUsersTest(ProjectUsersBaseTest):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventUserProjectUsersTest(ProjectUsersBaseTest, SnubaTestCase):
     def setUp(self):
         super().setUp()

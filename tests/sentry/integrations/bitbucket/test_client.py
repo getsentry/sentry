@@ -26,7 +26,7 @@ secret = "hush-hush-im-invisible"
     SENTRY_SUBNET_SECRET=secret,
     SENTRY_CONTROL_ADDRESS=control_address,
 )
-@control_silo_test(stable=True)
+@control_silo_test
 class BitbucketApiClientTest(TestCase, BaseTestCase):
     def setUp(self):
         super().setUp()

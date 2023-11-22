@@ -189,7 +189,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         assert schedule.in_progress is True
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RunRegionScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     @property
     def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
@@ -216,7 +216,7 @@ class RunRegionScheduledDeletionTest(RegionalRunScheduleDeletionTest):
         return Repository.objects.filter(id=repo.id)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class RunControlScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     @property
     def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:

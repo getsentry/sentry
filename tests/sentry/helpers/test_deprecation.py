@@ -42,7 +42,7 @@ class DummyEndpoint(Endpoint):
 dummy_endpoint = DummyEndpoint.as_view()
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class TestDeprecationDecorator(APITestCase):
     def setUp(self) -> None:
         super().setUp()

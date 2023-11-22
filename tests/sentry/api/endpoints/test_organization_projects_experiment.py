@@ -19,7 +19,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationProjectsExperimentCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-experiment"
     method = "post"

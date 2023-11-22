@@ -29,7 +29,7 @@ from sentry.utils.snuba import (
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AssembleDownloadTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -611,7 +611,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

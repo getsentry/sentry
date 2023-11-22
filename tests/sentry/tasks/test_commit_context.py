@@ -87,7 +87,7 @@ class TestCommitContextMixin(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestCommitContext(TestCommitContextMixin):
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
@@ -525,7 +525,7 @@ class TestCommitContext(TestCommitContextMixin):
             assert mock_suspect_commits.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestCommitContextAllFrames(TestCommitContextMixin):
     def setUp(self):
         super().setUp()
@@ -1228,7 +1228,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.integrations.github.GitHubIntegration.get_commit_context",
     Mock(

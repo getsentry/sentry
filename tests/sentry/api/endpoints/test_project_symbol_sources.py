@@ -4,7 +4,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectSymbolSourcesTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
 
@@ -55,7 +55,7 @@ class ProjectSymbolSourcesTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectSymbolSourcesDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
     method = "delete"
@@ -107,7 +107,7 @@ class ProjectSymbolSourcesDeleteTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectSymbolSourcesPostTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
     method = "post"
@@ -197,7 +197,7 @@ class ProjectSymbolSourcesPostTest(APITestCase):
         self.get_error_response(project.organization.slug, project.slug, raw_data=config)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectSymbolSourcesPutTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
     method = "put"

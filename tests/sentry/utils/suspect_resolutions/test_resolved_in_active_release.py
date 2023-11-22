@@ -12,7 +12,7 @@ from sentry.utils.suspect_resolutions.resolved_in_active_release import (
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ResolvedInActiveReleaseTest(TestCase):
     def test_unresolved_issue_in_active_release(self):
         project = self.create_project()

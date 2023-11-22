@@ -50,7 +50,7 @@ class MockOrganizationRoles:
         return self.organization_roles.get(x)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
     def test_legacy_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")

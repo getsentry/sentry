@@ -88,7 +88,7 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest):
         self.send_async.reset_mock()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest):
     @freeze_time()
     def test_simple(self):
@@ -103,7 +103,7 @@ class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest):
         assert message.context == build_activity_context(activity, recipient)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestBuildActivityContext(BaseIncidentActivityTest):
     def run_test(
         self, activity, expected_username, expected_action, expected_comment, expected_recipient
@@ -160,7 +160,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class HandleTriggerActionTest(TestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
@@ -285,7 +285,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
             ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger):
     """Repeat TestHandleSubscriptionMetricsLogger with old (v1) subscription updates.
 

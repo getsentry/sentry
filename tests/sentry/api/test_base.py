@@ -108,7 +108,7 @@ class DummyPaginationStreamingEndpoint(Endpoint):
 _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class EndpointTest(APITestCase):
     def test_basic_cors(self):
         org = self.create_organization()

@@ -7,7 +7,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(before_now(days=1).replace(minute=10))
 class ProjectStatsTest(APITestCase, OutcomesSnubaTest):
     def test_simple(self):

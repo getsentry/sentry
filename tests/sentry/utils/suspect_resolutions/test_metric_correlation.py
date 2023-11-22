@@ -16,7 +16,7 @@ from sentry.utils.suspect_resolutions.metric_correlation import (
 WINDOW = 60
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class MetricCorrelationTest(TestCase):
     def generate_timestamps(self):
         now = datetime.datetime.now()

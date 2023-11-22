@@ -56,7 +56,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     def test_access_within_installs_organization(self):
         self.login_as(user=self.user)
@@ -80,7 +80,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert response.status_code == 404
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     @responses.activate
     @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
@@ -112,7 +112,7 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert response.status_code == 403
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
     def setUp(self):
         super().setUp()

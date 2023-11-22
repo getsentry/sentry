@@ -35,7 +35,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_s
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestClientIdSecretAuthentication(TestCase):
     def setUp(self):
         super().setUp()
@@ -258,7 +258,7 @@ def test_statically_configured_relay(settings, internal):
     assert request.relay_request_data == data
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestRpcSignatureAuthentication(TestCase):
     def setUp(self):
         super().setUp()
@@ -323,7 +323,7 @@ class TestRpcSignatureAuthentication(TestCase):
                 self.auth.authenticate(request)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class TestAuthTokens(TestCase):
     def test_system_tokens(self):
         sys_token = SystemToken()

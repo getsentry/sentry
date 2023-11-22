@@ -13,7 +13,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
     @staticmethod
     def get_compressed_zip_file(artifact_name, files, type="artifact.bundle"):

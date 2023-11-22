@@ -10,7 +10,7 @@ from sentry.types.region import get_local_region
 from sentry.utils import linksign
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class LinkSignTestCase(TestCase):
     def test_link_signing(self):
         base_url = get_local_region().to_url("/")

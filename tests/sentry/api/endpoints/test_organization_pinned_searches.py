@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CreateOrganizationPinnedSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-pinned-searches"
     method = "put"
@@ -124,7 +124,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         ).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteOrganizationPinnedSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-pinned-searches"
     method = "delete"

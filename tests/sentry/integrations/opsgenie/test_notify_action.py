@@ -22,7 +22,7 @@ METADATA = {
 }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = OpsgenieNotifyTeamAction
 

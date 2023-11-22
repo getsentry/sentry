@@ -23,7 +23,7 @@ _TEST_REGIONS = (
 )
 
 
-@control_silo_test(stable=True, regions=_TEST_REGIONS)
+@control_silo_test(regions=_TEST_REGIONS)
 class RegionResolutionTest(TestCase):
     def setUp(self):
         self.target_region = _TEST_REGIONS[0]

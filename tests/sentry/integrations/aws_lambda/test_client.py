@@ -25,7 +25,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AwsLambdaClientTest(TestCase):
     @patch.object(boto3, "Session")
     @patch.object(boto3, "client")

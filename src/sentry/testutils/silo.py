@@ -93,7 +93,7 @@ class SiloModeTestDecorator:
     to pick up. For example, if you write
 
     ```
-        @control_silo_test(stable=True)
+        @control_silo_test
         class MyTest(TestCase):
             def setUp(self):      ...
             def test_stuff(self): ...

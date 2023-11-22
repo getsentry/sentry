@@ -113,7 +113,7 @@ class UserAuthenticatorDetailsTestBase(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-device-details"
     method = "delete"

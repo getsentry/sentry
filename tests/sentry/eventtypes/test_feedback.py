@@ -6,7 +6,7 @@ from sentry.eventtypes.feedback import FeedbackEvent
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetMetadataTest(TestCase):
     def test_simple(self):
         inst = FeedbackEvent()

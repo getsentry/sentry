@@ -21,7 +21,7 @@ from tests.sentry.tasks.integrations.github.test_pr_comment import GithubComment
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestSafeForComment(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
@@ -144,7 +144,7 @@ class TestSafeForComment(GithubCommentTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestGetFilenames(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
@@ -225,7 +225,7 @@ class TestGetFilenames(GithubCommentTestCase):
         assert sentry_filenames == set(correct_filenames)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestGetCommentIssues(TestCase):
     def setUp(self):
         super().setUp()
@@ -388,7 +388,7 @@ class TestGetCommentIssues(TestCase):
             )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestFormatComment(TestCase):
     def setUp(self):
         super().setUp()

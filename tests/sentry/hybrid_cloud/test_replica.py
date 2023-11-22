@@ -16,7 +16,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_replicate_external_actor():
     org = Factories.create_organization()
     integration = Factories.create_integration(organization=org, external_id="hohohomerrychristmas")
@@ -65,7 +65,7 @@ def test_replicate_external_actor():
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_replicate_auth_provider():
     user = Factories.create_user()
     org = Factories.create_organization(owner=user)
@@ -111,7 +111,7 @@ def test_replicate_auth_provider():
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_replicate_api_key():
     org = Factories.create_organization()
     with assume_test_silo_mode(SiloMode.CONTROL):
@@ -133,7 +133,7 @@ def test_replicate_api_key():
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_replicate_auth_identity():
     user = Factories.create_user()
     user2 = Factories.create_user()
@@ -202,7 +202,7 @@ def test_replicate_auth_identity():
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_replicate_team():
     org = Factories.create_organization()
     with assume_test_silo_mode(SiloMode.CONTROL):
@@ -253,7 +253,7 @@ def test_replicate_team():
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_replicate_organization_member_team():
     org = Factories.create_organization()
     team = Factories.create_team(org)

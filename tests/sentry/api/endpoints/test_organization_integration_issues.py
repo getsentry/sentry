@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIntegrationIssuesTest(APITestCase):
     def setUp(self):
         super().setUp()

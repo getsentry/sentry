@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventUserTestCase(TestCase):
     def test_build_hash(self):
         cases: list[tuple[dict[str, str], str | None]] = [

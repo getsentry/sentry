@@ -9,7 +9,7 @@ from sentry_plugins.bitbucket.repository_provider import BitbucketRepositoryProv
 from sentry_plugins.bitbucket.testutils import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BitbucketPluginTest(TestCase):
     @cached_property
     def provider(self):

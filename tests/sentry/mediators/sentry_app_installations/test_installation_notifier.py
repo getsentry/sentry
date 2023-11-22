@@ -22,7 +22,7 @@ MockResponse = namedtuple(
 MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestInstallationNotifier(TestCase):
     def setUp(self):
         super().setUp()

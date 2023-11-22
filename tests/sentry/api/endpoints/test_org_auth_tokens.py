@@ -11,7 +11,7 @@ from sentry.types.region import get_region_by_name
 from sentry.utils.security.orgauthtoken_token import parse_token
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokensListTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-tokens"
 
@@ -109,7 +109,7 @@ class OrgAuthTokensListTest(APITestCase):
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokenCreateTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-tokens"
     method = "POST"
@@ -188,7 +188,7 @@ class OrgAuthTokenCreateTest(APITestCase):
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokensPermissionTest(PermissionTestCase):
     postData = {"name": "token-1"}
 

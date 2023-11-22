@@ -57,7 +57,7 @@ class TestAlertRuleSerializerBase(TestCase):
         self.integration.add_organization(self.organization, self.user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def valid_params(self):
@@ -751,7 +751,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.snuba_query.query == "status:unresolved"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):
@@ -801,7 +801,7 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
         }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):

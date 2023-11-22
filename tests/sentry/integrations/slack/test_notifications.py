@@ -17,7 +17,7 @@ def additional_attachment_generator(integration, organization):
     return {"title": organization.slug, "text": integration.id}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackNotificationsTest(SlackActivityNotificationTest):
     def setUp(self):
         super().setUp()

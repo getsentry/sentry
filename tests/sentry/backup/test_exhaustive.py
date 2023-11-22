@@ -23,7 +23,7 @@ EXHAUSTIVELY_TESTED: set[NormalizedModelName] = set()
 UNIQUENESS_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ExhaustiveTests(BackupTestCase):
     """
     Ensure that a database with all exportable models filled out still works.

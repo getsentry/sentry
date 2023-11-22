@@ -6,7 +6,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.region import get_local_region
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseTokenGetTest(APITestCase):
     def test_simple(self):
         project = self.create_project(name="foo")

@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class BitbucketSearchEndpointTest(APITestCase):
     def setUp(self):
         self.base_url = "https://api.bitbucket.org"

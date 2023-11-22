@@ -16,7 +16,7 @@ ValidationError = serializers.ValidationError
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class NotifyEventSentryAppActionTest(RuleTestCase):
     rule_cls = NotifyEventSentryAppAction
     schema_data = [

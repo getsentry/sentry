@@ -65,7 +65,7 @@ def get_notification_uuid(url: str):
     return notification_uuid
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ActivityNotificationTest(APITestCase):
     """
     Enable Slack AND email notification settings for a user

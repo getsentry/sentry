@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseFilesListTest(APITestCase):
     def test_simple(self):
         project = self.create_project(name="foo")
@@ -195,7 +195,7 @@ class ReleaseFilesListTest(APITestCase):
         assert len(response.data) == 0
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseFileCreateTest(APITestCase):
     def test_simple(self):
         project = self.create_project(name="foo")

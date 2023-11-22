@@ -87,7 +87,7 @@ def assert_n_plus_one_db_problem(perf_problems):
     )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @pytest.mark.django_db
 class PerformanceDetectionTest(TestCase):
     def setUp(self):
@@ -493,7 +493,7 @@ class PerformanceDetectionTest(TestCase):
         assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class DetectorTypeToGroupTypeTest(unittest.TestCase):
     def test(self):
         # Make sure we don't forget to include a mapping to `GroupType`
@@ -503,7 +503,7 @@ class DetectorTypeToGroupTypeTest(unittest.TestCase):
             ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventPerformanceProblemTest(TestCase):
     def test_save_and_fetch(self):
         event = Event(self.project.id, "something")

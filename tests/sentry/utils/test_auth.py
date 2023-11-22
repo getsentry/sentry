@@ -18,7 +18,7 @@ from sentry.utils.auth import (
 )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class EmailAuthBackendTest(TestCase):
     def setUp(self):
         self.user = User(username="foo", email="baz@example.com")
@@ -54,7 +54,7 @@ class EmailAuthBackendTest(TestCase):
         self.assertEqual(result, None)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetLoginRedirectTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()
@@ -133,7 +133,7 @@ class GetLoginRedirectTest(TestCase):
         assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class LoginTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()

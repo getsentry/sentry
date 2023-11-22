@@ -119,7 +119,7 @@ class DummyEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestDefaultToGroup(TestCase):
     def setUp(self) -> None:
         self.view = DummyEndpoint.as_view()

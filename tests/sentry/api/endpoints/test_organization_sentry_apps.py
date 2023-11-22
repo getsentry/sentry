@@ -26,7 +26,7 @@ class OrganizationSentryAppsTest(APITestCase):
         self.url = reverse("sentry-api-0-organization-sentry-apps", args=[self.org.slug])
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
     def test_gets_all_apps_in_own_org(self):
         self.login_as(user=self.user)

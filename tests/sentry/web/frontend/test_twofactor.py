@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TwoFactorTest(TestCase):
     def test_not_pending_2fa(self):
         resp = self.client.get("/auth/2fa/")

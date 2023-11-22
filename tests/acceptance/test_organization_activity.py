@@ -6,7 +6,7 @@ from sentry.testutils.silo import no_silo_test
 from sentry.types.activity import ActivityType
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationActivityTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

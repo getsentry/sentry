@@ -24,7 +24,7 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectReleaseListTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -116,7 +116,7 @@ class ProjectReleaseListTest(APITestCase):
         assert len(response.data) == 1
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
@@ -316,7 +316,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectReleaseCreateTest(APITestCase):
     def test_minimal(self):
         self.login_as(user=self.user)
@@ -567,7 +567,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert org_token.project_last_used_id == project1.id
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
     def url(self):
@@ -697,7 +697,7 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseSerializerTest(TestCase):
     def setUp(self):
         super().setUp()

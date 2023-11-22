@@ -19,7 +19,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, regi
 from social_auth.models import UserSocialAuth
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FetchCommitsTest(TestCase):
     def _test_simple_action(self, user, org):
         repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
@@ -298,7 +298,7 @@ class FetchCommitsTest(TestCase):
         assert "Repository not found" in msg.body
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class HandleInvalidIdentityTest(TestCase):
     def test_simple(self):
         usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")

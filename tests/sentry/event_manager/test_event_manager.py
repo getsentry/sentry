@@ -116,7 +116,7 @@ class EventManagerTestMixin:
         return event
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
@@ -2790,7 +2790,7 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
             assert commit_list[1].key == LATER_COMMIT_SHA
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseIssueTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -2922,7 +2922,7 @@ class ReleaseIssueTest(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @apply_feature_flag_on_cls("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self):

@@ -29,7 +29,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectTest(APITestCase, TestCase):
     def test_member_set_simple(self):
         user = self.create_user()
@@ -326,7 +326,7 @@ class ProjectTest(APITestCase, TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CopyProjectSettingsTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -525,7 +525,7 @@ class FilterToSubscribedUsersTest(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectDeletionTest(TestCase):
     def test_hybrid_cloud_deletion(self):
         proj = self.create_project()

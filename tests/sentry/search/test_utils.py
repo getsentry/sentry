@@ -137,7 +137,7 @@ def test_get_numeric_field_value_invalid():
         get_numeric_field_value("foo", ">=1k")
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ParseQueryTest(APITestCase, SnubaTestCase):
     @property
     def rpc_user(self):
@@ -671,7 +671,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["assigned_or_suggested"].id == 0
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetLatestReleaseTest(TestCase):
     def test(self):
         with pytest.raises(Release.DoesNotExist):
@@ -757,7 +757,7 @@ class GetLatestReleaseTest(TestCase):
         ]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ConvertUserTagTest(TestCase):
     def test_simple_user_tag(self):
         assert convert_user_tag_to_query("user", "id:123456") == 'user.id:"123456"'

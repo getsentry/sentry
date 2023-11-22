@@ -6,7 +6,7 @@ from sentry.testutils.silo import region_silo_test
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackCommandsPostTest(SlackCommandsTest):
     def test_invalid_signature(self):
         # The `get_error_response` method doesn't add a signature to the request.

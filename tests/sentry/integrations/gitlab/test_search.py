@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitlabSearchTest(GitLabTestCase):
     provider = "gitlab"
 

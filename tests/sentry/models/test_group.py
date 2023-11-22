@@ -27,7 +27,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = requires_snuba
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

@@ -38,7 +38,7 @@ def assert_subscription(
         assert check_time == subscription_data["check"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VstsSubscriptionCheckTest(TestCase):
     def setUp(self):
         responses.add(

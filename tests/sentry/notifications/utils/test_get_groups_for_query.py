@@ -8,7 +8,7 @@ from sentry.testutils.silo import no_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class GetGroupsForQueryTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()

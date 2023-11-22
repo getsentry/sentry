@@ -104,7 +104,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     method = "post"
@@ -951,7 +951,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
     method = "post"

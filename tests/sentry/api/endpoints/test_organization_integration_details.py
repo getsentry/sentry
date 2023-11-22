@@ -37,14 +37,14 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
     method = "post"
 
@@ -59,7 +59,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         assert org_integration.config == config
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTest):
     method = "delete"
 

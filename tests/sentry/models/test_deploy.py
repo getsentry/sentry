@@ -9,7 +9,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeployNotifyTest(TestCase):
     def test_notify_if_ready_long_release(self):
         org = self.create_organization()

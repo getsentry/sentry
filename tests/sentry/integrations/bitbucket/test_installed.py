@@ -23,7 +23,7 @@ class BitbucketPlugin(IssueTrackingPlugin2):
     conf_key = slug
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class BitbucketInstalledEndpointTest(APITestCase):
     def setUp(self):
         self.provider = "bitbucket"

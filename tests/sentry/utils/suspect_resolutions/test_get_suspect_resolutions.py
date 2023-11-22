@@ -18,7 +18,7 @@ from sentry.utils.suspect_resolutions.metric_correlation import (
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSuspectResolutionsTest(TestCase):
     @mock.patch(
         "sentry.utils.suspect_resolutions.get_suspect_resolutions.is_issue_commit_correlated",

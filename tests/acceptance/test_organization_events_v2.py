@@ -146,7 +146,7 @@ def generate_transaction(trace=None, span=None):
     return event_data
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

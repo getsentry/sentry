@@ -37,7 +37,7 @@ class SentryAppAvatarTestBase(APITestCase):
         return self.get_success_response(self.unpublished_app.slug, **data)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppAvatarGetTest(SentryAppAvatarTestBase):
     def test_get(self):
         response = self.get_success_response(self.unpublished_app.slug)
@@ -79,7 +79,7 @@ class SentryAppAvatarGetTest(SentryAppAvatarTestBase):
         assert isinstance(file, ControlFile)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
     method = "put"
 
@@ -204,7 +204,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         self.get_error_response(self.unpublished_app.slug, avatar_type="upload", status_code=400)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppAvatarDeleteTest(SentryAppAvatarTestBase):
     def test_delete(self):
         """Test that when the related sentryapp is deleted (not really deleted, but date_deleted is set), the associated avatars are deleted"""

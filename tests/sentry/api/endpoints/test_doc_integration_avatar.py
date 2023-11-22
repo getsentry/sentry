@@ -31,7 +31,7 @@ class DocIntegrationAvatarTest(APITestCase):
         }
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
     method = "GET"
 
@@ -60,7 +60,7 @@ class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
             assert serialize(doc.avatar.get()) == response.data["avatar"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
     method = "PUT"
 

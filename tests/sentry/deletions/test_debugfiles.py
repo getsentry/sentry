@@ -6,7 +6,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteDebugFilesTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         dif = self.create_dif_file()

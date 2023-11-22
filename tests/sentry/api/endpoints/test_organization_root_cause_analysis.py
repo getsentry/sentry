@@ -12,7 +12,7 @@ from sentry.utils.samples import load_data
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
     def setUp(self):

@@ -102,7 +102,7 @@ class BaseIntegrationServiceTest(TestCase):
             assert getattr(result, field) == getattr(expected, field)
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class IntegrationServiceTest(BaseIntegrationServiceTest):
     def test_serialize_integration(self):
         api_integration1 = serialize_integration(self.integration1)
@@ -189,7 +189,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
             assert integration_has_feature == api_integration_has_feature
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
     def test_serialize_org_integration(self):
         rpc_org_integration1 = serialize_organization_integration(self.org_integration1)

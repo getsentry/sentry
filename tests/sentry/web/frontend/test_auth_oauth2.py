@@ -52,7 +52,7 @@ class DummyOAuth2Provider(OAuth2Provider):
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthOAuth2Test(AuthProviderTestCase):
     provider = DummyOAuth2Provider
     provider_name = "oauth2_dummy"

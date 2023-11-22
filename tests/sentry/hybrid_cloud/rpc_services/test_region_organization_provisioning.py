@@ -26,7 +26,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
     def get_provisioning_args(
         self, user: User, is_test: bool = False, create_default_team: bool = True
@@ -195,7 +195,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             assert not Organization.objects.filter(id=organization_id).exists()
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
     def setUp(self):
         self.provisioning_user = self.create_user()

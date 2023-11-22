@@ -58,7 +58,7 @@ def add_notification_setting_provider(
 
 # The tests below are intended to check behavior with the new
 # NotificationSettingOption and NotificationSettingProvider tables
-@control_silo_test(stable=True)
+@control_silo_test
 class NotificationControllerTest(TestCase):
     def setUp(self):
         super().setUp()

@@ -213,7 +213,7 @@ def provision_middleware():
     return middleware
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,

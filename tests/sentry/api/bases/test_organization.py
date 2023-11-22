@@ -74,7 +74,7 @@ class OrganizationPermissionBase(TestCase):
         return result_with_obj
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationPermissionTest(OrganizationPermissionBase):
     def org_require_2fa(self):
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
@@ -237,7 +237,7 @@ class BaseOrganizationEndpointTest(TestCase):
         return request
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetProjectIdsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)
@@ -439,7 +439,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         assert not self.endpoint.get_projects(request, self.org)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.project = self.create_project(organization=self.org)
@@ -467,7 +467,7 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
             self.run_test([self.env_1, self.env_2], ["fake", self.env_2.name])
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetFilterParamsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)

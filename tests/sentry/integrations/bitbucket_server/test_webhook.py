@@ -67,13 +67,13 @@ class WebhookTestBase(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WebhookGetTest(WebhookTestBase):
     def test_get_request_fails(self):
         self.get_error_response(self.organization.id, self.integration.id, status_code=405)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WebhookPostTest(WebhookTestBase):
     method = "post"
 
@@ -96,7 +96,7 @@ class WebhookPostTest(WebhookTestBase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RefsChangedWebhookTest(WebhookTestBase):
     method = "post"
 

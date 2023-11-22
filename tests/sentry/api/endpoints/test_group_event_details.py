@@ -56,7 +56,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase):
     def test_get_simple_latest(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
@@ -138,7 +138,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupEventDetailsHelpfulEndpointTest(
     GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase, OccurrenceTestMixin
 ):

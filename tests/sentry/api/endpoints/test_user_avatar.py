@@ -15,7 +15,7 @@ from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserAvatarTest(APITestCase):
     def test_get_letter_avatar(self):
         user = self.create_user(email="a@example.com")

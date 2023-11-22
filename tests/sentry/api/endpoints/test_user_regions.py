@@ -9,7 +9,7 @@ st = Region("acme", 3, "https://acme.testserver", RegionCategory.SINGLE_TENANT)
 region_config = (us, de, st)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserUserRolesTest(APITestCase):
     endpoint = "sentry-api-0-user-regions"
 

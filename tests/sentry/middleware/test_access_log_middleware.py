@@ -157,7 +157,7 @@ class LogCaptureAPITestCase(APITestCase):
         return next(log for log in self.captured_logs if log.path == tested_log_path)
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogRateLimited(LogCaptureAPITestCase):
 
@@ -174,7 +174,7 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
         assert self.captured_logs[0].group == RateLimitedEndpoint.rate_limits.group
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
 
@@ -200,7 +200,7 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
             assert int(self.captured_logs[i].remaining) < 20
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class TestAccessLogSuccess(LogCaptureAPITestCase):
 
     endpoint = "dummy-endpoint"
@@ -216,7 +216,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         assert self.get_tested_log().token_type == "api_token"
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 @override_settings(LOG_API_ACCESS=False)
 class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
 
@@ -231,7 +231,7 @@ class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
         assert len(self.captured_logs) == 0
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class TestAccessLogFail(LogCaptureAPITestCase):
     endpoint = "dummy-fail-endpoint"
 
@@ -240,7 +240,7 @@ class TestAccessLogFail(LogCaptureAPITestCase):
         self.assert_access_log_recorded()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 
@@ -264,7 +264,7 @@ class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
         assert tested_log.organization_id == str(self.organization.id)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestOrganizationIdPresentForControl(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-members"
 

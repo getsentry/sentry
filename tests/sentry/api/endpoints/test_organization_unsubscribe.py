@@ -10,7 +10,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.linksign import generate_signed_link
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationUnsubscribeProjectTest(APITestCase):
     endpoint = "sentry-api-0-organization-unsubscribe-project"
 
@@ -92,7 +92,7 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
             assert setting.value == NotificationSettingOptionValues.NEVER
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationUnsubscribeIssueTest(APITestCase):
     endpoint = "sentry-api-0-organization-unsubscribe-issue"
 

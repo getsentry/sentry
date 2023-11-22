@@ -17,7 +17,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationArtifactBundleAssembleTest(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)

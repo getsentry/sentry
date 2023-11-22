@@ -15,7 +15,7 @@ from sentry.types.region import get_local_region
 
 
 @django_db_all(transaction=True)
-@region_silo_test(stable=True)
+@region_silo_test
 def test_caching_function():
     cache.clear()
 
@@ -49,7 +49,7 @@ def test_caching_function():
 
 
 @django_db_all(transaction=True)
-@no_silo_test(stable=True)
+@no_silo_test
 def test_cache_versioning():
     cache.clear()
 

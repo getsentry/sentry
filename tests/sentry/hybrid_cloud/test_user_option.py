@@ -7,7 +7,7 @@ from sentry.testutils.silo import all_silo_test
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_user_option_service():
     objects = [1, dict(a=dict(b=3)), "asdf", 9873, [1, 2, 3], 511]
 

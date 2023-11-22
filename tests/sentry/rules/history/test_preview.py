@@ -38,7 +38,7 @@ def get_hours(time: timedelta) -> int:
     return time.days * 24 + time.seconds // (60 * 60)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
@@ -528,7 +528,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert result[self.group.id] == prev_two_hour
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class FrequencyConditionTest(
     TestCase, SnubaTestCase, OccurrenceTestMixin, PerformanceIssueTestCase
@@ -874,7 +874,7 @@ class FrequencyConditionTest(
         assert group.id not in result
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class GetEventsTest(TestCase, SnubaTestCase):
     def test_get_first_seen(self):

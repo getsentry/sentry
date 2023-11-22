@@ -51,7 +51,7 @@ MESSAGE_IM_BOT_EVENT = """{
 }"""
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
     def get_block_section_text(self, data):
         blocks = data["blocks"]

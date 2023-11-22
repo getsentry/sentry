@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class TestHookService(TestCase):
     def setUp(self):
         self.user = self.create_user()

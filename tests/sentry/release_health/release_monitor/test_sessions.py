@@ -6,11 +6,11 @@ from tests.sentry.release_health.release_monitor import (
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SessionFetchProjectsWithRecentSessionsTest(BaseFetchProjectsWithRecentSessionsTest):
     backend_class = SessionReleaseMonitorBackend
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SessionFetchProjectReleaseHealthTotalsTest(BaseFetchProjectReleaseHealthTotalsTest):
     backend_class = SessionReleaseMonitorBackend

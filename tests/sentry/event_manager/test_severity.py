@@ -34,7 +34,7 @@ def make_event(**kwargs) -> dict[str, Any]:
     return result
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestGetEventSeverity(TestCase):
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -264,7 +264,7 @@ class TestGetEventSeverity(TestCase):
         mock_logger_info.assert_not_called()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
     def test_flag_on(self, mock_get_severity_score: MagicMock):
@@ -378,7 +378,7 @@ class TestEventManagerSeverity(TestCase):
                 assert group.get_event_metadata()["severity"] == 0.1121
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestSaveAggregateSeverity(TestCase):
     @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
     @patch("sentry.event_manager.logger.error")
@@ -455,7 +455,7 @@ class TestSaveAggregateSeverity(TestCase):
             assert "Group created without severity score" not in logger_messages
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestSaveGroupHashAndGroupSeverity(TestCase):
     @patch("sentry.event_manager.logger.error")
     @patch("sentry.event_manager._get_severity_score", return_value=None)

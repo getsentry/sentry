@@ -22,7 +22,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventTest(TestCase, PerformanceIssueTestCase):
     def test_pickling_compat(self):
         event = self.store_event(
@@ -386,7 +386,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventGroupsTest(TestCase):
     def test_none(self):
         event = Event(
@@ -463,7 +463,7 @@ class EventGroupsTest(TestCase):
         assert event.groups == [self.group]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventBuildGroupEventsTest(TestCase):
     def test_none(self):
         event = Event(
@@ -515,7 +515,7 @@ class EventBuildGroupEventsTest(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventForGroupTest(TestCase):
     def test(self):
         event = Event(
@@ -534,7 +534,7 @@ class EventForGroupTest(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupEventFromEventTest(TestCase):
     def test(self):
         event = Event(
@@ -574,7 +574,7 @@ class GroupEventFromEventTest(TestCase):
             group_event.project
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
     def test(self):
         occurrence_data = self.build_occurrence_data(project_id=self.project.id)
@@ -633,7 +633,7 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     assert len(normalize_mock_calls) == 1
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventNodeStoreTest(TestCase):
     def test_event_node_id(self):
         # Create an event without specifying node_id. A node_id should be generated

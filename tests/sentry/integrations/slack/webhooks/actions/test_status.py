@@ -30,7 +30,7 @@ from . import BaseEventTest
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_ask_linking(self):

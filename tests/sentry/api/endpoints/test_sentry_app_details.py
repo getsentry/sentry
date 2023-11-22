@@ -49,7 +49,7 @@ class SentryAppDetailsTest(APITestCase):
         self.url = reverse("sentry-api-0-sentry-app-details", args=[self.published_app.slug])
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetSentryAppDetailsTest(SentryAppDetailsTest):
     def test_superuser_sees_all_apps(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -106,7 +106,7 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 404
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
     def test_update_published_app(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -453,7 +453,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 403
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
     @patch("sentry.analytics.record")
     def test_delete_unpublished_app(self, record):

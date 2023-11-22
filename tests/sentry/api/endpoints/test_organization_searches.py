@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrgLevelOrganizationSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
 
@@ -123,7 +123,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CreateOrganizationSearchesTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
     method = "post"

@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
 class IntegrationRepositoryTestCase(TestCase):
     @responses.activate

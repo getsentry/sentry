@@ -31,7 +31,7 @@ class SentryAppInstallationsTest(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
     method = "get"
 
@@ -80,7 +80,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert response.status_code == 404
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
     method = "post"
 

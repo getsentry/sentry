@@ -23,7 +23,7 @@ def _indexer_record(org_id: int, string: str) -> None:
     indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tag-details"

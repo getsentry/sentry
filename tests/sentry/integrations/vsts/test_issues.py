@@ -142,7 +142,7 @@ class VstsIssueBase(TestCase):
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
 )
-@region_silo_test(stable=True)
+@region_silo_test
 class VstsIssueSyncTest(VstsIssueBase):
     def tearDown(self):
         responses.reset()
@@ -441,7 +441,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class VstsIssueFormTest(VstsIssueBase):
     def setUp(self):
         super().setUp()

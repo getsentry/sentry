@@ -29,7 +29,7 @@ SERVICES = [
 ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = PagerDutyNotifyServiceAction
 

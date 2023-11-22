@@ -26,7 +26,7 @@ from tests.sentry.backup import mark, targets
 RELEASE_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseTests(BackupTestCase):
     """
     Ensure that exports from the last two released versions of self-hosted are still able to be

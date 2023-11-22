@@ -12,7 +12,7 @@ from sentry.utils import json
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SlackLinkIdentityViewTest(SlackCommandsTest):
     """Slack Linking Views are returned on Control Silo"""
 
@@ -30,7 +30,7 @@ class SlackLinkIdentityViewTest(SlackCommandsTest):
         assert SUCCESS_LINKED_MESSAGE in get_response_text(data)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackCommandsLinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 
@@ -45,7 +45,7 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         assert "You are already linked as" in get_response_text(data)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SlackUnlinkIdentityViewTest(SlackCommandsTest):
     """Slack Linking Views are returned on Control Silo"""
 
@@ -68,7 +68,7 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
         assert SUCCESS_UNLINKED_MESSAGE in get_response_text(data)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackCommandsUnlinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 

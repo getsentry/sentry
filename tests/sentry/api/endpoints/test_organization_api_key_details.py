@@ -18,7 +18,7 @@ class OrganizationApiKeyDetailsBase(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationApiKeyDetails(OrganizationApiKeyDetailsBase):
     def test_api_key_no_exist(self):
         self.get_error_response(self.organization.slug, 123456, status_code=404)
@@ -28,7 +28,7 @@ class OrganizationApiKeyDetails(OrganizationApiKeyDetailsBase):
         assert response.data.get("id") == str(self.api_key.id)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
     method = "put"
 
@@ -67,7 +67,7 @@ class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
         assert api_key.get_scopes() == ["a", "b", "c", "d"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationApiKeyDetailsDelete(OrganizationApiKeyDetailsBase):
     method = "delete"
 

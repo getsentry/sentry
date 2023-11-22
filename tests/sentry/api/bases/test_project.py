@@ -19,7 +19,7 @@ class ProjectPermissionBase(TestCase):
         return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectPermissionTest(ProjectPermissionBase):
     def test_regular_user(self):
         user = self.create_user(is_superuser=False)
@@ -214,7 +214,7 @@ class ProjectPermissionTest(ProjectPermissionBase):
         assert not self.has_object_perm("DELETE", project, user=sentry_app.proxy_user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
     def setUp(self):
         super().setUp()

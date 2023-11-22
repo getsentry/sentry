@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryInternalAppTokenCreationTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="boop@example.com")

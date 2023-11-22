@@ -16,7 +16,7 @@ from sentry.types.activity import ActivityType
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupNoteTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -104,7 +104,7 @@ class GroupNoteTest(APITestCase):
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupNoteCreateTest(APITestCase):
     def test_simple(self):
         group = self.group

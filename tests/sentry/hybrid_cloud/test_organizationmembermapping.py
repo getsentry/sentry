@@ -13,7 +13,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
     def test_upsert_stale_user_id(self):
         organizationmember_mapping_service.upsert_mapping(
@@ -168,7 +168,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         assert not om.user_is_active
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
     def test_process_organization_member_update_receiver(self):
         inviter = self.create_user("foo@example.com")

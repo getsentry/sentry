@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokenDetailTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-token-details"
 
@@ -125,7 +125,7 @@ class OrgAuthTokenDetailTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokenEditTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-token-details"
     method = "PUT"
@@ -283,7 +283,7 @@ class OrgAuthTokenEditTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokenDeleteTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-token-details"
     method = "DELETE"
@@ -374,7 +374,7 @@ class OrgAuthTokenDeleteTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokenDetailsPermissionTest(PermissionTestCase):
     putData = {"name": "token-1"}
 

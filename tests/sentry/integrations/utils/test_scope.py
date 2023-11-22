@@ -10,7 +10,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class GetOrgsFromIntegrationTest(TestCase):
     def test_finds_single_org(self):
         org = self.create_organization(slug="dogsaregreat")
@@ -51,7 +51,7 @@ class GetOrgsFromIntegrationTest(TestCase):
         assert actual == []
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class BindOrgContextFromIntegrationTest(TestCase):
     @patch("sentry.integrations.utils.scope.bind_organization_context")
     def test_binds_org_context_with_single_org(self, mock_bind_org_context: MagicMock):

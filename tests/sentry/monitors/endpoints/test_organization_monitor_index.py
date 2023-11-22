@@ -19,7 +19,7 @@ from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
 
@@ -159,7 +159,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         assert response.data[0]["environments"][0]["status"] == "ok"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CreateOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"

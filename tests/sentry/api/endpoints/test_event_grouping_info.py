@@ -10,7 +10,7 @@ from sentry.utils.samples import load_data
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
     def setUp(self):
         self.login_as(user=self.user)

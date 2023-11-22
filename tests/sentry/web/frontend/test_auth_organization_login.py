@@ -25,7 +25,7 @@ from sentry.utils import json
 
 # TODO(dcramer): this is an integration test and repeats tests from
 # core auth_login
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationAuthLoginTest(AuthProviderTestCase):
     @cached_property
     def organization(self):
@@ -1091,7 +1091,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/login.html")
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
     def setUp(self):
         self.owner = self.create_user()

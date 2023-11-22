@@ -19,7 +19,7 @@ from sentry_plugins.github.testutils import (
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GitHubPluginTest(TestCase):
     @cached_property
     def provider(self):
@@ -171,7 +171,7 @@ class GitHubPluginTest(TestCase):
         assert repo.config["webhook_events"] == ["push", "pull_request"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GitHubAppsProviderTest(TestCase):
     @cached_property
     def provider(self):

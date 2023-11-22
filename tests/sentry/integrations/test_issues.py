@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class IssueSyncIntegration(TestCase):
     def test_status_sync_inbound_resolve(self):
         group = self.group
@@ -104,7 +104,7 @@ class IssueSyncIntegration(TestCase):
             assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class IssueDefaultTest(TestCase):
     def setUp(self):
         self.group.status = GroupStatus.RESOLVED

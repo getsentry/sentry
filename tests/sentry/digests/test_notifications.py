@@ -25,7 +25,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RewriteRecordTestCase(TestCase):
     def setUp(self):
         self.notification_uuid = str(uuid.uuid4())
@@ -72,7 +72,7 @@ class RewriteRecordTestCase(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupRecordsTestCase(TestCase):
     def setUp(self):
         self.notification_uuid = str(uuid.uuid4())
@@ -101,7 +101,7 @@ class GroupRecordsTestCase(TestCase):
         assert reduce(group_records, records, results) == {self.rule: {group: records}}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SortRecordsTestCase(TestCase):
     def test_success(self):
         Rule.objects.create(
@@ -143,7 +143,7 @@ class SortRecordsTestCase(TestCase):
         }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SplitKeyTestCase(TestCase):
     def test_old_style_key(self):
         assert split_key(f"mail:p:{self.project.id}") == (
@@ -181,7 +181,7 @@ class SplitKeyTestCase(TestCase):
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UnsplitKeyTestCase(TestCase):
     def test_no_identifier(self):
         assert (

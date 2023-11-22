@@ -7,7 +7,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FirstSeenEventConditionTest(RuleTestCase):
     rule_cls = FirstSeenEventCondition
 

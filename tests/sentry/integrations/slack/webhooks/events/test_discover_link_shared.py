@@ -35,7 +35,7 @@ LINK_SHARED_EVENT_NO_CHANNEL_NAME = """{
 }"""
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DiscoverLinkSharedEvent(BaseEventTest):
     @responses.activate
     @patch(

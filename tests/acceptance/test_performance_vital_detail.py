@@ -14,7 +14,7 @@ from sentry.utils.samples import load_data
 FEATURE_NAMES = ("organizations:performance-view",)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

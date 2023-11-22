@@ -8,7 +8,7 @@ from sentry.types.activity import ActivityType
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProcessInboundEmailTest(TestCase):
     def test_task_persistent_name(self):
         assert process_inbound_email.name == "sentry.tasks.email.process_inbound_email"

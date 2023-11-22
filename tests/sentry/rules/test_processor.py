@@ -44,7 +44,7 @@ class MockConditionTrue(EventCondition):
         return True
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RuleProcessorTest(TestCase):
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -389,7 +389,7 @@ class MockFilterFalse(EventFilter):
         return False
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RuleProcessorTestFilters(TestCase):
     MOCK_SENTRY_RULES_WITH_FILTERS = (
         "sentry.mail.actions.NotifyEmailAction",

@@ -20,7 +20,7 @@ from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializer
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleListEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
 
@@ -57,7 +57,7 @@ class AlertRuleListEndpointTest(APITestCase):
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class AlertRuleCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
@@ -173,7 +173,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-project-combined-rules"
 

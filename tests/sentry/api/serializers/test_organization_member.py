@@ -54,7 +54,7 @@ class OrganizationMemberSerializerTest(TestCase):
         assert result["user"]["name"] == "bob"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberAllRolesSerializerTest(OrganizationMemberSerializerTest):
     def test_all_org_roles(self):
         manager_team = self.create_team(organization=self.org, org_role="manager")
@@ -74,7 +74,7 @@ class OrganizationMemberAllRolesSerializerTest(OrganizationMemberSerializerTest)
         assert result["groupOrgRoles"][2]["role"]["id"] == "manager"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         projects = [self.project, self.project_2]
@@ -98,7 +98,7 @@ class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerT
         assert [r["projects"] for r in result] == expected_projects
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         result = serialize(
@@ -121,7 +121,7 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
         assert [r["teamRoles"] for r in result] == expected_team_roles
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberSCIMSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         result = serialize(

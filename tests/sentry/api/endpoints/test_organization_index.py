@@ -25,7 +25,7 @@ class OrganizationIndexTest(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationsListTest(OrganizationIndexTest):
     def test_membership(self):
         org = self.organization  # force creation
@@ -108,7 +108,7 @@ class OrganizationsListTest(OrganizationIndexTest):
         assert len(response.data) == 0
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
@@ -280,7 +280,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=org_member)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
     endpoint = "sentry-organization-home"
 
@@ -329,7 +329,7 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.get_success_response(self.org_2fa.slug)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIndexMemberLimitTest(APITestCase):
     endpoint = "sentry-organization-index"
 

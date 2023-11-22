@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class SyncOptionsTest(TestCase):
     _TEST_KEY = "foo"
 

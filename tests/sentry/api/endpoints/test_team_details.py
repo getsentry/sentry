@@ -64,7 +64,7 @@ class TeamDetailsTestBase(APITestCase):
         self.assert_team_status(team_id, TeamStatus.ACTIVE)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamDetailsTest(TeamDetailsTestBase):
     def test_simple(self):
         team = self.team  # force creation
@@ -73,7 +73,7 @@ class TeamDetailsTest(TeamDetailsTestBase):
         assert response.data["id"] == str(team.id)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamUpdateTest(TeamDetailsTestBase):
     method = "put"
 
@@ -346,7 +346,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.org_role == "owner"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
 

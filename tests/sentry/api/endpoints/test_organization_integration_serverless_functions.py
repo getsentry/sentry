@@ -97,7 +97,7 @@ class AbstractServerlessTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @override_settings(
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
@@ -224,7 +224,7 @@ class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @override_settings(
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",

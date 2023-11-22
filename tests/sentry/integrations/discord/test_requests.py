@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DiscordRequestTest(TestCase):
     def mock_request(self, request_data: dict | None = None) -> DiscordRequest:
         self.request = mock.Mock()

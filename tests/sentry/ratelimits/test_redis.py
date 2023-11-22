@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RedisRateLimiterTest(TestCase):
     def setUp(self):
         self.backend = RedisRateLimiter()

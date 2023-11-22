@@ -121,7 +121,7 @@ class VercelUninstallTest(APITestCase):
             ).exists()
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VercelUninstallWithConfigurationsTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/vercel/delete/"

@@ -25,7 +25,7 @@ METADATA = {
 }
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OpsgenieIntegrationTest(IntegrationTestCase):
     provider = OpsgenieIntegrationProvider
     config_no_key = {

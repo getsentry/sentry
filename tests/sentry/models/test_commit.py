@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FindReferencedGroupsTest(TestCase):
     def test_multiple_matches_basic(self):
         group = self.create_group()

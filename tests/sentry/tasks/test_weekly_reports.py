@@ -39,7 +39,7 @@ from sentry.utils.outcomes import Outcome
 DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_integration(self):

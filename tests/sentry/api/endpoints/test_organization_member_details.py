@@ -29,7 +29,7 @@ class OrganizationMemberTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
     def test_me(self):
         response = self.get_success_response(self.organization.slug, "me")
@@ -137,7 +137,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert role_ids == ["contributor", "admin"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
 
@@ -552,7 +552,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.get_error_response(self.organization.slug, member_om.id, status_code=403)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
 
@@ -749,7 +749,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_error_response(self.organization.slug, member_om.id, status_code=403)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ResetOrganizationMember2faTest(APITestCase):
     def setUp(self):
         self.owner = self.create_user()

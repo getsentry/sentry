@@ -25,7 +25,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 @override_settings(SENTRY_SELF_HOSTED=False)
 class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     middleware = RatelimitMiddleware(lambda request: sentinel.response)

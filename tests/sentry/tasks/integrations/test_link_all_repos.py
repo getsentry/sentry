@@ -13,7 +13,7 @@ from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
 class LinkAllReposTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider

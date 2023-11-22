@@ -13,7 +13,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuditLogEventManagerTest(TestCase):
     def test_audit_log_manager(self):
         test_manager = AuditLogEventManager()

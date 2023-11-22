@@ -16,7 +16,7 @@ pytestmark = [requires_snuba]
 
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
-@region_silo_test(stable=True)
+@region_silo_test
 class EventCommittersTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
