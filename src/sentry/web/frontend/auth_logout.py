@@ -4,9 +4,10 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from sentry.utils import auth
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 
+@control_silo_view
 class AuthLogoutView(BaseView):
     auth_required = False
 
