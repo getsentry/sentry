@@ -5,7 +5,7 @@ from typing import Generator, List, Optional, Sequence, Set
 from sentry.api.utils import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.utils import fnv1a_32, get_redis_client_for_ingest
+from sentry.sentry_metrics.querying.utils import fnv1a_32, get_redis_client_for_metrics_meta
 from sentry.utils import json, metrics
 
 DAY_IN_SECONDS = 86400
@@ -87,7 +87,7 @@ class CodeLocationsFetcher:
         self._metric_mris = metric_mris
         self._timestamps = timestamps
 
-        self._redis_client = get_redis_client_for_ingest()
+        self._redis_client = get_redis_client_for_metrics_meta()
 
         self._validate()
 

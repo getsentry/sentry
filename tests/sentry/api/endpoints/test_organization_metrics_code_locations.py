@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.metadata import get_cache_key_for_code_location
-from sentry.sentry_metrics.querying.utils import get_redis_client_for_ingest
+from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -26,7 +26,7 @@ class OrganizationMetricsCodeLocationsTest(MetricsAPIBaseTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.redis_client = get_redis_client_for_ingest()
+        self.redis_client = get_redis_client_for_metrics_meta()
         self.current_time = timezone.now()
 
     def _mock_code_location(self, filename) -> str:
