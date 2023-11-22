@@ -1158,6 +1158,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
             assert response.data[group]["isMetricsExtractedData"]
 
+    @pytest.mark.skip(reason="checks for fixed dates while using dynamic date")
     def test_timeseries_on_demand_with_multiple_percentiles(self):
         field = "p75(measurements.fcp)"
         field_two = "p75(measurements.lcp)"
