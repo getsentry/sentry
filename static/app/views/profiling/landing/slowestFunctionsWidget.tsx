@@ -197,6 +197,8 @@ function SlowestFunctionEntry({
         key: 0,
         name: func.function as string,
         package: func.package as string,
+        line: -1,
+        column: -1,
       },
       project?.platform && /node|javascript/.test(project.platform)
         ? project.platform

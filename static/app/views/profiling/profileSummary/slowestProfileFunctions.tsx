@@ -162,6 +162,8 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
         key: 0,
         name: props.func.function as string,
         package: props.func.package as string,
+        line: -1,
+        column: -1,
       },
       props.project?.platform && /node|javascript/.test(props.project.platform)
         ? props.project.platform
