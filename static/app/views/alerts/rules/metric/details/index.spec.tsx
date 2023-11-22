@@ -7,7 +7,6 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 jest.mock('sentry/utils/analytics');
 
@@ -171,37 +170,5 @@ describe('MetricAlertDetails', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Unmute'}));
 
     expect(deleteRequest).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders migration message for filtering archived issues', async () => {
-    const {routerContext, organization, routerProps} = initializeOrg({
-      organization: {features: ['metric-alert-ignore-archived']},
-    });
-    const rule = TestStubs.MetricRule({
-      projects: [project.slug],
-      latestIncident: null,
-      dataset: Dataset.ERRORS,
-      query: '',
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/alert-rules/${rule.id}/`,
-      body: rule,
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/incidents/`,
-      body: [],
-    });
-    render(
-      <MetricAlertDetails
-        {...routerProps}
-        organization={organization}
-        params={{ruleId: rule.id}}
-      />,
-      {context: routerContext, organization}
-    );
-
-    expect(
-      await screen.findByRole('button', {name: 'Exclude archived issues'})
-    ).toBeInTheDocument();
   });
 });

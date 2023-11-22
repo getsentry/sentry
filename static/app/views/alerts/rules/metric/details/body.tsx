@@ -20,6 +20,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {RuleActionsCategories} from 'sentry/types/alerts';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
@@ -27,9 +28,7 @@ import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDe
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleStatus, Incident} from 'sentry/views/alerts/types';
 import {
-  hasIgnoreArchivedFeatureFlag,
   hasMigrationFeatureFlag,
-  ruleNeedsErrorMigration,
   ruleNeedsMigration,
 } from 'sentry/views/alerts/utils/migrationUi';
 
@@ -160,8 +159,6 @@ export default function MetricDetailsBody({
 
   const showTransactionMigrationWarning =
     hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
-  const showErrorMigrationWarning =
-    hasIgnoreArchivedFeatureFlag(organization) && ruleNeedsErrorMigration(rule);
 
   const migrationFormLink =
     rule &&
@@ -225,25 +222,7 @@ export default function MetricDetailsBody({
             </Alert>
           ) : null}
 
-          {showErrorMigrationWarning ? (
-            <Alert
-              type="warning"
-              showIcon
-              trailingItems={
-                <LinkButton
-                  to={migrationFormLink}
-                  size="xs"
-                  icon={<IconEdit size="xs" />}
-                >
-                  {t('Exclude archived issues')}
-                </LinkButton>
-              }
-            >
-              {t(
-                "Alert rules can now exclude errors associated with archived issues. Please make sure to review the rule's alert thresholds after editing."
-              )}
-            </Alert>
-          ) : null}
+          <ErrorMigrationWarning project={project} rule={rule} />
 
           <MetricChart
             api={api}

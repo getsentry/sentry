@@ -36,9 +36,7 @@ export function useOrgNeedsMigration(): boolean {
 export const hasIgnoreArchivedFeatureFlag = (organization: Organization): boolean =>
   organization.features.includes('metric-alert-ignore-archived');
 
-export const ruleNeedsErrorMigration = (
-  rule: CombinedMetricIssueAlerts | MetricRule
-): boolean => {
+export const ruleNeedsErrorMigration = (rule: MetricRule): boolean => {
   return (
     'dataset' in rule &&
     rule.dataset === Dataset.ERRORS &&
