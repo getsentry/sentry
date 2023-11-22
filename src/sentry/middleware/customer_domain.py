@@ -10,9 +10,9 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import resolve, reverse
 
-from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.http import absolute_uri
 
@@ -84,7 +84,7 @@ class CustomerDomainMiddleware:
         ):
             return self.get_response(request)
         subdomain = request.subdomain
-        if subdomain is None or resolve_region(request) is not None:
+        if subdomain is None or subdomain_is_region(request):
             return self.get_response(request)
 
         if (

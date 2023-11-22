@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.conf import settings
 from django.db import router
-from django.test import override_settings
+from django.test import RequestFactory, override_settings
 
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
@@ -21,6 +21,7 @@ from sentry.types.region import (
     get_local_region,
     get_region_by_name,
     get_region_for_organization,
+    subdomain_is_region,
 )
 from sentry.utils import json
 
@@ -218,3 +219,17 @@ class RegionMappingTest(TestCase):
         with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
             result = find_all_multitenant_region_names()
             assert set(result) == {"us"}
+
+    def test_subdomain_is_region(self):
+        regions = [
+            Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
+        ]
+        rf = RequestFactory()
+        with override_regions(regions):
+            req = rf.get("/")
+            setattr(req, "subdomain", "us")
+            assert subdomain_is_region(req)
+
+            req = rf.get("/")
+            setattr(req, "subdomain", "acme")
+            assert not subdomain_is_region(req)

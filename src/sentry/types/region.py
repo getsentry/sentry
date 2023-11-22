@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 
 import sentry_sdk
 from django.conf import settings
+from django.http import HttpRequest
 from pydantic.dataclasses import dataclass
 from pydantic.tools import parse_obj_as
 
@@ -216,6 +217,13 @@ def get_region_by_name(name: str) -> Region:
 
 def is_region_name(name: str) -> bool:
     return name in load_global_regions().by_name
+
+
+def subdomain_is_region(request: HttpRequest) -> bool:
+    subdomain = getattr(request, "subdomain", None)
+    if subdomain is None:
+        return False
+    return is_region_name(subdomain)
 
 
 @control_silo_function

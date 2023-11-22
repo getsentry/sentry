@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type
+from typing import Any, Callable, Iterable, Mapping, Tuple, Type
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -30,7 +30,6 @@ from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.types.region import is_region_name
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -579,15 +578,6 @@ class ReleaseAnalyticsMixin:
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
-
-
-def resolve_region(request: HttpRequest) -> Optional[str]:
-    subdomain = getattr(request, "subdomain", None)
-    if subdomain is None:
-        return None
-    if is_region_name(subdomain):
-        return subdomain
-    return None
 
 
 class EndpointSiloLimit(SiloLimit):
