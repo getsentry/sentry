@@ -106,6 +106,7 @@ export function ScreenLoadEventSamples({
     enabled: true,
     limit: 4,
     cursor,
+    referrer: 'api.starfish.mobile-event-samples',
   });
 
   const eventViewColumns = eventView.getColumns();

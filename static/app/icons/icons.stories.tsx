@@ -168,6 +168,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'discord',
+        groups: ['logo'],
+        keywords: [],
+        name: 'Discord',
+        defaultProps: {},
+      },
+      {
         id: 'github',
         groups: ['logo'],
         keywords: [],
