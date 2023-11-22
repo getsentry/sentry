@@ -3,7 +3,7 @@ from __future__ import annotations
 import collections
 import math
 import os
-import random as random_module
+import random
 import shutil
 import sys
 from datetime import datetime
@@ -356,7 +356,7 @@ def _shuffle(items: list[pytest.Item], seed: int) -> None:
     # this prevents duplicate setup/teardown work
     nodes: dict[str, dict[str, pytest.Item | dict[str, pytest.Item]]]
     nodes = collections.defaultdict(dict)
-    random = random_module.Random(seed)
+    rng = random.Random(seed)
     for item in items:
         parts = item.nodeid.split("::", maxsplit=2)
         if len(parts) == 2:
@@ -369,7 +369,7 @@ def _shuffle(items: list[pytest.Item], seed: int) -> None:
             raise AssertionError(f"unexpected nodeid: {item.nodeid}")
 
     def _shuffle_d(dct: dict[K, V]) -> dict[K, V]:
-        return dict(random.sample(tuple(dct.items()), len(dct)))
+        return dict(rng.sample(tuple(dct.items()), len(dct)))
 
     new_items = []
     for first_v in _shuffle_d(nodes).values():
