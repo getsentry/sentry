@@ -2602,12 +2602,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             self.viewname,
             kwargs={"organization_slug": self.organization.slug},
         )
-        with self.feature(
-            {
-                "organizations:on-demand-metrics-extraction": True,  # XXX: We have coupling
-                "organizations:on-demand-metrics-extraction-widgets": True,
-            }
-        ):
+        with self.feature({"organizations:on-demand-metrics-extraction-widgets": True}):
             return self.client.get(url, query, format="json")
 
     def _test_is_metrics_extracted_data(
@@ -2640,19 +2635,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
             expected_on_demand_query=True,
             dataset="metricsEnhanced",
-        )
-
-    def test_is_metrics_extracted_data_is_excluded(self):
-        self._test_is_metrics_extracted_data(
-            {
-                "field": ["count()"],
-                "query": "transaction.duration:>=91",
-                "useOnDemandMetrics": "true",
-                "yAxis": "count()",
-            },
-            # Since we do not include metricsEnhanced dataset it will fail
-            expected_on_demand_query=False,
-            dataset="discover",
         )
 
 

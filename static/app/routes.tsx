@@ -255,6 +255,16 @@ function buildRoutes() {
       />
       {usingCustomerDomain && (
         <Route
+          path="/restore/"
+          component={make(() => import('sentry/views/organizationRestore'))}
+        />
+      )}
+      <Route
+        path="/organizations/:orgId/restore/"
+        component={make(() => import('sentry/views/organizationRestore'))}
+      />
+      {usingCustomerDomain && (
+        <Route
           path="/join-request/"
           component={withDomainRequired(
             make(() => import('sentry/views/organizationJoinRequest'))
@@ -992,6 +1002,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route
+        path="early-features/"
+        name={t('Early Features')}
+        component={make(() => import('sentry/views/settings/earlyFeatures'))}
+      />
     </Route>
   );
 

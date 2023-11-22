@@ -161,6 +161,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   } = useTableQuery({
     eventView: tableEventView,
     enabled: !isReleasesLoading,
+    referrer: 'api.starfish.mobile-screen-table',
   });
 
   const topTransactions =
@@ -170,9 +171,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const topEventsQuery = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
-    ...(topTransactions.length > 0
-      ? [`transaction:[${topTransactions.map(transaction => `"${transaction}"`).join()}]`]
-      : []),
+    ...(topTransactions.length > 0 ? [`transaction:[${topTransactions.join()}]`] : []),
     ...(additionalFilters ?? []),
   ]);
 
@@ -196,6 +195,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
       location
     ),
     enabled: !topTransactionsLoading,
+    referrer: 'api.starfish.mobile-screen-bar-chart',
   });
 
   if (isReleasesLoading) {
@@ -203,6 +203,16 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
       <LoadingContainer>
         <LoadingIndicator />
       </LoadingContainer>
+    );
+  }
+
+  if (!defined(primaryRelease) && !isReleasesLoading) {
+    return (
+      <Alert type="warning" showIcon>
+        {t(
+          'No screens found on recent releases. Please try a single iOS or Android project or a smaller date range.'
+        )}
+      </Alert>
     );
   }
 
@@ -237,17 +247,19 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
       const transaction = row.transaction;
       const index = topTransactionsIndex[transaction];
       yAxes.forEach(val => {
-        transformedReleaseEvents[YAXIS_COLUMNS[val]][release].data[index] = {
-          name: row.transaction,
-          value: row[YAXIS_COLUMNS[val]],
-          itemStyle: {
-            color: isPrimary
-              ? theme.charts.getColorPalette(TOP_SCREENS - 2)[index]
-              : Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-                  .lighten(0.3)
-                  .string(),
-          },
-        } as SeriesDataUnit;
+        if (transformedReleaseEvents[YAXIS_COLUMNS[val]][release]) {
+          transformedReleaseEvents[YAXIS_COLUMNS[val]][release].data[index] = {
+            name: row.transaction,
+            value: row[YAXIS_COLUMNS[val]],
+            itemStyle: {
+              color: isPrimary
+                ? theme.charts.getColorPalette(TOP_SCREENS - 2)[index]
+                : Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
+                    .lighten(0.3)
+                    .string(),
+            },
+          } as SeriesDataUnit;
+        }
       });
     });
   }
@@ -258,13 +270,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   return (
     <div data-test-id="starfish-mobile-view">
-      {!defined(primaryRelease) && !isReleaseEventsLoading && (
-        <Alert type="warning" showIcon>
-          {t(
-            'No screens found on recent releases. Please try a single iOS or Android project or a smaller date range.'
-          )}
-        </Alert>
-      )}
       <ChartsContainer>
         <Fragment>
           <ChartsContainerItem key="ttid">

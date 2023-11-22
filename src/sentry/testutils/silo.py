@@ -69,6 +69,19 @@ class AncestorAlreadySiloDecoratedException(Exception):
     pass
 
 
+def _get_test_name_suffix(silo_mode: SiloMode) -> str:
+    name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
+    return f"__In{name}Mode"
+
+
+def strip_silo_mode_test_suffix(name: str) -> str:
+    for silo_mode in SiloMode:
+        suffix = _get_test_name_suffix(silo_mode)
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return name
+
+
 class SiloModeTestDecorator:
     """Decorate a test case that is expected to work in a given silo mode.
 
@@ -96,13 +109,15 @@ class SiloModeTestDecorator:
     def __call__(
         self,
         decorated_obj: Any = None,
-        stable: bool = False,
+        stable: bool = True,
         regions: Sequence[Region] = (),
+        include_monolith_run: bool = False,
     ) -> Any:
         mod = _SiloModeTestModification(
             silo_modes=self.silo_modes,
             regions=tuple(regions or _DEFAULT_TEST_REGIONS),
             stable=stable,
+            include_monolith_run=include_monolith_run,
         )
 
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
@@ -115,11 +130,9 @@ class _SiloModeTestModification:
     silo_modes: frozenset[SiloMode]
     regions: tuple[Region, ...]
     stable: bool
+    include_monolith_run: bool
 
-    # The default values can be treated as switches for desired global behavior,
-    # when we're ready to change.
-    include_monolith_run: bool = True
-    run_original_class_in_silo_mode: bool = False
+    run_original_class_in_silo_mode: bool = True
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
@@ -171,7 +184,7 @@ class _SiloModeTestModification:
         """
         if len(self.silo_modes) == 1:
             (silo_mode,) = self.silo_modes
-            if not self.include_monolith_run:
+            if not (self.include_monolith_run or settings.FORCE_SILOED_TESTS):
                 return silo_mode, ()
             if self.run_original_class_in_silo_mode:
                 return silo_mode, (SiloMode.MONOLITH,)
@@ -181,9 +194,8 @@ class _SiloModeTestModification:
         primary_mode, secondary_modes = self._arrange_silo_modes()
 
         for silo_mode in secondary_modes:
-            silo_mode_name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
             siloed_test_class = self._create_overriding_test_class(
-                test_class, silo_mode, f"__In{silo_mode_name}Mode"
+                test_class, silo_mode, _get_test_name_suffix(silo_mode)
             )
 
             module = sys.modules[test_class.__module__]
