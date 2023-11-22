@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@canary/schema.json",
+  "entry": [
+    "static/app/index.tsx",
+    "static/app/utils/statics-setup.tsx",
+    "static/app/views/integrationPipeline/index.tsx",
+    "static/app/chartcuterie/config.tsx",
+    "tests/js/sentry-test/index.tsx",
+    "static/app/**/__mocks__/*.{ts,tsx}",
+    "static/app/**/*.stories.{ts,tsx}"
+  ],
+  "project": ["static/**/*.{ts,tsx}", "tests/js/**/*.{ts,tsx}"],
+  "rules": {
+    "dependencies": "off",
+    "unlisted": "off",
+    "binaries": "off",
+    "exports": "warn",
+    "types": "warn"
+  }
+}
