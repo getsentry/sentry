@@ -1,12 +1,10 @@
 from django.urls import reverse
 
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.notificationsetting import NotificationSetting
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.linksign import generate_signed_link
 
 
@@ -83,13 +81,13 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
         resp = self.client.post(path, data={"cancel": "1"})
         assert resp.status_code == 201
         with assume_test_silo_mode(SiloMode.CONTROL):
-            setting = NotificationSetting.objects.find_settings(
-                provider=ExternalProviders.EMAIL,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
+            assert NotificationSettingOption.objects.filter(
                 user_id=self.user.id,
-                project=project.id,
-            ).get()
-            assert setting.value == NotificationSettingOptionValues.NEVER
+                scope_type="project",
+                scope_identifier=project.id,
+                type="alerts",
+                value="never",
+            ).exists()
 
 
 @region_silo_test(stable=True)
