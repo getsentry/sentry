@@ -375,6 +375,55 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["fields"]["http_error_count()"] == "integer"
         assert meta["fields"]["http_error_rate()"] == "percentage"
 
+    def test_ttid_rate_and_count(self):
+        for _ in range(8):
+            self.store_span_metric(
+                1,
+                internal_metric=constants.SELF_TIME_LIGHT,
+                tags={"ttid": "ttid", "ttfd": "ttfd"},
+                timestamp=self.min_ago,
+            )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            tags={"ttfd": "ttfd", "ttid": ""},
+            timestamp=self.min_ago,
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            tags={"ttfd": "", "ttid": ""},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "ttid_contribution_rate()",
+                    "ttid_count()",
+                    "ttfd_contribution_rate()",
+                    "ttfd_count()",
+                ],
+                "query": "",
+                "orderby": ["-ttid_contribution_rate()"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["ttid_contribution_rate()"] == 0.8
+        assert data[0]["ttid_count()"] == 8
+        assert data[0]["ttfd_contribution_rate()"] == 0.9
+        assert data[0]["ttfd_count()"] == 9
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["ttid_count()"] == "integer"
+        assert meta["fields"]["ttid_contribution_rate()"] == "percentage"
+        assert meta["fields"]["ttfd_count()"] == "integer"
+        assert meta["fields"]["ttfd_contribution_rate()"] == "percentage"
+
     def test_use_self_time_light(self):
         self.store_span_metric(
             100,
