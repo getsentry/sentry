@@ -14,7 +14,8 @@ from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
-from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
+from sentry.snuba.metrics.utils import to_intervals
+from sentry.utils.dates import parse_stats_period, to_timestamp
 from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
@@ -441,28 +442,9 @@ def get_constrained_date_range(
     if start > now:
         start = now
 
-    # if `end` is explicitly given, we add a second to it, so it is treated as
-    # inclusive. the rounding logic down below will take care of the rest.
-    if params.get("end"):
-        end += timedelta(seconds=1)
+    adjusted_start, adjusted_end, _num_intervals = to_intervals(start, end, interval)
 
-    date_range = end - start
-    # round the range up to a multiple of the interval.
-    # the minimum is 1h so the "totals" will not go out of sync, as they will
-    # use the materialized storage due to no grouping on the `started` column.
-    # NOTE: we can remove the difference between `interval` / `rounding_interval`
-    # as soon as snuba can provide us with grouped totals in the same query
-    # as the timeseries (using `WITH ROLLUP` in clickhouse)
-
-    rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
-
-    # Hack to disabled rounding interval for metrics-based queries:
-    if interval < ONE_MINUTE:
-        rounding_interval = interval
-
-    date_range = timedelta(
-        seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
-    )
+    date_range = adjusted_end - adjusted_start
 
     if using_minute_resolution and restrict_date_range:
         if date_range.total_seconds() > 6 * ONE_HOUR:
@@ -480,24 +462,7 @@ def get_constrained_date_range(
             "Use a larger interval, or a smaller date range."
         )
 
-    end_ts = int(rounding_interval * math.ceil(to_timestamp(end) / rounding_interval))
-    end = to_datetime(end_ts)
-    # when expanding the rounding interval, we would adjust the end time too far
-    # to the future, in which case the start time would not actually contain our
-    # desired date range. adjust for this by extend the time by another interval.
-    # for example, when "45m" means the range from 08:49:00-09:34:00, our rounding
-    # has to go from 08:00:00 to 10:00:00.
-    if rounding_interval > interval and (end - date_range) > start:
-        date_range += timedelta(seconds=rounding_interval)
-    start = end - date_range
-
-    # snuba <-> sentry has a 5 minute cache for *exact* queries, which these
-    # are because of the way we do our rounding. For that reason we round the end
-    # of "realtime" queries to one minute into the future to get a one-minute cache instead.
-    if end > now:
-        end = to_datetime(ONE_MINUTE * (math.floor(to_timestamp(now) / ONE_MINUTE) + 1))
-
-    return start, end, interval
+    return adjusted_start, adjusted_end, interval
 
 
 TS_COL = "bucketed_started"
