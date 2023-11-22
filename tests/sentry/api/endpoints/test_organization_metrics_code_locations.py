@@ -19,9 +19,9 @@ pytestmark = pytest.mark.sentry_metrics
 
 @freeze_time("2023-11-21T10:30:30.000Z")
 @region_silo_test(stable=True)
-class OrganizationMetricsLocationsTest(MetricsAPIBaseTestCase):
+class OrganizationMetricsCodeLocationsTest(MetricsAPIBaseTestCase):
 
-    endpoint = "sentry-api-0-organization-metrics-locations"
+    endpoint = "sentry-api-0-organization-metrics-code-locations"
 
     def setUp(self):
         super().setUp()
@@ -98,20 +98,18 @@ class OrganizationMetricsLocationsTest(MetricsAPIBaseTestCase):
 
         assert len(data) == 2
 
-        query = data[0]["query"]
-        assert query["metric_mri"] == mris[0]
-        assert query["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
+        assert data[0]["mri"] == mris[0]
+        assert data[0]["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
 
-        query = data[1]["query"]
-        assert query["metric_mri"] == mris[0]
-        assert query["timestamp"] == self._round_to_day(self.current_time)
+        assert data[1]["mri"] == mris[0]
+        assert data[1]["timestamp"] == self._round_to_day(self.current_time)
 
-        code_locations = data[0]["code_locations"]
+        code_locations = data[0]["codeLocations"]
         assert len(code_locations) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert code_locations[index]["filename"] == filename
 
-        code_locations = data[0]["code_locations"]
+        code_locations = data[0]["codeLocations"]
         assert len(code_locations) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert code_locations[index]["filename"] == filename
@@ -137,11 +135,10 @@ class OrganizationMetricsLocationsTest(MetricsAPIBaseTestCase):
 
         assert len(data) == 1
 
-        query = data[0]["query"]
-        assert query["metric_mri"] == mris[0]
-        assert query["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
+        assert data[0]["mri"] == mris[0]
+        assert data[0]["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
 
-        code_locations = data[0]["code_locations"]
+        code_locations = data[0]["codeLocations"]
         assert len(code_locations) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert code_locations[index]["filename"] == filename

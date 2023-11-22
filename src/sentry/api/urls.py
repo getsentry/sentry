@@ -372,9 +372,9 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics import (
     OrganizationMetricDetailsEndpoint,
+    OrganizationMetricsCodeLocationsEndpoint,
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsEndpoint,
-    OrganizationMetricsLocationsEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
@@ -1908,9 +1908,9 @@ ORGANIZATION_URLS = [
         ),
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/metrics/locations/$",
-        OrganizationMetricsLocationsEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-locations",
+        r"^(?P<organization_slug>[^/]+)/metrics/code-locations/$",
+        OrganizationMetricsCodeLocationsEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-code-locations",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/meta/$",

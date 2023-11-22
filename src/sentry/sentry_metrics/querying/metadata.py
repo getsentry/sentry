@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Generator, List, Optional, Sequence, Set, TypedDict
+from typing import Generator, List, Optional, Sequence, Set
 
 from sentry.api.utils import InvalidParams
 from sentry.models.organization import Organization
@@ -10,14 +11,16 @@ from sentry.utils import json, metrics
 DAY_IN_SECONDS = 86400
 
 
-class CodeLocationQuery(TypedDict):
+@dataclass(frozen=True)
+class CodeLocationQuery:
     organization_id: int
     project_id: int
     metric_mri: str
     timestamp: int
 
 
-class CodeLocationPayload(TypedDict):
+@dataclass(frozen=True)
+class CodeLocationPayload:
     function: Optional[str]
     module: Optional[str]
     filename: Optional[str]
@@ -25,9 +28,14 @@ class CodeLocationPayload(TypedDict):
     lineno: Optional[int]
 
 
-class MetricCodeLocations(TypedDict):
+@dataclass(frozen=True)
+class MetricCodeLocations:
     query: CodeLocationQuery
     code_locations: Sequence[CodeLocationPayload]
+
+    def __hash__(self):
+        # For the serializer we need to implement a hashing function that uniquely identifies a metric code location.
+        return hash(self.query)
 
 
 def _get_day_timestamps(
@@ -122,10 +130,10 @@ class CodeLocationsFetcher:
         pipeline = self._redis_client.pipeline()
         for query in queries:
             cache_key = get_cache_key_for_code_location(
-                query["organization_id"],
-                query["project_id"],
-                query["metric_mri"],
-                query["timestamp"],
+                query.organization_id,
+                query.project_id,
+                query.metric_mri,
+                query.timestamp,
             )
             pipeline.smembers(cache_key)
 
@@ -138,9 +146,7 @@ class CodeLocationsFetcher:
                 self._parse_code_location_payload(location) for location in locations
             ]
             # To maintain consistent ordering, we sort by filename.
-            sorted_locations = sorted(
-                parsed_locations, key=lambda value: value.get("filename") or ""
-            )
+            sorted_locations = sorted(parsed_locations, key=lambda value: value.filename or "")
             code_locations.append(MetricCodeLocations(query=query, code_locations=sorted_locations))
 
         return code_locations
