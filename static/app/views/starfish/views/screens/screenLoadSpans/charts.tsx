@@ -92,7 +92,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     ),
     enabled: !isReleasesLoading,
     // TODO: Change referrer
-    referrer: 'api.starfish-web-service.span-category-breakdown-timeseries',
+    referrer: 'api.starfish.mobile-screen-series',
     initialData: {},
   });
 
@@ -152,6 +152,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
       location
     ),
     enabled: !isReleasesLoading,
+    referrer: 'api.starfish.mobile-device-breakdown',
   });
 
   if (isReleasesLoading) {

@@ -53,6 +53,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     eventView,
     enabled: true,
     limit: 25,
+    referrer: 'api.starfish.get-span-operations',
   });
 
   const options = [

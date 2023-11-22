@@ -42,6 +42,7 @@ export function useReleases(searchTerm?: string) {
     eventView,
     limit: 100,
     staleTime: Infinity,
+    referrer: 'api.starfish.mobile-release-selector',
   });
 
   const metricsStats: {[version: string]: {count: number}} = {};
