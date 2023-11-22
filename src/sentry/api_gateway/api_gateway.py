@@ -37,6 +37,7 @@ REGION_PINNED_URL_NAMES = (
     # New usage of these is region scoped.
     "sentry-error-page-embed",
     "sentry-release-hook",
+    "sentry-api-0-organizations",
     "sentry-api-0-projects",
     "sentry-api-0-accept-project-transfer",
     "sentry-account-email-unsubscribe-incident",
