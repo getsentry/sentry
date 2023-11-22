@@ -423,15 +423,16 @@ export const useTableFieldOptions = (
 ) => {
   const {customMeasurements} = useCustomMeasurements();
   const api = useApi();
-  const datasetConfig = getDatasetConfig(widgetType);
+
+  const {getTableFieldOptions} = getDatasetConfig(widgetType);
 
   const [fieldOptions, setFieldOptions] = useState(
-    datasetConfig.getTableFieldOptions(organization, tags, customMeasurements, api)
+    getTableFieldOptions(organization, tags, customMeasurements, api)
   );
 
   useEffect(() => {
     const fetchTableFieldOptions = async () => {
-      const options = await datasetConfig.getTableFieldOptions(
+      const options = await getTableFieldOptions(
         organization,
         tags,
         customMeasurements,
@@ -441,8 +442,7 @@ export const useTableFieldOptions = (
     };
 
     fetchTableFieldOptions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgetType]);
+  }, [api, organization, tags, customMeasurements, getTableFieldOptions]);
 
   return fieldOptions;
 };

@@ -141,6 +141,7 @@ function filterMetricMRIs(option: FieldValueOption) {
 function getTagsForMetric(
   organization: Organization,
   _?: TagCollection,
+  __?: CustomMeasurementCollection,
   api?: Client,
   queries?: WidgetQuery[]
 ) {

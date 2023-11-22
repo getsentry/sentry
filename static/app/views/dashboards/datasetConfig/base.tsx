@@ -132,6 +132,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getGroupByFieldOptions?: (
     organization: Organization,
     tags?: TagCollection,
+    customMeasurements?: CustomMeasurementCollection,
     api?: Client,
     queries?: WidgetQuery[]
   ) => Record<string, SelectValue<FieldValue>>;
