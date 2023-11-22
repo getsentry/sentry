@@ -165,7 +165,8 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
       },
       props.project?.platform && /node|javascript/.test(props.project.platform)
         ? props.project.platform
-        : undefined
+        : undefined,
+      'aggregate'
     );
   }, [props.func, props.project]);
 

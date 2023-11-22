@@ -200,7 +200,8 @@ function SlowestFunctionEntry({
       },
       project?.platform && /node|javascript/.test(project.platform)
         ? project.platform
-        : undefined
+        : undefined,
+      'aggregate'
     );
   }, [func, project]);
 
