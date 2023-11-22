@@ -1,3 +1,35 @@
+23.11.1
+-------
+
+### Various fixes & improvements
+
+- chore(stats-detectors): Remove feature flag from root cause analysis … (#60408) by @Zylphrex
+- ref(hybrid-cloud): Removes unused onboarding task handling (#60337) by @GabeVillalobos
+- ref(notifications): remove UserNotificationSettingsDetailsEndpoint (#60302) by @scefali
+- fix(browser-starfish): fix query main graphs on resource module (#60409) by @DominikB2014
+- chore(stats-detector): Remove feature flag checks in regression issues (#60406) by @Zylphrex
+- fix(backup): Handle multiple emails per user (#60404) by @azaslavsky
+- test(hc): Stabilize ProjectUserFeedbackDocs (#60405) by @RyanSkonnord
+- feat(open-source): Set feature flags for Open Source users (#59956) by @NisanthanNanthakumar
+- fix(ci): Reduce the amount of test data that's stored (#60197) by @evanh
+- feat(integrations): make sure stacktrace-link feature is set (#60326) by @scefali
+- ref(stacktrace): Remove references to frame.errors (#60393) by @malwilley
+- ref(feedback): update empty state illustration (#60399) by @michellewzhang
+- ref(crons): Add project_id to monitor_validation_failed log (#60402) by @evanpurkhiser
+- fix(browser-starfish): domain-filter not working (#60398) by @DominikB2014
+- ref(notifications): stop providing organization_id_for_team argument (#60296) by @scefali
+- test(hc): Fix bug in snapshot comparison with altered test class name (#60325) by @RyanSkonnord
+- fix(browser-starifish): remove alpha badge resource module (#60392) by @DominikB2014
+- ref: fix typing for avatar endpoints (#60319) by @asottile-sentry
+- test(hc): Change inheritance from AlertRuleDetailsPutEndpointTest (#60331) by @RyanSkonnord
+- ref(hc): Handle LazyObjects in serialize_generic_user (#60120) by @RyanSkonnord
+- feat(open-pr-comments): comment template (#60317) by @cathteng
+- fix(browser-starfish): cursor persisting when navigating between pages/filters (#60378) by @DominikB2014
+- ref(codeowners): Adding wildcard to groupEventDetails (#60361) by @k-fish
+- fix(recommended-event): Use event ID as tie breaker to match latest event (#60323) by @malwilley
+
+_Plus 227 more_
+
 23.11.0
 -------
 
