@@ -32,6 +32,15 @@ FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition]
 ALLOWED_GRANULARITIES = [10, 60, 3600, 86400]
 ALLOWED_GRANULARITIES = sorted(ALLOWED_GRANULARITIES)  # Ensure it's ordered
 
+# These aliases are sent in from the product, and need to be mapped to the actual snuba function
+# Provide a mapping from alias to aggregate/aggregate parameters.
+AGGREGATE_ALIASES = {
+    "p50": ("quantiles", [0.5]),
+    "p75": ("quantiles", [0.75]),
+    "p95": ("quantiles", [0.95]),
+    "p99": ("quantiles", [0.99]),
+}
+
 
 def run_query(request: Request) -> Mapping[str, Any]:
     """
@@ -96,6 +105,10 @@ def run_query(request: Request) -> Mapping[str, Any]:
             },
         )
         raise e
+
+    # Replace any aggregate aliases with the appropriate aggregate
+    aliased_query = _resolve_aggregate_aliases(request.query)
+    request.query = aliased_query
 
     try:
         snuba_results = raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
@@ -386,3 +399,27 @@ def _resolve_filters(
 
     new_filters = [resolve_exp(exp) for exp in filters]
     return new_filters, mappings
+
+
+def _resolve_aggregate_aliases(metrics_query: MetricsQuery) -> MetricsQuery:
+    """
+    Replaces any aggregate aliases with the appropriate aggregate.
+    """
+    if isinstance(metrics_query.query, Timeseries):
+        series = metrics_query.query
+        if series.aggregate in AGGREGATE_ALIASES:
+            aggregate, parameters = AGGREGATE_ALIASES[series.aggregate]
+            series = series.set_aggregate(aggregate, parameters)
+            return metrics_query.set_query(series)
+
+    elif isinstance(metrics_query.query, Formula):
+        parameters = metrics_query.query.parameters
+        for i, p in enumerate(parameters):
+            if isinstance(p, Timeseries):
+                if p.aggregate in AGGREGATE_ALIASES:
+                    aggregate, parameters = AGGREGATE_ALIASES[p.aggregate]
+                    parameters[i] = p.set_aggregate(aggregate, parameters)
+
+        return metrics_query.set_query(metrics_query.query.set_parameters(parameters))
+
+    return metrics_query
