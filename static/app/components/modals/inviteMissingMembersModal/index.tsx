@@ -259,7 +259,7 @@ export function InviteMissingMembersModal({
                 roles={allowedRoles}
                 disableUnallowed
                 onChange={value => setRole(value?.value, i)}
-                menuPortalTarget={modalContainerRef.current}
+                menuPortalTarget={modalContainerRef?.current}
                 isInsideModal
               />
               <TeamSelector
@@ -271,7 +271,7 @@ export function InviteMissingMembersModal({
                 onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
                 multiple
                 clearable
-                menuPortalTarget={modalContainerRef.current}
+                menuPortalTarget={modalContainerRef?.current}
                 isInsideModal
               />
             </Fragment>

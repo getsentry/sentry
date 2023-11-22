@@ -78,7 +78,7 @@ type ModalRenderProps = {
   /**
    * Reference to the modal's container.
    */
-  modalContainerRef: React.RefObject<HTMLDivElement>;
+  modalContainerRef?: React.RefObject<HTMLDivElement>;
 };
 
 /**
