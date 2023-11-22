@@ -342,11 +342,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
+                isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
                     "units": units,
                     "isMetricsData": isMetricsData,
+                    "isMetricsExtractedData": isMetricsExtractedData,
                     "tips": meta.get("tips", {}),
                     "datasetReason": meta.get("datasetReason", discover.DEFAULT_DATASET_REASON),
                 }
@@ -355,8 +357,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             else:
                 meta = fields_meta
 
-            if "isMetricsData" not in meta:
-                meta["isMetricsData"] = False
+            meta["isMetricsData"] = meta.get("isMetricsData", False)
+            meta["isMetricsExtractedData"] = meta.get("isMetricsExtractedData", False)
 
             if not data:
                 return {"data": [], "meta": meta}
@@ -523,6 +525,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                             dataset=dataset,
                         )
+                        if request.query_params.get("useOnDemandMetrics") == "true":
+                            results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
+                                results, key, query_columns
+                            )
                     else:
                         results[key] = serializer.serialize(
                             event_result,
@@ -576,6 +582,21 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 )["meta"]
 
             return serialized_result
+
+    def _query_if_extracted_data(
+        self, results: dict[str, Any], key: str, query_columns: list[str]
+    ) -> bool:
+        ret_value = False
+        try:
+            for c in query_columns:
+                # At least one of the columns has required extracted data
+                if results[key][c].get("meta", {}).get("isMetricsExtractedData"):
+                    ret_value = True
+                    break
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+
+        return ret_value
 
     def serialize_multiple_axis(
         self,

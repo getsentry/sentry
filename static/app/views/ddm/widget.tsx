@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -7,20 +6,19 @@ import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {IconEllipsis, IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {MetricsApiResponse, PageFilters} from 'sentry/types';
 import {
   defaultMetricDisplayType,
+  getSeriesName,
   MetricDisplayType,
-  MetricsData,
   MetricsQuery,
   parseMRI,
   updateQuery,
@@ -28,9 +26,9 @@ import {
 } from 'sentry/utils/metrics';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
-import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {MetricChart} from 'sentry/views/ddm/chart';
+import {MetricWidgetContextMenu} from 'sentry/views/ddm/contextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
@@ -109,13 +107,6 @@ export function useMetricWidgets() {
   };
 }
 
-// TODO(ddm): reuse from types/metrics.tsx
-type Group = {
-  by: Record<string, unknown>;
-  series: Record<string, number[]>;
-  totals: Record<string, number>;
-};
-
 export function MetricWidget({
   widget,
   datetime,
@@ -153,6 +144,7 @@ export function MetricWidget({
               datetime,
               environments,
             }}
+            displayType={widget.displayType}
           />
         </MetricWidgetHeader>
         {widget.mri ? (
@@ -183,65 +175,6 @@ const MetricWidgetHeader = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-type ContextMenuProps = {
-  metricsQuery: MetricsQuery;
-  displayType?: MetricDisplayType;
-};
-
-function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenuProps) {
-  const organization = useOrganization();
-  const router = useRouter();
-
-  if (!organization.features.includes('ddm-experimental')) {
-    return null;
-  }
-
-  return (
-    <StyledDropdownMenuControl
-      items={[
-        {
-          key: 'add-alert',
-          label: t('Create Alert'),
-          disabled: true,
-        },
-        {
-          key: 'add-dashoard',
-          label: t('Add to Dashboard'),
-          onAction: () => {
-            handleAddQueryToDashboard({
-              organization,
-              router,
-              metricsQuery,
-              displayType,
-            });
-          },
-        },
-      ]}
-      triggerProps={{
-        'aria-label': t('Widget actions'),
-        size: 'xs',
-        borderless: true,
-        showChevron: false,
-        icon: <IconEllipsis direction="down" size="sm" />,
-      }}
-      position="bottom-end"
-    />
-  );
-}
-
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// @ts-ignore
-function handleAddQueryToDashboard(props: {
-  metricsQuery: MetricsQuery;
-  organization: Organization;
-  router: InjectedRouter;
-  displayType?: MetricDisplayType;
-}) {}
-
-const StyledDropdownMenuControl = styled(DropdownMenu)`
-  margin: ${space(1)};
-`;
-
 function MetricWidgetBody({
   onChange,
   displayType,
@@ -261,9 +194,9 @@ function MetricWidgetBody({
     datetime,
   });
 
-  const [dataToBeRendered, setDataToBeRendered] = useState<MetricsData | undefined>(
-    undefined
-  );
+  const [dataToBeRendered, setDataToBeRendered] = useState<
+    MetricsApiResponse | undefined
+  >(undefined);
 
   const [hoveredLegend, setHoveredLegend] = useState('');
 
@@ -330,7 +263,10 @@ function MetricWidgetBody({
   );
 }
 
-function getChartSeries(data: MetricsData, {focusedSeries, groupBy, hoveredLegend}) {
+function getChartSeries(
+  data: MetricsApiResponse,
+  {focusedSeries, groupBy, hoveredLegend}
+) {
   // this assumes that all series have the same unit
   const parsed = parseMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
   const unit = parsed?.unit ?? '';
@@ -367,24 +303,7 @@ function getChartSeries(data: MetricsData, {focusedSeries, groupBy, hoveredLegen
     })) as Series[];
 }
 
-function getSeriesName(
-  group: Group,
-  isOnlyGroup = false,
-  groupBy: MetricsQuery['groupBy']
-) {
-  if (isOnlyGroup && !groupBy?.length) {
-    const mri = Object.keys(group.series)?.[0];
-    const parsed = parseMRI(mri);
-
-    return parsed?.name ?? '(none)';
-  }
-
-  return Object.entries(group.by)
-    .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
-    .join(', ');
-}
-
-function normalizeChartTimeParams(data: MetricsData) {
+function normalizeChartTimeParams(data: MetricsApiResponse) {
   const {
     start,
     end,

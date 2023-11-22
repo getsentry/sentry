@@ -187,7 +187,7 @@ function Chart({
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
 
-  const echartsInstance = chartRef?.current?.getEchartsInstance();
+  const echartsInstance = chartRef?.current?.getEchartsInstance?.();
   if (echartsInstance && !echartsInstance.group) {
     echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
@@ -483,7 +483,7 @@ export function useSynchronizeCharts(deps: boolean[] = []) {
   const [synchronized, setSynchronized] = useState<boolean>(false);
   useEffect(() => {
     if (deps.every(Boolean)) {
-      echarts.connect(STARFISH_CHART_GROUP);
+      echarts?.connect?.(STARFISH_CHART_GROUP);
       setSynchronized(true);
     }
   }, [deps, synchronized]);

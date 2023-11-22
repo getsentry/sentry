@@ -1249,7 +1249,7 @@ class Factories:
             )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.CONTROL)
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_userreport(project, event_id=None, **kwargs):
         event = Factories.store_event(
             data={

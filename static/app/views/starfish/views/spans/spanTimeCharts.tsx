@@ -32,6 +32,8 @@ const CHART_HEIGHT = 140;
 type Props = {
   appliedFilters: ModuleFilters;
   moduleName: ModuleName;
+  eventView?: EventView;
+  extraQuery?: string[];
   spanCategory?: string;
   throughputUnit?: RateUnits;
 };
@@ -40,6 +42,7 @@ type ChartProps = {
   filters: ModuleFilters;
   moduleName: ModuleName;
   throughputUnit: RateUnits;
+  extraQuery?: string[];
 };
 
 function getSegmentLabel(moduleName: ModuleName) {
@@ -51,10 +54,14 @@ export function SpanTimeCharts({
   appliedFilters,
   spanCategory,
   throughputUnit = RateUnits.PER_MINUTE,
+  extraQuery,
 }: Props) {
   const {selection} = usePageFilters();
 
   const eventView = getEventView(moduleName, selection, appliedFilters, spanCategory);
+  if (extraQuery) {
+    eventView.query += ` ${extraQuery.join(' ')}`;
+  }
 
   const {isLoading} = useSpansQuery({
     eventView,
@@ -91,6 +98,7 @@ export function SpanTimeCharts({
               moduleName={moduleName}
               filters={appliedFilters}
               throughputUnit={throughputUnit}
+              extraQuery={extraQuery}
             />
           </ChartPanel>
         </ChartsContainerItem>
@@ -99,9 +107,17 @@ export function SpanTimeCharts({
   );
 }
 
-function ThroughputChart({moduleName, filters, throughputUnit}: ChartProps): JSX.Element {
+function ThroughputChart({
+  moduleName,
+  filters,
+  throughputUnit,
+  extraQuery,
+}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
+  if (extraQuery) {
+    eventView.query += ` ${extraQuery.join(' ')}`;
+  }
 
   const label = getSegmentLabel(moduleName);
   const {isLoading, data} = useSpansQuery<
@@ -161,9 +177,12 @@ function ThroughputChart({moduleName, filters, throughputUnit}: ChartProps): JSX
   );
 }
 
-function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
+function DurationChart({moduleName, filters, extraQuery}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
+  if (extraQuery) {
+    eventView.query += ` ${extraQuery.join(' ')}`;
+  }
 
   const label = `avg(${SPAN_SELF_TIME})`;
 

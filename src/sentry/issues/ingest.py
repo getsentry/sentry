@@ -136,6 +136,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         event_metadata["contact_email"] = occurrence.evidence_data.get("contact_email")
         event_metadata["message"] = occurrence.evidence_data.get("message")
         event_metadata["name"] = occurrence.evidence_data.get("name")
+        event_metadata["source"] = occurrence.evidence_data.get("source")
 
     return {
         "type": event_type.key,

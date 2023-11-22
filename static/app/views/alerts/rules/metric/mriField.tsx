@@ -6,8 +6,13 @@ import Tag from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {parseFunction} from 'sentry/utils/discover/fields';
-import {getReadableMetricType, isAllowedOp, useMetricsMeta} from 'sentry/utils/metrics';
+import {
+  fieldToMri,
+  getReadableMetricType,
+  isAllowedOp,
+  mriToField,
+  useMetricsMeta,
+} from 'sentry/utils/metrics';
 
 interface Props {
   aggregate: string;
@@ -15,38 +20,19 @@ interface Props {
   project: Project;
 }
 
-function buildAggregate(mri: string, op: string) {
-  return `${op}(${mri})`;
-}
-
-export function parseAggregate(aggregate: string) {
-  const parsedFunction = parseFunction(aggregate);
-  if (!parsedFunction) {
-    // We only allow aggregate functions for custom metric alerts
-    return {
-      mri: undefined,
-      op: undefined,
-    };
-  }
-  return {
-    mri: parsedFunction.arguments[0],
-    op: parsedFunction.name,
-  };
-}
-
 function filterAndSortOperations(operations: string[]) {
   return operations.filter(isAllowedOp).sort((a, b) => a.localeCompare(b));
 }
 
 function MriField({aggregate, project, onChange}: Props) {
-  const meta = useMetricsMeta([parseInt(project.id, 10)], {
+  const {data: meta} = useMetricsMeta([parseInt(project.id, 10)], {
     useCases: ['transactions', 'custom'],
   });
   const metaArr = useMemo(() => {
     return Object.values(meta).sort((a, b) => a.name.localeCompare(b.name));
   }, [meta]);
 
-  const selectedValues = parseAggregate(aggregate);
+  const selectedValues = fieldToMri(aggregate);
   const selectedMriMeta = selectedValues.mri ? meta[selectedValues.mri] : null;
 
   useEffect(() => {
@@ -54,10 +40,7 @@ function MriField({aggregate, project, onChange}: Props) {
     if (!selectedMriMeta && metaArr.length > 0) {
       const newSelection = metaArr[0];
       onChange(
-        buildAggregate(
-          newSelection.mri,
-          filterAndSortOperations(newSelection.operations)[0]
-        ),
+        mriToField(newSelection.mri, filterAndSortOperations(newSelection.operations)[0]),
         {}
       );
     }
@@ -71,7 +54,7 @@ function MriField({aggregate, project, onChange}: Props) {
         selectedValues.op && availableOps.includes(selectedValues.op)
           ? selectedValues.op
           : availableOps[0];
-      onChange(buildAggregate(option.value, selectedOp), {});
+      onChange(mriToField(option.value, selectedOp), {});
     },
     [meta, onChange, selectedValues.op]
   );

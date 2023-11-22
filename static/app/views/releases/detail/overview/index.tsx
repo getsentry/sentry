@@ -573,6 +573,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                                 }
                                 titles={titles}
                                 generateLink={generateLink}
+                                supportsInvestigationRule={false}
                               />
                             )}
                           </Feature>

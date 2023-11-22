@@ -4,7 +4,6 @@ import sentry_sdk
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Direction, Function, Op, Or, OrderBy
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
@@ -243,13 +242,6 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
     }
 
     def get(self, request, organization):
-        if not features.has(
-            "organizations:performance-duration-regression-visible",
-            organization,
-            actor=request.user,
-        ):
-            return Response(status=404)
-
         # TODO: Extract this into a custom serializer to handle validation
         transaction_name = request.GET.get("transaction")
         project_id = request.GET.get("project")

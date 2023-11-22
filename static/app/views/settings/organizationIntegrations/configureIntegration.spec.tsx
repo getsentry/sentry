@@ -60,12 +60,11 @@ describe('OpsgenieMigrationButton', function () {
       <ConfigureIntegration
         {...TestStubs.routeComponentProps()}
         params={{integrationId, providerKey: 'opsgenie'}}
-        organization={org}
-        location={TestStubs.location({query: {}})}
-      />
+      />,
+      {organization: org}
     );
     renderGlobalModal();
-    expect(screen.getByRole('button', {name: 'Migrate Plugin'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Migrate Plugin'})).toBeEnabled();
 
     await userEvent.click(screen.getByRole('button', {name: 'Migrate Plugin'}));
 
