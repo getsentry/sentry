@@ -444,8 +444,13 @@ export function clearQuery(router: InjectedRouter) {
 export function getSeriesName(
   group: MetricsGroup,
   isOnlyGroup = false,
-  groupBy: MetricsQuery['groupBy']
+  groupBy: MetricsQuery['groupBy'],
+  alias?: string
 ) {
+  if (alias) {
+    return alias;
+  }
+
   if (isOnlyGroup && !groupBy?.length) {
     const mri = Object.keys(group.series)?.[0];
     const parsed = parseMRI(mri);
