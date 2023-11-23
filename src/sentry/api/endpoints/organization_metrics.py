@@ -8,11 +8,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.code_locations import CodeLocationsSerializer
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.sentry_metrics.querying.api import run_metrics_query
-from sentry.sentry_metrics.querying.metadata import get_code_locations
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -41,31 +38,6 @@ def get_use_case_id(request: Request) -> UseCaseID:
     except ValueError:
         raise ParseError(
             detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
-        )
-
-
-@region_silo_endpoint
-class OrganizationMetricsCodeLocationsEndpoint(OrganizationEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-    }
-    """Get code locations of one or more metrics for a given set of projects in a time interval"""
-
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-
-    def get(self, request: Request, organization) -> Response:
-        start, end = get_date_range_from_params(request.GET)
-
-        code_locations = get_code_locations(
-            metric_mris=request.GET.getlist("metric", []),
-            start=start,
-            end=end,
-            organization=organization,
-            projects=self.get_projects(request, organization),
-        )
-
-        return Response(
-            {"data": serialize(code_locations, request.user, CodeLocationsSerializer())}, status=200
         )
 
 
