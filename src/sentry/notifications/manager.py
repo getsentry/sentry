@@ -670,44 +670,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )
 
-    def has_any_provider_settings(
-        self, recipient: RpcActor | Team | User, provider: ExternalProviders
-    ) -> bool:
-        from sentry.models.team import Team
-        from sentry.models.user import User
-
-        key_field = None
-        if isinstance(recipient, RpcActor):
-            key_field = "user_id" if recipient.actor_type == ActorType.USER else "team_id"
-        if isinstance(recipient, (RpcUser, User)):
-            key_field = "user_id"
-        if isinstance(recipient, Team):
-            key_field = "team_id"
-
-        assert key_field, "Could not resolve key_field"
-
-        team_ids: Set[int] = set()
-        user_ids: Set[int] = set()
-        if isinstance(recipient, RpcActor):
-            (team_ids if recipient.actor_type == ActorType.TEAM else user_ids).add(recipient.id)
-        elif isinstance(recipient, Team):
-            team_ids.add(recipient.id)
-        elif isinstance(recipient, User):
-            user_ids.add(recipient.id)
-
-        return (
-            self._filter(provider=provider, team_ids=team_ids, user_ids=user_ids)
-            .filter(
-                value__in={
-                    NotificationSettingOptionValues.ALWAYS.value,
-                    NotificationSettingOptionValues.COMMITTED_ONLY.value,
-                    NotificationSettingOptionValues.SUBSCRIBE_ONLY.value,
-                },
-                **{key_field: recipient.id},
-            )
-            .exists()
-        )
-
     def enable_settings_for_user(
         self,
         recipient: User | RpcUser,
