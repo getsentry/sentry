@@ -2,7 +2,7 @@ import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {fieldToMri, getDdmLocation, MetricDisplayType} from 'sentry/utils/metrics';
+import {fieldToMri, getDdmUrl, MetricDisplayType} from 'sentry/utils/metrics';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {isCustomMetricAggregate} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAggregate';
@@ -48,7 +48,7 @@ export function makeDefaultCta({
     const {mri, op} = fieldToMri(rule.aggregate);
     return {
       buttonText: t('Open in DDM'),
-      to: getDdmLocation(orgSlug, {
+      to: getDdmUrl(orgSlug, {
         start: timePeriod.start,
         end: timePeriod.end,
         utc: timePeriod.utc,

@@ -1,5 +1,6 @@
 import {InjectedRouter} from 'react-router';
 import moment from 'moment';
+import qs from 'qs';
 
 import {
   DateTimeObject,
@@ -68,20 +69,19 @@ export type MetricsQuery = {
   query?: string;
 };
 
-export function getDdmLocation(
+export function getDdmUrl(
   orgSlug: string,
   params: Omit<DdmQUeryParams, 'project'> & {project?: (string | number)[]}
 ) {
-  return {
-    pathname: `/organizations/${orgSlug}/ddm/`,
-    query: {
+  return `/organizations/${orgSlug}/ddm/?${qs.stringify(
+    {
       ...params,
-      project: params.project?.map(id =>
-        typeof id === 'string' ? parseInt(id, 10) : id
-      ),
       widgets: JSON.stringify(params.widgets),
     },
-  };
+    // Need to pass indices false, otherwise page filters will not be recognized
+    // as qs per adds the indices per default whereas react router does not
+    {indices: false}
+  )}`;
 }
 
 export function getMetricsApiRequestQuery(

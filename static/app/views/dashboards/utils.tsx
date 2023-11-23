@@ -44,7 +44,7 @@ import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   fieldToMri,
-  getDdmLocation,
+  getDdmUrl,
   MetricDisplayType,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics';
@@ -413,7 +413,7 @@ export function getWidgetDDMUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
 
-  const ddmLocation = getDdmLocation(organization.slug, {
+  const ddmLocation = getDdmUrl(organization.slug, {
     ...datetime,
     project: selection.projects,
     environment: selection.environments,
@@ -431,7 +431,7 @@ export function getWidgetDDMUrl(
     }),
   });
 
-  return `${ddmLocation.pathname}?${qs.stringify(ddmLocation.query)}`;
+  return ddmLocation;
 }
 
 export function flattenErrors(
