@@ -385,7 +385,15 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
       InteractiveTitle={
         InteractiveTitle ? () => <InteractiveTitle isLoading={false} /> : null
       }
-      EmptyComponent={WidgetEmptyStateWarning}
+      EmptyComponent={
+        isLoadingReleases
+          ? () => (
+              <LoadingWrapper height={TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight}>
+                <StyledLoadingIndicator size={40} />
+              </LoadingWrapper>
+            )
+          : WidgetEmptyStateWarning
+      }
       Queries={Queries}
       Visualizations={Visualizations}
     />
@@ -396,4 +404,15 @@ export default SlowScreensByTTID;
 
 const StyledDurationWrapper = styled('div')`
   padding: 0 ${space(1)};
+`;
+
+const LoadingWrapper = styled('div')<{height?: number}>`
+  height: ${p => p.height}px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
 `;
