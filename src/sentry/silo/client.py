@@ -125,9 +125,14 @@ def validate_region_ip_address(ip: str) -> bool:
     Checks if the provided IP address is a Region Silo IP address.
     """
     if not ALLOWED_REGION_IP_ADDRESSES:
+        sentry_sdk.capture_exception(
+            RegionResolutionError(f"Disallowed Region Silo IP address: {ip}")
+        )
         return False
+
     ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))
     result = ip_address in ALLOWED_REGION_IP_ADDRESSES
+
     if not result:
         sentry_sdk.capture_exception(
             RegionResolutionError(f"Disallowed Region Silo IP address: {ip}")
