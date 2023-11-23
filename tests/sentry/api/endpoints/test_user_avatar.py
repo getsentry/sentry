@@ -2,7 +2,6 @@ from base64 import b64encode
 from io import BytesIO
 from unittest import mock
 
-import pytest
 from django.test import override_settings
 from django.urls import reverse
 
@@ -11,7 +10,6 @@ from sentry.models.avatars.user_avatar import UserAvatar, UserAvatarType
 from sentry.models.files import ControlFile, File
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -164,7 +162,6 @@ class UserAvatarTest(APITestCase):
         assert isinstance(avatar.get_file(), ControlFile)
         assert ControlFile.objects.filter(id=avatar.control_file_id).exists()
 
-    @pytest.mark.skipif(use_split_dbs(), reason="requires single/monolith db mode")
     @mock.patch("sentry.tasks.files.copy_file_to_control_and_update_model.apply_async")
     def test_get_upload_use_control_during_update(self, mock_task):
         user = self.create_user(email="a@example.com")

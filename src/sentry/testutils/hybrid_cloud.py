@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import contextlib
 import functools
-import os
 import threading
 from typing import Any, Callable, Iterator, List, Set, Type, TypedDict
 
@@ -249,10 +248,3 @@ def simulate_on_commit(request: Any):
         transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
         transaction.on_commit = _old_transaction_on_commit
         delattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks")
-
-
-def use_split_dbs() -> bool:
-    # TODO: refactor out use_split_dbs() in any and all tests once split database is permanently set
-    # in stone.
-    SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
-    return not SENTRY_USE_MONOLITH_DBS

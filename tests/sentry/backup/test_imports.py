@@ -9,7 +9,6 @@ from typing import Tuple
 from unittest.mock import patch
 
 import pytest
-import urllib3.exceptions
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -68,7 +67,6 @@ from sentry.testutils.helpers.backups import (
     generate_rsa_key_pair,
     is_control_model,
 )
-from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 from tests.sentry.backup import get_matching_exportable_models, mark, targets
@@ -1428,12 +1426,6 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 return json.load(tmp_file)
 
-    @pytest.mark.xfail(
-        not use_split_dbs(),
-        reason="Preexisting failure: getsentry/team-ospo#206",
-        raises=urllib3.exceptions.MaxRetryError,
-        strict=True,
-    )
     @targets(mark(COLLISION_TESTED, QuerySubscription))
     def test_colliding_query_subscription(self):
         # We need a celery task running to properly test the `subscription_id` assignment, otherwise
