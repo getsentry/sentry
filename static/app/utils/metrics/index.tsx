@@ -33,8 +33,8 @@ export type MetricTag = {
   key: string;
 };
 
-export type SortState = {
-  name: 'name' | 'avg' | 'min' | 'max' | 'sum';
+type SortState = {
+  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | undefined;
   order: 'asc' | 'desc';
 };
 
