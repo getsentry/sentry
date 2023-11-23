@@ -17,6 +17,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import useErrorSamples from 'sentry/views/starfish/components/samplesTable/useErrorSamples';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -179,7 +180,12 @@ export function TransactionSamplesTable({
 
     if (column.key === 'id') {
       return (
-        <Link {...commonProps} to={`/performance/${row['project.name']}:${row.id}`}>
+        <Link
+          {...commonProps}
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/performance/${row['project.name']}:${row.id}`
+          )}
+        >
           {row.id.slice(0, 8)}
         </Link>
       );
@@ -189,7 +195,9 @@ export function TransactionSamplesTable({
       return row.profile_id ? (
         <Link
           {...commonProps}
-          to={`/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`}
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/profiling/profile/${row['project.name']}/${row.profile_id}/flamechart/`
+          )}
         >
           {row.profile_id.slice(0, 8)}
         </Link>

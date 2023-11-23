@@ -2,6 +2,8 @@ import {Link} from 'react-router';
 import * as qs from 'query-string';
 
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
@@ -22,6 +24,7 @@ export function SpanDescriptionLink({
   description,
 }: Props) {
   const location = useLocation();
+  const organization = useOrganization();
   const routingContext = useRoutingContext();
 
   const queryString = {
@@ -35,9 +38,11 @@ export function SpanDescriptionLink({
     <OverflowEllipsisTextContainer>
       {group ? (
         <Link
-          to={`${routingContext.baseURL}/${
-            extractRoute(location) ?? 'spans'
-          }/span/${group}?${qs.stringify(queryString)}`}
+          to={normalizeUrl(
+            `/organizations/${organization.slug}${routingContext.baseURL}/${
+              extractRoute(location) ?? 'spans'
+            }/span/${group}?${qs.stringify(queryString)}`
+          )}
         >
           {description}
         </Link>

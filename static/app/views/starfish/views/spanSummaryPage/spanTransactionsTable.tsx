@@ -20,6 +20,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   renderHeadCell,
   SORTABLE_FIELDS,
@@ -96,9 +97,11 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
           ? `${row.transactionMethod} ${row.transaction}`
           : row.transaction;
 
-      const pathname = `${routingContext.baseURL}/${
-        extractRoute(location) ?? 'spans'
-      }/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
+      const pathname = normalizeUrl(
+        `/organizations/${organization.slug}${routingContext.baseURL}/${
+          extractRoute(location) ?? 'spans'
+        }/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`
+      );
       const query: {[key: string]: string | undefined} = {
         ...location.query,
         endpoint,
