@@ -34,7 +34,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             "module": "bar",
             "filename": filename,
             "abs_path": f"/usr/src/foo/{filename}",
-            "lineno": 10,
+            "lineNo": 10,
         }
 
         return json.dumps(code_location)
@@ -211,9 +211,9 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
 
         frames = code_locations[0]["frames"]
         assert len(frames) == 1
-        assert frames[0]["lineno"] == 10
+        assert frames[0]["lineNo"] == 10
         # We check that all the remaining elements are `None`.
-        del frames[0]["lineno"]
+        del frames[0]["lineNo"]
         for value in frames[0].values():
             assert value is None
 

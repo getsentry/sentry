@@ -15,9 +15,20 @@ class CodeLocationsSerializer(Serializer):
     def get_attrs(self, item_list, user):
         return {item: self._compute_attrs(item) for item in item_list}
 
+    def _serialize_code_location_payload(self, code_location_payload):
+        return {
+            "function": code_location_payload.get("function"),
+            "module": code_location_payload.get("module"),
+            "filename": code_location_payload.get("filename"),
+            "absPath": code_location_payload.get("abs_path"),
+            "lineNo": code_location_payload.get("lineno"),
+        }
+
     def serialize(self, obj, attrs, user):
         return {
             "mri": attrs["mri"],
             "timestamp": attrs["timestamp"],
-            "frames": attrs["frames"],
+            "frames": [
+                self._serialize_code_location_payload(location) for location in attrs["frames"]
+            ],
         }
