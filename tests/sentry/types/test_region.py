@@ -6,7 +6,6 @@ from django.conf import settings
 from django.db import router
 from django.test import RequestFactory, override_settings
 
-from sentry.exceptions import RestrictedIPAddress
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloLimit, SiloMode, unguarded_write
