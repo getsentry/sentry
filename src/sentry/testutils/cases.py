@@ -2569,7 +2569,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
                 "scope_type": "user",
                 "value": "always",
             }
-            for type in ["workflow", "deploy", "issue_alerts"]:
+            for type in ["workflow", "deploy", "alerts"]:
                 NotificationSettingOption.objects.create(
                     type=type,
                     **base_params,
@@ -2636,7 +2636,7 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
                 "scope_type": "user",
                 "value": "always",
             }
-            for type in ["workflow", "deploy", "issue_alerts"]:
+            for type in ["workflow", "deploy", "alerts"]:
                 NotificationSettingOption.objects.create(
                     type=type,
                     **base_params,
