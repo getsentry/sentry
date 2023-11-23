@@ -97,7 +97,6 @@ def is_current_event_safe():
     """
 
     with configure_scope() as scope:
-
         # Scope was explicitly marked as unsafe
         if scope._tags.get(UNSAFE_TAG):
             return False
@@ -432,6 +431,9 @@ def configure_sdk():
     sdk_options.setdefault("_experiments", {}).update(
         enable_metrics=True,
         before_emit_metric=minimetrics.before_emit_metric,
+        # turn summaries on, but filter them dynamically in the callback
+        metrics_summary_sample_rate=1.0,
+        should_summarize_metric=minimetrics.should_summarize_metric,
     )
 
     sentry_sdk.init(
