@@ -13,9 +13,9 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
+import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
@@ -136,7 +136,7 @@ export function SpanSamplesTable({
 
     if (column.key === HTTP_RESPONSE_CONTENT_LENGTH) {
       const size = parseInt(row[HTTP_RESPONSE_CONTENT_LENGTH], 10);
-      return <ResourceSize bytes={size} />;
+      return <ResourceSizeCell bytes={size} />;
     }
     if (column.key === 'profile_id') {
       return (
