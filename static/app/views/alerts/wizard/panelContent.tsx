@@ -134,7 +134,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       'Alert on custom metrics that you have configured and are not related to errors, transactions or sessions.'
     ),
     examples: [
-      t('When your number of sign-ups dropped by 10% compared to the previous week.'),
+      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
       t(
         'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
       ),
