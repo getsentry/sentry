@@ -16,7 +16,7 @@ import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 
-import {PageFilters} from '../../types/core';
+import {DateString, PageFilters} from '../../types/core';
 
 export enum MetricDisplayType {
   LINE = 'line',
@@ -33,6 +33,31 @@ export type MetricTag = {
   key: string;
 };
 
+export type SortState = {
+  name: 'name' | 'avg' | 'min' | 'max' | 'sum';
+  order: 'asc' | 'desc';
+};
+
+export interface MetricWidgetQueryParams
+  extends Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> {
+  displayType: MetricDisplayType;
+  focusedSeries?: string;
+  position?: number;
+  powerUserMode?: boolean;
+  showSummaryTable?: boolean;
+  sort?: SortState;
+}
+
+export interface DdmQUeryParams {
+  widgets: MetricWidgetQueryParams[];
+  end?: DateString;
+  environment?: string[];
+  period?: string | null;
+  project?: number[];
+  start?: DateString;
+  utc?: boolean | null;
+}
+
 export type MetricsQuery = {
   datetime: PageFilters['datetime'];
   environments: PageFilters['environments'];
@@ -42,6 +67,22 @@ export type MetricsQuery = {
   op?: string;
   query?: string;
 };
+
+export function getDdmLocation(
+  orgSlug: string,
+  params: Omit<DdmQUeryParams, 'project'> & {project?: (string | number)[]}
+) {
+  return {
+    pathname: `/organizations/${orgSlug}/ddm/`,
+    query: {
+      ...params,
+      project: params.project?.map(id =>
+        typeof id === 'string' ? parseInt(id, 10) : id
+      ),
+      widgets: JSON.stringify(params.widgets),
+    },
+  };
+}
 
 export function getMetricsApiRequestQuery(
   {field, query, groupBy}: MetricsApiRequestMetric,
@@ -252,14 +293,11 @@ export function mriToField(mri: string, op: string): string {
   return `${op}(${mri})`;
 }
 
-export function fieldToMri(field: string) {
+export function fieldToMri(field: string): {mri?: string; op?: string} {
   const parsedFunction = parseFunction(field);
   if (!parsedFunction) {
     // We only allow aggregate functions for custom metric alerts
-    return {
-      mri: undefined,
-      op: undefined,
-    };
+    return {};
   }
   return {
     mri: parsedFunction.arguments[0],

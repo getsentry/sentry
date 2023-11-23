@@ -42,7 +42,12 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {fieldToMri} from 'sentry/utils/metrics';
+import {
+  fieldToMri,
+  getDdmLocation,
+  MetricDisplayType,
+  MetricWidgetQueryParams,
+} from 'sentry/utils/metrics';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {
@@ -408,25 +413,25 @@ export function getWidgetDDMUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
 
-  const ddmLocation = `/organizations/${organization.slug}/ddm/?${qs.stringify({
+  const ddmLocation = getDdmLocation(organization.slug, {
     ...datetime,
     project: selection.projects,
     environment: selection.environments,
-    widgets: JSON.stringify(
-      _widget.queries.map(query => {
-        const {mri, op} = fieldToMri(query.aggregates[0]);
-        return {
-          mri,
-          op,
-          groupBy: query.columns,
-          query: query.conditions ?? '',
-          displayType: _widget.displayType,
-        };
-      })
-    ),
-  })}`;
+    widgets: _widget.queries.map(query => {
+      const {mri, op} = fieldToMri(query.aggregates[0]);
+      return {
+        // TODO(oggi): Can the MRI be undefined here?
+        mri: mri as string,
+        op,
+        groupBy: query.columns,
+        query: query.conditions ?? '',
+        // TODO(oggi): Handle display type mismatch and remove cast
+        displayType: _widget.displayType as unknown as MetricDisplayType,
+      } satisfies MetricWidgetQueryParams;
+    }),
+  });
 
-  return ddmLocation;
+  return `${ddmLocation.pathname}?${qs.stringify(ddmLocation.query)}`;
 }
 
 export function flattenErrors(
