@@ -3,6 +3,7 @@ from __future__ import annotations
 import ipaddress
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, cast
 
+import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
@@ -18,7 +19,7 @@ from sentry.silo.util import (
     clean_outbound_headers,
     clean_proxy_headers,
 )
-from sentry.types.region import Region, get_region_by_name
+from sentry.types.region import Region, RegionResolutionError, get_region_by_name
 
 if TYPE_CHECKING:
     from typing import FrozenSet
@@ -126,7 +127,12 @@ def validate_region_ip_address(ip: str) -> bool:
     if not ALLOWED_REGION_IP_ADDRESSES:
         return False
     ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))
-    return ip_address in ALLOWED_REGION_IP_ADDRESSES
+    result = ip_address in ALLOWED_REGION_IP_ADDRESSES
+    if not result:
+        sentry_sdk.capture_exception(
+            RegionResolutionError(f"Disallowed Region Silo IP address: {ip}")
+        )
+    return result
 
 
 class RegionSiloClient(BaseSiloClient):
