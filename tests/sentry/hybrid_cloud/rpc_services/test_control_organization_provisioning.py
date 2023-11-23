@@ -100,7 +100,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
         assert old_organization == new_organization
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBase):
     def test_organization_provisioning_happy_path(self):
         rpc_org_slug = self.provision_organization()
@@ -170,7 +170,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
         )
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProvisioningBase):
     def test_updates_exact_slug(self):
         org_slug_res = self.provision_organization()

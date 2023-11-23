@@ -9,7 +9,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
 @django_db_all
-@all_silo_test(stable=True)
+@all_silo_test
 def test_audit_log_event():
     user = Factories.create_user()
     organization = Factories.create_organization()
@@ -34,7 +34,7 @@ def test_audit_log_event():
 
 
 @django_db_all
-@all_silo_test(stable=True)
+@all_silo_test
 def test_user_ip_event():
     user = Factories.create_user()
 

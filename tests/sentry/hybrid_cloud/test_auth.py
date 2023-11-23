@@ -13,7 +13,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_get_org_auth_config():
     org_with_many_api_keys = Factories.create_organization()
     org_without_api_keys = Factories.create_organization()

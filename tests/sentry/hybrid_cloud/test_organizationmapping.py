@@ -45,7 +45,7 @@ def assert_matching_organization_mapping(
         assert org_mapping.codecov_access == bool(org.flags.codecov_access)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCase):
     def test_upsert__create_if_not_found(self):
         self.organization = self.create_organization(name="test name", slug="foobar", region="us")
@@ -148,7 +148,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMappingReplicationTest(TransactionTestCase):
     def test_replicates_all_flags(self):
         self.organization = self.create_organization(slug="santry", region="us")

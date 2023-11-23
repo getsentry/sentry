@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationRepositoriesListTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -237,7 +237,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert response.data[0]["externalSlug"] is None
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationRepositoriesCreateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -286,7 +286,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
         assert response.status_code == 201, (response.status_code, response.content)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     def setUp(self):
         super().setUp()

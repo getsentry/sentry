@@ -21,7 +21,7 @@ from sentry.utils import json
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTestCase):
     @cached_property
     def request(self):

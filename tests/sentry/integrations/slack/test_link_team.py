@@ -125,7 +125,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.login_as(user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -272,7 +272,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(team_settings) == 0
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()

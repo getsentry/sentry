@@ -152,7 +152,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             response = self.client.get(
                 url,
                 {
-                    "query": f"issue:{group_1.qualified_short_id} status:unresolved",
+                    "query": f"issue:{group_1.qualified_short_id} is:unresolved",
                     "dataset": "errors",
                 },
                 format="json",

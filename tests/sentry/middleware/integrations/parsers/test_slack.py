@@ -15,7 +15,7 @@ from sentry.types.region import Region, RegionCategory
 from sentry.utils.signing import sign
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SlackRequestParserTest(TestCase):
     get_response = MagicMock()
     factory = RequestFactory()
