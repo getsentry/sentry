@@ -16,7 +16,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.auth import login
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class AuthenticationMiddlewareTestCase(TestCase):
     middleware = cached_property(AuthenticationMiddleware)
 

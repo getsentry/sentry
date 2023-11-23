@@ -18,7 +18,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CustomRulesGetEndpoint(APITestCase):
     """
     Tests the GET endpoint
@@ -173,7 +173,7 @@ class CustomRulesGetEndpoint(APITestCase):
         assert resp.status_code == 204
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CustomRulesEndpoint(APITestCase):
     """
     Tests that calling the endpoint converts the query to a rule returns it and saves it in the db

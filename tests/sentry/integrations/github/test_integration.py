@@ -78,7 +78,7 @@ class GitHubPlugin(IssueTrackingPlugin2):
     conf_key = slug
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"

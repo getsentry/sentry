@@ -17,7 +17,7 @@ from sentry.utils import kafka_config
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details"
 

@@ -186,29 +186,21 @@ function PerformanceDurationRegressionIssueDetailsContent({
   event,
   project,
 }: Required<GroupEventDetailsContentProps>) {
-  const organization = useOrganization();
-
   return (
-    <Feature
-      features={['performance-duration-regression-visible']}
-      organization={organization}
-      renderDisabled
-    >
-      <Fragment>
-        <ErrorBoundary mini>
-          <EventRegressionSummary event={event} group={group} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventBreakpointChart event={event} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <AggregateSpanDiff event={event} project={project} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventComparison event={event} project={project} />
-        </ErrorBoundary>
-      </Fragment>
-    </Feature>
+    <Fragment>
+      <ErrorBoundary mini>
+        <EventRegressionSummary event={event} group={group} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <EventBreakpointChart event={event} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <AggregateSpanDiff event={event} project={project} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <EventComparison event={event} project={project} />
+      </ErrorBoundary>
+    </Fragment>
   );
 }
 
@@ -220,34 +212,28 @@ function ProfilingDurationRegressionIssueDetailsContent({
   const organization = useOrganization();
 
   return (
-    <Feature
-      features={['profile-function-regression-exp-visible']}
-      organization={organization}
-      renderDisabled
-    >
-      <Fragment>
+    <Fragment>
+      <ErrorBoundary mini>
+        <EventRegressionSummary event={event} group={group} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <EventFunctionBreakpointChart event={event} />
+      </ErrorBoundary>
+      <Feature
+        features={['profiling-differential-flamegraph']}
+        organization={organization}
+      >
         <ErrorBoundary mini>
-          <EventRegressionSummary event={event} group={group} />
+          <EventDifferenialFlamegraph event={event} />
         </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventFunctionBreakpointChart event={event} />
-        </ErrorBoundary>
-        <Feature
-          features={['profiling-differential-flamegraph']}
-          organization={organization}
-        >
-          <ErrorBoundary mini>
-            <EventDifferenialFlamegraph event={event} />
-          </ErrorBoundary>
-        </Feature>
-        <ErrorBoundary mini>
-          <EventAffectedTransactions event={event} group={group} project={project} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventFunctionComparisonList event={event} group={group} project={project} />
-        </ErrorBoundary>
-      </Fragment>
-    </Feature>
+      </Feature>
+      <ErrorBoundary mini>
+        <EventAffectedTransactions event={event} group={group} project={project} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <EventFunctionComparisonList event={event} group={group} project={project} />
+      </ErrorBoundary>
+    </Fragment>
   );
 }
 

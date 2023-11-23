@@ -26,6 +26,10 @@ import {
   ecosystemEventMap,
   EcosystemEventParameters,
 } from './analytics/ecosystemAnalyticsEvents';
+import {
+  feedbackEventMap,
+  FeedbackEventParameters,
+} from './analytics/feedbackAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './analytics/growthAnalyticsEvents';
 import {integrationEventMap, IntegrationEventParameters} from './analytics/integrations';
 import {issueEventMap, IssueEventParameters} from './analytics/issueAnalyticsEvents';
@@ -80,6 +84,7 @@ interface EventParameters
     DashboardsEventParameters,
     DDMEventParameters,
     DiscoverEventParameters,
+    FeedbackEventParameters,
     IssueEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
@@ -104,6 +109,7 @@ const allEventMap: Record<string, string | null> = {
   ...dashboardsEventMap,
   ...ddmEventMap,
   ...discoverEventMap,
+  ...feedbackEventMap,
   ...growthEventMap,
   ...issueEventMap,
   ...monitorsEventMap,

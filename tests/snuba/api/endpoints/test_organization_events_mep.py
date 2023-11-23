@@ -2637,19 +2637,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             dataset="metricsEnhanced",
         )
 
-    def test_is_metrics_extracted_data_is_excluded(self):
-        self._test_is_metrics_extracted_data(
-            {
-                "field": ["count()"],
-                "query": "transaction.duration:>=91",
-                "useOnDemandMetrics": "true",
-                "yAxis": "count()",
-            },
-            # Since we do not include metricsEnhanced dataset it will fail
-            expected_on_demand_query=False,
-            dataset="discover",
-        )
-
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest

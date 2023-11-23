@@ -5,7 +5,7 @@ from sentry.testutils.silo import all_silo_test
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_create_internal_integration_for_channel_request():
     org = Factories.create_organization()
     integration_creator = Factories.create_user(email="test@sentry.io")
@@ -28,7 +28,7 @@ def test_create_internal_integration_for_channel_request():
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_find_alertable_services():
     org = Factories.create_organization()
     app1 = Factories.create_internal_integration(organization_id=org.id, is_alertable=True)

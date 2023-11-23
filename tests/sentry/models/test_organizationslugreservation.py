@@ -14,7 +14,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestOrganizationSlugReservationReplication(TestCase):
     def does_replica_match_original_reservation(
         self,

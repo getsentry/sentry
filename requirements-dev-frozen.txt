@@ -169,7 +169,7 @@ rfc3986-validator==0.1.1
 rsa==4.8
 s3transfer==0.6.1
 selenium==4.3.0
-sentry-arroyo==2.14.20
+sentry-arroyo==2.14.21
 sentry-cli==2.16.0
 sentry-forked-django-stubs==4.2.6.post3
 sentry-forked-djangorestframework-stubs==3.14.4.post2
@@ -188,7 +188,7 @@ sqlparse==0.4.4
 statsd==3.3
 stripe==2.61.0
 structlog==22.1.0
-symbolic==12.3.0
+symbolic==12.7.0
 time-machine==2.13.0
 tokenize-rt==5.0.0
 tomli==2.0.1
