@@ -475,14 +475,16 @@ CSP_BASE_URI = [
     "'none'",
 ]
 CSP_STYLE_SRC = [
-    "'self'",
     "'unsafe-inline'",
+    "*",  # required for replays
 ]
 CSP_IMG_SRC = [
-    "'self'",
     "blob:",
     "data:",
-    "https://secure.gravatar.com",
+    "*",  # required for replays
+]
+CSP_MEDIA_SRC = [
+    "*",  # required for replays
 ]
 
 if ENVIRONMENT == "development":
