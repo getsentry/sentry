@@ -6,6 +6,8 @@ import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import {Event} from '@sentry/types';
 
+import * as Spotlight from '@spotlightjs/core';
+
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
@@ -168,6 +170,10 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       return event;
     },
   });
+
+  if (sentryConfig.environment === 'development') {
+    Spotlight.init();
+  }
 
   // Event processor to fill the debug_meta field with debug IDs based on the
   // files the error touched. (files inside the stacktrace)
