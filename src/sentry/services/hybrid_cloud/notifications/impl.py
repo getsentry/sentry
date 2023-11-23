@@ -14,10 +14,12 @@ from sentry.models.user import User
 from sentry.notifications.helpers import get_scope_type
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
+    NOTIFICATION_SETTING_TYPES,
     NotificationScopeEnum,
     NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -31,7 +33,7 @@ from sentry.services.hybrid_cloud.notifications.model import NotificationSetting
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
@@ -68,26 +70,24 @@ class DatabaseBackedNotificationsService(NotificationsService):
             skip_provider_updates=skip_provider_updates,
         )
 
-    def bulk_update_settings(
+    def enable_all_settings_for_provider(
         self,
         *,
-        notification_type_to_value_map: Mapping[
-            NotificationSettingTypes, NotificationSettingOptionValues
-        ],
-        external_provider: ExternalProviders,
+        external_provider: ExternalProviderEnum,
         user_id: int,
     ) -> None:
-        with transaction.atomic(router.db_for_write(NotificationSetting)):
-            for notification_type, setting_option in notification_type_to_value_map.items():
-                self.update_settings(
-                    external_provider=external_provider,
-                    actor=RpcActor(id=user_id, actor_type=ActorType.USER),
-                    notification_type=notification_type,
-                    setting_option=setting_option,
-                    skip_provider_updates=True,
+        with transaction.atomic(router.db_for_write(NotificationSettingProvider)):
+            for type_str in NOTIFICATION_SETTING_TYPES.values():
+                NotificationSettingProvider.objects.create_or_update(
+                    provider=external_provider.value,
+                    user_id=user_id,
+                    scope_type=NotificationScopeEnum.USER.value,
+                    scope_identifier=user_id,
+                    type=type_str,
+                    values={
+                        "value": NotificationSettingsOptionEnum.ALWAYS.value,
+                    },
                 )
-            # update the providers at the end
-            NotificationSetting.objects.update_provider_settings(user_id, None)
 
     # TODO(snigdha): This can be removed in V2.
     def get_settings_for_users(
