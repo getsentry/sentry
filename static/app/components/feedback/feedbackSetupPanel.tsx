@@ -42,10 +42,10 @@ export default function FeedbackSetupPanel() {
         </IlloBox>
         <StyledBox>
           <Fragment>
-            <h3>{t('Introducing the New User Feedback')}</h3>
+            <h3>{t('Introducing the New and Improved User Feedback')}</h3>
             <p>
               {t(
-                "Users can submit feedback anytime on issues they're experiencing on your app via our feedback widget."
+                "Allow your users to submit feedback anytime on issues they're experiencing on your app with our out-of-the-box Feedback widget. The feedback will be connected to any available debugging context such as replays, errors, or tags in Sentry, so you have all the tools needed to debug that issue. "
               )}
             </p>
             {docsButton}
