@@ -170,9 +170,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const topEventsQuery = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
-    ...(topTransactions.length > 0 ? [`transaction:[${topTransactions.join()}]`] : []),
     ...(additionalFilters ?? []),
   ]);
+  if (topTransactions.length > 0) {
+    topEventsQuery.addFilterValues('transaction', topTransactions);
+  }
 
   const topEventsQueryString = appendReleaseFilters(
     topEventsQuery,
