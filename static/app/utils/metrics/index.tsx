@@ -50,12 +50,12 @@ export interface MetricWidgetQueryParams
 }
 
 export interface DdmQUeryParams {
-  widgets: MetricWidgetQueryParams[];
+  widgets: string; // stringified json representation of MetricWidgetQueryParams
   end?: DateString;
   environment?: string[];
-  period?: string | null;
   project?: number[];
   start?: DateString;
+  statsPeriod?: string | null;
   utc?: boolean | null;
 }
 
@@ -71,13 +71,33 @@ export type MetricsQuery = {
 
 export function getDdmUrl(
   orgSlug: string,
-  params: Omit<DdmQUeryParams, 'project'> & {project?: (string | number)[]}
+  {
+    widgets,
+    start,
+    end,
+    statsPeriod,
+    project,
+    ...otherParams
+  }: Omit<DdmQUeryParams, 'project' | 'widgets'> & {
+    widgets: MetricWidgetQueryParams[];
+    project?: (string | number)[];
+  }
 ) {
+  const urlParams: Partial<DdmQUeryParams> = {
+    ...otherParams,
+    project: project?.map(id => (typeof id === 'string' ? parseInt(id, 10) : id)),
+    widgets: JSON.stringify(widgets),
+  };
+
+  if (statsPeriod) {
+    urlParams.statsPeriod = statsPeriod;
+  } else {
+    urlParams.start = start;
+    urlParams.end = end;
+  }
+
   return `/organizations/${orgSlug}/ddm/?${qs.stringify(
-    {
-      ...params,
-      widgets: JSON.stringify(params.widgets),
-    },
+    urlParams,
     // Need to pass indices false, otherwise page filters will not be recognized
     // as qs per adds the indices per default whereas react router does not
     {indices: false}
