@@ -34,7 +34,7 @@ def create_setting(**kwargs):
     )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class NotificationSettingTest(TestCase):
     def test_remove_for_user(self):
         create_setting(user_id=self.user.id)

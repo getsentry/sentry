@@ -13,7 +13,7 @@ from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationEventsEndpointTest(APITestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"

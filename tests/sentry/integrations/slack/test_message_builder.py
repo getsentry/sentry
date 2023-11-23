@@ -99,7 +99,7 @@ def build_test_message(
     }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
@@ -305,7 +305,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BuildIncidentAttachmentTest(TestCase):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
@@ -428,7 +428,7 @@ class BuildIncidentAttachmentTest(TestCase):
         }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BuildMetricAlertAttachmentTest(TestCase):
     def test_metric_alert_without_incidents(self):
         alert_rule = self.create_alert_rule()
@@ -581,7 +581,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ActionsTest(TestCase):
     def test_identity_and_action(self):
         group = self.create_group(project=self.project)

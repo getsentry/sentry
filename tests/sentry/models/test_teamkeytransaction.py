@@ -9,7 +9,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamKeyTransactionModelManagerTestCase(TransactionTestCase):
     def test_custom_manger(self):
         self.assertIsInstance(TeamKeyTransaction.objects, TeamKeyTransactionModelManager)

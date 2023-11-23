@@ -1540,6 +1540,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:set-grouping-config": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enables syntax highlighting in the stack trace
+    "organizations:issue-details-stacktrace-syntax-highlighting": False,
     # Enable issue platform
     "organizations:issue-platform": False,
     # Enable additional logging for issue platform
@@ -1566,6 +1568,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-extraction": False,
     # Enables the usage of the new metrics layer in the metrics API.
     "organizations:metrics-api-new-metrics-layer": False,
+    # Enables the metrics metadata.
+    "organizations:metric-meta": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Extract on demand metrics
@@ -1858,6 +1862,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable new release UI
     "organizations:releases-v2": False,
     "organizations:releases-v2-st": False,
+    "organizations:releases-v2-banner": False,
     # Enable the metrics layer for alerts queries.
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest

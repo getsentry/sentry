@@ -12,7 +12,7 @@ from sentry.utils.signing import sign
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AcceptTransferProjectPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -23,7 +23,7 @@ class AcceptTransferProjectPermissionTest(PermissionTestCase):
         self.assert_team_admin_cannot_access(self.path)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AcceptTransferProjectTest(APITestCase):
     def setUp(self):
         super().setUp()

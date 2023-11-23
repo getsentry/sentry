@@ -11,7 +11,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationReleasePreviousCommitsTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(is_staff=False, is_superuser=False)

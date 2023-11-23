@@ -13,7 +13,7 @@ FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
 event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

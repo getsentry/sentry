@@ -161,6 +161,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   } = useTableQuery({
     eventView: tableEventView,
     enabled: !isReleasesLoading,
+    referrer: 'api.starfish.mobile-screen-table',
   });
 
   const topTransactions =
@@ -194,6 +195,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
       location
     ),
     enabled: !topTransactionsLoading,
+    referrer: 'api.starfish.mobile-screen-bar-chart',
   });
 
   if (isReleasesLoading) {
