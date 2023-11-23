@@ -781,7 +781,9 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             response.raw = BytesIO(resp.content)
             return response
 
-        with mock.patch("sentry.api_gateway.proxy.external_request", new=proxy_raw_request):
+        with mock.patch(
+            "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
+        ):
             yield
 
 
