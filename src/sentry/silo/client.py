@@ -144,6 +144,6 @@ class RegionSiloClient(BaseSiloClient):
     def build_session(self) -> SafeSession:
         """
         Generates a safe Requests session for the API client to use.
-        This injects a customer
+        This injects a custom is_ipaddress_permitted function to allow only connections to Region Silo IP addresses.
         """
         return build_session(is_ipaddress_permitted=validate_region_ip_address)
