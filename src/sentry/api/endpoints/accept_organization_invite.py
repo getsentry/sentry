@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Mapping, Optional
 
+from django.http import HttpRequest
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
@@ -33,7 +34,7 @@ def get_invite_state(
     member_id: int,
     organization_slug: Optional[str],
     user_id: int,
-    request: Request,
+    request: HttpRequest,
 ) -> Optional[RpcUserInviteContext]:
     if organization_slug is None:
         member_mapping: OrganizationMemberMapping | None = None
