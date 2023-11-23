@@ -430,7 +430,7 @@ def configure_sdk():
     # turn on minimetrics
     sdk_options.setdefault("_experiments", {}).update(
         enable_metrics=True,
-        metric_code_locations=True,
+        metric_code_locations=options.get("delightful_metrics.enable_code_locations"),
         before_emit_metric=minimetrics.before_emit_metric,
     )
 
