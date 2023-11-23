@@ -47,7 +47,7 @@ export function SummaryTable({
     (name: SortState['name']) => {
       trackAnalytics('ddm.widget.sort', {
         organization,
-        by: name,
+        by: name ?? '(none)',
         order: sort.order,
       });
       if (sort.name === name) {
@@ -120,6 +120,9 @@ export function SummaryTable({
     })
     .sort((a, b) => {
       const {name, order} = sort;
+      if (!name) {
+        return 0;
+      }
 
       if (name === 'name') {
         return order === 'asc'

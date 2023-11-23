@@ -18,6 +18,7 @@ import {MetricsApiResponse, PageFilters} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   getSeriesName,
+  MetricDisplayType,
   MetricWidgetQueryParams,
   parseMRI,
   updateQuery,
@@ -219,6 +220,7 @@ function MetricWidgetBody({
     focusedSeries,
     hoveredLegend,
     groupBy: metricsQuery.groupBy,
+    displayType,
   });
 
   return (
@@ -251,7 +253,7 @@ function MetricWidgetBody({
 
 function getChartSeries(
   data: MetricsApiResponse,
-  {focusedSeries, groupBy, hoveredLegend}
+  {focusedSeries, groupBy, hoveredLegend, displayType}
 ) {
   // this assumes that all series have the same unit
   const parsed = parseMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
@@ -266,27 +268,58 @@ function getChartSeries(
     };
   });
 
-  const colors = theme.charts.getColorPalette(series.length);
+  const colors = getChartColorPalette(displayType, series.length);
 
-  return series
-    .sort((a, b) => a.name?.localeCompare(b.name))
-    .map((item, i) => ({
-      seriesName: item.name,
-      unit,
-      color: colorFn(colors[i])
-        .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
-        .string(),
-      hidden: focusedSeries && focusedSeries !== item.name,
-      data: item.values.map((value, index) => ({
-        name: moment(data.intervals[index]).valueOf(),
-        value,
-      })),
-      transaction: item.transaction as string | undefined,
-      release: item.release as string | undefined,
-      emphasis: {
-        focus: 'series',
-      } as LineSeriesOption['emphasis'],
-    })) as Series[];
+  return sortSeries(series, displayType).map((item, i) => ({
+    seriesName: item.name,
+    unit,
+    color: colorFn(colors[i])
+      .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
+      .string(),
+    hidden: focusedSeries && focusedSeries !== item.name,
+    data: item.values.map((value, index) => ({
+      name: moment(data.intervals[index]).valueOf(),
+      value,
+    })),
+    transaction: item.transaction as string | undefined,
+    release: item.release as string | undefined,
+    emphasis: {
+      focus: 'series',
+    } as LineSeriesOption['emphasis'],
+  })) as Series[];
+}
+
+function sortSeries(
+  series: {
+    name: string;
+    release: string;
+    transaction: string;
+    values: (number | null)[];
+  }[],
+  displayType: MetricDisplayType
+) {
+  const sorted = series
+    // we need to sort the series by their values so that the colors in area chart do not overlap
+    // for now we are only sorting by the first value, but we might need to sort by the sum of all values
+    .sort((a, b) => {
+      return Number(a.values?.[0]) > Number(b.values?.[0]) ? -1 : 1;
+    });
+
+  if (displayType === MetricDisplayType.BAR) {
+    return sorted.toReversed();
+  }
+
+  return sorted;
+}
+
+function getChartColorPalette(displayType: MetricDisplayType, length: number) {
+  const palette = theme.charts.getColorPalette(length - 2);
+
+  if (displayType === MetricDisplayType.BAR) {
+    return palette;
+  }
+
+  return palette.toReversed();
 }
 
 function normalizeChartTimeParams(data: MetricsApiResponse) {
