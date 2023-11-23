@@ -103,12 +103,12 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
         assert metrics[1]["mri"] == mris[0]
         assert metrics[1]["timestamp"] == self._round_to_day(self.current_time)
 
-        code_locations = metrics[0]["codeLocations"]
+        code_locations = metrics[0]["frames"]
         assert len(code_locations) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert code_locations[index]["filename"] == filename
 
-        code_locations = metrics[0]["codeLocations"]
+        code_locations = metrics[0]["frames"]
         assert len(code_locations) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert code_locations[index]["filename"] == filename
@@ -137,7 +137,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
         assert metrics[0]["mri"] == mris[0]
         assert metrics[0]["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
 
-        code_locations = metrics[0]["codeLocations"]
+        code_locations = metrics[0]["frames"]
         assert len(code_locations) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert code_locations[index]["filename"] == filename
@@ -205,7 +205,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
         assert metrics[0]["mri"] == mri
         assert metrics[0]["timestamp"] == self._round_to_day(self.current_time)
 
-        code_locations = metrics[0]["codeLocations"]
+        code_locations = metrics[0]["frames"]
         assert len(code_locations) == 1
         assert code_locations[0]["lineno"] == 10
         # We check that all the remaining elements are `None`.

@@ -31,7 +31,7 @@ class CodeLocationPayload:
 @dataclass(frozen=True)
 class MetricCodeLocations:
     query: CodeLocationQuery
-    code_locations: Sequence[CodeLocationPayload]
+    frames: Sequence[CodeLocationPayload]
 
     def __hash__(self):
         # For the serializer we need to implement a hashing function that uniquely identifies a metric code location.
@@ -137,7 +137,7 @@ class CodeLocationsFetcher:
             )
             pipeline.smembers(cache_key)
 
-        code_locations = []
+        frames = []
         for query, locations in zip(queries, pipeline.execute()):
             if not locations:
                 continue
@@ -147,9 +147,9 @@ class CodeLocationsFetcher:
             ]
             # To maintain consistent ordering, we sort by filename.
             sorted_locations = sorted(parsed_locations, key=lambda value: value.filename or "")
-            code_locations.append(MetricCodeLocations(query=query, code_locations=sorted_locations))
+            frames.append(MetricCodeLocations(query=query, frames=sorted_locations))
 
-        return code_locations
+        return frames
 
     def fetch(self) -> Sequence[MetricCodeLocations]:
         code_locations: List[MetricCodeLocations] = []
