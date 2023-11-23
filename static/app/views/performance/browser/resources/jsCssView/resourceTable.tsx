@@ -17,10 +17,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {FONT_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
+
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
@@ -139,7 +141,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(http.response_content_length)') {
-      return <ResourceSize bytes={row[key]} />;
+      return <ResourceSizeCell bytes={row[key]} />;
     }
     if (key === `avg(span.self_time)`) {
       return <DurationCell milliseconds={row[key]} />;
