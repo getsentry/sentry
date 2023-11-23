@@ -16,9 +16,9 @@ import {
   isAllowedOp,
   MetricDisplayType,
   MetricsQuery,
-  useMetricsMeta,
-  useMetricsTags,
 } from 'sentry/utils/metrics';
+import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';

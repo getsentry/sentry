@@ -29,11 +29,12 @@ import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
+import type EventView from 'sentry/utils/discover/eventView';
+import {DEFAULT_METRIC_ALERT_AGGREGATE, formatMriAggregate} from 'sentry/utils/metrics';
 import {
   getForceMetricsLayerQueryExtras,
   hasDdmAlertsSupport,
-} from 'sentry/utils/ddm/features';
-import type EventView from 'sentry/utils/discover/eventView';
+} from 'sentry/utils/metrics/features';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
   hasOnDemandMetricAlertFeature,
@@ -476,19 +477,19 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return triggerErrors;
   }
 
+  validateMri = () => {
+    const {aggregate} = this.state;
+    return aggregate !== DEFAULT_METRIC_ALERT_AGGREGATE;
+  };
+
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
 
-    const dataset = this.checkOnDemandMetricsDataset(
-      this.state.dataset,
-      this.state.query
-    );
-
     if (name === 'alertType') {
-      this.setState({
+      this.setState(({dataset}) => ({
         alertType: value as MetricAlertType,
-        dataset,
-      });
+        dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
+      }));
       return;
     }
 
@@ -504,7 +505,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'alertType',
       ].includes(name)
     ) {
-      this.setState(({project: _project, aggregate, alertType}) => {
+      this.setState(({project: _project, dataset: _dataset, aggregate, alertType}) => {
+        const dataset = this.checkOnDemandMetricsDataset(
+          name === 'dataset' ? (value as Dataset) : _dataset,
+          this.state.query
+        );
+
         const newAlertType = getAlertTypeFromAggregateDataset({
           aggregate,
           dataset,
@@ -514,7 +520,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           [name]: value,
           project:
             name === 'projectId' ? projects.find(({id}) => id === value) : _project,
-          alertType: alertType !== newAlertType ? 'custom' : alertType,
+          alertType: alertType !== newAlertType ? 'custom_transactions' : alertType,
           dataset,
         };
       });
@@ -552,6 +558,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     _e,
     model: FormModel
   ) => {
+    if (!this.validateMri()) {
+      addErrorMessage(t('You need to select a metric before you can save the alert'));
+      return;
+    }
     // This validates all fields *except* for Triggers
     const validRule = model.validateForm();
 
@@ -629,7 +639,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       }
       transaction.setData('actions', sanitizedTriggers);
 
-      const hasMetricDataset = organization.features.includes('mep-rollout-flag');
       const dataset = this.determinePerformanceDataset();
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
@@ -646,12 +655,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           comparisonDelta: comparisonDelta ?? null,
           timeWindow,
           aggregate,
-          ...(hasMetricDataset
-            ? {queryType: DatasetMEPAlertQueryTypes[rule.dataset]}
-            : {}),
           // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
           dataset,
+          queryType: DatasetMEPAlertQueryTypes[dataset],
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -903,8 +910,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             {!isCrashFreeAlert(dataset) && (
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
-                <Aggregate>{aggregate}</Aggregate>
-                {!(hasDdmAlertsSupport(organization) && alertType === 'custom')
+                <Aggregate>{formatMriAggregate(aggregate)}</Aggregate>
+                {!(hasDdmAlertsSupport(organization) && alertType === 'custom_metrics')
                   ? `event.type:${eventTypes?.join(',')}`
                   : ''}
               </AlertInfo>
@@ -1062,8 +1069,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               thresholdChart={wizardBuilderChart}
               onFilterSearch={this.handleFilterUpdate}
               allowChangeEventTypes={
-                !(hasDdmAlertsSupport(organization) && alertType === 'custom') &&
-                (alertType === 'custom' || dataset === Dataset.ERRORS)
+                hasDdmAlertsSupport(organization)
+                  ? dataset === Dataset.ERRORS
+                  : dataset === Dataset.ERRORS || alertType === 'custom_transactions'
               }
               alertType={alertType}
               dataset={dataset}

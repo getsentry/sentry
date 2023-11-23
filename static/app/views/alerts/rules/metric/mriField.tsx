@@ -11,8 +11,8 @@ import {
   getReadableMetricType,
   isAllowedOp,
   mriToField,
-  useMetricsMeta,
 } from 'sentry/utils/metrics';
+import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 
 interface Props {
   aggregate: string;
@@ -26,7 +26,7 @@ function filterAndSortOperations(operations: string[]) {
 
 function MriField({aggregate, project, onChange}: Props) {
   const {data: meta} = useMetricsMeta([parseInt(project.id, 10)], {
-    useCases: ['transactions', 'custom'],
+    useCases: ['custom'],
   });
   const metaArr = useMemo(() => {
     return Object.values(meta).sort((a, b) => a.name.localeCompare(b.name));

@@ -11,6 +11,8 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
+import {DEFAULT_METRIC_ALERT_AGGREGATE} from 'sentry/utils/metrics';
+import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
@@ -30,9 +32,10 @@ export type AlertType =
   | 'lcp'
   | 'fid'
   | 'cls'
-  | 'custom'
   | 'crash_free_sessions'
-  | 'crash_free_users';
+  | 'crash_free_users'
+  | 'custom_transactions'
+  | 'custom_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -67,7 +70,8 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   lcp: t('Largest Contentful Paint'),
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
-  custom: t('Custom Metric'),
+  custom_metrics: t('Custom Metric'),
+  custom_transactions: t('Custom Metric'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
 };
@@ -85,7 +89,7 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
     ? [
         {
           categoryHeading: t('Sessions'),
-          options: ['crash_free_sessions', 'crash_free_users'] as AlertType[],
+          options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
         },
       ]
     : []),
@@ -99,11 +103,14 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
       'lcp',
       'fid',
       'cls',
+      ...(hasDdmAlertsSupport(org)
+        ? (['custom_transactions'] satisfies AlertType[])
+        : []),
     ],
   },
   {
-    categoryHeading: t('Other'),
-    options: ['custom'],
+    categoryHeading: hasDdmAlertsSupport(org) ? t('Metrics') : t('Custom'),
+    options: [hasDdmAlertsSupport(org) ? 'custom_metrics' : 'custom_transactions'],
   },
 ];
 
@@ -162,9 +169,14 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
-  custom: {
+  custom_transactions: {
     aggregate: 'p95(measurements.fp)',
-    dataset: Dataset.TRANSACTIONS,
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  custom_metrics: {
+    aggregate: DEFAULT_METRIC_ALERT_AGGREGATE,
+    dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
   crash_free_sessions: {
