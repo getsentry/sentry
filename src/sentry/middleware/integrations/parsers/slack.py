@@ -95,8 +95,12 @@ class SlackRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         # Handle event interactions challenge request
-        data = json.loads(self.request.body.decode(encoding="utf-8"))
-        if is_event_challenge(data):
+        data = None
+        try:
+            data = json.loads(self.request.body.decode(encoding="utf-8"))
+        except Exception:
+            pass
+        if data and is_event_challenge(data):
             return self.get_response_from_control_silo()
 
         regions = self.get_regions_from_organizations()
