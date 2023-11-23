@@ -33,8 +33,8 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
-import {getForceMetricsLayerQueryExtras} from 'sentry/utils/ddm/features';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,

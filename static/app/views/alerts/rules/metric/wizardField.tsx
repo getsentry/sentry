@@ -6,8 +6,8 @@ import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {hasDdmAlertsSupport} from 'sentry/utils/ddm/features';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
+import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -105,15 +105,24 @@ export default function WizardField({
           label: AlertWizardAlertNames.cls,
           value: 'cls',
         },
+        ...(hasDdmAlertsSupport(organization)
+          ? [
+              {
+                label: AlertWizardAlertNames.custom_metrics,
+                value: 'custom_transactions' as const,
+              },
+            ]
+          : []),
       ],
     },
-
     {
-      label: t('CUSTOM'),
+      label: hasDdmAlertsSupport(organization) ? t('METRICS') : t('CUSTOM'),
       options: [
         {
-          label: AlertWizardAlertNames.custom,
-          value: 'custom',
+          label: AlertWizardAlertNames.custom_metrics,
+          value: hasDdmAlertsSupport(organization)
+            ? 'custom_metrics'
+            : 'custom_transactions',
         },
       ],
     },
@@ -124,7 +133,7 @@ export default function WizardField({
       {({onChange, model, disabled}) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
-        const selectedTemplate: AlertType = alertType || 'custom';
+        const selectedTemplate: AlertType = alertType || 'custom_metrics';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
@@ -167,7 +176,7 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {hasDdmAlertsSupport(organization) && alertType === 'custom' ? (
+            {hasDdmAlertsSupport(organization) && alertType === 'custom_metrics' ? (
               <MriField
                 project={project}
                 aggregate={aggregate}

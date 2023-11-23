@@ -22,8 +22,8 @@ import {
   MetricsQuery,
   parseMRI,
   updateQuery,
-  useMetricsDataZoom,
 } from 'sentry/utils/metrics';
+import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
