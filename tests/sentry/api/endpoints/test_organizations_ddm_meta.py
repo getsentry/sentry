@@ -19,9 +19,8 @@ pytestmark = pytest.mark.sentry_metrics
 
 @freeze_time("2023-11-21T10:30:30.000Z")
 @region_silo_test(stable=True)
-class OrganizationMetricsCodeLocationsTest(MetricsAPIBaseTestCase):
-
-    endpoint = "sentry-api-0-organization-metrics-code-locations"
+class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
+    endpoint = "sentry-api-0-organization-ddm-meta"
 
     def setUp(self):
         super().setUp()
@@ -94,22 +93,22 @@ class OrganizationMetricsCodeLocationsTest(MetricsAPIBaseTestCase):
             project=[project.id for project in projects],
             statsPeriod="1d",
         )
-        data = response.data["data"]
+        metrics = response.data["metrics"]
 
-        assert len(data) == 2
+        assert len(metrics) == 2
 
-        assert data[0]["mri"] == mris[0]
-        assert data[0]["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
+        assert metrics[0]["mri"] == mris[0]
+        assert metrics[0]["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
 
-        assert data[1]["mri"] == mris[0]
-        assert data[1]["timestamp"] == self._round_to_day(self.current_time)
+        assert metrics[1]["mri"] == mris[0]
+        assert metrics[1]["timestamp"] == self._round_to_day(self.current_time)
 
-        code_locations = data[0]["codeLocations"]
+        code_locations = metrics[0]["codeLocations"]
         assert len(code_locations) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert code_locations[index]["filename"] == filename
 
-        code_locations = data[0]["codeLocations"]
+        code_locations = metrics[0]["codeLocations"]
         assert len(code_locations) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert code_locations[index]["filename"] == filename
@@ -131,14 +130,14 @@ class OrganizationMetricsCodeLocationsTest(MetricsAPIBaseTestCase):
             start=(self.current_time - timedelta(days=2)).isoformat(),
             end=(self.current_time - timedelta(days=1)).isoformat(),
         )
-        data = response.data["data"]
+        metrics = response.data["metrics"]
 
-        assert len(data) == 1
+        assert len(metrics) == 1
 
-        assert data[0]["mri"] == mris[0]
-        assert data[0]["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
+        assert metrics[0]["mri"] == mris[0]
+        assert metrics[0]["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
 
-        code_locations = data[0]["codeLocations"]
+        code_locations = metrics[0]["codeLocations"]
         assert len(code_locations) == 2
         for index, filename in enumerate(("main.py", "script.py")):
             assert code_locations[index]["filename"] == filename
@@ -158,9 +157,9 @@ class OrganizationMetricsCodeLocationsTest(MetricsAPIBaseTestCase):
             start=(self.current_time - timedelta(days=3)).isoformat(),
             end=(self.current_time - timedelta(days=2)).isoformat(),
         )
-        data = response.data["data"]
+        metrics = response.data["metrics"]
 
-        assert len(data) == 0
+        assert len(metrics) == 0
 
     @patch("sentry.sentry_metrics.querying.metadata.CodeLocationsFetcher._get_code_locations")
     @patch("sentry.sentry_metrics.querying.metadata.CodeLocationsFetcher.BATCH_SIZE", 10)
@@ -199,14 +198,14 @@ class OrganizationMetricsCodeLocationsTest(MetricsAPIBaseTestCase):
             project=[project.id],
             statsPeriod="1d",
         )
-        data = response.data["data"]
+        metrics = response.data["metrics"]
 
-        assert len(data) == 1
+        assert len(metrics) == 1
 
-        assert data[0]["mri"] == mri
-        assert data[0]["timestamp"] == self._round_to_day(self.current_time)
+        assert metrics[0]["mri"] == mri
+        assert metrics[0]["timestamp"] == self._round_to_day(self.current_time)
 
-        code_locations = data[0]["codeLocations"]
+        code_locations = metrics[0]["codeLocations"]
         assert len(code_locations) == 1
         assert code_locations[0]["lineno"] == 10
         # We check that all the remaining elements are `None`.

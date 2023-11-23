@@ -9,27 +9,15 @@ class CodeLocationsSerializer(Serializer):
         return {
             "mri": item.query.metric_mri,
             "timestamp": item.query.timestamp,
-            "code_locations": [location.__dict__ for location in item.code_locations],
+            "codeLocations": [location.__dict__ for location in item.code_locations],
         }
 
     def get_attrs(self, item_list, user):
         return {item: self._compute_attrs(item) for item in item_list}
 
-    def _serialize_code_location_payload(self, code_location_payload):
-        return {
-            "function": code_location_payload.get("function"),
-            "module": code_location_payload.get("module"),
-            "filename": code_location_payload.get("filename"),
-            "absPath": code_location_payload.get("abs_path"),
-            "lineno": code_location_payload.get("lineno"),
-        }
-
     def serialize(self, obj, attrs, user):
         return {
             "mri": attrs["mri"],
             "timestamp": attrs["timestamp"],
-            "codeLocations": [
-                self._serialize_code_location_payload(location)
-                for location in attrs["code_locations"]
-            ],
+            "codeLocations": attrs["codeLocations"],
         }
