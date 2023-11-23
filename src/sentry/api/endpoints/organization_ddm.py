@@ -34,6 +34,6 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
         )
 
         return Response(
-            {"metrics": serialize(code_locations, request.user, CodeLocationsSerializer())},
+            {"codeLocations": serialize(code_locations, request.user, CodeLocationsSerializer())},
             status=200,
         )

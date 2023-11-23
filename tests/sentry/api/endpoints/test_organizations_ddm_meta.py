@@ -93,25 +93,27 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             project=[project.id for project in projects],
             statsPeriod="1d",
         )
-        metrics = response.data["metrics"]
+        code_locations = response.data["codeLocations"]
 
-        assert len(metrics) == 2
-
-        assert metrics[0]["mri"] == mris[0]
-        assert metrics[0]["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
-
-        assert metrics[1]["mri"] == mris[0]
-        assert metrics[1]["timestamp"] == self._round_to_day(self.current_time)
-
-        code_locations = metrics[0]["frames"]
         assert len(code_locations) == 2
-        for index, filename in enumerate(("main.py", "script.py")):
-            assert code_locations[index]["filename"] == filename
 
-        code_locations = metrics[0]["frames"]
-        assert len(code_locations) == 2
+        assert code_locations[0]["mri"] == mris[0]
+        assert code_locations[0]["timestamp"] == self._round_to_day(
+            self.current_time - timedelta(days=1)
+        )
+
+        assert code_locations[1]["mri"] == mris[0]
+        assert code_locations[1]["timestamp"] == self._round_to_day(self.current_time)
+
+        frames = code_locations[0]["frames"]
+        assert len(frames) == 2
         for index, filename in enumerate(("main.py", "script.py")):
-            assert code_locations[index]["filename"] == filename
+            assert frames[index]["filename"] == filename
+
+        frames = code_locations[0]["frames"]
+        assert len(frames) == 2
+        for index, filename in enumerate(("main.py", "script.py")):
+            assert frames[index]["filename"] == filename
 
     def test_get_locations_with_start_and_end(self):
         projects = [self.create_project(name="project_1")]
@@ -130,17 +132,19 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             start=(self.current_time - timedelta(days=2)).isoformat(),
             end=(self.current_time - timedelta(days=1)).isoformat(),
         )
-        metrics = response.data["metrics"]
+        code_locations = response.data["codeLocations"]
 
-        assert len(metrics) == 1
+        assert len(code_locations) == 1
 
-        assert metrics[0]["mri"] == mris[0]
-        assert metrics[0]["timestamp"] == self._round_to_day(self.current_time - timedelta(days=1))
+        assert code_locations[0]["mri"] == mris[0]
+        assert code_locations[0]["timestamp"] == self._round_to_day(
+            self.current_time - timedelta(days=1)
+        )
 
-        code_locations = metrics[0]["frames"]
-        assert len(code_locations) == 2
+        frames = code_locations[0]["frames"]
+        assert len(frames) == 2
         for index, filename in enumerate(("main.py", "script.py")):
-            assert code_locations[index]["filename"] == filename
+            assert frames[index]["filename"] == filename
 
     def test_get_locations_with_start_and_end_and_no_data(self):
         projects = [self.create_project(name="project_1")]
@@ -157,9 +161,9 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             start=(self.current_time - timedelta(days=3)).isoformat(),
             end=(self.current_time - timedelta(days=2)).isoformat(),
         )
-        metrics = response.data["metrics"]
+        codeLocations = response.data["codeLocations"]
 
-        assert len(metrics) == 0
+        assert len(codeLocations) == 0
 
     @patch("sentry.sentry_metrics.querying.metadata.CodeLocationsFetcher._get_code_locations")
     @patch("sentry.sentry_metrics.querying.metadata.CodeLocationsFetcher.BATCH_SIZE", 10)
@@ -198,19 +202,19 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             project=[project.id],
             statsPeriod="1d",
         )
-        metrics = response.data["metrics"]
+        code_locations = response.data["codeLocations"]
 
-        assert len(metrics) == 1
-
-        assert metrics[0]["mri"] == mri
-        assert metrics[0]["timestamp"] == self._round_to_day(self.current_time)
-
-        code_locations = metrics[0]["frames"]
         assert len(code_locations) == 1
-        assert code_locations[0]["lineno"] == 10
+
+        assert code_locations[0]["mri"] == mri
+        assert code_locations[0]["timestamp"] == self._round_to_day(self.current_time)
+
+        frames = code_locations[0]["frames"]
+        assert len(frames) == 1
+        assert frames[0]["lineno"] == 10
         # We check that all the remaining elements are `None`.
-        del code_locations[0]["lineno"]
-        for value in code_locations[0].values():
+        del frames[0]["lineno"]
+        for value in frames[0].values():
             assert value is None
 
     def test_get_locations_with_corrupted_location(self):
