@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
-from typing import Any, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, cast
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -20,8 +20,12 @@ from sentry.silo.util import (
 )
 from sentry.types.region import Region, get_region_by_name
 
-ALLOWED_REGION_IP_ADDRESSES = frozenset(
-    ipaddress.ip_address(force_str(ip, strings_only=True)) for ip in settings.SENTRY_REGION_SILO_IPS
+if TYPE_CHECKING:
+    from typing import FrozenSet
+
+ALLOWED_REGION_IP_ADDRESSES: FrozenSet[ipaddress.IPv4Address | ipaddress.IPv6Address] = frozenset(
+    ipaddress.ip_address(force_str(ip, strings_only=True))
+    for ip in cast(Iterable[str], settings.SENTRY_REGION_SILO_IPS)
 )
 
 
