@@ -16,6 +16,7 @@ from sentry.integrations.message_builder import (
 )
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.actor import ActorTuple
@@ -30,6 +31,8 @@ from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+# from sentry.integrations.slack.message_builder.new_issues import SlackIssueAlertMessageBuilder
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 
@@ -96,8 +99,8 @@ def build_tag_fields(
             labeled_value = tagstore.get_tag_value_label(key, value)
             fields.append(
                 {
-                    "title": std_key.encode("utf-8"),
-                    "value": labeled_value.encode("utf-8"),
+                    "title": std_key,
+                    "value": labeled_value,
                     "short": True,
                 }
             )
@@ -308,6 +311,123 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         )
 
 
+class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
+    def __init__(
+        self,
+        group: Group,
+        event: GroupEvent | None = None,
+        tags: set[str] | None = None,
+        identity: RpcIdentity | None = None,
+        actions: Sequence[MessageAction] | None = None,
+        rules: list[Rule] | None = None,
+        link_to_event: bool = False,
+        issue_details: bool = False,
+        notification: ProjectNotification | None = None,
+        recipient: RpcActor | None = None,
+        is_unfurl: bool = False,
+    ) -> None:
+        super().__init__()
+        self.group = group
+        self.event = event
+        self.tags = tags
+        self.identity = identity
+        self.actions = actions
+        self.rules = rules
+        self.link_to_event = link_to_event
+        self.issue_details = issue_details
+        self.notification = notification
+        self.recipient = recipient
+        self.is_unfurl = is_unfurl
+        """
+        Builds an issue alert for Slack.
+        """
+
+    @property
+    def escape_text(self) -> bool:
+        """
+        Returns True if we need to escape the text in the message.
+        """
+        return True
+
+    def build(self, notification_uuid: str | None = None) -> SlackBody:
+        # XXX(dcramer): options are limited to 100 choices, even when nested
+        text = build_attachment_text(self.group, self.event) or ""
+
+        if self.escape_text:
+            text = escape_slack_text(text)
+            # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
+            # If we figure out why this is required we should note it here because it's quite strange
+            if self.is_unfurl:
+                text = escape_slack_text(text)
+
+        # This link does not contain user input (it's a static label and a url), must not escape it.
+        text += build_attachment_replay_link(self.group, self.event) or ""
+
+        project = Project.objects.get_from_cache(id=self.group.project_id)
+
+        # If an event is unspecified, use the tags of the latest event (if one exists).
+        event_for_tags = self.event or self.group.get_latest_event()
+        fields = build_tag_fields(event_for_tags, self.tags)
+        color = get_color(event_for_tags, self.notification, self.group)
+        footer = (
+            self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
+            if self.notification and self.recipient
+            else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
+        )
+        obj = self.event if self.event is not None else self.group
+        if not self.issue_details or (
+            self.recipient and self.recipient.actor_type == ActorType.TEAM
+        ):
+            payload_actions, text, color = build_actions(
+                self.group, project, text, color, self.actions, self.identity
+            )
+        else:
+            payload_actions = []
+
+        rule_id = None
+        if self.rules:
+            rule_id = self.rules[0].id
+
+        title_link = get_title_link(
+            self.group,
+            self.event,
+            self.link_to_event,
+            self.issue_details,
+            self.notification,
+            ExternalProviders.SLACK,
+            rule_id,
+            notification_uuid=notification_uuid,
+        )
+        blocks = [
+            self.get_markdown_block(
+                text=f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n{text}"
+            )
+        ]
+
+        blocks.append(self.get_tags_block(fields))
+        blocks.append(self.get_context_block(text=footer))
+
+        actions = []
+        for action in payload_actions:
+            # TODO: need to deal with assignee differently
+            # actions.append(self.get_static_action(action))
+            if action.name != "assign":
+                actions.append((action.label, action.url, action.name))
+        # TODO: I think we need to handle the action payload differently? hard to tell cause I can't click links locally rn since ngrok is borked
+        blocks.append(self.get_action_block(actions))
+
+        # stuff I haven't copied over to block kit builder (not sure if we need it)
+        # return self._build(
+        #     callback_id=json.dumps({"issue": self.group.id}),
+        #     fallback=self.build_fallback_text(obj, project.slug),
+        #     ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
+        # )
+        return self._build_blocks(
+            *blocks,
+            color=color,
+        )
+
+
 def build_group_attachment(
     group: Group,
     event: GroupEvent | None = None,
@@ -321,7 +441,7 @@ def build_group_attachment(
     notification_uuid: str | None = None,
 ) -> SlackBody:
     """@deprecated"""
-    return SlackIssuesMessageBuilder(
+    return SlackIssueAlertMessageBuilder(
         group,
         event,
         tags,

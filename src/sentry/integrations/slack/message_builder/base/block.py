@@ -35,8 +35,40 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def get_tags_block(tags) -> SlackBlock:
+        # TODO: rewrite build_tag_fields instead of doing this
+        fields = []
+        for tag in tags:
+            title = tag["title"]
+            value = tag["value"]
+            fields.append({"type": "mrkdwn", "text": f"*{title}:*\n{value}"})
+
+        return {"type": "section", "fields": fields}
+
+    @staticmethod
     def get_divider() -> SlackBlock:
         return {"type": "divider"}
+
+    @staticmethod
+    def get_static_action(action):
+        options = []
+        for option in action.option_groups:
+            for group in option["options"]:
+                opt = {
+                    "text": {
+                        "type": "plain_text",
+                        "text": group["text"],
+                        "emoji": True,
+                    }
+                }
+                options.append(opt)
+
+        return {
+            "type": "static_select",
+            "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
+            "options": options,
+            "action_id": action.name,
+        }
 
     @staticmethod
     def get_action_block(actions: Sequence[Tuple[str, Optional[str], str]]) -> SlackBlock:
@@ -57,6 +89,18 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             action_block["elements"].append(button)
 
         return action_block
+
+    @staticmethod
+    def get_context_block(text: str) -> SlackBlock:
+        return {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": text,
+                }
+            ],
+        }
 
     @staticmethod
     def _build_blocks(
