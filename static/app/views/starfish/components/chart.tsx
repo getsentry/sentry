@@ -62,6 +62,15 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   [SpanMetricsField.SPAN_SELF_TIME]: {
     outputType: 'duration',
   },
+  [SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE]: {
+    outputType: 'size',
+  },
+  [SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
+    outputType: 'size',
+  },
+  [SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH]: {
+    outputType: 'size',
+  },
 };
 
 type Props = {
