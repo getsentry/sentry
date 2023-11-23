@@ -16,8 +16,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {FONT_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
-import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
-
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
