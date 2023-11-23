@@ -29,12 +29,12 @@ import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
+import type EventView from 'sentry/utils/discover/eventView';
+import {DEFAULT_METRIC_ALERT_AGGREGATE, formatMriAggregate} from 'sentry/utils/metrics';
 import {
   getForceMetricsLayerQueryExtras,
   hasDdmAlertsSupport,
-} from 'sentry/utils/ddm/features';
-import type EventView from 'sentry/utils/discover/eventView';
-import {DEFAULT_METRIC_ALERT_AGGREGATE, formatMriAggregate} from 'sentry/utils/metrics';
+} from 'sentry/utils/metrics/features';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
   hasOnDemandMetricAlertFeature,

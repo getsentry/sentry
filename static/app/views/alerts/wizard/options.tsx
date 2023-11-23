@@ -2,7 +2,6 @@ import mapValues from 'lodash/mapValues';
 
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
-import {hasDdmAlertsSupport} from 'sentry/utils/ddm/features';
 import {
   FieldKey,
   makeTagCollection,
@@ -13,6 +12,7 @@ import {
   WebVital,
 } from 'sentry/utils/fields';
 import {DEFAULT_METRIC_ALERT_AGGREGATE} from 'sentry/utils/metrics';
+import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {

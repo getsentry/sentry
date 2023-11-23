@@ -6,8 +6,8 @@ import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {hasDdmAlertsSupport} from 'sentry/utils/ddm/features';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
+import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {

@@ -24,9 +24,9 @@ import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTa
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
-import {hasDdmAlertsSupport} from 'sentry/utils/ddm/features';
 import {getDisplayName} from 'sentry/utils/environment';
 import {fieldToMri} from 'sentry/utils/metrics';
+import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';

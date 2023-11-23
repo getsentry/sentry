@@ -11,8 +11,8 @@ import {
   getReadableMetricType,
   isAllowedOp,
   mriToField,
-  useMetricsMeta,
 } from 'sentry/utils/metrics';
+import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 
 interface Props {
   aggregate: string;
