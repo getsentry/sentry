@@ -45,7 +45,7 @@ export default function FeedbackSetupPanel() {
             <h3>{t('Introducing the New User Feedback')}</h3>
             <p>
               {t(
-                "Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, errors, making fixing the issue dead simple."
+                'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, errors, making fixing the issue dead simple.'
               )}
             </p>
             {docsButton}
