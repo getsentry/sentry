@@ -1,6 +1,6 @@
 import {InjectedRouter} from 'react-router';
 import moment from 'moment';
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import {
   DateTimeObject,
@@ -96,12 +96,7 @@ export function getDdmUrl(
     urlParams.end = end;
   }
 
-  return `/organizations/${orgSlug}/ddm/?${qs.stringify(
-    urlParams,
-    // Need to pass indices false, otherwise page filters will not be recognized
-    // as qs per adds the indices per default whereas react router does not
-    {indices: false}
-  )}`;
+  return `/organizations/${orgSlug}/ddm/?${qs.stringify(urlParams)}`;
 }
 
 export function getMetricsApiRequestQuery(
