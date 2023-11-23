@@ -200,9 +200,14 @@ export class GranularityLadder {
   }
 
   getInterval(minutes: number): string {
+    if (minutes < 0) {
+      // Sometimes this happens, in unknown circumstances. See the `getIntervalForMetricFunction` function span in Sentry for more info, the reason might appear there. For now, a reasonable fallback in these rare cases is to return the finest granularity, since it'll either fulfill the request or time out.
+      return (this.steps.at(-1) as GranularityStep)[1];
+    }
+
     const step = this.steps.find(([threshold]) => {
       return minutes >= threshold;
-    }) as GranularityStep; // This can never be undefined, because the constructor ensures that an invalid ladder cannot be created
+    }) as GranularityStep;
 
     return step[1];
   }
