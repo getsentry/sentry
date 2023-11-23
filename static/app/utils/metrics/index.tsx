@@ -268,7 +268,7 @@ export function fieldToMri(field: string) {
 }
 
 // This is a workaround as the alert builder requires a valid aggregate to be set
-export const DEFAULT_METRIC_ALERT_AGGREGATE = 'sum(c:custom/my_metric@none)';
+export const DEFAULT_METRIC_ALERT_AGGREGATE = 'sum(c:custom/iolnqzyenoqugwm@none)';
 
 export const formatMriAggregate = (aggregate: string) => {
   if (aggregate === DEFAULT_METRIC_ALERT_AGGREGATE) {
@@ -278,6 +278,7 @@ export const formatMriAggregate = (aggregate: string) => {
   const {mri, op} = fieldToMri(aggregate);
   const parsed = parseMRI(mri);
 
+  // The field does not contain an MRI -> return the aggregate as is
   if (!parsed) {
     return aggregate;
   }
