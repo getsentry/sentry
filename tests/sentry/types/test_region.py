@@ -248,8 +248,15 @@ class RegionMappingTest(TestCase):
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
-        with override_blacklist("172.16.0.0/12"), pytest.raises(RestrictedIPAddress):
+        with patch("sentry_sdk.capture_exception") as mock_capture_exception, override_blacklist(
+            "172.16.0.0/12"
+        ):
+            assert mock_capture_exception.call_count == 0
             load_from_config(region_config).validate_all()
+            assert mock_capture_exception.call_count == 1
+            err = mock_capture_exception.call_args.args[0]
+            assert isinstance(err, RegionResolutionError)
+            assert err.args == ("Region Silo address is disallowed: http://172.31.255.255:9000",)
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
@@ -262,6 +269,9 @@ class RegionMappingTest(TestCase):
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
-        with override_blacklist("127.0.0.1"):
+        with patch("sentry_sdk.capture_exception") as mock_capture_exception, override_blacklist(
+            "127.0.0.1"
+        ):
             responses.add(responses.GET, "http://172.31.255.255:9000", body="hello")
             load_from_config(region_config).validate_all()
+            assert mock_capture_exception.call_count == 0

@@ -11,6 +11,7 @@ from pydantic.dataclasses import dataclass
 from pydantic.tools import parse_obj_as
 
 from sentry import options
+from sentry.exceptions import RestrictedIPAddress
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo import SiloMode, single_process_silo_mode_state
 from sentry.utils import json
@@ -71,7 +72,15 @@ class Region:
 
         # Validate that each region address is reachable from the control silo.
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            http.safe_urlopen(self.address)
+            try:
+                http.safe_urlopen(self.address)
+            except RestrictedIPAddress:
+                exception = RegionResolutionError(
+                    f"Region Silo address is disallowed: {self.address}"
+                )
+                sentry_sdk.capture_exception(exception)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     def to_url(self, path: str) -> str:
         """Resolve a path into a customer facing URL on this region's silo.
