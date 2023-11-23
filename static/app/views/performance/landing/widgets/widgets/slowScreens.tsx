@@ -50,8 +50,8 @@ import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 import Chart from 'sentry/views/starfish/components/chart';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext';
 import {OUTPUT_TYPE, YAxis, YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
 
@@ -109,6 +109,10 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
     () => ({
       fields: field,
       component: provided => {
+        if (isLoadingReleases) {
+          return null;
+        }
+
         const eventView = provided.eventView.clone();
         let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
 
@@ -136,7 +140,11 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
         const mutableSearch = new MutableSearch(eventView.query);
         mutableSearch.addFilterValue('event.type', 'transaction');
         mutableSearch.addFilterValue('transaction.op', 'ui.load');
-        eventView.query = `${mutableSearch.formatString()} release:[${primaryRelease},${secondaryRelease}]`;
+        eventView.query = appendReleaseFilters(
+          mutableSearch,
+          primaryRelease,
+          secondaryRelease
+        );
 
         return (
           <DiscoverQuery
@@ -174,20 +182,10 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
 
           // Chart options
           const currentSeriesNames = [field];
-          const includePreviousParam = true;
+          const includePreviousParam = false;
           const yAxis = provided.yAxis;
           const interval = getInterval(pageFilterDatetime, 'medium');
           const partialDataParam = true;
-
-          if (
-            !provided.widgetData.list.data[selectedListIndex] ||
-            (!provided.widgetData.list.data[selectedListIndex]?.transaction &&
-              !provided.widgetData.list.data[selectedListIndex][
-                SpanMetricsField.SPAN_DESCRIPTION
-              ])
-          ) {
-            return null;
-          }
 
           eventView.additionalConditions.setFilterValues('transaction', [
             provided.widgetData.list.data[selectedListIndex].transaction as string,
@@ -203,7 +201,14 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
             {field: 'avg(measurements.time_to_initial_display)'},
             {field: 'release'},
           ];
-          eventView.query = `release:[${primaryRelease},${secondaryRelease}] transaction.op:ui.load`;
+          const mutableSearch = new MutableSearch(eventView.query);
+          mutableSearch.addFilterValue('event.type', 'transaction');
+          mutableSearch.addFilterValue('transaction.op', 'ui.load');
+          eventView.query = appendReleaseFilters(
+            mutableSearch,
+            primaryRelease,
+            secondaryRelease
+          );
           eventView.interval = getInterval(
             pageFilter.selection.datetime,
             STARFISH_CHART_INTERVAL_FIDELITY
@@ -252,7 +257,6 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
 
   const getChart = provided =>
     function () {
-      ///
       const transformedReleaseSeries: {
         [releaseVersion: string]: Series;
       } = {};
@@ -279,7 +283,6 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
           };
         });
       }
-      ///
 
       return (
         <Chart
@@ -372,7 +375,11 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
         <LinkButton
           to={{
             pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
-            query: {...normalizeDateTimeParams(pageFilter)},
+            query: {
+              ...normalizeDateTimeParams(pageFilter),
+              primaryRelease,
+              secondaryRelease,
+            },
           }}
           size="sm"
         >

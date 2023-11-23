@@ -392,7 +392,7 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID]: {
     title: t('Average TTIDs'),
     titleTooltip: '',
-    subTitle: 'Top screens by count',
+    subTitle: t('Top screens by count'),
     fields: ['avg(measurements.time_to_initial_display)'],
     dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID,
   },
