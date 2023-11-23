@@ -25,6 +25,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {
   GrowLink,
@@ -52,7 +53,6 @@ import Chart from 'sentry/views/starfish/components/chart';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext';
 import {OUTPUT_TYPE, YAxis, YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
 
 type DataType = {
@@ -316,34 +316,30 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
           const transaction = (listItem.transaction as string | undefined) ?? '';
 
           return (
-            <RoutingContextProvider
-              value={{baseURL: '/performance/mobile/screens/spans/'}}
-            >
-              <Fragment>
-                <GrowLink
-                  to={{
-                    pathname: `/performance/mobile/screens/spans/`,
-                    query: {
-                      project: listItem['project.id'],
-                      transaction,
-                      primaryRelease,
-                      secondaryRelease,
-                      ...normalizeDateTimeParams(location.query),
-                    },
-                  }}
-                >
-                  <Truncate value={transaction} maxLength={40} />
-                </GrowLink>
-                <RightAlignedCell>
-                  <StyledDurationWrapper>
-                    <PerformanceDuration
-                      milliseconds={listItem['avg(measurements.time_to_initial_display)']}
-                      abbreviation
-                    />
-                  </StyledDurationWrapper>
-                </RightAlignedCell>
-              </Fragment>
-            </RoutingContextProvider>
+            <Fragment>
+              <GrowLink
+                to={normalizeUrl({
+                  pathname: `/performance/mobile/screens/spans/`,
+                  query: {
+                    project: listItem['project.id'],
+                    transaction,
+                    primaryRelease,
+                    secondaryRelease,
+                    ...normalizeDateTimeParams(location.query),
+                  },
+                })}
+              >
+                <Truncate value={transaction} maxLength={40} />
+              </GrowLink>
+              <RightAlignedCell>
+                <StyledDurationWrapper>
+                  <PerformanceDuration
+                    milliseconds={listItem['avg(measurements.time_to_initial_display)']}
+                    abbreviation
+                  />
+                </StyledDurationWrapper>
+              </RightAlignedCell>
+            </Fragment>
           );
         }
     );
@@ -373,14 +369,14 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
       Subtitle={() => <Subtitle>{props.subTitle}</Subtitle>}
       HeaderActions={() => (
         <LinkButton
-          to={{
+          to={normalizeUrl({
             pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
             query: {
               ...normalizeDateTimeParams(pageFilter),
               primaryRelease,
               secondaryRelease,
             },
-          }}
+          })}
           size="sm"
         >
           {t('View All')}
