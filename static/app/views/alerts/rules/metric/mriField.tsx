@@ -11,8 +11,8 @@ import {
   getReadableMetricType,
   isAllowedOp,
   mriToField,
-  useMetricsMeta,
 } from 'sentry/utils/metrics';
+import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 
 interface Props {
   aggregate: string;
@@ -25,8 +25,8 @@ function filterAndSortOperations(operations: string[]) {
 }
 
 function MriField({aggregate, project, onChange}: Props) {
-  const {data: meta} = useMetricsMeta([parseInt(project.id, 10)], {
-    useCases: ['transactions', 'custom'],
+  const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], {
+    useCases: ['custom'],
   });
   const metaArr = useMemo(() => {
     return Object.values(meta).sort((a, b) => a.name.localeCompare(b.name));
@@ -44,7 +44,7 @@ function MriField({aggregate, project, onChange}: Props) {
         {}
       );
     }
-  }, [metaArr, onChange, selectedMriMeta]);
+  }, [metaArr, onChange, selectedMriMeta, isLoading]);
 
   const handleMriChange = useCallback(
     option => {
@@ -108,7 +108,7 @@ function MriField({aggregate, project, onChange}: Props) {
   );
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
-  const selectedOption = selectedMriMeta && {
+  const selectedMriOption = selectedMriMeta && {
     label: selectedMriMeta.name,
     value: selectedMriMeta.mri,
   };
@@ -117,17 +117,21 @@ function MriField({aggregate, project, onChange}: Props) {
     <Wrapper>
       <StyledSelectControl
         searchable
+        isDisabled={isLoading}
         placeholder={t('Select a metric')}
+        noOptionsMessage={() =>
+          metaArr.length === 0 ? t('No metrics in this project') : t('No options')
+        }
         async
         defaultOptions={getMriOptions('')}
         loadOptions={searchText => Promise.resolve(getMriOptions(searchText))}
         filterOption={() => true}
-        value={selectedOption}
+        value={selectedMriOption}
         onChange={handleMriChange}
       />
       <StyledSelectControl
         searchable
-        disabled={!selectedValues.mri}
+        isDisabled={isLoading || !selectedMriMeta}
         placeholder={t('Select an operation')}
         options={operationOptions}
         value={selectedValues.op}

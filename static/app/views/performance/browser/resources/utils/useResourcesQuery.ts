@@ -4,6 +4,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {FONT_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import {
   ModuleFilters,
   useResourceModuleFilters,
@@ -28,6 +29,7 @@ const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Props = {
   sort: ValidSort;
+  cursor?: string;
   defaultResourceTypes?: string[];
   limit?: number;
   query?: string;
@@ -44,17 +46,23 @@ export const getResourcesEventViewQuery = (
     ...(resourceFilters.transaction
       ? [`transaction:"${resourceFilters.transaction}"`]
       : []),
-    ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
     ...getDomainFilter(resourceFilters[SPAN_DOMAIN]),
     ...(resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]
       ? [
           `${RESOURCE_RENDER_BLOCKING_STATUS}:${resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]}`,
         ]
-      : [`!${RESOURCE_RENDER_BLOCKING_STATUS}:blocking`]),
+      : []),
+    ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
   ];
 };
 
-export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Props) => {
+export const useResourcesQuery = ({
+  sort,
+  defaultResourceTypes,
+  query,
+  limit,
+  cursor,
+}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const resourceFilters = useResourceModuleFilters();
@@ -102,6 +110,7 @@ export const useResourcesQuery = ({sort, defaultResourceTypes, query, limit}: Pr
     options: {
       refetchOnWindowFocus: false,
     },
+    cursor,
   });
 
   const data = result?.data?.data.map(row => ({
@@ -137,13 +146,13 @@ export const getDomainFilter = (selectedDomain: string | undefined) => {
     return [`!has:${SPAN_DOMAIN}`];
   }
 
-  return [`${SPAN_DOMAIN}:${selectedDomain}`];
+  return [`${SPAN_DOMAIN}:"${selectedDomain}"`];
 };
 
 const SPAN_OP_FILTER = {
   'resource.script': [`${SPAN_OP}:resource.script`],
   'resource.css': [`${FILE_EXTENSION}:css`],
-  'resource.font': [`${FILE_EXTENSION}:[woff,woff2,ttf,otf,eot]`],
+  'resource.font': [`${FILE_EXTENSION}:[${FONT_FILE_EXTENSIONS.join(',')}]`],
 };
 
 export const getResourceTypeFilter = (
@@ -158,5 +167,5 @@ export const getResourceTypeFilter = (
       defaultResourceTypes.map(type => SPAN_OP_FILTER[type]).join(' OR '),
     ];
   }
-  return resourceFilter;
+  return ['(', ...resourceFilter, ')'];
 };

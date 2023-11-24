@@ -6,7 +6,6 @@ export function Frame(props: Partial<FrameType> = {}): FrameType {
     colNo: null,
     lineNo: null,
     context: [],
-    errors: [],
     filename: 'file.js',
     function: 'functionName',
     inApp: true,

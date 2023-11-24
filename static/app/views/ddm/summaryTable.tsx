@@ -10,15 +10,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {formatMetricsUsingUnitAndOp, parseMRI} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp, parseMRI, SortState} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
-import {MetricWidgetDisplayConfig, Series} from 'sentry/views/ddm/widget';
+import {Series} from 'sentry/views/ddm/widget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-type SortState = MetricWidgetDisplayConfig['sort'];
 
 export function SummaryTable({
   series,
@@ -49,7 +47,7 @@ export function SummaryTable({
     (name: SortState['name']) => {
       trackAnalytics('ddm.widget.sort', {
         organization,
-        by: name,
+        by: name ?? '(none)',
         order: sort.order,
       });
       if (sort.name === name) {
@@ -122,6 +120,9 @@ export function SummaryTable({
     })
     .sort((a, b) => {
       const {name, order} = sort;
+      if (!name) {
+        return 0;
+      }
 
       if (name === 'name') {
         return order === 'asc'

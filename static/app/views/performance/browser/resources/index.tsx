@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
@@ -52,18 +53,17 @@ function ResourcesLandingPage() {
             ]}
           />
 
-          <Layout.Title>
-            {t('Resources')}
-            <FeatureBadge type="alpha" />
-          </Layout.Title>
+          <Layout.Title>{t('Resources')}</Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
+          <FeedbackWidget />
           <FilterOptionsContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
+              <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
             <DomainSelector

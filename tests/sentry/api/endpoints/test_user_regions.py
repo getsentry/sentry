@@ -9,7 +9,7 @@ st = Region("acme", 3, "https://acme.testserver", RegionCategory.SINGLE_TENANT)
 region_config = (us, de, st)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserUserRolesTest(APITestCase):
     endpoint = "sentry-api-0-user-regions"
 
@@ -27,10 +27,11 @@ class UserUserRolesTest(APITestCase):
         response = self.get_response("me")
         assert response.status_code == 200
         assert "regions" in response.data
-        assert len(response.data["regions"]) == 3
-        assert us.api_serialize() in response.data["regions"]
-        assert de.api_serialize() in response.data["regions"]
-        assert st.api_serialize() in response.data["regions"]
+        assert response.data["regions"] == [
+            st.api_serialize(),
+            de.api_serialize(),
+            us.api_serialize(),
+        ]
 
     @override_regions(region_config)
     def test_get_only_memberships(self):
@@ -41,8 +42,7 @@ class UserUserRolesTest(APITestCase):
         response = self.get_response("me")
         assert response.status_code == 200
         assert "regions" in response.data
-        assert len(response.data["regions"]) == 1
-        assert response.data["regions"][0] == de.api_serialize()
+        assert response.data["regions"] == [de.api_serialize()]
 
     @override_regions(region_config)
     def test_get_other_user_error(self):

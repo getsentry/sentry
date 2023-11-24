@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import newFeatureImg from 'sentry-images/spot/new-feature.svg';
+import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
 import {LinkButton} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
@@ -38,14 +38,14 @@ export default function FeedbackSetupPanel() {
     <Panel>
       <Container>
         <IlloBox>
-          <img src={newFeatureImg} />
+          <img src={feedbackOnboardingImg} />
         </IlloBox>
         <StyledBox>
           <Fragment>
             <h3>{t('Introducing the New User Feedback')}</h3>
             <p>
               {t(
-                "Users can submit feedback anytime on issues they're experiencing on your app via our feedback widget."
+                'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'
               )}
             </p>
             {docsButton}
