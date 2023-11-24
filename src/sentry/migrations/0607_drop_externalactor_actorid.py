@@ -27,8 +27,11 @@ class Migration(CheckedMigration):
             state_operations=[],
             database_operations=[
                 migrations.RunSQL(
-                    """
+                    sql="""
                     ALTER TABLE "sentry_externalactor" DROP COLUMN actor_id;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_externalactor" ADD COLUMN actor_id BIGINT NULL;
                     """,
                     hints={"tables": ["sentry_externalactor"]},
                 )
