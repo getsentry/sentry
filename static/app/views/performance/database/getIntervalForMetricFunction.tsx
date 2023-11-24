@@ -21,19 +21,13 @@ export function getIntervalForMetricFunction(
   metricFunction: Aggregate | SpanFunctions | string,
   datetimeObj: DateTimeObject
 ) {
-  const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
-
-  const sentrySpan = sentryTransaction?.startChild({
-    op: 'function',
-    description: 'getIntervalForMetricFunction',
-    data: {
-      ...datetimeObj,
-    },
-  });
-
-  const ladder = GRANULARITIES[metricFunction] ?? COUNTER_GRANULARITIES;
-  const interval = ladder.getInterval(getDiffInMinutes(datetimeObj));
-  sentrySpan?.finish();
+  const interval = Sentry.startSpan(
+    {op: 'function', name: 'getIntervalForMetricFunction', data: {...datetimeObj}},
+    () => {
+      const ladder = GRANULARITIES[metricFunction] ?? COUNTER_GRANULARITIES;
+      return ladder.getInterval(getDiffInMinutes(datetimeObj));
+    }
+  );
 
   return interval;
 }
