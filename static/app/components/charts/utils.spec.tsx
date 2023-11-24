@@ -110,6 +110,10 @@ describe('Chart Utils', function () {
       [0, '15m'],
     ]);
 
+    it('handles negative intervals', function () {
+      expect(ladder.getInterval(-1)).toEqual('15m');
+    });
+
     it('finds granularity at lower bound', function () {
       expect(ladder.getInterval(getDiffInMinutes({period: '2m'}))).toEqual('15m');
     });
