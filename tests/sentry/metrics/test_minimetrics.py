@@ -217,7 +217,7 @@ def test_gauge(backend, hub):
         "delightful_metrics.allow_all_incr": True,
         "delightful_metrics.allow_all_timing": True,
         "delightful_metrics.allow_all_gauge": True,
-        "delightful_metrics.enable _code_locations": True,
+        "delightful_metrics.enable_code_locations": True,
     }
 )
 def test_composite_backend_does_not_recurse(hub):
