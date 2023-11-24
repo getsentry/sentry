@@ -153,8 +153,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      query && alertType !== 'custom_metrics'
-        ? `(${query}) AND (${eventTypeFilter})`
+      alertType !== 'custom_metrics'
+        ? query
+          ? `(${query}) AND (${eventTypeFilter})`
+          : eventTypeFilter
         : query
     ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
