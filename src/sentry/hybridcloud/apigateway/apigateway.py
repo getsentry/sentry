@@ -14,6 +14,7 @@ from sentry.hybridcloud.apigateway.proxy import (
 from sentry.silo import SiloMode
 from sentry.silo.base import SiloLimit
 from sentry.types.region import get_region_by_name
+from sentry.utils import metrics
 
 SENTRY_APP_REGION_URL_NAMES = (
     "sentry-api-0-sentry-app-installation-external-requests",
@@ -52,6 +53,15 @@ def proxy_request_if_needed(
 
     if "organization_slug" in view_kwargs:
         org_slug = view_kwargs["organization_slug"]
+        url_name = request.resolver_match.url_name if request.resolver_match else "unknown"
+
+        metrics.incr(
+            "apigateway.proxy_request",
+            tags={
+                "url_name": url_name,
+                "kind": "orgslug",
+            },
+        )
         return proxy_request(request, org_slug)
 
     if (
@@ -60,6 +70,13 @@ def proxy_request_if_needed(
         and request.resolver_match.url_name in SENTRY_APP_REGION_URL_NAMES
     ):
         install_uuid = view_kwargs["uuid"]
+        metrics.incr(
+            "apigateway.proxy_request",
+            tags={
+                "url_name": request.resolver_match.url_name,
+                "kind": "sentryapp",
+            },
+        )
         return proxy_sentryappinstallation_request(request, install_uuid)
 
     if (
@@ -67,6 +84,13 @@ def proxy_request_if_needed(
         and request.resolver_match.url_name in settings.REGION_PINNED_URL_NAMES
     ):
         region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+        metrics.incr(
+            "apigateway.proxy_request",
+            tags={
+                "url_name": request.resolver_match.url_name,
+                "kind": "regionpin",
+            },
+        )
 
         return proxy_region_request(request, region)
     return None
