@@ -227,7 +227,6 @@ function MetricWidgetBody({
   return (
     <StyledMetricWidgetBody>
       <TransparentLoadingMask visible={isLoading} />
-      <CodeLocations mri={metricsQuery.mri} />
       <MetricChart
         series={chartSeries}
         displayType={displayType}
@@ -249,6 +248,7 @@ function MetricWidgetBody({
           setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
         />
       )}
+      <CodeLocations mri={metricsQuery.mri} />
     </StyledMetricWidgetBody>
   );
 }

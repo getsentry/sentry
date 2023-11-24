@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import isArray from 'lodash/isArray';
 
 import {Button} from 'sentry/components/button';
 import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle';
@@ -12,8 +13,16 @@ export function CodeLocations({mri}: {mri: string}) {
   const {data} = useMetricsCodeLocations(mri);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  if (!isArray(data?.codeLocations) || data?.codeLocations.length === 0) {
+    return null;
+  }
+
   const frameToShow = data?.codeLocations[0].frames[0];
-  const otherFrames = data?.codeLocations[0].frames.slice(1);
+  const otherFrames = data?.codeLocations[0].frames.slice(1) ?? [];
+
+  if (!frameToShow) {
+    return null;
+  }
 
   return (
     <Wrapper>
