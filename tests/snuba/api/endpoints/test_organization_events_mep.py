@@ -2632,6 +2632,31 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
+            0.00,
+            metric="measurements.score.fid",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        # These fid and ttfb scenarios shouldn't really be happening, but we can test them anyways
+        self.store_transaction_metric(
+            0.00,
+            metric="measurements.score.weight.fid",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.00,
+            metric="measurements.score.ttfb",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.00,
+            metric="measurements.score.weight.ttfb",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
             1.00,
             metric="measurements.score.total",
             tags={"transaction": "foo_transaction"},
@@ -2644,6 +2669,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "transaction",
                     "performance_score(measurements.score.lcp)",
                     "performance_score(measurements.score.fcp)",
+                    "performance_score(measurements.score.fid)",
+                    "performance_score(measurements.score.ttfb)",
                 ],
                 "query": "event.type:transaction",
                 "dataset": "metrics",
@@ -2658,6 +2685,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.7923076923076923
         assert data[0]["performance_score(measurements.score.fcp)"] == 0.5
+        assert data[0]["performance_score(measurements.score.fid)"] == 0
+        assert data[0]["performance_score(measurements.score.ttfb)"] is None
 
         assert meta["isMetricsData"]
         assert field_meta["performance_score(measurements.score.lcp)"] == "integer"
