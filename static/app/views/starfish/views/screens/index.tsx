@@ -210,7 +210,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     return (
       <Alert type="warning" showIcon>
         {t(
-          'No screens found on recent releases. Please try a single iOS or Android project or a smaller date range.'
+          'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
         )}
       </Alert>
     );
