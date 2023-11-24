@@ -103,6 +103,7 @@ jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
 
 jest.mock('@sentry/react', function sentryReact() {
   const SentryReact = jest.requireActual('@sentry/react');
+  const SentryReactCore = jest.requireActual('@sentry/core');
   return {
     init: jest.fn(),
     configureScope: jest.fn(),
@@ -115,7 +116,11 @@ jest.mock('@sentry/react', function sentryReact() {
     captureMessage: jest.fn(),
     captureException: jest.fn(),
     showReportDialog: jest.fn(),
-    startSpan: jest.fn(),
+    startSpan: jest
+      .fn()
+      .mockImplementation((context, callback) =>
+        callback(new SentryReactCore.Span(context))
+      ),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
