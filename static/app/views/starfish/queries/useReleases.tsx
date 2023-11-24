@@ -6,6 +6,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ApiQueryKey, useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,7 +45,9 @@ export function useReleases(searchTerm?: string) {
       const newQuery: NewQuery = {
         name: '',
         fields: ['release', 'count()'],
-        query: `transaction.op:ui.load release:[${releases.map(r => r.version).join()}]`,
+        query: `transaction.op:ui.load ${escapeFilterValue(
+          `release:[${releases.map(r => `"${r.version}"`).join()}]`
+        )}`,
         dataset: DiscoverDatasets.METRICS,
         version: 2,
         projects: selection.projects,
@@ -103,6 +106,7 @@ export function useReleases(searchTerm?: string) {
   return {
     ...releaseResults,
     data: releaseStats,
+    isLoading: !metricsFetched || releaseResults.isLoading,
   };
 }
 
