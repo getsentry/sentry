@@ -5,13 +5,9 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Tag from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {
-  fieldToMri,
-  getReadableMetricType,
-  isAllowedOp,
-  mriToField,
-} from 'sentry/utils/metrics';
+import {MetricMeta, MRI, ParsedMRI, Project} from 'sentry/types';
+import {getReadableMetricType, isAllowedOp} from 'sentry/utils/metrics';
+import {formatMRI, getMRIAndOp, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 
 interface Props {
@@ -29,10 +25,19 @@ function MriField({aggregate, project, onChange}: Props) {
     useCases: ['custom'],
   });
   const metaArr = useMemo(() => {
-    return Object.values(meta).sort((a, b) => a.name.localeCompare(b.name));
+    return Object.values(meta)
+      .map(
+        metric =>
+          ({
+            ...metric,
+            ...parseMRI(metric.mri),
+          }) as ParsedMRI & MetricMeta
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [meta]);
 
-  const selectedValues = fieldToMri(aggregate);
+  const selectedValues = getMRIAndOp(aggregate) ?? {mri: '' as MRI, op: ''};
+
   const selectedMriMeta = selectedValues.mri ? meta[selectedValues.mri] : null;
 
   useEffect(() => {
@@ -40,7 +45,7 @@ function MriField({aggregate, project, onChange}: Props) {
     if (!selectedMriMeta && metaArr.length > 0) {
       const newSelection = metaArr[0];
       onChange(
-        mriToField(newSelection.mri, filterAndSortOperations(newSelection.operations)[0]),
+        MRIToField(newSelection.mri, filterAndSortOperations(newSelection.operations)[0]),
         {}
       );
     }
@@ -54,7 +59,7 @@ function MriField({aggregate, project, onChange}: Props) {
         selectedValues.op && availableOps.includes(selectedValues.op)
           ? selectedValues.op
           : availableOps[0];
-      onChange(mriToField(option.value, selectedOp), {});
+      onChange(MRIToField(option.value, selectedOp), {});
     },
     [meta, onChange, selectedValues.op]
   );
@@ -109,7 +114,7 @@ function MriField({aggregate, project, onChange}: Props) {
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
   const selectedMriOption = selectedMriMeta && {
-    label: selectedMriMeta.name,
+    label: formatMRI(selectedMriMeta.mri),
     value: selectedMriMeta.mri,
   };
 

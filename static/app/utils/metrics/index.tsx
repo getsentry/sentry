@@ -9,14 +9,16 @@ import {
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {
+  MetricMeta,
   MetricsApiRequestMetric,
   MetricsApiRequestQuery,
   MetricsGroup,
-  MetricsMeta,
+  MetricType,
+  MRI,
 } from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {getMRIAndOp, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
 
 import {DateString, PageFilters} from '../../types/core';
 
@@ -63,7 +65,7 @@ export interface DdmQueryParams {
 export type MetricsQuery = {
   datetime: PageFilters['datetime'];
   environments: PageFilters['environments'];
-  mri: string;
+  mri: MRI;
   projects: PageFilters['projects'];
   groupBy?: string[];
   op?: string;
@@ -105,7 +107,8 @@ export function getMetricsApiRequestQuery(
   {projects, environments, datetime}: PageFilters,
   overrides: Partial<MetricsApiRequestQuery>
 ): MetricsApiRequestQuery {
-  const useCase = getUseCaseFromMRI(fieldToMri(field).mri);
+  const {mri} = getMRIAndOp(field) ?? {};
+  const useCase = getUseCaseFromMRI(mri);
   const interval = getMetricsInterval(datetime, useCase);
 
   const queryToSend = {
@@ -148,7 +151,7 @@ export function getDateTimeParams({start, end, period}: PageFilters['datetime'])
     : {start: moment(start).toISOString(), end: moment(end).toISOString()};
 }
 
-const metricTypeToReadable = {
+const metricTypeToReadable: Record<MetricType, string> = {
   c: t('counter'),
   g: t('gauge'),
   d: t('distribution'),
@@ -157,41 +160,8 @@ const metricTypeToReadable = {
 };
 
 // Converts from "c" to "counter"
-export function getReadableMetricType(type) {
-  return metricTypeToReadable[type] ?? t('unknown');
-}
-
-const noUnit = 'none';
-
-export function parseMRI(mri?: string) {
-  if (!mri) {
-    return null;
-  }
-
-  const cleanMRI = mri.match(/[cdegs]:[\w/.@]+/)?.[0] ?? mri;
-
-  const name = cleanMRI.match(/^[a-z]:\w+\/(.+)(?:@\w+)$/)?.[1] ?? mri;
-  const unit = cleanMRI.split('@').pop() ?? noUnit;
-
-  const useCase = getUseCaseFromMRI(cleanMRI);
-
-  return {
-    name,
-    unit,
-
-    mri: cleanMRI,
-    useCase,
-  };
-}
-
-export function getUseCaseFromMRI(mri?: string): UseCase {
-  if (mri?.includes('custom/')) {
-    return 'custom';
-  }
-  if (mri?.includes('transactions/')) {
-    return 'transactions';
-  }
-  return 'sessions';
+export function getReadableMetricType(type?: string) {
+  return metricTypeToReadable[type as MetricType] ?? t('unknown');
 }
 
 export function formatMetricUsingUnit(value: number | null, unit: string) {
@@ -310,23 +280,7 @@ export function getSeriesName(
     .join(', ');
 }
 
-export function mriToField(mri: string, op: string): string {
-  return `${op}(${mri})`;
-}
-
-export function fieldToMri(field: string): {mri?: string; op?: string} {
-  const parsedFunction = parseFunction(field);
-  if (!parsedFunction) {
-    // We only allow aggregate functions for custom metric alerts
-    return {};
-  }
-  return {
-    mri: parsedFunction.arguments[0],
-    op: parsedFunction.name,
-  };
-}
-
-export function groupByOp(metrics: MetricsMeta[]): Record<string, MetricsMeta[]> {
+export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   const uniqueOperations = [
     ...new Set(metrics.flatMap(field => field.operations).filter(isAllowedOp)),
   ].sort();
@@ -338,23 +292,6 @@ export function groupByOp(metrics: MetricsMeta[]): Record<string, MetricsMeta[]>
 
   return groupedByOp;
 }
+
 // This is a workaround as the alert builder requires a valid aggregate to be set
 export const DEFAULT_METRIC_ALERT_AGGREGATE = 'sum(c:custom/iolnqzyenoqugwm@none)';
-
-export const formatMriAggregate = (aggregate: string) => {
-  if (aggregate === DEFAULT_METRIC_ALERT_AGGREGATE) {
-    return t('Select a metric to get started');
-  }
-
-  const {mri, op} = fieldToMri(aggregate);
-  const parsed = parseMRI(mri);
-
-  // The field does not contain an MRI -> return the aggregate as is
-  if (!parsed) {
-    return aggregate;
-  }
-
-  const {name} = parsed;
-
-  return `${op}(${name})`;
-};

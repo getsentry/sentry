@@ -1,6 +1,6 @@
-import {fieldToMri, getUseCaseFromMRI} from 'sentry/utils/metrics';
+import {getMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 
 export const isCustomMetricAggregate = (aggregate: string): boolean => {
-  const {mri} = fieldToMri(aggregate);
+  const mri = getMRI(aggregate);
   return getUseCaseFromMRI(mri) === 'custom';
 };

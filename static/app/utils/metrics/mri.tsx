@@ -1,0 +1,102 @@
+import {t} from 'sentry/locale';
+import {MetricType, MRI, ParsedMRI} from 'sentry/types/metrics';
+import {parseFunction} from 'sentry/utils/discover/fields';
+
+import {DEFAULT_METRIC_ALERT_AGGREGATE, UseCase} from './index';
+
+export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
+
+export function isMRI(mri?: unknown): mri is MRI {
+  return !!parseMRI(mri);
+}
+
+export function parseMRI(mri?: unknown): ParsedMRI | null {
+  if (!mri) {
+    return null;
+  }
+  try {
+    return _parseMRI(mri as MRI);
+  } catch (e) {
+    return null;
+  }
+}
+
+function _parseMRI(mri: MRI): ParsedMRI {
+  const mriArray = mri.split(new RegExp(/[:/@]/));
+
+  if (mriArray.length !== 4) {
+    throw new Error('Invalid MRI');
+  }
+
+  const [metricType, useCase, name, unit] = mriArray;
+
+  return {
+    type: metricType as MetricType,
+    name,
+    unit,
+    useCase: useCase as UseCase,
+  };
+}
+
+export function toMRI({type, useCase, name, unit}: ParsedMRI): MRI {
+  return `${type}:${useCase}${name}@${unit}`;
+}
+
+export function formatMRI(mri: MRI): string {
+  return parseMRI(mri)?.name ?? mri;
+}
+
+export function getUseCaseFromMRI(mri?: string): UseCase {
+  const parsed = parseMRI(mri);
+
+  return parsed?.useCase ?? 'sessions';
+}
+
+export function MRIToField(mri: MRI, op: string): string {
+  return `${op}(${mri})`;
+}
+
+export function getMRIAndOp(field: string): {mri: MRI; op: string} | null {
+  const parsedFunction = parseFunction(field);
+  if (!parsedFunction) {
+    // We only allow aggregate functions for custom metric alerts
+    return null;
+  }
+  return {
+    mri: parsedFunction.arguments[0] as MRI,
+    op: parsedFunction.name,
+  };
+}
+
+// convenience function to get the MRI from a field, returns default MRI if it fails
+export function getMRI(field: string): MRI {
+  const parsed = getMRIAndOp(field);
+  return parsed?.mri ?? DEFAULT_MRI;
+}
+
+export function parseField(field: string): {mri: ParsedMRI | null; op: string} | null {
+  const parsedFunction = parseFunction(field);
+  if (!parsedFunction) {
+    // We only allow aggregate functions for custom metric alerts
+    return null;
+  }
+  return {
+    mri: parseMRI(parsedFunction.arguments[0]),
+    op: parsedFunction.name,
+  };
+}
+
+export function formatMRIAggregate(aggregate: string) {
+  if (aggregate === DEFAULT_METRIC_ALERT_AGGREGATE) {
+    return t('Select a metric to get started');
+  }
+
+  const parsed = parseField(aggregate);
+
+  // The field does not contain an MRI -> return the aggregate as is
+  if (!parsed || !parsed.mri) {
+    return aggregate;
+  }
+
+  return `${parsed.op}(${parsed.mri.name})`;
+}

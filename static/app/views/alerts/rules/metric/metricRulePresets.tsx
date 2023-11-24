@@ -1,8 +1,9 @@
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import type {MRI, Project} from 'sentry/types';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {fieldToMri, getDdmUrl, MetricDisplayType} from 'sentry/utils/metrics';
+import {getDdmUrl, MetricDisplayType} from 'sentry/utils/metrics';
+import {getMRIAndOp} from 'sentry/utils/metrics/mri';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {isCustomMetricAggregate} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAggregate';
@@ -45,7 +46,7 @@ export function makeDefaultCta({
   }
 
   if (isCustomMetricAggregate(rule.aggregate)) {
-    const {mri, op} = fieldToMri(rule.aggregate);
+    const {mri, op} = getMRIAndOp(rule.aggregate) ?? {};
     return {
       buttonText: t('Open in DDM'),
       to: getDdmUrl(orgSlug, {
@@ -61,7 +62,7 @@ export function makeDefaultCta({
         environment: rule.environment ? [rule.environment] : [],
         widgets: [
           {
-            mri: mri as string,
+            mri: mri as MRI,
             op: op as string,
             query: rule.query,
             displayType: MetricDisplayType.AREA,

@@ -1,4 +1,4 @@
-import {fieldToMri, parseMRI} from 'sentry/utils/metrics';
+import {getMRIAndOp, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 
 import {MetricAlertType, WizardRuleTemplate} from './options';
@@ -46,8 +46,9 @@ export function getAlertTypeFromAggregateDataset({
   aggregate,
   dataset,
 }: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'>): MetricAlertType {
-  const {mri} = fieldToMri(aggregate);
-  if (mri && parseMRI(mri)?.useCase === 'custom') {
+  const {mri} = getMRIAndOp(aggregate) ?? {};
+
+  if (getUseCaseFromMRI(mri) === 'custom') {
     return 'custom_metrics';
   }
   const identifierForDataset = alertTypeIdentifiers[dataset];
