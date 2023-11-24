@@ -17,7 +17,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -171,15 +171,20 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const topEventsQuery = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
-    ...(topTransactions.length > 0 ? [`transaction:[${topTransactions.join()}]`] : []),
     ...(additionalFilters ?? []),
   ]);
 
-  const topEventsQueryString = appendReleaseFilters(
+  const topEventsQueryString = `${appendReleaseFilters(
     topEventsQuery,
     primaryRelease,
     secondaryRelease
-  );
+  )} ${
+    topTransactions.length > 0
+      ? escapeFilterValue(
+          `transaction:[${topTransactions.map(name => `"${name}"`).join()}]`
+        )
+      : ''
+  }`.trim();
 
   const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithLocation(

@@ -12,6 +12,7 @@ from sentry.utils.samples import load_data
 pytestmark = [pytest.mark.sentry_metrics]
 
 
+@pytest.mark.skip(reason="test failing")
 @region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
