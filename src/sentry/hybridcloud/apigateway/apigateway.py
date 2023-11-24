@@ -6,7 +6,7 @@ from django.conf import settings
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
-from sentry.api_gateway.proxy import (
+from sentry.hybridcloud.apigateway.proxy import (
     proxy_region_request,
     proxy_request,
     proxy_sentryappinstallation_request,

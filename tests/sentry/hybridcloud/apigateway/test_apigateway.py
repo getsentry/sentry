@@ -7,7 +7,7 @@ from django.urls import reverse
 from rest_framework.exceptions import NotFound
 
 from sentry.silo import SiloMode
-from sentry.testutils.helpers.api_gateway import ApiGatewayTestCase, verify_request_params
+from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.utils import json
 

@@ -3,7 +3,7 @@ from io import BytesIO
 import requests
 import responses
 
-from sentry.testutils.helpers.api_gateway import ApiGatewayTestCase, verify_request_body
+from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_body
 from sentry.utils import json
 
 
