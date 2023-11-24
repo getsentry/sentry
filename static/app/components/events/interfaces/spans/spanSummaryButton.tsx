@@ -21,11 +21,16 @@ function SpanSummaryButton(props: Props) {
 
   const {event, organization, span} = props;
 
+  const sentryTags = span.sentry_tags;
+  if (!sentryTags || !sentryTags.group) {
+    return null;
+  }
+
+  const resolvedModule = resolveSpanModule(sentryTags.op, sentryTags.category);
+
   if (
     organization.features.includes('performance-database-view') &&
-    resolveSpanModule(span.sentry_tags?.op, span.sentry_tags?.category) ===
-      ModuleName.DB &&
-    span.sentry_tags?.group
+    resolvedModule === ModuleName.DB
   ) {
     return (
       <LinkButton
@@ -33,7 +38,7 @@ function SpanSummaryButton(props: Props) {
         to={querySummaryRouteWithQuery({
           orgSlug: organization.slug,
           query: location.query,
-          group: span.sentry_tags.group,
+          group: sentryTags.group,
           projectID: event.projectID,
         })}
       >
@@ -44,9 +49,8 @@ function SpanSummaryButton(props: Props) {
 
   if (
     organization.features.includes('starfish-browser-resource-module-ui') &&
-    resolveSpanModule(span.sentry_tags?.op, span.sentry_tags?.category) ===
-      ModuleName.RESOURCE &&
-    span.sentry_tags?.group
+    resolvedModule === ModuleName.RESOURCE &&
+    resourceSummaryAvailable(sentryTags.op)
   ) {
     return (
       <LinkButton
@@ -54,7 +58,7 @@ function SpanSummaryButton(props: Props) {
         to={resourceSummaryRouteWithQuery({
           orgSlug: organization.slug,
           query: location.query,
-          group: span.sentry_tags.group,
+          group: sentryTags.group,
           projectID: event.projectID,
         })}
       >
@@ -65,5 +69,8 @@ function SpanSummaryButton(props: Props) {
 
   return null;
 }
+
+const resourceSummaryAvailable = (op: string = '') =>
+  ['resource.link', 'resource.script', 'resource.css'].includes(op);
 
 export default SpanSummaryButton;
