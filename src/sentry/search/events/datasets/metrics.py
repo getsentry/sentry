@@ -43,7 +43,11 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
-        transaction_alias = self._resolve_transaction_alias_on_demand if self.builder.use_on_demand else self._resolve_transaction_alias
+        transaction_alias = (
+            self._resolve_transaction_alias_on_demand
+            if self.builder.use_on_demand
+            else self._resolve_transaction_alias
+        )
         return {
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
@@ -807,7 +811,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_transaction_alias_on_demand(self, _: str) -> SelectType:
         """On-demand doesn't need a transform for transaction in it's where clause
-        since conditions are saved on a per-metric basis. 
+        since conditions are saved on a per-metric basis.
         """
         return Column(self.builder.resolve_column_name("transaction"))
 

@@ -1301,4 +1301,3 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             [{"count": 5.0}],
             [{"count": 10.0}],
         ]
-
