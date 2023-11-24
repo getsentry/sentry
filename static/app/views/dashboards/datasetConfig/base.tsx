@@ -54,7 +54,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getTableFieldOptions: (
     organization: Organization,
     tags?: TagCollection,
-    customMeasurements?: CustomMeasurementCollection
+    customMeasurements?: CustomMeasurementCollection,
+    api?: Client
   ) => Record<string, SelectValue<FieldValue>>;
   /**
    * List of supported display types for dataset.
@@ -130,7 +131,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getGroupByFieldOptions?: (
     organization: Organization,
-    tags?: TagCollection
+    tags?: TagCollection,
+    customMeasurements?: CustomMeasurementCollection,
+    api?: Client,
+    queries?: WidgetQuery[]
   ) => Record<string, SelectValue<FieldValue>>;
   /**
    * Generate the request promises for fetching

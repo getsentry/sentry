@@ -113,6 +113,8 @@ export function FilterResultsStep({
       }
     )
   );
+  const shouldDisplayOnDemandWarning =
+    hasOnDemandMetricWidgetFeature(organization) && widgetType === WidgetType.DISCOVER;
 
   return (
     <BuildStep
@@ -160,9 +162,7 @@ export function FilterResultsStep({
               <SearchConditionsWrapper>
                 <datasetConfig.SearchBar
                   getFilterWarning={
-                    hasOnDemandMetricWidgetFeature(organization)
-                      ? getOnDemandFilterWarning
-                      : undefined
+                    shouldDisplayOnDemandWarning ? getOnDemandFilterWarning : undefined
                   }
                   organization={organization}
                   pageFilters={selection}
@@ -170,7 +170,7 @@ export function FilterResultsStep({
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
                 />
-                {hasOnDemandMetricWidgetFeature(organization) &&
+                {shouldDisplayOnDemandWarning &&
                   isOnDemandQueryString(query.conditions) && (
                     <OnDemandWarningIcon
                       msg={tct(

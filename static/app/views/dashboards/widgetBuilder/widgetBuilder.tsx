@@ -209,8 +209,9 @@ function WidgetBuilder({
   const notDashboardsOrigin = [
     DashboardWidgetSource.DISCOVERV2,
     DashboardWidgetSource.ISSUE_DETAILS,
-    DashboardWidgetSource.DDM,
   ].includes(source);
+
+  const dataset = source === DashboardWidgetSource.DDM ? DataSet.METRICS : DataSet.EVENTS;
 
   const api = useApi();
 
@@ -237,7 +238,7 @@ function WidgetBuilder({
       loading: !!notDashboardsOrigin,
       userHasModified: false,
       prebuiltWidgetId: null,
-      dataSet: DataSet.EVENTS,
+      dataSet: dataset,
       queryConditionsValid: true,
       selectedDashboard: dashboard.id || NEW_DASHBOARD_ID,
     };
@@ -786,7 +787,9 @@ function WidgetBuilder({
       widgetData.limit = undefined;
     }
 
-    if (!(await dataIsValid(widgetData))) {
+    const isValid = await dataIsValid(widgetData);
+
+    if (!isValid) {
       return;
     }
 
@@ -1192,6 +1195,7 @@ function WidgetBuilder({
                                       organization={organization}
                                       tags={tags}
                                       dataSet={state.dataSet}
+                                      queries={state.queries}
                                     />
                                   )}
                                   {displaySortByStep && (
