@@ -21,7 +21,7 @@ class DisabledMemberView(ReactPageView):
             member = organization_service.check_membership_by_id(
                 user_id=user.id, organization_id=organization.id
             )
-            if not member or member.flags["member-limit:restricted"]:
+            if member and not member.flags["member-limit:restricted"]:
                 return self.redirect(
                     reverse("sentry-organization-issue-list", args=[organization.slug])
                 )
