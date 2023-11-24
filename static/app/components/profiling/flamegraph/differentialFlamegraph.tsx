@@ -1,4 +1,5 @@
 import {ReactElement, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
@@ -15,8 +16,10 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
+  initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
+import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
@@ -182,15 +185,25 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
       return null;
     }
 
-    return new FlamegraphRendererWebGL(
-      flamegraphCanvasRef,
-      differentialFlamegraph,
-      flamegraphTheme,
-      {
-        colorCoding,
-        draw_border: true,
-      }
+    const renderer = initializeFlamegraphRenderer(
+      [FlamegraphRendererWebGL, FlamegraphRenderer2D],
+      [
+        flamegraphCanvasRef,
+        differentialFlamegraph,
+        flamegraphTheme,
+        {
+          colorCoding,
+          draw_border: true,
+        },
+      ]
     );
+
+    if (renderer === null) {
+      Sentry.captureException('Failed to initialize a flamegraph renderer');
+      return null;
+    }
+
+    return renderer;
   }, [colorCoding, differentialFlamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   useEffect(() => {

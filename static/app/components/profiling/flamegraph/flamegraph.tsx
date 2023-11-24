@@ -51,9 +51,11 @@ import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
   formatColorForFrame,
+  initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
@@ -1163,10 +1165,25 @@ function Flamegraph(): ReactElement {
       return null;
     }
 
-    return new FlamegraphRendererWebGL(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
-      colorCoding,
-      draw_border: true,
-    });
+    const renderer = initializeFlamegraphRenderer(
+      [FlamegraphRendererWebGL, FlamegraphRenderer2D],
+      [
+        flamegraphCanvasRef,
+        flamegraph,
+        flamegraphTheme,
+        {
+          colorCoding,
+          draw_border: true,
+        },
+      ]
+    );
+
+    if (renderer === null) {
+      Sentry.captureException('Failed to initialize a flamegraph renderer');
+      return null;
+    }
+
+    return renderer;
   }, [colorCoding, flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   const getFrameColor = useCallback(
