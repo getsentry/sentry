@@ -245,7 +245,8 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
     projectCanLinkToReplay(group.project);
 
   const downloadJson = () => {
-    const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
+    const host = organization.links.regionUrl;
+    const jsonUrl = `${host}/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
     window.open(jsonUrl);
     trackAnalytics('issue_details.event_json_clicked', {
       organization,
