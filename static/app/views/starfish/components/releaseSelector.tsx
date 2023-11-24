@@ -81,7 +81,7 @@ export function ReleaseSelector({selectorKey, selectorValue}: Props) {
       options={[
         {
           value: '_releases',
-          label: t('Sorted by adoption'),
+          label: t('Sorted by date created'),
           options,
         },
       ]}

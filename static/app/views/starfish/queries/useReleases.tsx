@@ -56,7 +56,10 @@ export function useReleases(searchTerm?: string) {
       const queryKey = [
         `/organizations/${organization.slug}/events/`,
         {
-          query: eventView.getEventsAPIPayload(location),
+          query: {
+            ...eventView.getEventsAPIPayload(location),
+            referrer: 'api.starfish.mobile-release-selector',
+          },
         },
       ] as ApiQueryKey;
       return {
