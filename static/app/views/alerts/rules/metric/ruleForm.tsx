@@ -155,7 +155,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const queryWithTypeFilter = (
       query && alertType !== 'custom_metrics'
         ? `(${query}) AND (${eventTypeFilter})`
-        : eventTypeFilter
+        : query
     ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
