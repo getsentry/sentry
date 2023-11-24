@@ -39,7 +39,7 @@ const UNMATCHED_SEARCH_FRAME_ATTRIBUTES: Readonly<Float32Array> = new Float32Arr
 ).fill(0);
 
 export class FlamegraphRendererWebGL extends FlamegraphRenderer {
-  gl: WebGLRenderingContext | null = null;
+  ctx: WebGLRenderingContext | null = null;
   program: WebGLProgram | null = null;
 
   // Vertex and color buffer
@@ -158,25 +158,25 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
       throw new Error('Cannot initialize context from null canvas');
     }
     // Setup webgl canvas context
-    this.gl = safeGetContext(this.canvas, 'webgl');
+    this.ctx = safeGetContext(this.canvas, 'webgl');
 
-    if (!this.gl) {
+    if (!this.ctx) {
       return false;
     }
 
-    this.gl.enable(this.gl.BLEND);
-    this.gl.blendFuncSeparate(
-      this.gl.SRC_ALPHA,
-      this.gl.ONE_MINUS_SRC_ALPHA,
-      this.gl.ONE,
-      this.gl.ONE_MINUS_SRC_ALPHA
+    this.ctx.enable(this.ctx.BLEND);
+    this.ctx.blendFuncSeparate(
+      this.ctx.SRC_ALPHA,
+      this.ctx.ONE_MINUS_SRC_ALPHA,
+      this.ctx.ONE,
+      this.ctx.ONE_MINUS_SRC_ALPHA
     );
     resizeCanvasToDisplaySize(this.canvas);
     return true;
   }
 
   initShaders(): void {
-    if (!this.gl) {
+    if (!this.ctx) {
       return;
     }
 
@@ -194,84 +194,84 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
       a_position: null,
     };
 
-    const vertexShader = createShader(this.gl, this.gl.VERTEX_SHADER, vertex());
+    const vertexShader = createShader(this.ctx, this.ctx.VERTEX_SHADER, vertex());
     const fragmentShader = createShader(
-      this.gl,
-      this.gl.FRAGMENT_SHADER,
+      this.ctx,
+      this.ctx.FRAGMENT_SHADER,
       fragment(this.theme)
     );
 
     // create program
-    this.program = createProgram(this.gl, vertexShader, fragmentShader);
+    this.program = createProgram(this.ctx, vertexShader, fragmentShader);
 
     // initialize uniforms
     for (const uniform in this.uniforms) {
-      this.uniforms[uniform] = getUniform(this.gl, this.program, uniform);
+      this.uniforms[uniform] = getUniform(this.ctx, this.program, uniform);
     }
 
     // initialize and upload search results buffer data
     this.attributes.a_is_search_result = getAttribute(
-      this.gl,
+      this.ctx,
       this.program,
       'a_is_search_result'
     );
-    createAndBindBuffer(this.gl, this.searchResults, this.gl.STATIC_DRAW);
-    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_is_search_result, {
+    createAndBindBuffer(this.ctx, this.searchResults, this.ctx.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.ctx, this.attributes.a_is_search_result, {
       size: 1,
-      type: this.gl.FLOAT,
+      type: this.ctx.FLOAT,
       normalized: false,
       stride: 0,
       offset: 0,
     });
 
     // initialize and upload color buffer data
-    this.attributes.a_color = getAttribute(this.gl, this.program, 'a_color');
-    createAndBindBuffer(this.gl, this.colors, this.gl.STATIC_DRAW);
-    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_color, {
+    this.attributes.a_color = getAttribute(this.ctx, this.program, 'a_color');
+    createAndBindBuffer(this.ctx, this.colors, this.ctx.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.ctx, this.attributes.a_color, {
       size: 4,
-      type: this.gl.FLOAT,
+      type: this.ctx.FLOAT,
       normalized: false,
       stride: 0,
       offset: 0,
     });
 
     // initialize and upload positions buffer data
-    this.attributes.a_position = getAttribute(this.gl, this.program, 'a_position');
-    createAndBindBuffer(this.gl, this.positions, this.gl.STATIC_DRAW);
-    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_position, {
+    this.attributes.a_position = getAttribute(this.ctx, this.program, 'a_position');
+    createAndBindBuffer(this.ctx, this.positions, this.ctx.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.ctx, this.attributes.a_position, {
       size: 2,
-      type: this.gl.FLOAT,
+      type: this.ctx.FLOAT,
       normalized: false,
       stride: 0,
       offset: 0,
     });
 
     // initialize and upload bounds buffer data
-    this.attributes.a_bounds = getAttribute(this.gl, this.program, 'a_bounds');
-    createAndBindBuffer(this.gl, this.bounds, this.gl.STATIC_DRAW);
-    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_bounds, {
+    this.attributes.a_bounds = getAttribute(this.ctx, this.program, 'a_bounds');
+    createAndBindBuffer(this.ctx, this.bounds, this.ctx.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.ctx, this.attributes.a_bounds, {
       size: 4,
-      type: this.gl.FLOAT,
+      type: this.ctx.FLOAT,
       normalized: false,
       stride: 0,
       offset: 0,
     });
 
     // Use shader program
-    this.gl.useProgram(this.program);
+    this.ctx.useProgram(this.program);
 
     // Check if we should draw border - order matters here
     // https://stackoverflow.com/questions/60673970/uniform-value-not-stored-if-i-put-the-gluniform1f-call-before-the-render-loop
-    this.gl.uniform1i(this.uniforms.u_draw_border, this.options.draw_border ? 1 : 0);
-    this.gl.uniform1i(this.uniforms.u_grayscale, 0);
+    this.ctx.uniform1i(this.uniforms.u_draw_border, this.options.draw_border ? 1 : 0);
+    this.ctx.uniform1i(this.uniforms.u_grayscale, 0);
   }
 
   setSearchResults(query: string, searchResults: FlamegraphSearch['results']['frames']) {
-    if (!this.program || !this.gl) {
+    if (!this.program || !this.ctx) {
       return;
     }
 
-    this.gl.uniform1i(
+    this.ctx.uniform1i(
       this.uniforms.u_grayscale,
       query.length > 0 || searchResults.size > 0 ? 1 : 0
     );
@@ -281,7 +281,7 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
   private updateSearchResultsBuffer(
     searchResults: FlamegraphSearch['results']['frames']
   ) {
-    if (!this.program || !this.gl) {
+    if (!this.program || !this.ctx) {
       return;
     }
 
@@ -295,14 +295,14 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
     }
 
     this.attributes.a_is_search_result = getAttribute(
-      this.gl,
+      this.ctx,
       this.program,
       'a_is_search_result'
     );
-    createAndBindBuffer(this.gl, this.searchResults, this.gl.STATIC_DRAW);
-    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_is_search_result, {
+    createAndBindBuffer(this.ctx, this.searchResults, this.ctx.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.ctx, this.attributes.a_is_search_result, {
       size: 1,
-      type: this.gl.FLOAT,
+      type: this.ctx.FLOAT,
       normalized: false,
       stride: 0,
       offset: 0,
@@ -310,12 +310,12 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
   }
 
   draw(configViewToPhysicalSpace: mat3): void {
-    if (!this.gl) {
+    if (!this.ctx) {
       throw new Error('Uninitialized WebGL context');
     }
 
-    this.gl.clearColor(0, 0, 0, 0);
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    this.ctx.clearColor(0, 0, 0, 0);
+    this.ctx.clear(this.ctx.COLOR_BUFFER_BIT);
 
     // We have no frames to draw
     if (!this.positions.length || !this.program) {
@@ -323,16 +323,16 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
     }
 
     const projectionMatrix = makeProjectionMatrix(
-      this.gl.canvas.width,
-      this.gl.canvas.height
+      this.ctx.canvas.width,
+      this.ctx.canvas.height
     );
 
     // Projection matrix
-    this.gl.uniformMatrix3fv(this.uniforms.u_projection, false, projectionMatrix);
+    this.ctx.uniformMatrix3fv(this.uniforms.u_projection, false, projectionMatrix);
     // Model to projection
-    this.gl.uniformMatrix3fv(this.uniforms.u_model, false, configViewToPhysicalSpace);
+    this.ctx.uniformMatrix3fv(this.uniforms.u_model, false, configViewToPhysicalSpace);
     // Tell webgl to convert clip space to px
-    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+    this.ctx.viewport(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
     const physicalToConfig = mat3.invert(
       CONFIG_TO_PHYSICAL_SPACE,
@@ -340,12 +340,12 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
     );
     const configSpacePixel = PHYSICAL_SPACE_PX.transformRect(physicalToConfig);
 
-    this.gl.uniform2f(
+    this.ctx.uniform2f(
       this.uniforms.u_border_width,
       configSpacePixel.width,
       configSpacePixel.height
     );
 
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.frames.length * VERTICES_PER_FRAME);
+    this.ctx.drawArrays(this.ctx.TRIANGLES, 0, this.frames.length * VERTICES_PER_FRAME);
   }
 }
