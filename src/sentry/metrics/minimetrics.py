@@ -42,6 +42,9 @@ def patch_sentry_sdk():
     def patched_emit(
         self, flushable_buckets: Iterable[Tuple[int, Dict[Any, Metric]]], code_locations: Any
     ):
+        if not flushable_buckets and not code_locations:
+            return
+
         flushable_metrics = []
         stats_by_type: Any = {}
         for buckets_timestamp, buckets in flushable_buckets:

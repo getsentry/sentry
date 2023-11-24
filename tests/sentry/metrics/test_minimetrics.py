@@ -98,6 +98,7 @@ def backend():
     {
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
+        "delightful_metrics.enable_code_locations": True,
     }
 )
 def test_incr_called_with_no_tags(backend, hub):
@@ -121,6 +122,7 @@ def test_incr_called_with_no_tags(backend, hub):
     {
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": False,
+        "delightful_metrics.enable_code_locations": True,
     }
 )
 def test_incr_called_with_no_tags_and_no_common_tags(backend, hub):
@@ -144,6 +146,7 @@ def test_incr_called_with_no_tags_and_no_common_tags(backend, hub):
     {
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
+        "delightful_metrics.enable_code_locations": True,
     }
 )
 def test_incr_called_with_tag_value_as_list(backend, hub):
@@ -165,6 +168,7 @@ def test_incr_called_with_tag_value_as_list(backend, hub):
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.emit_gauges": False,
+        "delightful_metrics.enable_code_locations": True,
     }
 )
 def test_gauge_as_count(backend, hub):
@@ -187,6 +191,7 @@ def test_gauge_as_count(backend, hub):
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.emit_gauges": True,
+        "delightful_metrics.enable_code_locations": True,
     }
 )
 def test_gauge(backend, hub):
@@ -212,6 +217,7 @@ def test_gauge(backend, hub):
         "delightful_metrics.allow_all_incr": True,
         "delightful_metrics.allow_all_timing": True,
         "delightful_metrics.allow_all_gauge": True,
+        "delightful_metrics.enable _code_locations": True,
     }
 )
 def test_composite_backend_does_not_recurse(hub):
