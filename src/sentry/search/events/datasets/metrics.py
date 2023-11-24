@@ -43,14 +43,15 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
+        transaction_alias = self._resolve_transaction_alias_on_demand if self.builder.use_on_demand else self._resolve_transaction_alias
         return {
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             constants.TITLE_ALIAS: self._resolve_title_alias,
             constants.PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
-            "transaction": self._resolve_transaction_alias,
-            "tags[transaction]": self._resolve_transaction_alias,
+            "transaction": transaction_alias,
+            "tags[transaction]": transaction_alias,
             constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
                 self.builder, alias
             ),
@@ -783,7 +784,7 @@ class MetricsDatasetConfig(DatasetConfig):
     # Field Aliases
     def _resolve_title_alias(self, alias: str) -> SelectType:
         """title == transaction in discover"""
-        return self._resolve_transaction_alias(alias)
+        return self.field_alias_converter["transaction"](alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
         return field_aliases.resolve_team_key_transaction_alias(
@@ -803,6 +804,12 @@ class MetricsDatasetConfig(DatasetConfig):
             ],
             alias,
         )
+
+    def _resolve_transaction_alias_on_demand(self, _: str) -> SelectType:
+        """On-demand doesn't need a transform for transaction in it's where clause
+        since conditions are saved on a per-metric basis. 
+        """
+        return Column(self.builder.resolve_column_name("transaction"))
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
