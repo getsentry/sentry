@@ -49,7 +49,7 @@ export interface MetricWidgetQueryParams
   sort?: SortState;
 }
 
-export interface DdmQUeryParams {
+export interface DdmQueryParams {
   widgets: string; // stringified json representation of MetricWidgetQueryParams
   end?: DateString;
   environment?: string[];
@@ -78,12 +78,12 @@ export function getDdmUrl(
     statsPeriod,
     project,
     ...otherParams
-  }: Omit<DdmQUeryParams, 'project' | 'widgets'> & {
+  }: Omit<DdmQueryParams, 'project' | 'widgets'> & {
     widgets: MetricWidgetQueryParams[];
     project?: (string | number)[];
   }
 ) {
-  const urlParams: Partial<DdmQUeryParams> = {
+  const urlParams: Partial<DdmQueryParams> = {
     ...otherParams,
     project: project?.map(id => (typeof id === 'string' ? parseInt(id, 10) : id)),
     widgets: JSON.stringify(widgets),
