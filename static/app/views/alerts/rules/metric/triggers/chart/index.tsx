@@ -34,6 +34,7 @@ import type {
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatMriAggregate} from 'sentry/utils/metrics';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
@@ -505,7 +506,7 @@ class TriggersChart extends PureComponent<Props, State> {
         period={period}
         yAxis={aggregate}
         includePrevious={false}
-        currentSeriesNames={[aggregate]}
+        currentSeriesNames={[formatMriAggregate(aggregate)]}
         partial={false}
         queryExtras={queryExtras}
         dataLoadedCallback={onDataLoaded}

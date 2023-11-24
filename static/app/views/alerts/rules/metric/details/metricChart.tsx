@@ -45,6 +45,7 @@ import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatMriAggregate} from 'sentry/utils/metrics';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
@@ -368,7 +369,7 @@ class MetricChart extends PureComponent<Props, State> {
           </ChartHeader>
           <ChartFilters>
             <StyledCircleIndicator size={8} />
-            <Filters>{rule.aggregate}</Filters>
+            <Filters>{formatMriAggregate(rule.aggregate)}</Filters>
             <Truncate value={queryFilter ?? ''} maxLength={truncateWidth} />
           </ChartFilters>
           {getDynamicText({

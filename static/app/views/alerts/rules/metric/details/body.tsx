@@ -32,6 +32,7 @@ import {
 } from 'sentry/views/alerts/utils/migrationUi';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
+import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
 
 import {
   API_INTERVAL_POINTS_LIMIT,
@@ -89,9 +90,9 @@ export default function MetricDetailsBody({
       return null;
     }
 
-    const {dataset, query} = rule;
+    const {aggregate, dataset, query} = rule;
 
-    if (isCrashFreeAlert(dataset)) {
+    if (isCrashFreeAlert(dataset) || isCustomMetricAlert(aggregate)) {
       return query.trim().split(' ');
     }
 

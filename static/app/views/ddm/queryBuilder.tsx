@@ -16,6 +16,7 @@ import {
   isAllowedOp,
   MetricDisplayType,
   MetricsQuery,
+  MetricWidgetQueryParams,
 } from 'sentry/utils/metrics';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
@@ -23,12 +24,11 @@ import useApi from 'sentry/utils/useApi';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MetricWidgetProps} from 'sentry/views/ddm/widget';
 
 type QueryBuilderProps = {
   displayType: MetricDisplayType; // TODO(ddm): move display type out of the query builder
   metricsQuery: Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
-  onChange: (data: Partial<MetricWidgetProps>) => void;
+  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
   powerUserMode?: boolean;
 };

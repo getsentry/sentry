@@ -63,6 +63,9 @@ export function useMetricsMeta(
 
   return {
     data: combinedMeta,
-    isLoading: sessionsMeta.isLoading || txnsMeta.isLoading || customMeta.isLoading,
+    isLoading:
+      (sessionsMeta.isLoading && sessionsMeta.fetchStatus !== 'idle') ||
+      (txnsMeta.isLoading && txnsMeta.fetchStatus !== 'idle') ||
+      (customMeta.isLoading && customMeta.fetchStatus !== 'idle'),
   };
 }

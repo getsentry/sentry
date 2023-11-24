@@ -19,7 +19,7 @@ import {
   defaultMetricDisplayType,
   getSeriesName,
   MetricDisplayType,
-  MetricsQuery,
+  MetricWidgetQueryParams,
   parseMRI,
   updateQuery,
 } from 'sentry/utils/metrics';
@@ -34,11 +34,6 @@ import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
 import {DEFAULT_SORT_STATE, MIN_WIDGET_WIDTH} from './constants';
 
-type SortState = {
-  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | undefined;
-  order: 'asc' | 'desc';
-};
-
 const emptyWidget = {
   mri: '',
   op: undefined,
@@ -47,18 +42,10 @@ const emptyWidget = {
   sort: DEFAULT_SORT_STATE,
 };
 
-export type MetricWidgetDisplayConfig = {
-  displayType: MetricDisplayType;
+export interface MetricWidgetProps extends MetricWidgetQueryParams {
   onChange: (data: Partial<MetricWidgetProps>) => void;
   position: number;
-  sort: SortState;
-  focusedSeries?: string;
-  powerUserMode?: boolean;
-  showSummaryTable?: boolean;
-};
-
-export type MetricWidgetProps = Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> &
-  MetricWidgetDisplayConfig;
+}
 
 export function useMetricWidgets() {
   const router = useRouter();
@@ -68,7 +55,7 @@ export function useMetricWidgets() {
   );
 
   const widgets: MetricWidgetProps[] = currentWidgets.map(
-    (widget: MetricWidgetProps, i) => {
+    (widget: MetricWidgetQueryParams, i) => {
       return {
         mri: widget.mri,
         op: widget.op,
@@ -84,7 +71,7 @@ export function useMetricWidgets() {
     }
   );
 
-  const onChange = (position: number, data: Partial<MetricWidgetProps>) => {
+  const onChange = (position: number, data: Partial<MetricWidgetQueryParams>) => {
     currentWidgets[position] = {...currentWidgets[position], ...data};
 
     updateQuery(router, {

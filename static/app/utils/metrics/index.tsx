@@ -1,5 +1,6 @@
 import {InjectedRouter} from 'react-router';
 import moment from 'moment';
+import * as qs from 'query-string';
 
 import {
   DateTimeObject,
@@ -17,7 +18,7 @@ import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 
-import {PageFilters} from '../../types/core';
+import {DateString, PageFilters} from '../../types/core';
 
 export enum MetricDisplayType {
   LINE = 'line',
@@ -34,6 +35,31 @@ export type MetricTag = {
   key: string;
 };
 
+export type SortState = {
+  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | undefined;
+  order: 'asc' | 'desc';
+};
+
+export interface MetricWidgetQueryParams
+  extends Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> {
+  displayType: MetricDisplayType;
+  focusedSeries?: string;
+  position?: number;
+  powerUserMode?: boolean;
+  showSummaryTable?: boolean;
+  sort?: SortState;
+}
+
+export interface DdmQueryParams {
+  widgets: string; // stringified json representation of MetricWidgetQueryParams
+  end?: DateString;
+  environment?: string[];
+  project?: number[];
+  start?: DateString;
+  statsPeriod?: string | null;
+  utc?: boolean | null;
+}
+
 export type MetricsQuery = {
   datetime: PageFilters['datetime'];
   environments: PageFilters['environments'];
@@ -43,6 +69,36 @@ export type MetricsQuery = {
   op?: string;
   query?: string;
 };
+
+export function getDdmUrl(
+  orgSlug: string,
+  {
+    widgets,
+    start,
+    end,
+    statsPeriod,
+    project,
+    ...otherParams
+  }: Omit<DdmQueryParams, 'project' | 'widgets'> & {
+    widgets: MetricWidgetQueryParams[];
+    project?: (string | number)[];
+  }
+) {
+  const urlParams: Partial<DdmQueryParams> = {
+    ...otherParams,
+    project: project?.map(id => (typeof id === 'string' ? parseInt(id, 10) : id)),
+    widgets: JSON.stringify(widgets),
+  };
+
+  if (statsPeriod) {
+    urlParams.statsPeriod = statsPeriod;
+  } else {
+    urlParams.start = start;
+    urlParams.end = end;
+  }
+
+  return `/organizations/${orgSlug}/ddm/?${qs.stringify(urlParams)}`;
+}
 
 export function getMetricsApiRequestQuery(
   {field, query, groupBy}: MetricsApiRequestMetric,
@@ -258,14 +314,11 @@ export function mriToField(mri: string, op: string): string {
   return `${op}(${mri})`;
 }
 
-export function fieldToMri(field: string) {
+export function fieldToMri(field: string): {mri?: string; op?: string} {
   const parsedFunction = parseFunction(field);
   if (!parsedFunction) {
     // We only allow aggregate functions for custom metric alerts
-    return {
-      mri: undefined,
-      op: undefined,
-    };
+    return {};
   }
   return {
     mri: parsedFunction.arguments[0],
@@ -286,7 +339,7 @@ export function groupByOp(metrics: MetricsMeta[]): Record<string, MetricsMeta[]>
   return groupedByOp;
 }
 // This is a workaround as the alert builder requires a valid aggregate to be set
-export const DEFAULT_METRIC_ALERT_AGGREGATE = 'sum(c:custom/my_metric@none)';
+export const DEFAULT_METRIC_ALERT_AGGREGATE = 'sum(c:custom/iolnqzyenoqugwm@none)';
 
 export const formatMriAggregate = (aggregate: string) => {
   if (aggregate === DEFAULT_METRIC_ALERT_AGGREGATE) {
@@ -296,6 +349,7 @@ export const formatMriAggregate = (aggregate: string) => {
   const {mri, op} = fieldToMri(aggregate);
   const parsed = parseMRI(mri);
 
+  // The field does not contain an MRI -> return the aggregate as is
   if (!parsed) {
     return aggregate;
   }
