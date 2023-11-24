@@ -262,7 +262,11 @@ def test_unit_is_correctly_propagated_for_incr(sentry_sdk, unit, expected_unit):
     del incr_params["value"]
     incr_params["amount"] = params["value"]
     backend.incr(**incr_params)
-    assert sentry_sdk.metrics.incr.call_args.kwargs == {**params, "unit": expected_unit}
+    assert sentry_sdk.metrics.incr.call_args.kwargs == {
+        **params,
+        "unit": expected_unit,
+        "stacklevel": 1,
+    }
 
 
 @override_options(
@@ -278,7 +282,11 @@ def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit
     params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}}
 
     backend.timing(**params)  # type:ignore
-    assert sentry_sdk.metrics.distribution.call_args.kwargs == {**params, "unit": expected_unit}
+    assert sentry_sdk.metrics.distribution.call_args.kwargs == {
+        **params,
+        "unit": expected_unit,
+        "stacklevel": 1,
+    }
 
 
 @override_options(
@@ -292,7 +300,11 @@ def test_unit_is_correctly_propagated_for_gauge(sentry_sdk, unit, expected_unit)
     params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}, "unit": unit}
 
     backend.gauge(**params)
-    assert sentry_sdk.metrics.gauge.call_args.kwargs == {**params, "unit": expected_unit}
+    assert sentry_sdk.metrics.gauge.call_args.kwargs == {
+        **params,
+        "unit": expected_unit,
+        "stacklevel": 1,
+    }
 
 
 @override_options(
@@ -308,7 +320,11 @@ def test_unit_is_correctly_propagated_for_distribution(sentry_sdk, unit, expecte
     params = {"key": "sentrytest.unit", "value": 15.0, "tags": {"x": "bar"}, "unit": unit}
 
     backend.distribution(**params)
-    assert sentry_sdk.metrics.distribution.call_args.kwargs == {**params, "unit": expected_unit}
+    assert sentry_sdk.metrics.distribution.call_args.kwargs == {
+        **params,
+        "unit": expected_unit,
+        "stacklevel": 1,
+    }
 
 
 @pytest.mark.parametrize(
