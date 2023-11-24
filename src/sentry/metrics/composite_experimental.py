@@ -28,7 +28,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
             cls: Type[MetricsBackend] = import_string(primary_backend)
             self._primary_backend = cls(**primary_backend_args)
 
-        self._minimetrics: MetricsBackend = MiniMetricsMetricsBackend()
+        self._minimetrics: MiniMetricsMetricsBackend = MiniMetricsMetricsBackend()
 
     def _is_allowed(self, key: str):
         return key in self._allow_list
