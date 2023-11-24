@@ -317,7 +317,9 @@ export function transformMetricsResponseToSeries(
     });
   });
 
-  return results;
+  return results.sort((a, b) => {
+    return a.data[0].value < b.data[0].value ? -1 : 1;
+  });
 }
 
 function getMetricRequest(
