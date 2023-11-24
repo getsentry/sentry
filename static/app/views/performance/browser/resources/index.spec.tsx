@@ -62,15 +62,42 @@ describe('ResourcesLandingPage', function () {
     render(<ResourcesLandingPage />);
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(requestMocks.mainTable).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query:
-            '!span.description:"browser-extension://*" !resource.render_blocking_status:blocking AND ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] ) ',
-        }),
-      })
-    );
+    expect(requestMocks.mainTable.mock.calls).toMatchInlineSnapshot(`
+[
+  [
+    "/organizations/org-slug/events/",
+    {
+      "error": [Function],
+      "method": "GET",
+      "query": {
+        "dataset": "spansMetrics",
+        "environment": [],
+        "field": [
+          "span.description",
+          "span.op",
+          "count()",
+          "avg(span.self_time)",
+          "spm()",
+          "span.group",
+          "span.domain",
+          "avg(http.response_content_length)",
+          "project.id",
+          "time_spent_percentage()",
+          "sum(span.self_time)",
+        ],
+        "per_page": 100,
+        "project": [],
+        "query": "!span.description:"browser-extension://*" !resource.render_blocking_status:blocking AND ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] ) ",
+        "referrer": "api.performance.browser.resources.main-table",
+        "sort": "-time_spent_percentage()",
+        "statsPeriod": "10d",
+      },
+      "skipAbort": undefined,
+      "success": [Function],
+    },
+  ],
+]
+`);
   });
 });
 
