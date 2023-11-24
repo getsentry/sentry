@@ -1,10 +1,12 @@
 import {mat3} from 'gl-matrix';
 
-import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {
+  FlamegraphFrame,
+  getFlamegraphFrameSearchId,
+} from 'sentry/utils/profiling/flamegraphFrame';
 import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
 import {
   DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
@@ -13,8 +15,16 @@ import {
 } from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
+function colorComponentsToRgba(color: number[]): string {
+  return `rgba(${Math.floor(color[0] * 255)}, ${Math.floor(color[1] * 255)}, ${Math.floor(
+    color[2] * 255
+  )}, ${color[3] ?? 1})`;
+}
+
 export class FlamegraphRenderer2D extends FlamegraphRenderer {
   ctx: CanvasRenderingContext2D | null = null;
+  searchResults: FlamegraphSearch['results']['frames'] = new Map();
+  isSearching = false;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -69,11 +79,13 @@ export class FlamegraphRenderer2D extends FlamegraphRenderer {
         1
       ).transformRect(configViewToPhysicalSpace);
 
-      const colors =
-        this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
-      const color = colorComponentsToRGBA(colors);
+      const color = this.colorMap.get(frame.key) ?? this.theme.COLORS.SPAN_FALLBACK_COLOR;
 
-      this.ctx.fillStyle = color;
+      this.ctx.fillStyle =
+        this.isSearching && !this.searchResults.has(getFlamegraphFrameSearchId(frame))
+          ? colorComponentsToRgba(this.theme.COLORS.FRAME_GRAYSCALE_COLOR)
+          : colorComponentsToRgba(color);
+
       this.ctx.fillRect(
         rect.x + border,
         rect.y + border,
@@ -87,10 +99,12 @@ export class FlamegraphRenderer2D extends FlamegraphRenderer {
     }
   }
 
-  setSearchResults(
-    _query: string,
-    _searchResults: FlamegraphSearch['results']['frames']
-  ) {
-    throw new Error('Method `setSearchResults` not implemented.');
+  setSearchResults(query: string, searchResults: FlamegraphSearch['results']['frames']) {
+    if (!this.ctx) {
+      return;
+    }
+
+    this.isSearching = query.length > 0;
+    this.searchResults = searchResults;
   }
 }
