@@ -25,6 +25,13 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[],
-            database_operations=[migrations.RemoveField(model_name="externalactor", name="actor")],
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_externalactor" DROP COLUMN actor_id;
+                    """,
+                    hints={"tables": ["sentry_externalactor"]},
+                )
+            ],
         )
     ]
