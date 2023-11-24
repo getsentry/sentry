@@ -11,6 +11,7 @@ import {
   MetricsApiRequestMetric,
   MetricsApiRequestQuery,
   MetricsGroup,
+  MetricsMeta,
 } from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -62,7 +63,7 @@ export function getMetricsApiRequestQuery(
     groupBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // max result groups
-    per_page: 20,
+    per_page: 10,
   };
 
   return {...queryToSend, ...overrides};
@@ -234,8 +235,13 @@ export function clearQuery(router: InjectedRouter) {
 export function getSeriesName(
   group: MetricsGroup,
   isOnlyGroup = false,
-  groupBy: MetricsQuery['groupBy']
+  groupBy: MetricsQuery['groupBy'],
+  alias?: string
 ) {
+  if (alias) {
+    return alias;
+  }
+
   if (isOnlyGroup && !groupBy?.length) {
     const mri = Object.keys(group.series)?.[0];
     const parsed = parseMRI(mri);
@@ -267,6 +273,18 @@ export function fieldToMri(field: string) {
   };
 }
 
+export function groupByOp(metrics: MetricsMeta[]): Record<string, MetricsMeta[]> {
+  const uniqueOperations = [
+    ...new Set(metrics.flatMap(field => field.operations).filter(isAllowedOp)),
+  ].sort();
+
+  const groupedByOp = uniqueOperations.reduce((result, op) => {
+    result[op] = metrics.filter(field => field.operations.includes(op));
+    return result;
+  }, {});
+
+  return groupedByOp;
+}
 // This is a workaround as the alert builder requires a valid aggregate to be set
 export const DEFAULT_METRIC_ALERT_AGGREGATE = 'sum(c:custom/my_metric@none)';
 
