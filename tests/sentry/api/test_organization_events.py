@@ -200,7 +200,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert len(response.data.get("data")) == 2
         assert all(row.get("count()") == 1 for row in response.data.get("data"))
 
-        query = {"field": ["status", "count()"], "orderby": ["count()"], "query": "status:good"}
+        query = {"field": ["status", "count()"], "orderby": ["count()"], "query": ["status:good"]}
         response = self.do_request(query)
 
         assert response.status_code == 200, response.content
