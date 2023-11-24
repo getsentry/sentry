@@ -46,7 +46,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
-    """Get metric name, available operations and the metric unit"""
+    """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
