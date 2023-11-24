@@ -150,10 +150,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   get chartQuery(): string {
-    const {query, eventTypes, dataset} = this.state;
+    const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      query ? `(${query}) AND (${eventTypeFilter})` : eventTypeFilter
+      alertType !== 'custom_metrics'
+        ? query
+          ? `(${query}) AND (${eventTypeFilter})`
+          : eventTypeFilter
+        : query
     ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
@@ -911,7 +915,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
                 <Aggregate>{formatMriAggregate(aggregate)}</Aggregate>
-                {!(hasDdmAlertsSupport(organization) && alertType === 'custom_metrics')
+                {alertType !== 'custom_metrics'
                   ? `event.type:${eventTypes?.join(',')}`
                   : ''}
               </AlertInfo>

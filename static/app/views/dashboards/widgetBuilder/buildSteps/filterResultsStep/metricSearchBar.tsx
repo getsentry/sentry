@@ -1,16 +1,18 @@
 import styled from '@emotion/styled';
 
+import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {PageFilters} from 'sentry/types';
 import {parseMRI} from 'sentry/utils/metrics';
 import {WidgetQuery} from 'sentry/views/dashboards/types';
 import {MetricSearchBar as DDMSearchBar} from 'sentry/views/ddm/queryBuilder';
 
 interface Props {
+  onClose: SearchBarProps['onClose'];
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
 }
 
-export function MetricSearchBar({pageFilters, widgetQuery}: Props) {
+export function MetricSearchBar({pageFilters, widgetQuery, onClose}: Props) {
   const projectIds = pageFilters.projects;
   const {mri} = parseMRI(widgetQuery.aggregates[0]) ?? {};
 
@@ -22,6 +24,7 @@ export function MetricSearchBar({pageFilters, widgetQuery}: Props) {
       disabled={!mri}
       query={widgetQuery.conditions}
       onChange={() => {}}
+      onClose={onClose}
     />
   );
 }
