@@ -9,10 +9,13 @@ export function useMetricsCodeLocations(
   mri: string | undefined,
   projects?: PageFilters['projects']
 ) {
-  const {slug} = useOrganization();
+  const organization = useOrganization();
 
   const {data, isLoading} = useApiQuery<{codeLocations: MetricMetaCodeLocation[]}>(
-    [`/organizations/${slug}/ddm/meta/`, {query: {metric: mri, project: projects}}],
+    [
+      `/organizations/${organization.slug}/ddm/meta/`,
+      {query: {metric: mri, project: projects}},
+    ],
     {
       enabled: !!mri,
       staleTime: Infinity,

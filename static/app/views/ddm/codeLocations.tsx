@@ -7,11 +7,18 @@ import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Frame} from 'sentry/types';
+import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export function CodeLocations({mri}: {mri: string}) {
   const {data} = useMetricsCodeLocations(mri);
   const [isExpanded, setIsExpanded] = useState(false);
+  const organization = useOrganization();
+
+  if (!hasDdmAlertsSupport(organization)) {
+    return null;
+  }
 
   if (!isArray(data?.codeLocations) || data?.codeLocations.length === 0) {
     return null;
