@@ -5,6 +5,7 @@ import logging
 from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackRequestError
+from sentry.integrations.slack.requests.event import is_event_challenge
 from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
 from sentry.integrations.slack.views.link_team import SlackLinkTeamView
 from sentry.integrations.slack.views.unlink_identity import SlackUnlinkIdentityView
@@ -20,6 +21,7 @@ from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils import json
 from sentry.utils.signing import unsign
 
 from .base import BaseRequestParser
@@ -90,6 +92,15 @@ class SlackRequestParser(BaseRequestParser):
         Slack Webhook Requests all require synchronous responses.
         """
         if self.view_class in self.control_classes:
+            return self.get_response_from_control_silo()
+
+        # Handle event interactions challenge request
+        data = None
+        try:
+            data = json.loads(self.request.body.decode(encoding="utf-8"))
+        except Exception:
+            pass
+        if data and is_event_challenge(data):
             return self.get_response_from_control_silo()
 
         regions = self.get_regions_from_organizations()
