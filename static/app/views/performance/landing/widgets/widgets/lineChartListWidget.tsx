@@ -23,7 +23,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/performance/browser/resources/jsCssView';
-import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {getResourcesEventViewQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import DurationChart from 'sentry/views/performance/charts/chart';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -89,7 +88,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle} = props;
   const pageError = usePageError();
-  const resourceFilters = useResourceModuleFilters();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
@@ -204,7 +202,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           eventView.additionalConditions.removeFilter('event.type');
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           eventView.query = `${mutableSearch.formatString()} ${getResourcesEventViewQuery(
-            resourceFilters,
+            {'resource.render_blocking_status': 'blocking'},
             DEFAULT_RESOURCE_TYPES
           ).join(' ')}`;
         } else if (isSlowestType || isFramesType) {
