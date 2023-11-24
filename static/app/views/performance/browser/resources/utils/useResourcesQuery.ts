@@ -52,9 +52,7 @@ export const getResourcesEventViewQuery = (
           `${RESOURCE_RENDER_BLOCKING_STATUS}:${resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]}`,
         ]
       : [`!${RESOURCE_RENDER_BLOCKING_STATUS}:blocking`]),
-    'AND (',
     ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
-    ')',
   ];
 };
 
@@ -169,5 +167,5 @@ export const getResourceTypeFilter = (
       defaultResourceTypes.map(type => SPAN_OP_FILTER[type]).join(' OR '),
     ];
   }
-  return resourceFilter;
+  return ['(', ...resourceFilter, ')'];
 };

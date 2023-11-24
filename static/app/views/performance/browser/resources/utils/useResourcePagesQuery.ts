@@ -31,9 +31,7 @@ export const useResourcePagesQuery = (
 
   const queryConditions = [
     ...DEFAULT_RESOURCE_FILTERS,
-    'AND (',
     ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
-    ')',
     ...getDomainFilter(spanDomain),
     ...(search && search.length > 0
       ? [`${SpanMetricsField.TRANSACTION}:*${[search]}*`]
