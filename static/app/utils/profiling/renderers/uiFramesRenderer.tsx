@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
@@ -8,11 +9,11 @@ import {
   createProgram,
   createShader,
   getAttribute,
-  getContext,
   getUniform,
   makeProjectionMatrix,
   pointToAndEnableVertexAttribute,
   resizeCanvasToDisplaySize,
+  safeGetContext,
   upperBound,
 } from '../gl/utils';
 import {UIFrameNode, UIFrames} from '../uiFrames';
@@ -75,11 +76,12 @@ class UIFramesRenderer {
     this.theme = theme;
     this.options = options;
 
-    this.init();
-  }
+    const initialized = this.initCanvasContext();
+    if (!initialized) {
+      Sentry.captureMessage('WebGL not supported');
+      return;
+    }
 
-  init(): void {
-    this.initCanvasContext();
     this.initVertices();
     this.initShaders();
   }
@@ -146,15 +148,14 @@ class UIFramesRenderer {
     }
   }
 
-  initCanvasContext(): void {
+  initCanvasContext(): boolean {
     if (!this.canvas) {
       throw new Error('Cannot initialize context from null canvas');
     }
-    // Setup webgl canvas context
-    this.gl = getContext(this.canvas, 'webgl');
 
+    this.gl = safeGetContext(this.canvas, 'webgl');
     if (!this.gl) {
-      throw new Error('Uninitialized WebGL context');
+      return false;
     }
 
     this.gl.enable(this.gl.BLEND);
@@ -165,6 +166,7 @@ class UIFramesRenderer {
       this.gl.ONE_MINUS_SRC_ALPHA
     );
     resizeCanvasToDisplaySize(this.canvas);
+    return true;
   }
 
   initShaders(): void {

@@ -238,9 +238,15 @@ export function transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
   );
 }
 
-function getContext(canvas: HTMLCanvasElement, context: '2d'): CanvasRenderingContext2D;
-function getContext(canvas: HTMLCanvasElement, context: 'webgl'): WebGLRenderingContext;
-function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
+export function getContext(
+  canvas: HTMLCanvasElement,
+  context: '2d'
+): CanvasRenderingContext2D;
+export function getContext(
+  canvas: HTMLCanvasElement,
+  context: 'webgl'
+): WebGLRenderingContext;
+export function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
   const ctx =
     context === 'webgl'
       ? canvas.getContext(context, {antialias: false})
@@ -251,9 +257,25 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
   return ctx;
 }
 
-// Exported separately as writing export function for each overload as
-// breaks the line width rules and makes it harder to read.
-export {getContext};
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: '2d'
+): CanvasRenderingContext2D;
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: 'webgl'
+): WebGLRenderingContext;
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: string
+): RenderingContext | null {
+  const ctx =
+    context === 'webgl'
+      ? canvas.getContext(context, {antialias: false})
+      : canvas.getContext(context);
+  return ctx;
+}
+
 export const ELLIPSIS = '\u2026';
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
   if (!string) {
