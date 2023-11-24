@@ -1312,3 +1312,52 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             expected_on_demand_query=True,
             dataset="metricsEnhanced",
         )
+
+    def test_group_by_transaction(self):
+        field = "count()"
+        groupbys = ["transaction"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field,
+            groupbys=groupbys,
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        for hour in range(0, 2):
+            self.store_on_demand_metric(
+                (hour + 1) * 5,
+                spec=spec,
+                additional_tags={
+                    "transaction": "/performance",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "environment": "production",
+                "excludeOther": 1,
+                "field": [field, "transaction"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": f"-{field}",
+                "partial": 1,
+                "project": self.project.id,
+                "query": query,
+                "topEvents": 5,
+                "yAxis": field,
+                "onDemandType": "dynamic_query",
+                "useOnDemandMetrics": "true",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["/performance"]["meta"]["isMetricsExtractedData"] is True
+        assert [attrs for time, attrs in response.data["/performance"]["data"]] == [
+            [{"count": 5.0}],
+            [{"count": 10.0}],
+        ]
