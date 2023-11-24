@@ -158,7 +158,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/issues
 /static/app/views/alerts/                                 @getsentry/issues
 /static/app/views/issueDetails/                           @getsentry/issues
-/static/app/views/issueDetails/groupEventDetails/         @getsentry/issues
+/static/app/views/issueDetails/groupEventDetails/*        @getsentry/issues
 /static/app/views/projects/                               @getsentry/issues
 /static/app/views/projectDetail/                          @getsentry/issues
 /static/app/views/releases/                               @getsentry/issues
@@ -416,6 +416,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/models/release_threshold                                    @getsentry/enterprise
 /src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
 /src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
+src/sentry/api/endpoints/oauth_userinfo.py                              @getsentry/enterprise
+src/sentry/api/endpoints/user_social_identity*                          @getsentry/enterprise
 ## End of Enterprise
 
 
@@ -510,3 +512,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/utils/analytics.tsx                                 @getsentry/issues
 /static/app/utils/routeAnalytics*                               @getsentry/issues
 ## End of Issues
+
+## Billing
+/src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue

@@ -9,7 +9,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -200,7 +200,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationSdks(APITestCase):
     endpoint = "sentry-api-0-organization-sdks"
 

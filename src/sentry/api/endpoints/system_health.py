@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import status_checks
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.auth.superuser import is_active_superuser
@@ -18,6 +19,7 @@ class SystemHealthEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
+    owner = ApiOwner.DATA
     permission_classes = (IsAuthenticated,)
     rate_limits = RateLimitConfig(group="INTERNAL")
 

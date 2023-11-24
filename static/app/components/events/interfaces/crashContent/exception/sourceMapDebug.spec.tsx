@@ -47,7 +47,6 @@ describe('SourceMapDebug', () => {
             colNo: 25,
             inApp: true,
             trust: null,
-            errors: null,
             vars: null,
             minGroupingLevel: 0,
           },

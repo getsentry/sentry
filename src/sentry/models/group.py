@@ -211,6 +211,7 @@ class EventOrdering(Enum):
         "num_processing_errors",
         "-trace.sampled",
         "-timestamp",
+        "-event_id",
     ]
 
 

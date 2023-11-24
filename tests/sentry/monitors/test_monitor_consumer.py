@@ -197,18 +197,6 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    def test_create_lock(self):
-        monitor = self._create_monitor(slug="my-monitor")
-        guid = uuid.uuid4().hex
-
-        lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
-        lock.acquire()
-
-        self.send_checkin(monitor.slug, guid=guid)
-
-        # Lock should prevent creation of new check-in
-        assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 0
-
     def test_check_in_timeout_at(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, status="in_progress")

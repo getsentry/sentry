@@ -205,7 +205,7 @@ def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: O
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 @parameterize_with_orgs
 def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     orm_org, orm_users = org_factory()
@@ -215,7 +215,7 @@ def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 @parameterize_with_orgs
 def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     orm_org, orm_users = org_factory()
@@ -238,7 +238,7 @@ def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]])
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 @parameterize_with_orgs_with_owner_team
 def test_get_all_org_roles(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     _, orm_users = org_factory()
@@ -253,7 +253,7 @@ def test_get_all_org_roles(org_factory: Callable[[], Tuple[Organization, List[Us
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 @parameterize_with_orgs_with_owner_team
 def test_get_top_dog_team_member_ids(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     orm_org, orm_users = org_factory()
@@ -266,7 +266,7 @@ def test_get_top_dog_team_member_ids(org_factory: Callable[[], Tuple[Organizatio
 
 
 @django_db_all(transaction=True)
-@all_silo_test(stable=True)
+@all_silo_test
 def test_options():
     org = Factories.create_organization()
     organization_service.update_option(organization_id=org.id, key="test", value="a string")
@@ -289,7 +289,7 @@ class RpcOrganizationMemberTest(TestCase):
 
 
 @django_db_all(transaction=True)
-@region_silo_test(stable=True)
+@region_silo_test
 def test_org_member():
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")

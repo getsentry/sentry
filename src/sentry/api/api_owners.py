@@ -7,6 +7,7 @@ class ApiOwner(Enum):
     Value should map to team's github group
     """
 
+    BILLING = "revenue"
     DISCOVER_N_DASHBOARDS = "discover-n-dashboards"
     TELEMETRY_EXPERIENCE = "telemetry-experience"
     ENTERPRISE = "enterprise"
@@ -23,4 +24,5 @@ class ApiOwner(Enum):
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
     FEEDBACK = "feedback-backend"
     CRONS = "crons"
+    DATA = "data"
     UNOWNED = "unowned"
