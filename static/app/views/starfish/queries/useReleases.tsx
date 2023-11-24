@@ -22,7 +22,7 @@ export function useReleases(searchTerm?: string) {
           per_page: 100,
           environment: environments,
           query: searchTerm,
-          sort: 'date',
+          sort: 'adoption',
         },
       },
     ],
@@ -36,6 +36,7 @@ export function useReleases(searchTerm?: string) {
     dataset: DiscoverDatasets.METRICS,
     version: 2,
     projects: selection.projects,
+    orderby: '-count()',
   };
   const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
   const {data: metricsResult, isLoading: isMetricsStatsLoading} = useTableQuery({
