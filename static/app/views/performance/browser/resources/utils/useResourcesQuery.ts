@@ -51,7 +51,7 @@ export const getResourcesEventViewQuery = (
       ? [
           `${RESOURCE_RENDER_BLOCKING_STATUS}:${resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]}`,
         ]
-      : [`!${RESOURCE_RENDER_BLOCKING_STATUS}:blocking`]),
+      : []),
     ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
   ];
 };
