@@ -10,7 +10,6 @@ import sentry_sdk
 
 from sentry import options
 from sentry.models.project import Project
-from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 
 
@@ -119,6 +118,11 @@ class RegressionDetector(ABC):
         ...
 
     @classmethod
+    @abstractmethod
+    def update_metrics(cls, projects, total, regressed, improved):
+        ...
+
+    @classmethod
     def detect_trends(
         cls, projects: List[Project], start: datetime
     ) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None]:
@@ -162,32 +166,11 @@ class RegressionDetector(ABC):
 
             cls.store.bulk_write_states(payloads, states)
 
-        # TODO: These metrics are function specific. Refactor so that it handles
-        # various detector types.
-
-        # This is the total number of functions examined in this iteration
-        metrics.incr(
-            "statistical_detectors.total.functions",
-            amount=total_count,
-            sample_rate=1.0,
-        )
-
-        # This is the number of regressed functions found in this iteration
-        metrics.incr(
-            "statistical_detectors.regressed.functions",
-            amount=regressed_count,
-            sample_rate=1.0,
-        )
-
-        # This is the number of improved functions found in this iteration
-        metrics.incr(
-            "statistical_detectors.improved.functions",
-            amount=improved_count,
-            sample_rate=1.0,
-        )
-
-        metrics.incr(
-            "statistical_detectors.profiling.projects.active",
-            amount=len(unique_project_ids),
-            sample_rate=1.0,
+        # for now, we'll keep using the old metrics
+        # at some point, we should update to a use tags
+        cls.update_metrics(
+            len(unique_project_ids),
+            total_count,
+            regressed_count,
+            improved_count,
         )
