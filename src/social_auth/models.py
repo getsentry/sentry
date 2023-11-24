@@ -156,7 +156,6 @@ class UserSocialAuth(models.Model):
     def get_social_auth(cls, provider, uid, user):
         try:
             instance = cls.objects.get(provider=provider, uid=uid, user_id=user.id)
-            instance.user = user
             return instance
         except UserSocialAuth.DoesNotExist:
             return None
