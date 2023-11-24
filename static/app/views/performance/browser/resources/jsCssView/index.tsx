@@ -49,11 +49,7 @@ function JSCSSView() {
     ...(filters[SPAN_DOMAIN] ? {[SPAN_DOMAIN]: filters[SPAN_DOMAIN]} : {}),
   };
 
-  const extraQuery = [
-    'AND (',
-    ...getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES),
-    ')',
-  ];
+  const extraQuery = getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES);
 
   return (
     <Fragment>
