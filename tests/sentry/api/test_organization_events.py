@@ -172,3 +172,37 @@ class OrganizationEventsEndpointTest(APITestCase):
                 query, features={"organizations:discover-events-rate-limit": True}
             )
             assert response.status_code == 429, response.content
+
+    def test_surfaces_events_tagged_with_status(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": "staging",
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"status": "good"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": "staging",
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"status": "bad"},
+            },
+            project_id=self.project.id,
+        )
+
+        query = {"field": ["status", "count()"], "orderby": ["count()"]}
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data.get("data")) == 2
+        assert all(row.get("count()") == 1 for row in response.data.get("data"))
+
+        query = {"field": ["status", "count()"], "orderby": ["count()"], "query": "status:good"}
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data.get("data")) == 1
+        assert response.data.get("data")[0] == {"status": "good", "count()": 1}
