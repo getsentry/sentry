@@ -22,6 +22,10 @@ class DisabledMemberViewTest(TestCase):
     def create_one_member(self, flags=None):
         self.create_member(user=self.user, organization=self.org, role="member", flags=flags)
 
+    def test_member_missing(self):
+        resp = self.client.get("/disabled-member/")
+        assert resp.status_code == 302
+
     def test_member_disabled_can_load(self):
         self.create_one_member(
             flags=OrganizationMember.flags["member-limit:restricted"],
