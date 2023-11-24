@@ -39,9 +39,9 @@ export function useReleases(searchTerm?: string) {
       ? chunk(releaseResults.data, 10)
       : [];
 
-  const chunkedMetrics = useQueries({
+  const releaseMetrics = useQueries({
     queries: chunks.map(releases => {
-      const chunkedNewQuery: NewQuery = {
+      const newQuery: NewQuery = {
         name: '',
         fields: ['release', 'count()'],
         query: `transaction.op:ui.load release:[${releases.map(r => r.version).join()}]`,
@@ -49,14 +49,11 @@ export function useReleases(searchTerm?: string) {
         version: 2,
         projects: selection.projects,
       };
-      const chunkedEventView = EventView.fromNewQueryWithPageFilters(
-        chunkedNewQuery,
-        selection
-      );
+      const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
       const queryKey = [
         `/organizations/${organization.slug}/events/`,
         {
-          query: chunkedEventView.getEventsAPIPayload(location),
+          query: eventView.getEventsAPIPayload(location),
         },
       ] as ApiQueryKey;
       return {
@@ -71,11 +68,11 @@ export function useReleases(searchTerm?: string) {
     }),
   });
 
-  const chunksFetched = chunkedMetrics.every(result => result.isFetched);
+  const metricsFetched = releaseMetrics.every(result => result.isFetched);
 
   const metricsStats: {[version: string]: {count: number}} = {};
-  if (chunksFetched) {
-    chunkedMetrics.forEach(
+  if (metricsFetched) {
+    releaseMetrics.forEach(
       c =>
         c.data?.data?.forEach(release => {
           metricsStats[release.release] = {count: release['count()'] as number};
@@ -88,7 +85,7 @@ export function useReleases(searchTerm?: string) {
     version: string;
     count?: number;
   }[] =
-    releaseResults.data && releaseResults.data.length && chunksFetched
+    releaseResults.data && releaseResults.data.length && metricsFetched
       ? releaseResults.data.flatMap(release => {
           const releaseVersion = release.version;
           const dateCreated = release.dateCreated;
