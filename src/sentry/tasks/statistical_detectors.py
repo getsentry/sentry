@@ -113,30 +113,24 @@ def run_detection() -> None:
     performance_projects_count = 0
     profiling_projects_count = 0
 
-    for project in RangeQuerySetWrapper(
-        Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
-        step=100,
+    for project_id, flags in RangeQuerySetWrapper(
+        Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", "flags"),
+        result_value_getter=lambda item: item[0],
     ):
-        if project.flags.has_transactions and (
-            features.has(
-                "organizations:performance-statistical-detectors-ema", project.organization
-            )
-        ):
-            performance_projects.append(project)
+        if flags & Project.flags.has_transactions:
+            performance_projects.append(project_id)
             performance_projects_count += 1
 
             if len(performance_projects) >= PROJECTS_PER_BATCH:
                 detect_transaction_trends.delay(
-                    list({p.organization_id for p in performance_projects}),
-                    [p.id for p in performance_projects],
+                    [],
+                    performance_projects,
                     now,
                 )
                 performance_projects = []
 
-        if project.flags.has_profiles and (
-            features.has("organizations:profiling-statistical-detectors-ema", project.organization)
-        ):
-            profiling_projects.append(project.id)
+        if flags & Project.flags.has_profiles:
+            profiling_projects.append(project_id)
             profiling_projects_count += 1
 
             if len(profiling_projects) >= PROJECTS_PER_BATCH:
@@ -146,8 +140,8 @@ def run_detection() -> None:
     # make sure to dispatch a task to handle the remaining projects
     if performance_projects:
         detect_transaction_trends.delay(
-            list({p.organization_id for p in performance_projects}),
-            [p.id for p in performance_projects],
+            [],
+            performance_projects,
             now,
         )
     if profiling_projects:
@@ -281,7 +275,11 @@ def detect_transaction_trends(
     #
     # If we filter this in the earlier step, it makes the initial dispatch
     # task take longer than necessary.
-    projects = Project.objects.filter(id__in=project_ids)
+    projects = [
+        project
+        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
+        if features.has("organizations:performance-statistical-detectors-ema", project.organization)
+    ]
     settings = get_performance_issue_settings(projects)
     projects = [
         project
@@ -570,8 +568,11 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
-    projects = Project.objects.filter(id__in=project_ids)
-
+    projects = [
+        project
+        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
+        if features.has("organizations:profiling-statistical-detectors-ema", project.organization)
+    ]
     ratelimit = options.get("statistical_detectors.ratelimit.ema")
     trends = FunctionRegressionDetector.detect_trends(projects, start)
     regressions = limit_regressions_by_project(trends, ratelimit)
