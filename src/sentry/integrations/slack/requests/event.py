@@ -13,7 +13,7 @@ def has_discover_links(links: list[str]) -> bool:
 
 
 def is_event_challenge(data: Mapping[str, Any]) -> bool:
-    return data and data.get("type", {}) == "url_verification"
+    return data.get("type", "") == "url_verification"
 
 
 class SlackEventRequest(SlackDMRequest):
