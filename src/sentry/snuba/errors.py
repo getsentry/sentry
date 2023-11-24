@@ -18,7 +18,7 @@ from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
 
 is_filter_translation = {}
 for status_key, status_value in STATUS_QUERY_CHOICES.items():
-    is_filter_translation[status_key] = ("status", status_value)
+    is_filter_translation[status_key] = ("issue.status", status_value)
 PARSER_CONFIG_OVERRIDES = {"is_filter_translation": is_filter_translation}
 
 

@@ -2411,7 +2411,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
                 self.fail(f"Query {query} errored. Error info: {e}")  # type:ignore[attr-defined]
 
         for key in SENTRY_SNUBA_MAP:
-            if key in ["project.id", "issue.id", "performance.issue_ids", "status"]:
+            if key in ["project.id", "issue.id", "performance.issue_ids", "issue.status"]:
                 continue
             test_query("has:%s" % key)
             test_query("!has:%s" % key)
