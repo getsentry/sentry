@@ -25,8 +25,6 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[],
-            database_operations=[
-                migrations.RemoveField(model_name="externalactor", name="actor_id")
-            ],
+            database_operations=[migrations.RemoveField(model_name="externalactor", name="actor")],
         )
     ]
