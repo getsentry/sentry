@@ -140,17 +140,23 @@ def verify_signature(request):
 class MsTeamsWebhookMixin:
     provider = "msteams"
 
-    def get_integration_from_channel_data(self, request: HttpRequest) -> RpcIntegration | None:
+    def infer_team_id_from_channel_data(self, request: HttpRequest) -> str | None:
         try:
             data = request.data
             channel_data = data["channelData"]
             team_id = channel_data["team"]["id"]
-            return integration_service.get_integration(provider=self.provider, external_id=team_id)
+            return team_id
         except Exception:
             pass
         return None
 
-    def get_integration_from_card_action(self, request: HttpRequest) -> RpcIntegration | None:
+    def get_integration_from_channel_data(self, request: HttpRequest) -> RpcIntegration | None:
+        team_id = self.infer_team_id_from_channel_data(request)
+        if team_id is None:
+            return None
+        return integration_service.get_integration(provider=self.provider, external_id=team_id)
+
+    def infer_integration_id_from_card_action(self, request: HttpRequest) -> int | None:
         # The bot builds and sends Adaptive Cards to the channel, and in it will include card actions and context.
         # The context will include the "integrationId".
         # Whenever a user interacts with the card, MS Teams will send the card action and the context to the bot.
@@ -161,10 +167,16 @@ class MsTeamsWebhookMixin:
             data = request.data
             payload = data["value"]["payload"]
             integration_id = payload["integrationId"]
-            return integration_service.get_integration(integration_id=integration_id)
+            return integration_id
         except Exception:
             pass
         return None
+
+    def get_integration_from_card_action(self, request: HttpRequest) -> RpcIntegration | None:
+        integration_id = self.infer_integration_id_from_card_action(request)
+        if integration_id is None:
+            return None
+        return integration_service.get_integration(integration_id=integration_id)
 
 
 @region_silo_endpoint
