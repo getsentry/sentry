@@ -195,7 +195,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     @transaction_start("MsTeamsWebhookEndpoint")
     def post(self, request: HttpRequest) -> HttpResponse:
         # verify_signature will raise the exception corresponding to the error
-        verify_signature(request)
+        self.verify_webhook_request(request)
 
         data = request.data
         conversation_type = data.get("conversation", {}).get("conversationType")
@@ -226,6 +226,9 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
                 return self.handle_personal_member_add(request)
 
         return self.respond(status=204)
+
+    def verify_webhook_request(self, request: HttpRequest) -> bool:
+        return verify_signature(request)
 
     def handle_personal_member_add(self, request: HttpRequest):
         data = request.data
