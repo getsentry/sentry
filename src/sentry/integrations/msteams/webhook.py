@@ -150,7 +150,13 @@ class MsTeamsWebhookMixin:
             pass
         return None
 
-    def get_integration_from_payload(self, request: HttpRequest) -> RpcIntegration | None:
+    def get_integration_from_card_action(self, request: HttpRequest) -> RpcIntegration | None:
+        # The bot builds and sends Adaptive Cards to the channel, and in it will include card actions and context.
+        # The context will include the "integrationId".
+        # Whenever a user interacts with the card, MS Teams will send the card action and the context to the bot.
+        # Here we parse the "integrationId" from the context.
+        #
+        # See: https://learn.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/cards-actions?tabs=json#actionsubmit
         try:
             data = request.data
             payload = data["value"]["payload"]
@@ -396,7 +402,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         else:
             conversation_id = channel_data["channel"]["id"]
 
-        integration = self.get_integration_from_payload(request)
+        integration = self.get_integration_from_card_action(request)
         if integration is None:
             logger.info(
                 "msteams.action.missing-integration", extra={"integration_id": integration_id}

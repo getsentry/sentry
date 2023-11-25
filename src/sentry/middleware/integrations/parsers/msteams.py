@@ -22,7 +22,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
-        integration = self.get_integration_from_payload(self.request)
+        integration = self.get_integration_from_card_action(self.request)
         if integration is None:
             integration = self.get_integration_from_channel_data(self.request)
         if integration:
