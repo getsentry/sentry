@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
+from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.msteams import MsTeamsRequestParser
 from sentry.models.integrations.integration import Integration
@@ -123,10 +124,33 @@ class MsTeamsRequestParserTest(TestCase):
         expected_integration = Integration.objects.create(external_id=team_id, provider="msteams")
         request = self.factory.post(self.path, HTTP_AUTHORIZATION=f"Bearer {TOKEN}")
 
+        CARD_ACTION_RESPONSE = {
+            "type": "message",
+            "from": {"id": "user_id"},
+            "channelData": {
+                "tenant": {"id": "f5ffd8cf-a1aa-4242-adad-86509faa3be5"},
+            },
+            "conversation": {"conversationType": "channel", "id": "conversation_id"},
+            "value": {
+                "payload": {
+                    "groupId": "groupId",
+                    "eventId": "eventId",
+                    "actionType": ACTION_TYPE.ASSIGN,
+                    "rules": [],
+                    "integrationId": expected_integration.id,
+                },
+                "assignInput": "me",
+            },
+            "replyToId": "replyToId",
+        }
+
         region_silo_payloads = [
+            # Integration inferred from channelData.team.id
             EXAMPLE_TEAM_MEMBER_REMOVED,
             EXAMPLE_TEAM_MEMBER_ADDED,
             EXAMPLE_MENTIONED,
+            # Integration inferred from adaptive card action response
+            CARD_ACTION_RESPONSE,
         ]
 
         for payload in region_silo_payloads:
