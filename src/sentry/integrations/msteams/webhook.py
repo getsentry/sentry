@@ -199,9 +199,10 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         data = request.data
         conversation_type = data.get("conversation", {}).get("conversationType")
+        event_type = data["type"]
 
         # only care about conversationUpdate and message
-        if data["type"] == "message":
+        if event_type == "message":
             # the only message events we care about are those which
             # are from a user submitting an option on a card, which
             # will always contain an "payload.actionType" in the data.
@@ -211,7 +212,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
                 return self.handle_channel_message(request)
             else:
                 return self.handle_personal_message(request)
-        elif data["type"] == "conversationUpdate":
+        elif event_type == "conversationUpdate":
             channel_data = data["channelData"]
             event = channel_data.get("eventType")
             # TODO: Handle other events
