@@ -65,14 +65,25 @@ function ErrorDescription({
   }
 
   if (restriction === 'individual_consent') {
+    const isInternalSentryEmployee = organizationSlug === 'sentry';
+
+    const title = isInternalSentryEmployee
+      ? t('Confirm there is no PII')
+      : t('We need your consent');
+    const description = isInternalSentryEmployee
+      ? t(
+          'Before using this feature, please confirm that there is no personally identifiable information in this event.'
+        )
+      : t(
+          'By using this feature, you agree that OpenAI is a subprocessor and may process the data that you’ve chosen to submit. Sentry makes no guarantees as to the accuracy of the feature’s AI-generated recommendations.'
+        );
+
     const activeSuperUser = isActiveSuperuser();
     return (
       <EmptyMessage
         icon={<IconFlag size="xl" />}
-        title={t('We need your consent')}
-        description={t(
-          'By using this feature, you agree that OpenAI is a subprocessor and may process the data that you’ve chosen to submit. Sentry makes no guarantees as to the accuracy of the feature’s AI-generated recommendations.'
-        )}
+        title={title}
+        description={description}
         action={
           <ButtonBar gap={2}>
             <Button onClick={onHideSuggestion}>{t('Dismiss')}</Button>
