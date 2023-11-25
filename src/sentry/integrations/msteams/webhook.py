@@ -11,7 +11,7 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from sentry import analytics, audit_log, eventstore, features, options
 from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
@@ -21,6 +21,7 @@ from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
@@ -185,7 +186,7 @@ class MsTeamsWebhookMixin:
         )
 
 
-@region_silo_endpoint
+@all_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
@@ -213,6 +214,9 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             # are from a user submitting an option on a card, which
             # will always contain an "payload.actionType" in the data.
             if data.get("value", {}).get("payload", {}).get("actionType"):
+                # Processing card actions can only occur in the Region silo.
+                if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                    return self.respond(status=400)
                 return self.handle_action_submitted(request)
             elif conversation_type == "channel":
                 return self.handle_channel_message(request)
@@ -225,6 +229,8 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             if event == "teamMemberAdded":
                 return self.handle_team_member_added(request)
             elif event == "teamMemberRemoved":
+                if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                    return self.respond(status=400)
                 return self.handle_team_member_removed(request)
             elif (
                 data.get("membersAdded") and conversation_type == "personal"
