@@ -178,6 +178,12 @@ class MsTeamsWebhookMixin:
             return None
         return integration_service.get_integration(integration_id=integration_id)
 
+    def can_infer_integration(self, request: HttpRequest) -> bool:
+        return (
+            self.infer_integration_id_from_card_action(request) is not None
+            or self.infer_team_id_from_channel_data(request) is not None
+        )
+
 
 @region_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):

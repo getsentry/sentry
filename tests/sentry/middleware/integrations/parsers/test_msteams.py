@@ -37,13 +37,34 @@ class MsTeamsRequestParserTest(TestCase):
     def setUp(self):
         super().setUp()
 
+    def generate_card_response(self, integration_id: int):
+        return {
+            "type": "message",
+            "from": {"id": "user_id"},
+            "channelData": {
+                "tenant": {"id": "f5ffd8cf-a1aa-4242-adad-86509faa3be5"},
+            },
+            "conversation": {"conversationType": "channel", "id": "conversation_id"},
+            "value": {
+                "payload": {
+                    "groupId": "groupId",
+                    "eventId": "eventId",
+                    "actionType": ACTION_TYPE.ASSIGN,
+                    "rules": [],
+                    "integrationId": integration_id,
+                },
+                "assignInput": "me",
+            },
+            "replyToId": "replyToId",
+        }
+
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_properly(self):
         request = self.factory.post(
             self.path,
-            json=GENERIC_EVENT,
             HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
+        request.data = GENERIC_EVENT  # type:ignore
         parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
 
         # No regions identified
@@ -61,6 +82,7 @@ class MsTeamsRequestParserTest(TestCase):
         ) as get_response_from_outbox_creation, mock.patch.object(
             parser, "get_regions_from_organizations", return_value=[self.region]
         ):
+            parser.request.data = self.generate_card_response(123)  # type:ignore
             parser.get_response()
             assert get_response_from_outbox_creation.called
 
@@ -101,9 +123,9 @@ class MsTeamsRequestParserTest(TestCase):
     def test_webhook_outbox_creation(self):
         request = self.factory.post(
             self.path,
-            json=GENERIC_EVENT,
             HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
+        request.data = self.generate_card_response(123)  # type:ignore
         parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
 
         # ControlOutbox creation
@@ -124,25 +146,7 @@ class MsTeamsRequestParserTest(TestCase):
         expected_integration = Integration.objects.create(external_id=team_id, provider="msteams")
         request = self.factory.post(self.path, HTTP_AUTHORIZATION=f"Bearer {TOKEN}")
 
-        CARD_ACTION_RESPONSE = {
-            "type": "message",
-            "from": {"id": "user_id"},
-            "channelData": {
-                "tenant": {"id": "f5ffd8cf-a1aa-4242-adad-86509faa3be5"},
-            },
-            "conversation": {"conversationType": "channel", "id": "conversation_id"},
-            "value": {
-                "payload": {
-                    "groupId": "groupId",
-                    "eventId": "eventId",
-                    "actionType": ACTION_TYPE.ASSIGN,
-                    "rules": [],
-                    "integrationId": expected_integration.id,
-                },
-                "assignInput": "me",
-            },
-            "replyToId": "replyToId",
-        }
+        CARD_ACTION_RESPONSE = self.generate_card_response(expected_integration.id)
 
         region_silo_payloads = [
             # Integration inferred from channelData.team.id
@@ -167,3 +171,23 @@ class MsTeamsRequestParserTest(TestCase):
             parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
             integration = parser.get_integration_from_request()
             assert integration is None
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_handle_control_silo_payloads(self):
+        help_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
+        help_command["text"] = "Help"
+        control_silo_payloads = [GENERIC_EVENT, help_command, EXAMPLE_PERSONAL_MEMBER_ADDED]
+
+        for payload in control_silo_payloads:
+            request = self.factory.post(
+                self.path,
+                json=payload,
+                HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            )
+            parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+
+            with mock.patch.object(
+                parser, "get_response_from_control_silo"
+            ) as get_response_from_control_silo:
+                parser.get_response()
+                assert get_response_from_control_silo.called

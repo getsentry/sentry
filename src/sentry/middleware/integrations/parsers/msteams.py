@@ -33,6 +33,9 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         if self.view_class not in self.region_view_classes:
             return self.get_response_from_control_silo()
 
+        if not self.can_infer_integration(self.request):
+            return self.get_response_from_control_silo()
+
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
             logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
