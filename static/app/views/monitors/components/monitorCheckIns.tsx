@@ -202,7 +202,11 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                       />
                     }
                   >
-                    <Timestamp date={checkIn.expectedTime} timeZone seconds />
+                    {checkIn.expectedTime ? (
+                      <Timestamp date={checkIn.expectedTime} timeZone seconds />
+                    ) : (
+                      emptyCell
+                    )}
                   </Tooltip>
                 </div>
               </Fragment>
