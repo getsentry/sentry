@@ -19,7 +19,7 @@ export const VALUE_MAPPING = {
 };
 
 export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams'] as const;
-export type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
+export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];
 
 export const MIN_PROJECTS_FOR_CONFIRMATION = 3;
 export const MIN_PROJECTS_FOR_SEARCH = 3;
