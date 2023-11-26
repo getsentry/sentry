@@ -18,10 +18,12 @@ export const VALUE_MAPPING = {
   committed_only: 40,
 };
 
+export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams'] as const;
+export type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
+
 export const MIN_PROJECTS_FOR_CONFIRMATION = 3;
 export const MIN_PROJECTS_FOR_SEARCH = 3;
 export const MIN_PROJECTS_FOR_PAGINATION = 100;
-export type SupportedProviders = 'email' | 'slack' | 'msteams';
 export type ProviderValue = 'always' | 'never';
 
 interface NotificationBaseObject {
