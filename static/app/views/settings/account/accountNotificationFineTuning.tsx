@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import Form from 'sentry/components/forms/form';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
@@ -144,7 +143,6 @@ type Props = DeprecatedAsyncView['props'] &
 
 type State = DeprecatedAsyncView['state'] & {
   emails: UserEmail[] | null;
-  fineTuneData: Record<string, any> | null;
   notifications: Record<string, any> | null;
   projects: Project[] | null;
 };
@@ -155,7 +153,6 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
     const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       ['notifications', '/users/me/notifications/'],
-      ['fineTuneData', `/users/me/notifications/${fineTuneType}/`],
     ];
 
     if (isGroupedByProject(fineTuneType)) {
@@ -215,7 +212,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
       return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
 
-    const {notifications, projects, fineTuneData, projectsPageLinks} = this.state;
+    const {notifications, projects, projectsPageLinks} = this.state;
 
     const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
@@ -229,7 +226,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
       field.options = this.emailChoices.map(({email}) => ({value: email, label: email}));
     }
 
-    if (!notifications || !fineTuneData) {
+    if (!notifications) {
       return null;
     }
 
@@ -262,24 +259,15 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
             )}
           </StyledPanelHeader>
           <PanelBody>
-            <Form
-              saveOnBlur
-              apiMethod="PUT"
-              apiEndpoint={`/users/me/notifications/${fineTuneType}/`}
-              initialData={fineTuneData}
-            >
-              {isProject && hasProjects && (
-                <AccountNotificationsByProject projects={projects!} field={field} />
-              )}
+            {isProject && hasProjects && (
+              <AccountNotificationsByProject projects={projects!} field={field} />
+            )}
 
-              {isProject && !hasProjects && (
-                <EmptyMessage>{t('No projects found')}</EmptyMessage>
-              )}
+            {isProject && !hasProjects && (
+              <EmptyMessage>{t('No projects found')}</EmptyMessage>
+            )}
 
-              {!isProject && (
-                <AccountNotificationsByOrganizationContainer field={field} />
-              )}
-            </Form>
+            {!isProject && <AccountNotificationsByOrganizationContainer field={field} />}
           </PanelBody>
         </Panel>
 
