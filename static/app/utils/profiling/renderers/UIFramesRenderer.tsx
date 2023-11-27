@@ -3,6 +3,15 @@ import {mat3} from 'gl-matrix';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
+export interface UIFramesRendererConstructor {
+  new (
+    canvas: HTMLCanvasElement,
+    uiFrames: UIFrames,
+    theme: FlamegraphTheme,
+    options?: {draw_border: boolean}
+  ): UIFramesRenderer;
+}
+
 export abstract class UIFramesRenderer {
   ctx: CanvasRenderingContext2D | WebGLRenderingContext | null = null;
   canvas: HTMLCanvasElement | null;
