@@ -47,7 +47,7 @@ import {
   MetricDisplayType,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics';
-import {getMRIAndOp} from 'sentry/utils/metrics/mri';
+import {parseField} from 'sentry/utils/metrics/mri';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {
@@ -418,7 +418,7 @@ export function getWidgetDDMUrl(
     project: selection.projects,
     environment: selection.environments,
     widgets: _widget.queries.map(query => {
-      const {mri, op} = getMRIAndOp(query.aggregates[0]) ?? {mri: '', op: ''};
+      const {mri: mri, op} = parseField(query.aggregates[0]) ?? {mri: '', op: ''};
       return {
         mri: mri as MRI,
         op,

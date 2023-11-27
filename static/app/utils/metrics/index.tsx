@@ -18,7 +18,7 @@ import {
 } from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
-import {getMRIAndOp, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {getUseCaseFromMRI, parseField, parseMRI} from 'sentry/utils/metrics/mri';
 
 import {DateString, PageFilters} from '../../types/core';
 
@@ -107,7 +107,7 @@ export function getMetricsApiRequestQuery(
   {projects, environments, datetime}: PageFilters,
   overrides: Partial<MetricsApiRequestQuery>
 ): MetricsApiRequestQuery {
-  const {mri} = getMRIAndOp(field) ?? {};
+  const {mri: mri} = parseField(field) ?? {};
   const useCase = getUseCaseFromMRI(mri);
   const interval = getMetricsInterval(datetime, useCase);
 

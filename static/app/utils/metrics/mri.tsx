@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {t} from 'sentry/locale';
 import {MetricType, MRI, ParsedMRI} from 'sentry/types/metrics';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -17,6 +19,7 @@ export function parseMRI(mri?: unknown): ParsedMRI | null {
   try {
     return _parseMRI(mri as MRI);
   } catch (e) {
+    Sentry.captureMessage(`Invalid MRI: ${mri}`);
     return null;
   }
 }
@@ -56,7 +59,7 @@ export function MRIToField(mri: MRI, op: string): string {
   return `${op}(${mri})`;
 }
 
-export function getMRIAndOp(field: string): {mri: MRI; op: string} | null {
+export function parseField(field: string): {mri: MRI; op: string} | null {
   const parsedFunction = parseFunction(field);
   if (!parsedFunction) {
     // We only allow aggregate functions for custom metric alerts
@@ -68,22 +71,10 @@ export function getMRIAndOp(field: string): {mri: MRI; op: string} | null {
   };
 }
 
-// convenience function to get the MRI from a field, returns default MRI if it fails
+// convenience function to get the MRI from a field, returns defaut MRI if it fails
 export function getMRI(field: string): MRI {
-  const parsed = getMRIAndOp(field);
+  const parsed = parseField(field);
   return parsed?.mri ?? DEFAULT_MRI;
-}
-
-export function parseField(field: string): {mri: ParsedMRI | null; op: string} | null {
-  const parsedFunction = parseFunction(field);
-  if (!parsedFunction) {
-    // We only allow aggregate functions for custom metric alerts
-    return null;
-  }
-  return {
-    mri: parseMRI(parsedFunction.arguments[0]),
-    op: parsedFunction.name,
-  };
 }
 
 export function formatMRIAggregate(aggregate: string) {
@@ -98,5 +89,5 @@ export function formatMRIAggregate(aggregate: string) {
     return aggregate;
   }
 
-  return `${parsed.op}(${parsed.mri.name})`;
+  return `${parsed.op}(${formatMRI(parsed.mri)})`;
 }

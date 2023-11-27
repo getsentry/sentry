@@ -1,6 +1,6 @@
 import {MetricType, MRI} from 'sentry/types';
 import {UseCase} from 'sentry/types/metrics';
-import {getMRIAndOp, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {getUseCaseFromMRI, parseField, parseMRI} from 'sentry/utils/metrics/mri';
 
 describe('parseMRI', () => {
   it('should handle falsy values', () => {
@@ -97,7 +97,7 @@ describe('getMRIAndOp', () => {
   it('should return the correct mri and op from field', () => {
     const field = 'op(c:test/project)';
 
-    const result = getMRIAndOp(field);
+    const result = parseField(field);
 
     expect(result).toEqual({
       mri: 'c:test/project',
@@ -108,7 +108,7 @@ describe('getMRIAndOp', () => {
   it('should return undefined mri and op for invalid field', () => {
     const field = 'invalid-field';
 
-    const result = getMRIAndOp(field);
+    const result = parseField(field);
 
     expect(result).toBeNull();
   });

@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricMeta, MRI, ParsedMRI, Project} from 'sentry/types';
 import {getReadableMetricType, isAllowedOp} from 'sentry/utils/metrics';
-import {formatMRI, getMRIAndOp, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, MRIToField, parseField, parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 
 interface Props {
@@ -36,7 +36,7 @@ function MriField({aggregate, project, onChange}: Props) {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [meta]);
 
-  const selectedValues = getMRIAndOp(aggregate) ?? {mri: '' as MRI, op: ''};
+  const selectedValues = parseField(aggregate) ?? {mri: '' as MRI, op: ''};
 
   const selectedMriMeta = selectedValues.mri ? meta[selectedValues.mri] : null;
 
