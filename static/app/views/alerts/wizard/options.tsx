@@ -118,7 +118,6 @@ export type WizardRuleTemplate = {
   aggregate: string;
   dataset: Dataset;
   eventTypes: EventTypes;
-  query?: string;
 };
 
 export const AlertWizardRuleTemplates: Record<
