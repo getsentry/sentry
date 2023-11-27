@@ -12,7 +12,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-release-resolved"
     method = "get"

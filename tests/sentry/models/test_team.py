@@ -19,7 +19,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamTest(TestCase):
     def test_global_member(self):
         user = self.create_user()
@@ -84,7 +84,7 @@ class TeamTest(TestCase):
             team.save()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TransferTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -180,7 +180,7 @@ class TransferTest(TestCase):
         ).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamDeletionTest(TestCase):
     def test_hybrid_cloud_deletion(self):
         org = self.create_organization()
@@ -192,7 +192,6 @@ class TeamDeletionTest(TestCase):
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.ALWAYS,
                 team_id=team.id,
-                organization_id_for_team=org.id,
             )
 
         assert Team.objects.filter(id=team.id).exists()

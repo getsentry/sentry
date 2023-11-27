@@ -2,33 +2,33 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
+import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Tag from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsTag, SavedSearchType, TagCollection} from 'sentry/types';
+import {MRI, SavedSearchType, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   getReadableMetricType,
-  getUseCaseFromMRI,
   isAllowedOp,
   MetricDisplayType,
   MetricsQuery,
-  useMetricsMeta,
-  useMetricsTags,
+  MetricWidgetQueryParams,
 } from 'sentry/utils/metrics';
+import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
+import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MetricWidgetProps} from 'sentry/views/ddm/widget';
 
 type QueryBuilderProps = {
   displayType: MetricDisplayType; // TODO(ddm): move display type out of the query builder
   metricsQuery: Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
-  onChange: (data: Partial<MetricWidgetProps>) => void;
+  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
   powerUserMode?: boolean;
 };
@@ -40,7 +40,7 @@ export function QueryBuilder({
   powerUserMode,
   onChange,
 }: QueryBuilderProps) {
-  const meta = useMetricsMeta(projects);
+  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
 
@@ -63,6 +63,17 @@ export function QueryBuilder({
     );
   }, [meta, metricsQuery.mri, mriMode]);
 
+  // Reset the query data if the selected metric is no longer available
+  useEffect(() => {
+    if (
+      metricsQuery.mri &&
+      !isMetaLoading &&
+      !metaArr.find(metric => metric.mri === metricsQuery.mri)
+    ) {
+      onChange({mri: '' as MRI, op: '', groupBy: []});
+    }
+  }, [isMetaLoading, metaArr, metricsQuery.mri, onChange]);
+
   if (!meta) {
     return null;
   }
@@ -76,7 +87,7 @@ export function QueryBuilder({
             sizeLimit={100}
             triggerProps={{prefix: t('Metric'), size: 'sm'}}
             options={metaArr.map(metric => ({
-              label: mriMode ? metric.mri : metric.name,
+              label: mriMode ? metric.mri : formatMRI(metric.mri),
               value: metric.mri,
               trailingItems: mriMode ? undefined : (
                 <Fragment>
@@ -88,6 +99,7 @@ export function QueryBuilder({
             value={metricsQuery.mri}
             onChange={option => {
               const availableOps = meta[option.value]?.operations.filter(isAllowedOp);
+              // @ts-expect-error .op is an operation
               const selectedOp = availableOps.includes(metricsQuery.op ?? '')
                 ? metricsQuery.op
                 : availableOps[0];
@@ -163,7 +175,8 @@ export function QueryBuilder({
       </QueryBuilderRow>
       <QueryBuilderRow>
         <MetricSearchBar
-          tags={tags}
+          // TODO(aknaus): clean up projectId type in ddm
+          projectIds={projects.map(id => id.toString())}
           mri={metricsQuery.mri}
           disabled={!metricsQuery.mri}
           onChange={query => onChange({query})}
@@ -174,18 +187,34 @@ export function QueryBuilder({
   );
 }
 
-type MetricSearchBarProps = {
-  mri: string;
+interface MetricSearchBarProps
+  extends Omit<Partial<SearchBarProps>, 'tags' | 'projectIds'> {
   onChange: (value: string) => void;
-  tags: MetricsTag[];
+  projectIds: string[];
   disabled?: boolean;
+  mri?: MRI;
   query?: string;
-};
+}
 
-function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBarProps) {
+const EMPTY_ARRAY = [];
+
+export function MetricSearchBar({
+  mri,
+  disabled,
+  onChange,
+  query,
+  projectIds,
+  ...props
+}: MetricSearchBarProps) {
   const org = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+  const projectIdNumbers = useMemo(
+    () => projectIds.map(id => parseInt(id, 10)),
+    [projectIds]
+  );
+
+  const {data: tags = EMPTY_ARRAY} = useMetricsTags(mri, projectIdNumbers);
 
   const supportedTags: TagCollection = useMemo(
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
@@ -233,6 +262,8 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
       placeholder={t('Filter by tags')}
       query={query}
       savedSearchType={SavedSearchType.METRIC}
+      projectIds={projectIdNumbers}
+      {...props}
     />
   );
 }
@@ -249,6 +280,7 @@ function getWidgetDisplayType(
 
 const QueryBuilderWrapper = styled('div')`
   display: flex;
+  flex-grow: 1;
   flex-direction: column;
 `;
 

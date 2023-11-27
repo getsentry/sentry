@@ -1,34 +1,26 @@
-from unittest import mock
+from datetime import timedelta
+from unittest import SkipTest, mock
 
 from django.urls import reverse
+from django.utils import timezone
 
-from sentry.models.eventuser import EventUser
-from sentry.testutils.cases import APITestCase
+from sentry.models.eventuser import EventUser as EventUser_model
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.eventuser import EventUser
 
 
-@region_silo_test(stable=True)
-class ProjectUsersTest(APITestCase):
+class ProjectUsersBaseTest(APITestCase):
+    @classmethod
+    def setUpClass(cls):
+        if cls is ProjectUsersBaseTest:
+            raise SkipTest("Skipping base class")
+        super().setUpClass()
+
     def setUp(self):
         super().setUp()
-
-        self.project = self.create_project()
-        self.euser1 = EventUser.objects.create(
-            project_id=self.project.id,
-            ident="1",
-            email="foo@example.com",
-            username="foobar",
-            ip_address="127.0.0.1",
-        )
-
-        self.euser2 = EventUser.objects.create(
-            project_id=self.project.id,
-            ident="2",
-            email="bar@example.com",
-            username="baz",
-            ip_address="192.168.0.1",
-        )
-
+        self.project = self.create_project(date_added=(timezone.now() - timedelta(hours=2)))
         self.path = reverse(
             "sentry-api-0-project-users",
             kwargs={
@@ -36,6 +28,9 @@ class ProjectUsersTest(APITestCase):
                 "project_slug": self.project.slug,
             },
         )
+        # Make mypy happy
+        self.euser1 = EventUser(None, None, None, None, None, None)
+        self.euser2 = EventUser(None, None, None, None, None, None)
 
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
@@ -45,10 +40,13 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
-            [str(self.euser1.id), str(self.euser2.id)]
-        )
-        mock_record.assert_called_with(
+        if self.euser1.id is None and self.euser2.id is None:
+            assert list(map(lambda x: x["id"], response.data)) == [None, None]
+        else:
+            assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+                [str(self.euser1.id), str(self.euser2.id)]
+            )
+        mock_record.assert_any_call(
             "eventuser_endpoint.request",
             project_id=self.project.id,
             endpoint="sentry.api.endpoints.project_users.get",
@@ -69,7 +67,10 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.euser2.id)
+        if self.euser2.id is None:
+            assert response.data[0]["id"] is None
+        else:
+            assert response.data[0]["id"] == str(self.euser2.id)
 
         response = self.client.get(f"{self.path}?query=username:ba", format="json")
 
@@ -83,7 +84,10 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.euser1.id)
+        if self.euser1.id is None:
+            assert response.data[0]["id"] is None
+        else:
+            assert response.data[0]["id"] == str(self.euser1.id)
 
         response = self.client.get(f"{self.path}?query=email:@example.com", format="json")
 
@@ -97,7 +101,10 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.euser1.id)
+        if self.euser1.id is None:
+            assert response.data[0]["id"] is None
+        else:
+            assert response.data[0]["id"] == str(self.euser1.id)
 
         response = self.client.get(f"{self.path}?query=id:3", format="json")
 
@@ -111,4 +118,68 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(self.euser2.id)
+        if self.euser2.id is None:
+            assert response.data[0]["id"] is None
+        else:
+            assert response.data[0]["id"] == str(self.euser2.id)
+
+
+@region_silo_test
+class EventUserModelProjectUsersTest(ProjectUsersBaseTest):
+    def setUp(self):
+        super().setUp()
+        self.euser1 = EventUser_model.objects.create(
+            project_id=self.project.id,
+            ident="1",
+            email="foo@example.com",
+            username="foobar",
+            ip_address="127.0.0.1",
+        )
+        self.euser2 = EventUser_model.objects.create(
+            project_id=self.project.id,
+            ident="2",
+            email="bar@example.com",
+            username="baz",
+            ip_address="192.168.0.1",
+        )
+
+
+@region_silo_test
+class EventUserProjectUsersTest(ProjectUsersBaseTest, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        timestamp = iso_format(timezone.now() - timedelta(hours=1))
+
+        self.event1 = self.store_event(
+            project_id=self.project.id,
+            data={
+                "user": {
+                    "id": 1,
+                    "email": "foo@example.com",
+                    "username": "foobar",
+                    "ip_address": "127.0.0.1",
+                },
+                "event_id": "b" * 32,
+                "timestamp": timestamp,
+            },
+        )
+        self.euser1 = EventUser.from_event(self.event1)
+        self.event2 = self.store_event(
+            project_id=self.project.id,
+            data={
+                "user": {
+                    "id": 2,
+                    "email": "bar@example.com",
+                    "username": "baz",
+                    "ip_address": "192.168.0.1",
+                },
+                "event_id": "c" * 32,
+                "timestamp": timestamp,
+            },
+        )
+        self.euser2 = EventUser.from_event(self.event2)
+        self.feature_manager = self.feature("organizations:eventuser-from-snuba")
+        self.feature_manager.__enter__()
+
+    def tearDown(self):
+        self.feature_manager.__exit__(None, None, None)

@@ -233,11 +233,7 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      await waitFor(() =>
-        expect(screen.getByTestId('alert-total-events')).toHaveTextContent(
-          'Total Transactions5'
-        )
-      );
+      expect(await screen.findByTestId('alert-total-events')).toHaveTextContent('Total5');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -280,7 +276,7 @@ describe('Incident Rules Form', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             aggregate: 'count()',
-            alertType: 'custom',
+            alertType: 'custom_transactions',
             dataset: 'events',
             datasource: 'error',
             environment: null,

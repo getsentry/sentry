@@ -78,18 +78,29 @@ export function WebVitalsDetailPanel({
     if (!data) {
       return [];
     }
-    const count = projectData?.data[0]['count()'] as number;
+    const count = projectData?.data?.[0]?.['count()'] as number;
     return data
       .map(row => ({
         ...row,
-        opportunity: calculateOpportunity(
-          projectScore[`${webVital}Score`],
-          count,
-          row[`${webVital}Score`],
-          row['count()']
-        ),
+        opportunity:
+          count !== undefined
+            ? calculateOpportunity(
+                projectScore[`${webVital}Score`],
+                count,
+                row[`${webVital}Score`],
+                row['count()']
+              )
+            : undefined,
       }))
-      .sort((a, b) => b.opportunity - a.opportunity)
+      .sort((a, b) => {
+        if (a.opportunity === undefined) {
+          return 1;
+        }
+        if (b.opportunity === undefined) {
+          return -1;
+        }
+        return b.opportunity - a.opportunity;
+      })
       .slice(0, MAX_ROWS);
   }, [data, projectData?.data, projectScore, webVital]);
 
@@ -204,14 +215,14 @@ export function WebVitalsDetailPanel({
             value={
               webVital !== 'cls'
                 ? getDuration(
-                    (projectData?.data[0][mapWebVitalToColumn(webVital)] as number) /
+                    (projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number) /
                       1000,
                     2,
                     true
                   )
-                : (projectData?.data[0][mapWebVitalToColumn(webVital)] as number).toFixed(
-                    2
-                  )
+                : (
+                    projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number
+                  ).toFixed(2)
             }
             webVital={webVital}
             score={webVitalScore}

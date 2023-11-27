@@ -51,4 +51,17 @@ describe('SampleDataAlert', function () {
 
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("doesn't render when event.type:error", function () {
+    const dismiss = jest.fn();
+    mockUseDismissAlert.mockImplementation(() => {
+      return {
+        dismiss,
+        isDismissed: false,
+      };
+    });
+    const {container} = render(<SampleDataAlert query="event.type:error" />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });

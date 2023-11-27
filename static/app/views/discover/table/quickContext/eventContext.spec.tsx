@@ -132,7 +132,6 @@ describe('Quick Context Content: Event ID Column', function () {
       lineNo: 0,
       absPath: null,
       context: [],
-      errors: null,
       inApp: false,
       instructionAddr: null,
       module: null,

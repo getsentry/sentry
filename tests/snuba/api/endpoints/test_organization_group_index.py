@@ -56,7 +56,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -1452,7 +1452,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
@@ -1464,21 +1464,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
-            environment=self.environment.name,
-        )
-        assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
-            adopted_release_g_1,
-            adopted_release_g_2,
-            replaced_release_g_1,
-            replaced_release_g_2,
-        ]
-
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
@@ -1492,7 +1478,21 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query=f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}, {ReleaseStages.REPLACED}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value}, {ReleaseStages.REPLACED.value}]",
+            environment=self.environment.name,
+        )
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            adopted_release_g_1,
+            adopted_release_g_2,
+            replaced_release_g_1,
+            replaced_release_g_2,
+        ]
+
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            query=f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION.value}, {ReleaseStages.REPLACED.value}]",
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
@@ -2154,7 +2154,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "put"
@@ -3492,7 +3492,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"

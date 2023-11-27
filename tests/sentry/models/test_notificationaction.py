@@ -8,7 +8,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch.dict(NotificationAction._registry, {})
 class NotificationActionTest(TestCase):
     def setUp(self):

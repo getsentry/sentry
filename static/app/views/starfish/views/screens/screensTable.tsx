@@ -20,6 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -87,15 +88,17 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         <Fragment>
           <TopResultsIndicator count={TOP_SCREENS} index={index} />
           <Link
-            to={`/organizations/${
-              organization.slug
-            }/performance/mobile/screens/spans/?${qs.stringify({
-              ...location.query,
-              project: row['project.id'],
-              transaction: row.transaction,
-              primaryRelease,
-              secondaryRelease,
-            })}`}
+            to={normalizeUrl(
+              `/organizations/${
+                organization.slug
+              }/performance/mobile/screens/spans/?${qs.stringify({
+                ...location.query,
+                project: row['project.id'],
+                transaction: row.transaction,
+                primaryRelease,
+                secondaryRelease,
+              })}`
+            )}
             style={{display: `block`, width: `100%`}}
           >
             {row.transaction}
@@ -233,6 +236,7 @@ export function useTableQuery({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {isReady: pageFiltersReady} = usePageFilters();
 
   const result = useDiscoverQuery({
     eventView,
@@ -243,7 +247,7 @@ export function useTableQuery({
     cursor,
     options: {
       refetchOnWindowFocus: false,
-      enabled,
+      enabled: enabled && pageFiltersReady,
       staleTime,
     },
   });

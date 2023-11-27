@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,7 +16,9 @@ import {
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
+import {getResourceTypeFilter} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {ModuleName} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 import {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 
@@ -26,7 +29,11 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
 } = BrowserStarfishFields;
 
-export const DEFAULT_RESOURCE_TYPES = ['resource.script', 'resource.css'];
+export const DEFAULT_RESOURCE_TYPES = [
+  'resource.script',
+  'resource.css',
+  'resource.font',
+];
 
 type Option = {
   label: string;
@@ -42,17 +49,20 @@ function JSCSSView() {
     ...(filters[SPAN_DOMAIN] ? {[SPAN_DOMAIN]: filters[SPAN_DOMAIN]} : {}),
   };
 
+  const extraQuery = getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES);
+
   return (
     <Fragment>
       <SpanTimeCharts
         moduleName={ModuleName.OTHER}
         appliedFilters={spanTimeChartsFilters}
         throughputUnit={RESOURCE_THROUGHPUT_UNIT}
+        extraQuery={extraQuery}
       />
 
       <FilterOptionsContainer>
         <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
-        <PageSelector
+        <TransactionSelector
           value={filters[TRANSACTION] || ''}
           defaultResourceTypes={DEFAULT_RESOURCE_TYPES}
         />
@@ -70,6 +80,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
     {value: '', label: 'All'},
     {value: 'resource.script', label: `${t('JavaScript')} (.js)`},
     {value: 'resource.css', label: `${t('Stylesheet')} (.css)`},
+    {value: 'resource.font', label: `${t('Font')} (.woff, .woff2, .ttf, .otf, .eot)`},
   ];
   return (
     <SelectControlWithProps
@@ -82,6 +93,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
           query: {
             ...location.query,
             [RESOURCE_TYPE]: newValue?.value,
+            [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
       }}
@@ -89,32 +101,71 @@ function ResourceTypeSelector({value}: {value?: string}) {
   );
 }
 
-function PageSelector({
+export function TransactionSelector({
   value,
   defaultResourceTypes,
 }: {
   defaultResourceTypes?: string[];
   value?: string;
 }) {
+  const [state, setState] = useState({
+    search: '',
+    inputChanged: false,
+    shouldRequeryOnInputChange: false,
+  });
   const location = useLocation();
-  const {data: pages} = useResourcePagesQuery(defaultResourceTypes);
 
-  const options: Option[] = [
-    {value: '', label: 'All'},
-    ...pages.map(page => ({value: page, label: page})),
-  ];
+  const {data: pages, isLoading} = useResourcePagesQuery(
+    defaultResourceTypes,
+    state.search
+  );
+
+  // If the maximum number of pages is returned, we need to requery on input change to get full results
+  if (!state.shouldRequeryOnInputChange && pages && pages.length >= 100) {
+    setState({...state, shouldRequeryOnInputChange: true});
+  }
+
+  // Everytime loading is complete, reset the inputChanged state
+  useEffect(() => {
+    if (!isLoading && state.inputChanged) {
+      setState({...state, inputChanged: false});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
+
+  const optionsReady = !isLoading && !state.inputChanged;
+
+  const options: Option[] = optionsReady
+    ? [{value: '', label: 'All'}, ...pages.map(page => ({value: page, label: page}))]
+    : [];
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debounceUpdateSearch = useCallback(
+    debounce((search, currentState) => {
+      setState({...currentState, search});
+    }, 500),
+    []
+  );
 
   return (
     <SelectControlWithProps
       inFieldLabel={`${t('Page')}:`}
       options={options}
       value={value}
+      onInputChange={input => {
+        if (state.shouldRequeryOnInputChange) {
+          setState({...state, inputChanged: true});
+          debounceUpdateSearch(input, state);
+        }
+      }}
+      noOptionsMessage={() => (optionsReady ? undefined : t('Loading...'))}
       onChange={newValue => {
         browserHistory.push({
           ...location,
           query: {
             ...location.query,
             [TRANSACTION]: newValue?.value,
+            [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
       }}
