@@ -11,7 +11,7 @@ from sentry.utils import json
 from . import FireTest
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class SentryAppActionHandlerTest(FireTest):
     def setUp(self):
@@ -84,7 +84,7 @@ class SentryAppActionHandlerTest(FireTest):
         self.run_fire_test("resolve")
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
     def setUp(self):

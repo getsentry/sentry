@@ -86,7 +86,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         assert data["createdBy"]["id"] == str(dashboard.created_by_id)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_get(self):
         response = self.do_request("get", self.url(self.dashboard.id))
@@ -213,7 +213,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
         response = self.do_request("delete", self.url(self.dashboard.id))
@@ -266,7 +266,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
             assert response.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def setUp(self):
         super().setUp()
@@ -1470,7 +1470,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
     def url(self, dashboard_id):
         return reverse(

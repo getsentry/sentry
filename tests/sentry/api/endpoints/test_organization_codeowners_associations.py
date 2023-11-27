@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
     method = "GET"
     endpoint = "sentry-api-0-organization-codeowners-associations"

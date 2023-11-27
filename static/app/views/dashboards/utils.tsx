@@ -24,7 +24,7 @@ import {
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import {Organization, PageFilters} from 'sentry/types';
+import {MRI, Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -42,7 +42,12 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {fieldToMri} from 'sentry/utils/metrics';
+import {
+  getDdmUrl,
+  MetricDisplayType,
+  MetricWidgetQueryParams,
+} from 'sentry/utils/metrics';
+import {parseField} from 'sentry/utils/metrics/mri';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {
@@ -408,23 +413,25 @@ export function getWidgetDDMUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
 
-  const ddmLocation = `/organizations/${organization.slug}/ddm/?${qs.stringify({
+  // ensures that My Projects selection is properly handled
+  const project = selection.projects.length ? selection.projects : [0];
+
+  const ddmLocation = getDdmUrl(organization.slug, {
     ...datetime,
-    project: selection.projects,
+    project,
     environment: selection.environments,
-    widgets: JSON.stringify(
-      _widget.queries.map(query => {
-        const {mri, op} = fieldToMri(query.aggregates[0]);
-        return {
-          mri,
-          op,
-          groupBy: query.columns,
-          query: query.conditions ?? '',
-          displayType: _widget.displayType,
-        };
-      })
-    ),
-  })}`;
+    widgets: _widget.queries.map(query => {
+      const {mri: mri, op} = parseField(query.aggregates[0]) ?? {mri: '', op: ''};
+      return {
+        mri: mri as MRI,
+        op,
+        groupBy: query.columns,
+        query: query.conditions ?? '',
+        // TODO(oggi): Handle display type mismatch and remove cast
+        displayType: _widget.displayType as unknown as MetricDisplayType,
+      } satisfies MetricWidgetQueryParams;
+    }),
+  });
 
   return ddmLocation;
 }

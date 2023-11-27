@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import cast
 
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry.integrations.vsts.webhooks import VstsWebhookMixin, WorkItemWebhook
@@ -29,7 +29,7 @@ class VstsRequestParser(BaseRequestParser, VstsWebhookMixin):
             return None
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
-    def get_response(self) -> HttpResponse:
+    def get_response(self) -> HttpResponseBase:
         if self.view_class not in self.region_view_classes:
             return self.get_response_from_control_silo()
 

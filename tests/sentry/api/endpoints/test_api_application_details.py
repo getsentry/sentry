@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiApplicationDetailsTest(APITestCase):
     def test_simple(self):
         app = ApiApplication.objects.create(owner=self.user, name="a")
@@ -18,7 +18,7 @@ class ApiApplicationDetailsTest(APITestCase):
         assert response.data["id"] == app.client_id
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiApplicationUpdateTest(APITestCase):
     def test_simple(self):
         app = ApiApplication.objects.create(owner=self.user, name="a")
@@ -33,7 +33,7 @@ class ApiApplicationUpdateTest(APITestCase):
         assert app.name == "foobaz"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiApplicationDeleteTest(APITestCase):
     def test_simple(self):
         app = ApiApplication.objects.create(owner=self.user, name="a")
