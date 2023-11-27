@@ -568,7 +568,6 @@ module = [
     "sentry.snuba.metrics.datasource",
     "sentry.snuba.metrics.fields.base",
     "sentry.snuba.metrics.query_builder",
-    "sentry.snuba.metrics_enhanced_performance",
     "sentry.snuba.metrics_performance",
     "sentry.snuba.sessions",
     "sentry.snuba.sessions_v2",

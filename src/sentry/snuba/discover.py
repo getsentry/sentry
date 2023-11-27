@@ -69,6 +69,9 @@ FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 class EventsMeta(TypedDict):
     fields: Dict[str, str]
+    datasetReason: Optional[str]
+    isMetricsData: Optional[bool]
+    isMetricsExtractedData: Optional[bool]
 
 
 class EventsResponse(TypedDict):
