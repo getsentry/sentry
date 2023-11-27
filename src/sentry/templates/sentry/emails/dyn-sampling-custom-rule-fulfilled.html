@@ -7,11 +7,11 @@
 
     <p>We've collected {{ num_samples }} samples for the following search query:</p>
     <pre>
-    {{ query }}
+{{ query }}
     </pre>
 
     <p>
-    We'll stop collecting once we reach 100 or 48 hours after rule creation.
+    We'll stop giving special priority to samples for your query once we collected 100 samples matching your query or 48 hours have passed from rule creation.
     </p>
 
   <a href="{{ discover_link|safe }}" class="btn">View Samples</a>
