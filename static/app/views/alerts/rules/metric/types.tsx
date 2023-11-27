@@ -22,6 +22,9 @@ export enum AlertRuleComparisonType {
 }
 
 export enum Dataset {
+  /**
+   * Events include errors and transactions
+   */
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
   /** Also used for performance alerts **/

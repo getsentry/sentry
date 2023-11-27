@@ -43,6 +43,7 @@ import {
 } from 'sentry/utils/sessions';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -395,6 +396,7 @@ class TriggersChart extends PureComponent<Props, State> {
         newAlertOrQuery,
       }),
       ...getForceMetricsLayerQueryExtras(organization, dataset),
+      ...(shouldUseErrorsDiscoverDataset(query, dataset) ? {dataset: 'errors'} : {}),
     };
 
     if (isOnDemandMetricAlert) {
