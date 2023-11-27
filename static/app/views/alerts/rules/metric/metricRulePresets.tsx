@@ -6,7 +6,7 @@ import {getDdmUrl, MetricDisplayType} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {isCustomMetricAggregate} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAggregate';
+import {isCustomMetricField} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricField';
 import {getMetricRuleDiscoverUrl} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
 
 interface PresetCta {
@@ -45,7 +45,7 @@ export function makeDefaultCta({
     };
   }
 
-  if (isCustomMetricAggregate(rule.aggregate)) {
+  if (isCustomMetricField(rule.aggregate)) {
     const {mri, op} = parseField(rule.aggregate) ?? {};
     return {
       buttonText: t('Open in DDM'),

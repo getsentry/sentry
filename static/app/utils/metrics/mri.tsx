@@ -1,12 +1,12 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-import {MetricType, MRI, ParsedMRI} from 'sentry/types/metrics';
+import {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
 import {parseFunction} from 'sentry/utils/discover/fields';
 
-import {DEFAULT_METRIC_ALERT_AGGREGATE, UseCase} from './index';
-
 export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
+// This is a workaround as the alert builder requires a valid aggregate to be set
+export const DEFAULT_METRIC_ALERT_FIELD = `sum(${DEFAULT_MRI})`;
 
 export function isMRI(mri?: unknown): mri is MRI {
   return !!parseMRI(mri);
@@ -49,10 +49,10 @@ export function formatMRI(mri: MRI): string {
   return parseMRI(mri)?.name ?? mri;
 }
 
-export function getUseCaseFromMRI(mri?: string): UseCase {
+export function getUseCaseFromMRI(mri?: string): UseCase | undefined {
   const parsed = parseMRI(mri);
 
-  return parsed?.useCase ?? 'sessions';
+  return parsed?.useCase;
 }
 
 export function MRIToField(mri: MRI, op: string): string {
@@ -62,7 +62,6 @@ export function MRIToField(mri: MRI, op: string): string {
 export function parseField(field: string): {mri: MRI; op: string} | null {
   const parsedFunction = parseFunction(field);
   if (!parsedFunction) {
-    // We only allow aggregate functions for custom metric alerts
     return null;
   }
   return {
@@ -77,8 +76,8 @@ export function getMRI(field: string): MRI {
   return parsed?.mri ?? DEFAULT_MRI;
 }
 
-export function formatMRIAggregate(aggregate: string) {
-  if (aggregate === DEFAULT_METRIC_ALERT_AGGREGATE) {
+export function formatMRIField(aggregate: string) {
+  if (aggregate === DEFAULT_METRIC_ALERT_FIELD) {
     return t('Select a metric to get started');
   }
 

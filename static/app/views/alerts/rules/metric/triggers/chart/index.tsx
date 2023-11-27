@@ -35,7 +35,7 @@ import type {
 import type {Series} from 'sentry/types/echarts';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
-import {formatMRIAggregate} from 'sentry/utils/metrics/mri';
+import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
@@ -506,7 +506,7 @@ class TriggersChart extends PureComponent<Props, State> {
         period={period}
         yAxis={aggregate}
         includePrevious={false}
-        currentSeriesNames={[formatMRIAggregate(aggregate)]}
+        currentSeriesNames={[formatMRIField(aggregate)]}
         partial={false}
         queryExtras={queryExtras}
         dataLoadedCallback={onDataLoaded}

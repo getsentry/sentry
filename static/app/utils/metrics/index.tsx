@@ -15,6 +15,7 @@ import {
   MetricsGroup,
   MetricType,
   MRI,
+  UseCase,
 } from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
@@ -30,8 +31,6 @@ export enum MetricDisplayType {
 }
 
 export const defaultMetricDisplayType = MetricDisplayType.LINE;
-
-export type UseCase = 'sessions' | 'transactions' | 'custom';
 
 export type MetricTag = {
   key: string;
@@ -292,6 +291,3 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
 
   return groupedByOp;
 }
-
-// This is a workaround as the alert builder requires a valid aggregate to be set
-export const DEFAULT_METRIC_ALERT_AGGREGATE = 'sum(c:custom/iolnqzyenoqugwm@none)';

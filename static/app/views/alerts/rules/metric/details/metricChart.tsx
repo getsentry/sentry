@@ -46,7 +46,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
-import {formatMRIAggregate} from 'sentry/utils/metrics/mri';
+import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
@@ -369,7 +369,7 @@ class MetricChart extends PureComponent<Props, State> {
           </ChartHeader>
           <ChartFilters>
             <StyledCircleIndicator size={8} />
-            <Filters>{formatMRIAggregate(rule.aggregate)}</Filters>
+            <Filters>{formatMRIField(rule.aggregate)}</Filters>
             <Truncate value={queryFilter ?? ''} maxLength={truncateWidth} />
           </ChartFilters>
           {getDynamicText({

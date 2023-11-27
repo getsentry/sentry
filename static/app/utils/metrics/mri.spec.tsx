@@ -84,12 +84,12 @@ describe('getUseCaseFromMRI', () => {
     expect(result).toBe('transactions');
   });
 
-  it('should return "sessions" for other cases', () => {
-    const mri = 'e:test/project@timestamp';
+  it('should return undefined for invalid mris', () => {
+    const mri = 'foobar';
 
     const result = getUseCaseFromMRI(mri);
 
-    expect(result).toBe('test');
+    expect(result).toBeUndefined();
   });
 });
 
