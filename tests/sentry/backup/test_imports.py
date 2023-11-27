@@ -450,8 +450,8 @@ class SanitizationTests(ImportTestCase):
                         model["fields"]["ip_address"] = "8.8.8.8"
 
                 # Add a two copies of the same IP - so the user now has 2 `UserIP` models for the IP
-                # `8.8.8.9`, and 1 for `8.8.8.8`. After import, we would expect to only see one
-                # model for each IP.
+                # `8.8.8.9`, 1 for `8.8.8.8`, and 1 for `8.8.8.7`. After import, we would expect to
+                # only see one model for each IP.
                 models.append(
                     {
                         "model": "sentry.userip",
@@ -480,6 +480,20 @@ class SanitizationTests(ImportTestCase):
                         },
                     }
                 )
+                models.append(
+                    {
+                        "model": "sentry.userip",
+                        "pk": 4,
+                        "fields": {
+                            "user": 2,
+                            "ip_address": "8.8.8.7",
+                            "country_code": None,  # Unknown value - importing should fix this.
+                            "region_code": None,  # Unknown value - importing should fix this.
+                            "first_seen": "2014-04-05T03:29:45.000Z",
+                            "last_seen": "2014-04-05T03:29:45.000Z",
+                        },
+                    }
+                )
 
                 json.dump(self.sort_in_memory_json(models), tmp_file)
 
@@ -487,13 +501,12 @@ class SanitizationTests(ImportTestCase):
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert UserIP.objects.count() == 2
-            assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
-            assert UserIP.objects.filter(country_code="US").exists()
-            assert UserIP.objects.filter(region_code="CA").exists()
-            assert UserIP.objects.filter(ip_address="8.8.8.9").exists()
-            assert UserIP.objects.filter(country_code="US").exists()
-            assert UserIP.objects.filter(region_code="CA").exists()
+            assert UserIP.objects.count() == 3
+            assert UserIP.objects.filter(ip_address="8.8.8.9").count() == 1
+            assert UserIP.objects.filter(ip_address="8.8.8.8").count() == 1
+            assert UserIP.objects.filter(ip_address="8.8.8.7").count() == 1
+            assert UserIP.objects.filter(country_code="US").count() == 3
+            assert UserIP.objects.filter(region_code="CA").count() == 3
 
     def test_bad_invalid_user_ip(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

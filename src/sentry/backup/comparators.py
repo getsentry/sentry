@@ -730,7 +730,13 @@ def get_default_comparators():
                 DateUpdatedComparator("date_hash_added"),
                 IgnoredComparator("validation_hash", "is_verified"),
             ],
-            "sentry.userip": [DateUpdatedComparator("first_seen", "last_seen")],
+            "sentry.userip": [
+                DateUpdatedComparator("first_seen", "last_seen"),
+                # Incorrect country and region codes may be updated during an import, so we don't
+                # want to compare them explicitly. This update is pulled from the geo IP service, so
+                # we only really want to compare the IP address itself.
+                IgnoredComparator("country_code", "region_code"),
+            ],
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
         },
