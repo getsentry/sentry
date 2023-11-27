@@ -19,6 +19,7 @@ function colorComponentsToRgba(color: number[]): string {
 }
 
 export class FlamegraphRendererDOM extends FlamegraphRenderer {
+  ctx: CanvasRenderingContext2D | null = null;
   container: HTMLElement;
 
   constructor(
@@ -28,6 +29,10 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
     options: FlamegraphRendererOptions = DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS
   ) {
     super(canvas, flamegraph, theme, options);
+
+    // @ts-expect-error we are mocking the ctx so that
+    // safe renderer initialization does not skip the renderer
+    this.ctx = {};
 
     const newContainer = document.createElement('div');
     canvas.parentElement?.appendChild(newContainer);
