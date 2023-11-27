@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Callable, List, Mapping, MutableMapping, Optional, Tuple
 
 from django.db import router, transaction
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
@@ -11,13 +11,13 @@ from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
-from sentry.notifications.helpers import get_scope_type
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
+    NOTIFICATION_SETTING_TYPES,
     NotificationScopeEnum,
-    NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -31,7 +31,7 @@ from sentry.services.hybrid_cloud.notifications.model import NotificationSetting
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
@@ -68,93 +68,46 @@ class DatabaseBackedNotificationsService(NotificationsService):
             skip_provider_updates=skip_provider_updates,
         )
 
-    def bulk_update_settings(
+    def enable_all_settings_for_provider(
         self,
         *,
-        notification_type_to_value_map: Mapping[
-            NotificationSettingTypes, NotificationSettingOptionValues
-        ],
-        external_provider: ExternalProviders,
+        external_provider: ExternalProviderEnum,
         user_id: int,
     ) -> None:
-        with transaction.atomic(router.db_for_write(NotificationSetting)):
-            for notification_type, setting_option in notification_type_to_value_map.items():
-                self.update_settings(
-                    external_provider=external_provider,
-                    actor=RpcActor(id=user_id, actor_type=ActorType.USER),
-                    notification_type=notification_type,
-                    setting_option=setting_option,
-                    skip_provider_updates=True,
+        with transaction.atomic(router.db_for_write(NotificationSettingProvider)):
+            for type_str in NOTIFICATION_SETTING_TYPES.values():
+                NotificationSettingProvider.objects.create_or_update(
+                    provider=external_provider.value,
+                    user_id=user_id,
+                    scope_type=NotificationScopeEnum.USER.value,
+                    scope_identifier=user_id,
+                    type=type_str,
+                    values={
+                        "value": NotificationSettingsOptionEnum.ALWAYS.value,
+                    },
                 )
-            # update the providers at the end
-            NotificationSetting.objects.update_provider_settings(user_id, None)
 
-    # TODO(snigdha): This can be removed in V2.
-    def get_settings_for_users(
+    def update_notification_options(
         self,
         *,
-        types: List[NotificationSettingTypes],
-        users: List[RpcUser],
-        value: NotificationSettingOptionValues,
-    ) -> List[RpcNotificationSetting]:
-        settings = NotificationSetting.objects.filter(
-            user_id__in=[u.id for u in users],
-            type__in=types,
-            value=value.value,
-            scope_type=NotificationScopeType.USER.value,
-        )
-        return [serialize_notification_setting(u) for u in settings]
-
-    def get_settings_for_recipient_by_parent(
-        self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
-    ) -> List[RpcNotificationSetting]:
-        team_ids = [r.id for r in recipients if r.actor_type == ActorType.TEAM]
-        user_ids = [r.id for r in recipients if r.actor_type == ActorType.USER]
-
-        parent_specific_scope_type = get_scope_type(type)
-        notification_settings = NotificationSetting.objects.filter(
-            Q(
-                scope_type=parent_specific_scope_type.value,
-                scope_identifier=parent_id,
-            )
-            | Q(
-                scope_type=NotificationScopeType.USER.value,
-                scope_identifier__in=user_ids,
-            )
-            | Q(
-                scope_type=NotificationScopeType.TEAM.value,
-                scope_identifier__in=team_ids,
-            ),
-            (Q(team_id__in=team_ids) | Q(user_id__in=user_ids)),
+        actor: RpcActor,
+        type: NotificationSettingEnum,
+        scope_type: NotificationScopeEnum,
+        scope_identifier: int,
+        value: NotificationSettingsOptionEnum,
+    ):
+        kwargs = {}
+        if actor.actor_type == ActorType.USER:
+            kwargs["user_id"] = actor.id
+        else:
+            kwargs["team_id"] = actor.id
+        NotificationSettingOption.objects.create_or_update(
             type=type.value,
+            scope_type=scope_type.value,
+            scope_identifier=scope_identifier,
+            values={"value": value.value},
+            **kwargs,
         )
-
-        return [serialize_notification_setting(s) for s in notification_settings]
-
-    def get_settings_for_user_by_projects(
-        self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
-    ) -> List[RpcNotificationSetting]:
-        try:
-            User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return []
-
-        scope_type = get_scope_type(type)
-        return [
-            serialize_notification_setting(s)
-            for s in NotificationSetting.objects.filter(
-                Q(
-                    scope_type=scope_type.value,
-                    scope_identifier__in=parent_ids,
-                )
-                | Q(
-                    scope_type=NotificationScopeType.USER.value,
-                    scope_identifier=user_id,
-                ),
-                type=type.value,
-                user_id=user_id,
-            )
-        ]
 
     def remove_notification_settings(
         self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders

@@ -142,8 +142,8 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
+/src/sentry/hybridcloud                                  @getsentry/hybrid-cloud
 /src/sentry/services/hybrid_cloud/                       @getsentry/hybrid-cloud
-/src/sentry/api_gateway/                                 @getsentry/hybrid-cloud
 /src/sentry/middleware/api_gateway.py                    @getsentry/hybrid-cloud
 /src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
@@ -482,6 +482,7 @@ src/sentry/api/endpoints/user_social_identity*                          @getsent
 /static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
 /static/app/types/project.tsx                                                    @getsentry/telemetry-experience
 /static/app/utils/metrics/                                                       @getsentry/telemetry-experience
+/static/app/views/ddm/                                                           @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience

@@ -448,8 +448,8 @@ class SanitizationTests(ImportTestCase):
                         model["fields"]["ip_address"] = "8.8.8.8"
 
                 # Add a two copies of the same IP - so the user now has 2 `UserIP` models for the IP
-                # `8.8.8.9`, and 1 for `8.8.8.8`. After import, we would expect to only see one
-                # model for each IP.
+                # `8.8.8.9`, 1 for `8.8.8.8`, and 1 for `8.8.8.7`. After import, we would expect to
+                # only see one model for each IP.
                 models.append(
                     {
                         "model": "sentry.userip",
@@ -478,6 +478,20 @@ class SanitizationTests(ImportTestCase):
                         },
                     }
                 )
+                models.append(
+                    {
+                        "model": "sentry.userip",
+                        "pk": 4,
+                        "fields": {
+                            "user": 2,
+                            "ip_address": "8.8.8.7",
+                            "country_code": None,  # Unknown value - importing should fix this.
+                            "region_code": None,  # Unknown value - importing should fix this.
+                            "first_seen": "2014-04-05T03:29:45.000Z",
+                            "last_seen": "2014-04-05T03:29:45.000Z",
+                        },
+                    }
+                )
 
                 json.dump(self.sort_in_memory_json(models), tmp_file)
 
@@ -485,13 +499,12 @@ class SanitizationTests(ImportTestCase):
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert UserIP.objects.count() == 2
-            assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
-            assert UserIP.objects.filter(country_code="US").exists()
-            assert UserIP.objects.filter(region_code="CA").exists()
-            assert UserIP.objects.filter(ip_address="8.8.8.9").exists()
-            assert UserIP.objects.filter(country_code="US").exists()
-            assert UserIP.objects.filter(region_code="CA").exists()
+            assert UserIP.objects.count() == 3
+            assert UserIP.objects.filter(ip_address="8.8.8.9").count() == 1
+            assert UserIP.objects.filter(ip_address="8.8.8.8").count() == 1
+            assert UserIP.objects.filter(ip_address="8.8.8.7").count() == 1
+            assert UserIP.objects.filter(country_code="US").count() == 3
+            assert UserIP.objects.filter(region_code="CA").count() == 3
 
     def test_bad_invalid_user_ip(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1230,9 +1243,11 @@ class CollisionTests(ImportTestCase):
         # Take note of the `ApiTokens` that were created by the exhaustive organization - this is
         # the one we'll be importing.
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_no_refresh_set = ApiToken.objects.create(
-                user=owner, token=generate_token(), expires_at=expires_at
-            )
+            colliding_no_refresh_set = ApiToken.objects.create(user=owner, token=generate_token())
+            colliding_no_refresh_set.refresh_token = None
+            colliding_no_refresh_set.expires_at = None
+            colliding_no_refresh_set.save()
+
             colliding_same_refresh_only = ApiToken.objects.create(
                 user=owner,
                 token=generate_token(),
@@ -1272,7 +1287,14 @@ class CollisionTests(ImportTestCase):
                 colliding_same_both.user_id = owner.id
                 colliding_same_both.save()
                 assert ApiToken.objects.count() == 4
-                assert ApiToken.objects.filter(token=colliding_no_refresh_set.token).count() == 1
+                assert (
+                    ApiToken.objects.filter(
+                        token=colliding_no_refresh_set.token,
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 1
+                )
                 assert (
                     ApiToken.objects.filter(
                         refresh_token=colliding_same_refresh_only.refresh_token
@@ -1294,7 +1316,14 @@ class CollisionTests(ImportTestCase):
             # Ensure that old tokens have not been mutated.
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert ApiToken.objects.count() == 8
-                assert ApiToken.objects.filter(token=colliding_no_refresh_set.token).count() == 1
+                assert (
+                    ApiToken.objects.filter(
+                        token=colliding_no_refresh_set.token,
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 1
+                )
                 assert (
                     ApiToken.objects.filter(
                         refresh_token=colliding_same_refresh_only.refresh_token
@@ -1308,6 +1337,16 @@ class CollisionTests(ImportTestCase):
                         refresh_token=colliding_same_both.refresh_token,
                     ).count()
                     == 1
+                )
+
+                # Ensure newly added entries with nulled `refresh_token` and/or `expires_at` have
+                # kept those fields nulled.
+                assert (
+                    ApiToken.objects.filter(
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 2
                 )
 
             with open(tmp_path, "rb") as tmp_file:
