@@ -560,6 +560,32 @@ class SubscriptionIDComparator(RegexComparator):
         return findings
 
 
+class UnorderedListComparator(JSONScrubbingComparator):
+    """Comparator for fields that are lists of unordered elements, which simply orders them before
+    doing the comparison."""
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+
+            lv = left["fields"][f] or []
+            rv = right["fields"][f] or []
+            if sorted(lv) != sorted(rv):
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ({lv}) of the unordered list field `{f}` was not equal to the right value ({rv})""",
+                    )
+                )
+        return findings
+
+
 # Note: we could also use the `uuid` Python uuid module for this, but it is finicky and accepts some
 # weird syntactic variations that are not very common and may cause weird failures when they are
 # rejected elsewhere.
@@ -681,7 +707,8 @@ def get_default_comparators():
         list,
         {
             "sentry.apitoken": [
-                HashObfuscatingComparator("refresh_token", "token", "token_last_characters")
+                HashObfuscatingComparator("refresh_token", "token", "token_last_characters"),
+                UnorderedListComparator("scope_list"),
             ],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],

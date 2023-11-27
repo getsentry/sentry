@@ -13,6 +13,7 @@ from sentry.backup.comparators import (
     ScrubbedData,
     SecretHexComparator,
     SubscriptionIDComparator,
+    UnorderedListComparator,
     UserPasswordObfuscatingComparator,
     UUID4Comparator,
 )
@@ -1224,6 +1225,120 @@ def test_good_subscription_id_comparator_scrubbed():
 
     assert right["scrubbed"]
     assert right["scrubbed"]["SubscriptionIDComparator::subscription_id_field"] is ScrubbedData()
+
+
+def test_good_unordered_list_comparator():
+    cmp = UnorderedListComparator("ordered", "unordered")
+    id = InstanceID("sentry.test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "ordered": ["a", "b", "c"],
+            "unordered": ["b", "a", "c"],
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "ordered": ["a", "b", "c"],
+            "unordered": ["c", "b", "a"],
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+
+def test_bad_unordered_list_comparator():
+    cmp = UnorderedListComparator("unequal")
+    id = InstanceID("sentry.test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "unequal": ["b", "a"],
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "unequal": ["a", "b", "c"],
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.UnorderedListComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`unequal`" in res[0].reason
+    assert "not equal" in res[0].reason
+    assert "['b', 'a']" in res[0].reason
+    assert "['a', 'b', 'c']" in res[0].reason
+
+
+def test_good_unordered_list_comparator_existence():
+    cmp = UnorderedListComparator("unordered_list_field")
+    id = InstanceID("sentry.test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "unordered_list_field": ["a", "b", "c"],
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    res = cmp.existence(id, missing, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.UnorderedListComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "`unordered_list_field`" in res[0].reason
+
+
+def test_good_unordered_list_comparator_scrubbed():
+    cmp = UnorderedListComparator("unordered_list_field")
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "unordered_list_field": ["a", "b", "c"],
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "unordered_list_field": ["a", "b", "c"],
+        },
+    }
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["UnorderedListComparator::unordered_list_field"] is ScrubbedData()
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["UnorderedListComparator::unordered_list_field"] is ScrubbedData()
 
 
 def test_good_uuid4_comparator():

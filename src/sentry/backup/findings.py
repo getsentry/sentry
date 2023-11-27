@@ -106,6 +106,13 @@ class ComparatorFindingKind(FindingKind):
     # present or `None`.
     SubscriptionIDComparatorExistenceCheck = auto()
 
+    # Unordered list fields did not match.
+    UnorderedListComparator = auto()
+
+    # Failed to compare a unordered list field because one of the fields being compared was not
+    # present or `None`.
+    UnorderedListComparatorExistenceCheck = auto()
+
     # UUID4 fields did not match their regex specification.
     UUID4Comparator = auto()
 
