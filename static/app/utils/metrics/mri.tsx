@@ -19,7 +19,6 @@ export function parseMRI(mri?: unknown): ParsedMRI | null {
   try {
     return _parseMRI(mri as MRI);
   } catch (e) {
-    Sentry.captureMessage(`Invalid MRI: ${mri}`);
     return null;
   }
 }
@@ -28,6 +27,7 @@ function _parseMRI(mri: MRI): ParsedMRI {
   const mriArray = mri.split(new RegExp(/[:/@]/));
 
   if (mriArray.length !== 4) {
+    Sentry.captureMessage(`Invalid MRI: ${mri}`);
     throw new Error('Invalid MRI');
   }
 
