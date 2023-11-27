@@ -14,6 +14,7 @@ from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
 from sentry.silo import SiloMode
+from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -620,7 +621,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         "sentry.integrations.slack.actions.notification.get_channel_id",
         return_value=("#", None, True),
     )
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_rule.apply_async")
+    @patch.object(find_channel_id_for_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
         self,

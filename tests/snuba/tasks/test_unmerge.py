@@ -40,7 +40,7 @@ from sentry.utils.dates import to_timestamp
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 
-@patch("sentry.similarity.features.index", new=index)
+@patch.object(features, "index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
     def test_get_fingerprint(self):
         assert (
