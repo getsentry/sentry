@@ -729,6 +729,23 @@ function FlamegraphZoomView({
       });
   }, []);
 
+  const handleCopyFunctionSource = useCallback(() => {
+    if (!hoveredNodeOnContextMenuOpen.current) {
+      return;
+    }
+
+    const frame = hoveredNodeOnContextMenuOpen.current.frame;
+
+    navigator.clipboard
+      .writeText(frame.file ?? frame.path ?? '')
+      .then(() => {
+        addSuccessMessage(t('Function source copied to clipboard'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Failed to copy function source to clipboard'));
+      });
+  }, []);
+
   return (
     <CanvasContainer ref={canvasContainerRef}>
       <Canvas
@@ -749,6 +766,7 @@ function FlamegraphZoomView({
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurrences={highlightingAllOccurrences}
         onCopyFunctionNameClick={handleCopyFunctionName}
+        onCopyFunctionSource={handleCopyFunctionSource}
         onHighlightAllOccurrencesClick={handleHighlightAllFramesClick}
         disableCallOrderSort={disableCallOrderSort}
         disableColorCoding={disableColorCoding}

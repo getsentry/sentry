@@ -5,8 +5,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {
   RowWithScore,
   WebVitals,
@@ -15,18 +14,20 @@ import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils
 
 type Props = {
   defaultSort?: Sort;
+  enabled?: boolean;
   limit?: number;
   orderBy?: WebVitals | null;
   sortName?: string;
   transaction?: string | null;
 };
 
-export const useTransactionWebVitalsQuery = ({
+export const useTransactionWebVitalsScoresQuery = ({
   orderBy,
   limit,
   transaction,
   defaultSort,
   sortName = 'sort',
+  enabled = true,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -38,18 +39,27 @@ export const useTransactionWebVitalsQuery = ({
     {
       fields: [
         'transaction',
-        'transaction.op',
         'p75(measurements.lcp)',
         'p75(measurements.fcp)',
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'avg(measurements.score.lcp)',
+        'avg(measurements.score.fcp)',
+        'avg(measurements.score.cls)',
+        'avg(measurements.score.fid)',
+        'avg(measurements.score.ttfb)',
+        'avg(measurements.score.weight.lcp)',
+        'avg(measurements.score.weight.fcp)',
+        'avg(measurements.score.weight.cls)',
+        'avg(measurements.score.weight.fid)',
+        'avg(measurements.score.weight.ttfb)',
         'count()',
       ],
       name: 'Web Vitals',
       query:
         'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
-      orderby: mapWebVitalToOrderBy(orderBy, 'p75') ?? '-count',
+      orderby: orderBy ?? '-count',
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },
@@ -64,43 +74,33 @@ export const useTransactionWebVitalsQuery = ({
     location,
     orgSlug: organization.slug,
     options: {
-      enabled: pageFilters.isReady,
+      enabled: pageFilters.isReady && enabled,
       refetchOnWindowFocus: false,
     },
+    referrer: 'api.performance.browser.web-vitals.transactions-scores',
   });
 
   const tableData: RowWithScore[] =
     !isLoading && data?.data.length
-      ? data.data
-          .map(row => ({
+      ? data.data.map(row => {
+          const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, fidScore} =
+            calculatePerformanceScoreFromStoredTableDataRow(row);
+          return {
             transaction: row.transaction?.toString(),
-            'transaction.op': row['transaction.op']?.toString(),
             'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
             'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
             'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
             'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
             'count()': row['count()'] as number,
-          }))
-          .map(row => {
-            const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, fidScore} =
-              calculatePerformanceScore({
-                lcp: row['p75(measurements.lcp)'],
-                fcp: row['p75(measurements.fcp)'],
-                cls: row['p75(measurements.cls)'],
-                ttfb: row['p75(measurements.ttfb)'],
-                fid: row['p75(measurements.fid)'],
-              });
-            return {
-              ...row,
-              score: totalScore ?? 0,
-              clsScore: clsScore ?? 0,
-              fcpScore: fcpScore ?? 0,
-              lcpScore: lcpScore ?? 0,
-              ttfbScore: ttfbScore ?? 0,
-              fidScore: fidScore ?? 0,
-            };
-          })
+            score: totalScore ?? 0,
+            clsScore: clsScore ?? 0,
+            fcpScore: fcpScore ?? 0,
+            lcpScore: lcpScore ?? 0,
+            ttfbScore: ttfbScore ?? 0,
+            fidScore: fidScore ?? 0,
+          };
+        })
       : [];
 
   return {

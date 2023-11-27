@@ -6,9 +6,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
 from rest_framework.exceptions import NotFound
 
-from sentry.api_gateway.proxy import proxy_request
+from sentry.hybridcloud.apigateway.proxy import proxy_request
 from sentry.silo.util import INVALID_OUTBOUND_HEADERS, PROXY_DIRECT_LOCATION_HEADER
-from sentry.testutils.helpers.api_gateway import (
+from sentry.testutils.helpers.apigateway import (
     ApiGatewayTestCase,
     verify_file_body,
     verify_request_body,
