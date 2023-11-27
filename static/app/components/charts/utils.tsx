@@ -1,5 +1,6 @@
+import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import type {EChartsOption, LegendComponentOption, LineSeriesOption} from 'echarts';
+import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
 import moment from 'moment';
@@ -49,10 +50,12 @@ export function truncationFormatter(
 /**
  * Use a shorter interval if the time difference is <= 24 hours.
  */
-export function useShortInterval(datetimeObj: DateTimeObject): boolean {
+function computeShortInterval(datetimeObj: DateTimeObject): boolean {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
-
   return diffInMinutes <= TWENTY_FOUR_HOURS;
+}
+export function useShortInterval(datetimeObj: DateTimeObject): boolean {
+  return computeShortInterval(datetimeObj);
 }
 
 export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
@@ -365,24 +368,20 @@ function formatList(items: Array<string | number | undefined>) {
   return oxfordizeArray(filteredItems.map(item => item.toString()));
 }
 
-export function useEchartsAriaLabels(
-  {series, useUTC}: Omit<EChartsOption, 'series'>,
+export function computeEchartsAriaLabels(
+  {series, useUTC}: {series: unknown; useUTC: boolean | undefined},
   isGroupedByDate: boolean
 ) {
   const filteredSeries = Array.isArray(series)
     ? series.filter(s => s && !!s.data && s.data.length > 0)
     : [series];
 
-  const dateFormat = useShortInterval({
+  const dateFormat = computeShortInterval({
     start: filteredSeries[0]?.data?.[0][0],
     end: filteredSeries[0]?.data?.slice(-1)[0][0],
   })
     ? `MMMM D, h:mm A`
     : 'MMMM Do';
-
-  if (!filteredSeries[0]) {
-    return {enabled: false};
-  }
 
   function formatDate(date) {
     return getFormattedDate(date, dateFormat, {
@@ -392,17 +391,20 @@ export function useEchartsAriaLabels(
 
   // Generate title (first sentence)
   const chartTypes = new Set(filteredSeries.map(s => s.type));
-  const title = [
-    `${formatList([...chartTypes])} chart`,
-    isGroupedByDate
-      ? `with ${formatDate(filteredSeries[0].data?.[0][0])} to ${formatDate(
-          filteredSeries[0].data?.slice(-1)[0][0]
-        )}`
-      : '',
-    `featuring ${filteredSeries.length} data series: ${formatList(
-      filteredSeries.filter(s => s.data && s.data.length > 0).map(s => s.name)
-    )}`,
-  ].join(' ');
+  const title =
+    filteredSeries.length > 0
+      ? [
+          `${formatList([...chartTypes])} chart`,
+          isGroupedByDate
+            ? `with ${formatDate(filteredSeries[0].data?.[0][0])} to ${formatDate(
+                filteredSeries[0].data?.slice(-1)[0][0]
+              )}`
+            : '',
+          `featuring ${filteredSeries.length} data series: ${formatList(
+            filteredSeries.filter(s => s.data && s.data.length > 0).map(s => s.name)
+          )}`,
+        ].join(' ')
+      : '';
 
   // Generate series descriptions
   const seriesDescriptions = filteredSeries
@@ -446,10 +448,23 @@ export function useEchartsAriaLabels(
     })
     .filter(s => !!s);
 
+  if (!filteredSeries[0]) {
+    return {enabled: false};
+  }
+
   return {
     enabled: true,
-    label: {description: [title, ...seriesDescriptions].join('. ')},
+    label: {description: [title].concat(seriesDescriptions).join('. ')},
   };
+}
+
+export function useEchartsAriaLabels(
+  {series, useUTC}: {series: unknown; useUTC: boolean | undefined},
+  isGroupedByDate: boolean
+) {
+  return useMemo(() => {
+    return computeEchartsAriaLabels({series, useUTC}, isGroupedByDate);
+  }, [series, useUTC, isGroupedByDate]);
 }
 
 export function isEmptySeries(series: Series) {

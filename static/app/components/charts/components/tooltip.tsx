@@ -1,6 +1,6 @@
 import 'echarts/lib/component/tooltip';
 
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
 import moment from 'moment';
 
@@ -298,26 +298,27 @@ type Props = ChartProps['tooltip'] &
     chartId?: string;
   };
 
-export function ChartTooltip({
-  filter,
-  isGroupedByDate,
-  showTimeInTooltip,
-  addSecondsToTimeFormat,
-  formatter,
-  truncate,
-  utc,
-  bucketSize,
-  formatAxisLabel,
-  valueFormatter,
-  nameFormatter,
-  markerFormatter,
-  hideDelay,
-  subLabels,
-  chartId,
-  ...props
-}: Props = {}): TooltipComponentOption {
-  const theme = useTheme();
-
+export function computeChartTooltip(
+  {
+    filter,
+    isGroupedByDate,
+    showTimeInTooltip,
+    addSecondsToTimeFormat,
+    formatter,
+    truncate,
+    utc,
+    bucketSize,
+    formatAxisLabel,
+    valueFormatter,
+    nameFormatter,
+    markerFormatter,
+    hideDelay,
+    subLabels,
+    chartId,
+    ...props
+  }: Props,
+  theme: Theme
+): TooltipComponentOption {
   formatter =
     formatter ||
     getFormatter({
@@ -404,4 +405,9 @@ export function ChartTooltip({
     formatter,
     ...props,
   };
+}
+
+export function ChartTooltip(props: Props = {}): TooltipComponentOption {
+  const theme = useTheme();
+  return computeChartTooltip(props, theme);
 }
