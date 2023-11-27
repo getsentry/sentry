@@ -653,14 +653,14 @@ class EventManager:
             attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
-        _materialize_event_metrics(jobs, "errors")
+        _materialize_event_metrics(jobs)
 
         for attachment in attachments:
             key = f"bytes.stored.{attachment.type}"
             old_bytes = job["event_metrics"].get(key) or 0
             job["event_metrics"][key] = old_bytes + attachment.size
 
-        _nodestore_save_many(jobs)
+        _nodestore_save_many(jobs=jobs, app_feature="errors")
         save_unprocessed_event(project, job["event"].event_id)
 
         if not raw:
@@ -1320,7 +1320,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
 
 @metrics.wraps("save_event.nodestore_save_many")
-def _nodestore_save_many(jobs: Sequence[Job]) -> None:
+def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
     inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
@@ -1336,6 +1336,17 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
 
+        if app_feature:
+            event_size = 0
+            event_metrics = job.get("event_metrics")
+            if event_metrics:
+                event_size = event_metrics.get("bytes.stored.event", 0)
+            record(
+                resource_id=settings.COGS_EVENT_STORE_LABEL,
+                app_feature=app_feature,
+                amount=event_size,
+                usage_type=UsageUnit.BYTES,
+            )
         job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
 
@@ -2477,7 +2488,7 @@ def save_attachments(cache_key: Optional[str], attachments: list[Attachment], jo
 
 
 @metrics.wraps("event_manager.save_transactions.materialize_event_metrics")
-def _materialize_event_metrics(jobs: Sequence[Job], app_feature: str) -> None:
+def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
     for job in jobs:
         # Ensure the _metrics key exists. This is usually created during
         # and prefilled with ingestion sizes.
@@ -2486,13 +2497,6 @@ def _materialize_event_metrics(jobs: Sequence[Job], app_feature: str) -> None:
 
         # Capture the actual size that goes into node store.
         event_metrics["bytes.stored.event"] = len(json.dumps(dict(job["event"].data.items())))
-        if app_feature is not None:
-            record(
-                resource_id=settings.COGS_EVENT_STORE_LABEL,
-                app_feature=app_feature,
-                amount=event_metrics["bytes.stored.event"],
-                usage_type=UsageUnit.BYTES,
-            )
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):
@@ -2704,8 +2708,8 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
     _tsdb_record_all_metrics(jobs)
-    _materialize_event_metrics(jobs, "transactions")
-    _nodestore_save_many(jobs)
+    _materialize_event_metrics(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
     _detect_performance_problems(jobs, projects)
@@ -2738,7 +2742,7 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _derive_interface_tags_many(jobs)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
-    _materialize_event_metrics(jobs, "issue_platform")
-    _nodestore_save_many(jobs)
+    _materialize_event_metrics(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="issue_platform")
 
     return jobs
