@@ -196,7 +196,7 @@ export function createRuleFromEventView(eventView: EventView): UnsavedMetricRule
 export function createRuleFromWizardTemplate(
   wizardTemplate: WizardRuleTemplate
 ): UnsavedMetricRule {
-  const {eventTypes, aggregate, dataset} = wizardTemplate;
+  const {eventTypes, aggregate, dataset, query} = wizardTemplate;
   const defaultRuleOptions: Partial<UnsavedMetricRule> = {};
 
   if (isSessionAggregate(aggregate)) {
@@ -213,6 +213,7 @@ export function createRuleFromWizardTemplate(
     eventTypes: [eventTypes],
     aggregate,
     dataset,
+    query: query ?? '',
   };
 }
 
