@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 
 from sentry.integrations.msteams.webhook import MsTeamsWebhookEndpoint, MsTeamsWebhookMixin
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
@@ -29,7 +29,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             return Integration.objects.filter(id=integration.id).first()
         return None
 
-    def get_response(self) -> HttpResponse:
+    def get_response(self) -> HttpResponseBase:
         if self.view_class not in self.region_view_classes:
             return self.get_response_from_control_silo()
 

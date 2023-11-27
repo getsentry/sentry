@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
 from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
@@ -24,7 +25,11 @@ if TYPE_CHECKING:
 
 
 class RegionResult:
-    def __init__(self, response: Optional[HttpResponse] = None, error: Optional[Exception] = None):
+    def __init__(
+        self,
+        response: Optional[HttpResponseBase] = None,
+        error: Optional[Exception] = None,
+    ):
         self.response = response
         self.error = error
 
@@ -63,18 +68,20 @@ class BaseRequestParser(abc.ABC):
             )
 
     def is_json_request(self) -> bool:
-        return "application/json" in (self.request.headers or {}).get("Content-Type", "")
+        if not self.request.headers:
+            return False
+        return "application/json" in self.request.headers.get("Content-Type", "")
 
     #  Silo Response Helpers
 
-    def get_response_from_control_silo(self) -> HttpResponse:
+    def get_response_from_control_silo(self) -> HttpResponseBase:
         """
         Used to handle the request directly on the control silo.
         """
         self.ensure_control_silo()
         return self.response_handler(self.request)
 
-    def get_response_from_region_silo(self, region: Region) -> HttpResponse:
+    def get_response_from_region_silo(self, region: Region) -> HttpResponseBase:
         region_client = RegionSiloClient(region)
         return region_client.proxy_request(incoming_request=self.request)
 
@@ -110,7 +117,7 @@ class BaseRequestParser(abc.ABC):
                 "region_no_response",
                 extra={"path": self.request.path, "regions": [region.name for region in regions]},
             )
-            return self.response_handler(self.request)
+            return region_to_response_map
 
         return region_to_response_map
 
@@ -153,7 +160,7 @@ class BaseRequestParser(abc.ABC):
 
     # Required Overrides
 
-    def get_response(self) -> HttpResponse:
+    def get_response(self) -> HttpResponseBase:
         """
         Used to surface a response as part of the middleware.
         Should be overwritten by implementation.
