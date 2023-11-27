@@ -1,6 +1,6 @@
 import {MetricType, MRI} from 'sentry/types';
-import {UseCase} from 'sentry/types/metrics';
-import {getUseCaseFromMRI, parseField, parseMRI} from 'sentry/utils/metrics/mri';
+import {ParsedMRI, UseCase} from 'sentry/types/metrics';
+import {getUseCaseFromMRI, parseField, parseMRI, toMRI} from 'sentry/utils/metrics/mri';
 
 describe('parseMRI', () => {
   it('should handle falsy values', () => {
@@ -93,7 +93,7 @@ describe('getUseCaseFromMRI', () => {
   });
 });
 
-describe('getMRIAndOp', () => {
+describe('parseField', () => {
   it('should return the correct mri and op from field', () => {
     const field = 'op(c:test/project)';
 
@@ -105,11 +105,80 @@ describe('getMRIAndOp', () => {
     });
   });
 
-  it('should return undefined mri and op for invalid field', () => {
+  it('should do nothing for already formatted field', () => {
+    const field = 'sum(my-metric)';
+
+    const result = parseField(field);
+
+    expect(result?.mri).toBe('my-metric');
+    expect(result?.op).toBe('sum');
+  });
+
+  it('should return null mri invalid field', () => {
     const field = 'invalid-field';
 
     const result = parseField(field);
 
     expect(result).toBeNull();
   });
+});
+
+describe('toMRI', () => {
+  it.each(['c', 'd', 'e', 'g', 's'])(
+    'should correctly parse a valid MRI string - metric type %s',
+    metricType => {
+      const mri = `${metricType as MetricType}:custom/xyz@test`;
+
+      const parsedMRI: ParsedMRI = {
+        type: metricType as MetricType,
+        name: 'xyz',
+        unit: 'test',
+        useCase: 'custom',
+      };
+
+      expect(toMRI(parsedMRI)).toEqual(mri);
+    }
+  );
+
+  it.each(['sessions', 'transactions', 'custom'])(
+    'should correctly parse a valid MRI string - use case %s',
+    useCase => {
+      const mri: MRI = `c:${useCase as UseCase}/xyz@test`;
+      const parsedMRI: ParsedMRI = {
+        type: 'c',
+        name: 'xyz',
+        unit: 'test',
+        useCase: useCase as UseCase,
+      };
+      expect(toMRI(parsedMRI)).toEqual(mri);
+    }
+  );
+
+  it.each(['foo', 'foo_bar', 'foo_9-bar', '12-!foo][]312bar'])(
+    'should correctly parse a valid MRI string - name %s',
+    name => {
+      const mri: MRI = `c:custom/${name}@test`;
+      const parsedMRI: ParsedMRI = {
+        type: 'c',
+        name,
+        unit: 'test',
+        useCase: 'custom',
+      };
+      expect(toMRI(parsedMRI)).toEqual(mri);
+    }
+  );
+
+  it.each(['ms', 'none', 'KiB'])(
+    'should correctly parse a valid MRI string - name %s',
+    unit => {
+      const mri: MRI = `c:custom/foo@${unit}`;
+      const parsedMRI: ParsedMRI = {
+        type: 'c',
+        name: 'foo',
+        unit,
+        useCase: 'custom',
+      };
+      expect(toMRI(parsedMRI)).toEqual(mri);
+    }
+  );
 });

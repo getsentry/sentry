@@ -42,7 +42,7 @@ function _parseMRI(mri: MRI): ParsedMRI {
 }
 
 export function toMRI({type, useCase, name, unit}: ParsedMRI): MRI {
-  return `${type}:${useCase}${name}@${unit}`;
+  return `${type}:${useCase}/${name}@${unit}`;
 }
 
 export function formatMRI(mri: MRI): string {
