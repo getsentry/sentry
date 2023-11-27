@@ -46,9 +46,8 @@ class DiscordNotifyServiceForm(forms.Form):
 
         if channel_url and isinstance(channel_url, str):
             try:
-                cleaned_data["channel_id"] = str(get_channel_id_from_url(channel_url))
                 validate_channel_id(
-                    channel_id=cleaned_data["channel_id"],
+                    channel_id=get_channel_id_from_url(channel_url),
                     guild_id=integration.external_id,
                     integration_id=integration.id,
                     guild_name=integration.name,
