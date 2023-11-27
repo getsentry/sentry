@@ -54,11 +54,7 @@ export class UIFramesRenderer2D extends UIFramesRenderer {
         configViewToPhysicalSpace
       );
 
-      this.ctx.fillStyle = colorComponentsToRGBA(
-        frame.type === 'frozen'
-          ? this.theme.COLORS.UI_FRAME_COLOR_FROZEN
-          : this.theme.COLORS.UI_FRAME_COLOR_SLOW
-      );
+      this.ctx.fillStyle = colorComponentsToRGBA(this.getColorForFrame(frame.type));
       this.ctx.fillRect(rect.x + border, rect.y, rect.width - border, rect.height);
     }
   }

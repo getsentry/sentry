@@ -24,5 +24,14 @@ export abstract class UIFramesRenderer {
     this.options = options;
   }
 
+  getColorForFrame(
+    type: UIFrames['frames'][0]['type']
+  ): [number, number, number, number] {
+    if (type === 'frozen') {
+      return this.theme.COLORS.UI_FRAME_COLOR_FROZEN;
+    }
+    return this.theme.COLORS.UI_FRAME_COLOR_SLOW;
+  }
+
   abstract draw(configViewToPhysicalSpace: mat3): void;
 }
