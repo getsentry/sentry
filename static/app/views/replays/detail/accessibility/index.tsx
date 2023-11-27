@@ -227,7 +227,6 @@ function AccessibilityList() {
             onClose={() => {
               setDetailRow('');
             }}
-            projectId="1"
             startTimestampMs={startTimestampMs}
           />
         </SplitPanel>

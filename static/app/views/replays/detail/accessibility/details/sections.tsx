@@ -14,7 +14,6 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 export type SectionProps = {
   item: HydratedA11yFrame;
-  projectId: string;
   startTimestampMs: number;
 };
 
