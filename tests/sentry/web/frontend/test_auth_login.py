@@ -28,7 +28,7 @@ from sentry.utils import json
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @cached_property
     def path(self):
@@ -434,7 +434,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
     reason="Requires DummyNewsletter.",
 )
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthLoginNewsletterTest(TestCase):
     @cached_property
     def path(self):
@@ -510,7 +510,7 @@ class AuthLoginNewsletterTest(TestCase):
         assert not results[0].verified
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 @override_settings(
     SENTRY_USE_CUSTOMER_DOMAINS=True,
 )

@@ -215,14 +215,14 @@ export function WebVitalsDetailPanel({
             value={
               webVital !== 'cls'
                 ? getDuration(
-                    (projectData?.data[0][mapWebVitalToColumn(webVital)] as number) /
+                    (projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number) /
                       1000,
                     2,
                     true
                   )
-                : (projectData?.data[0][mapWebVitalToColumn(webVital)] as number).toFixed(
-                    2
-                  )
+                : (
+                    projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number
+                  ).toFixed(2)
             }
             webVital={webVital}
             score={webVitalScore}

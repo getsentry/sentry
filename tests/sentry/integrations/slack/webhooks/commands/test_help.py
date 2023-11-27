@@ -24,12 +24,7 @@ def assert_unknown_command_text(data: SlackBody, unknown_command: Optional[str] 
     assert "Here are the commands you can use" in text
 
 
-@control_silo_test(
-    stable=True,
-    regions=[
-        Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
-    ],
-)
+@control_silo_test(regions=[Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)])
 class SlackCommandsHelpTest(SlackCommandsTest):
     @responses.activate
     def test_missing_command(self):

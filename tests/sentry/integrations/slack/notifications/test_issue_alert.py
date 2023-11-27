@@ -12,20 +12,16 @@ from sentry.digests.notifications import event_to_record
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import (
-    ActionTargetType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
+from sentry.notifications.types import ActionTargetType
 from sentry.ownership.grammar import Matcher, Owner
 from sentry.ownership.grammar import Rule as GrammarRule
 from sentry.ownership.grammar import dump_schema
 from sentry.plugins.base import Notification
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.silo import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
@@ -39,7 +35,7 @@ from sentry.utils import json
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
@@ -272,12 +268,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 status=IdentityStatus.VALID,
                 scopes=[],
             )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_object(user2),
-        )
         # update the team's notification settings
         ExternalActor.objects.create(
             team_id=self.team.id,
@@ -287,13 +277,16 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             external_name="goma",
             external_id="CXXXXXXX2",
         )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # provider is disabled by default
+            NotificationSettingProvider.objects.create(
+                team_id=self.team.id,
+                scope_type="team",
+                scope_identifier=self.team.id,
+                provider="slack",
+                type="alerts",
+                value="always",
+            )
 
         rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
         ProjectOwnership.objects.create(
@@ -350,7 +343,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_disabled_org_integration_for_team(self, mock_func):
-
         # update the team's notification settings
         ExternalActor.objects.create(
             team_id=self.team.id,
@@ -359,13 +351,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             provider=ExternalProviders.SLACK.value,
             external_name="goma",
             external_id="CXXXXXXX2",
-        )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -425,12 +410,14 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # turn off the user's issue alert notification settings
         # there was a bug where issue alerts to a team's Slack channel
         # were only firing if this was set to ALWAYS
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_object(self.user),
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingOption.objects.create(
+                user_id=self.user.id,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                type="alerts",
+                value="never",
+            )
         # add a second user to the team so we can be sure it's only
         # sent once (to the team, and not to each individual user)
         user2 = self.create_user(is_superuser=False)
@@ -446,12 +433,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 status=IdentityStatus.VALID,
                 scopes=[],
             )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_object(self.user),
-        )
         # update the team's notification settings
         ExternalActor.objects.create(
             team_id=self.team.id,
@@ -461,13 +442,15 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             external_name="goma",
             external_id="CXXXXXXX2",
         )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingProvider.objects.create(
+                team_id=self.team.id,
+                scope_type="team",
+                scope_identifier=self.team.id,
+                provider="slack",
+                type="alerts",
+                value="always",
+            )
 
         g_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
         ProjectOwnership.objects.create(
@@ -546,12 +529,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 status=IdentityStatus.VALID,
                 scopes=[],
             )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_object(user2),
-        )
         # update the team's notification settings
         ExternalActor.objects.create(
             team_id=self.team.id,
@@ -561,13 +538,15 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             external_name="goma",
             external_id="CXXXXXXX2",
         )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingProvider.objects.create(
+                team_id=self.team.id,
+                scope_type="team",
+                scope_identifier=self.team.id,
+                provider="slack",
+                type="alerts",
+                value="always",
+            )
 
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -627,12 +606,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 status=IdentityStatus.VALID,
                 scopes=[],
             )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_object(user2),
-        )
         # update the team's notification settings
         ExternalActor.objects.create(
             team_id=self.team.id,
@@ -642,13 +615,15 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             external_name="goma",
             external_id="CXXXXXXX2",
         )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingProvider.objects.create(
+                team_id=self.team.id,
+                scope_type="team",
+                scope_identifier=self.team.id,
+                provider="slack",
+                type="alerts",
+                value="always",
+            )
         # add a new project
         project2 = self.create_project(
             name="hellboy", organization=self.organization, teams=[self.team]
@@ -706,13 +681,15 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             external_name="goma",
             external_id="CXXXXXXX2",
         )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_object(self.team),
-            organization_id_for_team=self.organization.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingProvider.objects.create(
+                team_id=self.team.id,
+                scope_type="team",
+                scope_identifier=self.team.id,
+                provider="slack",
+                type="alerts",
+                value="always",
+            )
         # remove the project from the team
         self.project.remove_team(self.team)
 
@@ -754,12 +731,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 status=IdentityStatus.VALID,
                 scopes=[],
             )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_object(user2),
-        )
 
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id

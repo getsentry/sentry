@@ -31,7 +31,7 @@ class DocIntegrationDetailsTest(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "GET"
 
@@ -74,7 +74,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         self.get_error_response(self.doc_1.slug, status_code=status.HTTP_403_FORBIDDEN)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "PUT"
     payload: dict[str, Any] = {
@@ -249,7 +249,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         assert serialize(avatar) == response.data["avatar"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "DELETE"
 

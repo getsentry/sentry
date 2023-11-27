@@ -350,6 +350,8 @@ def insta_snapshot(request, log):
         subname=None,
         inequality_comparator=lambda refval, output: refval != output,
     ):
+        from sentry.testutils.silo import strip_silo_mode_test_suffix
+
         if reference_file is None:
             name = request.node.name
             for c in UNSAFE_PATH_CHARS:
@@ -361,10 +363,15 @@ def insta_snapshot(request, log):
             if subname is not None:
                 name += f"_{subname}"
 
+            # If testing in an alternative silo mode, use the same snapshot as the
+            # base test. This would need to change if we want different snapshots for
+            # different silo modes.
+            parent_name = strip_silo_mode_test_suffix(request.node.parent.name)
+
             reference_file = os.path.join(
                 os.path.dirname(str(request.node.fspath)),
                 "snapshots",
-                os.path.splitext(os.path.basename(request.node.parent.name))[0],
+                os.path.splitext(os.path.basename(parent_name))[0],
                 name + ".pysnap",
             )
         elif subname is not None:

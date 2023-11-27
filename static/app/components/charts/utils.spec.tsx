@@ -3,8 +3,11 @@ import {
   getDiffInMinutes,
   getInterval,
   getSeriesApiInterval,
+  GranularityLadder,
   lightenHexToRgb,
   processTableResults,
+  THIRTY_DAYS,
+  TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
@@ -97,6 +100,30 @@ describe('Chart Utils', function () {
 
       expect(getSeriesApiInterval({period: '3h'})).toBe('5m');
       expect(getSeriesApiInterval({period: '1h'})).toBe('5m');
+    });
+  });
+
+  describe('findGranularityIntervalForMinutes()', function () {
+    const ladder = new GranularityLadder([
+      [THIRTY_DAYS, '1d'],
+      [TWENTY_FOUR_HOURS, '30m'],
+      [0, '15m'],
+    ]);
+
+    it('handles negative intervals', function () {
+      expect(ladder.getInterval(-1)).toEqual('15m');
+    });
+
+    it('finds granularity at lower bound', function () {
+      expect(ladder.getInterval(getDiffInMinutes({period: '2m'}))).toEqual('15m');
+    });
+
+    it('finds granularity between bounds', function () {
+      expect(ladder.getInterval(getDiffInMinutes({period: '3d'}))).toEqual('30m');
+    });
+
+    it('finds granularity at upper bound', function () {
+      expect(ladder.getInterval(getDiffInMinutes({period: '60d'}))).toEqual('1d');
     });
   });
 

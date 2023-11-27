@@ -115,8 +115,8 @@ class Browser:
             self.set_window_size(size["previous"]["width"], size["previous"]["height"])
 
     @contextmanager
-    def full_viewport(self, width=None, height=None):
-        return self.set_viewport(width, height, fit_content=True)
+    def full_viewport(self, width=None, height=None, fit_content=True):
+        return self.set_viewport(width, height, fit_content)
 
     @contextmanager
     def mobile_viewport(self, width=375, height=812):
@@ -251,23 +251,27 @@ class Browser:
 
         return self
 
-    def wait_for_images_loaded(self, timeout=10):
+    def wait_until_script_execution(self, script, timeout=10):
+        """
+        Waits until ``script`` executes and evaluates truthy,
+        or until ``timeout`` is hit, whichever happens first.
+        """
         wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script(
-                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
-            )
-        )
+        wait.until(lambda driver: driver.execute_script(script))
 
         return self
+
+    def wait_for_images_loaded(self, timeout=10):
+        return self.wait_until_script_execution(
+            """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)""",
+            timeout,
+        )
 
     def wait_for_fonts_loaded(self, timeout=10):
-        wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script("""return document.fonts.status === 'loaded'""")
+        return self.wait_until_script_execution(
+            """return document.fonts.status === 'loaded'""",
+            timeout,
         )
-
-        return self
 
     @property
     def switch_to(self):

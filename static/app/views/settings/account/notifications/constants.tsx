@@ -24,10 +24,6 @@ export const MIN_PROJECTS_FOR_PAGINATION = 100;
 export type SupportedProviders = 'email' | 'slack' | 'msteams';
 export type ProviderValue = 'always' | 'never';
 
-export type NotificationSettingsByProviderObject = {[key: string]: string};
-export type NotificationSettingsObject = {
-  [key: string]: {[key: string]: {[key: string]: NotificationSettingsByProviderObject}};
-};
 interface NotificationBaseObject {
   id: string;
   scopeIdentifier: string;

@@ -22,7 +22,7 @@ from sentry.types.region import Region, RegionCategory
 _TEST_REGION = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
 
 
-@control_silo_test(stable=True, regions=[_TEST_REGION])
+@control_silo_test(regions=[_TEST_REGION])
 class ProcessControlOutboxTest(TestCase):
     identifier = 1
 
