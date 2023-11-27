@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import * as Sentry from '@sentry/react';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
