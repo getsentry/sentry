@@ -30,11 +30,11 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import {DEFAULT_METRIC_ALERT_AGGREGATE, formatMriAggregate} from 'sentry/utils/metrics';
 import {
   getForceMetricsLayerQueryExtras,
   hasDdmAlertsSupport,
 } from 'sentry/utils/metrics/features';
+import {DEFAULT_METRIC_ALERT_FIELD, formatMRIField} from 'sentry/utils/metrics/mri';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
   hasOnDemandMetricAlertFeature,
@@ -483,7 +483,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   validateMri = () => {
     const {aggregate} = this.state;
-    return aggregate !== DEFAULT_METRIC_ALERT_AGGREGATE;
+    return aggregate !== DEFAULT_METRIC_ALERT_FIELD;
   };
 
   handleFieldChange = (name: string, value: unknown) => {
@@ -914,7 +914,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             {!isCrashFreeAlert(dataset) && (
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
-                <Aggregate>{formatMriAggregate(aggregate)}</Aggregate>
+                <Aggregate>{formatMRIField(aggregate)}</Aggregate>
                 {alertType !== 'custom_metrics'
                   ? `event.type:${eventTypes?.join(',')}`
                   : ''}

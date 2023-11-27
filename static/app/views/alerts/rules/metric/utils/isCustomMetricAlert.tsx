@@ -1,8 +1,8 @@
-import {fieldToMri} from 'sentry/utils/metrics';
+import {parseField} from 'sentry/utils/metrics/mri';
 
 /**
  * Currently we can tell if an alert is a custom metric alert by checking the aggregate for a MRI,
  */
 export function isCustomMetricAlert(aggregate: string): boolean {
-  return fieldToMri(aggregate).mri !== undefined;
+  return !!parseField(aggregate)?.mri;
 }
