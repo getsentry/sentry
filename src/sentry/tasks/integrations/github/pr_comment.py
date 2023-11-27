@@ -147,6 +147,17 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
     ]
 
 
+def get_pr_comment(pr_id: int, comment_type: int) -> PullRequestComment | None:
+    pr_comment = None
+    pr_comment_query = PullRequestComment.objects.filter(
+        pull_request__id=pr_id, comment_type=comment_type
+    )
+    if pr_comment_query.exists():
+        pr_comment = pr_comment_query[0]
+
+    return pr_comment
+
+
 def create_or_update_comment(
     pr_comment: PullRequestComment | None,
     client: GitHubAppsClient,
@@ -213,12 +224,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         logger.info("github.pr_comment.option_missing", extra={"organization_id": org_id})
         return
 
-    pr_comment = None
-    pr_comment_query = PullRequestComment.objects.filter(
-        pull_request__id=pullrequest_id, comment_type=CommentType.MERGED_PR
-    )
-    if pr_comment_query.exists():
-        pr_comment = pr_comment_query[0]
+    pr_comment = get_pr_comment(pr_id=pullrequest_id, comment_type=CommentType.MERGED_PR)
 
     try:
         project = Project.objects.get_from_cache(id=project_id)
