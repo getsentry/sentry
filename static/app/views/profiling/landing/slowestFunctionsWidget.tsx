@@ -198,6 +198,7 @@ function SlowestFunctionEntry({
         name: func.function as string,
         package: func.package as string,
       },
+      // Ensures that the frame runs through the normalization code path
       project?.platform && /node|javascript/.test(project.platform)
         ? project.platform
         : undefined,

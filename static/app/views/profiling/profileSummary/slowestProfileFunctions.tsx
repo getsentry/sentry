@@ -163,6 +163,7 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
         name: props.func.function as string,
         package: props.func.package as string,
       },
+      // Ensures that the frame runs through the normalization code path
       props.project?.platform && /node|javascript/.test(props.project.platform)
         ? props.project.platform
         : undefined,
