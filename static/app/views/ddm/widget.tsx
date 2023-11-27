@@ -20,9 +20,9 @@ import {
   getSeriesName,
   MetricDisplayType,
   MetricWidgetQueryParams,
-  parseMRI,
   updateQuery,
 } from 'sentry/utils/metrics';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';

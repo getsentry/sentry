@@ -8,16 +8,16 @@ import Tag from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SavedSearchType, TagCollection} from 'sentry/types';
+import {MRI, SavedSearchType, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   getReadableMetricType,
-  getUseCaseFromMRI,
   isAllowedOp,
   MetricDisplayType,
   MetricsQuery,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics';
+import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
@@ -70,7 +70,7 @@ export function QueryBuilder({
       !isMetaLoading &&
       !metaArr.find(metric => metric.mri === metricsQuery.mri)
     ) {
-      onChange({mri: '', op: '', groupBy: []});
+      onChange({mri: '' as MRI, op: '', groupBy: []});
     }
   }, [isMetaLoading, metaArr, metricsQuery.mri, onChange]);
 
@@ -87,7 +87,7 @@ export function QueryBuilder({
             sizeLimit={100}
             triggerProps={{prefix: t('Metric'), size: 'sm'}}
             options={metaArr.map(metric => ({
-              label: mriMode ? metric.mri : metric.name,
+              label: mriMode ? metric.mri : formatMRI(metric.mri),
               value: metric.mri,
               trailingItems: mriMode ? undefined : (
                 <Fragment>
@@ -99,6 +99,7 @@ export function QueryBuilder({
             value={metricsQuery.mri}
             onChange={option => {
               const availableOps = meta[option.value]?.operations.filter(isAllowedOp);
+              // @ts-expect-error .op is an operation
               const selectedOp = availableOps.includes(metricsQuery.op ?? '')
                 ? metricsQuery.op
                 : availableOps[0];
@@ -191,7 +192,7 @@ interface MetricSearchBarProps
   onChange: (value: string) => void;
   projectIds: string[];
   disabled?: boolean;
-  mri?: string;
+  mri?: MRI;
   query?: string;
 }
 

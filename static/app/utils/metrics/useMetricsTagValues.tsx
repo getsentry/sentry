@@ -1,10 +1,11 @@
-import {PageFilters} from 'sentry/types';
-import {getUseCaseFromMRI, MetricTag} from 'sentry/utils/metrics';
+import {MRI, PageFilters} from 'sentry/types';
+import {MetricTag} from 'sentry/utils/metrics';
+import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function useMetricsTagValues(
-  mri: string,
+  mri: MRI,
   tag: string,
   projects: PageFilters['projects']
 ) {

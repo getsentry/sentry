@@ -11,8 +11,8 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {DEFAULT_METRIC_ALERT_AGGREGATE} from 'sentry/utils/metrics';
 import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
+import {DEFAULT_METRIC_ALERT_FIELD} from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
@@ -175,7 +175,7 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.TRANSACTION,
   },
   custom_metrics: {
-    aggregate: DEFAULT_METRIC_ALERT_AGGREGATE,
+    aggregate: DEFAULT_METRIC_ALERT_FIELD,
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
