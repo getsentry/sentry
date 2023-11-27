@@ -22,6 +22,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -103,6 +104,7 @@ export function ScreenLoadSpansTable({
   const {data, isLoading, pageLinks} = useTableQuery({
     eventView,
     enabled: true,
+    referrer: 'api.starfish.mobile-span-table',
   });
 
   const eventViewColumns = eventView.getColumns();
@@ -130,7 +132,9 @@ export function ScreenLoadSpansTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = `/organizations/${organization.slug}/performance/mobile/screens/spans/`;
+      const pathname = normalizeUrl(
+        `/organizations/${organization.slug}/performance/mobile/screens/spans/`
+      );
       const query = {
         ...location.query,
         transaction,

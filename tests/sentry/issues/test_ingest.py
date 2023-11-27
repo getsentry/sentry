@@ -126,7 +126,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             save_issue_occurrence(occurrence.to_dict(), event)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         data = self.build_occurrence_data(fingerprint=["hi", "bye"])
@@ -136,7 +136,7 @@ class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test_new_group(self) -> None:
         occurrence = self.build_occurrence(type=ErrorGroupType.type_id)

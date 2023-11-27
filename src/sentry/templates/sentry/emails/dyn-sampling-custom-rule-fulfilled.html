@@ -1,10 +1,19 @@
-<h3>Hello {{ display_name }},</h3>
+{% extends "sentry/emails/base.html" %}
 
-<p>We've collected {{ num_samples }} samples for the following search query:</p>
-<pre>
-{{ query }}
-</pre>
+{% load i18n %}
 
-<p>
-You can view the samples <a href="{{ discover_link|safe }}">here</a>.
-</p>
+{% block main %}
+    <h3>We have samples!</h3>
+
+    <p>We've collected {{ num_samples }} samples for the following search query:</p>
+    <pre>
+    {{ query }}
+    </pre>
+
+    <p>
+    We'll stop collecting once we reach 100 or 48 hours after rule creation.
+    </p>
+
+  <a href="{{ discover_link|safe }}" class="btn">View Samples</a>
+
+{% endblock %}

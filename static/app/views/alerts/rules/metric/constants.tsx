@@ -112,12 +112,12 @@ export function getWizardAlertFieldConfig(
   alertType: AlertType,
   dataset: Dataset
 ): OptionConfig {
-  if (alertType === 'custom' && dataset === Dataset.ERRORS) {
+  if (alertType === 'custom_transactions' && dataset === Dataset.ERRORS) {
     return errorFieldConfig;
   }
   // If user selected apdex we must include that in the OptionConfig as it has a user specified column
   const aggregations =
-    alertType === 'apdex' || alertType === 'custom'
+    alertType === 'apdex' || alertType === 'custom_transactions'
       ? allAggregations
       : commonAggregations;
   return {

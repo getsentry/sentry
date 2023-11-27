@@ -24,7 +24,7 @@ class UserNotificationFineTuningTestBase(APITestCase):
         self.get_error_response("me", "invalid", status_code=404)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
     def test_returns_correct_defaults(self):
         NotificationSetting.objects.update_settings(
