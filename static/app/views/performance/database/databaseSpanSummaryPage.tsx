@@ -160,6 +160,7 @@ function SpanSummaryPage({params}: Props) {
               <SpanDescription
                 span={{
                   ...span,
+                  ...fullSpan,
                   [SpanMetricsField.SPAN_DESCRIPTION]:
                     fullSpan?.description ??
                     spanMetrics?.[SpanMetricsField.SPAN_DESCRIPTION],
