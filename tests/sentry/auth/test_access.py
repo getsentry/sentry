@@ -79,7 +79,7 @@ class AccessFactoryTestCase(TestCase):
         return AuthIdentity.objects.create(auth_provider=auth_provider, user=user, **kwds)
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class FromUserTest(AccessFactoryTestCase):
     def test_no_access(self):
         organization = self.create_organization()
@@ -511,7 +511,7 @@ class FromUserTest(AccessFactoryTestCase):
             assert not result.has_project_scope(project_other, "project:read")
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class FromRequestTest(AccessFactoryTestCase):
     def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
@@ -679,7 +679,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.has_global_access is False
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class FromSentryAppTest(AccessFactoryTestCase):
     def setUp(self):
         super().setUp()
@@ -799,7 +799,7 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_scope("team:admin") is False
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class DefaultAccessTest(TestCase):
     def test_no_access(self):
         result = access.DEFAULT
@@ -814,7 +814,7 @@ class DefaultAccessTest(TestCase):
         assert not result.permissions
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class SystemAccessTest(TestCase):
     def test_system_access(self):
         org = self.create_organization()
@@ -830,7 +830,7 @@ class SystemAccessTest(TestCase):
         assert result.has_team_access(team)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class GetPermissionsForUserTest(TestCase):
     def test_combines_roles_and_perms(self):
         user = self.user

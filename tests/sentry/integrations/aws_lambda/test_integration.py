@@ -26,7 +26,7 @@ account_number = "599817902985"
 region = "us-east-2"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AwsLambdaIntegrationTest(IntegrationTestCase):
     provider = AwsLambdaIntegrationProvider
 

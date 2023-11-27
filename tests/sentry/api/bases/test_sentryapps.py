@@ -15,7 +15,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppPermission()
@@ -43,7 +43,7 @@ class SentryAppPermissionTest(TestCase):
         assert self.permission.has_permission(self.request, None)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppBaseEndpointTest(TestCase):
     def setUp(self):
         self.endpoint = SentryAppBaseEndpoint()
@@ -64,7 +64,7 @@ class SentryAppBaseEndpointTest(TestCase):
             self.endpoint.convert_args(self.request, "notanapp")
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppInstallationPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppInstallationPermission()
@@ -96,7 +96,7 @@ class SentryAppInstallationPermissionTest(TestCase):
             self.permission.has_object_permission(self.request, None, self.installation)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppInstallationBaseEndpointTest(TestCase):
     def setUp(self):
         self.endpoint = SentryAppInstallationBaseEndpoint()
@@ -121,7 +121,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
             self.endpoint.convert_args(self.request, "1234")
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AddIntegrationPlatformMetricTagTest(unittest.TestCase):
     @patch("sentry.api.bases.sentryapps.add_request_metric_tags")
     def test_record_platform_integration_metric(self, add_request_metric_tags):

@@ -80,6 +80,7 @@ export function SpanTimeCharts({
       {title: getDurationChartTitle(moduleName), Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
+    [ModuleName.RESOURCE]: [],
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
     [ModuleName.OTHER]: [],
   };

@@ -47,7 +47,7 @@ class GitLabClientTest(GitLabTestCase):
         self.gitlab_id = 123
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitlabRefreshAuthTest(GitLabClientTest):
     get_user_should_succeed = True
 
@@ -274,7 +274,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert not rate_limit_info
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitLabBlameForFilesTest(GitLabClientTest):
     def setUp(self):
         super().setUp()

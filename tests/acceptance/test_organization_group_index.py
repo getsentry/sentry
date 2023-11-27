@@ -14,7 +14,7 @@ from sentry.testutils.silo import no_silo_test
 event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
