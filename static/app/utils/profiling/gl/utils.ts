@@ -22,10 +22,14 @@ export function initializeFlamegraphRenderer(
   constructorArgs: ConstructorParameters<FlamegraphRendererConstructor>
 ): FlamegraphRenderer | null {
   for (const renderer of renderers) {
-    const r = new renderer(...constructorArgs);
+    let r: FlamegraphRenderer | null = null;
+    try {
+      r = new renderer(...constructorArgs);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
 
     // A renderer should only fail if the rendering context was unavailable
-    if (r.ctx !== null) {
+    if (r && r.ctx !== null) {
       return r;
     }
   }

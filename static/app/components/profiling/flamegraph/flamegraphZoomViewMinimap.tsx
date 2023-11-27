@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {vec2} from 'gl-matrix';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -91,6 +92,7 @@ function FlamegraphZoomViewMinimap({
 
     if (renderer === null) {
       Sentry.captureException('Failed to initialize a flamegraph renderer');
+      addErrorMessage('Failed to initialize renderer');
       return null;
     }
 
