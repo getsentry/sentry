@@ -10,7 +10,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 
 type Props = {
   tag?: Tag;
@@ -77,6 +77,7 @@ export const useProjectWebVitalsTimeseriesQuery = ({transaction, tag}: Props) =>
       enabled: pageFilters.isReady,
       refetchOnWindowFocus: false,
     },
+    referrer: 'api.performance.browser.web-vitals.timeseries-scores',
   });
 
   const data: WebVitalsScoreBreakdown = {
