@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {Event, Group, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {
@@ -20,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 import {EventRegressionTable} from './eventRegressionTable';
+import {useTransactionsDelta} from './transactionsDeltaProvider';
 
 interface EventAffectedTransactionsProps {
   event: Event;
@@ -93,7 +93,6 @@ function EventAffectedTransactionsInner({
   project,
 }: EventAffectedTransactionsInnerProps) {
   const [causeType, setCauseType] = useState<'duration' | 'throughput'>('duration');
-
   const organization = useOrganization();
 
   const datetime = useRelativeDateTime({
@@ -101,31 +100,12 @@ function EventAffectedTransactionsInner({
     relativeDays: RELATIVE_DAYS_WINDOW,
   });
 
+  const transactionsDeltaQuery = useTransactionsDelta();
+
   const percentileBefore = `percentile_before(function.duration, 0.95, ${breakpoint})`;
   const percentileAfter = `percentile_after(function.duration, 0.95, ${breakpoint})`;
   const throughputBefore = `cpm_before(${breakpoint})`;
   const throughputAfter = `cpm_after(${breakpoint})`;
-  const regressionScore = `regression_score(function.duration, 0.95, ${breakpoint})`;
-
-  const transactionsDeltaQuery = useProfileFunctions({
-    datetime,
-    fields: [
-      'transaction',
-      percentileBefore,
-      percentileAfter,
-      throughputBefore,
-      throughputAfter,
-      regressionScore,
-    ],
-    sort: {
-      key: regressionScore,
-      order: 'desc',
-    },
-    query: `fingerprint:${fingerprint} ${regressionScore}:>0`,
-    projects: [project.id],
-    limit: TRANSACTIONS_LIMIT,
-    referrer: 'api.profiling.functions.regression.transactions',
-  });
 
   const query = useMemo(() => {
     const data = transactionsDeltaQuery.data?.data ?? [];
