@@ -66,6 +66,31 @@ describe('SpanDetail', function () {
     );
   }
 
+  describe('resource spans', function () {
+    it('shows size fields', function () {
+      render(
+        renderSpanDetail({
+          span: Span({
+            op: 'resource.link',
+            description: 'static.assets/content.js',
+            data: {
+              'http.response_content_length': 132,
+              'http.response_transfer_size': 0,
+              'http.decoded_response_content_length': null,
+            },
+          }),
+        })
+      );
+
+      expect(
+        screen.queryByText('http.decoded_response_content_length')
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('http.response_transfer_size')).toBeInTheDocument();
+      expect(screen.getByText('http.response_content_length')).toBeInTheDocument();
+      expect(screen.getByText('132.0 B')).toBeInTheDocument();
+    });
+  });
+
   describe('db spans', function () {
     it('renders "Similar Span" button but no Query Details button by default', function () {
       render(
