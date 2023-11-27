@@ -45,8 +45,16 @@ export function CodeLocations({mri}: {mri: string}) {
         </DefaultLineTitleWrapper>
         <ToggleButton size="xs" borderless onClick={() => setIsExpanded(curr => !curr)}>
           {isExpanded
-            ? tn('Hide %s more frame', 'Hide %s more frames', otherFrames.length)
-            : tn('Show %s more frame', 'Show %s more frames', otherFrames.length)}
+            ? tn(
+                'Hide %s more code location',
+                'Hide %s more code locations',
+                otherFrames.length
+              )
+            : tn(
+                'Show %s more code location',
+                'Show %s more code locations',
+                otherFrames.length
+              )}
         </ToggleButton>
       </DefaultLine>
       {isExpanded &&
