@@ -6,12 +6,13 @@ from sentry.models.integrations.integration import Integration
 from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
+@region_silo_test(stable=True)
 class ProjectRuleActionsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-actions"
     method = "POST"

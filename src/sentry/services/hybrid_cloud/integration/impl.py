@@ -138,6 +138,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         external_id: str | None = None,
         organization_id: int | None = None,
         organization_integration_id: Optional[int] = None,
+        status: int | None = None,
     ) -> RpcIntegration | None:
         integration_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
@@ -150,7 +151,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_kwargs["organizationintegration__organization_id"] = organization_id
         if organization_integration_id is not None:
             integration_kwargs["organizationintegration__id"] = organization_integration_id
-
+        if status is not None:
+            integration_kwargs["status"] = status
         if not integration_kwargs:
             return None
 

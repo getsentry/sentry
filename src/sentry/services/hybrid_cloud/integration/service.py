@@ -92,6 +92,7 @@ class IntegrationService(RpcService):
         external_id: Optional[str] = None,
         organization_id: Optional[int] = None,
         organization_integration_id: Optional[int] = None,
+        status: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
         Returns an RpcIntegration using either the id or a combination of the provider and external_id
