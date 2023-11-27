@@ -7,8 +7,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
@@ -18,7 +18,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {InteractiveTitle, organization} = props;
   const theme = useTheme();
-  const {data: projectData, isLoading} = useProjectWebVitalsQuery();
+  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
 
   const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
 
