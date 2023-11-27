@@ -103,7 +103,7 @@ def test_run_detection_options(
         "statistical_detectors.enable": enable,
     }
 
-    with freeze_time(timestamp), override_options(options):  # , Feature(features):
+    with freeze_time(timestamp), override_options(options):
         run_detection()
 
     if expected_performance_project:
