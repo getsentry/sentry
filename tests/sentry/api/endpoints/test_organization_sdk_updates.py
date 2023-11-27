@@ -213,7 +213,8 @@ class OrganizationSdks(APITestCase):
         response = self.get_error_response(self.organization.slug)
 
         assert mocked_sdk_index.call_count == 1
-        assert response.data == {"detail": "Error occurred while fetching SDKs"}
+        assert response.status_code == 404
+        assert response.data == {"detail": "No SDKs found in index"}
 
     @mock.patch(
         "sentry.api.endpoints.organization_sdk_updates.get_sdk_index",
@@ -241,4 +242,5 @@ class OrganizationSdks(APITestCase):
         response = self.get_error_response(self.organization.slug, status_code=500)
 
         assert mocked_sdk_index.call_count == 1
+        assert response.status_code == 500
         assert response.data == {"detail": "Error occurred while fetching SDKs"}
