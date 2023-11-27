@@ -24,7 +24,7 @@ const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
 const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
 const VERTICES_PER_FRAME = 6;
 
-class UIFramesRenderer {
+class UIFramesRendererWebGL {
   canvas: HTMLCanvasElement | null;
   uiFrames: UIFrames;
 
@@ -329,4 +329,4 @@ class UIFramesRenderer {
   }
 }
 
-export {UIFramesRenderer};
+export {UIFramesRendererWebGL};
