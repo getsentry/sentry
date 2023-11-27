@@ -1,26 +1,31 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
+import {PLATFORM_TO_ICON} from 'platformicons/build/platformIcon';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
+import {FONT_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 const {
@@ -60,9 +65,12 @@ type Props = {
 
 function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
     defaultResourceTypes,
+    cursor,
   });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
@@ -96,15 +104,28 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
-    const opPlatformMap = {
-      'resource.script': 'javascript',
-      'resource.css': 'css',
+    const getIcon = (
+      spanOp: string,
+      fileExtension: string
+    ): keyof typeof PLATFORM_TO_ICON | 'unknown' => {
+      if (spanOp === 'resource.script') {
+        return 'javascript';
+      }
+      if (fileExtension === 'css') {
+        return 'css';
+      }
+      if (FONT_FILE_EXTENSIONS.includes(fileExtension)) {
+        return 'font';
+      }
+      return 'unknown';
     };
 
     if (key === SPAN_DESCRIPTION) {
+      const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
+
       return (
         <DescriptionWrapper>
-          <PlatformIcon platform={opPlatformMap[row[SPAN_OP]] || 'unknown'} />
+          <PlatformIcon platform={getIcon(row[SPAN_OP], fileExtension) || 'unknown'} />
           <SpanDescriptionCell
             moduleName={ModuleName.HTTP}
             projectId={row[PROJECT_ID]}
@@ -118,22 +139,24 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(http.response_content_length)') {
-      return <ResourceSize bytes={row[key]} />;
+      return <ResourceSizeCell bytes={row[key]} />;
     }
     if (key === `avg(span.self_time)`) {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === SPAN_OP) {
-      const opNameMap = {
-        'resource.script': t('JavaScript'),
-        'resource.img': t('Image'),
-        'resource.iframe': t('JavaScript (iframe)'),
-        'resource.css': t('Stylesheet'),
-        'resource.video': t('Video'),
-        'resource.audio': t('Audio'),
-      };
-      const opName = opNameMap[row[key]] || row[key];
-      return <span>{opName}</span>;
+      const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
+      const spanOp = row[key];
+      if (fileExtension === 'js' || spanOp === 'resource.script') {
+        return <span>{t('JavaScript')}</span>;
+      }
+      if (fileExtension === 'css') {
+        return <span>{t('Stylesheet')}</span>;
+      }
+      if (FONT_FILE_EXTENSIONS.includes(fileExtension)) {
+        return <span>{t('Font')}</span>;
+      }
+      return <span>{spanOp}</span>;
     }
     if (key === 'http.decoded_response_content_length') {
       const isUncompressed =
@@ -147,6 +170,13 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       );
     }
     return <span>{row[key]}</span>;
+  };
+
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
+    });
   };
 
   return (
@@ -172,7 +202,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
         }}
         location={location}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }

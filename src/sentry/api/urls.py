@@ -4,6 +4,7 @@ from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
+from sentry.api.endpoints.internal.feature_flags import InternalFeatureFlagsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
@@ -307,6 +308,7 @@ from .endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
+from .endpoints.organization_ddm import OrganizationDDMMetaEndpoint
 from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -581,8 +583,7 @@ from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
-from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
-from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
+from .endpoints.user_notification_email import UserNotificationEmailEndpoint
 from .endpoints.user_notification_settings_options import UserNotificationSettingsOptionsEndpoint
 from .endpoints.user_notification_settings_options_detail import (
     UserNotificationSettingsOptionsDetailEndpoint,
@@ -870,19 +871,14 @@ USER_URLS = [
         name="sentry-api-0-user-organizations",
     ),
     re_path(
-        r"^(?P<user_id>[^\/]+)/notification-settings/$",
-        UserNotificationSettingsDetailsEndpoint.as_view(),
-        name="sentry-api-0-user-notification-settings",
-    ),
-    re_path(
         r"^(?P<user_id>[^\/]+)/notifications/$",
         UserNotificationDetailsEndpoint.as_view(),
         name="sentry-api-0-user-notifications",
     ),
     re_path(
-        r"^(?P<user_id>[^\/]+)/notifications/(?P<notification_type>[^\/]+)/$",
-        UserNotificationFineTuningEndpoint.as_view(),
-        name="sentry-api-0-user-notifications-fine-tuning",
+        r"^(?P<user_id>[^\/]+)/notifications/email/$",
+        UserNotificationEmailEndpoint.as_view(),
+        name="sentry-api-0-user-notifications-email",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/notification-options/$",
@@ -1907,6 +1903,11 @@ ORGANIZATION_URLS = [
         ),
     ),
     re_path(
+        r"^(?P<organization_slug>[^/]+)/ddm/meta/$",
+        OrganizationDDMMetaEndpoint.as_view(),
+        name="sentry-api-0-organization-ddm-meta",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/meta/$",
         OrganizationMetricsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-index",
@@ -2826,6 +2827,11 @@ INTERNAL_URLS = [
         r"^check-am2-compatibility/$",
         CheckAM2CompatibilityEndpoint.as_view(),
         name="sentry-api-0-internal-check-am2-compatibility",
+    ),
+    re_path(
+        r"^feature-flags/$",
+        InternalFeatureFlagsEndpoint.as_view(),
+        name="sentry-api-0-internal-feature-flags",
     ),
 ]
 

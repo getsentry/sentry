@@ -20,7 +20,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const theme = useTheme();
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
 
-  const noTransactions = !isLoading && !projectData?.data?.[0]['count()'];
+  const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
 
   const projectScore =
     isLoading || noTransactions

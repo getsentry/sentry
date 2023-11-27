@@ -17,7 +17,7 @@ from sentry.utils.suspect_resolutions.commit_correlation import (
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CommitCorrelationTest(TestCase):
     def setup(self, status=GroupStatus.RESOLVED):
         project = self.create_project()

@@ -8,7 +8,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry_plugins.github.testutils import INSTALLATION_REPO_EVENT
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class InstallationRepoInstallEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation

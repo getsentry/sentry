@@ -54,6 +54,7 @@ interface FlamegraphContextMenuProps {
   hoveredNode: FlamegraphFrame | null;
   isHighlightingAllOccurrences: boolean;
   onCopyFunctionNameClick: () => void;
+  onCopyFunctionSource: () => void;
   onHighlightAllOccurrencesClick: () => void;
   profileGroup: ProfileGroup | null;
   disableCallOrderSort?: boolean;
@@ -186,6 +187,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             </ProfilingContextMenuItemCheckbox>
 
             <ProfilingContextMenuItemButton
+              disabled={!(props.hoveredNode.frame.file ?? props.hoveredNode.frame.path)}
               {...props.contextMenu.getMenuItemProps({
                 onClick: () => {
                   props.onCopyFunctionNameClick();
@@ -196,6 +198,18 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               icon={<IconCopy size="xs" />}
             >
               {t('Copy function name')}
+            </ProfilingContextMenuItemButton>
+            <ProfilingContextMenuItemButton
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => {
+                  props.onCopyFunctionSource();
+                  // This is a button, so close the context menu.
+                  props.contextMenu.setOpen(false);
+                },
+              })}
+              icon={<IconCopy size="xs" />}
+            >
+              {t('Copy source location')}
             </ProfilingContextMenuItemButton>
             {githubLink.type !== 'initial' && (
               <ProfilingContextMenuItemButton

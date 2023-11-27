@@ -7,7 +7,7 @@ from sentry.testutils.silo import no_silo_test
 FEATURE_NAME = ["organizations:incidents"]
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ProjectDetailTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Mapping, Optional
 
+from django.http import HttpRequest
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
@@ -33,6 +34,7 @@ def get_invite_state(
     member_id: int,
     organization_slug: Optional[str],
     user_id: int,
+    request: HttpRequest,
 ) -> Optional[RpcUserInviteContext]:
     if organization_slug is None:
         member_mapping: OrganizationMemberMapping | None = None
@@ -66,9 +68,8 @@ def get_invite_state(
             extra={
                 "member_id": member_id,
                 "org_id": member_mapping.organization_id,
-                "token_expired": invite_context.member.token_expired
-                if invite_context and invite_context.member
-                else -1,
+                "url": request.path,
+                "method": request.method,
             },
         )
     else:
@@ -103,7 +104,10 @@ class AcceptOrganizationInvite(Endpoint):
         self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
     ) -> Response:
         invite_context = get_invite_state(
-            member_id=int(member_id), organization_slug=organization_slug, user_id=request.user.id
+            member_id=int(member_id),
+            organization_slug=organization_slug,
+            user_id=request.user.id,
+            request=request,
         )
         if invite_context is None:
             return self.respond_invalid()
@@ -197,6 +201,7 @@ class AcceptOrganizationInvite(Endpoint):
             member_id=int(member_id),
             organization_slug=organization_slug,
             user_id=request.user.id,
+            request=request,
         )
         if invite_context is None:
             return self.respond_invalid()

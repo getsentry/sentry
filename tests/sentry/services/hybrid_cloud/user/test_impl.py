@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DatabaseBackedUserService(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -19,6 +19,10 @@ class DatabaseBackedUserService(TestCase):
         new_user_count = User.objects.all().count()
         assert new_user_count == old_user_count + 1
         assert user.flags.newsletter_consent_prompt
+
+    def test_get_no_existing(self):
+        rpc_user = user_service.get_user_by_email(email="test@email.com")
+        assert rpc_user is None
 
     def test_get_or_create_user(self):
         user1 = self.create_user(email="test@email.com", username="1")

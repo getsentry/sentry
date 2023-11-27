@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
 from rest_framework import serializers
-from snuba_sdk import Column, Condition, Limit, Op
+from snuba_sdk import Column, Condition, Entity, Limit, Op
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
@@ -337,11 +337,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         dataset = Dataset(data["dataset"].value)
         self._validate_time_window(dataset, data.get("time_window"))
 
+        entity = None
+        if features.has("organizations:metric-alert-ignore-archived", projects[0].organization):
+            entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+
         time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
         query_builder.add_conditions(
             [
-                Condition(Column(time_col), Op.GTE, start),
-                Condition(Column(time_col), Op.LT, end),
+                Condition(Column(time_col, entity=entity), Op.GTE, start),
+                Condition(Column(time_col, entity=entity), Op.LT, end),
             ]
         )
         query_builder.limit = Limit(1)

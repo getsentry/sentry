@@ -12,7 +12,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SentryAppRequestsGetTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)

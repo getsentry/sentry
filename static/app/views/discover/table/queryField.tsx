@@ -594,7 +594,7 @@ class QueryField extends Component<Props> {
         break;
       case FieldValueKind.FIELD:
       case FieldValueKind.METRICS:
-        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
+        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'metric';
         tagType = 'highlight';
         break;
       default:

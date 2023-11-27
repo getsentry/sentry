@@ -2,17 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    List,
-    Mapping,
-    MutableSet,
-    Optional,
-    Sequence,
-    Set,
-    Union,
-)
+from typing import TYPE_CHECKING, Iterable, List, Mapping, MutableSet, Optional, Set, Union
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -24,7 +14,6 @@ from sentry.models.notificationsettingprovider import NotificationSettingProvide
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.helpers import get_scope, get_scope_type, validate
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
@@ -140,7 +129,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         organization: Organization | int | None = None,
         actor: RpcActor | None = None,
         skip_provider_updates: bool = False,
-        organization_id_for_team: Optional[int] = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -185,7 +173,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 team_id=team_id,
                 project=project,
                 organization=organization,
-                organization_id_for_team=organization_id_for_team,
             )
         else:
             if not validate(type, value):
@@ -430,22 +417,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         return controller.get_notification_recipients(type=setting_type)
 
-    def get_notification_recipients(
-        self, project: Project
-    ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
-        """
-        Return a set of users that should receive Issue Alert emails for a given
-        project. To start, we get the set of all users. Then we fetch all of
-        their relevant notification settings and put them into reference
-        dictionary. Finally, we traverse the set of users and return the ones
-        that should get a notification.
-        """
-
-        user_ids = project.member_set.values_list("user_id", flat=True)
-        return self.filter_to_accepting_recipients(
-            project, {RpcUser(id=user_id) for user_id in user_ids}
-        )
-
     def update_provider_settings(self, user_id: int | None, team_id: int | None):
         """
         Find all settings for a team/user, determine the provider settings and map it to the parent scope
@@ -514,127 +485,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 **base_query,
                 type__in=[NOTIFICATION_SETTING_TYPES[type] for type in types_to_delete],
             ).delete()
-
-    def update_settings_bulk(
-        self,
-        notification_settings: Sequence[
-            tuple[
-                ExternalProviders,
-                NotificationSettingTypes,
-                NotificationScopeType,
-                int,
-                NotificationSettingOptionValues,
-            ]
-        ],
-        team: Team | None = None,
-        user: User | None = None,
-        organization_id_for_team: Optional[int] = None,
-    ) -> None:
-        assert user or team, "Cannot update settings if user or team is not passed"
-        """
-        Given a list of _valid_ notification settings as tuples of column
-        values, save them to the DB. This does not execute as a transaction.
-        """
-        team_ids: Set[int] = set()
-        user_ids: Set[int] = set()
-
-        if user is not None:
-            user_ids.add(user.id)
-            id_key = "user_id"
-            id = user.id
-        if team is not None:
-            team_ids.add(team.id)
-            id_key = "team_id"
-            id = team.id
-
-        for provider, type, scope_type, scope_identifier, value in notification_settings:
-            # A missing DB row is equivalent to DEFAULT.
-            if value == NotificationSettingOptionValues.DEFAULT:
-                self._filter(
-                    provider,
-                    type,
-                    scope_type,
-                    scope_identifier,
-                    team_ids=team_ids,
-                    user_ids=user_ids,
-                ).delete()
-            else:
-                self._update_settings(
-                    provider,
-                    type,
-                    value,
-                    scope_type,
-                    scope_identifier,
-                    **{id_key: id},
-                )
-        analytics.record(
-            "notifications.settings_updated",
-            target_type="user" if user is not None else "team",
-            actor_id=None,
-            id=id,
-        )
-
-        user_id = user.id if user else None
-        team_id = team.id if team else None
-
-        enabled_providers = defaultdict(set)
-        disabled_providers = defaultdict(set)
-        defaulted_providers = defaultdict(set)
-        all_settings = set()
-        # we need to know which kind of enabled it is
-        # note for a given type/scope, all the enabled ones will be the same
-        enabled_value_dict = {}
-
-        # group the type, scope_type, scope_identifier, together and get store the explicitly enabled/disabled providers
-        for provider, type, scope_type, scope_identifier, value in notification_settings:
-            # Group the type, scope_type, scope_identifier together
-            group_key = (type, scope_type, scope_identifier)
-            all_settings.add(group_key)
-            # Initialize the dictionaries to store the explicitly enabled/disabled providers
-
-            # Check the value and add the provider to the corresponding dictionary
-            if value == NotificationSettingOptionValues.NEVER:
-                disabled_providers[group_key].add(provider)
-            elif value == NotificationSettingOptionValues.DEFAULT:
-                defaulted_providers[group_key].add(provider)
-            else:
-                enabled_providers[group_key].add(provider)
-                enabled_value_dict[group_key] = value
-
-        # iterate through all the settings and create/update the NotificationSettingOption
-        for group_key in all_settings:
-            (type, scope_type, scope_identifier) = group_key
-            query_args = {
-                "type": NOTIFICATION_SETTING_TYPES[type],
-                "scope_type": NOTIFICATION_SCOPE_TYPE[scope_type],
-                "scope_identifier": scope_identifier,
-                "user_id": user_id,
-                "team_id": team_id,
-            }
-
-            # if any settings are default, we should remove the row
-            if len(defaulted_providers[group_key]) > 0:
-                NotificationSettingOption.objects.filter(**query_args).delete()
-            # if any of the providers are explicitly enabled, we should create/update the row
-            if len(enabled_providers[group_key]) > 0:
-                value_to_use = (
-                    NOTIFICATION_SETTING_OPTION_VALUES[enabled_value_dict[group_key]]
-                    if group_key in enabled_value_dict
-                    else NotificationSettingsOptionEnum.ALWAYS.value
-                )
-                NotificationSettingOption.objects.create_or_update(
-                    **query_args,
-                    values={"value": value_to_use},
-                )
-            # if any settings are explicitly disabled, we should create/update the row
-            elif len(disabled_providers[group_key]) > 0:
-                NotificationSettingOption.objects.create_or_update(
-                    **query_args,
-                    values={"value": NotificationSettingsOptionEnum.NEVER.value},
-                )
-
-        # update the provider settings after we update the NotificationSettingOption
-        self.update_provider_settings(user_id, team_id)
 
     def remove_parent_settings_for_organization(
         self, organization_id: int, project_ids: List[int], provider: ExternalProviders
@@ -709,17 +559,3 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             )
             .exists()
         )
-
-    def enable_settings_for_user(
-        self,
-        recipient: User | RpcUser,
-        provider: ExternalProviders,
-        types: set[NotificationSettingTypes] | None = None,
-    ) -> None:
-        for type_ in types or NOTIFICATION_SETTINGS_ALL_SOMETIMES.keys():
-            self.update_settings(
-                provider=provider,
-                type=type_,
-                value=NOTIFICATION_SETTINGS_ALL_SOMETIMES[type_],
-                user_id=recipient.id,
-            )
