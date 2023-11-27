@@ -432,6 +432,9 @@ def configure_sdk():
         enable_metrics=True,
         metric_code_locations=options.get("delightful_metrics.enable_code_locations"),
         before_emit_metric=minimetrics.before_emit_metric,
+        # turn summaries on, but filter them dynamically in the callback
+        metrics_summary_sample_rate=1.0,
+        should_summarize_metric=minimetrics.should_summarize_metric,
     )
 
     sentry_sdk.init(
