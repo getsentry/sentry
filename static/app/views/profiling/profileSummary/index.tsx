@@ -504,7 +504,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                               recursion={null}
                               expanded={false}
                               frameFilter={frameFilter}
-                              canvasScheduler={scheduler}
                               canvasPoolManager={canvasPoolManager}
                             />
                           )}

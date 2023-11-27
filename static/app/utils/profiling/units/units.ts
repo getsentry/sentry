@@ -190,3 +190,11 @@ export function makeTimelineFormatter(from: ProfilingFormatterUnit | string) {
     return `${value < 0 ? '-' : ''}${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
   };
 }
+
+export function relativeWeight(base: number, value: number) {
+  // Make sure we dont divide by zero
+  if (!base || !value) {
+    return 0;
+  }
+  return (value / base) * 100;
+}
