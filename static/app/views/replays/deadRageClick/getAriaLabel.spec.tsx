@@ -1,4 +1,4 @@
-import {getAriaLabel} from 'sentry/views/replays/detail/utils';
+import getAriaLabel from './getAriaLabel';
 
 describe('getAriaLabel', () => {
   it.each([

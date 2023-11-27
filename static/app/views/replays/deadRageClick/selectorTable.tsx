@@ -18,31 +18,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {constructSelector, getAriaLabel} from 'sentry/views/replays/detail/utils';
 import {DeadRageSelectorItem} from 'sentry/views/replays/types';
 import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 
 export interface UrlState {
   widths: string[];
-}
-
-export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
-  return data.map(d => ({
-    ...(clickType
-      ? {[clickType]: d[clickType]}
-      : {
-          count_dead_clicks: d.count_dead_clicks,
-          count_rage_clicks: d.count_rage_clicks,
-        }),
-    dom_element: {
-      fullSelector: constructSelector(d.element).fullSelector,
-      selector: constructSelector(d.element).selector,
-      projectId: d.project_id,
-    },
-    element: d.dom_element.split(/[#.[]+/)[0],
-    aria_label: getAriaLabel(d.dom_element),
-    project_id: d.project_id,
-  }));
 }
 
 export function transformSelectorQuery(selector: string) {
