@@ -71,6 +71,6 @@ function SpanSummaryButton(props: Props) {
 }
 
 const resourceSummaryAvailable = (op: string = '') =>
-  ['resource.link', 'resource.script', 'resource.css'].includes(op);
+  ['resource.script', 'resource.css'].includes(op);
 
 export default SpanSummaryButton;
