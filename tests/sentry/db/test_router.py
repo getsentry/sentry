@@ -6,6 +6,7 @@ from sentry.db.router import SiloRouter
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
+from sentry.testutils.hybrid_cloud import use_split_dbs
 
 
 class SiloRouterSimulatedTest(TestCase):
@@ -80,6 +81,7 @@ class SiloRouterSimulatedTest(TestCase):
         assert router.allow_migrate("control", "sentry", User)
         assert not router.allow_migrate("default", "sentry", User)
 
+    @pytest.mark.skipif(use_split_dbs(), reason="requires single db mode")
     @override_settings(SILO_MODE="MONOLITH")
     def test_for_monolith_single(self):
         router = SiloRouter()
@@ -90,6 +92,7 @@ class SiloRouterSimulatedTest(TestCase):
         assert router.allow_migrate("default", "sentry", Organization)
         assert router.allow_migrate("default", "sentry", User)
 
+    @pytest.mark.skipif(not use_split_dbs(), reason="requires split db mode")
     @override_settings(SILO_MODE="MONOLITH")
     def test_for_monolith_split(self):
         router = SiloRouter()
@@ -100,6 +103,7 @@ class SiloRouterSimulatedTest(TestCase):
         assert router.allow_migrate("default", "sentry", Organization)
         assert router.allow_migrate("control", "sentry", User)
 
+    @pytest.mark.skipif(not use_split_dbs(), reason="requires split db mode")
     @override_settings(SILO_MODE="REGION")
     def test_removed_region_model(self):
         router = SiloRouter()

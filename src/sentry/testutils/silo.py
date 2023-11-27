@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import inspect
+import os
 import re
 import sys
 from contextlib import contextmanager
@@ -46,6 +47,7 @@ from sentry.utils.snowflake import SnowflakeIdMixin
 
 TestMethod = Callable[..., None]
 
+SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 _DEFAULT_TEST_REGIONS = (
     Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
@@ -232,6 +234,12 @@ class _SiloModeTestModification:
             # _silo_modes is used to mark the class as silo decorated in the above validation
             decorated_obj._silo_modes = self.silo_modes
 
+        if SENTRY_USE_MONOLITH_DBS:
+            # In this case, skip modifying the object and let it run in the default
+            # silo mode (monolith)
+            return decorated_obj
+
+        if is_test_case_class:
             return self._add_siloed_test_classes_to_module(decorated_obj)
 
         return self._mark_parameterized_by_silo_mode(decorated_obj)
