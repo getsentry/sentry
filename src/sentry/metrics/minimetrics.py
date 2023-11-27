@@ -104,6 +104,10 @@ def before_emit_metric(key: str, tags: Dict[str, Any]) -> bool:
     return True
 
 
+def should_summarize_metric(key: str, tags: Dict[str, Any]) -> bool:
+    return random.random() < options.get("delightful_metrics.metrics_summary_sample_rate")
+
+
 class MiniMetricsMetricsBackend(MetricsBackend):
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
