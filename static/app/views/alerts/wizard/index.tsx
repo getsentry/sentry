@@ -69,7 +69,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
     }
 
     if (
-      !organization.features.includes('metric-alert-ignore-archived') &&
+      organization.features.includes('metric-alert-ignore-archived') &&
       metricRuleTemplate?.dataset === Dataset.ERRORS
     ) {
       // Pre-fill is:unresolved for error metric alerts
