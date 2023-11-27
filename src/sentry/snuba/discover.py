@@ -10,7 +10,7 @@ import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -70,8 +70,8 @@ FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 class EventsMeta(TypedDict):
     fields: Dict[str, str]
     datasetReason: Optional[str]
-    isMetricsData: Optional[bool]
-    isMetricsExtractedData: Optional[bool]
+    isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
 
 
 class EventsResponse(TypedDict):

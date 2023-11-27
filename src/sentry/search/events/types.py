@@ -9,7 +9,7 @@ from snuba_sdk.conditions import BooleanCondition, Condition
 from snuba_sdk.entity import Entity
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -41,7 +41,7 @@ class QueryFramework:
 class EventsMeta(TypedDict):
     fields: Dict[str, str]
     tips: Dict[str, str]
-    isMetricsData: bool
+    isMetricsData: NotRequired[bool]
 
 
 class EventsResponse(TypedDict):
