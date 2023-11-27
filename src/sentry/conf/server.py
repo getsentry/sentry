@@ -885,6 +885,7 @@ CELERY_QUEUES_REGION = [
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
     Queue("merge", routing_key="merge"),
+    Queue("notifications", routing_key="notifications"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
