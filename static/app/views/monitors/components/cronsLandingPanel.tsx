@@ -32,6 +32,7 @@ import {
   PHPUpsertPlatformGuide,
   QuickStartProps,
   RubyRailsMixinPlatformGuide,
+  RubySidekiqAutoPlatformGuide,
   RubyUpsertPlatformGuide,
 } from './quickStartEntries';
 
@@ -40,6 +41,7 @@ enum GuideKey {
   UPSERT = 'upsert',
   MANUAL = 'manual',
   MIXIN = 'mixin',
+  SIDEKIQ_AUTO = 'sidekiq_auto',
 }
 
 interface PlatformGuide {
@@ -101,6 +103,11 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
     },
   ],
   'ruby-rails': [
+    {
+      Guide: RubySidekiqAutoPlatformGuide,
+      title: 'Sidekiq Auto Discovery',
+      key: GuideKey.SIDEKIQ_AUTO,
+    },
     {
       Guide: RubyRailsMixinPlatformGuide,
       title: 'Mixin',

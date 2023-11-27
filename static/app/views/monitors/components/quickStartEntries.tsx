@@ -786,6 +786,45 @@ sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorCo
   );
 }
 
+export function RubySidekiqAutoPlatformGuide() {
+  const sidekiqCronCode = `Sentry.init do |config|
+  # for sidekiq-cron
+  config.enabled_patches += [:sidekiq_cron]
+
+  # for sidekiq-scheduler
+  config.enabled_patches += [:sidekiq_scheduler]
+end`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'If you use gems such as [sidekiqCronLink:sidekiq-cron] or [sidekiqSchedulerLink:sidekiq-scheduler] to manage your scheduled jobs, Sentry can automatically monitor all of them for you without any additional configuration.',
+          {
+            sidekiqCronLink: (
+              <ExternalLink href="https://github.com/sidekiq-cron/sidekiq-cron" />
+            ),
+            sidekiqSchedulerLink: (
+              <ExternalLink href="https://github.com/sidekiq-scheduler/sidekiq-scheduler" />
+            ),
+          }
+        )}
+      </div>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry Ruby and Sidekiq SDKs (min v5.14.0) and turn on the relevant patches:',
+          {
+            installLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/ruby/guides/sidekiq/" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="ruby">{sidekiqCronCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
 export function RubyCronQuickStart(props: QuickStartProps) {
   const {slug} = withDefaultProps(props);
 

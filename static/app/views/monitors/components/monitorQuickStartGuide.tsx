@@ -124,7 +124,7 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   rubySidekiq: {
     label: 'Sidekiq',
     Guide: RubySidekiqCronQuickStart,
-    platforms: new Set(['ruby', 'ruby-rails', 'ruby-sidekiq']),
+    platforms: new Set(['ruby', 'ruby-rails']),
   },
 };
 
