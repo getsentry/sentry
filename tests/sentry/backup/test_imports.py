@@ -1245,9 +1245,11 @@ class CollisionTests(ImportTestCase):
         # Take note of the `ApiTokens` that were created by the exhaustive organization - this is
         # the one we'll be importing.
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_no_refresh_set = ApiToken.objects.create(
-                user=owner, token=generate_token(), expires_at=expires_at
-            )
+            colliding_no_refresh_set = ApiToken.objects.create(user=owner, token=generate_token())
+            colliding_no_refresh_set.refresh_token = None
+            colliding_no_refresh_set.expires_at = None
+            colliding_no_refresh_set.save()
+
             colliding_same_refresh_only = ApiToken.objects.create(
                 user=owner,
                 token=generate_token(),
@@ -1287,7 +1289,14 @@ class CollisionTests(ImportTestCase):
                 colliding_same_both.user_id = owner.id
                 colliding_same_both.save()
                 assert ApiToken.objects.count() == 4
-                assert ApiToken.objects.filter(token=colliding_no_refresh_set.token).count() == 1
+                assert (
+                    ApiToken.objects.filter(
+                        token=colliding_no_refresh_set.token,
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 1
+                )
                 assert (
                     ApiToken.objects.filter(
                         refresh_token=colliding_same_refresh_only.refresh_token
@@ -1309,7 +1318,14 @@ class CollisionTests(ImportTestCase):
             # Ensure that old tokens have not been mutated.
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert ApiToken.objects.count() == 8
-                assert ApiToken.objects.filter(token=colliding_no_refresh_set.token).count() == 1
+                assert (
+                    ApiToken.objects.filter(
+                        token=colliding_no_refresh_set.token,
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 1
+                )
                 assert (
                     ApiToken.objects.filter(
                         refresh_token=colliding_same_refresh_only.refresh_token
@@ -1323,6 +1339,16 @@ class CollisionTests(ImportTestCase):
                         refresh_token=colliding_same_both.refresh_token,
                     ).count()
                     == 1
+                )
+
+                # Ensure newly added entries with nulled `refresh_token` and/or `expires_at` have
+                # kept those fields nulled.
+                assert (
+                    ApiToken.objects.filter(
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 2
                 )
 
             with open(tmp_path, "rb") as tmp_file:
