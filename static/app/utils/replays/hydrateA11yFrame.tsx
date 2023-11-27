@@ -25,12 +25,16 @@ interface A11yIssueElementAlternative {
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 export type HydratedA11yFrame = Overwrite<
-  RawA11yFrame,
+  Omit<RawA11yFrame, 'elements' | 'help'>,
   {
     /**
-     * Alias of `id`
+     * Rename `help` to conform to ReplayFrame basics.
      */
     description: string;
+    /**
+     * The specific element instance
+     */
+    element: A11yIssueElement;
     /**
      * The difference in timestamp and replay.started_at, in millieseconds
      */
@@ -46,13 +50,22 @@ export type HydratedA11yFrame = Overwrite<
   }
 >;
 
-export default function hydrateA11yFrame(raw: RawA11yFrame): HydratedA11yFrame {
-  const timestamp = new Date(raw.timestamp);
-  return {
-    ...raw,
-    description: raw.id,
-    offsetMs: 0,
-    timestamp,
-    timestampMs: timestamp.getTime(),
-  };
+export default function hydrateA11yFrame(
+  raw: RawA11yFrame,
+  startTimestampMs: number
+): HydratedA11yFrame[] {
+  return raw.elements.map((element): HydratedA11yFrame => {
+    const timestamp = new Date(raw.timestamp);
+    const timestampMs = timestamp.getTime();
+    return {
+      description: raw.help,
+      element,
+      help_url: raw.help_url,
+      id: raw.id,
+      impact: raw.impact,
+      offsetMs: timestampMs - startTimestampMs,
+      timestamp,
+      timestampMs,
+    };
+  });
 }
