@@ -23,6 +23,7 @@ import {
   DefaultSettings,
   NotificationOptionsObject,
   NotificationProvidersObject,
+  SUPPORTED_PROVIDERS,
   SupportedProviders,
 } from './constants';
 import {ACCOUNT_NOTIFICATION_FIELDS} from './fields';
@@ -169,14 +170,15 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
       option => option.scopeType === 'user' && option.type === notificationType
     );
 
-    const providers =
-      // if user has no settings saved so use default
-      relevantProviderSettings.length === 0 && defaultSettings
-        ? defaultSettings?.providerDefaults
-        : relevantProviderSettings
-            .filter(option => option.value === 'always')
-            .map(option => option.provider);
-    return providers.filter(this.isProviderSupported);
+    return SUPPORTED_PROVIDERS.filter(this.isProviderSupported).filter(provider => {
+      const providerSetting = relevantProviderSettings.find(
+        option => option.provider === provider
+      );
+      // if there is a matched setting use that, otherwise check provider defaults
+      return providerSetting
+        ? providerSetting.value === 'always'
+        : defaultSettings?.providerDefaults.includes(provider);
+    });
   }
 
   getFields(): Field[] {
