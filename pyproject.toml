@@ -258,7 +258,6 @@ module = [
     "sentry.api.endpoints.user_identity_config",
     "sentry.api.endpoints.user_index",
     "sentry.api.endpoints.user_notification_details",
-    "sentry.api.endpoints.user_notification_fine_tuning",
     "sentry.api.endpoints.user_permission_details",
     "sentry.api.endpoints.user_permissions",
     "sentry.api.endpoints.user_permissions_config",
