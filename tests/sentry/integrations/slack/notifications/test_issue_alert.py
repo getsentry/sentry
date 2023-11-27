@@ -26,7 +26,7 @@ from sentry.silo import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.slack import get_attachment
+from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
@@ -54,7 +54,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_issue_alert_user(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_user(self, mock_func):
         """Test that issue alerts are sent to a Slack user."""
 
         event = self.store_event(
@@ -90,7 +91,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_performance_issue_alert_user(self, occurrence):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_performance_issue_alert_user(self, mock_func, occurrence):
         """Test that performance issue alerts are sent to a Slack user."""
 
         event = self.create_performance_issue()
@@ -112,7 +114,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_generic_issue_alert_user(self, occurrence):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_generic_issue_alert_user(self, mock_func, occurrence):
         """Test that generic issue alerts are sent to a Slack user."""
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
@@ -131,7 +134,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_disabled_org_integration_for_user(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_disabled_org_integration_for_user(self, mock_func):
         with assume_test_silo_mode(SiloMode.CONTROL):
             OrganizationIntegration.objects.get(integration=self.integration).update(
                 status=ObjectStatus.DISABLED
@@ -151,7 +155,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert len(responses.calls) == 0
 
     @responses.activate
-    def test_issue_alert_issue_owners(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_issue_owners(self, mock_func):
         """Test that issue alerts are sent to issue owners in Slack."""
 
         event = self.store_event(
@@ -193,7 +198,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_issue_alert_issue_owners_environment(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_issue_owners_environment(self, mock_func):
         """Test that issue alerts are sent to issue owners in Slack with the environment in the query params when the alert rule filters by environment."""
 
         environment = self.create_environment(self.project, name="production")
@@ -243,7 +249,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_issue_alert_team_issue_owners(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_team_issue_owners(self, mock_func):
         """Test that issue alerts are sent to a team in Slack via an Issue Owners rule action."""
 
         # add a second user to the team so we can be sure it's only
@@ -334,7 +341,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_disabled_org_integration_for_team(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_disabled_org_integration_for_team(self, mock_func):
         # update the team's notification settings
         ExternalActor.objects.create(
             team_id=self.team.id,
@@ -389,8 +397,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert len(responses.calls) == 0
 
     @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     @patch.object(sentry, "digests")
-    def test_issue_alert_team_issue_owners_user_settings_off_digests(self, digests):
+    def test_issue_alert_team_issue_owners_user_settings_off_digests(self, digests, mock_func):
         """Test that issue alerts are sent to a team in Slack via an Issue Owners rule action
         even when the users' issue alert notification settings are off and digests are triggered."""
 
@@ -495,7 +504,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_issue_alert_team(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_team(self, mock_func):
         """Test that issue alerts are sent to a team in Slack."""
         # add a second organization
         org = self.create_organization(owner=self.user)
@@ -577,7 +587,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_issue_alert_team_new_project(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_team_new_project(self, mock_func):
         """Test that issue alerts are sent to a team in Slack when the team has added a new project"""
 
         # add a second user to the team so we can be sure it's only
@@ -657,7 +668,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_not_issue_alert_team_removed_project(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_not_issue_alert_team_removed_project(self, mock_func):
         """Test that issue alerts are not sent to a team in Slack when the team has removed the project the issue belongs to"""
 
         # create the team's notification settings
@@ -705,7 +717,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert len(responses.calls) == 0
 
     @responses.activate
-    def test_issue_alert_team_fallback(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_team_fallback(self, mock_func):
         """Test that issue alerts are sent to each member of a team in Slack."""
 
         user2 = self.create_user(is_superuser=False)
@@ -773,8 +786,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     @patch.object(sentry, "digests")
-    def test_digest_enabled(self, digests):
+    def test_digest_enabled(self, digests, mock_func):
         """
         Test that with digests enabled, but Slack notification settings
         (and not email settings), we send a Slack notification

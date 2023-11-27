@@ -4,6 +4,7 @@ from urllib.parse import parse_qs
 import responses
 
 from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.notifications import send_notification_as_slack
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
@@ -89,6 +90,11 @@ def link_team(team: Team, integration: Integration, channel_name: str, channel_i
         external_name=channel_name,
         external_id=channel_id,
     )
+
+
+def send_notification(provider, *args_list):
+    if provider == ExternalProviders.SLACK:
+        send_notification_as_slack(*args_list, {})
 
 
 def get_channel(index=0):

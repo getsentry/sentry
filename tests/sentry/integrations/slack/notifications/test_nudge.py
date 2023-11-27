@@ -1,3 +1,4 @@
+from unittest import mock
 from urllib.parse import parse_qs
 
 import responses
@@ -7,7 +8,7 @@ from sentry.notifications.notifications.integration_nudge import (
     IntegrationNudgeNotification,
 )
 from sentry.testutils.cases import SlackActivityNotificationTest
-from sentry.testutils.helpers.slack import get_attachment_no_text
+from sentry.testutils.helpers.slack import get_attachment_no_text, send_notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -16,7 +17,8 @@ SEED = 0
 
 class SlackNudgeNotificationTest(SlackActivityNotificationTest):
     @responses.activate
-    def test_nudge(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_nudge(self, mock_func):
         notification = IntegrationNudgeNotification(
             self.organization,
             recipient=self.user,

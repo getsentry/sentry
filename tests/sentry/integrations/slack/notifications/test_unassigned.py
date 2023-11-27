@@ -6,7 +6,7 @@ from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.slack import get_attachment
+from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
@@ -26,7 +26,8 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_unassignment(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_unassignment(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is unassigned
         """
@@ -48,7 +49,8 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_unassignment_performance_issue(self, occurrence):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_unassignment_performance_issue(self, mock_func, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is unassigned
         """
@@ -68,7 +70,8 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_unassignment_generic_issue(self, occurrence):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_unassignment_generic_issue(self, mock_func, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is unassigned
         """
