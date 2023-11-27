@@ -6,10 +6,9 @@ from urllib.parse import urlencode
 from sentry.models.activity import Activity
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
 from sentry.notifications.utils import summarize_issues
-from sentry.notifications.utils.participants import ParticipantMap
+from sentry.notifications.utils.participants import ParticipantMap, get_notification_recipients_v2
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.notifications.service import notifications_service
-from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
+from sentry.types.integrations import ExternalProviders
 
 from .base import ActivityNotification
 
@@ -26,17 +25,17 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         participants_by_provider = None
         user_ids = list(self.project.member_set.values_list("user_id", flat=True))
         actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
-        participants_by_provider = notifications_service.get_notification_recipients(
+        participants_by_provider = get_notification_recipients_v2(
             recipients=actors,
+            type=NotificationSettingEnum.WORKFLOW,
             project_ids=[self.project.id],
             organization_id=self.project.organization_id,
-            type=NotificationSettingEnum.WORKFLOW,
         )
         result = ParticipantMap()
-        for provider_name, participants in participants_by_provider.items():
+        for provider, participants in participants_by_provider.items():
             for participant in participants:
                 result.add(
-                    get_provider_enum_from_string(provider_name),
+                    provider,
                     participant,
                     GroupSubscriptionReason.processing_issue,
                 )

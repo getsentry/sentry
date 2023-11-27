@@ -17,9 +17,9 @@ from sentry.notifications.types import (
     FallthroughChoiceType,
     NotificationSettingEnum,
 )
+from sentry.notifications.utils.participants import get_notification_recipients_v2
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -108,15 +108,14 @@ class MailAdapter:
         """
         user_ids = project.member_set.values_list("user_id", flat=True)
         actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
-
-        recipients = notifications_service.get_notification_recipients(
+        recipients = get_notification_recipients_v2(
             recipients=actors,
+            type=NotificationSettingEnum.ISSUE_ALERTS,
             project_ids=[project.id],
             organization_id=project.organization_id,
-            type=NotificationSettingEnum.ISSUE_ALERTS,
             actor_type=ActorType.USER,
         )
-        return recipients.get(ExternalProviders.EMAIL.name)
+        return recipients.get(ExternalProviders.EMAIL)
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)
