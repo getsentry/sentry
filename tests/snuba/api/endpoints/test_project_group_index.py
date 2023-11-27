@@ -37,7 +37,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -355,7 +355,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1353,7 +1353,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group1.id).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     @cached_property
     def path(self):

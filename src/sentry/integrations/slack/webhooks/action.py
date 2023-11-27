@@ -28,13 +28,12 @@ from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
@@ -467,10 +466,9 @@ class SlackActionEndpoint(Endpoint):
         if not identity_user:
             return self.respond_with_text(NO_IDENTITY_MESSAGE)
 
-        notifications_service.bulk_update_settings(
-            external_provider=ExternalProviders.SLACK,
+        notifications_service.enable_all_settings_for_provider(
+            external_provider=ExternalProviderEnum.SLACK,
             user_id=identity_user.id,
-            notification_type_to_value_map=NOTIFICATION_SETTINGS_ALL_SOMETIMES,
         )
         return self.respond_with_text(ENABLE_SLACK_SUCCESS_MESSAGE)
 

@@ -168,7 +168,10 @@ function WidgetQueries({
         if (rawResult.isMetricsData !== undefined) {
           isSeriesMetricsDataResults.push(rawResult.isMetricsData);
         }
-        if (rawResult.isMetricsExtractedData !== undefined) {
+        if (
+          (rawResult.isMetricsExtractedData || rawResult.meta?.isMetricsExtractedData) !==
+          undefined
+        ) {
           isSeriesMetricsExtractedDataResults.push(
             rawResult.isMetricsExtractedData || rawResult.meta?.isMetricsExtractedData
           );

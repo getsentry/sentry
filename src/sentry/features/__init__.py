@@ -264,6 +264,7 @@ default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHa
 default_manager.add("organizations:notification-settings-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:releases-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:releases-v2-st", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:releases-v2-banner", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:source-maps-debugger-blue-thunder-edition", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:suspect-commits-all-frames", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:weekly-report-logs", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)

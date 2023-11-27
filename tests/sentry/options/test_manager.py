@@ -26,7 +26,7 @@ from sentry.testutils.silo import all_silo_test
 from sentry.utils.types import Int, String
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class OptionsManagerTest(TestCase):
     @cached_property
     def store(self):

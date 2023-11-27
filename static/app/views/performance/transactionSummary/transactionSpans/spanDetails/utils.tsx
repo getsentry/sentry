@@ -83,6 +83,44 @@ export function querySummaryRouteWithQuery({
   };
 }
 
+export function generateResourceSummaryRoute({
+  orgSlug,
+  group,
+}: {
+  group: string;
+  orgSlug: string;
+}): string {
+  return `/organizations/${orgSlug}/performance/browser/resources/spans/span/${group}/`;
+}
+
+export function resourceSummaryRouteWithQuery({
+  orgSlug,
+  query,
+  group,
+  projectID,
+}: {
+  group: string;
+  orgSlug: string;
+  query: Query;
+  projectID?: string | string[];
+}) {
+  const pathname = generateResourceSummaryRoute({
+    orgSlug,
+    group,
+  });
+
+  return {
+    pathname,
+    query: {
+      project: projectID,
+      environment: query.environment,
+      statsPeriod: query.statsPeriod,
+      start: query.start,
+      end: query.end,
+    },
+  };
+}
+
 export enum ZoomKeys {
   MIN = 'min',
   MAX = 'max',
