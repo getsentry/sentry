@@ -1970,7 +1970,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -2051,7 +2051,7 @@ class PostProcessGroupErrorTest(
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
@@ -2276,7 +2276,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PostProcessGroupGenericTest(
     TestCase,
     SnubaTestCase,
@@ -2356,7 +2356,7 @@ class PostProcessGroupGenericTest(
         pass
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PostProcessGroupFeedbackTest(
     TestCase,
     SnubaTestCase,

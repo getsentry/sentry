@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -930,7 +933,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
 
 
 @region_silo_test
-class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
+class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandWidgets(
     MetricsEnhancedPerformanceTestCase
 ):
     endpoint = "sentry-api-0-organization-events-stats"
@@ -946,9 +949,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_slug": self.project.organization.slug},
         )
-        self.features = {
-            "organizations:performance-use-metrics": True,
-        }
+        self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
     def do_request(self, data, url=None, features=None):
         if features is None:
@@ -1077,7 +1078,10 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
         for group_count in groups:
             group, agg, row1, row2 = group_count
             row_data = response.data[group][agg]["data"][:2]
-            assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+            assert [attrs for _, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+
+            assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
+            assert response.data[group]["isMetricsExtractedData"]
 
     def test_top_events_with_transaction_on_demand_and_no_environment(self):
         field = "count()"
@@ -1150,3 +1154,210 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
             group, agg, row1, row2 = group_count
             row_data = response.data[group][agg]["data"][:2]
             assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+
+            assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
+            assert response.data[group]["isMetricsExtractedData"]
+
+    def test_timeseries_on_demand_with_multiple_percentiles(self):
+        field = "p75(measurements.fcp)"
+        field_two = "p75(measurements.lcp)"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
+        spec_two = OnDemandMetricSpec(
+            field=field_two, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        assert (
+            spec._query_str_for_hash
+            == "event.measurements.fcp.value;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}"
+        )
+        assert (
+            spec_two._query_str_for_hash
+            == "event.measurements.lcp.value;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}"
+        )
+
+        for count in range(0, 4):
+            self.store_on_demand_metric(
+                count * 100,
+                spec=spec,
+                timestamp=self.day_ago + timedelta(hours=1),
+            )
+            self.store_on_demand_metric(
+                count * 200.0,
+                spec=spec_two,
+                timestamp=self.day_ago + timedelta(hours=1),
+            )
+
+        yAxis = [field, field_two]
+
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": [field],
+                "query": query,
+                "yAxis": yAxis,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert response.data["p75(measurements.fcp)"]["meta"]["isMetricsExtractedData"]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"]
+        assert [attrs for time, attrs in response.data["p75(measurements.fcp)"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 225.0}],
+        ]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsExtractedData"]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"]
+        assert [attrs for time, attrs in response.data["p75(measurements.lcp)"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 450.0}],
+        ]
+
+    def test_apdex_issue(self):
+        field = "apdex(300)"
+        groupbys = ["group_tag"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field,
+            groupbys=groupbys,
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                1,
+                spec=spec,
+                additional_tags={
+                    "group_tag": "group_one",
+                    "environment": "production",
+                    "satisfaction": "tolerable",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                1,
+                spec=spec,
+                additional_tags={
+                    "group_tag": "group_two",
+                    "environment": "production",
+                    "satisfaction": "satisfactory",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "environment": "production",
+                "excludeOther": 1,
+                "field": [field, "group_tag"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": f"-{field}",
+                "partial": 1,
+                "project": self.project.id,
+                "query": query,
+                "topEvents": 5,
+                "yAxis": field,
+                "onDemandType": "dynamic_query",
+                "useOnDemandMetrics": "true",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["group_one"]["meta"]["isMetricsExtractedData"] is True
+        assert [attrs for time, attrs in response.data["group_one"]["data"]] == [
+            [{"count": 0.5}],
+            [{"count": 0.5}],
+        ]
+
+    def _test_is_metrics_extracted_data(
+        self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
+    ) -> None:
+        features = {"organizations:on-demand-metrics-extraction": True}
+        spec = OnDemandMetricSpec(
+            field="count()",
+            query="transaction.duration:>1s",
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        self.store_on_demand_metric(1, spec=spec)
+        response = self.do_request(params, features=features)
+
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        # This is the main thing we want to test for
+        assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
+        assert meta["dataset"] == dataset
+
+        return meta
+
+    def test_is_metrics_extracted_data_is_included(self):
+        self._test_is_metrics_extracted_data(
+            {
+                "dataset": "metricsEnhanced",
+                "query": "transaction.duration:>=91",
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+            expected_on_demand_query=True,
+            dataset="metricsEnhanced",
+        )
+
+    def test_group_by_transaction(self):
+        field = "count()"
+        groupbys = ["transaction"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field,
+            groupbys=groupbys,
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        for hour in range(0, 2):
+            self.store_on_demand_metric(
+                (hour + 1) * 5,
+                spec=spec,
+                additional_tags={
+                    "transaction": "/performance",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "environment": "production",
+                "excludeOther": 1,
+                "field": [field, "transaction"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": f"-{field}",
+                "partial": 1,
+                "project": self.project.id,
+                "query": query,
+                "topEvents": 5,
+                "yAxis": field,
+                "onDemandType": "dynamic_query",
+                "useOnDemandMetrics": "true",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["/performance"]["meta"]["isMetricsExtractedData"] is True
+        assert [attrs for time, attrs in response.data["/performance"]["data"]] == [
+            [{"count": 5.0}],
+            [{"count": 10.0}],
+        ]

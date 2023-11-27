@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserEmailTest(TestCase):
     def test_hash_does_not_reset(self):
         user = self.create_user("foo@example.com")

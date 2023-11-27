@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class CatchallTestCase(APITestCase):
     def setUp(self):
         super().setUp()

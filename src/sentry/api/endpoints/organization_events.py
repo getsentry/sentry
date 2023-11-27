@@ -71,6 +71,13 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_SPAN_SUMMARY_TRANSACTIONS.value,
     Referrer.API_STARFISH_SPAN_TRANSACTION_METRICS.value,
     Referrer.API_STARFISH_TOTAL_TIME.value,
+    Referrer.API_STARFISH_MOBILE_SCREEN_TABLE.value,
+    Referrer.API_STARFISH_MOBILE_SCREEN_BAR_CHART.value,
+    Referrer.API_STARFISH_MOBILE_RELEASE_SELECTOR.value,
+    Referrer.API_STARFISH_MOBILE_DEVICE_BREAKDOWN.value,
+    Referrer.API_STARFISH_MOBILE_EVENT_SAMPLES.value,
+    Referrer.API_STARFISH_MOBILE_SCREEN_TOTALS.value,
+    Referrer.API_STARFISH_MOBILE_SPAN_TABLE.value,
 }
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
@@ -143,6 +150,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:use-metrics-layer",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
+            "organizations:on-demand-metrics-extraction-widgets",
             "organizations:on-demand-metrics-extraction-experimental",
         ]
         batch_features = features.batch_has(
@@ -250,8 +258,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         on_demand_metrics_enabled = (
             batch_features.get("organizations:on-demand-metrics-extraction", False)
-            and use_on_demand_metrics
-        )
+            or batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
+        ) and use_on_demand_metrics
 
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}

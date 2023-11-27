@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import hydrateA11yFrame, {RawA11yResponse} from 'sentry/utils/replays/hydrateA11yFrame';
@@ -13,7 +15,7 @@ export default function useA11yData() {
   const startTimestampMs = replayRecord?.started_at.getTime();
   const project = projects.find(p => p.id === replayRecord?.project_id);
 
-  const {data} = useApiQuery<RawA11yResponse>(
+  const {data, ...rest} = useApiQuery<RawA11yResponse>(
     [
       `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/accessibility-issues/`,
     ],
@@ -23,8 +25,9 @@ export default function useA11yData() {
     }
   );
 
-  if (project && replayRecord && startTimestampMs) {
-    return data?.data.map(record => hydrateA11yFrame(record));
-  }
-  return [];
+  const hydrated = useMemo(
+    () => data?.data?.flatMap(record => hydrateA11yFrame(record, startTimestampMs ?? 0)),
+    [data?.data, startTimestampMs]
+  );
+  return {data: hydrated, ...rest};
 }

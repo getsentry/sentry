@@ -12,6 +12,7 @@ from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.models.group import GroupStatus
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.transaction_threshold import (
@@ -30,6 +31,7 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -91,7 +93,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
@@ -6026,3 +6028,152 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "transaction.duration": 3000,
             "timestamp": event.datetime.replace(microsecond=0).isoformat(),
         }
+
+
+class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTestBase):
+    def test_status(self):
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                },
+                project_id=self.project.id,
+            ).group
+            group_2 = self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                },
+                project_id=self.project.id,
+            ).group
+            group_3 = self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                },
+                project_id=self.project.id,
+            ).group
+
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "status:unresolved",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 3
+            group_2.status = GroupStatus.IGNORED
+            group_2.substatus = GroupSubStatus.FOREVER
+            group_2.save(update_fields=["status", "substatus"])
+            group_3.status = GroupStatus.IGNORED
+            group_3.substatus = GroupSubStatus.FOREVER
+            group_3.save(update_fields=["status", "substatus"])
+            # XXX: Snuba caches query results, so change the time period so that the query
+            # changes enough to bust the cache.
+            query["statsPeriod"] = "3h"
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 1
+
+    def test_is_status(self):
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                },
+                project_id=self.project.id,
+            ).group
+            group_2 = self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                },
+                project_id=self.project.id,
+            ).group
+            group_3 = self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                },
+                project_id=self.project.id,
+            ).group
+
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "is:unresolved",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 3
+            group_2.status = GroupStatus.IGNORED
+            group_2.substatus = GroupSubStatus.FOREVER
+            group_2.save(update_fields=["status", "substatus"])
+            group_3.status = GroupStatus.IGNORED
+            group_3.substatus = GroupSubStatus.FOREVER
+            group_3.save(update_fields=["status", "substatus"])
+            # XXX: Snuba caches query results, so change the time period so that the query
+            # changes enough to bust the cache.
+            query["statsPeriod"] = "3h"
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 1
+
+    def test_short_group_id(self):
+        group_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        ).group
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{group_1.project.slug} issue:{group_1.qualified_short_id}",
+            "dataset": "errors",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_user_display(self):
+        group_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group1"],
+                "user": {
+                    "email": "hellboy@bar.com",
+                },
+            },
+            project_id=self.project.id,
+        ).group
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+        }
+        query = {
+            "field": ["user.display"],
+            "query": f"user.display:hell* issue.id:{group_1.id}",
+            "statsPeriod": "24h",
+            "dataset": "errors",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        result = {r["user.display"] for r in data}
+        assert result == {"hellboy@bar.com"}

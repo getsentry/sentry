@@ -14,7 +14,7 @@ class UserNotificationSettingsOptionsBaseTest(APITestCase):
     endpoint = "sentry-api-0-user-notification-options"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserNotificationSettingsOptionsGetTest(UserNotificationSettingsOptionsBaseTest):
     def setUp(self):
         super().setUp()
@@ -65,7 +65,7 @@ class UserNotificationSettingsOptionsGetTest(UserNotificationSettingsOptionsBase
         assert response.data["type"] == ["Invalid type"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBaseTest):
     method = "PUT"
 

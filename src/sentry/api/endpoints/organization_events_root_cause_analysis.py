@@ -4,7 +4,6 @@ import sentry_sdk
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Direction, Function, Op, Or, OrderBy
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
@@ -68,7 +67,7 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
     p95_before_function = Function(
         "quantileIf(0.95)",
         [
-            Function("tupleElement", [Column("snuba_all_spans"), 3]),
+            Function("arrayJoin", [Column("spans.exclusive_time")]),
             Function("less", [Column("timestamp"), regression_breakpoint]),
         ],
     )
@@ -80,7 +79,7 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
     p95_after_function = Function(
         "quantileIf(0.95)",
         [
-            Function("tupleElement", [Column("snuba_all_spans"), 3]),
+            Function("arrayJoin", [Column("spans.exclusive_time")]),
             Function("greater", [Column("timestamp"), regression_breakpoint]),
         ],
     )
@@ -243,13 +242,6 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
     }
 
     def get(self, request, organization):
-        if not features.has(
-            "organizations:performance-duration-regression-visible",
-            organization,
-            actor=request.user,
-        ):
-            return Response(status=404)
-
         # TODO: Extract this into a custom serializer to handle validation
         transaction_name = request.GET.get("transaction")
         project_id = request.GET.get("project")
