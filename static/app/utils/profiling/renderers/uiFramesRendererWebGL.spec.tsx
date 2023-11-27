@@ -2,7 +2,7 @@ import {vec2} from 'gl-matrix';
 
 import {makeCanvasMock, makeContextMock} from 'sentry-test/profiling/utils';
 
-import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
+import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
@@ -48,7 +48,7 @@ describe('UIFramesRenderer', () => {
     {unit: 'nanoseconds'},
     new Rect(0, 0, 10, 1)
   );
-  const renderer = new UIFramesRenderer(canvas, uiFrames, LightFlamegraphTheme);
+  const renderer = new UIFramesRendererWebGL(canvas, uiFrames, LightFlamegraphTheme);
 
   it.each([
     [vec2.fromValues(-1, 0), null],

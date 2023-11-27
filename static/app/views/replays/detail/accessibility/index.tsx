@@ -36,11 +36,10 @@ const cellMeasurer = {
 };
 
 function AccessibilityList() {
-  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const {currentTime, currentHoverTime} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const {data: accessibilityData, isLoading} = useA11yData();
-  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
@@ -149,7 +148,6 @@ function AccessibilityList() {
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
-              startTimestampMs={startTimestampMs}
               style={{...style, height: BODY_HEIGHT}}
             />
           )
@@ -227,7 +225,6 @@ function AccessibilityList() {
             onClose={() => {
               setDetailRow('');
             }}
-            startTimestampMs={startTimestampMs}
           />
         </SplitPanel>
       </AccessibilityTable>
