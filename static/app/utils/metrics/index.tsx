@@ -19,7 +19,7 @@ import {
 } from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
-import {getUseCaseFromMRI, parseField, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, getUseCaseFromMRI, parseField} from 'sentry/utils/metrics/mri';
 
 import {DateString, PageFilters} from '../../types/core';
 
@@ -271,18 +271,14 @@ export function clearQuery(router: InjectedRouter) {
 export function getSeriesName(
   group: MetricsGroup,
   isOnlyGroup = false,
-  groupBy: MetricsQuery['groupBy'],
-  alias?: string
+  groupBy: MetricsQuery['groupBy']
 ) {
-  if (alias) {
-    return alias;
-  }
-
   if (isOnlyGroup && !groupBy?.length) {
-    const mri = Object.keys(group.series)?.[0];
-    const parsed = parseMRI(mri);
+    const field = Object.keys(group.series)?.[0];
+    const {mri} = parseField(field) ?? {mri: field};
+    const name = formatMRI(mri as MRI);
 
-    return parsed?.name ?? '(none)';
+    return name ?? '(none)';
   }
 
   return Object.entries(group.by)

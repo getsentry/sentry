@@ -293,12 +293,9 @@ export function transformMetricsResponseToSeries(
   data.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {
       results.push({
-        seriesName: getSeriesName(
-          group,
-          data.groups.length === 1,
-          widgetQuery.columns,
-          queryAlias
-        ),
+        seriesName:
+          queryAlias ||
+          getSeriesName(group, data.groups.length === 1, widgetQuery.columns),
         data: data.intervals.map((interval, index) => ({
           name: interval,
           value: group.series[field][index] ?? 0,
