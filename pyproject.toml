@@ -66,17 +66,8 @@ django_settings_module = "sentry.conf.server_mypy"
 module = [
     # TODO: these cause type errors when followed
     "snuba_sdk.*",
-    # this package marks itself as typed but has no annotations
-    "google.cloud.bigtable.*",
-    # https://github.com/googleapis/python-api-core/pull/453
-    "google.api_core.retry",
 ]
 follow_imports = "skip"
-
-# https://github.com/python/mypy/issues/15343
-[[tool.mypy.overrides]]
-module = "google.*"
-ignore_missing_imports = true
 
 # python3 -m tools.mypy_helpers.make_stub_ignores
 # begin: missing 3rd party stubs
@@ -95,6 +86,13 @@ module = [
     "django_zero_downtime_migrations.backends.postgres.schema.*",
     "docker.*",
     "fido2.*",
+    "google.auth.*",
+    "google.cloud.pubsub_v1.*",
+    "google.cloud.storage.blob.*",
+    "google.cloud.storage.bucket.*",
+    "google.cloud.storage.client.*",
+    "google.resumable_media.common.*",
+    "google.rpc.status_pb2.*",
     "google_crc32c.*",
     "honcho.manager.*",
     "honcho.printer.*",
