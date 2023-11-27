@@ -78,7 +78,9 @@ def query(
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
+        results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
         sentry_sdk.set_tag("performance.dataset", "metrics")
+        sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
         return results
 
 
@@ -241,10 +243,13 @@ def timeseries_query(
             )
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
+            sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
+            result["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
 
             return {
                 "data": result["data"],
                 "isMetricsData": True,
+                "isMetricsExtractedData": metrics_query.use_on_demand,
                 "meta": result["meta"],
             }
 
@@ -438,6 +443,9 @@ def top_events_timeseries(
                 if zerofill_results
                 else item["data"],
                 "order": item["order"],
+                # One of the queries in the builder has required, thus, we mark all of them
+                # This could mislead downstream consumers of the meta data
+                "meta": {"isMetricsExtractedData": top_events_builder.use_on_demand},
             },
             params["start"],
             params["end"],

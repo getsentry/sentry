@@ -665,6 +665,11 @@ class BuildSnqlQueryTest(TestCase):
                     ]
                 ),
                 Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
+                Condition(
+                    Column(name="project_id", entity=g_entity),
+                    Op.IN,
+                    [self.project.id],
+                ),
             ],
             expected_match=Join([Relationship(entity, "attributes", g_entity)]),
         )
@@ -681,7 +686,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_simple_performance_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             metric_id = resolve(UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["user"])
             self.run_test(
                 SnubaQuery.Type.PERFORMANCE,
@@ -741,7 +746,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_aliased_query_performance_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             version = "something"
             self.create_release(self.project, version=version)
             metric_id = resolve(
@@ -814,7 +819,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_tag_query_performance_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             # Note: We don't support user queries on the performance metrics dataset, so using a
             # different tag here.
             metric_id = resolve(
@@ -1038,7 +1043,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_simple_sessions_for_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             org_id = self.organization.id
             for tag in [SessionMRI.RAW_SESSION.value, "session.status", "crashed", "init"]:
                 rh_indexer_record(org_id, tag)
@@ -1084,7 +1089,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_simple_users_for_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             org_id = self.organization.id
             for tag in [SessionMRI.RAW_USER.value, "session.status", "crashed"]:
                 rh_indexer_record(org_id, tag)
@@ -1117,7 +1122,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_query_and_environment_sessions_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [
@@ -1197,7 +1202,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_query_and_environment_users_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:use-metrics-layer-in-alerts"):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [

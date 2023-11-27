@@ -39,7 +39,7 @@ class CreateAttachmentMixin:
         return self.attachment
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -83,7 +83,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert EventAttachment.objects.count() == 0
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
     def setUp(self):
         super().setUp()

@@ -57,7 +57,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -76,7 +75,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -103,7 +101,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                         minGroupingLevel: 1,
                       },
@@ -131,7 +128,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                         minGroupingLevel: 0,
                       },
@@ -352,7 +348,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -371,7 +366,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -390,7 +384,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -410,7 +403,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -430,7 +422,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -514,7 +505,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -533,7 +523,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -553,7 +542,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -573,7 +561,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -593,7 +580,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -673,7 +659,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -692,7 +677,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -973,7 +957,6 @@ describe('Threads', function () {
                       colNo: null,
                       inApp: false,
                       trust: null,
-                      errors: null,
                       vars: null,
                     },
                   ],
@@ -1023,7 +1006,6 @@ describe('Threads', function () {
                 colNo: null,
                 inApp: false,
                 trust: null,
-                errors: null,
                 vars: null,
               },
             ],
@@ -1230,7 +1212,6 @@ describe('Threads', function () {
                 colNo: null,
                 inApp: false,
                 trust: null,
-                errors: null,
                 vars: null,
               },
             ],

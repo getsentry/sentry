@@ -8,7 +8,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.notifications.notifications.missing_members_nudge.MissingMembersNudgeNotification.send",
 )

@@ -34,7 +34,7 @@ def make_event(**kwargs) -> dict[str, Any]:
     return result
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestGetEventSeverity(TestCase):
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -92,7 +92,7 @@ class TestGetEventSeverity(TestCase):
             {"logentry": {"message": "Dogs are great!"}},
         ]
         for case in cases:
-            manager = EventManager(make_event(level="info", **case))
+            manager = EventManager(make_event(**case))
             event = manager.save(self.project.id)
 
             severity = _get_severity_score(event)
@@ -100,7 +100,7 @@ class TestGetEventSeverity(TestCase):
             payload = {
                 "message": "Dogs are great!",
                 "has_stacktrace": 0,
-                "log_level": "info",
+                "log_level": "error",
                 "handled": 1,
             }
 
@@ -240,8 +240,31 @@ class TestGetEventSeverity(TestCase):
         )
         assert severity is None
 
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+    )
+    @patch("sentry.event_manager.logger.info")
+    def test_info_events_yield_zero_severity(
+        self,
+        mock_logger_info: MagicMock,
+        mock_urlopen: MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(
+                level="info",
+                exception={"values": [{"type": "InfoEvent", "value": "Super Cool Info"}]},
+            )
+        )
+        event = manager.save(self.project.id)
 
-@region_silo_test(stable=True)
+        severity = _get_severity_score(event)
+        assert severity == 0
+
+        mock_urlopen.assert_not_called()
+        mock_logger_info.assert_not_called()
+
+
+@region_silo_test
 class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
     def test_flag_on(self, mock_get_severity_score: MagicMock):
@@ -355,7 +378,7 @@ class TestEventManagerSeverity(TestCase):
                 assert group.get_event_metadata()["severity"] == 0.1121
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestSaveAggregateSeverity(TestCase):
     @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
     @patch("sentry.event_manager.logger.error")
@@ -432,7 +455,7 @@ class TestSaveAggregateSeverity(TestCase):
             assert "Group created without severity score" not in logger_messages
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestSaveGroupHashAndGroupSeverity(TestCase):
     @patch("sentry.event_manager.logger.error")
     @patch("sentry.event_manager._get_severity_score", return_value=None)

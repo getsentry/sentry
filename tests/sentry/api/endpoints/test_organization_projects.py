@@ -34,7 +34,7 @@ class OrganizationProjectsTestBase(APITestCase):
         self.check_valid_response(response, [project])
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationProjectsTest(OrganizationProjectsTestBase):
     def setUp(self):
         super().setUp()
@@ -226,7 +226,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         assert not response.data[1].get("options")
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationProjectsCountTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-count"
 

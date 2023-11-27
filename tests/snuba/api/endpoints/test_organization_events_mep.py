@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -13,6 +16,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.search.events import constants
 from sentry.search.utils import map_device_class_level
+from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
@@ -2582,6 +2586,56 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(data) == 1
         assert data[0]["device.class"] == level
         assert meta["fields"]["device.class"] == "string"
+
+
+class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
+    MetricsEnhancedPerformanceTestCase
+):
+    viewname = "sentry-api-0-organization-events"
+
+    def setUp(self):
+        super().setUp()
+
+    def do_request(self, query):
+        self.login_as(user=self.user)
+        url = reverse(
+            self.viewname,
+            kwargs={"organization_slug": self.organization.slug},
+        )
+        with self.feature({"organizations:on-demand-metrics-extraction-widgets": True}):
+            return self.client.get(url, query, format="json")
+
+    def _test_is_metrics_extracted_data(
+        self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
+    ) -> None:
+        spec = OnDemandMetricSpec(
+            field="count()",
+            query="transaction.duration:>1s",
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        self.store_on_demand_metric(1, spec=spec)
+        response = self.do_request(params)
+
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
+        assert meta["dataset"] == dataset
+
+        return meta
+
+    def test_is_metrics_extracted_data_is_included(self):
+        self._test_is_metrics_extracted_data(
+            {
+                "field": ["count()"],
+                "dataset": "metricsEnhanced",
+                "query": "transaction.duration:>=91",
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+            expected_on_demand_query=True,
+            dataset="metricsEnhanced",
+        )
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(

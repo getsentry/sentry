@@ -25,6 +25,7 @@ import {Series} from 'sentry/types/echarts';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
+import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   MEPConsumer,
   MEPState,
@@ -323,6 +324,7 @@ class WidgetCard extends Component<Props, State> {
                           widget.thresholds,
                           this.state.tableData
                         )}
+                      <ExtractedMetricsTag queryKey={widget} />
                     </WidgetTitleRow>
                     {widget.description && (
                       <Tooltip

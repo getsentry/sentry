@@ -104,7 +104,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     method = "post"
@@ -753,6 +753,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
                 "organizations:ddm-experimental",
+                "organizations:use-metrics-layer-in-alerts",
             ]
         ):
             for mri in (
@@ -785,6 +786,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
                 "organizations:ddm-experimental",
+                "organizations:use-metrics-layer-in-alerts",
             ]
         ):
             test_params = {
@@ -949,7 +951,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
     method = "post"

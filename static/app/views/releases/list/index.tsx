@@ -77,7 +77,9 @@ type State = {
 class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
-  hasV2ReleaseUIEnabled = this.props.organization.features.includes('release-ui-v2');
+  hasV2ReleaseUIEnabled =
+    this.props.organization.features.includes('releases-v2') ||
+    this.props.organization.features.includes('releases-v2-st');
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
@@ -523,11 +525,17 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return (
       <PageFiltersContainer showAbsolute={false}>
         <NoProjectMessage organization={organization}>
-          <Header router={router} hasV2ReleaseUIEnabled={this.hasV2ReleaseUIEnabled} />
+          <Header
+            router={router}
+            hasV2ReleaseUIEnabled={this.hasV2ReleaseUIEnabled}
+            organization={organization}
+          />
 
           <Layout.Body>
             <Layout.Main fullWidth>
-              <ReleaseFeedbackBanner />
+              {organization.features.includes('releases-v2-banner') && (
+                <ReleaseFeedbackBanner />
+              )}
 
               {this.renderHealthCta()}
 

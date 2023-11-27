@@ -7,7 +7,7 @@ from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 
 
 @control_silo_endpoint
-class DocIntegrationAvatarEndpoint(AvatarMixin, DocIntegrationBaseEndpoint):
+class DocIntegrationAvatarEndpoint(AvatarMixin[DocIntegrationAvatar], DocIntegrationBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,

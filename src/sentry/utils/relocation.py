@@ -15,7 +15,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.http import get_server_hostname
 from sentry.models.files.utils import get_storage
 from sentry.models.relocation import Relocation, RelocationFile
-from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 
@@ -160,7 +159,7 @@ artifacts:
   objects:
     location: "$bucket_root/relocations/runs/$uuid/findings/"
     paths: ["/workspace/findings/**"]
-timeout: 2400s
+timeout: 3600s
 options:
   machineType: "N1_HIGHCPU_32"
   env:
@@ -194,7 +193,7 @@ IMPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/import-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
 
@@ -208,6 +207,8 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
     args:
       $docker_compose_cmd
       $docker_compose_run
+      - "-v"
+      - "/workspace/in:/in"
       - "-v"
       - "/workspace/out:/out"
       - "-v"
@@ -223,7 +224,7 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/export-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
 
@@ -270,7 +271,7 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/compare-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
 
@@ -474,9 +475,7 @@ def get_bucket_name():
 
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
     # Only test existing users for collision and mutation.
-    existing_usernames = User.objects.filter(username__in=relocation.want_usernames).values_list(
-        "username", flat=True
-    )
+    existing_usernames = user_service.get_existing_usernames(usernames=relocation.want_usernames)
     filter_usernames_args = [
         "--filter-usernames",
         ",".join(existing_usernames) if existing_usernames else ",",
