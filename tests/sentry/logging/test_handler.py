@@ -101,7 +101,7 @@ def test_JSONRenderer_prod():
 def test_logging_raiseExcpetions_enabled_generic_logging(caplog):
     logger = logging.getLogger(__name__)
     snafu = mock.MagicMock()
-    snafu.__str__.side_effect = Exception("snafu")
+    snafu.__str__.side_effect = Exception("snafu")  # type: ignore[attr-defined]
     with pytest.raises(Exception) as exc_info:
         logger.log(logging.INFO, snafu)
     assert exc_info.value.args == ("snafu",)
@@ -111,5 +111,5 @@ def test_logging_raiseExcpetions_enabled_generic_logging(caplog):
 def test_logging_raiseExcpetions_disabled_generic_logging(caplog):
     logger = logging.getLogger(__name__)
     snafu = mock.MagicMock()
-    snafu.__str__.side_effect = Exception("snafu")
+    snafu.__str__.side_effect = Exception("snafu")  # type: ignore[attr-defined]
     logger.log(logging.INFO, snafu)
