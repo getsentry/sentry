@@ -118,7 +118,7 @@ export function getMetricsApiRequestQuery(
   overrides: Partial<MetricsApiRequestQuery>
 ): MetricsApiRequestQuery {
   const {mri: mri} = parseField(field) ?? {};
-  const useCase = getUseCaseFromMRI(mri);
+  const useCase = getUseCaseFromMRI(mri) ?? 'custom';
   const interval = getMetricsInterval(datetime, useCase);
 
   const queryToSend = {

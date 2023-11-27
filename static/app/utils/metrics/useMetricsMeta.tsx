@@ -1,11 +1,10 @@
 import {useMemo} from 'react';
 
 import {PageFilters} from 'sentry/types';
-import {UseCase} from 'sentry/utils/metrics';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {MetricMeta} from '../../types/metrics';
+import {MetricMeta, UseCase} from '../../types/metrics';
 
 interface Options {
   useCases?: UseCase[];
