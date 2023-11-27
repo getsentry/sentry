@@ -97,7 +97,6 @@ def is_current_event_safe():
     """
 
     with configure_scope() as scope:
-
         # Scope was explicitly marked as unsafe
         if scope._tags.get(UNSAFE_TAG):
             return False
@@ -431,6 +430,7 @@ def configure_sdk():
     # turn on minimetrics
     sdk_options.setdefault("_experiments", {}).update(
         enable_metrics=True,
+        metric_code_locations=options.get("delightful_metrics.enable_code_locations"),
         before_emit_metric=minimetrics.before_emit_metric,
     )
 
