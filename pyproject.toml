@@ -461,7 +461,6 @@ module = [
     "sentry.management.commands.send_fake_data",
     "sentry.middleware.access_log",
     "sentry.middleware.auth",
-    "sentry.middleware.integrations.parsers.base",
     "sentry.middleware.ratelimit",
     "sentry.middleware.subdomain",
     "sentry.middleware.superuser",
