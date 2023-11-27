@@ -1,24 +1,16 @@
 import {useMemo} from 'react';
 
 import {PageFilters} from 'sentry/types';
-import {UseCase} from 'sentry/utils/metrics';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-// TODO(ddm): reuse from types/metrics.tsx
-type MetricMeta = {
-  mri: string;
-  name: string;
-  operations: string[];
-  type: string;
-  unit: string;
-};
+import {MetricMeta, UseCase} from '../../types/metrics';
 
 interface Options {
   useCases?: UseCase[];
 }
 
-const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom'];
+const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
 
 export function useMetricsMeta(
   projects: PageFilters['projects'],
@@ -34,38 +26,58 @@ export function useMetricsMeta(
     ];
   };
 
+  const hasSessions = enabledUseCases.includes('sessions');
+  const hasTransactions = enabledUseCases.includes('transactions');
+  const hasCustom = enabledUseCases.includes('custom');
+  const hasSpans = enabledUseCases.includes('spans');
+
   const commonOptions = {
     staleTime: Infinity,
   };
 
   const sessionsMeta = useApiQuery<MetricMeta[]>(getKey('sessions'), {
     ...commonOptions,
-    enabled: enabledUseCases.includes('sessions'),
+    enabled: hasSessions,
   });
   const txnsMeta = useApiQuery<MetricMeta[]>(getKey('transactions'), {
     ...commonOptions,
-    enabled: enabledUseCases.includes('transactions'),
+    enabled: hasTransactions,
   });
   const customMeta = useApiQuery<MetricMeta[]>(getKey('custom'), {
     ...commonOptions,
-    enabled: enabledUseCases.includes('custom'),
+    enabled: hasCustom,
+  });
+  const spansMeta = useApiQuery<MetricMeta[]>(getKey('spans'), {
+    ...commonOptions,
+    enabled: hasSpans,
   });
 
   const combinedMeta = useMemo<Record<string, MetricMeta>>(() => {
     return [
-      ...(sessionsMeta.data ?? []),
-      ...(txnsMeta.data ?? []),
-      ...(customMeta.data ?? []),
+      ...(hasSessions ? sessionsMeta.data ?? [] : []),
+      ...(hasTransactions ? txnsMeta.data ?? [] : []),
+      ...(hasCustom ? customMeta.data ?? [] : []),
+      ...(hasSpans ? spansMeta.data ?? [] : []),
     ].reduce((acc, metricMeta) => {
       return {...acc, [metricMeta.mri]: metricMeta};
     }, {});
-  }, [sessionsMeta.data, txnsMeta.data, customMeta.data]);
+  }, [
+    hasSessions,
+    sessionsMeta.data,
+    hasTransactions,
+    txnsMeta.data,
+    hasCustom,
+    customMeta.data,
+    hasSpans,
+    spansMeta.data,
+  ]);
 
   return {
     data: combinedMeta,
     isLoading:
       (sessionsMeta.isLoading && sessionsMeta.fetchStatus !== 'idle') ||
       (txnsMeta.isLoading && txnsMeta.fetchStatus !== 'idle') ||
-      (customMeta.isLoading && customMeta.fetchStatus !== 'idle'),
+      (customMeta.isLoading && customMeta.fetchStatus !== 'idle') ||
+      (spansMeta.isLoading && spansMeta.fetchStatus !== 'idle'),
   };
 }

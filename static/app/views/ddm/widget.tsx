@@ -20,14 +20,15 @@ import {
   getSeriesName,
   MetricDisplayType,
   MetricWidgetQueryParams,
-  parseMRI,
   updateQuery,
 } from 'sentry/utils/metrics';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
 import {MetricChart} from 'sentry/views/ddm/chart';
+import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {MetricWidgetContextMenu} from 'sentry/views/ddm/contextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
@@ -247,6 +248,7 @@ function MetricWidgetBody({
           setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
         />
       )}
+      <CodeLocations mri={metricsQuery.mri} />
     </StyledMetricWidgetBody>
   );
 }
