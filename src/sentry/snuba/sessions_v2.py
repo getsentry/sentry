@@ -434,8 +434,6 @@ def get_constrained_date_range(
     if ONE_DAY % interval != 0:
         raise InvalidParams("The interval should divide one day without a remainder.")
 
-    using_minute_resolution = interval % ONE_HOUR != 0
-
     start, end = get_date_range_from_params(params)
     now = get_now()
 
@@ -445,16 +443,6 @@ def get_constrained_date_range(
     adjusted_start, adjusted_end, _num_intervals = to_intervals(start, end, interval)
 
     date_range = adjusted_end - adjusted_start
-
-    if using_minute_resolution and restrict_date_range:
-        if date_range.total_seconds() > 6 * ONE_HOUR:
-            raise InvalidParams(
-                "The time-range when using one-minute resolution intervals is restricted to 6 hours."
-            )
-        if (now - start).total_seconds() > 30 * ONE_DAY:
-            raise InvalidParams(
-                "The time-range when using one-minute resolution intervals is restricted to the last 30 days."
-            )
 
     if date_range.total_seconds() / interval > max_points:
         raise InvalidParams(
