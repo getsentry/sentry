@@ -139,5 +139,5 @@ class GetChannelIdFromUrl(TestCase):
             get_channel_id_from_url("https://different.com")
 
     def test_just_channel_id(self):
-        with raises(ValidationError):
-            get_channel_id_from_url("123455")
+        channel_id = get_channel_id_from_url("123455")
+        assert channel_id == "123455"

@@ -244,7 +244,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         label = self.rule.render_label()
         assert (
             label
-            == f"Send a notification to the Cool server Discord server in the channel with URL: {self.channel_url} and show tags [{self.tags}] in the notification."
+            == f"Send a notification to the Cool server Discord server in the channel with ID or URL: {self.channel_url} and show tags [{self.tags}] in the notification."
         )
 
 

@@ -7,6 +7,9 @@ def get_channel_id_from_url(channel_url: str) -> str:
     # https://discord.com/channels/1146873646112059423/1157018214425956502
     prefix = "https://discord.com/channels/"
 
+    if channel_url.isdigit():
+        return channel_url
+
     if not channel_url.startswith(prefix):
         logger.info(
             "rule.discord.bad_channel_url",
