@@ -63,6 +63,7 @@ register_permanent_features(default_manager)
 default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("hybrid-cloud:region-provisioning-allow-list", SystemFeature, FeatureHandlerStrategy.REMOTE)
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)

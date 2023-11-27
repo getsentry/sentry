@@ -1422,6 +1422,8 @@ SENTRY_EARLY_FEATURES = {
 SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables user registration.
     "auth:register": True,
+    # Enables region provisioning for individual users
+    "hybrid-cloud:region-provisioning-allow-list": False,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
     # Enables transaction to metric dataset migration UI for alert rules
