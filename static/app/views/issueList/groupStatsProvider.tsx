@@ -71,7 +71,7 @@ export interface GroupStatsProviderProps {
   period: string;
 
   selection: PageFilters;
-  onRequestStatusChange?: (query: GroupStatsQuery) => void;
+  onStatsQuery?: (query: GroupStatsQuery) => void;
   query?: string;
 }
 
@@ -119,12 +119,12 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
     }
   );
 
-  const onRequestStatusChange = props.onRequestStatusChange;
+  const onStatsQuery = props.onStatsQuery;
   useEffect(() => {
-    onRequestStatusChange?.(statsQuery);
+    onStatsQuery?.(statsQuery);
     // We only want to fire the observer when the status changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statsQuery.status, onRequestStatusChange]);
+  }, [statsQuery.status, onStatsQuery]);
 
   return (
     <GroupStatsContext.Provider value={statsQuery}>
