@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
@@ -17,44 +17,44 @@ type Options = {
 };
 
 function useOnboardingDocs({docKeys, isPlatformSupported, project}: Options) {
-  const organization = useOrganization();
   const api = useApi();
+  const organization = useOrganization();
 
-  const [loadingDocs, setLoadingDocs] =
-    useState<Record<string, boolean>>(INITIAL_LOADING_DOCS);
+  const loadingDocsRef = useRef<Record<string, boolean>>(INITIAL_LOADING_DOCS);
+  const docContentsRef = useRef<Record<string, string>>(INITIAL_DOC_CONTENTS);
+
   const [docContents, setDocContents] =
     useState<Record<string, string>>(INITIAL_DOC_CONTENTS);
 
-  const currentPlatform = project.platform
-    ? platforms.find(p => p.id === project.platform)
-    : undefined;
+  docContentsRef.current = docContents;
 
   useEffect(() => {
     if (!isPlatformSupported) {
-      if (loadingDocs !== INITIAL_LOADING_DOCS) {
-        setLoadingDocs(INITIAL_LOADING_DOCS);
+      if (loadingDocsRef.current !== INITIAL_LOADING_DOCS) {
+        loadingDocsRef.current = INITIAL_LOADING_DOCS;
       }
-      if (docContents !== INITIAL_DOC_CONTENTS) {
+      if (docContentsRef.current !== INITIAL_DOC_CONTENTS) {
         setDocContents(INITIAL_DOC_CONTENTS);
       }
-      return;
+      return undefined;
     }
 
+    let cancelRequest = false;
+
     docKeys.forEach(docKey => {
-      if (docKey in loadingDocs) {
+      if (docKey in loadingDocsRef.current) {
         // If a documentation content is loading, we should not attempt to fetch it again.
         // otherwise, if it's not loading, we should only fetch at most once.
         // Any errors that occurred will be captured via Sentry.
         return;
       }
 
-      const setLoadingDoc = (loadingState: boolean) =>
-        setLoadingDocs(prevState => {
-          return {
-            ...prevState,
-            [docKey]: loadingState,
-          };
-        });
+      const setLoadingDoc = (loadingState: boolean) => {
+        loadingDocsRef.current = {
+          ...loadingDocsRef.current,
+          [docKey]: loadingState,
+        };
+      };
 
       const setDocContent = (docContent: string | undefined) =>
         setDocContents(prevState => {
@@ -80,25 +80,33 @@ function useOnboardingDocs({docKeys, isPlatformSupported, project}: Options) {
         platform: docKey as any,
       })
         .then(({html}) => {
-          setDocContent(html as string);
+          if (cancelRequest) {
+            return;
+          }
           setLoadingDoc(false);
+          setDocContent(html as string);
         })
         .catch(error => {
+          if (cancelRequest) {
+            return;
+          }
           Sentry.captureException(error);
-          setDocContent(undefined);
           setLoadingDoc(false);
+          setDocContent(undefined);
         });
     });
-  }, [
-    currentPlatform,
-    docKeys,
-    isPlatformSupported,
-    api,
-    loadingDocs,
-    organization.slug,
-    project.slug,
-    docContents,
-  ]);
+
+    return () => {
+      cancelRequest = true;
+      for (const key of docKeys) {
+        delete loadingDocsRef.current[key];
+      }
+    };
+  }, [docKeys, isPlatformSupported, api, organization.slug, project]);
+
+  const currentPlatform = project.platform
+    ? platforms.find(p => p.id === project.platform)
+    : undefined;
 
   if (!currentPlatform || !isPlatformSupported) {
     return {
@@ -108,23 +116,20 @@ function useOnboardingDocs({docKeys, isPlatformSupported, project}: Options) {
     };
   }
 
-  const isLoading = Boolean(
-    docKeys?.some(key => {
-      if (key in loadingDocs) {
-        return !!loadingDocs[key];
+  const isLoading =
+    docKeys &&
+    docKeys.some(key => {
+      if (key in loadingDocsRef.current) {
+        return !!loadingDocsRef.current[key];
       }
       return true;
-    })
-  );
-
-  const hasOnboardingContents = Boolean(
-    docKeys?.every(key => typeof docContents[key] === 'string')
-  );
+    });
 
   return {
     docKeys,
     isLoading,
-    hasOnboardingContents,
+    hasOnboardingContents:
+      docKeys && docKeys.every(key => typeof docContents[key] === 'string'),
     docContents,
   };
 }
