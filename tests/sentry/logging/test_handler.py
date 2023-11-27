@@ -17,6 +17,15 @@ def logger():
     return mock.MagicMock()
 
 
+@pytest.fixture
+def snafu() -> Any:
+    class SNAFU:
+        def __str__(self) -> str:
+            raise Exception("snafu")
+
+    return SNAFU()
+
+
 def make_logrecord(
     *,
     name: str = "name",
@@ -98,18 +107,15 @@ def test_JSONRenderer_prod():
 
 
 @mock.patch("logging.raiseExceptions", True)
-def test_logging_raiseExcpetions_enabled_generic_logging(caplog):
+def test_logging_raiseExcpetions_enabled_generic_logging(caplog, snafu):
     logger = logging.getLogger(__name__)
-    snafu = mock.MagicMock()
-    snafu.__str__.side_effect = Exception("snafu")
+
     with pytest.raises(Exception) as exc_info:
         logger.log(logging.INFO, snafu)
     assert exc_info.value.args == ("snafu",)
 
 
 @mock.patch("logging.raiseExceptions", False)
-def test_logging_raiseExcpetions_disabled_generic_logging(caplog):
+def test_logging_raiseExcpetions_disabled_generic_logging(caplog, snafu):
     logger = logging.getLogger(__name__)
-    snafu = mock.MagicMock()
-    snafu.__str__.side_effect = Exception("snafu")
     logger.log(logging.INFO, snafu)

@@ -40,7 +40,6 @@ types-beautifulsoup4
 types-cachetools
 types-croniter
 types-jsonschema
-types-mock
 types-oauthlib
 types-parsimonious
 types-pillow
