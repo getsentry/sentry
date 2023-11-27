@@ -102,8 +102,9 @@ def test_logging_raiseExcpetions_enabled_generic_logging(caplog):
     logger = logging.getLogger(__name__)
     snafu = mock.MagicMock()
     snafu.__str__.side_effect = Exception("snafu")
-    with pytest.raises(Exception, match="snafu"):
+    with pytest.raises(Exception) as exc_info:
         logger.log(logging.INFO, snafu)
+    assert exc_info.value.args == ("snafu",)
 
 
 @mock.patch("logging.raiseExceptions", False)
