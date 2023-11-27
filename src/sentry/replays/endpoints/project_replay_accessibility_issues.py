@@ -44,6 +44,9 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
+        if options.get("organizations:session-replay-accessibility-issues-enabled") is False:
+            return Response(status=404)
+
         try:
             replay_id = str(uuid.UUID(replay_id)).replace("-", "")
         except ValueError:
