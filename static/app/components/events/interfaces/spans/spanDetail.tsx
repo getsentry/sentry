@@ -372,9 +372,12 @@ function SpanDetail(props: Props) {
     );
   }
 
-  function partitionSizes(data) {
+  function partitionSizes(data): {
+    nonSizeKeys: {[key: string]: unknown};
+    sizeKeys: {[key: string]: number};
+  } {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-      if (data.hasOwnProperty(key)) {
+      if (data.hasOwnProperty(key) && defined(data[key])) {
         keys[key] = data[key];
       }
       return keys;
