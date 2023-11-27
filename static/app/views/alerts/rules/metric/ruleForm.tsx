@@ -1008,7 +1008,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const formDisabled = loading || !hasAlertWrite;
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
-    const showMigrationWarning =
+    const showTransactionMigrationWarning =
       !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
     const showErrorMigrationWarning =
       !!ruleId &&
@@ -1095,7 +1095,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
-            {showMigrationWarning && (
+            {showTransactionMigrationWarning && (
               <Alert type="warning" showIcon>
                 {tct(
                   'Check the chart above and make sure the current thresholds are still valid, given that this alert is now based on [tooltip:total events].',
