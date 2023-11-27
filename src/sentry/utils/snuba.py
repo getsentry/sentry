@@ -810,7 +810,7 @@ def bulk_snql_query(
     requests: List[Request],
     referrer: Optional[str] = None,
     use_cache: bool = False,
-) -> List[str, Any]:
+) -> dict[str, Any]:
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
