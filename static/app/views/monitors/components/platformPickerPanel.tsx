@@ -18,7 +18,9 @@ export type SupportedPlatform =
   | 'node'
   | 'go'
   | 'java'
-  | 'java-spring-boot';
+  | 'java-spring-boot'
+  | 'ruby'
+  | 'ruby-rails';
 
 interface SDKPlatformInfo {
   label: string;
@@ -34,6 +36,8 @@ export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
   {platform: 'go', label: 'Go'},
   {platform: 'java', label: 'Java'},
   {platform: 'java-spring-boot', label: 'Spring Boot'},
+  {platform: 'ruby', label: 'Ruby'},
+  {platform: 'ruby-rails', label: 'Rails'},
 ];
 
 interface Props {

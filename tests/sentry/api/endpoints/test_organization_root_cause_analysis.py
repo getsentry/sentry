@@ -9,12 +9,10 @@ from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
-FEATURES = ["organizations:performance-duration-regression-visible"]
-
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
     def setUp(self):
@@ -66,88 +64,78 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         return self.store_event(data, project_id=project_id)
 
-    def test_404s_without_feature_flag(self):
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == 404, response.content
-
     def test_transaction_name_required(self):
-        with self.feature(FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "project": self.project.id,
-                    "breakpoint": (self.now - timedelta(days=1)).isoformat(),
-                },
-            )
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "project": self.project.id,
+                "breakpoint": (self.now - timedelta(days=1)).isoformat(),
+            },
+        )
 
         assert response.status_code == 400, response.content
 
     def test_project_id_required(self):
-        with self.feature(FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "transaction": "foo",
-                },
-            )
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "foo",
+            },
+        )
 
         assert response.status_code == 400, response.content
 
     def test_breakpoint_required(self):
-        with self.feature(FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={"transaction": "foo", "project": self.project.id},
-            )
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={"transaction": "foo", "project": self.project.id},
+        )
 
         assert response.status_code == 400, response.content
 
     def test_transaction_must_exist(self):
-        with self.feature(FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "transaction": "foo",
-                    "project": self.project.id,
-                    "breakpoint": self.now - timedelta(days=1),
-                    "start": self.now - timedelta(days=3),
-                    "end": self.now,
-                },
-            )
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "foo",
+                "project": self.project.id,
+                "breakpoint": self.now - timedelta(days=1),
+                "start": self.now - timedelta(days=3),
+                "end": self.now,
+            },
+        )
 
         assert response.status_code == 200, response.content
 
-        with self.feature(FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "transaction": "does not exist",
-                    "project": self.project.id,
-                    "breakpoint": self.now - timedelta(days=1),
-                    "start": self.now - timedelta(days=3),
-                    "end": self.now,
-                },
-            )
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "does not exist",
+                "project": self.project.id,
+                "breakpoint": self.now - timedelta(days=1),
+                "start": self.now - timedelta(days=3),
+                "end": self.now,
+            },
+        )
 
         assert response.status_code == 400, response.content
 
     # TODO: Enable this test when adding a serializer to handle validation
     # def test_breakpoint_must_be_in_the_past(self):
-    #     with self.feature(FEATURES):
-    #         response = self.client.get(
-    #             self.url,
-    #             format="json",
-    #             data={
-    #                 "transaction": "foo",
-    #                 "project": self.project.id,
-    #                 "breakpoint": (self.now + timedelta(days=1)).isoformat(),
-    #             },
-    #         )
+    #     response = self.client.get(
+    #         self.url,
+    #         format="json",
+    #         data={
+    #             "transaction": "foo",
+    #             "project": self.project.id,
+    #             "breakpoint": (self.now + timedelta(days=1)).isoformat(),
+    #         },
+    #     )
 
     #     assert response.status_code == 400, response.content
 
@@ -229,40 +217,40 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             duration=600,
         )
 
-        with self.feature(FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "transaction": "foo",
-                    "project": self.project.id,
-                    "breakpoint": self.now - timedelta(days=1),
-                    "start": self.now - timedelta(days=3),
-                    "end": self.now,
-                },
-            )
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "foo",
+                "project": self.project.id,
+                "breakpoint": self.now - timedelta(days=1),
+                "start": self.now - timedelta(days=3),
+                "end": self.now,
+            },
+        )
 
         assert response.status_code == 200, response.content
-
-        # Check that sample IDs are gathered, but remove them from the data
-        # for checking since they are randomized
-        assert all("sample_event_id" in row for row in response.data)
-        for row in response.data:
-            del row["sample_event_id"]
         assert response.data == [
             {
                 "span_op": "django.middleware",
                 "span_group": "2b9cbb96dbf59baa",
                 "span_description": "middleware span",
-                "score_delta": 1578.0,
-                "freq_before": 1.0,
-                "freq_after": 3.0,
-                "freq_delta": 2.0,
-                "duration_delta": 486.0,
-                "duration_before": 60.0,
-                "duration_after": 546.0,
-                "is_new_span": False,
-            }
+                "score": 1.1166666666666667,
+                "spm_before": 0.00034722222222222224,
+                "spm_after": 0.0020833333333333333,
+                "p95_before": 60.0,
+                "p95_after": 546.0,
+            },
+            {
+                "p95_after": 60.0,
+                "p95_before": 60.0,
+                "score": 0.020833333333333336,
+                "span_description": "db span",
+                "span_group": "5ad8c5a1e8d0e5f7",
+                "span_op": "db",
+                "spm_after": 0.0006944444444444445,
+                "spm_before": 0.00034722222222222224,
+            },
         ]
 
     def test_results_are_limited(self):
@@ -311,47 +299,39 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                     "timestamp": iso_format(self.now - timedelta(hours=1)),
                     "op": "db",
                     "description": "db",
-                    "exclusive_time": 100.0,
+                    "exclusive_time": 10000.0,
                 },
             ],
             project_id=self.project.id,
             start_timestamp=self.now - timedelta(hours=1),
-            duration=200,
+            duration=10100,
         )
 
-        with self.feature(FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "transaction": "foo",
-                    "project": self.project.id,
-                    "breakpoint": self.now - timedelta(days=1),
-                    "start": self.now - timedelta(days=3),
-                    "end": self.now,
-                    "per_page": 1,
-                },
-            )
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "foo",
+                "project": self.project.id,
+                "breakpoint": self.now - timedelta(days=1),
+                "start": self.now - timedelta(days=3),
+                "end": self.now,
+                "per_page": 1,
+            },
+        )
 
         assert response.status_code == 200, response.content
-
-        for row in response.data:
-            del row["sample_event_id"]
-
         assert len(response.data) == 1
         assert response.data == [
             {
                 "span_op": "db",
                 "span_group": "d77d5e503ad1439f",
-                "score_delta": 100.0,
-                "freq_before": 0,
-                "freq_after": 1.0,
-                "freq_delta": 1.0,
-                "duration_delta": 100.0,
-                "duration_before": 0,
-                "duration_after": 100.0,
+                "score": 6.944444444444445,
+                "spm_before": 0.0,
+                "spm_after": 0.0006944444444444445,
+                "p95_before": 0.0,
+                "p95_after": 10000.0,
                 "span_description": "db",
-                "is_new_span": True,
             }
         ]
 
@@ -404,18 +384,17 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             duration=200,
         )
 
-        with self.feature(FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "transaction": "foo",
-                    "project": self.project.id,
-                    "breakpoint": breakpoint_timestamp,
-                    "start": self.now - timedelta(days=3),
-                    "end": self.now,
-                },
-            )
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "foo",
+                "project": self.project.id,
+                "breakpoint": breakpoint_timestamp,
+                "start": self.now - timedelta(days=3),
+                "end": self.now,
+            },
+        )
 
         assert response.status_code == 200, response.content
 
@@ -467,19 +446,18 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             hours_before_now=6,
         )
 
-        with self.feature(FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "transaction": "bar",
-                    "project": self.project.id,
-                    "breakpoint": breakpoint_timestamp,
-                    "start": self.now - timedelta(days=3),
-                    "end": self.now,
-                    "type": "geo",
-                },
-            )
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "bar",
+                "project": self.project.id,
+                "breakpoint": breakpoint_timestamp,
+                "start": self.now - timedelta(days=3),
+                "end": self.now,
+                "type": "geo",
+            },
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == [
@@ -522,19 +500,18 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             hours_before_now=6,
         )
 
-        with self.feature(FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "transaction": "bar",
-                    "project": self.project.id,
-                    "breakpoint": breakpoint_timestamp,
-                    "start": self.now - timedelta(days=3),
-                    "end": self.now,
-                    "type": "geo",
-                },
-            )
+        response = self.client.get(
+            self.url,
+            format="json",
+            data={
+                "transaction": "bar",
+                "project": self.project.id,
+                "breakpoint": breakpoint_timestamp,
+                "start": self.now - timedelta(days=3),
+                "end": self.now,
+                "type": "geo",
+            },
+        )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0

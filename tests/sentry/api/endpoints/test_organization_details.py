@@ -25,6 +25,7 @@ from sentry.models.authenticator import Authenticator
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.options import ControlOption
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -34,9 +35,8 @@ from sentry.models.user import User
 from sentry.signals import project_created
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -78,7 +78,7 @@ class MockAccess:
         return False
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -153,7 +153,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         # make sure options are not cached the first time to get predictable number of database queries
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(ControlOption):
             sentry_options.delete("system.rate-limit")
             sentry_options.delete("store.symbolicate-event-lpq-always")
             sentry_options.delete("store.symbolicate-event-lpq-never")
@@ -222,7 +222,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
 
     def test_trusted_relays_info(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
@@ -266,7 +266,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is False
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuthProvider):
             AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         response = self.get_success_response(self.organization.slug)
@@ -314,8 +314,31 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
         assert resp.status_code == 400
 
+    def test_with_avatar_image(self):
+        organization = self.organization
+        OrganizationAvatar.objects.create(
+            organization_id=organization.id,
+            avatar_type=1,  # upload
+            file_id=1,
+            ident="abc123",
+        )
+        resp = self.get_response(organization.slug)
+        assert resp.status_code == 200
+        assert "avatar" in resp.data
+        assert resp.data["avatar"]["avatarType"] == "upload"
+        assert resp.data["avatar"]["avatarUuid"] == "abc123"
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert (
+                resp.data["avatar"]["avatarUrl"]
+                == "http://us.testserver/organization-avatar/abc123/"
+            )
+        else:
+            assert (
+                resp.data["avatar"]["avatarUrl"] == "http://testserver/organization-avatar/abc123/"
+            )
 
-@region_silo_test(stable=True)
+
+@region_silo_test
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -339,7 +362,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
 
     def test_valid_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "1234", "SaNtRy"]
+        valid_slugs = ["santry", "downtown-canada", "1234-foo", "SaNtRy"]
         for slug in valid_slugs:
             self.organization.refresh_from_db()
             self.get_success_response(self.organization.slug, slug=slug)
@@ -352,8 +375,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="canada-", status_code=400)
         self.get_error_response(self.organization.slug, slug="-canada", status_code=400)
         self.get_error_response(self.organization.slug, slug="----", status_code=400)
-        with override_options({"api.prevent-numeric-slugs": True}):
-            self.get_error_response(self.organization.slug, slug="1234", status_code=400)
+        self.get_error_response(self.organization.slug, slug="1234", status_code=400)
 
     def test_upload_avatar(self):
         data = {
@@ -373,7 +395,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     )
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
         self.create_integration(
             organization=self.organization, provider="github", external_id="extid"
@@ -410,7 +432,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         # needed to set require2FA
         interface = TotpInterface()
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             interface.enroll(self.user)
             assert self.user.has_2fa()
 
@@ -441,7 +463,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:events_member_admin") is False
 
         # log created
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             log = AuditLogEntry.objects.get(organization_id=org.id)
         assert audit_log.get(log.event).api_name == "org.edit"
         # org fields & flags
@@ -501,7 +523,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         Try to put the same key twice and check we get an error
         """
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
@@ -534,7 +556,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
 
     def test_creating_trusted_relays(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
@@ -578,7 +600,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert start_time < created < end_time
             assert response_data[i]["created"] == actual[i]["created"]
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             log = AuditLogEntry.objects.get(organization_id=self.organization.id)
         trusted_relay_log = log.data["trustedRelays"]
 
@@ -590,7 +612,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert trusted_relays[1]["publicKey"] in trusted_relay_log
 
     def test_modifying_trusted_relays(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         initial_trusted_relays = [
@@ -669,7 +691,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 assert after_initial < last_modified < after_final
 
         # we should have 2 log messages from the two calls
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             (first_log, second_log) = AuditLogEntry.objects.filter(
                 organization_id=self.organization.id
             )
@@ -690,7 +712,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert modified_trusted_relays[i]["publicKey"] in modif_log
 
     def test_deleting_trusted_relays(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         initial_trusted_relays = [
@@ -831,7 +853,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=organization_id)
         assert org.name == "SaNtRy"
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(OrganizationMapping):
             assert OrganizationMapping.objects.filter(
                 organization_id=organization_id, name="SaNtRy"
             ).exists()
@@ -840,7 +862,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         with outbox_runner():
             pass
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(OrganizationMapping, OrganizationSlugReservation):
             organization_mapping = OrganizationMapping.objects.get(
                 organization_id=self.organization.id,
             )
@@ -865,7 +887,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
@@ -903,7 +925,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         with outbox_runner():
             pass
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             assert AuditLogEntry.objects.filter(
                 organization_id=self.organization.id, actor=self.user.id
             ).exists()
@@ -942,7 +964,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         assert scheduled_deletions.count() == 1
 
     def test_update_org_mapping_on_deletion(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(OrganizationMapping):
             org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.status == OrganizationStatus.ACTIVE
         with self.tasks(), outbox_runner():
@@ -975,7 +997,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=400)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 
@@ -996,11 +1018,11 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
         # 2FA enrolled user
         self.has_2fa = self.create_user()
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.has_2fa)
         self.create_member(organization=self.organization, user=self.has_2fa, role="manager")
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
@@ -1018,7 +1040,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         with outbox_runner():
             pass
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             audit_log_entry_query = AuditLogEntry.objects.filter(
                 actor_id=acting_user.id,
                 organization_id=organization.id,
@@ -1040,37 +1062,37 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         assert audit_log_entry.ip_address == "127.0.0.1"
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuthProvider):
             auth_provider = AuthProvider.objects.create(
                 provider="github", organization_id=self.organization.id
             )
         # bypass SSO login
         auth_provider.flags.allow_unlinked = True
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuthProvider):
             auth_provider.save()
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuthProvider):
             auth_provider = AuthProvider.objects.create(
                 provider="saml2", organization_id=self.organization.id
             )
         # bypass SSO login
         auth_provider.flags.allow_unlinked = True
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuthProvider):
             auth_provider.save()
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_owner_can_set_2fa_single_member(self):
         org = self.create_organization(owner=self.owner)
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.owner)
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.owner)
@@ -1081,7 +1103,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.create_member(organization=org, user=self.manager, role="manager")
 
         self.assert_cannot_enable_org_2fa(org, self.manager, 400)
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.manager)
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.manager)
@@ -1093,13 +1115,13 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_members_cannot_set_2fa(self):
         self.assert_cannot_enable_org_2fa(self.organization, self.org_user, 403)
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.org_user)
         self.assert_cannot_enable_org_2fa(self.organization, self.org_user, 403)
 
     def test_owner_can_set_org_2fa(self):
         org = self.create_organization(owner=self.owner)
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.owner)
             user_emails_without_2fa = self.add_2fa_users_to_org(org)
 
@@ -1108,7 +1130,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.assert_2fa_email_equal(mail.outbox, user_emails_without_2fa)
 
         for user_email in user_emails_without_2fa:
-            with assume_test_silo_mode(SiloMode.CONTROL):
+            with assume_test_silo_mode_of(User):
                 user = User.objects.get(username=user_email)
 
             self.assert_has_correct_audit_log(
@@ -1127,7 +1149,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.login_as(self.no_2fa_user)
         self.get_error_response(self.org_2fa.slug, status_code=401)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.no_2fa_user)
         self.get_success_response(self.org_2fa.slug)
 
@@ -1137,18 +1159,18 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.login_as(new_user)
         self.get_error_response(self.org_2fa.slug, status_code=401)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(new_user)
         self.get_success_response(self.org_2fa.slug)
 
     def test_member_disable_all_2fa_blocked(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.no_2fa_user)
         self.login_as(self.no_2fa_user)
 
         self.get_success_response(self.org_2fa.slug)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             Authenticator.objects.get(user=self.no_2fa_user).delete()
         self.get_error_response(self.org_2fa.slug, status_code=401)
 

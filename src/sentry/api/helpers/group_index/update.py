@@ -735,11 +735,10 @@ def handle_is_bookmarked(
             user_id=acting_user.id if acting_user else None,
         ).delete()
         if group_list:
-            if features.has("organizations:participants-purge", group_list[0].organization):
-                GroupSubscription.objects.filter(
-                    user_id=acting_user.id,
-                    group__in=group_ids,
-                ).delete()
+            GroupSubscription.objects.filter(
+                user_id=acting_user.id,
+                group__in=group_ids,
+            ).delete()
 
 
 def handle_has_seen(
@@ -838,10 +837,6 @@ def handle_assigned_to(
     if assigned_actor:
         for group in group_list:
             resolved_actor: RpcUser | Team = assigned_actor.resolve()
-
-            if features.has("organizations:participants-purge", group.organization):
-                GroupAssignee.objects.deassign(group, acting_user, resolved_actor, extra=extra)
-
             assignment = GroupAssignee.objects.assign(
                 group, resolved_actor, acting_user, extra=extra
             )

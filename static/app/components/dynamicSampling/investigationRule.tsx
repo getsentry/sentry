@@ -121,7 +121,7 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
   const queryClient = useQueryClient();
   const {mutate} = useMutation<
     CustomDynamicSamplingRule,
-    Error,
+    RequestError,
     CreateCustomRuleVariables
   >({
     mutationFn: (variables: CreateCustomRuleVariables) => {
@@ -145,8 +145,17 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
         success: true,
       });
     },
-    onError: (_error: Error) => {
-      addErrorMessage(t('Unable to create investigation rule'));
+    onError: (_error: RequestError) => {
+      if (_error.status === 429) {
+        addErrorMessage(
+          t(
+            'You have reached the maximum number of concurrent investigation rules allowed'
+          )
+        );
+      } else {
+        addErrorMessage(t('Unable to create investigation rule'));
+      }
+
       trackAnalytics('dynamic_sampling.custom_rule_add', {
         organization: vars.organization,
         projects: vars.projects,
@@ -160,7 +169,6 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
 }
 
 const InvestigationInProgressNotification = styled('span')`
-  margin: ${space(1.5)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
   font-weight: 600;
@@ -236,7 +244,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
             }
           )}
         >
-          <IconQuestion size="xs" color="subText" />
+          <StyledIconQuestion size="sm" color="subText" />
         </Tooltip>
       </InvestigationInProgressNotification>
     );
@@ -255,6 +263,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
       )}
     >
       <Button
+        priority="primary"
         {...props.buttonProps}
         onClick={() => createInvestigationRule({organization, period, projects, query})}
         icon={<IconStack size="xs" />}
@@ -273,3 +282,8 @@ export function InvestigationRuleCreation(props: Props) {
     </Feature>
   );
 }
+
+const StyledIconQuestion = styled(IconQuestion)`
+  position: relative;
+  top: 2px;
+`;

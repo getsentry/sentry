@@ -1,11 +1,12 @@
 import secrets
-from typing import List
+from typing import ClassVar, List
 from urllib.parse import urlparse
 
 import petname
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -62,7 +63,7 @@ class ApiApplication(Model):
 
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=("client_id",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("client_id",))
 
     class Meta:
         app_label = "sentry"

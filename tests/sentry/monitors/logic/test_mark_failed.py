@@ -29,7 +29,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class MarkFailedTestCase(TestCase):
     @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
@@ -82,7 +82,7 @@ class MarkFailedTestCase(TestCase):
                         },
                         "id": str(monitor.guid),
                         "name": monitor.name,
-                        "slug": monitor.slug,
+                        "slug": str(monitor.slug),
                     }
                 },
                 "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
@@ -316,7 +316,11 @@ class MarkFailedTestCase(TestCase):
                         "id": str(monitor.guid),
                         "name": monitor.name,
                         "slug": monitor.slug,
-                    }
+                    },
+                    "trace": {
+                        "trace_id": trace_id.hex,
+                        "span_id": None,
+                    },
                 },
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
@@ -326,15 +330,14 @@ class MarkFailedTestCase(TestCase):
                 "sdk": None,
                 "tags": {
                     "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
+                    "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": trace_id.hex,
             },
         ) == dict(event)
 
     @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
-    def test_mark_failed_with_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
+    def test_mark_failed_with_timeout_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -420,7 +423,7 @@ class MarkFailedTestCase(TestCase):
                         },
                         "id": str(monitor.guid),
                         "name": monitor.name,
-                        "slug": monitor.slug,
+                        "slug": str(monitor.slug),
                     }
                 },
                 "environment": monitor_environment.environment.name,
@@ -431,9 +434,8 @@ class MarkFailedTestCase(TestCase):
                 "sdk": None,
                 "tags": {
                     "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
+                    "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": None,
             },
         ) == dict(event)
 
@@ -528,7 +530,7 @@ class MarkFailedTestCase(TestCase):
                         },
                         "id": str(monitor.guid),
                         "name": monitor.name,
-                        "slug": monitor.slug,
+                        "slug": str(monitor.slug),
                     }
                 },
                 "environment": monitor_environment.environment.name,
@@ -539,9 +541,8 @@ class MarkFailedTestCase(TestCase):
                 "sdk": None,
                 "tags": {
                     "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
+                    "monitor.slug": str(monitor.slug),
                 },
-                "trace_id": None,
             },
         ) == dict(event)
 
@@ -694,6 +695,89 @@ class MarkFailedTestCase(TestCase):
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold + 1
+        # assert that the correct uuid fingerprint was sent
+        kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
+        occurrence = kwargs["occurrence"]
+        occurrence = occurrence.to_dict()
+        assert occurrence["fingerprint"][0] == monitor_incident.grouphash
+
+    # Test to make sure that timeout mark_failed (which occur in the past)
+    # correctly create issues once passing the failure_issue_threshold
+    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    def test_mark_failed_issue_threshold_timeout(self, mock_produce_occurrence_to_kafka):
+        failure_issue_threshold = 8
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "failure_issue_threshold": failure_issue_threshold,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=MonitorStatus.OK,
+            last_state_change=None,
+        )
+
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
+
+        # create in-progress check-ins
+        first_checkin = None
+        checkins = []
+        for i in range(0, failure_issue_threshold + 1):
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.IN_PROGRESS,
+            )
+            checkins.append(checkin)
+            if i == 0:
+                first_checkin = checkin
+
+        # mark check-ins as failed
+        for _ in range(0, failure_issue_threshold - 1):
+            checkin = checkins.pop(0)
+            checkin.update(status=CheckInStatus.TIMEOUT)
+            mark_failed(checkin, ts=checkin.date_added)
+
+        # failure has not hit threshold, monitor should be in an OK status
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        # check that timestamp has not updated
+        assert monitor_environment.last_state_change is None
+
+        checkin = checkins.pop(0)
+        checkin.update(status=CheckInStatus.TIMEOUT)
+        mark_failed(checkin, ts=checkin.date_added)
+
+        # failure has hit threshold, monitor should be in a failed state
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.ERROR
+        assert monitor_environment.last_state_change == monitor_environment.last_checkin
+
+        # check that an incident has been created correctly
+        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
+        assert len(monitor_incidents) == 1
+        monitor_incident = monitor_incidents.first()
+        assert monitor_incident.starting_checkin == first_checkin
+        assert monitor_incident.starting_timestamp == first_checkin.date_added
+        assert monitor_incident.grouphash == monitor_environment.incident_grouphash
+
+        # assert correct number of occurrences was sent
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold
         # assert that the correct uuid fingerprint was sent
         kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
         occurrence = kwargs["occurrence"]

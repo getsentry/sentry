@@ -14,6 +14,13 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "hybridcloud.externalactorreplica": [
+    "sentry.externalactor",
+    "sentry.integration",
+    "sentry.organization",
+    "sentry.team",
+    "sentry.user"
+  ],
   "hybridcloud.organizationslugreservationreplica": [
     "sentry.organization",
     "sentry.organizationslugreservation",
@@ -156,6 +163,8 @@
     "sentry.controlfileblob",
     "sentry.organization"
   ],
+  "sentry.controlimportchunk": [],
+  "sentry.controlimportchunkreplica": [],
   "sentry.controloption": [],
   "sentry.controloutbox": [],
   "sentry.controltombstone": [],
@@ -633,6 +642,7 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "sentry.regionimportchunk": [],
   "sentry.regionoutbox": [],
   "sentry.regionscheduleddeletion": [],
   "sentry.regiontombstone": [],
@@ -686,6 +696,18 @@
   "sentry.releasethreshold": [
     "sentry.environment",
     "sentry.project"
+  ],
+  "sentry.relocation": [],
+  "sentry.relocationfile": [
+    "sentry.file",
+    "sentry.relocation"
+  ],
+  "sentry.relocationvalidation": [
+    "sentry.relocation"
+  ],
+  "sentry.relocationvalidationattempt": [
+    "sentry.relocation",
+    "sentry.relocationvalidation"
   ],
   "sentry.repository": [
     "sentry.integration",

@@ -70,7 +70,7 @@ def test_adjust_instruction_addr_sample_format():
         "debug_meta": {"images": []},
     }
 
-    _, stacktraces, _ = _prepare_frames_from_profile(profile)
+    _, stacktraces, _ = _prepare_frames_from_profile(profile, profile["platform"])
     assert profile["profile"]["stacks"] == [[3, 0], [4, 1, 2]]
     frames = stacktraces[0]["frames"]
 
@@ -97,7 +97,7 @@ def test_adjust_instruction_addr_original_format():
         "debug_meta": {"images": []},
     }
 
-    _, stacktraces, _ = _prepare_frames_from_profile(profile)
+    _, stacktraces, _ = _prepare_frames_from_profile(profile, str(profile["platform"]))
     frames = stacktraces[0]["frames"]
 
     assert not frames[0]["adjust_instruction_addr"]

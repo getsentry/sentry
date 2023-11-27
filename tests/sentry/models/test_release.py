@@ -68,7 +68,7 @@ def test_version_is_semver_invalid(release_version):
     assert Release.is_semver_version(release_version) is False
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class MergeReleasesTest(TestCase):
     @receivers_raise_on_send()
     def test_simple(self):
@@ -199,7 +199,7 @@ class MergeReleasesTest(TestCase):
         assert not Release.objects.filter(id=release3.id).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SetCommitsTestCase(TestCase):
     @receivers_raise_on_send()
     def test_simple(self):
@@ -307,6 +307,7 @@ class SetCommitsTestCase(TestCase):
 
         commit_c = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="c" * 40)
         assert commit_c
+        assert commit_c.message is not None
         assert "fixes" in commit_c.message
         assert commit_c.author_id == author.id
 
@@ -584,7 +585,7 @@ class SetCommitsTestCase(TestCase):
         assert commit.author.email == truncatechars(commit_email, 75)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SetRefsTest(SetRefsTestCase):
     def setUp(self):
         super().setUp()
@@ -736,7 +737,7 @@ class SetRefsTest(SetRefsTestCase):
         assert not Release.is_valid_version(version)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SemverReleaseParseTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -919,7 +920,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_code == "-2020"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseFilterBySemverTest(TestCase):
     def test_invalid_query(self):
         with pytest.raises(
@@ -1018,7 +1019,7 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test(">=", "test@1.2.3", [release_3, release_4], projects=[project_2])
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseFilterBySemverBuildTest(TestCase):
     def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
         organization_id = organization_id if organization_id else self.organization.id
@@ -1064,7 +1065,7 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("exact", "123abc", [release_3])
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FollowsSemverVersioningSchemeTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -1256,7 +1257,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ClearCommitsTestCase(TestCase):
     @receivers_raise_on_send()
     def test_simple(self):
@@ -1334,7 +1335,7 @@ class ClearCommitsTestCase(TestCase):
         ).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseProjectManagerTestCase(TransactionTestCase):
     def test_custom_manager(self):
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)

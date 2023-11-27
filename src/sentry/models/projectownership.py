@@ -250,6 +250,7 @@ class ProjectOwnership(Model):
         from sentry.models.groupowner import GroupOwner, GroupOwnerType
         from sentry.models.team import Team
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.user import RpcUser
 
         # If event is passed in, then this is not called from the force auto-assign API, else it is
         force_autoassign = True
@@ -312,37 +313,43 @@ class ProjectOwnership(Model):
                         },
                     )
                     return
-
-            assignment = GroupAssignee.objects.assign(
-                group,
-                owner,
-                create_only=not force_autoassign,
-                extra=details,
-                force_autoassign=force_autoassign,
-            )
-
-            if assignment["new_assignment"] or assignment["updated_assignment"]:
-                analytics.record(
-                    "codeowners.assignment"
-                    if details.get("integration") == ActivityIntegration.CODEOWNERS.value
-                    else "issueowners.assignment",
-                    organization_id=ownership.project.organization_id,
-                    project_id=project_id,
-                    group_id=group.id,
+            if (
+                isinstance(owner, Team)
+                and not GroupAssignee.objects.filter(group=group, team=owner.id).exists()
+            ) or (
+                isinstance(owner, RpcUser)
+                and not GroupAssignee.objects.filter(group=group, user_id=owner.id).exists()
+            ):
+                assignment = GroupAssignee.objects.assign(
+                    group,
+                    owner,
+                    create_only=not force_autoassign,
+                    extra=details,
+                    force_autoassign=force_autoassign,
                 )
-                logger.info(
-                    "handle_auto_assignment.success",
-                    extra={
-                        "event": event.event_id if event else None,
-                        "group": group.id,
-                        "project": group.project.id,
-                        "organization": group.project.organization_id,
-                        # owner_id returns a string including the owner type (user or team) and id
-                        "assignee": issue_owner.owner_id(),
-                        "reason": "created" if assignment["new_assignment"] else "updated",
-                        **details,
-                    },
-                )
+
+                if assignment["new_assignment"] or assignment["updated_assignment"]:
+                    analytics.record(
+                        "codeowners.assignment"
+                        if details.get("integration") == ActivityIntegration.CODEOWNERS.value
+                        else "issueowners.assignment",
+                        organization_id=ownership.project.organization_id,
+                        project_id=project_id,
+                        group_id=group.id,
+                    )
+                    logger.info(
+                        "handle_auto_assignment.success",
+                        extra={
+                            "event": event.event_id if event else None,
+                            "group": group.id,
+                            "project": group.project.id,
+                            "organization": group.project.organization_id,
+                            # owner_id returns a string including the owner type (user or team) and id
+                            "assignee": issue_owner.owner_id(),
+                            "reason": "created" if assignment["new_assignment"] else "updated",
+                            **details,
+                        },
+                    )
 
     @classmethod
     def _matching_ownership_rules(

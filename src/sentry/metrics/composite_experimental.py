@@ -48,10 +48,13 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
-        self._primary_backend.incr(key, instance, tags, amount, sample_rate)
+        self._primary_backend.incr(key, instance, tags, amount, sample_rate, unit)
         if self._is_allowed(key) or options.get("delightful_metrics.allow_all_incr"):
-            self._minimetrics.incr(key, instance, tags, amount, self._minimetrics_sample_rate())
+            self._minimetrics.incr(
+                key, instance, tags, amount, self._minimetrics_sample_rate(), unit
+            )
 
     def timing(
         self,
@@ -72,7 +75,27 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
-        self._primary_backend.gauge(key, value, instance, tags, sample_rate)
+        self._primary_backend.gauge(key, value, instance, tags, sample_rate, unit)
         if self._is_allowed(key) or options.get("delightful_metrics.allow_all_gauge"):
-            self._minimetrics.gauge(key, value, instance, tags, self._minimetrics_sample_rate())
+            self._minimetrics.gauge(
+                key, value, instance, tags, self._minimetrics_sample_rate(), unit
+            )
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
+    ) -> None:
+        self._primary_backend.distribution(key, value, instance, tags, sample_rate, unit)
+        # We share the same option between timing and distribution, since they are both distribution
+        # metrics.
+        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_timing"):
+            self._minimetrics.distribution(
+                key, value, instance, tags, self._minimetrics_sample_rate(), unit
+            )

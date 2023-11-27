@@ -199,6 +199,26 @@ function buildRoutes() {
         path="/organizations/:orgId/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
+      {usingCustomerDomain && (
+        <Route
+          path="/unsubscribe/project/:id/"
+          component={make(() => import('sentry/views/unsubscribe/project'))}
+        />
+      )}
+      <Route
+        path="/unsubscribe/:orgId/project/:id/"
+        component={make(() => import('sentry/views/unsubscribe/project'))}
+      />
+      {usingCustomerDomain && (
+        <Route
+          path="/unsubscribe/issue/:id/"
+          component={make(() => import('sentry/views/unsubscribe/issue'))}
+        />
+      )}
+      <Route
+        path="/unsubscribe/:orgId/issue/:id/"
+        component={make(() => import('sentry/views/unsubscribe/issue'))}
+      />
       <Route
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
@@ -232,6 +252,16 @@ function buildRoutes() {
         path="/organizations/:orgId/disabled-member/"
         component={withDomainRedirect(make(() => import('sentry/views/disabledMember')))}
         key="org-disabled-member"
+      />
+      {usingCustomerDomain && (
+        <Route
+          path="/restore/"
+          component={make(() => import('sentry/views/organizationRestore'))}
+        />
+      )}
+      <Route
+        path="/organizations/:orgId/restore/"
+        component={make(() => import('sentry/views/organizationRestore'))}
       />
       {usingCustomerDomain && (
         <Route
@@ -972,6 +1002,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route
+        path="early-features/"
+        name={t('Early Features')}
+        component={make(() => import('sentry/views/settings/earlyFeatures'))}
+      />
     </Route>
   );
 
@@ -1647,13 +1682,20 @@ function buildRoutes() {
             )}
           />
         </Route>
-        <Route
-          path="pageloads/"
-          component={make(
-            () =>
-              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
-          )}
-        />
+        <Route path="pageloads/">
+          <IndexRoute
+            component={make(
+              () =>
+                import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
+            )}
+          />
+          <Route
+            path="overview/"
+            component={make(
+              () => import('sentry/views/performance/browser/webVitals/pageOverview')
+            )}
+          />
+        </Route>
         <Route path="resources/">
           <IndexRoute
             component={make(
@@ -1661,12 +1703,27 @@ function buildRoutes() {
             )}
           />
           <Route
-            path="resource/:groupId/"
+            path="spans/span/:groupId/"
             component={make(
               () =>
                 import(
                   'sentry/views/performance/browser/resources/resourceSummaryPage/index'
                 )
+            )}
+          />
+        </Route>
+      </Route>
+      <Route path="mobile/">
+        <Route path="screens/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/starfish/modules/mobile/pageload')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/starfish/views/screens/screenLoadSpans')
             )}
           />
         </Route>
@@ -1796,17 +1853,6 @@ function buildRoutes() {
         <IndexRoute
           component={make(
             () => import('sentry/views/starfish/modules/mobile/initialization')
-          )}
-        />
-      </Route>
-      <Route path="pageload/">
-        <IndexRoute
-          component={make(() => import('sentry/views/starfish/modules/mobile/pageload'))}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/starfish/views/screens/screenLoadSpans')
           )}
         />
       </Route>
@@ -1984,7 +2030,9 @@ function buildRoutes() {
     <Fragment>
       <Route
         path="/organizations/:orgId/issues/:groupId/"
-        component={withDomainRedirect(make(() => import('sentry/views/issueDetails')))}
+        component={withDomainRedirect(
+          make(() => import('sentry/views/issueDetails/groupDetails'))
+        )}
         key="org-issues-group-id"
       >
         {issueDetailsChildRoutes({forCustomerDomain: false})}
@@ -1992,7 +2040,9 @@ function buildRoutes() {
       {usingCustomerDomain && (
         <Route
           path="/issues/:groupId/"
-          component={withDomainRequired(make(() => import('sentry/views/issueDetails')))}
+          component={withDomainRequired(
+            make(() => import('sentry/views/issueDetails/groupDetails'))
+          )}
           key="orgless-issues-group-id-route"
         >
           {issueDetailsChildRoutes({forCustomerDomain: true})}

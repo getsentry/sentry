@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
 
 from django.conf import settings
 from django.db import models
@@ -100,7 +100,7 @@ class Activity(Model):
     datetime = models.DateTimeField(default=timezone.now)
     data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(null=True)
 
-    objects: ActivityManager = ActivityManager()
+    objects: ClassVar[ActivityManager] = ActivityManager()
 
     class Meta:
         app_label = "sentry"

@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
@@ -76,7 +77,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_transaction_metric(
+                self.store_span_metric(
                     1,
                     internal_metric=constants.SELF_TIME_LIGHT,
                     timestamp=self.day_ago + timedelta(hours=hour, minutes=minute),
@@ -105,7 +106,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_transaction_metric(
+                self.store_span_metric(
                     1,
                     internal_metric=constants.SELF_TIME_LIGHT,
                     timestamp=self.day_ago + timedelta(hours=hour, minutes=minute + 30),
@@ -192,7 +193,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert "bar" in response.data
         assert response.data["Other"]["meta"]["dataset"] == "spansMetrics"
 
-    def test_resource_size(self):
+    def test_resource_encoded_length(self):
         self.store_span_metric(
             4,
             metric="http.response_content_length",
@@ -219,6 +220,58 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
+    def test_resource_decoded_length(self):
+        self.store_span_metric(
+            4,
+            metric="http.decoded_response_content_length",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "interval": "1m",
+                "yAxis": "avg(http.decoded_response_content_length)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        data = response.data["data"]
+        assert response.status_code == 200
+        assert len(data) == 2
+        assert not data[0][1][0]["count"]
+        assert data[1][1][0]["count"] == 4.0
+
+    def test_resource_transfer_size(self):
+        self.store_span_metric(
+            4,
+            metric="http.response_transfer_size",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "interval": "1m",
+                "yAxis": "avg(http.response_transfer_size)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        data = response.data["data"]
+        assert response.status_code == 200
+        assert len(data) == 2
+        assert not data[0][1][0]["count"]
+        assert data[1][1][0]["count"] == 4.0
+
 
 class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     OrganizationEventsStatsSpansMetricsEndpointTest
@@ -226,3 +279,26 @@ class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
+
+    @patch("sentry.snuba.metrics.datasource")
+    def test_metrics_layer_is_not_used(self, get_series):
+        self.store_span_metric(
+            4,
+            metric="http.response_content_length",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+
+        self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "interval": "1m",
+                "yAxis": "avg(http.response_content_length)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        get_series.assert_not_called()

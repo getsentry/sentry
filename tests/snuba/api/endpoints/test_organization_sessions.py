@@ -1304,7 +1304,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
     BaseMetricsTestCase, OrganizationSessionsEndpointTest
@@ -1884,7 +1884,7 @@ class OrganizationSessionsEndpointMetricsTest(
             ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):

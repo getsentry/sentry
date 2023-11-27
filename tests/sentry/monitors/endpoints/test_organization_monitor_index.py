@@ -6,7 +6,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test.utils import override_settings
 
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import (
     Monitor,
@@ -16,11 +16,10 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.testutils.cases import MonitorTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
 
@@ -160,7 +159,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         assert response.data[0]["environments"][0]["status"] == "ok"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CreateOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"
@@ -224,7 +223,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         assert response.data["slug"] == "my-monitor"
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         data = {
             "project": self.project.slug,
@@ -236,7 +234,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         data = {
             "project": self.project.slug,

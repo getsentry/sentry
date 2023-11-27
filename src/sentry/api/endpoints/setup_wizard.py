@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry import ratelimits
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 
@@ -17,7 +17,7 @@ SETUP_WIZARD_CACHE_KEY = "setup-wizard-keys:v1:"
 SETUP_WIZARD_CACHE_TIMEOUT = 600
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class SetupWizard(Endpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,

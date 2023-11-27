@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Mapping, Optional, Union, cast
+from collections import deque
+from typing import Any, Deque, Mapping, Optional, Union, cast
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
+from arroyo.dlq import InvalidMessage
 from arroyo.processing import StreamProcessor
+from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
@@ -39,20 +42,38 @@ logger = logging.getLogger(__name__)
 class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]]):
     def __init__(
         self,
-        next_step: ProcessingStep[Union[KafkaPayload, RoutingPayload]],
+        next_step: ProcessingStep[
+            Union[KafkaPayload, RoutingPayload, InvalidMessage, FilteredPayload]
+        ],
     ) -> None:
         self.__next_step = next_step
         self.__closed = False
+        self.__messages: Deque[
+            Message[Union[KafkaPayload, RoutingPayload, InvalidMessage]]
+        ] = deque()
 
     def poll(self) -> None:
         self.__next_step.poll()
 
+        while self.__messages:
+            msg = self.__messages.popleft()
+            if isinstance(msg.payload, InvalidMessage):
+                raise msg.payload
+            self.__next_step.submit(msg)
+
     def submit(self, message: Message[Union[FilteredPayload, IndexerOutputMessageBatch]]) -> None:
         assert not self.__closed
 
-        # FilteredPayloads are not handled in the indexer
-        for transformed_message in cast(IndexerOutputMessageBatch, message.payload).data:
-            self.__next_step.submit(transformed_message)
+        if self.__messages:
+            raise MessageRejected()
+
+        if isinstance(message.payload, FilteredPayload):
+            self.__next_step.submit(cast(Message[KafkaPayload], message))
+            return
+
+        self.__messages.extend(message.payload.data)
+
+        _ = message.payload.cogs_data
 
     def close(self) -> None:
         self.__closed = True

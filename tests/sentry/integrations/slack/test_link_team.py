@@ -17,6 +17,7 @@ from sentry.notifications.types import NotificationScopeType
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -124,7 +125,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.login_as(user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -228,8 +229,50 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             )
             assert len(external_actors) == 1
 
+    @responses.activate
+    @with_feature("organizations:team-workflow-notifications")
+    def test_message_includes_workflow(self):
+        self.get_success_response(data={"team": self.team.id})
+        external_actors = self.get_linked_teams()
 
-@region_silo_test(stable=True)
+        assert len(responses.calls) >= 1
+        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        assert (
+            f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
+            in get_response_text(data)
+        )
+
+    @responses.activate
+    @with_feature("organizations:team-workflow-notifications")
+    def test_link_team_v2(self):
+        """Test that we successfully link a team to a Slack channel"""
+        response = self.get_success_response()
+        self.assertTemplateUsed(response, "sentry/integrations/slack/link-team.html")
+
+        response = self.get_success_response(data={"team": self.team.id})
+        self.assertTemplateUsed(response, "sentry/integrations/slack/post-linked-team.html")
+
+        external_actors = self.get_linked_teams()
+        assert len(external_actors) == 1
+        assert external_actors[0].team_id == self.team.id
+
+        assert len(responses.calls) >= 1
+        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        assert (
+            f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
+            in get_response_text(data)
+        )
+
+        # Test that we didn't make an NotificationSetting object
+        # Instead we will use the default in notificationcontroller.py
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            team_settings = NotificationSetting.objects.filter(
+                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
+            )
+            assert len(team_settings) == 0
+
+
+@region_silo_test
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()

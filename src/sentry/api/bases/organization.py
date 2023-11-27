@@ -9,7 +9,7 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from sentry.api.base import Endpoint, resolve_region
+from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
@@ -31,6 +31,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
@@ -208,7 +209,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        if resolve_region(request) is None:
+        if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_slug:
                 raise ResourceDoesNotExist
@@ -236,6 +237,10 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
         kwargs["organization_context"] = organization_context
         kwargs["organization"] = organization_context.organization
+
+        # Used for API access logs
+        request._request.organization = organization_context.organization  # type: ignore
+
         return (args, kwargs)
 
 
@@ -447,7 +452,7 @@ class OrganizationEndpoint(Endpoint):
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        if resolve_region(request) is None:
+        if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_slug:
                 raise ResourceDoesNotExist

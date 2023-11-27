@@ -1,5 +1,5 @@
 from sentry import audit_log
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedteam import DeletedTeam
 from sentry.models.scheduledeletion import RegionScheduledDeletion
@@ -9,7 +9,6 @@ from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
@@ -65,7 +64,7 @@ class TeamDetailsTestBase(APITestCase):
         self.assert_team_status(team_id, TeamStatus.ACTIVE)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamDetailsTest(TeamDetailsTestBase):
     def test_simple(self):
         team = self.team  # force creation
@@ -74,7 +73,7 @@ class TeamDetailsTest(TeamDetailsTestBase):
         assert response.data["id"] == str(team.id)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamUpdateTest(TeamDetailsTestBase):
     method = "put"
 
@@ -89,7 +88,6 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "hello world"
         assert team.slug == "foobar"
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(self.organization.slug, self.team.slug, slug="1234")
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
@@ -348,7 +346,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.org_role == "owner"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
 

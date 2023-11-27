@@ -8,7 +8,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def url(self):
         return reverse(
@@ -643,4 +643,25 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             self.url(),
             data=data,
         )
+        assert response.status_code == 200, response.data
+
+    def test_accepts_environment_for_filters_that_require_single_env(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "fields": [],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data

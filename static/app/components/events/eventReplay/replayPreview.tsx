@@ -26,9 +26,16 @@ type Props = {
   orgSlug: string;
   replaySlug: string;
   buttonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  fromFeedback?: boolean;
 };
 
-function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Props) {
+function ReplayPreview({
+  orgSlug,
+  replaySlug,
+  eventTimestampMs,
+  buttonProps,
+  fromFeedback,
+}: Props) {
   const routes = useRoutes();
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
@@ -115,7 +122,7 @@ function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Pro
     pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: TabKey.ERRORS,
+      t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
       t: initialTimeOffsetMs / 1000,
     },
   };
@@ -140,9 +147,6 @@ function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Pro
             {t('Open Replay')}
           </LinkButton>
         </CTAOverlay>
-        <BadgeContainer>
-          <FeatureText>{t('Replays')}</FeatureText>
-        </BadgeContainer>
       </PlayerContainer>
     </ReplayContextProvider>
   );
@@ -168,25 +172,6 @@ const CTAOverlay = styled('div')`
   justify-content: center;
   align-items: center;
   background: rgba(255, 255, 255, 0.5);
-`;
-
-const BadgeContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
-  background: ${p => p.theme.background};
-  border-radius: 2.25rem;
-  padding: ${space(0.75)} ${space(0.75)} ${space(0.75)} ${space(1)};
-  box-shadow: ${p => p.theme.dropShadowLight};
-  gap: 0 ${space(0.25)};
-`;
-
-const FeatureText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 0;
-  color: ${p => p.theme.text};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

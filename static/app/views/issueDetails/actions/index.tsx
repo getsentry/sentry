@@ -51,6 +51,7 @@ import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAct
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -94,10 +95,9 @@ export function Actions(props: Props) {
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const {
-    delete: deleteCap,
-    deleteAndDiscard: deleteDiscardCap,
-    share: shareCap,
-  } = getConfigForIssueType(group).actions;
+    actions: {delete: deleteCap, deleteAndDiscard: deleteDiscardCap, share: shareCap},
+    discover: discoverCap,
+  } = getConfigForIssueType(group);
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
@@ -142,7 +142,6 @@ export function Actions(props: Props) {
     const {alert_date, alert_rule_id, alert_type} = query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
-      project_id: parseInt(project.id, 10),
       action_type: action,
       action_substatus: substatus ?? undefined,
       action_status_details: statusDetailsKey,
@@ -152,6 +151,7 @@ export function Actions(props: Props) {
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
       ...getAnalyticsDataForGroup(group),
+      ...getAnalyicsDataForProject(project),
     });
   };
 
@@ -470,21 +470,23 @@ export function Actions(props: Props) {
       <div className="hidden-xs">
         <EnvironmentPageFilter position="bottom-end" size="sm" />
       </div>
-      <Feature
-        hookName="feature-disabled:open-in-discover"
-        features={['discover-basic']}
-        organization={organization}
-      >
-        <ActionButton
-          className="hidden-xs"
-          disabled={disabled}
-          to={disabled ? '' : getDiscoverUrl()}
-          onClick={() => trackIssueAction('open_in_discover')}
-          size="sm"
+      {discoverCap.enabled && (
+        <Feature
+          hookName="feature-disabled:open-in-discover"
+          features={['discover-basic']}
+          organization={organization}
         >
-          <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
-        </ActionButton>
-      </Feature>
+          <ActionButton
+            className="hidden-xs"
+            disabled={disabled}
+            to={disabled ? '' : getDiscoverUrl()}
+            onClick={() => trackIssueAction('open_in_discover')}
+            size="sm"
+          >
+            <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
+          </ActionButton>
+        </Feature>
+      )}
       {isResolved || isIgnored ? (
         <ActionButton
           priority="primary"

@@ -125,6 +125,13 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
+# COV_ARGS controls extra args passed to pytest to generate covereage
+# It's used in test-python-ci. Typically generated an XML coverage file
+# Except in .github/workflows/codecov_per_test_coverage.yml
+# When it's dynamically changed to include --cov-context=test flag
+# See that workflow for more info
+COV_ARGS = --cov-report="xml:.artifacts/python.coverage.xml"
+
 test-python-ci: create-db
 	@echo "--> Running CI Python tests"
 	pytest \
@@ -133,7 +140,7 @@ test-python-ci: create-db
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
-		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
+		--cov . $(COV_ARGS)
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
@@ -154,26 +161,6 @@ test-monolith-dbs: create-db
 	  --cov . \
 	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
 	;
-	@echo ""
-
-test-snuba: create-db
-	@echo "--> Running snuba tests"
-	pytest tests \
-		-m snuba_ci \
-		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
-	@echo ""
-
-# snuba-full runs on API changes in Snuba
-test-snuba-full: create-db
-	@echo "--> Running full snuba tests"
-	pytest tests/snuba \
-		tests/sentry/eventstream/kafka \
-		tests/sentry/post_process_forwarder \
-		tests/sentry/snuba \
-		tests/sentry/search/events \
-		tests/sentry/event_manager \
-		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
-	pytest tests -vv -m snuba_ci
 	@echo ""
 
 test-tools:

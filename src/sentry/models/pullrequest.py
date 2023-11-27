@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence, Tuple
+from typing import Any, ClassVar, Mapping, Sequence, Tuple
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
@@ -21,7 +21,7 @@ from sentry.db.models import (
 from sentry.utils.groupreference import find_referenced_groups
 
 
-class PullRequestManager(BaseManager):
+class PullRequestManager(BaseManager["PullRequest"]):
     def update_or_create(
         self,
         defaults: Mapping[str, Any] | None = None,
@@ -65,7 +65,7 @@ class PullRequest(Model):
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
 
-    objects = PullRequestManager()
+    objects: ClassVar[PullRequestManager] = PullRequestManager()
 
     class Meta:
         app_label = "sentry"

@@ -14,7 +14,7 @@ from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-organization-combined-rules"
 
@@ -905,6 +905,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             self.assert_alert_rule_serialized(
                 transaction_rule, transactions_res.data[0], skip_dates=True
             )
+            events_res = self.get_success_response(
+                self.organization.slug, dataset=[Dataset.Events.value]
+            )
+            self.assert_alert_rule_serialized(events_rule, events_res.data[0], skip_dates=True)
 
         with self.feature("organizations:incidents"):
             # without performance-view, we should only see events rules

@@ -12,8 +12,11 @@ from .comment_webhooks import *  # noqa: F401,F403
 from .cron_monitor_created import *  # noqa: F401,F403
 from .eventuser_endpoint_request import *  # noqa: F401,F403
 from .eventuser_equality_check import *  # noqa: F401,F403
+from .eventuser_snuba_for_projects import *  # noqa: F401,F403
+from .eventuser_snuba_query import *  # noqa: F401,F403
 from .first_cron_checkin_sent import *  # noqa: F401,F403
 from .first_event_sent import *  # noqa: F401,F403
+from .first_feedback_sent import *  # noqa: F401,F403
 from .first_profile_sent import *  # noqa: F401,F403
 from .first_release_tag_sent import *  # noqa: F401,F403
 from .first_replay_sent import *  # noqa: F401,F403

@@ -8,6 +8,7 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,11 +18,11 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
+import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -47,6 +48,7 @@ import withProjects from 'sentry/utils/withProjects';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import Header from '../components/header';
+import ReleaseFeedbackBanner from '../components/releaseFeedbackBanner';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
 
@@ -75,7 +77,9 @@ type State = {
 class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
-  hasV2ReleaseUIEnabled = this.props.organization.features.includes('release-ui-v2');
+  hasV2ReleaseUIEnabled =
+    this.props.organization.features.includes('releases-v2') ||
+    this.props.organization.features.includes('releases-v2-st');
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
@@ -521,10 +525,18 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return (
       <PageFiltersContainer showAbsolute={false}>
         <NoProjectMessage organization={organization}>
-          <Header router={router} hasV2ReleaseUIEnabled={this.hasV2ReleaseUIEnabled} />
+          <Header
+            router={router}
+            hasV2ReleaseUIEnabled={this.hasV2ReleaseUIEnabled}
+            organization={organization}
+          />
 
           <Layout.Body>
             <Layout.Main fullWidth>
+              {organization.features.includes('releases-v2-banner') && (
+                <ReleaseFeedbackBanner />
+              )}
+
               {this.renderHealthCta()}
 
               <ReleasesPageFilterBar condensed>
@@ -589,6 +601,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {error
                 ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
+              <FeedbackWidget />
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>

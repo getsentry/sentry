@@ -7,7 +7,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.event import has_stacktrace, is_handled
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class HasStacktraceTest(TestCase):
     def test_top_level_stacktrace_detected(self):
         event_data = {
@@ -119,7 +119,7 @@ class HasStacktraceTest(TestCase):
         assert has_stacktrace(event_data) is False
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class IsHandledTest(TestCase):
     def test_simple(self):
         for handled in [True, False]:

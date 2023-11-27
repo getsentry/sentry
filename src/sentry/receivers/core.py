@@ -19,10 +19,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import region_silo_function
-from sentry.services.organization import (
-    organization_provisioning_service,
-    should_use_control_provisioning,
-)
+from sentry.services.organization import organization_provisioning_service
 from sentry.signals import post_upgrade, project_created
 from sentry.silo import SiloMode
 from sentry.utils.env import in_test_environment
@@ -110,12 +107,11 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         cursor = connection.cursor()
         cursor.execute(PROJECT_SEQUENCE_FIX)
 
-    if should_use_control_provisioning():
-        # We need to provision an organization slug in control silo, so we do
-        # this by "changing" the slug, then re-replicating the org data.
-        organization_provisioning_service.change_organization_slug(
-            organization_id=org.id, slug="sentry"
-        )
+    # We need to provision an organization slug in control silo, so we do
+    # this by "changing" the slug, then re-replicating the org data.
+    organization_provisioning_service.change_organization_slug(
+        organization_id=org.id, slug="sentry"
+    )
 
     org.handle_async_replication(org.id)
 

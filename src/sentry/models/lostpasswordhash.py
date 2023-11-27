@@ -41,7 +41,18 @@ class LostPasswordHash(Model):
         return self.date_added > timezone.now() - timedelta(hours=1)
 
     @classmethod
-    def send_email(cls, user, hash, request, mode="recover") -> None:
+    def send_recover_password_email(cls, user, hash, ip_address) -> None:
+        extra = {
+            "ip_address": ip_address,
+        }
+        cls._send_email("recover_password", user, hash, extra)
+
+    @classmethod
+    def send_relocate_account_email(cls, user, hash) -> None:
+        cls._send_email("relocate_account", user, hash, {})
+
+    @classmethod
+    def _send_email(cls, mode, user, hash, extra) -> None:
         from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
@@ -51,13 +62,19 @@ class LostPasswordHash(Model):
             "domain": get_server_hostname(),
             "url": cls.get_lostpassword_url(user.id, hash, mode),
             "datetime": timezone.now(),
-            "ip_address": request.META["REMOTE_ADDR"],
+            **extra,
         }
 
-        template = "set_password" if mode == "set_password" else "recover_account"
+        subject = "Password Recovery"
+        template = "recover_account"
+        if mode == "set_password":
+            template = "set_password"
+        elif mode == "relocate_account":
+            template = "relocate_account"
+            subject = "Set Username and Password for Your Relocated Sentry.io Account"
 
         msg = MessageBuilder(
-            subject="{}Password Recovery".format(options.get("mail.subject-prefix")),
+            subject="{}{}".format(options.get("mail.subject-prefix"), subject),
             template=f"sentry/emails/{template}.txt",
             html_template=f"sentry/emails/{template}.html",
             type="user.password_recovery",
@@ -74,6 +91,8 @@ class LostPasswordHash(Model):
         url_key = "sentry-account-recover-confirm"
         if mode == "set_password":
             url_key = "sentry-account-set-password-confirm"
+        elif mode == "relocate_account":
+            url_key = "sentry-account-relocate-confirm"
 
         return absolute_uri(reverse(url_key, args=[user_id, hash]))
 

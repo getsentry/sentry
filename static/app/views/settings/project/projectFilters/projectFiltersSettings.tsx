@@ -1,6 +1,7 @@
 import {Component, Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import iconAndroid from 'sentry-logos/logo-android.svg';
+import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg';
 import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
@@ -110,6 +111,11 @@ const LEGACY_BROWSER_SUBFILTERS = {
     icon: iconAndroid,
     helpText: 'Version 3 and lower',
     title: 'Android',
+  },
+  edge_pre_79: {
+    icon: iconEdgeLegacy,
+    helpText: 'Version 18 and lower',
+    title: 'Edge (Legacy)',
   },
 };
 

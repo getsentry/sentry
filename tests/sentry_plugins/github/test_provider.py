@@ -14,12 +14,12 @@ from sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRep
 from sentry_plugins.github.testutils import (
     COMPARE_COMMITS_EXAMPLE,
     GET_LAST_COMMITS_EXAMPLE,
-    INTSTALLATION_REPOSITORIES_API_RESPONSE,
+    INSTALLATION_REPOSITORIES_API_RESPONSE,
     LIST_INSTALLATION_API_RESPONSE,
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GitHubPluginTest(TestCase):
     @cached_property
     def provider(self):
@@ -171,7 +171,7 @@ class GitHubPluginTest(TestCase):
         assert repo.config["webhook_events"] == ["push", "pull_request"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GitHubAppsProviderTest(TestCase):
     @cached_property
     def provider(self):
@@ -180,7 +180,7 @@ class GitHubAppsProviderTest(TestCase):
     @patch.object(
         GithubPluginAppsClient,
         "get_repositories",
-        return_value=json.loads(INTSTALLATION_REPOSITORIES_API_RESPONSE),
+        return_value=json.loads(INSTALLATION_REPOSITORIES_API_RESPONSE),
     )
     @patch.object(
         GithubPluginClient,

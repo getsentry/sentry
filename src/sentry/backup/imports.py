@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import BinaryIO, Iterator, Optional, Tuple, Type
+from uuid import uuid4
 
 import click
 from django.core import serializers
@@ -8,13 +10,16 @@ from django.db import transaction
 from django.db.models.base import Model
 
 from sentry.backup.dependencies import (
+    ImportKind,
+    ModelRelations,
     NormalizedModelName,
     PrimaryKeyMap,
     dependencies,
     get_model_name,
 )
-from sentry.backup.helpers import Filter, ImportFlags, decrypt_encrypted_tarball
+from sentry.backup.helpers import Decryptor, Filter, ImportFlags, decrypt_encrypted_tarball
 from sentry.backup.scopes import ImportScope
+from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcFilter,
@@ -25,7 +30,6 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcPrimaryKeyMap,
 )
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
-from sentry.services.organization import should_use_control_provisioning
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json
@@ -49,7 +53,7 @@ def _import(
     src: BinaryIO,
     scope: ImportScope,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     filter_by: Filter | None = None,
     printer=click.echo,
@@ -57,7 +61,9 @@ def _import(
     """
     Imports core data for a Sentry installation.
 
-    It is generally preferable to avoid calling this function directly, as there are certain combinations of input parameters that should not be used together. Instead, use one of the other wrapper functions in this file, named `import_in_XXX_scope()`.
+    It is generally preferable to avoid calling this function directly, as there are certain
+    combinations of input parameters that should not be used together. Instead, use one of the other
+    wrapper functions in this file, named `import_in_XXX_scope()`.
     """
 
     # Import here to prevent circular module resolutions.
@@ -72,6 +78,12 @@ def _import(
         raise RuntimeError(errText)
 
     flags = flags if flags is not None else ImportFlags()
+    if flags.import_uuid is None:
+        # TODO(getsentry/team-ospo#190): Previous efforts to use a dataclass here ran afoul of
+        # pydantic playing poorly with them. May be worth investigating this again.
+        flags = flags._replace(import_uuid=uuid4().hex)
+
+    deps = dependencies()
     user_model_name = get_model_name(User)
     org_auth_token_model_name = get_model_name(OrgAuthToken)
     org_member_model_name = get_model_name(OrganizationMember)
@@ -98,16 +110,16 @@ def _import(
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
     # footprint when processing super large (>100MB) exports.
     content = (
-        decrypt_encrypted_tarball(src, decrypt_with)
-        if decrypt_with is not None
+        decrypt_encrypted_tarball(src, decryptor)
+        if decryptor is not None
         else src.read().decode("utf-8")
     )
     filters = []
     if filter_by is not None:
         filters.append(filter_by)
 
-        # `sentry.Email` models don't have any explicit dependencies on `User`, so we need to find
-        # and record them manually.
+        # `sentry.Email` models don't have any explicit dependencies on `sentry.User`, so we need to
+        # find and record them manually.
         user_to_email = dict()
 
         if filter_by.model == Organization:
@@ -194,21 +206,33 @@ def _import(
         if last_seen_model_name is not None and batch:
             yield (last_seen_model_name, json.dumps(batch))
 
+    # A wrapper for some immutable state we need when performing a single `do_write().
+    @dataclass(frozen=True)
+    class ImportWriteContext:
+        scope: RpcImportScope
+        flags: RpcImportFlags
+        filter_by: list[RpcFilter]
+        dependencies: dict[NormalizedModelName, ModelRelations]
+
     # Perform the write of a single model.
     def do_write(
-        pk_map: PrimaryKeyMap, model_name: NormalizedModelName, json_data: json.JSONData
+        import_write_context: ImportWriteContext,
+        pk_map: PrimaryKeyMap,
+        model_name: NormalizedModelName,
+        json_data: json.JSONData,
     ) -> None:
-        model_relations = dependencies().get(model_name)
+        model_relations = import_write_context.dependencies.get(model_name)
         if not model_relations:
             return
 
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
+        model_name_str = str(model_name)
         result = import_by_model(
-            model_name=str(model_name),
-            scope=RpcImportScope.into_rpc(scope),
-            flags=RpcImportFlags.into_rpc(flags),
-            filter_by=[RpcFilter.into_rpc(f) for f in filters],
+            model_name=model_name_str,
+            scope=import_write_context.scope,
+            flags=import_write_context.flags,
+            filter_by=import_write_context.filter_by,
             pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
             json_data=json_data,
         )
@@ -219,19 +243,66 @@ def _import(
                 warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
                 printer(warningText, err=True)
             raise ImportingError(result)
-        pk_map.extend(result.mapped_pks)
+
+        out_pk_map: PrimaryKeyMap = result.mapped_pks.from_rpc()
+        pk_map.extend(out_pk_map)
+
+        # If the model we just imported lives in the control silo, that means the import took place
+        # over RPC. To ensure that we have an accurate view of the import result in both sides of
+        # the RPC divide, we create a replica of the `ControlImportChunk` that successful import
+        # would have generated in the calling region as well.
+        if result.min_ordinal is not None and SiloMode.CONTROL in deps[model_name].silos:
+            # If `min_ordinal` is not null, these values must not be either.
+            assert result.max_ordinal is not None
+            assert result.min_source_pk is not None
+            assert result.max_source_pk is not None
+
+            inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
+                model_name_str
+            ]
+            existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
+                model_name_str
+            ]
+            overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
+                model_name_str
+            ]
+            control_import_chunk_replica = ControlImportChunkReplica(
+                import_uuid=flags.import_uuid,
+                model=model_name_str,
+                # TODO(getsentry/team-ospo#190): The next two fields assume the entire model is
+                # being imported in a single call; we may change this in the future.
+                min_ordinal=result.min_ordinal,
+                max_ordinal=result.max_ordinal,
+                min_source_pk=result.min_source_pk,
+                max_source_pk=result.max_source_pk,
+                min_inserted_pk=result.min_inserted_pk,
+                max_inserted_pk=result.max_inserted_pk,
+                inserted_map={k: v[0] for k, v in inserted.items()},
+                existing_map={k: v[0] for k, v in existing.items()},
+                overwrite_map={k: v[0] for k, v in overwrite.items()},
+                inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
+            )
+            control_import_chunk_replica.save()
+
+    import_write_context = ImportWriteContext(
+        scope=RpcImportScope.into_rpc(scope),
+        flags=RpcImportFlags.into_rpc(flags),
+        filter_by=[RpcFilter.into_rpc(f) for f in filters],
+        dependencies=deps,
+    )
 
     # Extract some write logic into its own internal function, so that we may call it irrespective
     # of how we do atomicity: on a per-model (if using multiple dbs) or global (if using a single
     # db) basis.
     def do_writes(pk_map: PrimaryKeyMap) -> None:
+        nonlocal deferred_org_auth_tokens, import_write_context
+
         for model_name, json_data in yield_json_models(content):
             if model_name == org_auth_token_model_name:
-                nonlocal deferred_org_auth_tokens
                 deferred_org_auth_tokens = json_data
                 continue
 
-            do_write(pk_map, model_name, json_data)
+            do_write(import_write_context, pk_map, model_name, json_data)
 
     # Resolves slugs for all imported organization models via the PrimaryKeyMap and reconciles
     # their slug globally via control silo by issuing a slug update.
@@ -259,25 +330,26 @@ def _import(
     else:
         do_writes(pk_map)
 
-    if should_use_control_provisioning():
-        resolve_org_slugs_from_pk_map(pk_map)
+    resolve_org_slugs_from_pk_map(pk_map)
 
     if deferred_org_auth_tokens:
-        do_write(pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
+        do_write(import_write_context, pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
 
 
 def import_in_user_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer=click.echo,
 ):
     """
-    Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will be imported from the provided `src` file.
+    Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will
+    be imported from the provided `src` file.
 
-    The `user_filter` argument allows imports to be filtered by username. If the argument is set to `None`, there is no filtering, meaning all encountered users are imported.
+    The `user_filter` argument allows imports to be filtered by username. If the argument is set to
+    `None`, there is no filtering, meaning all encountered users are imported.
     """
 
     # Import here to prevent circular module resolutions.
@@ -286,7 +358,7 @@ def import_in_user_scope(
     return _import(
         src,
         ImportScope.User,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
@@ -296,7 +368,7 @@ def import_in_user_scope(
 def import_in_organization_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     org_filter: set[str] | None = None,
     printer=click.echo,
@@ -317,7 +389,7 @@ def import_in_organization_scope(
     return _import(
         src,
         ImportScope.Organization,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
@@ -327,7 +399,7 @@ def import_in_organization_scope(
 def import_in_config_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer=click.echo,
@@ -349,7 +421,7 @@ def import_in_config_scope(
     return _import(
         src,
         ImportScope.Config,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
@@ -359,7 +431,7 @@ def import_in_config_scope(
 def import_in_global_scope(
     src: BinaryIO,
     *,
-    decrypt_with: BinaryIO | None = None,
+    decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     printer=click.echo,
 ):
@@ -367,13 +439,14 @@ def import_in_global_scope(
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh
     Sentry instance, some behaviors in this scope are different from the others. In particular,
-    superuser privileges are not sanitized. This method can be thought of as a "pure" backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
+    superuser privileges are not sanitized. This method can be thought of as a "pure"
+    backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
     """
 
     return _import(
         src,
         ImportScope.Global,
-        decrypt_with=decrypt_with,
+        decryptor=decryptor,
         flags=flags,
         printer=printer,
     )

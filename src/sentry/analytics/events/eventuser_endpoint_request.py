@@ -6,7 +6,7 @@ class EventUserEndpointRequest(analytics.Event):
 
     attributes = (
         analytics.Attribute("endpoint", required=True),
-        analytics.Attribute("project_id", required=True),
+        analytics.Attribute("project_id", required=False),
     )
 
 

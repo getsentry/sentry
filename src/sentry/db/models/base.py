@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, TypeVar
+from typing import Any, Callable, ClassVar, Iterable, Mapping, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
@@ -50,7 +50,12 @@ class BaseModel(models.Model):
     __relocation_scope__: RelocationScope | set[RelocationScope]
     __relocation_dependencies__: set[str]
 
-    objects: BaseManager[Self] = BaseManager()
+    # Some models have a globally unique identifier, like a UUID. This should be a set of one or
+    # more fields, none of which are foreign keys, that are `unique=True` or `unique_together` for
+    # an entire Sentry instance.
+    __relocation_custom_ordinal__: list[str] | None = None
+
+    objects: ClassVar[BaseManager[Self]] = BaseManager()
 
     update = update
 
@@ -99,17 +104,17 @@ class BaseModel(models.Model):
         # In production, you should guard `model.field` with an
         # `if model.is_field_cached`.
         name = self._get_relational_field(field_name).get_cache_name()
-        return self._state.fields_cache.get(name, None)  # type: ignore[attr-defined]  # issue: typeddjango/django-stubs#1743
+        return self._state.fields_cache.get(name, None)
 
     def delete_cached_field_value(self, field_name: str) -> None:
         name = self._get_relational_field(field_name).get_cache_name()
-        if name in self._state.fields_cache:  # type: ignore[operator]  # issue: typeddjango/django-stubs#1743
-            del self._state.fields_cache[name]  # type: ignore[attr-defined]  # issue: typeddjango/django-stubs#1743
+        if name in self._state.fields_cache:
+            del self._state.fields_cache[name]
 
     def is_field_cached(self, field_name: str) -> bool:
         # Ask if a relational field has a cached value.
         name = self._get_relational_field(field_name).get_cache_name()
-        return name in self._state.fields_cache  # type: ignore[operator]  # issue: typeddjango/django-stubs#1743
+        return name in self._state.fields_cache
 
     def get_relocation_scope(self) -> RelocationScope:
         """
@@ -122,6 +127,21 @@ class BaseModel(models.Model):
             )
 
         return self.__relocation_scope__
+
+    @classmethod
+    def get_relocation_ordinal_fields(self) -> None | list[str]:
+        """
+        Retrieves the custom ordinal fields for models that may be re-used at import time (that is,
+        the `write_relocation_import()` method may return an `ImportKind` besides
+        `ImportKind.Inserted`). In such cases, we want an ordering of models by a globally unique
+        value that is not the `pk`, to ensure that merged and inserted models are still ordered
+        correctly with respect to one another.
+        """
+
+        if self.__relocation_custom_ordinal__ is None:
+            return None
+
+        return self.__relocation_custom_ordinal__
 
     @classmethod
     def get_possible_relocation_scopes(cls) -> set[RelocationScope]:
@@ -137,7 +157,13 @@ class BaseModel(models.Model):
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        """ """
+        """
+        Create a custom query for performing exports. This is useful when we can't use the usual
+        method of filtering by foreign keys of already-seen models, and allows us to export a
+        smaller subset of data than "all models of this kind".
+
+        The `q` argument represents the exist query. This method should modify that query, then return it.
+        """
 
         model_name = get_model_name(cls)
         model_relations = dependencies()[model_name]
@@ -174,9 +200,9 @@ class BaseModel(models.Model):
         `write_relocation_import`, is that it is often useful to adjust just the normalization logic
         by itself without affecting the writing logic.
 
-        Overrides of this method should take care NOT to mutate the `pk_map`. Overrides should also
-        take care NOT to push the updated changes to the database (ie, no calls to `.save()` or
-        `.update()`), as this functionality is delegated to the `write_relocation_import()` method.
+        Overrides should take care NOT to push the updated changes to the database (ie, no calls to
+        `.save()` or `.update()`), as this functionality is delegated to the
+        `write_relocation_import()` method.
 
         The default normalization logic merely replaces foreign keys with their new values from the
         provided `pk_map`.

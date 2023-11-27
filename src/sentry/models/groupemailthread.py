@@ -2,13 +2,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 
 
 @region_silo_only_model
@@ -27,8 +21,6 @@ class GroupEmailThread(Model):
     group = FlexibleForeignKey("sentry.Group", related_name="groupemail_set")
     msgid = models.CharField(max_length=100)
     date = models.DateTimeField(default=timezone.now, db_index=True)
-
-    objects = BaseManager()
 
     class Meta:
         app_label = "sentry"

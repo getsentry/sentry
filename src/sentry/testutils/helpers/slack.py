@@ -97,6 +97,16 @@ def send_notification(provider, *args_list):
         send_notification_as_slack(*args_list, {})
 
 
+def get_channel(index=0):
+    """Get the channel ID the Slack message went to"""
+    assert len(responses.calls) >= 1
+    data = parse_qs(responses.calls[index].request.body)
+    assert "channel" in data
+    channel = json.loads(data["channel"][0])
+
+    return channel
+
+
 def get_attachment(index=0):
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[index].request.body)

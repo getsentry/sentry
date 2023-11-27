@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 from django.db.models import QuerySet
 
@@ -90,7 +90,7 @@ class DatabaseBackedAppService(AppService):
             is_alertable=True,
             installations__status=SentryAppInstallationStatus.INSTALLED,
             installations__date_deleted=None,
-        ).distinct():
+        ).distinct("id"):
             if SentryAppComponent.objects.filter(
                 sentry_app_id=app.id, type="alert-rule-action"
             ).exists():
@@ -232,12 +232,12 @@ class DatabaseBackedAppService(AppService):
         self,
         *,
         organization_id: int,
-        integration_creator: str,
         integration_name: str,
         integration_scopes: List[str],
+        integration_creator_id,
+        metadata: Dict[str, Any] | None = None,
     ) -> RpcSentryAppInstallation:
-        # if the 'integration' already exists, don't recreate it...
-        admin_user = User.objects.get(email=integration_creator)
+        admin_user = User.objects.get(id=integration_creator_id)
 
         sentry_app_query = SentryApp.objects.filter(
             owner_id=organization_id,
@@ -252,11 +252,12 @@ class DatabaseBackedAppService(AppService):
         else:
             sentry_app = SentryAppCreator(
                 name=integration_name,
-                author="test",
+                author=admin_user.username,
                 organization_id=organization_id,
                 is_internal=True,
                 scopes=integration_scopes,
                 verify_install=False,
+                metadata=metadata,
             ).run(user=admin_user)
             installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
 

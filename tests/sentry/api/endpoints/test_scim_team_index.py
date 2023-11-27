@@ -6,11 +6,10 @@ from django.urls import reverse
 from sentry.models.team import Team
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SCIMTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SCIMIndexListTest(SCIMTestCase):
     def test_group_index_empty(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
@@ -191,7 +190,7 @@ class SCIMIndexListTest(SCIMTestCase):
 
 
 @override_settings(SENTRY_REGION="na")
-@region_silo_test(stable=True)
+@region_silo_test
 class SCIMIndexCreateTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-index"
     method = "post"
@@ -236,7 +235,6 @@ class SCIMIndexCreateTest(SCIMTestCase):
         )
         assert response.data["detail"] == "A team with this slug already exists."
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_scim_team_invalid_numeric_slug(self):
         invalid_post_data = {**self.post_data, "displayName": "1234"}
         response = self.get_error_response(

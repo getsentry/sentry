@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import contextlib
 from enum import IntEnum
-from typing import Any, List, Tuple
+from typing import Any, ClassVar, List, Tuple
 
 from django.db import models, router, transaction
+from typing_extensions import Self
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model
 
@@ -44,11 +45,13 @@ class UserAvatar(ControlAvatarBase):
     user = FlexibleForeignKey("sentry.User", unique=True, related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=UserAvatarType.as_choices())
 
-    objects = BaseManager(cache_fields=["user"])
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=["user"])
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_useravatar"
+
+    url_path = "avatar"
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
         regions = find_regions_for_user(self.user_id)

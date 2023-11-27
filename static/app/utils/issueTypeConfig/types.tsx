@@ -26,6 +26,10 @@ export type IssueTypeConfig = {
    */
   attachments: DisabledWithReasonConfig;
   /**
+   * Is the "Open in Discover" button available for this issue
+   */
+  discover: DisabledWithReasonConfig;
+  /**
    * Is the Events tab show for this issue
    */
   events: DisabledWithReasonConfig;
@@ -40,6 +44,10 @@ export type IssueTypeConfig = {
    * Is the Merged Issues tab shown for this issue
    */
   mergedIssues: DisabledWithReasonConfig;
+  /**
+   * Enables various regression related supporting data for an issue type.
+   */
+  regression: DisabledWithReasonConfig;
   /**
    * Is the Replays tab shown for this issue
    */

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
@@ -13,9 +14,16 @@ import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
+const DEFAULT_DISPLAYED_METRICS = [
+  'spm()',
+  `avg(${SPAN_SELF_TIME})`,
+  'time_spent_percentage()',
+];
+
 type Props = {
   groupId: string;
   transactionName: string;
+  displayedMetrics?: string[];
   transactionMethod?: string;
 };
 
@@ -23,8 +31,11 @@ function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod} = props;
   const {setPageError} = usePageError();
 
+  const displayedMetrics = props.displayedMetrics ?? DEFAULT_DISPLAYED_METRICS;
+
   const filters = {
-    transactionName,
+    'span.group': groupId,
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
@@ -32,7 +43,6 @@ function SampleInfo(props: Props) {
   }
 
   const {data: spanMetrics, error} = useSpanMetrics(
-    groupId,
     filters,
     [
       SPAN_OP,
@@ -40,6 +50,7 @@ function SampleInfo(props: Props) {
       `sum(${SPAN_SELF_TIME})`,
       `avg(${SPAN_SELF_TIME})`,
       'time_spent_percentage()',
+      'count()',
     ],
     'api.starfish.span-summary-panel-metrics'
   );
@@ -52,32 +63,57 @@ function SampleInfo(props: Props) {
     setPageError(error.message);
   }
 
+  function getDisplayBlock(metric: string) {
+    switch (metric) {
+      case `avg(${SPAN_SELF_TIME})`:
+        return (
+          <Block key={metric} title={DataTitles.avg} alignment="left">
+            <DurationCell
+              containerProps={{style}}
+              milliseconds={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
+            />
+          </Block>
+        );
+      case 'count()':
+        return (
+          <Block key={metric} title={DataTitles.count} alignment="left">
+            <CountCell containerProps={{style}} count={spanMetrics?.['count()']} />
+          </Block>
+        );
+      case 'time_spent_percentage()':
+        return (
+          <Block title={DataTitles.timeSpent} alignment="left">
+            <TimeSpentCell
+              containerProps={{style}}
+              percentage={spanMetrics?.[`time_spent_percentage()`]}
+              total={spanMetrics?.[`sum(${SPAN_SELF_TIME})`]}
+              op={spanMetrics?.['span.op']}
+            />
+          </Block>
+        );
+      case 'spm()':
+        return (
+          <Block
+            key={metric}
+            title={getThroughputTitle(spanMetrics?.[SPAN_OP])}
+            alignment="left"
+          >
+            <ThroughputCell
+              containerProps={{style}}
+              rate={spanMetrics?.['spm()']}
+              unit={RateUnits.PER_MINUTE}
+            />
+          </Block>
+        );
+      default:
+        return null;
+    }
+  }
+
   return (
     <SampleInfoContainer>
       <BlockContainer>
-        <Block title={getThroughputTitle(spanMetrics?.[SPAN_OP])} alignment="left">
-          <ThroughputCell
-            containerProps={{style}}
-            rate={spanMetrics?.['spm()']}
-            unit={RateUnits.PER_MINUTE}
-          />
-        </Block>
-
-        <Block title={DataTitles.avg} alignment="left">
-          <DurationCell
-            containerProps={{style}}
-            milliseconds={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
-          />
-        </Block>
-
-        <Block title={DataTitles.timeSpent} alignment="left">
-          <TimeSpentCell
-            containerProps={{style}}
-            percentage={spanMetrics?.[`time_spent_percentage()`]}
-            total={spanMetrics?.[`sum(${SPAN_SELF_TIME})`]}
-            op={spanMetrics?.['span.op']}
-          />
-        </Block>
+        {displayedMetrics.map(metric => getDisplayBlock(metric))}
       </BlockContainer>
     </SampleInfoContainer>
   );

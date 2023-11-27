@@ -56,6 +56,7 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
@@ -114,6 +115,7 @@ from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -1057,7 +1059,6 @@ class Factories:
             if not prevent_token_exchange and (
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
-
                 GrantExchanger.run(
                     install=rpc_install,
                     code=install.api_grant.code,
@@ -1236,25 +1237,33 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration_avatar(doc_integration=None, **kwargs) -> DocIntegrationAvatar:
         if not doc_integration:
             doc_integration = Factories.create_doc_integration()
-        photo = File.objects.create(name="test.png", type="avatar.file")
+        photo = ControlFile.objects.create(name="test.png", type="avatar.file")
         photo.putfile(io.BytesIO(b"imaginethiswasphotobytes"))
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            return DocIntegrationAvatar.objects.create(
-                doc_integration=doc_integration, avatar_type=0, file_id=photo.id
-            )
+        return DocIntegrationAvatar.objects.create(
+            doc_integration=doc_integration, avatar_type=0, control_file_id=photo.id
+        )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_userreport(group, project=None, event_id=None, **kwargs):
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_userreport(project, event_id=None, **kwargs):
+        event = Factories.store_event(
+            data={
+                "timestamp": iso_format(datetime.utcnow()),
+                "event_id": event_id or "a" * 32,
+                "message": "testing",
+            },
+            project_id=project.id,
+        )
+
         return UserReport.objects.create(
-            group_id=group.id,
-            event_id=event_id or "a" * 32,
-            project_id=project.id if project is not None else group.project.id,
+            group_id=event.group.id,
+            event_id=event.event_id,
+            project_id=project.id,
             name="Jane Bloggs",
             email="jane@example.com",
             comments="the application crashed",

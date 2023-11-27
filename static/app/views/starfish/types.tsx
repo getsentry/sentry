@@ -26,16 +26,18 @@ export enum SpanMetricsField {
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   PROJECT_ID = 'project.id',
+  TRANSACTION = 'transaction',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
-  HTTP_DECODED_RESPONSE_BODY_LENGTH = 'http.decoded_response_body_length',
+  HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
+  FILE_EXTENSION = 'file_extension',
 }
 
 export type SpanNumberFields =
   | SpanMetricsField.SPAN_SELF_TIME
   | SpanMetricsField.SPAN_DURATION
-  | SpanMetricsField.HTTP_DECODED_RESPONSE_BODY_LENGTH
+  | SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE;
 
@@ -44,19 +46,35 @@ export type SpanStringFields =
   | 'span.description'
   | 'span.module'
   | 'span.action'
+  | 'span.domain'
   | 'span.group'
   | 'project.id'
   | 'transaction'
-  | 'transaction.method';
+  | 'transaction.method'
+  | 'release';
+
+export type SpanMetricsQueryFilters = {
+  [Field in SpanStringFields]?: string;
+};
 
 export type SpanStringArrayFields = 'span.domain';
 
-export type SpanFunctions =
-  | 'sps'
-  | 'spm'
-  | 'count'
-  | 'time_spent_percentage'
-  | 'http_error_count';
+export const COUNTER_AGGREGATES = ['avg', 'min', 'max', 'p100'] as const;
+export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p95', 'p99'] as const;
+
+export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as const;
+
+export type Aggregate = (typeof AGGREGATES)[number];
+
+export const SPAN_FUNCTIONS = [
+  'sps',
+  'spm',
+  'count',
+  'time_spent_percentage',
+  'http_error_count',
+] as const;
+
+export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 export type MetricsResponse = {
   [Property in SpanNumberFields as `avg(${Property})`]: number;
@@ -77,6 +95,8 @@ export type MetricsFilters = {
 export type MetricsProperty = keyof MetricsResponse;
 
 export enum SpanIndexedField {
+  RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
+  HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
   SPAN_GROUP_RAW = 'span.group_raw', // Span group computed from non-normalized description. Matches the group in the event payload
@@ -91,6 +111,7 @@ export enum SpanIndexedField {
   SPAN_DOMAIN = 'span.domain',
   TIMESTAMP = 'timestamp',
   PROJECT = 'project',
+  PROFILE_ID = 'profile_id',
 }
 
 export type SpanIndexedFieldTypes = {
@@ -108,6 +129,9 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.SPAN_DOMAIN]: string[];
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
+  [SpanIndexedField.PROFILE_ID]: string;
+  [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
+  [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
 };
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];

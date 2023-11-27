@@ -14,7 +14,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -227,15 +226,15 @@ function renderClickCount<T>(column: GridColumnOrder<string>, dataRow: T) {
   const color = column.key === 'count_dead_clicks' ? 'yellow300' : 'red300';
 
   return (
-    <ClickColor color={color}>
-      <IconCursorArrow size="xs" />
+    <ClickCount>
+      <IconCursorArrow size="xs" color={color} />
       {dataRow[column.key]}
-    </ClickColor>
+    </ClickCount>
   );
 }
 
-const ClickColor = styled(TextOverflow)<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
+const ClickCount = styled(TextOverflow)`
+  color: ${p => p.theme.gray400};
   display: grid;
   grid-template-columns: auto auto;
   gap: ${space(0.75)};

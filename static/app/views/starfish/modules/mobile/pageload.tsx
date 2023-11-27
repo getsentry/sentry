@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -7,6 +9,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   PageErrorAlert,
@@ -14,23 +17,23 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
-import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
 
 export default function PageloadModule() {
   const organization = useOrganization();
 
   return (
-    <SentryDocumentTitle title={ROUTE_NAMES.pageload} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Mobile')} orgSlug={organization.slug}>
       <Layout.Page>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{ROUTE_NAMES.pageload}</Layout.Title>
+              <Layout.Title>{t('Mobile')}</Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
 
           <Layout.Body>
+            <FeedbackWidget />
             <Layout.Main fullWidth>
               <PageErrorAlert />
               <PageFiltersContainer>
@@ -42,7 +45,9 @@ export default function PageloadModule() {
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </Container>
-                <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} />
+                <ErrorBoundary mini>
+                  <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
+                </ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>
           </Layout.Body>

@@ -13,7 +13,7 @@ from sentry.testutils.silo import no_silo_test
 event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -174,7 +174,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
             # clear environment prod
             self.issues_list.global_selection.open_environment_selector()
-            clear_path = '//button[@aria-label="Clear" and @role="button"]'
+            clear_path = '//button[@aria-label="Reset" and @role="button"]'
             self.browser.wait_until(xpath=clear_path)
             button = self.browser.element(xpath=clear_path)
             # Use JavaScript to execute click to avoid click intercepted issues

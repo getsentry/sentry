@@ -42,7 +42,7 @@ async function run() {
   const {code: minifiedBase} = await minify(base, {
     ecma: 5,
     mangle: {
-      reserved: ['onLoad', 'forceLoad'],
+      reserved: ['onLoad', 'forceLoad', 'sentryOnLoad'],
     },
     format: {
       ecma: 5,

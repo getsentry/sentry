@@ -70,7 +70,8 @@ class SpanChart {
         Math.min(...this.spanTrees.map(t => t.root.span.start_timestamp))
     );
 
-    this.configSpace = new Rect(0, 0, duration, this.depth);
+    this.configSpace =
+      options.configSpace?.withHeight(this.depth) ?? new Rect(0, 0, duration, this.depth);
     this.root.end = duration;
     this.root.duration = duration;
   }
@@ -99,6 +100,10 @@ class SpanChart {
         const duration = node.span.timestamp - node.span.start_timestamp;
         const start = node.span.start_timestamp - transactionStart;
         const end = start + duration;
+
+        if (duration <= 0) {
+          continue;
+        }
 
         const spanChartNode: SpanChartNode = {
           duration: this.toFinalUnit(duration),

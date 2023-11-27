@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry import analytics, features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import all_silo_endpoint
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
@@ -28,10 +28,10 @@ from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
 
-@region_silo_endpoint
+@all_silo_endpoint  # Only challenge verification is handled at control
 class SlackEventEndpoint(SlackDMEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """
     XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring

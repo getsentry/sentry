@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from typing import ClassVar
+from urllib.parse import urljoin
 from uuid import uuid4
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -10,11 +11,13 @@ from django.utils.encoding import force_bytes
 from PIL import Image
 from typing_extensions import Self
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model
 from sentry.models.files.file import File
 from sentry.silo import SiloMode
 from sentry.tasks.files import copy_file_to_control_and_update_model
+from sentry.types.region import get_local_region
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 
@@ -39,6 +42,8 @@ class AvatarBase(Model):
 
     class Meta:
         abstract = True
+
+    url_path = "avatar"
 
     def save(self, *args, **kwargs):
         if not self.ident:
@@ -127,6 +132,22 @@ class AvatarBase(Model):
         Varies in ControlAvatarBase
         """
         return "file_id"
+
+    def absolute_url(self) -> str:
+        """
+        Get the absolute URL to an avatar.
+
+        Use the implementing class's silo_limit to infer which
+        host name should be used.
+        """
+        cls = type(self)
+
+        url_base = options.get("system.url-prefix")
+        silo_limit = getattr(cls._meta, "silo_limit", None)
+        if silo_limit is not None and SiloMode.REGION in silo_limit.modes:
+            url_base = get_local_region().to_url("")
+
+        return urljoin(url_base, f"/{self.url_path}/{self.ident}/")
 
     @classmethod
     def save_avatar(cls, relation, type, avatar=None, filename=None, color=None) -> Self:

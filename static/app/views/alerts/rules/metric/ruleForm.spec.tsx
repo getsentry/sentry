@@ -24,12 +24,13 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  let organization, project, routerContext;
+  let organization, project, routerContext, location;
   const createWrapper = props =>
     render(
       <RuleFormContainer
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
+        location={location}
         project={project}
         {...props}
       />,
@@ -42,6 +43,7 @@ describe('Incident Rules Form', () => {
     });
     organization = initialData.organization;
     project = initialData.project;
+    location = initialData.router.location;
     ProjectsStore.loadInitialData([project]);
     routerContext = initialData.routerContext;
     MockApiClient.addMockResponse({
@@ -231,11 +233,7 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      await waitFor(() =>
-        expect(screen.getByTestId('alert-total-events')).toHaveTextContent(
-          'Total Transactions5'
-        )
-      );
+      expect(await screen.findByTestId('alert-total-events')).toHaveTextContent('Total5');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -278,7 +276,7 @@ describe('Incident Rules Form', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             aggregate: 'count()',
-            alertType: 'custom',
+            alertType: 'custom_transactions',
             dataset: 'events',
             datasource: 'error',
             environment: null,

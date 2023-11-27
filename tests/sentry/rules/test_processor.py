@@ -20,7 +20,6 @@ from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -45,7 +44,7 @@ class MockConditionTrue(EventCondition):
         return True
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RuleProcessorTest(TestCase):
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -390,7 +389,7 @@ class MockFilterFalse(EventFilter):
         return False
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RuleProcessorTestFilters(TestCase):
     MOCK_SENTRY_RULES_WITH_FILTERS = (
         "sentry.mail.actions.NotifyEmailAction",
@@ -741,7 +740,6 @@ class RuleProcessorTestFilters(TestCase):
             in mock_post.call_args[1]["data"]["attachments"][0]["content"]["body"][0]["text"]
         )
 
-    @with_feature("organizations:integrations-discord-notifications")
     @patch("sentry.integrations.discord.message_builder.base.DiscordMessageBuilder._build")
     def test_discord_title_link_notification_uuid(self, mock_build):
         integration = self.create_integration(

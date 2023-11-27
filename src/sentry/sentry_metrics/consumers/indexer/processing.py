@@ -6,6 +6,7 @@ import sentry_kafka_schemas
 import sentry_sdk
 from arroyo.types import Message
 from django.conf import settings
+from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
 from sentry.sentry_metrics.configuration import (
     IndexerStorage,
@@ -14,6 +15,7 @@ from sentry.sentry_metrics.configuration import (
 )
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.schema_validator import MetricsSchemaValidator
 from sentry.sentry_metrics.consumers.indexer.tags_validator import (
     GenericMetricsTagsValidator,
     ReleaseHealthTagsValidator,
@@ -31,7 +33,7 @@ STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.MOCK: MockIndexer,
 }
 
-_INGEST_CODEC: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
+INGEST_CODEC: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
     "ingest-metrics"
 )
 
@@ -64,6 +66,15 @@ class MessageProcessor:
         else:
             return GenericMetricsTagsValidator().is_allowed
 
+    def __get_schema_validator(self) -> Callable[[str, IngestMetric], None]:
+        """
+        Get the schema validator function for the current use case.
+        """
+        return MetricsSchemaValidator(
+            input_codec=INGEST_CODEC,
+            validation_option=self._config.schema_validation_rule_option_name,
+        ).validate
+
     def process_messages(self, outer_message: Message[MessageBatch]) -> IndexerOutputMessageBatch:
         with sentry_sdk.start_transaction(
             name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
@@ -76,22 +87,30 @@ class MessageProcessor:
         outer_message: Message[MessageBatch],
     ) -> IndexerOutputMessageBatch:
         """
-        We have an outer_message Message() whose payload is a batch of Message() objects.
-
+        We have an outer_message which contains a collection of Message() objects.
+        Each of them represents a single message/metric on kafka.
             Message(
-                partition=...,
-                offset=...
-                timestamp=...
                 payload=[Message(...), Message(...), etc]
             )
 
         The inner messages payloads are KafkaPayload's that have:
+            * kafka meta data (partition/offsets)
             * key
             * headers
             * value
 
         The value of the message is what we need to parse and then translate
         using the indexer.
+
+        We create an IndexerBatch object to:
+
+        1. Parse and validate the inner messages from a sequence of bytes into
+           Python objects (initalization)
+        2. Filter messages (filter_messages)
+        3. Create a collection of all the strings that needs to to be indexed
+        (extract_strings)
+        4. Take a mapping of string -> int (indexed strings), and replace all of
+           the messages strings into ints
         """
         should_index_tag_values = self._config.should_index_tag_values
         is_output_sliced = self._config.is_output_sliced or False
@@ -100,18 +119,18 @@ class MessageProcessor:
             outer_message,
             should_index_tag_values=should_index_tag_values,
             is_output_sliced=is_output_sliced,
-            input_codec=_INGEST_CODEC,
             tags_validator=self.__get_tags_validator(),
+            schema_validator=self.__get_schema_validator(),
         )
 
-        sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_offset))
+        sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_meta))
 
         with metrics.timer("metrics_consumer.check_cardinality_limits"), sentry_sdk.start_span(
             op="check_cardinality_limits"
         ):
             cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
             cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
-                self._config.use_case_id, batch.parsed_payloads_by_offset
+                self._config.use_case_id, batch.parsed_payloads_by_meta
             )
 
         sdk.set_measurement(
@@ -129,9 +148,9 @@ class MessageProcessor:
         mapping = record_result.get_mapped_results()
         bulk_record_meta = record_result.get_fetch_metadata()
 
-        new_messages = batch.reconstruct_messages(mapping, bulk_record_meta)
+        results = batch.reconstruct_messages(mapping, bulk_record_meta)
 
-        sdk.set_measurement("new_messages.len", len(new_messages.data))
+        sdk.set_measurement("new_messages.len", len(results.data))
 
         with metrics.timer("metrics_consumer.apply_cardinality_limits"), sentry_sdk.start_span(
             op="apply_cardinality_limits"
@@ -139,4 +158,4 @@ class MessageProcessor:
             # TODO: move to separate thread
             cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
 
-        return new_messages
+        return results

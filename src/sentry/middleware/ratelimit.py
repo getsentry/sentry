@@ -8,6 +8,7 @@ from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 
+from sentry.api.base import apply_cors_headers
 from sentry.ratelimits import (
     above_rate_limit_check,
     finish_request,
@@ -102,7 +103,7 @@ class RatelimitMiddleware:
                                 "window": request.rate_limit_metadata.window,
                             },
                         )
-                        return HttpResponse(
+                        response = HttpResponse(
                             json.dumps(
                                 DEFAULT_ERROR_MESSAGE.format(
                                     limit=request.rate_limit_metadata.limit,
@@ -110,6 +111,9 @@ class RatelimitMiddleware:
                                 )
                             ),
                             status=429,
+                        )
+                        return apply_cors_headers(
+                            request=request, response=response, allowed_methods=[request.method]
                         )
             except Exception:
                 logging.exception(

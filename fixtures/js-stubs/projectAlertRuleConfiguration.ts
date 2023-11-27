@@ -1,15 +1,8 @@
-import {
-  IssueAlertRuleActionTemplate,
-  IssueAlertRuleConditionTemplate,
-} from 'sentry/types/alerts';
+import type {IssueAlertConfiguration} from 'sentry/types/alerts';
 
-type Config = {
-  actions: IssueAlertRuleActionTemplate[];
-  conditions: IssueAlertRuleConditionTemplate[];
-  filters: IssueAlertRuleConditionTemplate[];
-};
-
-export function ProjectAlertRuleConfiguration(params: Partial<Config> = {}): Config {
+export function ProjectAlertRuleConfiguration(
+  params: Partial<IssueAlertConfiguration> = {}
+): IssueAlertConfiguration {
   return {
     actions: [
       {

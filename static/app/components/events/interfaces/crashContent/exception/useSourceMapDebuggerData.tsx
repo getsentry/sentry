@@ -130,7 +130,8 @@ function getScrapingProgress(debuggerFrame: SourceMapDebugBlueThunderResponseFra
 
 export function prepareSourceMapDebuggerFrameInformation(
   sourceMapDebuggerData: SourceMapDebugBlueThunderResponse,
-  debuggerFrame: SourceMapDebugBlueThunderResponseFrame
+  debuggerFrame: SourceMapDebugBlueThunderResponseFrame,
+  event: Event
 ): FrameSourceMapDebuggerData {
   const {debugIdProgressPercent, debugIdProgress} = getDebugIdProgress(
     sourceMapDebuggerData,
@@ -172,6 +173,7 @@ export function prepareSourceMapDebuggerFrameInformation(
     uploadedSourceMapWithCorrectDebugId:
       debuggerFrame.debug_id_process.uploaded_source_map_with_correct_debug_id,
     sdkVersion: sourceMapDebuggerData.sdk_version,
+    sdkName: event.sdk?.name ?? null,
     matchingSourceMapName:
       debuggerFrame.release_process?.matching_source_map_name ?? null,
     debugIdProgressPercent,

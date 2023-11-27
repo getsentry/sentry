@@ -5,12 +5,11 @@ import styled from '@emotion/styled';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {fields} from 'sentry/data/forms/accountNotificationSettings';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -46,6 +45,7 @@ const accountNotifications = [
   'approval',
   'quota',
   'spikeProtection',
+  'reports',
 ];
 
 type ANBPProps = {
@@ -67,7 +67,15 @@ function AccountNotificationsByProject({projects, field}: ANBPProps) {
       // `name` key refers to field name
       // we use project.id because slugs are not unique across orgs
       name: project.id,
-      label: project.slug,
+      label: (
+        <ProjectBadge
+          project={project}
+          avatarSize={20}
+          displayName={project.slug}
+          avatarProps={{consistentWidth: true}}
+          disableLink
+        />
+      ),
     })),
   }));
 
@@ -234,23 +242,6 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
       <div>
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
-
-        {field &&
-          field.defaultFieldName &&
-          // not implemented yet
-          field.defaultFieldName !== 'weeklyReports' && (
-            <Form
-              saveOnBlur
-              apiMethod="PUT"
-              apiEndpoint="/users/me/notifications/"
-              initialData={notifications}
-            >
-              <JsonForm
-                title={`Default ${title}`}
-                fields={[fields[field.defaultFieldName]]}
-              />
-            </Form>
-          )}
         <Panel>
           <StyledPanelHeader hasButtons={isProject}>
             {isProject ? (

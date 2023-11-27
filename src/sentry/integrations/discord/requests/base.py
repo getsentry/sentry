@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Mapping
 
+from cryptography.exceptions import InvalidSignature
 from rest_framework import status
 from rest_framework.request import Request
 
@@ -119,14 +120,26 @@ class DiscordRequest:
         signature: str | None = self.request.META.get("HTTP_X_SIGNATURE_ED25519")
         timestamp: str | None = self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP")
         body: str = self.request.body.decode("utf-8")
-        self._info("discord.authorize.auth")
-
-        if signature and timestamp and verify_signature(public_key, signature, timestamp + body):
-            return
-        else:
-            self._info("discord.authorize.unauthorized")
-
-        raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
+        if not signature or not timestamp:
+            self._info(
+                "discord.authorize.auth.missing.data",
+                {**self.logging_data, "signature": signature, "timestamp": timestamp},
+            )
+            raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            verify_signature(public_key, signature, timestamp, body)
+        except InvalidSignature:
+            self._info(
+                "discord.authorize.auth.invalid.signature",
+                {**self.logging_data, "signature": signature, "timestamp": timestamp, "body": body},
+            )
+            raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
+        except ValueError:
+            self._info(
+                "discord.authorize.auth.value.error",
+                {**self.logging_data, "signature": signature, "timestamp": timestamp, "body": body},
+            )
+            raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
 
     def _validate_identity(self) -> None:
         self.user = self.get_identity_user()
@@ -175,8 +188,10 @@ class DiscordRequest:
     def _log_request(self) -> None:
         self._info("discord.request")
 
-    def _info(self, key: str) -> None:
-        logger.info(key, extra={**self.logging_data})
+    def _info(self, key: str, extra=None) -> None:
+        if not extra:
+            extra = {**self.logging_data}
+        logger.info(key, extra=extra)
 
     def _error(self, key: str) -> None:
         logger.error(key, extra={**self.logging_data})

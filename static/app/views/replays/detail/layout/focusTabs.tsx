@@ -24,11 +24,7 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: t('Network'),
-    [TabKey.ERRORS]: (
-      <Fragment>
-        {t('Errors')} <FeatureBadge type="new" />
-      </Fragment>
-    ),
+    [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: hasTraceTable ? null : t('Trace'),
     [TabKey.PERF]: null,
     [TabKey.A11Y]: hasA11yTab ? (

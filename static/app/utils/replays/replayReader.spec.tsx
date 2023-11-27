@@ -1,10 +1,27 @@
 import {EventType} from '@sentry-internal/rrweb';
+import {
+  ReplayClickEventFixture,
+  ReplayConsoleEventFixture,
+  ReplayDeadClickEventFixture,
+  ReplayMemoryEventFixture,
+  ReplayNavigateEventFixture,
+} from 'sentry-fixture/replay/helpers';
+import {ReplayNavFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {
+  ReplayBreadcrumbFrameEventFixture,
+  ReplayOptionFrameEventFixture,
+  ReplayOptionFrameFixture,
+  ReplaySpanFrameEventFixture,
+} from 'sentry-fixture/replay/replayFrameEvents';
+import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
+import {RRWebFullSnapshotFrameEvent} from 'sentry-fixture/replay/rrweb';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
 describe('ReplayReader', () => {
-  const replayRecord = TestStubs.ReplayRecord({});
+  const replayRecord = ReplayRecordFixture({});
 
   it('Should return null if there are missing arguments', () => {
     const missingAttachments = ReplayReader.factory({
@@ -35,11 +52,11 @@ describe('ReplayReader', () => {
 
     const replay = ReplayReader.factory({
       attachments: [
-        TestStubs.Replay.ConsoleEvent({timestamp: minuteZero}),
-        TestStubs.Replay.ConsoleEvent({timestamp: minuteTen}),
+        ReplayConsoleEventFixture({timestamp: minuteZero}),
+        ReplayConsoleEventFixture({timestamp: minuteTen}),
       ],
       errors: [],
-      replayRecord: TestStubs.ReplayRecord({
+      replayRecord: ReplayRecordFixture({
         started_at: new Date('2023-12-25T00:01:00'),
         finished_at: new Date('2023-12-25T00:09:00'),
         duration: undefined, // will be calculated
@@ -68,39 +85,39 @@ describe('ReplayReader', () => {
     const secondTimestamp = new Date('2023-12-25T00:04:00');
     const thirdTimestamp = new Date('2023-12-25T00:05:00');
 
-    const optionsFrame = TestStubs.Replay.OptionFrame({});
-    const optionsEvent = TestStubs.Replay.OptionFrameEvent({
+    const optionsFrame = ReplayOptionFrameFixture({});
+    const optionsEvent = ReplayOptionFrameEventFixture({
       timestamp,
       data: {payload: optionsFrame},
     });
-    const firstDiv = TestStubs.Replay.RRWebFullSnapshotFrameEvent({timestamp});
-    const secondDiv = TestStubs.Replay.RRWebFullSnapshotFrameEvent({timestamp});
-    const clickEvent = TestStubs.Replay.ClickEvent({timestamp});
-    const secondClickEvent = TestStubs.Replay.ClickEvent({timestamp: secondTimestamp});
-    const thirdClickEvent = TestStubs.Replay.ClickEvent({timestamp: thirdTimestamp});
-    const deadClickEvent = TestStubs.Replay.DeadClickEvent({timestamp});
-    const firstMemory = TestStubs.Replay.MemoryEvent({
+    const firstDiv = RRWebFullSnapshotFrameEvent({timestamp});
+    const secondDiv = RRWebFullSnapshotFrameEvent({timestamp});
+    const clickEvent = ReplayClickEventFixture({timestamp});
+    const secondClickEvent = ReplayClickEventFixture({timestamp: secondTimestamp});
+    const thirdClickEvent = ReplayClickEventFixture({timestamp: thirdTimestamp});
+    const deadClickEvent = ReplayDeadClickEventFixture({timestamp});
+    const firstMemory = ReplayMemoryEventFixture({
       startTimestamp: timestamp,
       endTimestamp: timestamp,
     });
-    const secondMemory = TestStubs.Replay.MemoryEvent({
+    const secondMemory = ReplayMemoryEventFixture({
       startTimestamp: timestamp,
       endTimestamp: timestamp,
     });
-    const navigationEvent = TestStubs.Replay.NavigateEvent({
+    const navigationEvent = ReplayNavigateEventFixture({
       startTimestamp: new Date('2023-12-25T00:03:00'),
       endTimestamp: new Date('2023-12-25T00:03:30'),
     });
-    const navCrumb = TestStubs.Replay.BreadcrumbFrameEvent({
+    const navCrumb = ReplayBreadcrumbFrameEventFixture({
       timestamp: new Date('2023-12-25T00:03:00'),
       data: {
-        payload: TestStubs.Replay.NavFrame({
+        payload: ReplayNavFrameFixture({
           timestamp: new Date('2023-12-25T00:03:00'),
         }),
       },
     });
-    const consoleEvent = TestStubs.Replay.ConsoleEvent({timestamp});
-    const customEvent = TestStubs.Replay.BreadcrumbFrameEvent({
+    const consoleEvent = ReplayConsoleEventFixture({timestamp});
+    const customEvent = ReplayBreadcrumbFrameEventFixture({
       timestamp: new Date('2023-12-25T00:02:30'),
       data: {
         payload: {
@@ -203,11 +220,11 @@ describe('ReplayReader', () => {
 
   it('shoud return the SDK config if there is a RecordingOptions event found', () => {
     const timestamp = new Date();
-    const optionsFrame = TestStubs.Replay.OptionFrame({});
+    const optionsFrame = ReplayOptionFrameFixture({});
 
     const replay = ReplayReader.factory({
       attachments: [
-        TestStubs.Replay.OptionFrameEvent({
+        ReplayOptionFrameEventFixture({
           timestamp,
           data: {payload: optionsFrame},
         }),
@@ -225,10 +242,10 @@ describe('ReplayReader', () => {
 
       const replay = ReplayReader.factory({
         attachments: [
-          TestStubs.Replay.OptionFrameEvent({
+          ReplayOptionFrameEventFixture({
             timestamp,
             data: {
-              payload: TestStubs.Replay.OptionFrame({
+              payload: ReplayOptionFrameFixture({
                 networkDetailHasUrls: true,
               }),
             },
@@ -260,10 +277,10 @@ describe('ReplayReader', () => {
       const endTimestamp = new Date();
       const replay = ReplayReader.factory({
         attachments: [
-          TestStubs.Replay.SpanFrameEvent({
+          ReplaySpanFrameEventFixture({
             timestamp: startTimestamp,
             data: {
-              payload: TestStubs.Replay.RequestFrame({
+              payload: ReplayRequestFrameFixture({
                 op: 'resource.fetch',
                 startTimestamp,
                 endTimestamp,

@@ -42,7 +42,7 @@ pytestmark = [requires_snuba]
 
 
 class AlertRuleDetailsBase(AlertRuleBase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-alert-rule-details"
 
@@ -150,7 +150,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -264,7 +264,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -602,7 +602,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(audit_log_entry) == 1
 
 
-class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
+@region_silo_test
+class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
+    method = "put"
+
     def _mock_slack_response(self, url: str, body: dict[str, Any], status: int = 200) -> None:
         responses.add(
             method=responses.GET,
@@ -811,13 +814,14 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         )
         self.login_as(self.user)
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
         test_params = self.valid_params.copy()
         test_params["triggers"] = [
             {
@@ -936,7 +940,10 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         )  # Did not increment from the last assertion because we early out on the validation error
 
 
-class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsPutEndpointTest):
+@region_silo_test
+class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
+    method = "put"
+
     def test_sentry_app(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -1118,7 +1125,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         assert error_message in resp.data["sentry_app"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 
@@ -1212,6 +1219,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         project = self.create_project(name="boo", organization=self.organization, teams=[team])
         alert_rule = self.create_alert_rule(projects=[project])
         alert_rule.owner = team.actor
+        alert_rule.team_id = team.id
         alert_rule.save()
 
         other_user = self.create_user()
@@ -1222,6 +1230,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         )
         other_alert_rule = self.create_alert_rule(projects=[other_project])
         other_alert_rule.owner = other_team.actor
+        other_alert_rule.team_id = other_team.id
         other_alert_rule.save()
 
         with self.feature("organizations:incidents"):

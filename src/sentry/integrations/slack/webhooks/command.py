@@ -52,7 +52,7 @@ def is_team_linked_to_channel(organization: Organization, slack_request: SlackDM
 @region_silo_endpoint
 class SlackCommandsEndpoint(SlackDMEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()

@@ -24,6 +24,7 @@ class StatsdMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         self.client.incr(self._full_key(self._get_key(key)), amount, sample_rate)
 
@@ -44,5 +45,17 @@ class StatsdMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         self.client.gauge(self._full_key(self._get_key(key)), value, sample_rate)
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
+    ) -> None:
+        self.timing(key, value, instance, tags, sample_rate)

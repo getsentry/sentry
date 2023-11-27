@@ -60,9 +60,11 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:user-feedback-ingest",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
     "organizations:custom-metrics",
+    "organizations:metric-meta",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -273,28 +275,6 @@ class SpanDescriptionRule(TypedDict):
     redaction: SpanDescriptionRuleRedaction
 
 
-def get_span_descriptions_config(project: Project) -> Optional[Sequence[SpanDescriptionRule]]:
-    if not features.has("projects:span-metrics-extraction", project):
-        return None
-
-    rules = get_sorted_rules(ClustererNamespace.SPANS, project)
-    if not rules:
-        return None
-
-    return [_get_span_desc_rule(pattern, seen) for pattern, seen in rules]
-
-
-def _get_span_desc_rule(pattern: str, seen_last: int) -> SpanDescriptionRule:
-    rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
-    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
-    return SpanDescriptionRule(
-        pattern=pattern,
-        expiry=expiry_at,
-        scope={"op": "http"},
-        redaction={"method": "replace", "substitution": "*"},
-    )
-
-
 def add_experimental_config(
     config: MutableMapping[str, Any],
     key: str,
@@ -367,9 +347,6 @@ def _get_project_config(
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
 
-    # Rules to replace high cardinality span descriptions
-    add_experimental_config(config, "spanDescriptionRules", get_span_descriptions_config, project)
-
     # Mark the project as ready if it has seen >= 10 clusterer runs.
     # This prevents projects from prematurely marking all URL transactions as sanitized.
     if get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project)["runs"] >= MIN_CLUSTERER_RUNS:
@@ -409,6 +386,82 @@ def _get_project_config(
             ),
         }
 
+    if features.has("organizations:performance-calculate-score-relay", project.organization):
+        config["performanceScore"] = {
+            "profiles": [
+                {
+                    "name": "Chrome",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
+                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
+                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome",
+                    },
+                },
+                {
+                    "name": "Firefox",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.30, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "fid", "weight": 0.55, "p10": 100.0, "p50": 300.0},
+                        {"measurement": "ttfb", "weight": 0.15, "p10": 200.0, "p50": 400.0},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Firefox",
+                    },
+                },
+                {
+                    "name": "Safari",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.60, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "ttfb", "weight": 0.40, "p10": 200.0, "p50": 400.0},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Safari",
+                    },
+                },
+                {
+                    "name": "Edge",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
+                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
+                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Edge",
+                    },
+                },
+                {
+                    "name": "Opera",
+                    "scoreComponents": [
+                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
+                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
+                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
+                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
+                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Opera",
+                    },
+                },
+            ]
+        }
+
     config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
@@ -446,7 +499,7 @@ class _ConfigBase:
     def __init__(self, **kwargs: Any) -> None:
         data: MutableMapping[str, Any] = {}
         object.__setattr__(self, "data", data)
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             if val is not None:
                 data[key] = val
 

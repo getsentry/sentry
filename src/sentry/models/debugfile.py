@@ -69,7 +69,7 @@ class BadDif(Exception):
     pass
 
 
-class ProjectDebugFileManager(BaseManager):
+class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
     def find_missing(self, checksums: Iterable[str], project: Project) -> List[str]:
         if not checksums:
             return []
@@ -147,7 +147,7 @@ class ProjectDebugFile(Model):
     data = JSONField(null=True)
     date_accessed = models.DateTimeField(default=timezone.now)
 
-    objects = ProjectDebugFileManager()
+    objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()
 
     difcache: ClassVar[DIFCache]
 

@@ -8,9 +8,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
 import {
+  DEFAULT_INDEXED_SORT,
+  SORTABLE_INDEXED_FIELDS,
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
   transaction: string;
@@ -18,6 +21,7 @@ type Props = {
   limit?: number;
   orderBy?: WebVitals | null;
   query?: string;
+  withProfiles?: boolean;
 };
 
 export const useTransactionSamplesWebVitalsQuery = ({
@@ -26,10 +30,16 @@ export const useTransactionSamplesWebVitalsQuery = ({
   transaction,
   query,
   enabled,
+  withProfiles,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+
+  const sort = useWebVitalsSort({
+    defaultSort: DEFAULT_INDEXED_SORT,
+    sortableFields: SORTABLE_INDEXED_FIELDS as unknown as string[],
+  });
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -47,14 +57,18 @@ export const useTransactionSamplesWebVitalsQuery = ({
         'replayId',
         'timestamp',
         'profile.id',
+        'browser',
+        'project',
       ],
       name: 'Web Vitals',
       query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
-      orderby: mapWebVitalToOrderBy(orderBy),
+      orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },
     pageFilters.selection
   );
+
+  eventView.sorts = [sort];
 
   const {data, isLoading, ...rest} = useDiscoverQuery({
     eventView,
@@ -76,6 +90,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'transaction.op': row['transaction.op']?.toString(),
+            browser: row.browser?.toString(),
             'measurements.lcp': toNumber(row['measurements.lcp']),
             'measurements.fcp': toNumber(row['measurements.fcp']),
             'measurements.cls': toNumber(row['measurements.cls']),
@@ -83,7 +98,8 @@ export const useTransactionSamplesWebVitalsQuery = ({
             'measurements.fid': toNumber(row['measurements.fid']),
             'transaction.duration': toNumber(row['transaction.duration']),
             replayId: row.replayId?.toString(),
-            'profile.id': row.profileId?.toString(),
+            'profile.id': row['profile.id']?.toString(),
+            projectSlug: row.project?.toString(),
             timestamp: row.timestamp?.toString(),
           }))
           .map(row => {
@@ -97,12 +113,12 @@ export const useTransactionSamplesWebVitalsQuery = ({
               });
             return {
               ...row,
-              score: totalScore,
-              clsScore,
-              fcpScore,
-              lcpScore,
-              ttfbScore,
-              fidScore,
+              score: totalScore ?? 0,
+              clsScore: clsScore ?? 0,
+              fcpScore: fcpScore ?? 0,
+              lcpScore: lcpScore ?? 0,
+              ttfbScore: ttfbScore ?? 0,
+              fidScore: fidScore ?? 0,
             };
           })
       : [];

@@ -14,29 +14,25 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
+import {MetricsApiResponse, PageFilters} from 'sentry/types';
 import {
   defaultMetricDisplayType,
-  getUnitFromMRI,
+  getSeriesName,
   MetricDisplayType,
-  MetricsData,
-  MetricsQuery,
+  MetricWidgetQueryParams,
+  parseMRI,
   updateQuery,
-  useMetricsDataZoom,
 } from 'sentry/utils/metrics';
+import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
 import {MetricChart} from 'sentry/views/ddm/chart';
+import {MetricWidgetContextMenu} from 'sentry/views/ddm/contextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
 import {DEFAULT_SORT_STATE, MIN_WIDGET_WIDTH} from './constants';
-
-type SortState = {
-  name: 'name' | 'avg' | 'min' | 'max' | 'sum';
-  order: 'asc' | 'desc';
-};
 
 const emptyWidget = {
   mri: '',
@@ -46,18 +42,10 @@ const emptyWidget = {
   sort: DEFAULT_SORT_STATE,
 };
 
-export type MetricWidgetDisplayConfig = {
-  displayType: MetricDisplayType;
+export interface MetricWidgetProps extends MetricWidgetQueryParams {
   onChange: (data: Partial<MetricWidgetProps>) => void;
   position: number;
-  sort: SortState;
-  focusedSeries?: string;
-  powerUserMode?: boolean;
-  showSummaryTable?: boolean;
-};
-
-export type MetricWidgetProps = Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> &
-  MetricWidgetDisplayConfig;
+}
 
 export function useMetricWidgets() {
   const router = useRouter();
@@ -67,7 +55,7 @@ export function useMetricWidgets() {
   );
 
   const widgets: MetricWidgetProps[] = currentWidgets.map(
-    (widget: MetricWidgetProps, i) => {
+    (widget: MetricWidgetQueryParams, i) => {
       return {
         mri: widget.mri,
         op: widget.op,
@@ -83,7 +71,7 @@ export function useMetricWidgets() {
     }
   );
 
-  const onChange = (position: number, data: Partial<MetricWidgetProps>) => {
+  const onChange = (position: number, data: Partial<MetricWidgetQueryParams>) => {
     currentWidgets[position] = {...currentWidgets[position], ...data};
 
     updateQuery(router, {
@@ -106,13 +94,6 @@ export function useMetricWidgets() {
   };
 }
 
-// TODO(ddm): reuse from types/metrics.tsx
-type Group = {
-  by: Record<string, unknown>;
-  series: Record<string, number[]>;
-  totals: Record<string, number>;
-};
-
 export function MetricWidget({
   widget,
   datetime,
@@ -127,18 +108,32 @@ export function MetricWidget({
   return (
     <MetricWidgetPanel key={widget.position}>
       <PanelBody>
-        <QueryBuilder
-          metricsQuery={{
-            mri: widget.mri,
-            query: widget.query,
-            op: widget.op,
-            groupBy: widget.groupBy,
-          }}
-          projects={projects}
-          displayType={widget.displayType}
-          onChange={widget.onChange}
-          powerUserMode={widget.powerUserMode}
-        />
+        <MetricWidgetHeader>
+          <QueryBuilder
+            metricsQuery={{
+              mri: widget.mri,
+              query: widget.query,
+              op: widget.op,
+              groupBy: widget.groupBy,
+            }}
+            projects={projects}
+            displayType={widget.displayType}
+            onChange={widget.onChange}
+            powerUserMode={widget.powerUserMode}
+          />
+          <MetricWidgetContextMenu
+            metricsQuery={{
+              mri: widget.mri,
+              query: widget.query,
+              op: widget.op,
+              groupBy: widget.groupBy,
+              projects,
+              datetime,
+              environments,
+            }}
+            displayType={widget.displayType}
+          />
+        </MetricWidgetHeader>
         {widget.mri ? (
           <MetricWidgetBody
             datetime={datetime}
@@ -160,6 +155,13 @@ export function MetricWidget({
   );
 }
 
+const MetricWidgetHeader = styled('div')`
+  display: flex;
+
+  justify-content: space-between;
+  margin-bottom: ${space(1)};
+`;
+
 function MetricWidgetBody({
   onChange,
   displayType,
@@ -179,9 +181,9 @@ function MetricWidgetBody({
     datetime,
   });
 
-  const [dataToBeRendered, setDataToBeRendered] = useState<MetricsData | undefined>(
-    undefined
-  );
+  const [dataToBeRendered, setDataToBeRendered] = useState<
+    MetricsApiResponse | undefined
+  >(undefined);
 
   const [hoveredLegend, setHoveredLegend] = useState('');
 
@@ -218,6 +220,7 @@ function MetricWidgetBody({
     focusedSeries,
     hoveredLegend,
     groupBy: metricsQuery.groupBy,
+    displayType,
   });
 
   return (
@@ -248,8 +251,13 @@ function MetricWidgetBody({
   );
 }
 
-function getChartSeries(data: MetricsData, {focusedSeries, groupBy, hoveredLegend}) {
-  const unit = getUnitFromMRI(Object.keys(data.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
+function getChartSeries(
+  data: MetricsApiResponse,
+  {focusedSeries, groupBy, hoveredLegend, displayType}
+) {
+  // this assumes that all series have the same unit
+  const parsed = parseMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
+  const unit = parsed?.unit ?? '';
 
   const series = data.groups.map(g => {
     return {
@@ -260,44 +268,61 @@ function getChartSeries(data: MetricsData, {focusedSeries, groupBy, hoveredLegen
     };
   });
 
-  const colors = theme.charts.getColorPalette(series.length);
+  const colors = getChartColorPalette(displayType, series.length);
 
-  return series
-    .sort((a, b) => a.name?.localeCompare(b.name))
-    .map((item, i) => ({
-      seriesName: item.name,
-      unit,
-      color: colorFn(colors[i])
-        .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
-        .string(),
-      hidden: focusedSeries && focusedSeries !== item.name,
-      data: item.values.map((value, index) => ({
-        name: moment(data.intervals[index]).valueOf(),
-        value,
-      })),
-      transaction: item.transaction as string | undefined,
-      release: item.release as string | undefined,
-      emphasis: {
-        focus: 'series',
-      } as LineSeriesOption['emphasis'],
-    })) as Series[];
+  return sortSeries(series, displayType).map((item, i) => ({
+    seriesName: item.name,
+    unit,
+    color: colorFn(colors[i])
+      .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
+      .string(),
+    hidden: focusedSeries && focusedSeries !== item.name,
+    data: item.values.map((value, index) => ({
+      name: moment(data.intervals[index]).valueOf(),
+      value,
+    })),
+    transaction: item.transaction as string | undefined,
+    release: item.release as string | undefined,
+    emphasis: {
+      focus: 'series',
+    } as LineSeriesOption['emphasis'],
+  })) as Series[];
 }
 
-function getSeriesName(
-  group: Group,
-  isOnlyGroup = false,
-  groupBy: MetricsQuery['groupBy']
+function sortSeries(
+  series: {
+    name: string;
+    release: string;
+    transaction: string;
+    values: (number | null)[];
+  }[],
+  displayType: MetricDisplayType
 ) {
-  if (isOnlyGroup && !groupBy?.length) {
-    return Object.keys(group.series)?.[0] ?? '(none)';
+  const sorted = series
+    // we need to sort the series by their values so that the colors in area chart do not overlap
+    // for now we are only sorting by the first value, but we might need to sort by the sum of all values
+    .sort((a, b) => {
+      return Number(a.values?.[0]) > Number(b.values?.[0]) ? -1 : 1;
+    });
+
+  if (displayType === MetricDisplayType.BAR) {
+    return sorted.toReversed();
   }
 
-  return Object.entries(group.by)
-    .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
-    .join(', ');
+  return sorted;
 }
 
-function normalizeChartTimeParams(data: MetricsData) {
+function getChartColorPalette(displayType: MetricDisplayType, length: number) {
+  const palette = theme.charts.getColorPalette(length - 2);
+
+  if (displayType === MetricDisplayType.BAR) {
+    return palette;
+  }
+
+  return palette.toReversed();
+}
+
+function normalizeChartTimeParams(data: MetricsApiResponse) {
   const {
     start,
     end,
@@ -343,7 +368,7 @@ export type Series = {
 const MetricWidgetPanel = styled(Panel)`
   padding-bottom: 0;
   margin-bottom: 0;
-  min-width: ${MIN_WIDGET_WIDTH};
+  min-width: ${MIN_WIDGET_WIDTH}px;
 `;
 
 const StyledMetricWidgetBody = styled('div')`

@@ -1,17 +1,9 @@
-# mypy: ignore-errors
-
 import random
 from functools import wraps
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 import sentry_sdk
-
-try:
-    from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop  # type: ignore
-
-    have_minimetrics = True
-except ImportError:
-    have_minimetrics = False
+from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
 
 from sentry import options
 from sentry.metrics.base import MetricsBackend, Tags
@@ -19,9 +11,6 @@ from sentry.utils import metrics
 
 
 def patch_sentry_sdk():
-    if not have_minimetrics:
-        return
-
     real_add = MetricsAggregator.add
     real_emit = MetricsAggregator._emit
 
@@ -100,14 +89,19 @@ def before_emit_metric(key: str, tags: Dict[str, Any]) -> bool:
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):
-    def __init__(self, prefix: Optional[str] = None):
-        super().__init__(prefix=prefix)
-        if not have_minimetrics:
-            raise RuntimeError("Sentry SDK too old (no minimetrics)")
-
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
         return random.random() < sample_rate
+
+    @staticmethod
+    def _to_minimetrics_unit(unit: Optional[str], default: Optional[str] = None) -> str:
+        if unit is None:
+            if default is not None:
+                return default
+
+            return "none"
+
+        return unit
 
     def incr(
         self,
@@ -116,12 +110,14 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         if self._keep_metric(sample_rate):
             sentry_sdk.metrics.incr(
                 key=self._get_key(key),
                 value=amount,
                 tags=tags,
+                unit=self._to_minimetrics_unit(unit=unit),
             )
 
     def timing(
@@ -134,7 +130,11 @@ class MiniMetricsMetricsBackend(MetricsBackend):
     ) -> None:
         if self._keep_metric(sample_rate):
             sentry_sdk.metrics.distribution(
-                key=self._get_key(key), value=value, tags=tags, unit="second"
+                key=self._get_key(key),
+                value=value,
+                tags=tags,
+                # Timing is defaulted to seconds.
+                unit="second",
             )
 
     def gauge(
@@ -144,7 +144,37 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
     ) -> None:
         if self._keep_metric(sample_rate):
-            # XXX: make this into a gauge later
-            sentry_sdk.metrics.incr(key=self._get_key(key), value=value, tags=tags)
+            if options.get("delightful_metrics.emit_gauges"):
+                sentry_sdk.metrics.gauge(
+                    key=self._get_key(key),
+                    value=value,
+                    tags=tags,
+                    unit=self._to_minimetrics_unit(unit=unit),
+                )
+            else:
+                sentry_sdk.metrics.incr(
+                    key=self._get_key(key),
+                    value=value,
+                    tags=tags,
+                    unit=self._to_minimetrics_unit(unit=unit),
+                )
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
+    ) -> None:
+        if self._keep_metric(sample_rate):
+            sentry_sdk.metrics.distribution(
+                key=self._get_key(key),
+                value=value,
+                tags=tags,
+                unit=self._to_minimetrics_unit(unit=unit),
+            )

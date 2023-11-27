@@ -2,13 +2,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 
 
 @region_silo_only_model
@@ -18,8 +12,6 @@ class ReprocessingReport(Model):
     project = FlexibleForeignKey("sentry.Project")
     event_id = models.CharField(max_length=32, null=True)
     datetime = models.DateTimeField(default=timezone.now)
-
-    objects = BaseManager()
 
     class Meta:
         app_label = "sentry"

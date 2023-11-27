@@ -22,6 +22,8 @@ export const useIndexedSpans = (
   const location = useLocation();
   const eventView = getEventView(filters, location);
 
+  eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
+
   return useSpansQuery<SpanIndexedFieldTypes[]>({
     eventView,
     limit,

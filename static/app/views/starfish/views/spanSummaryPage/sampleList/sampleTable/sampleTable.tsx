@@ -9,11 +9,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
+import {
+  SamplesTableColumnHeader,
+  SpanSamplesTable,
+} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -24,9 +27,13 @@ const SpanSamplesTableContainer = styled('div')`
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFields?: string[];
+  columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  query?: string[];
+  release?: string;
   transactionMethod?: string;
 };
 
@@ -37,17 +44,25 @@ function SampleTable({
   onMouseLeaveSample,
   onMouseOverSample,
   transactionMethod,
+  columnOrder,
+  release,
+  query,
+  additionalFields,
 }: Props) {
-  const filters = {
-    transactionName,
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
     filters['transaction.method'] = transactionMethod;
   }
 
+  if (release) {
+    filters.release = release;
+  }
+
   const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
-    groupId,
     filters,
     [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
     'api.starfish.span-summary-panel-samples-table-avg'
@@ -66,6 +81,9 @@ function SampleTable({
     groupId,
     transactionName,
     transactionMethod,
+    release,
+    query,
+    additionalFields,
   });
 
   const {
@@ -126,6 +144,7 @@ function SampleTable({
           onMouseLeaveSample={onMouseLeaveSample}
           onMouseOverSample={onMouseOverSample}
           highlightedSpanId={highlightedSpanId}
+          columnOrder={columnOrder}
           data={spans.map(sample => {
             return {
               ...sample,

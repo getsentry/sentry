@@ -82,15 +82,14 @@ class InternalMetrics:
                 else:
                     full_key = key
                 try:
-                    tsdb.incr(TSDBModel.internal, full_key, count=amount)
+                    tsdb.backend.incr(TSDBModel.internal, full_key, count=amount)
                 except Exception:
                     logger = logging.getLogger("sentry.errors")
                     logger.exception("Unable to incr internal metric")
                 finally:
                     q.task_done()
 
-        t = Thread(target=worker)
-        t.setDaemon(True)
+        t = Thread(target=worker, daemon=True)
         t.start()
 
         self._started = True
@@ -118,6 +117,7 @@ def incr(
     tags: Optional[Tags] = None,
     skip_internal: bool = True,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    unit: Optional[str] = None,
 ) -> None:
     should_send_internal = (
         not metrics_skip_all_internal
@@ -130,7 +130,7 @@ def incr(
         internal.incr(key, instance, tags, amount, sample_rate)
 
     try:
-        backend.incr(key, instance, tags, amount, sample_rate)
+        backend.incr(key, instance, tags, amount, sample_rate, unit)
         if should_send_internal:
             backend.incr("internal_metrics.incr", key, None, 1, sample_rate)
     except Exception:
@@ -144,9 +144,10 @@ def gauge(
     instance: Optional[str] = None,
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    unit: Optional[str] = None,
 ) -> None:
     try:
-        backend.gauge(key, value, instance, tags, sample_rate)
+        backend.gauge(key, value, instance, tags, sample_rate, unit)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -161,6 +162,21 @@ def timing(
 ) -> None:
     try:
         backend.timing(key, value, instance, tags, sample_rate)
+    except Exception:
+        logger = logging.getLogger("sentry.errors")
+        logger.exception("Unable to record backend metric")
+
+
+def distribution(
+    key: str,
+    value: Union[int, float],
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
+    sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    unit: Optional[str] = None,
+) -> None:
+    try:
+        backend.distribution(key, value, instance, tags, sample_rate, unit)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")

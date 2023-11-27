@@ -29,7 +29,10 @@ import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/invi
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
   allowedRoles: OrgRole[];
-  missingMembers: {integration: string; users: MissingMember[]};
+  // the API response returns {integration: "github", users: []}
+  // but we only ever return Github missing members at the moment
+  // so we can simplify the props and state to only store the users (missingMembers)
+  missingMembers: MissingMember[];
   organization: Organization;
 }
 
@@ -38,8 +41,9 @@ export function InviteMissingMembersModal({
   organization,
   allowedRoles,
   closeModal,
+  modalContainerRef,
 }: InviteMissingMembersModalProps) {
-  const initialMemberInvites = (missingMembers.users || []).map(member => ({
+  const initialMemberInvites = (missingMembers || []).map(member => ({
     email: member.email,
     commitCount: member.commitCount,
     role: organization.defaultRole,
@@ -49,7 +53,7 @@ export function InviteMissingMembersModal({
   }));
   const [memberInvites, setMemberInvites] =
     useState<MissingMemberInvite[]>(initialMemberInvites);
-  const referrer = missingMembers.integration + '_nudge_invite';
+  const referrer = 'github_nudge_invite';
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({});
   const [sendingInvites, setSendingInvites] = useState(false);
   const [complete, setComplete] = useState(false);
@@ -220,6 +224,7 @@ export function InviteMissingMembersModal({
           t('Role'),
           t('Team'),
         ]}
+        stickyHeaders
       >
         {memberInvites?.map((member, i) => {
           const checked = memberInvites[i].selected;
@@ -250,9 +255,12 @@ export function InviteMissingMembersModal({
                 aria-label={t('Role')}
                 data-test-id="select-role"
                 disabled={false}
+                value={member.role}
                 roles={allowedRoles}
                 disableUnallowed
                 onChange={value => setRole(value?.value, i)}
+                menuPortalTarget={modalContainerRef?.current}
+                isInsideModal
               />
               <TeamSelector
                 organization={organization}
@@ -263,6 +271,8 @@ export function InviteMissingMembersModal({
                 onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
                 multiple
                 clearable
+                menuPortalTarget={modalContainerRef?.current}
+                isInsideModal
               />
             </Fragment>
           );
@@ -314,7 +324,8 @@ export default InviteMissingMembersModal;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;
-  overflow: visible;
+  overflow: scroll;
+  max-height: 475px;
 `;
 
 const StyledHeader = styled('div')`

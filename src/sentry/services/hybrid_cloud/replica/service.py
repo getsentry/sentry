@@ -9,6 +9,7 @@ from sentry.services.hybrid_cloud.auth import (
     RpcAuthIdentity,
     RpcAuthProvider,
 )
+from sentry.services.hybrid_cloud.notifications import RpcExternalActor
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.services.hybrid_cloud.region import ByRegionName
@@ -35,6 +36,11 @@ class ControlReplicaService(RpcService):
     def remove_replicated_organization_member_team(
         self, *, organization_id: int, organization_member_team_id: int
     ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
         pass
 
     @classmethod

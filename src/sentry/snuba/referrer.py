@@ -35,15 +35,33 @@ class Referrer(Enum):
     API_DASHBOARDS_WIDGET_AREA_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.area-chart.metrics-enhanced"
     )
+    API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.area-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.area-chart.find-topn.metrics-enhanced.primary"
+    )
     API_DASHBOARDS_WIDGET_AREA_CHART = "api.dashboards.widget.area-chart"
     API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN = "api.dashboards.widget.bar-chart.find-topn"
     API_DASHBOARDS_WIDGET_BAR_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.bar-chart.metrics-enhanced"
     )
+    API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced.primary"
+    )
     API_DASHBOARDS_WIDGET_BAR_CHART = "api.dashboards.widget.bar-chart"
     API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN = "api.dashboards.widget.line-chart.find-topn"
     API_DASHBOARDS_WIDGET_LINE_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.line-chart.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.line-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.line-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
@@ -392,6 +410,16 @@ class Referrer(Enum):
     API_STARFISH_SIDEBAR_SPAN_METRICS_CHART = "api.starfish.sidebar-span-metrics-chart"
     API_STARFISH_SPAN_TIME_CHARTS = "api.starfish.span-time-charts"
 
+    # Mobile Starfish
+    API_STARFISH_MOBILE_SCREEN_METRICS_SERIES = "api.starfish.mobile-screen-series"
+    API_STARFISH_MOBILE_SCREEN_TABLE = "api.starfish.mobile-screen-table"
+    API_STARFISH_MOBILE_SCREEN_BAR_CHART = "api.starfish.mobile-screen-bar-chart"
+    API_STARFISH_MOBILE_RELEASE_SELECTOR = "api.starfish.mobile-release-selector"
+    API_STARFISH_MOBILE_DEVICE_BREAKDOWN = "api.starfish.mobile-device-breakdown"
+    API_STARFISH_MOBILE_EVENT_SAMPLES = "api.starfish.mobile-event-samples"
+    API_STARFISH_MOBILE_SCREEN_TOTALS = "api.starfish.mobile-screen-totals"
+    API_STARFISH_MOBILE_SPAN_TABLE = "api.starfish.mobile-span-table"
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
@@ -457,6 +485,9 @@ class Referrer(Enum):
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
+    DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
+        "dynamic_sampling.tasks.custom_rule_notifications"
+    )
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
@@ -479,6 +510,7 @@ class Referrer(Enum):
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
+    METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
     PREVIEW_GET_EVENTS = "preview.get_events"
@@ -620,6 +652,9 @@ class Referrer(Enum):
         "statistical_detectors.distributions.fetch_transaction_timeseries"
     )
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
+    SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY_PRIMARY = (
+        "subscription_processor.comparison_query.primary"
+    )
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"

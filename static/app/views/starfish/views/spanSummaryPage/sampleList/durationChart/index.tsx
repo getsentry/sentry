@@ -11,7 +11,7 @@ import {isNearAverage} from 'sentry/views/starfish/components/samplesTable/commo
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {
   crossIconPath,
   downwardPlayIconPath,
@@ -23,10 +23,13 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFields?: string[];
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  query?: string[];
+  release?: string;
   spanDescription?: string;
   transactionMethod?: string;
 };
@@ -62,17 +65,25 @@ function DurationChart({
   onMouseOverSample,
   highlightedSpanId,
   transactionMethod,
+  additionalFields,
+  release,
+  query,
 }: Props) {
   const theme = useTheme();
   const {setPageError} = usePageError();
   const pageFilter = usePageFilters();
 
-  const filters = {
-    transactionName,
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
     filters['transaction.method'] = transactionMethod;
+  }
+
+  if (release) {
+    filters.release = release;
   }
 
   const {
@@ -80,15 +91,13 @@ function DurationChart({
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
-    groupId,
     filters,
     [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );
 
   const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
-    groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+    filters,
     [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
     'api.starfish.span-summary-panel-samples-table-avg'
   );
@@ -103,6 +112,9 @@ function DurationChart({
     groupId,
     transactionName,
     transactionMethod,
+    release,
+    query,
+    additionalFields,
   });
 
   const baselineAvgSeries: Series = {
@@ -117,7 +129,7 @@ function DurationChart({
       emphasis: {disabled: true},
       label: {
         position: 'insideEndBottom',
-        formatter: () => 'Average',
+        formatter: () => `Average`,
         fontSize: 14,
         color: theme.chartLabel,
         backgroundColor: theme.chartOther,

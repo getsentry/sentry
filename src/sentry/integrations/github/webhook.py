@@ -16,8 +16,9 @@ from rest_framework.request import Request
 
 from sentry import analytics, options
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
+from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -38,9 +39,11 @@ from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo import SiloMode
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONData
 
+from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
@@ -178,7 +181,22 @@ class InstallationEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationevent
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         installation = event["installation"]
-        if installation and event["action"] == "deleted":
+
+        if not installation:
+            return
+
+        if event["action"] == "created":
+            state = {
+                "installation_id": event["installation"]["id"],
+                "sender": {
+                    "id": event["sender"]["id"],
+                    "login": event["sender"]["login"],
+                },
+            }
+            data = GitHubIntegrationProvider().build_integration(state)
+            ensure_integration("github", data)
+
+        if event["action"] == "deleted":
             external_id = event["installation"]["id"]
             if host:
                 external_id = "{}:{}".format(host, event["installation"]["id"])
@@ -222,11 +240,13 @@ class InstallationEventWebhook(Webhook):
         integration_service.update_integration(
             integration_id=integration.id, status=ObjectStatus.DISABLED
         )
-        Repository.objects.filter(
-            organization_id__in=org_ids,
-            provider=f"integrations:{self.provider}",
-            integration_id=integration.id,
-        ).update(status=ObjectStatus.DISABLED)
+
+        if len(org_ids) > 0 and SiloMode.get_current_mode() != SiloMode.CONTROL:
+            Repository.objects.filter(
+                organization_id__in=org_ids,
+                provider=f"integrations:{self.provider}",
+                integration_id=integration.id,
+            ).update(status=ObjectStatus.DISABLED)
 
 
 class PushEventWebhook(Webhook):
@@ -425,7 +445,6 @@ class PullRequestEventWebhook(Webhook):
         repo: Repository,
         host: str | None = None,
     ) -> None:
-
         pull_request = event["pull_request"]
         number = pull_request["number"]
         title = pull_request["title"]
@@ -584,7 +603,7 @@ class GitHubWebhookBase(Endpoint):
         return HttpResponse(status=204)
 
 
-@region_silo_endpoint
+@all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,

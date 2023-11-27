@@ -26,14 +26,17 @@ export default function useFetchThresholdsListData({
 
   return useApiQuery<Threshold[]>(
     [
-      `/organizations/${organization.id}/release-thresholds/`,
+      `/organizations/${organization.slug}/release-thresholds/`,
       {
         query,
       },
     ],
     {
       staleTime: 0,
-      enabled: organization.features?.includes('event-attachments') ?? false,
+      enabled:
+        (organization.features?.includes('releases-v2') ||
+          organization.features?.includes('releases-v2-st')) ??
+        false,
     }
   );
 }

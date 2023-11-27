@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.models.project import Project
@@ -24,8 +24,8 @@ from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 class ReleaseThresholdPOSTSerializer(serializers.Serializer):
     threshold_type = serializers.ChoiceField(choices=ReleaseThresholdType.as_str_choices())
     trigger_type = serializers.ChoiceField(choices=ReleaseThresholdTriggerType.as_str_choices())
-    value = serializers.IntegerField()
-    window_in_seconds = serializers.IntegerField()
+    value = serializers.IntegerField(required=True, min_value=0)
+    window_in_seconds = serializers.IntegerField(required=True, min_value=0)
     environment = EnvironmentField(required=False, allow_null=True)
 
     def validate_threshold_type(self, threshold_type: str):
@@ -41,6 +41,7 @@ class ReleaseThresholdPOSTSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ReleaseThresholdEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectReleasePermission,)
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

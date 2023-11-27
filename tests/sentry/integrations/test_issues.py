@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class IssueSyncIntegration(TestCase):
     def test_status_sync_inbound_resolve(self):
         group = self.group
@@ -104,7 +104,7 @@ class IssueSyncIntegration(TestCase):
             assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class IssueDefaultTest(TestCase):
     def setUp(self):
         self.group.status = GroupStatus.RESOLVED
@@ -132,13 +132,13 @@ class IssueDefaultTest(TestCase):
         self.installation = installation
 
     def test_get_repository_choices(self):
-        default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+        default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
         assert default_repo == "user/repo"
         assert repo_choice == [("user/repo", "repo")]
 
     def test_get_repository_choices_no_repos(self):
         with mock.patch.object(self.installation, "get_repositories", return_value=[]):
-            default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+            default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
             assert default_repo == ""
             assert repo_choice == []
 
@@ -156,7 +156,7 @@ class IssueDefaultTest(TestCase):
                 {"name": "repo2", "identifier": "user/repo2"},
             ],
         ):
-            default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+            default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
             assert default_repo == "user/repo2"
             assert repo_choice == [("user/repo1", "repo1"), ("user/repo2", "repo2")]
 

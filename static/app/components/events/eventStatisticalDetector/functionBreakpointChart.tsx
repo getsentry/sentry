@@ -7,7 +7,10 @@ import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
+import {transformEventStats} from 'sentry/views/performance/trends/chart';
 import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+
+import {RELATIVE_DAYS_WINDOW} from './consts';
 
 type EventFunctionBreakpointChartProps = {
   event: Event;
@@ -52,7 +55,7 @@ type EventFunctionBreakpointChartInnerProps = {
   fingerprint: number;
 };
 
-const SERIES = 'p95()';
+const SERIES = ['p95()'];
 
 function EventFunctionBreakpointChartInner({
   breakpoint,
@@ -61,7 +64,7 @@ function EventFunctionBreakpointChartInner({
 }: EventFunctionBreakpointChartInnerProps) {
   const datetime = useRelativeDateTime({
     anchor: breakpoint,
-    relativeDays: 14,
+    relativeDays: RELATIVE_DAYS_WINDOW,
   });
 
   const functionStats = useProfileEventsStats({
@@ -69,17 +72,19 @@ function EventFunctionBreakpointChartInner({
     datetime,
     query: `fingerprint:${fingerprint}`,
     referrer: 'api.profiling.functions.regression.stats',
-    yAxes: [SERIES],
+    yAxes: SERIES,
   });
 
-  const series = useMemo(() => {
-    const rawData = functionStats?.data?.data?.find(({axis}) => axis === SERIES);
+  const p95Series = useMemo(() => {
+    const rawData = functionStats?.data?.data?.find(({axis}) => axis === 'p95()');
     const timestamps = functionStats?.data?.timestamps;
-    if (!rawData || !timestamps) {
+    if (!timestamps) {
       return [];
     }
-
-    return timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i]}]]);
+    return transformEventStats(
+      timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i]}]]),
+      'p95(function.duration)'
+    );
   }, [functionStats]);
 
   const normalizedOccurrenceEvent = {
@@ -91,11 +96,9 @@ function EventFunctionBreakpointChartInner({
   return (
     <DataSection>
       <Chart
-        statsData={series}
+        percentileSeries={p95Series}
         evidenceData={normalizedOccurrenceEvent}
-        start={(datetime.start as Date).toISOString()}
-        end={(datetime.end as Date).toISOString()}
-        chartLabel={SERIES}
+        datetime={datetime}
       />
     </DataSection>
   );

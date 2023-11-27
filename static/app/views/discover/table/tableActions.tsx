@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconDownload, IconStack, IconTag} from 'sentry/icons';
+import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -30,6 +30,7 @@ type Props = {
   showTags: boolean;
   tableData: TableData | null | undefined;
   title: string;
+  supportsInvestigationRule?: boolean;
 };
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
@@ -102,7 +103,7 @@ function renderEditButton(canEdit: boolean, props: Props) {
         disabled={!canEdit}
         onClick={onClick}
         data-test-id="grid-edit-enable"
-        icon={<IconStack size="xs" />}
+        icon={<IconSliders size="xs" />}
       >
         {t('Columns')}
       </Button>
@@ -161,12 +162,14 @@ function TableActions(props: Props) {
   const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
   return (
     <Fragment>
-      <InvestigationRuleCreation
-        {...props}
-        buttonProps={{size: 'sm'}}
-        numSamples={totalNumSamples}
-        key="investigationRuleCreation"
-      />
+      {props.supportsInvestigationRule && (
+        <InvestigationRuleCreation
+          {...props}
+          buttonProps={{size: 'sm'}}
+          numSamples={totalNumSamples}
+          key="investigationRuleCreation"
+        />
+      )}
       <FeatureWrapper {...props} key="edit">
         {renderEditButton}
       </FeatureWrapper>

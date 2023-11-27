@@ -15,8 +15,8 @@ from sentry.types.activity import ActivityType
 pytestmark = [requires_snuba]
 
 
-@freeze_time()
 @region_silo_test
+@freeze_time()
 class ProjectRulePreviewEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-preview"
     method = "post"

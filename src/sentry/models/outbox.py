@@ -57,7 +57,6 @@ from sentry.utils import metrics
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
 _T = TypeVar("_T")
-_M = TypeVar("_M", bound=BaseModel)
 
 
 class OutboxFlushError(Exception):
@@ -111,6 +110,7 @@ class OutboxCategory(IntEnum):
     API_TOKEN_UPDATE = 32
     ORG_AUTH_TOKEN_UPDATE = 33
     ISSUE_COMMENT_UPDATE = 34
+    EXTERNAL_ACTOR_UPDATE = 35
 
     @classmethod
     def as_choices(cls):
@@ -237,6 +237,7 @@ class OutboxCategory(IntEnum):
         shard_identifier: int | None,
     ) -> Tuple[int, int]:
         from sentry.models.apiapplication import ApiApplication
+        from sentry.models.integrations import Integration
         from sentry.models.organization import Organization
         from sentry.models.user import User
 
@@ -265,6 +266,11 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "api_application_id"):
                     shard_identifier = model.api_application_id
+            if scope == OutboxScope.INTEGRATION_SCOPE:
+                if isinstance(model, Integration):
+                    shard_identifier = model.id
+                elif hasattr(model, "integration_id"):
+                    shard_identifier = model.integration_id
 
         assert (
             model is not None
@@ -330,9 +336,7 @@ class OutboxScope(IntEnum):
     )
     INTEGRATION_SCOPE = scope_categories(
         5,
-        {
-            OutboxCategory.INTEGRATION_UPDATE,
-        },
+        {OutboxCategory.INTEGRATION_UPDATE, OutboxCategory.EXTERNAL_ACTOR_UPDATE},
     )
     APP_SCOPE = scope_categories(
         6,
@@ -402,6 +406,7 @@ class WebhookProviderIdentifier(IntEnum):
     BITBUCKET_SERVER = 9
     LEGACY_PLUGIN = 10
     GETSENTRY = 11
+    DISCORD = 12
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -564,10 +569,12 @@ class OutboxBase(Model):
             yield next_shard_row
 
     @contextlib.contextmanager
-    def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
+    def process_coalesced(
+        self, is_synchronous_flush: bool
+    ) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
-        tags = {"category": "None"}
+        tags: dict[str, int | str] = {"category": "None", "synchronous": int(is_synchronous_flush)}
 
         if coalesced is not None:
             tags["category"] = OutboxCategory(self.category).name
@@ -610,12 +617,15 @@ class OutboxBase(Model):
         span.set_tag("outbox_category", OutboxCategory(message.category).name)
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 
-    def process(self) -> bool:
-        with self.process_coalesced() as coalesced:
+    def process(self, is_synchronous_flush: bool) -> bool:
+        with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
             if coalesced is not None:
                 with metrics.timer(
                     "outbox.send_signal.duration",
-                    tags={"category": OutboxCategory(coalesced.category).name},
+                    tags={
+                        "category": OutboxCategory(coalesced.category).name,
+                        "synchronous": int(is_synchronous_flush),
+                    },
                 ), sentry_sdk.start_span(op="outbox.process") as span:
                     self._set_span_data_for_coalesced_message(span=span, message=coalesced)
                     try:
@@ -657,7 +667,7 @@ class OutboxBase(Model):
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
-                shard_row.process()
+                shard_row.process(is_synchronous_flush=not flush_all)
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()

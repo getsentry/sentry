@@ -185,12 +185,12 @@ class Actor(Model):
         # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always null
         # out the `actor_id` field of the `Team` when we import it, then rely on that model's
         # `post_save()` hook to fill in the `Actor` model.
-        (actor, created) = Actor.objects.get_or_create(team=self.team, defaults=model_to_dict(self))
+        (actor, _) = Actor.objects.get_or_create(team=self.team, defaults=model_to_dict(self))
         if actor:
             self.pk = actor.pk
             self.save()
 
-        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        return (self.pk, ImportKind.Inserted)
 
 
 def get_actor_id_for_user(user: Union[User, RpcUser]) -> int:

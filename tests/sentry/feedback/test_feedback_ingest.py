@@ -76,6 +76,21 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             assert feedback.data["platform"] == "javascript"
 
             assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+            mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
+            assert (
+                mock_event_data["contexts"]["feedback"]["contact_email"] == "colton.allen@sentry.io"
+            )
+            assert (
+                mock_event_data["contexts"]["feedback"]["message"]
+                == "I really like this user-feedback feature!"
+            )
+            assert mock_event_data["contexts"]["feedback"]["name"] == "Colton Allen"
+            assert mock_event_data["platform"] == "javascript"
+            assert "associated_event_id" not in mock_event_data["contexts"]["feedback"]
+            assert mock_event_data["level"] == "info"
+
+            self.project.refresh_from_db()
+            assert self.project.flags.has_feedbacks
 
     def test_no_feature_enabled(self):
         # Feature disabled should lead to unsuccessful save

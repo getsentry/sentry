@@ -11,7 +11,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.web.frontend.generic import FOREVER_CACHE
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserAvatarTest(TestCase):
     def test_headers(self):
         # We cannot read File from Control silo
@@ -29,6 +29,7 @@ class UserAvatarTest(TestCase):
         assert response["Cache-Control"] == FOREVER_CACHE
         assert response.get("Vary") is None
         assert response.get("Set-Cookie") is None
+        assert response["Access-Control-Allow-Origin"]
 
     def test_headers_control_file(self):
         user = self.create_user(email="a@example.com")
@@ -42,3 +43,4 @@ class UserAvatarTest(TestCase):
         assert response["Cache-Control"] == FOREVER_CACHE
         assert response.get("Vary") is None
         assert response.get("Set-Cookie") is None
+        assert response["Access-Control-Allow-Origin"]

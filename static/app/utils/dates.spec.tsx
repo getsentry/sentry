@@ -38,6 +38,7 @@ describe('utils.dates', function () {
     });
 
     it('can convert arbitrary formats', function () {
+      expect(intervalToMilliseconds('8w')).toBe(4838400000);
       expect(intervalToMilliseconds('30d')).toBe(2592000000);
       expect(intervalToMilliseconds('7d')).toBe(604800000);
       expect(intervalToMilliseconds('1d')).toBe(86400000);

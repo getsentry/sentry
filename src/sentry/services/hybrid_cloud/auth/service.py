@@ -6,15 +6,7 @@
 import abc
 from typing import Any, List, Mapping, Optional
 
-from sentry.services.hybrid_cloud.auth import (
-    AuthenticationContext,
-    AuthenticationRequest,
-    MiddlewareAuthenticationResponse,
-    RpcApiKey,
-    RpcAuthenticatorType,
-    RpcAuthProvider,
-    RpcOrganizationAuthConfig,
-)
+from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthProvider, RpcOrganizationAuthConfig
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -28,18 +20,6 @@ class AuthService(RpcService):
         from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
 
         return DatabaseBackedAuthService()
-
-    @rpc_method
-    @abc.abstractmethod
-    def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def authenticate_with(
-        self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
-    ) -> AuthenticationContext:
-        pass
 
     @rpc_method
     @abc.abstractmethod
