@@ -117,7 +117,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         self, scope: ImportScope, flags: ImportFlags
     ) -> Optional[Tuple[int, ImportKind]]:
         # If there is a token collision, generate new tokens.
-        query = models.Q(token=self.token) | models.Q(refresh_token=self.refresh_token)
+        query = models.Q(token=self.token) | models.Q(
+            refresh_token__isnull=False, refresh_token=self.refresh_token
+        )
         existing = self.__class__.objects.filter(query).first()
         if existing:
             self.token = generate_token()
