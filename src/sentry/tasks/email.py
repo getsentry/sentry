@@ -26,7 +26,7 @@ def _get_user_from_email(group: Group, email: str) -> Optional[RpcUser]:
 
 @instrumented_task(
     name="sentry.tasks.email.process_inbound_email",
-    queue="email",
+    queue="email.inbound",
     default_retry_delay=60 * 5,
     max_retries=None,
     silo_mode=SiloMode.REGION,
