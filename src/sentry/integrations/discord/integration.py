@@ -16,7 +16,6 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient, DiscordNonProxyClient
-from sentry.integrations.discord.commands import DiscordCommandManager
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -24,7 +23,10 @@ from sentry.utils.http import absolute_uri
 
 from .utils import logger
 
-DESCRIPTION = "Discord’s your place to collaborate, share, and just talk about your day – or commiserate about app errors. Connect Sentry to your Discord server and get [alerts](https://docs.sentry.io/product/alerts/alert-types/) in a channel of your choice or via direct message when sh%t hits the fan."
+DESCRIPTION = """Discord’s your place to collaborate, share, and just talk about your day – or
+commiserate about app errors. Connect Sentry to your Discord server and get
+[alerts](https://docs.sentry.io/product/alerts/alert-types/) in a channel of your choice or via
+direct message when sh%t hits the fan."""
 
 FEATURES = [
     FeatureDescription(
@@ -156,10 +158,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def setup(self) -> None:
-        if self._credentials_exist():
-            DiscordCommandManager().register_commands()
-
     def _get_discord_user_id(self, auth_code: str) -> str:
         """
         Helper function for completing the oauth2 flow and grabbing the
@@ -208,9 +206,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def _get_bot_install_url(self):
         return f"https://discord.com/api/oauth2/authorize?client_id={self.application_id}&permissions={self.bot_permissions}&redirect_uri={self.setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"
-
-    def _credentials_exist(self) -> bool:
-        return all((self.application_id, self.public_key, self.bot_token, self.client_secret))
 
 
 class DiscordInstallPipeline(PipelineView):

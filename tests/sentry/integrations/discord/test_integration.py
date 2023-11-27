@@ -1,4 +1,3 @@
-from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
@@ -6,7 +5,7 @@ import responses
 from responses.matchers import header_matcher
 
 from sentry import audit_log, options
-from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
+from sentry.integrations.discord.client import GUILD_URL, DiscordClient
 from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
@@ -150,60 +149,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert resp == "1234"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
-
-    @responses.activate
-    def test_setup(self):
-        provider = self.provider()
-
-        url = f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
-        responses.add(
-            responses.PUT,
-            url=url,
-            status=200,
-        )
-
-        provider.setup()
-
-        assert responses.assert_call_count(count=1, url=url)
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == f"Bot {self.bot_token}"
-        assert url == request.url
-
-    @responses.activate
-    @mock.patch("sentry.integrations.discord.commands.logger.error")
-    def test_setup_failure(self, mock_log_error):
-        mock_log_error.return_value = None
-        provider = self.provider()
-
-        url = f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
-        responses.add(
-            responses.PUT,
-            url=url,
-            status=500,
-        )
-
-        provider.setup()
-
-        assert responses.assert_call_count(count=1, url=url)
-        assert mock_log_error.call_count == 1
-
-    @responses.activate
-    def test_setup_cache(self):
-        provider = self.provider()
-
-        url = f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
-        responses.add(
-            responses.PUT,
-            url=url,
-            json={},
-            status=200,
-        )
-
-        provider.setup()
-        provider.setup()
-
-        # Second provider.setup() should not update commands -> 1 call to API
-        assert responses.assert_call_count(count=1, url=url)
 
     @responses.activate
     def test_get_discord_user_id(self):
