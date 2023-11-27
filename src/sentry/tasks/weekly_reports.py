@@ -277,8 +277,9 @@ def project_event_counts_for_organization(ctx):
         groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
         granularity=Granularity(ONE_DAY),
         orderby=[OrderBy(Column("time"), Direction.ASC)],
-        limit=Limit(10000),
     )
+    if features.has("organizations:weekly-report-logs", ctx.organization):  # TODO(isabella): remove
+        query.set_limit(10000)
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
     data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
 
