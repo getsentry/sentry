@@ -24,6 +24,7 @@ import {
   QuickStartProps,
   RubyCronQuickStart,
   RubyRailsCronQuickStart,
+  RubySidekiqCronQuickStart,
 } from 'sentry/views/monitors/components/quickStartEntries';
 
 import {Monitor} from '../types';
@@ -119,6 +120,11 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
     label: 'Rails',
     Guide: RubyRailsCronQuickStart,
     platforms: new Set(['ruby', 'ruby-rails']),
+  },
+  rubySidekiq: {
+    label: 'Sidekiq',
+    Guide: RubySidekiqCronQuickStart,
+    platforms: new Set(['ruby', 'ruby-rails', 'ruby-sidekiq']),
   },
 };
 

@@ -799,3 +799,43 @@ sentry_monitor_check_ins slug: '${slug}', monitor_config: Sentry::Cron::MonitorC
     </Fragment>
   );
 }
+
+export function RubySidekiqCronQuickStart(props: QuickStartProps) {
+  const {slug} = withDefaultProps(props);
+
+  const mixinCode = `class ExampleJob
+  incude Sidekiq::Job
+  include Sentry::Cron::MonitorCheckIns
+
+  # slug defaults to the job class name
+  sentry_monitor_check_ins slug: '${slug}'
+
+  def perform(*args)
+    # do stuff
+  end
+end`;
+
+  const customCode = `# define the monitor config with an interval
+sentry_monitor_check_ins slug: '${slug}', monitor_config: Sentry::Cron::MonitorConfig.from_interval(1, :minute)
+
+# define the monitor config with a crontab
+sentry_monitor_check_ins slug: '${slug}', monitor_config: Sentry::Cron::MonitorConfig.from_crontab('5 * * * *')`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry Ruby and Sidekiq SDKs (min v5.12.0), then instrument your job with our mixin module:',
+          {
+            installLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/ruby/guides/sidekiq/" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="ruby">{mixinCode}</CodeSnippet>
+      <div>{t('You can pass in optional attributes as follows:')}</div>
+      <CodeSnippet language="ruby">{customCode}</CodeSnippet>
+    </Fragment>
+  );
+}
