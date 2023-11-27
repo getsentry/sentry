@@ -20,7 +20,7 @@ from sentry.services.hybrid_cloud.notifications.model import NotificationSetting
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class NotificationsService(RpcService):
@@ -53,13 +53,10 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def bulk_update_settings(
+    def enable_all_settings_for_provider(
         self,
         *,
-        notification_type_to_value_map: Mapping[
-            NotificationSettingTypes, NotificationSettingOptionValues
-        ],
-        external_provider: ExternalProviders,
+        external_provider: ExternalProviderEnum,
         user_id: int,
     ) -> None:
         pass
