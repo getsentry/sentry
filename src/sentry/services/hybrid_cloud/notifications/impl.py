@@ -45,12 +45,12 @@ class DatabaseBackedNotificationsService(NotificationsService):
             user_id and not team_id
         ), "Can only enable settings for team or user"
 
-        kwargs = {}
+        kwargs: MutableMapping[str, str | int] = {}
         if user_id:
             kwargs["user_id"] = user_id
             kwargs["scope_type"] = NotificationScopeEnum.USER.value
             kwargs["scope_identifier"] = user_id
-        else:
+        elif team_id:
             kwargs["team_id"] = team_id
             kwargs["scope_type"] = NotificationScopeEnum.TEAM.value
             kwargs["scope_identifier"] = team_id
@@ -59,7 +59,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         with transaction.atomic(router.db_for_write(NotificationSettingProvider)):
             for type_str in NOTIFICATION_SETTING_TYPES.values():
                 # check the type if it's an input
-                if types and type_str not in type_str_list:
+                if type_str_list and type_str not in type_str_list:
                     continue
                 NotificationSettingProvider.objects.create_or_update(
                     **kwargs,
