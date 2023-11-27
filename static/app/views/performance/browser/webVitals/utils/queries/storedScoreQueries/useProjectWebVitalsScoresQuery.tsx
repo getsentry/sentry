@@ -8,11 +8,17 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   dataset?: DiscoverDatasets;
+  enabled?: boolean;
   tag?: Tag;
   transaction?: string;
 };
 
-export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}) => {
+export const useProjectWebVitalsScoresQuery = ({
+  transaction,
+  tag,
+  dataset,
+  enabled = true,
+}: Props = {}) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -20,21 +26,16 @@ export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}
   const projectEventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
-        'p75(transaction.duration)',
-        'count_web_vitals(measurements.lcp, any)',
-        'count_web_vitals(measurements.fcp, any)',
-        'count_web_vitals(measurements.cls, any)',
-        'count_web_vitals(measurements.fid, any)',
-        'count_web_vitals(measurements.ttfb, any)',
-        'count()',
-        'failure_count()',
-        'p95(transaction.duration)',
-        'eps()',
+        'avg(measurements.score.lcp)',
+        'avg(measurements.score.fcp)',
+        'avg(measurements.score.cls)',
+        'avg(measurements.score.fid)',
+        'avg(measurements.score.ttfb)',
+        'avg(measurements.score.weight.lcp)',
+        'avg(measurements.score.weight.fcp)',
+        'avg(measurements.score.weight.cls)',
+        'avg(measurements.score.weight.fid)',
+        'avg(measurements.score.weight.ttfb)',
       ],
       name: 'Web Vitals',
       query:
@@ -54,9 +55,10 @@ export const useProjectWebVitalsQuery = ({transaction, tag, dataset}: Props = {}
     orgSlug: organization.slug,
     cursor: '',
     options: {
-      enabled: pageFilters.isReady,
+      enabled: pageFilters.isReady && enabled,
       refetchOnWindowFocus: false,
     },
     skipAbort: true,
+    referrer: 'api.performance.browser.web-vitals.project-scores',
   });
 };

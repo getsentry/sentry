@@ -35,7 +35,10 @@ export class Frame {
 
   constructor(
     frameInfo: Profiling.FrameInfo,
-    type?: 'mobile' | 'javascript' | 'node' | string
+    type?: 'mobile' | 'javascript' | 'node' | string,
+    // In aggregate mode, we miss certain info like lineno/col and so
+    // we need to make sure we don't try to use it or infer data based on it
+    mode?: 'detailed' | 'aggregate'
   ) {
     this.key = frameInfo.key;
     this.file = frameInfo.file;
@@ -78,7 +81,7 @@ export class Frame {
       }
 
       // If the frame had no line or column, it was part of the native code, (e.g. calling String.fromCharCode)
-      if (this.line === undefined && this.column === undefined) {
+      if (this.line === undefined && this.column === undefined && mode !== 'aggregate') {
         this.name += ` ${t('[native code]')}`;
         this.is_application = false;
       }
