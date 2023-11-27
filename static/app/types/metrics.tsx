@@ -13,7 +13,7 @@ export type MetricsOperation =
 
 export type MetricType = 'c' | 'd' | 'g' | 'e' | 's';
 
-export type UseCase = 'custom' | 'transactions' | 'sessions';
+export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans';
 
 export type MRI = `${MetricType}:${UseCase}${string}@${string}`;
 
