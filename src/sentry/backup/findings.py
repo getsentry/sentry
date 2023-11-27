@@ -92,10 +92,6 @@ class ComparatorFindingKind(FindingKind):
     # Failed to compare an ignored field.
     IgnoredComparator = auto()
 
-    # Failed to compare an ignored field because one of the fields being compared was not present or
-    # `None`.
-    IgnoredComparatorExistenceCheck = auto()
-
     # Secret token fields did not match their regex specification.
     SecretHexComparator = auto()
 

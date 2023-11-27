@@ -968,16 +968,7 @@ def test_good_ignored_comparator_existence():
         "fields": {},
     }
     res = cmp.existence(id, missing, present)
-    assert res
-    assert len(res) == 1
-
-    assert res[0]
-    assert res[0].on == id
-    assert res[0].kind == ComparatorFindingKind.IgnoredComparatorExistenceCheck
-    assert res[0].left_pk == 1
-    assert res[0].right_pk == 1
-    assert "left" in res[0].reason
-    assert "`ignored_field`" in res[0].reason
+    assert not res
 
 
 def test_good_ignored_comparator_scrubbed():

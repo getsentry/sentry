@@ -19,7 +19,8 @@ UNIX_EPOCH = unix_zero_date = datetime.utcfromtimestamp(0).replace(tzinfo=timezo
 
 
 class ScrubbedData:
-    """A singleton class used to indicate data has been scrubbed, without indicating what that data is. A unit type indicating "scrubbing was successful" only."""
+    """A singleton class used to indicate data has been scrubbed, without indicating what that data
+    is. A unit type indicating "scrubbing was successful" only."""
 
     instance: ScrubbedData
 
@@ -463,11 +464,17 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
 class IgnoredComparator(JSONScrubbingComparator):
     """Ensures that two fields are tested for mutual existence, and nothing else.
 
-    Using this class means that you are foregoing comparing the relevant field(s), so please make sure you are validating them some other way!
+    Using this class means that you are foregoing comparing the relevant field(s), so please make
+    sure you are validating them some other way!
     """
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, _o: InstanceID, _l: JSONData, _r: JSONData) -> list[ComparatorFinding]:
         """Noop - there is nothing to compare once we've checked for existence."""
+
+        return []
+
+    def existence(self, _o: InstanceID, _l: JSONData, _r: JSONData) -> list[ComparatorFinding]:
+        """Noop - never compare existence for ignored fields, they're ignored after all."""
 
         return []
 
@@ -520,7 +527,8 @@ class SecretHexComparator(RegexComparator):
 
 
 class SubscriptionIDComparator(RegexComparator):
-    """Compare the basic format of `QuerySubscription` IDs, which is basically a UUID1 with a numeric prefix. Ensure that the two values are NOT equivalent."""
+    """Compare the basic format of `QuerySubscription` IDs, which is basically a UUID1 with a
+    numeric prefix. Ensure that the two values are NOT equivalent."""
 
     def __init__(self, *fields: str):
         super().__init__(re.compile("^\\d+/[0-9a-f]{32}$"), *fields)
@@ -556,7 +564,8 @@ class SubscriptionIDComparator(RegexComparator):
 # weird syntactic variations that are not very common and may cause weird failures when they are
 # rejected elsewhere.
 class UUID4Comparator(RegexComparator):
-    """UUIDs must be regenerated on import (otherwise they would not be unique...). This comparator ensures that they retain their validity, but are not equivalent."""
+    """UUIDs must be regenerated on import (otherwise they would not be unique...). This comparator
+    ensures that they retain their validity, but are not equivalent."""
 
     def __init__(self, *fields: str):
         super().__init__(
@@ -593,7 +602,8 @@ class UUID4Comparator(RegexComparator):
 
 
 def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
-    """Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already claimed by the `DateUpdatedComparator`."""
+    """Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already
+    claimed by the `DateUpdatedComparator`."""
 
     exportable = get_exportable_sentry_models()
     for e in exportable:
@@ -619,7 +629,8 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
 
 
 def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
-    """Automatically assigns the EmailObfuscatingComparator to any field that is an `EmailField` or has a foreign key into the `sentry.User` table."""
+    """Automatically assigns the EmailObfuscatingComparator to any field that is an `EmailField` or
+    has a foreign key into the `sentry.User` table."""
 
     exportable = get_exportable_sentry_models()
     for e in exportable:
