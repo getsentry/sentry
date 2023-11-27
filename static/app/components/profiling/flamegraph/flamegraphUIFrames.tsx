@@ -14,7 +14,7 @@ import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
 } from 'sentry/utils/profiling/gl/utils';
-import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
+import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
@@ -63,7 +63,7 @@ export function FlamegraphUIFrames({
       return null;
     }
 
-    return new UIFramesRenderer(uiFramesCanvasRef, uiFrames, flamegraphTheme);
+    return new UIFramesRendererWebGL(uiFramesCanvasRef, uiFrames, flamegraphTheme);
   }, [uiFramesCanvasRef, uiFrames, flamegraphTheme]);
 
   const hoveredNode: UIFrameNode[] | null = useMemo(() => {
