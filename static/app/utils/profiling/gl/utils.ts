@@ -5,7 +5,10 @@ import {mat3, vec2} from 'gl-matrix';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {
+  FlamegraphRenderer,
+  FlamegraphRendererConstructor,
+} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {CanvasPoolManager} from '../canvasScheduler';
 import {clamp, colorComponentsToRGBA} from '../colors/utils';
@@ -13,6 +16,26 @@ import {FlamegraphCanvas} from '../flamegraphCanvas';
 import {SpanChartRenderer2D} from '../renderers/spansRenderer';
 import {SpanChartNode} from '../spanChart';
 import {Rect} from '../speedscope';
+
+export function initializeFlamegraphRenderer(
+  renderers: FlamegraphRendererConstructor[],
+  constructorArgs: ConstructorParameters<FlamegraphRendererConstructor>
+): FlamegraphRenderer | null {
+  for (const renderer of renderers) {
+    let r: FlamegraphRenderer | null = null;
+    try {
+      r = new renderer(...constructorArgs);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+
+    // A renderer should only fail if the rendering context was unavailable
+    if (r && r.ctx !== null) {
+      return r;
+    }
+  }
+
+  return null;
+}
 
 export function createShader(
   gl: WebGLRenderingContext,
@@ -238,9 +261,15 @@ export function transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
   );
 }
 
-function getContext(canvas: HTMLCanvasElement, context: '2d'): CanvasRenderingContext2D;
-function getContext(canvas: HTMLCanvasElement, context: 'webgl'): WebGLRenderingContext;
-function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
+export function getContext(
+  canvas: HTMLCanvasElement,
+  context: '2d'
+): CanvasRenderingContext2D;
+export function getContext(
+  canvas: HTMLCanvasElement,
+  context: 'webgl'
+): WebGLRenderingContext;
+export function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
   const ctx =
     context === 'webgl'
       ? canvas.getContext(context, {antialias: false})
@@ -251,9 +280,25 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
   return ctx;
 }
 
-// Exported separately as writing export function for each overload as
-// breaks the line width rules and makes it harder to read.
-export {getContext};
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: '2d'
+): CanvasRenderingContext2D;
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: 'webgl'
+): WebGLRenderingContext;
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: string
+): RenderingContext | null {
+  const ctx =
+    context === 'webgl'
+      ? canvas.getContext(context, {antialias: false})
+      : canvas.getContext(context);
+  return ctx;
+}
+
 export const ELLIPSIS = '\u2026';
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
   if (!string) {

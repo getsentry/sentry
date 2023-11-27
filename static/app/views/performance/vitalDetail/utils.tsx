@@ -151,7 +151,7 @@ export const vitalAbbreviations: Partial<Record<WebVital, string>> = {
 };
 
 export const vitalAlertTypes: Partial<Record<WebVital, AlertType>> = {
-  [WebVital.FCP]: 'custom',
+  [WebVital.FCP]: 'custom_transactions',
   [WebVital.CLS]: 'cls',
   [WebVital.FID]: 'fid',
   [WebVital.LCP]: 'lcp',

@@ -12,7 +12,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class JiraRequestParserTest(TestCase):
     get_response = MagicMock()
     factory = RequestFactory()
