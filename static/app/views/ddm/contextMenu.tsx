@@ -7,18 +7,14 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {
-  MetricDisplayType,
-  MetricsQuery,
-  mriToField,
-  parseMRI,
-} from 'sentry/utils/metrics';
+import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 
 type ContextMenuProps = {
   displayType: MetricDisplayType;
@@ -79,19 +75,36 @@ function useHandleAddQueryToDashboard(
       return undefined;
     }
 
-    const field = mriToField(mri, op);
+    const field = MRIToField(mri, op);
     const limit = !groupBy?.length ? 1 : 10;
 
+    const widgetQuery = {
+      name: '',
+      aggregates: [field],
+      columns: groupBy ?? [],
+      fields: [field],
+      conditions: query ?? '',
+      orderby: '',
+    };
+
+    const urlWidgetQuery = new URLSearchParams({
+      ...widgetQuery,
+      aggregates: field,
+      fields: field,
+      columns: groupBy?.join(',') ?? '',
+    }).toString();
+
     const widgetAsQueryParams = {
-      ...router.location?.query,
       source: DashboardWidgetSource.DDM,
       start,
       end,
       statsPeriod: period,
-      defaultWidgetQuery: field,
+      defaultWidgetQuery: urlWidgetQuery,
       defaultTableColumns: [],
       defaultTitle: 'DDM Widget',
+      environment: environments,
       displayType,
+      project: projects,
     };
 
     return () =>
@@ -105,17 +118,9 @@ function useHandleAddQueryToDashboard(
         widget: {
           title: 'DDM Widget',
           displayType,
-          widgetType: 'custom-metrics',
+          widgetType: WidgetType.METRICS,
           limit,
-          queries: [
-            {
-              name: '',
-              aggregates: [field],
-              columns: groupBy ?? [],
-              fields: [field],
-              conditions: query,
-            },
-          ],
+          queries: [widgetQuery],
         },
         router,
         widgetAsQueryParams,
@@ -163,7 +168,7 @@ function useCreateAlertUrl(organization: Organization, metricsQuery: MetricsQuer
         createFromDiscover: true,
         dataset: Dataset.GENERIC_METRICS,
         eventTypes: EventTypes.TRANSACTION,
-        aggregate: mriToField(metricsQuery.mri, metricsQuery.op as string),
+        aggregate: MRIToField(metricsQuery.mri, metricsQuery.op as string),
         referrer: 'ddm',
         // Event type also needs to be added to the query
         query: `${metricsQuery.query}  event.type:transaction`.trim(),
