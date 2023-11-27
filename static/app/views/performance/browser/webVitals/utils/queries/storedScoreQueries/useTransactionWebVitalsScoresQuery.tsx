@@ -54,6 +54,7 @@ export const useTransactionWebVitalsScoresQuery = ({
         'avg(measurements.score.weight.cls)',
         'avg(measurements.score.weight.fid)',
         'avg(measurements.score.weight.ttfb)',
+        'avg(measurements.score.total)',
         'count()',
       ],
       name: 'Web Vitals',
