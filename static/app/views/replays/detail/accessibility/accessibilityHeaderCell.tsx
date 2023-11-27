@@ -27,8 +27,6 @@ const COLUMNS: {
     label: t('Type'),
   },
   {field: 'element', label: t('Element')},
-
-  {field: 'timestampMs', label: t('Timestamp')},
 ];
 
 export const COLUMN_COUNT = COLUMNS.length;

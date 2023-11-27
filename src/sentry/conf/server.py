@@ -134,6 +134,7 @@ SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
+SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -475,14 +476,16 @@ CSP_BASE_URI = [
     "'none'",
 ]
 CSP_STYLE_SRC = [
-    "'self'",
     "'unsafe-inline'",
+    "*",  # required for replays
 ]
 CSP_IMG_SRC = [
-    "'self'",
     "blob:",
     "data:",
-    "https://secure.gravatar.com",
+    "*",  # required for replays
+]
+CSP_MEDIA_SRC = [
+    "*",  # required for replays
 ]
 
 if ENVIRONMENT == "development":
@@ -835,6 +838,7 @@ CELERY_QUEUES_REGION = [
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
+    Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
@@ -881,6 +885,7 @@ CELERY_QUEUES_REGION = [
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
     Queue("merge", routing_key="merge"),
+    Queue("notifications", routing_key="notifications"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
@@ -1883,8 +1888,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
-    # Enable metric alert rate limiting
-    "organizations:metric-alert-rate-limiting": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
     # Enable logs for debugging weekly reports
@@ -3943,7 +3946,7 @@ SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 
 # Backwards compatibility for URLs that don't
 # have enough context to route via organization.
-# New usage of these endpoints uses region domains,
+# New usage of these endpoints should use the region domains,
 # but existing customers have been using these routes
 # on the main domain for a long time.
 REGION_PINNED_URL_NAMES = {
@@ -3963,10 +3966,9 @@ REGION_PINNED_URL_NAMES = {
     # New usage of these is region scoped.
     "sentry-error-page-embed",
     "sentry-release-hook",
+    "sentry-api-0-organizations",
     "sentry-api-0-projects",
-    "sentry-account-email-unsubscribe-incident",
-    "sentry-account-email-unsubscribe-issue",
-    "sentry-account-email-unsubscribe-project",
+    "sentry-api-0-accept-project-transfer",
 }
 
 # Shared resource ids for accounting

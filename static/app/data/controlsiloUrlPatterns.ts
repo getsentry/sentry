@@ -153,6 +153,7 @@ const patterns: RegExp[] = [
   new RegExp('^extensions/jira/configure/$'),
   new RegExp('^extensions/jira-server/issue-updated/[^/]+/$'),
   new RegExp('^extensions/jira-server/search/[^/]+/[^/]+/$'),
+  new RegExp('^extensions/slack/event/$'),
   new RegExp('^extensions/slack/link-identity/[^/]+/$'),
   new RegExp('^extensions/slack/unlink-identity/[^/]+/$'),
   new RegExp('^extensions/github/webhook/$'),

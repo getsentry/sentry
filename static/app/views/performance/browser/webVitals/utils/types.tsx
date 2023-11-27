@@ -8,7 +8,6 @@ export type Row = {
   'p75(measurements.lcp)': number;
   'p75(measurements.ttfb)': number;
   transaction: string;
-  'transaction.op': string;
 };
 
 export type TransactionSampleRow = {
