@@ -413,9 +413,12 @@ export function getWidgetDDMUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
 
+  // ensures that My Projects selection is properly handled
+  const project = selection.projects.length ? selection.projects : [0];
+
   const ddmLocation = getDdmUrl(organization.slug, {
     ...datetime,
-    project: selection.projects,
+    project,
     environment: selection.environments,
     widgets: _widget.queries.map(query => {
       const {mri, op} = fieldToMri(query.aggregates[0]);
