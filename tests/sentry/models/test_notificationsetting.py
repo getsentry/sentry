@@ -2,11 +2,7 @@ from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import TestCase
@@ -110,77 +106,3 @@ class NotificationSettingTest(TestCase):
         )[0]
         assert ns.team_id == self.team.id
         assert ns.user_id is None
-
-    def test_user_id_bulk(self):
-        NotificationSetting.objects.update_settings_bulk(
-            notification_settings=[
-                (
-                    ExternalProviders.EMAIL,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationScopeType.USER,
-                    self.user.id,
-                    NotificationSettingOptionValues.ALWAYS,
-                ),
-                (
-                    ExternalProviders.EMAIL,
-                    NotificationSettingTypes.QUOTA,
-                    NotificationScopeType.USER,
-                    self.user.id,
-                    NotificationSettingOptionValues.ALWAYS,
-                ),
-            ],
-            user=self.user,
-        )
-
-        ns1 = NotificationSetting.objects.find_settings(
-            provider=ExternalProviders.EMAIL,
-            type=NotificationSettingTypes.ISSUE_ALERTS,
-            user_id=self.user.id,
-        )[0]
-        ns2 = NotificationSetting.objects.find_settings(
-            provider=ExternalProviders.EMAIL,
-            type=NotificationSettingTypes.QUOTA,
-            user_id=self.user.id,
-        )[0]
-
-        assert ns1.user_id == self.user.id
-        assert ns1.team_id is None
-        assert ns2.user_id == self.user.id
-        assert ns2.team_id is None
-
-    def test_team_id_bulk(self):
-        NotificationSetting.objects.update_settings_bulk(
-            notification_settings=[
-                (
-                    ExternalProviders.EMAIL,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationScopeType.TEAM,
-                    self.team.id,
-                    NotificationSettingOptionValues.ALWAYS,
-                ),
-                (
-                    ExternalProviders.EMAIL,
-                    NotificationSettingTypes.QUOTA,
-                    NotificationScopeType.TEAM,
-                    self.team.id,
-                    NotificationSettingOptionValues.ALWAYS,
-                ),
-            ],
-            team=self.team,
-        )
-
-        ns1 = NotificationSetting.objects.find_settings(
-            provider=ExternalProviders.EMAIL,
-            type=NotificationSettingTypes.ISSUE_ALERTS,
-            team_id=self.team.id,
-        )[0]
-        ns2 = NotificationSetting.objects.find_settings(
-            provider=ExternalProviders.EMAIL,
-            type=NotificationSettingTypes.QUOTA,
-            team_id=self.team.id,
-        )[0]
-
-        assert ns1.team_id == self.team.id
-        assert ns1.user_id is None
-        assert ns2.team_id == self.team.id
-        assert ns2.user_id is None
