@@ -1163,7 +1163,7 @@ class IssueListOverview extends Component<Props, State> {
     };
   };
 
-  onStatsRequestPromise = (query: GroupStatsQuery) => {
+  onStatsQuery = (query: GroupStatsQuery) => {
     switch (query.status) {
       case 'loading':
         break;
@@ -1273,7 +1273,7 @@ class IssueListOverview extends Component<Props, State> {
                     organization={this.props.organization}
                     period={this.getGroupStatsPeriod()}
                     query={this.getQuery()}
-                    onRequestStatusChange={this.onStatsRequestPromise}
+                    onStatsQuery={this.onStatsQuery}
                   >
                     <GroupListBody
                       memberList={this.state.memberList}
