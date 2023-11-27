@@ -730,6 +730,62 @@ Sentry.capture_check_in(
   );
 }
 
+export function RubyRailsMixinPlatformGuide() {
+  const activeJobCode = `class ExampleActiveJob < ApplicationJob
+  include Sentry::Cron::MonitorCheckIns
+
+  # slug defaults to the job class name if not provided
+  sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorConfig.from_crontab('5 * * * *')
+
+  def perform(*args)
+    # do stuff
+  end
+end`;
+
+  const sidekiqJobCode = `class ExampleSidekiqJob
+  include Sidekiq::Job
+  include Sentry::Cron::MonitorCheckIns
+
+  # slug defaults to the job class name if not provided
+  sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorConfig.from_crontab('5 * * * *')
+
+  def perform(*args)
+    # do stuff
+  end
+end`;
+
+  const customCode = `# define the monitor config with an interval
+sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorConfig.from_interval(1, :minute)
+
+# define the monitor config with a crontab
+sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorConfig.from_crontab('5 * * * *')`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'You can use the mixin module from the [additionalDocs: Ruby SDK] to automatically capture check-ins from your jobs rather than creating them manually.',
+          {
+            additionalDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/ruby/crons/#job-monitoring" />
+            ),
+          }
+        )}
+      </div>
+      <div>{t('ActiveJob Example:')}</div>
+      <CodeSnippet language="ruby">{activeJobCode}</CodeSnippet>
+      <div>{t('Sidekiq Example:')}</div>
+      <CodeSnippet language="ruby">{sidekiqJobCode}</CodeSnippet>
+      <div>
+        {t(
+          'You must pass in the monitor config explicity for upserts or you must create a new monitor explicitly in the UI.'
+        )}
+      </div>
+      <CodeSnippet language="ruby">{customCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
 export function RubyCronQuickStart(props: QuickStartProps) {
   const {slug} = withDefaultProps(props);
 

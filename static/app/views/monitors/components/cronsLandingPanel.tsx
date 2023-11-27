@@ -31,6 +31,7 @@ import {
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
   QuickStartProps,
+  RubyRailsMixinPlatformGuide,
   RubyUpsertPlatformGuide,
 } from './quickStartEntries';
 
@@ -38,6 +39,7 @@ enum GuideKey {
   BEAT_AUTO = 'beat_auto',
   UPSERT = 'upsert',
   MANUAL = 'manual',
+  MIXIN = 'mixin',
 }
 
 interface PlatformGuide {
@@ -98,7 +100,13 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
       key: GuideKey.UPSERT,
     },
   ],
-  'ruby-rails': [],
+  'ruby-rails': [
+    {
+      Guide: RubyRailsMixinPlatformGuide,
+      title: 'Mixin',
+      key: GuideKey.MIXIN,
+    },
+  ],
 };
 
 export function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
