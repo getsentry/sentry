@@ -134,6 +134,7 @@ SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
+SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -475,14 +476,16 @@ CSP_BASE_URI = [
     "'none'",
 ]
 CSP_STYLE_SRC = [
-    "'self'",
     "'unsafe-inline'",
+    "*",  # required for replays
 ]
 CSP_IMG_SRC = [
-    "'self'",
     "blob:",
     "data:",
-    "https://secure.gravatar.com",
+    "*",  # required for replays
+]
+CSP_MEDIA_SRC = [
+    "*",  # required for replays
 ]
 
 if ENVIRONMENT == "development":
@@ -1540,6 +1543,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:set-grouping-config": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enables syntax highlighting in the stack trace
+    "organizations:issue-details-stacktrace-syntax-highlighting": False,
     # Enable issue platform
     "organizations:issue-platform": False,
     # Enable additional logging for issue platform
@@ -1566,6 +1571,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-extraction": False,
     # Enables the usage of the new metrics layer in the metrics API.
     "organizations:metrics-api-new-metrics-layer": False,
+    # Enables the metrics metadata.
+    "organizations:metric-meta": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Extract on demand metrics
@@ -1858,6 +1865,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable new release UI
     "organizations:releases-v2": False,
     "organizations:releases-v2-st": False,
+    "organizations:releases-v2-banner": False,
     # Enable the metrics layer for alerts queries.
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
@@ -3938,7 +3946,7 @@ SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 
 # Backwards compatibility for URLs that don't
 # have enough context to route via organization.
-# New usage of these endpoints uses region domains,
+# New usage of these endpoints should use the region domains,
 # but existing customers have been using these routes
 # on the main domain for a long time.
 REGION_PINNED_URL_NAMES = {
@@ -3958,10 +3966,9 @@ REGION_PINNED_URL_NAMES = {
     # New usage of these is region scoped.
     "sentry-error-page-embed",
     "sentry-release-hook",
+    "sentry-api-0-organizations",
     "sentry-api-0-projects",
-    "sentry-account-email-unsubscribe-incident",
-    "sentry-account-email-unsubscribe-issue",
-    "sentry-account-email-unsubscribe-project",
+    "sentry-api-0-accept-project-transfer",
 }
 
 # Shared resource ids for accounting

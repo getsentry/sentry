@@ -592,7 +592,7 @@ def test_detect_function_change_points(
     assert mock_emit_function_regression_issue.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FunctionsTasksTest(ProfilesSnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -684,7 +684,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
         assert emitted == 5
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @pytest.mark.sentry_metrics
 class TestTransactionsQuery(MetricsAPIBaseTestCase):
     def setUp(self):
@@ -755,7 +755,6 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
     def test_transactions_query(self) -> None:
         res = query_transactions(
             self.projects,
-            self.hour_ago,
             self.now,
             self.num_transactions + 1,  # detect if any extra transactions are returned
         )
@@ -769,7 +768,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
             assert trend_payload.timestamp == self.hour_ago
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @pytest.mark.sentry_metrics
 class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
     def setUp(self):

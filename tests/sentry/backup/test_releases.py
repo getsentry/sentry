@@ -26,7 +26,7 @@ from tests.sentry.backup import mark, targets
 RELEASE_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseTests(BackupTestCase):
     """
     Ensure that exports from the last two released versions of self-hosted are still able to be
@@ -96,6 +96,17 @@ class ReleaseTests(BackupTestCase):
 
             # Return the export so that we can ensure that all models were seen.
             return exported
+
+    def test_at_23_11_1(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            _, snapshot_refval = read_snapshot_file(self.get_snapshot_path("23.11.1"))
+            snapshot_data = yaml.safe_load(snapshot_refval)
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w") as f:
+                json.dump(snapshot_data, f)
+
+            with open(tmp_path, "rb") as f:
+                import_in_global_scope(f)
 
     def test_at_23_11_0(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

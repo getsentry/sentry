@@ -1,5 +1,5 @@
 ---
-created: '2023-11-08T18:50:27.519701Z'
+created: '2023-11-22T21:27:02.622251Z'
 creator: sentry
 source: tests/sentry/tasks/test_relocation.py
 ---
@@ -127,7 +127,7 @@ steps:
   - --overwrite-configs
   id: import-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 30s
+  timeout: 300s
   waitFor:
   - copy-inputs-being-validated
   - create-working-dirs
@@ -157,7 +157,7 @@ steps:
   - importing
   id: import-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 30s
+  timeout: 300s
   waitFor:
   - copy-inputs-being-validated
   - create-working-dirs
@@ -188,7 +188,7 @@ steps:
   - testing
   id: import-raw-relocation-data
   name: gcr.io/cloud-builders/docker
-  timeout: 30s
+  timeout: 300s
   waitFor:
   - copy-inputs-being-validated
   - create-working-dirs
@@ -203,6 +203,8 @@ steps:
   - run
   - --rm
   - -T
+  - -v
+  - /workspace/in:/in
   - -v
   - /workspace/out:/out
   - -v
@@ -219,7 +221,7 @@ steps:
   - /findings/export-baseline-config.json
   id: export-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 30s
+  timeout: 300s
   waitFor:
   - import-baseline-config
   - import-raw-relocation-data
@@ -232,6 +234,8 @@ steps:
   - run
   - --rm
   - -T
+  - -v
+  - /workspace/in:/in
   - -v
   - /workspace/out:/out
   - -v
@@ -250,7 +254,7 @@ steps:
   - importing
   id: export-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 30s
+  timeout: 300s
   waitFor:
   - import-colliding-users
   - export-baseline-config
@@ -263,6 +267,8 @@ steps:
   - run
   - --rm
   - -T
+  - -v
+  - /workspace/in:/in
   - -v
   - /workspace/out:/out
   - -v
@@ -281,7 +287,7 @@ steps:
   - testing
   id: export-raw-relocation-data
   name: gcr.io/cloud-builders/docker
-  timeout: 30s
+  timeout: 300s
   waitFor:
   - import-raw-relocation-data
   - export-colliding-users
@@ -323,7 +329,7 @@ steps:
   - /findings/compare-baseline-config.json
   id: compare-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 30s
+  timeout: 300s
   waitFor:
   - export-baseline-config
   - export-raw-relocation-data
@@ -355,10 +361,10 @@ steps:
   - /findings/compare-colliding-users.json
   id: compare-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 30s
+  timeout: 300s
   waitFor:
   - export-colliding-users
   - compare-baseline-config
 tags:
 - cloud-builders-community
-timeout: 2400s
+timeout: 3600s

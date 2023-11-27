@@ -308,6 +308,7 @@ from .endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
+from .endpoints.organization_ddm import OrganizationDDMMetaEndpoint
 from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -583,7 +584,6 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
-from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
 from .endpoints.user_notification_settings_options import UserNotificationSettingsOptionsEndpoint
 from .endpoints.user_notification_settings_options_detail import (
     UserNotificationSettingsOptionsDetailEndpoint,
@@ -869,11 +869,6 @@ USER_URLS = [
         r"^(?P<user_id>[^\/]+)/organizations/$",
         UserOrganizationsEndpoint.as_view(),
         name="sentry-api-0-user-organizations",
-    ),
-    re_path(
-        r"^(?P<user_id>[^\/]+)/notification-settings/$",
-        UserNotificationSettingsDetailsEndpoint.as_view(),
-        name="sentry-api-0-user-notification-settings",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/notifications/$",
@@ -1906,6 +1901,11 @@ ORGANIZATION_URLS = [
                 ),
             ]
         ),
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/ddm/meta/$",
+        OrganizationDDMMetaEndpoint.as_view(),
+        name="sentry-api-0-organization-ddm-meta",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/meta/$",

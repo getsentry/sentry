@@ -18,7 +18,7 @@ from sentry.utils.http import absolute_uri
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupIntegrationDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()

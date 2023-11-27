@@ -191,7 +191,7 @@ describe('GroupEventCarousel', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'JSON (7.0 B)'}));
 
     expect(window.open).toHaveBeenCalledWith(
-      `/api/0/projects/org-slug/project-slug/events/event-id/json/`
+      `https://us.sentry.io/api/0/projects/org-slug/project-slug/events/event-id/json/`
     );
   });
 });
