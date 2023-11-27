@@ -44,7 +44,7 @@ def get_use_case_id(request: Request) -> UseCaseID:
 @region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
@@ -61,7 +61,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     """Get metric name, available operations, metric unit and available tags"""
 
@@ -87,7 +87,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     """Get list of tag names for this project
 
@@ -119,7 +119,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     """Get all existing tag values for a metric"""
 
@@ -145,7 +145,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     """Get the time series data for one or more metrics.
 
