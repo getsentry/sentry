@@ -755,7 +755,6 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
     def test_transactions_query(self) -> None:
         res = query_transactions(
             self.projects,
-            self.hour_ago,
             self.now,
             self.num_transactions + 1,  # detect if any extra transactions are returned
         )

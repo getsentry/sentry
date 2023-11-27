@@ -66,6 +66,7 @@ export enum PerformanceWidgetSetting {
   TIME_TO_FULL_DISPLAY = 'time_to_full_display',
   OVERALL_PERFORMANCE_SCORE = 'overall_performance_score',
   MOST_TIME_CONSUMING_RESOURCES = 'most_time_consuming_resources',
+  SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -292,7 +293,7 @@ export const WIDGET_DEFINITIONS: ({
   },
   [PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE]: {
     title: t('Performance Score'),
-    subTitle: t('The overall performance score across selected projects'),
+    subTitle: t('The overall performance score across selected frontend projects only'),
     titleTooltip: '',
     fields: [],
     dataType: GenericPerformanceWidgetDataType.PERFORMANCE_SCORE,
@@ -387,5 +388,12 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: '',
     fields: SPAN_OP_BREAKDOWN_FIELDS.map(spanOp => `p75(${spanOp})`),
     dataType: GenericPerformanceWidgetDataType.STACKED_AREA,
+  },
+  [PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID]: {
+    title: t('Average TTIDs'),
+    titleTooltip: '',
+    subTitle: t('Top screens by count'),
+    fields: ['avg(measurements.time_to_initial_display)'],
+    dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID,
   },
 });

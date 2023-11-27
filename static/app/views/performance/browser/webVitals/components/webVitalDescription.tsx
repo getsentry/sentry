@@ -16,7 +16,7 @@ import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/ge
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
-import {ProjectScore} from '../utils/calculatePerformanceScore';
+import {ProjectScore} from '../utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 
 import PerformanceScoreRingWithTooltips from './performanceScoreRingWithTooltips';
 
