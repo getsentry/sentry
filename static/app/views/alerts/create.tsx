@@ -98,12 +98,13 @@ class Create extends Component<Props, State> {
   render() {
     const {hasMetricAlerts, organization, project, location, members} = this.props;
     const {alertType} = this.state;
-    const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
+    const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover, query} =
       location?.query ?? {};
     const wizardTemplate: WizardRuleTemplate = {
       aggregate: aggregate ?? DEFAULT_WIZARD_TEMPLATE.aggregate,
       dataset: dataset ?? DEFAULT_WIZARD_TEMPLATE.dataset,
       eventTypes: eventTypes ?? DEFAULT_WIZARD_TEMPLATE.eventTypes,
+      query: query ?? DEFAULT_WIZARD_TEMPLATE.query,
     };
     const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
 
