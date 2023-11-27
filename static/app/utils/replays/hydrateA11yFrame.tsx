@@ -25,8 +25,12 @@ interface A11yIssueElementAlternative {
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 export type HydratedA11yFrame = Overwrite<
-  Omit<RawA11yFrame, 'elements'>,
+  Omit<RawA11yFrame, 'elements' | 'help'>,
   {
+    /**
+     * Rename `help` to conform to ReplayFrame basics.
+     */
+    description: string;
     /**
      * The specific element instance
      */
@@ -54,9 +58,9 @@ export default function hydrateA11yFrame(
     const timestamp = new Date(raw.timestamp);
     const timestampMs = timestamp.getTime();
     return {
+      description: raw.help,
       element,
       help_url: raw.help_url,
-      help: raw.help,
       id: raw.id,
       impact: raw.impact,
       offsetMs: timestampMs - startTimestampMs,

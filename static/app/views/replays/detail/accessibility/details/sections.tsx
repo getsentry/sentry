@@ -37,7 +37,7 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
       type: item.impact === 'critical' ? 'warning' : undefined,
     },
     {key: t('Type'), value: item.id},
-    {key: t('Help'), value: <a href={item.help_url}>{item.help}</a>},
+    {key: t('Help'), value: <a href={item.help_url}>{item.description}</a>},
     {key: t('Path'), value: item.element.target.join(' ')},
     {
       key: t('Timestamp'),
