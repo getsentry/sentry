@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Iterable, List, Mapping, MutableSet, Optional, Set, Union
+from typing import TYPE_CHECKING, Iterable, Mapping, MutableSet, Optional, Set, Union
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -20,7 +20,6 @@ from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
     NOTIFICATION_SETTING_OPTION_VALUES,
     NOTIFICATION_SETTING_TYPES,
-    VALID_VALUES_FOR_KEY,
     VALID_VALUES_FOR_KEY_V2,
     NotificationScopeEnum,
     NotificationScopeType,
@@ -485,39 +484,3 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 **base_query,
                 type__in=[NOTIFICATION_SETTING_TYPES[type] for type in types_to_delete],
             ).delete()
-
-    def remove_parent_settings_for_organization(
-        self, organization_id: int, project_ids: List[int], provider: ExternalProviders
-    ) -> None:
-        """Delete all parent-specific notification settings referencing this organization."""
-        kwargs = {}
-        kwargs["provider"] = provider.value
-
-        self.filter(
-            Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier__in=project_ids)
-            | Q(
-                scope_type=NotificationScopeType.ORGANIZATION.value,
-                scope_identifier=organization_id,
-            ),
-            **kwargs,
-        ).delete()
-
-    def disable_settings_for_users(
-        self, provider: ExternalProviders, users: Iterable[User]
-    ) -> None:
-        """
-        Given a list of users, overwrite all of their parent-independent
-        notification settings to NEVER.
-        TODO(mgaeta): Django 3 has self.bulk_create() which would allow us to do
-         this in a single query.
-        """
-        for user in users:
-            for type in VALID_VALUES_FOR_KEY.keys():
-                self.update_or_create(
-                    provider=provider.value,
-                    type=type.value,
-                    scope_type=NotificationScopeType.USER.value,
-                    scope_identifier=user.id,
-                    user_id=user.id,
-                    defaults={"value": NotificationSettingOptionValues.NEVER.value},
-                )

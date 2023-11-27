@@ -76,15 +76,6 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def uninstall_slack_settings(
-        self,
-        organization_id: int,
-        project_ids: List[int],
-    ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def remove_notification_settings_for_team(
         self, *, team_id: int, provider: ExternalProviders
     ) -> None:
