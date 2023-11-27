@@ -6,8 +6,10 @@ from abc import abstractmethod
 from typing import List, Mapping, MutableMapping, Optional, Set, Tuple
 
 from sentry.notifications.types import (
+    NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -59,6 +61,19 @@ class NotificationsService(RpcService):
         ],
         external_provider: ExternalProviders,
         user_id: int,
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def update_notification_options(
+        self,
+        *,
+        actor: RpcActor,
+        type: NotificationSettingEnum,
+        scope_type: NotificationScopeEnum,
+        scope_identifier: int,
+        value: NotificationSettingsOptionEnum,
     ) -> None:
         pass
 

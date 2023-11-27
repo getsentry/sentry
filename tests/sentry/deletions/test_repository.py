@@ -17,7 +17,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()

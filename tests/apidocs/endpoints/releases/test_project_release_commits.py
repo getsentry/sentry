@@ -7,7 +7,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectReleaseCommitsListDocsTest(APIDocsTestCase):
     def setUp(self):
         project = self.create_project(name="foo")

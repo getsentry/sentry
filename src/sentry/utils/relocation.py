@@ -208,6 +208,8 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       $docker_compose_cmd
       $docker_compose_run
       - "-v"
+      - "/workspace/in:/in"
+      - "-v"
       - "/workspace/out:/out"
       - "-v"
       - "/workspace/findings:/findings"

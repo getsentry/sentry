@@ -16,6 +16,7 @@ from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -86,6 +87,28 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 )
             # update the providers at the end
             NotificationSetting.objects.update_provider_settings(user_id, None)
+
+    def update_notification_options(
+        self,
+        *,
+        actor: RpcActor,
+        type: NotificationSettingEnum,
+        scope_type: NotificationScopeEnum,
+        scope_identifier: int,
+        value: NotificationSettingsOptionEnum,
+    ):
+        kwargs = {}
+        if actor.actor_type == ActorType.USER:
+            kwargs["user_id"] = actor.id
+        else:
+            kwargs["team_id"] = actor.id
+        NotificationSettingOption.objects.create_or_update(
+            type=type.value,
+            scope_type=scope_type.value,
+            scope_identifier=scope_identifier,
+            values={"value": value.value},
+            **kwargs,
+        )
 
     def remove_notification_settings(
         self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders

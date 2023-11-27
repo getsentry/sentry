@@ -11,7 +11,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetSettingMappingFromMappingTest(TestCase):
     def setUp(self):
         with assume_test_silo_mode(SiloMode.REGION):

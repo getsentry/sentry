@@ -52,7 +52,7 @@ class ShouldBeParticipatingTest(TestCase):
         assert not value
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class WhereShouldBeParticipatingTest(TestCase):
     def setUp(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):

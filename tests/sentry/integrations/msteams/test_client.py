@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class MsTeamsClientTest(TestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):

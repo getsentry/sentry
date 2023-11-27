@@ -116,7 +116,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -421,7 +421,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "PUT"
 
@@ -1193,7 +1193,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 
