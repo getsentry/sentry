@@ -61,15 +61,33 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self,
         *,
         external_provider: ExternalProviderEnum,
-        user_id: int,
+        user_id: Optional[int] = None,
+        team_id: Optional[int] = None,
+        types: Optional[List[NotificationSettingEnum]] = None,
     ) -> None:
+        assert (team_id and not user_id) or (
+            user_id and not team_id
+        ), "Can only enable settings for team or user"
+
+        kwargs = {}
+        if user_id:
+            kwargs["user_id"] = user_id
+            kwargs["scope_type"] = NotificationScopeEnum.USER.value
+            kwargs["scope_identifier"] = user_id
+        else:
+            kwargs["team_id"] = team_id
+            kwargs["scope_type"] = NotificationScopeEnum.TEAM.value
+            kwargs["scope_identifier"] = team_id
+
+        type_str_list = list(map(lambda t: t.value, types)) if types else None
         with transaction.atomic(router.db_for_write(NotificationSettingProvider)):
             for type_str in NOTIFICATION_SETTING_TYPES.values():
+                # check the type if it's an input
+                if types and type_str not in type_str_list:
+                    continue
                 NotificationSettingProvider.objects.create_or_update(
+                    **kwargs,
                     provider=external_provider.value,
-                    user_id=user_id,
-                    scope_type=NotificationScopeEnum.USER.value,
-                    scope_identifier=user_id,
                     type=type_str,
                     values={
                         "value": NotificationSettingsOptionEnum.ALWAYS.value,

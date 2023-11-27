@@ -57,7 +57,9 @@ class NotificationsService(RpcService):
         self,
         *,
         external_provider: ExternalProviderEnum,
-        user_id: int,
+        user_id: Optional[int] = None,
+        team_id: Optional[int] = None,
+        types: Optional[List[NotificationSettingEnum]] = None,
     ) -> None:
         pass
 
