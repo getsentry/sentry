@@ -6,6 +6,7 @@ import tempfile
 from datetime import date, datetime
 from pathlib import Path
 from typing import Tuple
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -14,9 +15,10 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+from django.db import connections, router
 from django.utils import timezone
 
-from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model, get_model_name
 from sentry.backup.helpers import ImportFlags, LocalFileDecryptor
 from sentry.backup.imports import (
     ImportingError,
@@ -82,6 +84,14 @@ class ImportTestCase(BackupTestCase):
         export_to_file(tmp_path, ExportScope.Global)
         clear_database()
         return tmp_path
+
+    def import_empty_backup_file(self, import_fn):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_empty_file_path = tmp_dir + "empty_backup.json"
+        with open(tmp_empty_file_path, "w") as tmp_file:
+            json.dump([], tmp_file)
+        with open(tmp_empty_file_path, "rb") as empty_backup_json:
+            import_fn(empty_backup_json, printer=NOOP_PRINTER)
 
 
 @region_silo_test
@@ -741,20 +751,85 @@ class ScopingTests(ImportTestCase):
             == RegionImportChunk.objects.values("import_uuid").first()
         )
 
-    def test_global_import_initial_model_deletion(self):
+    @mock.patch("sentry.backup.imports.is_split_db", return_value=False)
+    @mock.patch("sentry.backup.imports.reset_models")
+    def test_global_import_initial_model_deletion(self, is_split_db, reset_models):
         if SiloMode.get_current_mode() != SiloMode.MONOLITH:
             return
+
         create_default_projects()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_empty_file_path = tmp_dir + "empty_backup.json"
+            with open(tmp_empty_file_path, "w") as tmp_file:
+                json.dump([], tmp_file)
+            with open(tmp_empty_file_path, "rb") as empty_backup_json:
+                with assume_test_silo_mode(SiloMode.CONTROL):
+                    import_in_global_scope(empty_backup_json, printer=NOOP_PRINTER)
+                    # Simulate clearing database if reset_models is called. This is a hacky way
+                    # to get this working for tests, since otherwise db transactions won't work on default db
+                    if reset_models.called:
+                        clear_database()
 
-        file_path = get_fixture_path("backup", "fresh-install.json")
-        with open(file_path, "rb") as tmp_file:
-            import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+        for dependency in dependencies():
+            model = get_model(dependency)
+            assert model.objects.count() == 0
+            with connections[router.db_for_read(model)].cursor() as cursor:
+                cursor.execute(f"SELECT MAX(id) FROM {model._meta.db_table}")
+                sequence_number = cursor.fetchone()[0]
+                assert sequence_number == 1 or sequence_number is None
+        """
+        During the setup of a fresh Sentry instance, there are a couple of models that are automatically created.
+        The Sentry org, a Sentry team, and an internal project. During a global import, we want to avoid persisting
+        these default models and start from scratch. These explicit assertions are here just to double check that these
+        models have been wiped.
+        """
+        assert Project.objects.count() == 0
+        assert ProjectKey.objects.count() == 0
+        assert Organization.objects.count() == 0
+        assert OrganizationMember.objects.count() == 0
+        assert Team.objects.count() == 0
 
-        assert Project.objects.count() == 1
-        assert ProjectKey.objects.count() == 1
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            export_to_file(path, ExportScope.Global)
+            with open(path) as tmp_file:
+                assert tmp_file.read() == "[]"
+
+    def test_user_import_persist_existing_models(self):
+        owner = self.create_exhaustive_user("owner", email="owner@example.com")
+        user = self.create_exhaustive_user("user", email="user@example.com")
+        self.create_exhaustive_organization("neworg", owner, user, None)
         assert Organization.objects.count() == 1
-        assert OrganizationMember.objects.count() == 2
-        assert Team.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+        self.import_empty_backup_file(import_in_global_scope)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+
+    def test_config_import_persist_existing_models(self):
+        owner = self.create_exhaustive_user("owner", email="owner@example.com")
+        user = self.create_exhaustive_user("user", email="user@example.com")
+        self.create_exhaustive_organization("neworg", owner, user, None)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+        self.import_empty_backup_file(import_in_config_scope)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+
+    def test_organization_import_persist_existing_models(self):
+        owner = self.create_exhaustive_user("owner", email="owner@example.com")
+        user = self.create_exhaustive_user("user", email="user@example.com")
+        self.create_exhaustive_organization("neworg", owner, user, None)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+        self.import_empty_backup_file(import_in_organization_scope)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
 
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests

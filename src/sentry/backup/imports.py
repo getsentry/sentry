@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import click
 from django.core import serializers
-from django.db import transaction
+from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
 
 from sentry.backup.dependencies import (
@@ -16,11 +16,14 @@ from sentry.backup.dependencies import (
     PrimaryKeyMap,
     dependencies,
     get_model_name,
+    reversed_dependencies,
 )
 from sentry.backup.helpers import Decryptor, Filter, ImportFlags, decrypt_encrypted_tarball
 from sentry.backup.scopes import ImportScope
+from sentry.db.models.paranoia import ParanoidModel
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.nodestore.django.models import Node
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcFilter,
     RpcImportError,
@@ -47,6 +50,23 @@ __all__ = (
 class ImportingError(Exception):
     def __init__(self, context: RpcImportError) -> None:
         self.context = context
+
+
+def reset_models():
+    reversed = reversed_dependencies()
+
+    for model in reversed:
+        using = router.db_for_write(model)
+        manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
+        manager.all().delete()
+
+        # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
+        # solution.
+        if model is not Node:
+            table = model._meta.db_table
+            seq = f"{table}_id_seq"
+            with connections[using].cursor() as cursor:
+                cursor.execute("SELECT setval(%s, 1, false)", [seq])
 
 
 def _import(
@@ -326,6 +346,12 @@ def _import(
     pk_map = PrimaryKeyMap()
     if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
         with unguarded_write(using="default"), transaction.atomic(using="default"):
+            if scope == ImportScope.Global:
+                try:
+                    reset_models()
+                except DatabaseError as e:
+                    printer("Database could not be reset before importing")
+                    raise e
             do_writes(pk_map)
     else:
         do_writes(pk_map)
@@ -441,33 +467,7 @@ def import_in_global_scope(
     Sentry instance, some behaviors in this scope are different from the others. In particular,
     superuser privileges are not sanitized. This method can be thought of as a "pure"
     backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
-    During the setup of a fresh Sentry instance, there are a couple of models that are automatically created.
-    The Sentry org, a Sentry team, and an internal project. During a global import, we want to avoid persisting
-    these default models and start from scratch.
     """
-
-    from django.core.management.color import no_style
-    from django.db import connection
-
-    from sentry.models.organization import Organization
-    from sentry.models.organizationmember import OrganizationMember
-    from sentry.models.project import Project
-    from sentry.models.projectkey import ProjectKey
-    from sentry.models.team import Team
-
-    models_to_delete = [Project, ProjectKey, Organization, OrganizationMember, Team]
-
-    # Global imports will never be run in production, ever
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        with unguarded_write(using="default"):
-            for model in models_to_delete:
-                model.objects.all().delete()
-
-    # Reset the primary key sequences so all models removed start from an id of 1 to avoid DSNs changing
-    sequence_sql = connection.ops.sequence_reset_sql(no_style(), models_to_delete)
-    with connection.cursor() as cursor:
-        for sql in sequence_sql:
-            cursor.execute(sql)
 
     return _import(
         src,
