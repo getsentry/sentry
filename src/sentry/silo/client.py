@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from requests import Request
@@ -122,20 +121,3 @@ class RegionSiloClient(BaseSiloClient):
         # Ensure the region is registered
         self.region = get_region_by_name(region.name)
         self.base_url = self.region.address
-
-
-class ControlSiloClient(BaseSiloClient):
-    access_modes = [SiloMode.REGION]
-
-    metrics_prefix = "silo_client.control"
-    log_path = "sentry.silo.client.control"
-    silo_client_name = "control"
-
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.base_url = getattr(settings, "SENTRY_CONTROL_ADDRESS")
-        if not self.base_url:
-            raise AttributeError(
-                "Configure 'SENTRY_CONTROL_ADDRESS' in sentry configuration settings to use the ControlSiloClient"
-            )

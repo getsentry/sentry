@@ -4,7 +4,7 @@ from pytest import raises
 
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo import SiloMode
-from sentry.silo.client import ControlSiloClient, RegionSiloClient, SiloClientError
+from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
@@ -23,17 +23,11 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
     def test_init_clients_from_monolith(self):
         with raises(SiloClientError):
-            ControlSiloClient()
-
-        with raises(SiloClientError):
             RegionSiloClient(self.region)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_init_clients_from_control(self):
         with override_regions(self.region_config):
-            with raises(SiloClientError):
-                ControlSiloClient()
-
             with raises(SiloClientError):
                 RegionSiloClient("atlantis")  # type: ignore[arg-type]
 
@@ -50,10 +44,6 @@ class SiloClientTest(TestCase):
     def test_init_clients_from_region(self):
         with raises(SiloClientError):
             RegionSiloClient(self.region)
-
-        client = ControlSiloClient()
-        assert client.base_url is not None
-        assert self.dummy_address in client.base_url
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
