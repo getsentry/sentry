@@ -70,6 +70,17 @@ export type MetricsQuery = {
   query?: string;
 };
 
+export type MetricMetaCodeLocation = {
+  frames: {
+    absPath?: string;
+    filename?: string;
+    function?: string;
+    lineNo?: number;
+    module?: string;
+  }[];
+  mri: string;
+  timestamp: number;
+};
 export function getDdmUrl(
   orgSlug: string,
   {
