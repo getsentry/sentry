@@ -70,9 +70,11 @@ class JSONScrubbingComparator(ABC):
 
         findings = []
         for f in self.fields:
-            if f not in left["fields"] and f not in right["fields"]:
+            missing_on_left = f not in left["fields"] or left["fields"][f] is None
+            missing_on_right = f not in right["fields"] or right["fields"][f] is None
+            if missing_on_left and missing_on_right:
                 continue
-            if f not in left["fields"]:
+            if missing_on_left:
                 findings.append(
                     ComparatorFinding(
                         kind=self.get_kind_existence_check(),
@@ -82,7 +84,7 @@ class JSONScrubbingComparator(ABC):
                         reason=f"the left `{f}` value was missing",
                     )
                 )
-            if f not in right["fields"]:
+            if missing_on_right:
                 findings.append(
                     ComparatorFinding(
                         kind=self.get_kind_existence_check(),
@@ -461,7 +463,8 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
 class IgnoredComparator(JSONScrubbingComparator):
     """Ensures that two fields are tested for mutual existence, and nothing else.
 
-    Using this class means that you are foregoing comparing the relevant field(s), so please make sure you are validating them some other way!"""
+    Using this class means that you are foregoing comparing the relevant field(s), so please make sure you are validating them some other way!
+    """
 
     def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
         """Noop - there is nothing to compare once we've checked for existence."""

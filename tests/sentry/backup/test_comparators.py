@@ -89,6 +89,88 @@ def test_bad_comparator_only_one_side_existing():
     assert "my_date_field" in res[0].reason
 
 
+def test_good_comparator_both_sides_null():
+    cmp = DateUpdatedComparator("my_date_field")
+    id = InstanceID("sentry.test", 0)
+    nulled: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_date_field": None,
+        },
+    }
+    assert not cmp.existence(id, nulled, nulled)
+
+
+def test_bad_comparator_only_one_side_null():
+    cmp = DateUpdatedComparator("my_date_field")
+    id = InstanceID("sentry.test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_date_field": "2023-06-22T23:12:34.567Z",
+        },
+    }
+    nulled: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_date_field": None,
+        },
+    }
+    res = cmp.existence(id, nulled, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "my_date_field" in res[0].reason
+
+    res = cmp.existence(id, present, nulled)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "right" in res[0].reason
+    assert "my_date_field" in res[0].reason
+
+
+def test_good_comparator_one_side_null_other_side_missing():
+    cmp = DateUpdatedComparator("my_date_field")
+    id = InstanceID("sentry.test", 0)
+    nulled: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_date_field": None,
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    res = cmp.existence(id, missing, nulled)
+    assert not res
+
+    res = cmp.existence(id, nulled, missing)
+    assert not res
+
+
 def test_good_auto_suffix_comparator():
     cmp = AutoSuffixComparator("same", "suffixed")
     id = InstanceID("sentry.test", 0)
