@@ -57,7 +57,7 @@ def setup_clear_fixture_outbox_messages():
         pass
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ControlOutboxTest(TestCase):
     webhook_request = RequestFactory().post(
         "/extensions/github/webhook/?query=test",
@@ -257,7 +257,7 @@ class ControlOutboxTest(TestCase):
                 assert not ControlOutbox.objects.filter(id=outbox.id).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OutboxDrainTest(TransactionTestCase):
     def test_drain_shard_not_flush_all__upper_bound(self):
         outbox1 = Organization(id=1).outbox_for_update()
@@ -391,7 +391,7 @@ class OutboxDrainTest(TransactionTestCase):
         assert mock_process_region_outbox.call_count == 2
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RegionOutboxTest(TestCase):
     def test_creating_org_outboxes(self):
         with outbox_context(flush=False):
@@ -418,7 +418,7 @@ class RegionOutboxTest(TestCase):
 
         assert len(list(RegionOutbox.find_scheduled_shards())) == 2
 
-        ctx: ContextManager = outbox.process_coalesced()
+        ctx: ContextManager = outbox.process_coalesced(is_synchronous_flush=True)
         try:
             ctx.__enter__()
             assert RegionOutbox.objects.count() == 4
@@ -443,7 +443,11 @@ class RegionOutboxTest(TestCase):
                 call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
                 call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
                 call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
-                call("outbox.processed", 2, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+                call(
+                    "outbox.processed",
+                    2,
+                    tags={"category": "ORGANIZATION_MEMBER_UPDATE", "synchronous": 1},
+                ),
             ]
             assert mock_metrics.incr.mock_calls == expected
         except Exception as e:

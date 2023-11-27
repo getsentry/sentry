@@ -32,6 +32,7 @@ class BaseOption(OverwritableConfigMixin, Model):
 
     # Subclasses should overwrite the relocation scope as appropriate.
     __relocation_scope__ = RelocationScope.Excluded
+    __relocation_custom_ordinal__ = ["key"]
 
     key = models.CharField(max_length=128, unique=True)
     last_updated = models.DateTimeField(default=timezone.now)

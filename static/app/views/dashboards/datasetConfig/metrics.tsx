@@ -1,41 +1,31 @@
 import omit from 'lodash/omit';
 
-import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {
-  MetricsApiResponse,
-  Organization,
-  PageFilters,
-  SessionApiResponse,
-  SessionField,
-} from 'sentry/types';
+import {MetricsApiResponse, Organization, PageFilters, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getMetricsApiRequestQuery, getSeriesName, groupByOp} from 'sentry/utils/metrics';
+import {formatMRI, getMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import {ReleaseSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
+import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
+import {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import {DisplayType, Widget, WidgetQuery} from '../types';
-import {getWidgetInterval} from '../utils';
-import {resolveDerivedStatusFields} from '../widgetCard/metricWidgetQueries';
-import {getSeriesName} from '../widgetCard/transformSessionsResponseToSeries';
-import {
-  changeObjectValuesToTypes,
-  getDerivedMetrics,
-  mapDerivedMetricsToFields,
-} from '../widgetCard/transformSessionsResponseToTable';
 
 import {DatasetConfig, handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: [`avg(duration)`],
-  columns: [],
+  fields: [''],
+  columns: [''],
   fieldAliases: [],
-  aggregates: [`avg(duration)`],
+  aggregates: [''],
   conditions: '',
-  orderby: `-avg(duration)`,
+  orderby: '',
 };
 
 export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse> = {
@@ -48,25 +38,11 @@ export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse
     organization: Organization,
     pageFilters: PageFilters,
     __?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string
-  ) =>
-    getMetricRequest(
-      0,
-      1,
-      api,
-      query,
-      organization,
-      pageFilters,
-      undefined,
-      limit,
-      cursor
-    ),
+    limit?: number
+  ) => getMetricRequest(api, query, organization, pageFilters, limit),
   getSeriesRequest: getMetricSeriesRequest,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
-  // TODO(ddm): check if we need a MetricSearchBar
-  SearchBar: ReleaseSearchBar,
-  handleColumnFieldChangeOverride,
+  SearchBar: MetricSearchBar,
   handleOrderByReset: handleMetricTableOrderByReset,
   supportedDisplayTypes: [
     DisplayType.AREA,
@@ -76,11 +52,154 @@ export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse
     DisplayType.TABLE,
     DisplayType.TOP_N,
   ],
-  transformSeries: transformSessionsResponseToSeries,
-  transformTable: transformSessionsResponseToTable,
-  getTableFieldOptions: () => ({}),
-  getTableSortOptions: undefined,
+  transformSeries: transformMetricsResponseToSeries,
+  transformTable: transformMetricsResponseToTable,
+  getTableFieldOptions: getFields,
+  getTimeseriesSortOptions: getMetricTimeseriesSortOptions,
+  getTableSortOptions: getMetricTableSortOptions,
+  filterTableOptions: filterMetricOperations,
+  filterYAxisOptions: () => option => filterMetricOperations(option),
+  filterAggregateParams: filterMetricMRIs,
+  filterYAxisAggregateParams: () => option => filterMetricMRIs(option),
+  getGroupByFieldOptions: getTagsForMetric,
 };
+
+function getMetricTimeseriesSortOptions(_, widgetQuery) {
+  if (!widgetQuery.columns) {
+    return [];
+  }
+
+  return widgetQuery.columns.reduce((acc, column) => {
+    return {
+      ...acc,
+      [column]: {
+        label: column,
+        value: {
+          kind: FieldValueKind.TAG,
+          meta: {
+            name: column,
+            dataType: 'string',
+          },
+        },
+      },
+    };
+  }, {});
+}
+
+function getMetricTableSortOptions(_, widgetQuery) {
+  if (!widgetQuery.fields[0]) {
+    return [];
+  }
+
+  return widgetQuery.fields.map((field, i) => {
+    const mri = getMRI(field);
+    const alias = widgetQuery.fieldAliases?.[i];
+
+    return {
+      label: alias ?? formatMRI(mri),
+      value: mri,
+    };
+  });
+}
+
+function getFields(
+  organization: Organization,
+  _?: TagCollection | undefined,
+  __?: CustomMeasurementCollection,
+  api?: Client
+) {
+  if (!api) {
+    return {};
+  }
+
+  return api
+    .requestPromise(`/organizations/${organization.slug}/metrics/meta/`, {
+      query: {useCase: 'custom'},
+    })
+    .then(metaReponse => {
+      const groupedByOp = groupByOp(metaReponse);
+
+      const fieldOptions: Record<string, any> = {};
+      Object.entries(groupedByOp).forEach(([operation, fields]) => {
+        fieldOptions[`function:${operation}`] = {
+          label: `${operation}(${'\u2026'})`,
+          value: {
+            kind: FieldValueKind.FUNCTION,
+            meta: {
+              name: operation,
+              parameters: [
+                {
+                  kind: 'column',
+                  columnTypes: [fields[0].type],
+                  defaultValue: fields[0].mri,
+                  required: true,
+                },
+              ],
+            },
+          },
+        };
+      });
+
+      metaReponse
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(field => {
+          fieldOptions[`field:${field.mri}`] = {
+            label: field.name,
+            value: {
+              kind: FieldValueKind.METRICS,
+              meta: {
+                name: field.mri,
+                dataType: field.type,
+              },
+            },
+          };
+        });
+
+      return fieldOptions;
+    });
+}
+
+function filterMetricOperations(option: FieldValueOption) {
+  return option.value.kind === FieldValueKind.FUNCTION;
+}
+
+function filterMetricMRIs(option: FieldValueOption) {
+  return option.value.kind === FieldValueKind.METRICS;
+}
+
+function getTagsForMetric(
+  organization: Organization,
+  _?: TagCollection,
+  __?: CustomMeasurementCollection,
+  api?: Client,
+  queries?: WidgetQuery[]
+) {
+  const fieldOptions = {};
+
+  if (!api) {
+    return fieldOptions;
+  }
+  const field = queries?.[0].aggregates[0] ?? '';
+  const mri = getMRI(field);
+  const useCase = getUseCaseFromMRI(mri);
+
+  return api
+    .requestPromise(`/organizations/${organization.slug}/metrics/tags/`, {
+      query: {metric: mri, useCase},
+    })
+    .then(tagsResponse => {
+      tagsResponse.forEach(tag => {
+        fieldOptions[`field:${tag.key}`] = {
+          label: tag.key,
+          value: {
+            kind: FieldValueKind.TAG,
+            meta: {name: tag.key, dataType: 'string'},
+          },
+        };
+      });
+      return fieldOptions;
+    });
+}
 
 function getMetricSeriesRequest(
   api: Client,
@@ -90,29 +209,7 @@ function getMetricSeriesRequest(
   pageFilters: PageFilters
 ) {
   const query = widget.queries[queryIndex];
-  const {displayType, limit} = widget;
-
-  const {datetime} = pageFilters;
-  const {start, end, period} = datetime;
-
-  const includeTotals = query.columns.length > 0 ? 1 : 0;
-  const interval = getWidgetInterval(
-    displayType,
-    {start, end, period},
-    '5m'
-    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-  );
-
-  return getMetricRequest(
-    1,
-    includeTotals,
-    api,
-    query,
-    organization,
-    pageFilters,
-    interval,
-    limit
-  );
+  return getMetricRequest(api, query, organization, pageFilters, widget.limit);
 }
 
 function handleMetricTableOrderByReset(widgetQuery: WidgetQuery, newFields: string[]) {
@@ -123,39 +220,21 @@ function handleMetricTableOrderByReset(widgetQuery: WidgetQuery, newFields: stri
   return handleOrderByReset(widgetQuery, newFields);
 }
 
-function handleColumnFieldChangeOverride(widgetQuery: WidgetQuery): WidgetQuery {
-  if (widgetQuery.aggregates.length === 0) {
-    // Release Health widgets require an aggregate in tables
-    const defaultReleaseHealthAggregate = `crash_free_rate(${SessionField.SESSION})`;
-    widgetQuery.aggregates = [defaultReleaseHealthAggregate];
-    widgetQuery.fields = widgetQuery.fields
-      ? [...widgetQuery.fields, defaultReleaseHealthAggregate]
-      : [defaultReleaseHealthAggregate];
-  }
-  return widgetQuery;
-}
-
-export function transformSessionsResponseToTable(
-  data: SessionApiResponse | MetricsApiResponse,
-  widgetQuery: WidgetQuery
+export function transformMetricsResponseToTable(
+  data: MetricsApiResponse,
+  {aggregates}: WidgetQuery
 ): TableData {
-  const {derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
-    widgetQuery.aggregates
-  );
-  const rows = data.groups.map((group, index) => ({
-    id: String(index),
-    ...mapDerivedMetricsToFields(group.by),
-    // if `sum(session)` or `count_unique(user)` are not
-    // requested as a part of the payload for
-    // derived status metrics through the Sessions API,
-    // they are injected into the payload and need to be
-    // stripped.
-    ...omit(mapDerivedMetricsToFields(group.totals), injectedFields),
-    // if session.status is a groupby, some post processing
-    // is needed to calculate the status derived metrics
-    // from grouped results of `sum(session)` or `count_unique(user)`
-    ...getDerivedMetrics(group.by, group.totals, derivedStatusFields),
-  }));
+  // TODO(ddm): get rid of this mapping, it is only needed because the API returns
+  // `op(metric_name)` instead of `op(mri)`
+  const rows = mapResponse(data, aggregates).groups.map((group, index) => {
+    const groupColumn = mapDerivedMetricsToFields(group.by);
+    const value = mapDerivedMetricsToFields(group.totals);
+    return {
+      id: String(index),
+      ...groupColumn,
+      ...value,
+    };
+  });
 
   const singleRow = rows[0];
   const meta = {
@@ -164,17 +243,40 @@ export function transformSessionsResponseToTable(
   return {meta, data: rows};
 }
 
-export function transformSessionsResponseToSeries(
-  data: SessionApiResponse | MetricsApiResponse,
+function mapDerivedMetricsToFields(
+  results: Record<string, number | string | null> | undefined,
+  mapToKey?: string
+) {
+  if (!results) {
+    return {};
+  }
+
+  const mappedResults: typeof results = {};
+  for (const [key, value] of Object.entries(results)) {
+    mappedResults[mapToKey ?? key] = value;
+  }
+  return mappedResults;
+}
+
+function changeObjectValuesToTypes(
+  obj: Record<string, number | string | null> | undefined
+) {
+  return Object.keys(obj ?? {}).reduce((acc, key) => {
+    acc[key] = key.includes('@') ? 'number' : 'string';
+    return acc;
+  }, {});
+}
+
+export function transformMetricsResponseToSeries(
+  data: MetricsApiResponse,
   widgetQuery: WidgetQuery
 ) {
   if (data === null) {
     return [];
   }
 
-  const queryAlias = widgetQuery.name;
-
   const results: Series[] = [];
+  const queryAlias = widgetQuery.name;
 
   if (!data.groups.length) {
     return [
@@ -191,7 +293,9 @@ export function transformSessionsResponseToSeries(
   data.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {
       results.push({
-        seriesName: getSeriesName(field, group, queryAlias),
+        seriesName:
+          queryAlias ||
+          getSeriesName(group, data.groups.length === 1, widgetQuery.columns),
         data: data.intervals.map((interval, index) => ({
           name: interval,
           value: group.series[field][index] ?? 0,
@@ -200,46 +304,78 @@ export function transformSessionsResponseToSeries(
     });
   });
 
-  return results;
+  return results.sort((a, b) => {
+    return a.data[0].value < b.data[0].value ? -1 : 1;
+  });
 }
 
 function getMetricRequest(
-  includeSeries: number,
-  includeTotals: number,
   api: Client,
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,
-  interval?: string,
-  limit?: number,
-  cursor?: string
-) {
-  const {environments, projects, datetime} = pageFilters;
-  const {start, end, period} = datetime;
+  limit?: number
+): Promise<[MetricsApiResponse, string | undefined, ResponseMeta | undefined]> {
+  if (!query.aggregates[0]) {
+    // No aggregate selected, return empty response
+    return Promise.resolve([
+      {
+        intervals: [],
+        groups: [],
+        meta: [],
+      },
+      'OK',
+      {
+        getResponseHeader: () => '',
+      },
+    ] as any);
+  }
+  const per_page = limit && Number(limit) >= 10 ? limit : 10;
 
-  const columns = query.columns;
+  const requestData = getMetricsApiRequestQuery(
+    {
+      field: query.aggregates[0],
+      query: query.conditions,
+      groupBy: query.columns,
+    },
+    pageFilters,
+    {
+      per_page,
+      useNewMetricsLayer: false,
+    }
+  );
 
-  const requestData = {
-    field: query.aggregates,
-    orgSlug: organization.slug,
-    end,
-    environment: environments,
-    groupBy: columns,
-    limit: columns.length === 0 ? 1 : limit,
-    orderBy: '',
-    interval,
-    project: projects,
-    query: query.conditions,
-    start,
-    statsPeriod: period,
+  const pathname = `/organizations/${organization.slug}/metrics/data/`;
+
+  return api.requestPromise(pathname, {
     includeAllArgs: true,
-    cursor,
-    includeSeries,
-    includeTotals,
-  };
-
-  // TODO(ddm): get rid of this cast
-  return doMetricsRequest(api, requestData) as Promise<
-    [MetricsApiResponse, string | undefined, ResponseMeta | undefined]
-  >;
+    query: requestData,
+  });
 }
+
+const mapResponse = (data: MetricsApiResponse, field: string[]): MetricsApiResponse => {
+  const mappedGroups = data.groups.map(group => {
+    return {
+      ...group,
+      by: group.by,
+      series: swapKeys(group.series, field),
+      totals: swapKeys(group.totals, field),
+    };
+  });
+
+  return {...data, groups: mappedGroups};
+};
+
+const swapKeys = (obj: Record<string, unknown> | undefined, newKeys: string[]) => {
+  if (!obj) {
+    return {};
+  }
+
+  const keys = Object.keys(obj);
+  const values = Object.values(obj);
+  const newObj = {};
+  keys.forEach((_, index) => {
+    newObj[newKeys[index]] = values[index];
+  });
+  return newObj;
+};

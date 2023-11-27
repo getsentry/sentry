@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory, Link} from 'react-router';
 
-import FileSize from 'sentry/components/fileSize';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -18,6 +17,7 @@ import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/
 import {useResourceSummarySort} from 'sentry/views/performance/browser/resources/utils/useResourceSummarySort';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -41,7 +41,7 @@ function ResourceSummaryTable() {
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
   const filters = useResourceModuleFilters();
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
   const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {
     sort,
     cursor,
@@ -81,7 +81,7 @@ function ResourceSummaryTable() {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === 'avg(http.response_content_length)') {
-      return <FileSize bytes={row[key]} />;
+      return <ResourceSizeCell bytes={row[key]} />;
     }
     if (key === 'transaction') {
       const blockingStatus = row['resource.render_blocking_status'];
@@ -121,7 +121,7 @@ function ResourceSummaryTable() {
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
+      query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
   };
 

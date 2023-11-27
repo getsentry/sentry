@@ -10,7 +10,7 @@ from sentry.types.region import get_local_region
 from sentry.utils import linksign
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class LinkSignTestCase(TestCase):
     def test_link_signing(self):
         base_url = get_local_region().to_url("/")
@@ -24,14 +24,14 @@ class LinkSignTestCase(TestCase):
 
         url = linksign.generate_signed_link(
             self.user.id,
-            "sentry-account-email-unsubscribe-project",
+            "sentry-customer-domain-unsubscribe-project",
             referrer="alert_view",
             kwargs={"project_id": 1},
         )
 
         assert url.startswith(base_url)
         assert "referrer=alert_view" in url
-        assert "notifications/unsubscribe" in url
+        assert "unsubscribe/project" in url
 
     def test_link_signing_custom_url_prefix(self):
         if SiloMode.get_current_mode() != SiloMode.MONOLITH:

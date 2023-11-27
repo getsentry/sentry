@@ -514,6 +514,110 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.get_kind() == RpcImportErrorKind.ValidationError
                 assert err.value.context.on.model == "sentry.userip"
 
+    # Regression test for getsentry/self-hosted#2571.
+    def test_good_multiple_useremails_per_user_in_user_scope(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+
+                # Add two copies (1 verified, 1 not) of the same `UserEmail` - so the user now has 3
+                # `UserEmail` models, the latter of which have no corresponding `Email` entry.
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 100,
+                        "fields": {
+                            "user": 2,
+                            "email": "second@example.com",
+                            "validation_hash": "7jvwev0oc8sFyEyEwfvDAwxidtGzpAov",
+                            "date_hash_added": "2023-06-22T22:59:56.521Z",
+                            "is_verified": True,
+                        },
+                    }
+                )
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 101,
+                        "fields": {
+                            "user": 2,
+                            "email": "third@example.com",
+                            "validation_hash": "",
+                            "date_hash_added": "2023-06-22T22:59:57.521Z",
+                            "is_verified": False,
+                        },
+                    }
+                )
+
+                json.dump(self.sort_in_memory_json(models), tmp_file)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert UserEmail.objects.count() == 3
+            assert UserEmail.objects.values("user").distinct().count() == 1
+            assert UserEmail.objects.filter(email="testing@example.com").exists()
+            assert UserEmail.objects.filter(email="second@example.com").exists()
+            assert UserEmail.objects.filter(email="third@example.com").exists()
+
+            # Validations are scrubbed and regenerated in non-global scopes.
+            assert UserEmail.objects.filter(validation_hash="").count() == 0
+            assert UserEmail.objects.filter(is_verified=True).count() == 0
+
+    # Regression test for getsentry/self-hosted#2571.
+    def test_good_multiple_useremails_per_user_in_global_scope(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+
+                # Add two copies (1 verified, 1 not) of the same `UserEmail` - so the user now has 3
+                # `UserEmail` models, the latter of which have no corresponding `Email` entry.
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 100,
+                        "fields": {
+                            "user": 2,
+                            "email": "second@example.com",
+                            "validation_hash": "7jvwev0oc8sFyEyEwfvDAwxidtGzpAov",
+                            "date_hash_added": "2023-06-22T22:59:56.521Z",
+                            "is_verified": True,
+                        },
+                    }
+                )
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 101,
+                        "fields": {
+                            "user": 2,
+                            "email": "third@example.com",
+                            "validation_hash": "",
+                            "date_hash_added": "2023-06-22T22:59:57.521Z",
+                            "is_verified": False,
+                        },
+                    }
+                )
+
+                json.dump(self.sort_in_memory_json(models), tmp_file)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert UserEmail.objects.count() == 3
+            assert UserEmail.objects.values("user").distinct().count() == 1
+            assert UserEmail.objects.filter(email="testing@example.com").exists()
+            assert UserEmail.objects.filter(email="second@example.com").exists()
+            assert UserEmail.objects.filter(email="third@example.com").exists()
+
+            # Validation hashes are not touched in the global scope.
+            assert UserEmail.objects.filter(validation_hash="").count() == 1
+            assert UserEmail.objects.filter(is_verified=True).count() == 2
+
     def test_bad_invalid_user_option(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
@@ -534,7 +638,7 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.on.model == "sentry.useroption"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SignalingTests(ImportTestCase):
     """
     Some models are automatically created via signals and similar automagic from related models. We
@@ -611,7 +715,7 @@ class SignalingTests(ImportTestCase):
             self.test_import_signaling_organization()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ScopingTests(ImportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually imported.
@@ -1114,7 +1218,7 @@ class FilterTests(ImportTestCase):
 COLLISION_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CollisionTests(ImportTestCase):
     """
     Ensure that collisions are properly handled in different flag modes.

@@ -9,7 +9,7 @@ from sentry.testutils.cases import SCIMTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SCIMIndexListTest(SCIMTestCase):
     def test_group_index_empty(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
@@ -190,7 +190,7 @@ class SCIMIndexListTest(SCIMTestCase):
 
 
 @override_settings(SENTRY_REGION="na")
-@region_silo_test(stable=True)
+@region_silo_test
 class SCIMIndexCreateTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-index"
     method = "post"

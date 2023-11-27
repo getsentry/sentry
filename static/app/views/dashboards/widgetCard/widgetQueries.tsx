@@ -13,6 +13,10 @@ import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {
+  MetricsResultsMetaMapKey,
+  useMetricsResultsMeta,
+} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 
@@ -129,40 +133,76 @@ function WidgetQueries({
 }: Props) {
   const config = ErrorsAndTransactionsConfig;
   const context = useContext(DashboardsMEPContext);
+  const metricsMeta = useMetricsResultsMeta();
   const mepSettingContext = useMEPSettingContext();
 
   let setIsMetricsData: undefined | ((value?: boolean) => void);
+  let setIsMetricsExtractedData:
+    | undefined
+    | ((mapKey: MetricsResultsMetaMapKey, value?: boolean) => void);
 
   if (context) {
     setIsMetricsData = context.setIsMetricsData;
   }
+  if (metricsMeta) {
+    setIsMetricsExtractedData = metricsMeta.setIsMetricsExtractedData;
+  }
 
   const isSeriesMetricsDataResults: boolean[] = [];
+  const isSeriesMetricsExtractedDataResults: (boolean | undefined)[] = [];
   const afterFetchSeriesData = (rawResults: SeriesResult) => {
     if (rawResults.data) {
       rawResults = rawResults as EventsStats;
       if (rawResults.isMetricsData !== undefined) {
         isSeriesMetricsDataResults.push(rawResults.isMetricsData);
       }
+      if (rawResults.isMetricsExtractedData !== undefined) {
+        isSeriesMetricsExtractedDataResults.push(rawResults.isMetricsExtractedData);
+      }
+      isSeriesMetricsExtractedDataResults.push(
+        rawResults.isMetricsExtractedData || rawResults.meta?.isMetricsExtractedData
+      );
     } else {
       Object.keys(rawResults).forEach(key => {
         const rawResult: EventsStats = rawResults[key];
         if (rawResult.isMetricsData !== undefined) {
           isSeriesMetricsDataResults.push(rawResult.isMetricsData);
         }
+        if (
+          (rawResult.isMetricsExtractedData || rawResult.meta?.isMetricsExtractedData) !==
+          undefined
+        ) {
+          isSeriesMetricsExtractedDataResults.push(
+            rawResult.isMetricsExtractedData || rawResult.meta?.isMetricsExtractedData
+          );
+        }
       });
     }
     // If one of the queries is sampled, then mark the whole thing as sampled
     setIsMetricsData?.(!isSeriesMetricsDataResults.includes(false));
+    setIsMetricsExtractedData?.(
+      widget,
+      isSeriesMetricsExtractedDataResults.every(Boolean) &&
+        isSeriesMetricsExtractedDataResults.some(Boolean)
+    );
   };
 
   const isTableMetricsDataResults: boolean[] = [];
+  const isTableMetricsExtractedDataResults: boolean[] = [];
   const afterFetchTableData = (rawResults: TableResult) => {
     if (rawResults.meta?.isMetricsData !== undefined) {
       isTableMetricsDataResults.push(rawResults.meta.isMetricsData);
     }
+    if (rawResults.meta?.isMetricsExtractedData !== undefined) {
+      isTableMetricsExtractedDataResults.push(rawResults.meta.isMetricsExtractedData);
+    }
     // If one of the queries is sampled, then mark the whole thing as sampled
     setIsMetricsData?.(!isTableMetricsDataResults.includes(false));
+    setIsMetricsExtractedData?.(
+      widget,
+      isTableMetricsExtractedDataResults.every(Boolean) &&
+        isTableMetricsExtractedDataResults.some(Boolean)
+    );
   };
 
   return (

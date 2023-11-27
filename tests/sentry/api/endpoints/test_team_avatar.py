@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamAvatarTest(APITestCase):
     def test_get(self):
         team = self.team  # force creation

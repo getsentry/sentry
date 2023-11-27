@@ -15,7 +15,7 @@ from sentry.utils import json
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BitbucketIssueTest(APITestCase):
     def setUp(self):
         self.base_url = "https://api.bitbucket.org"

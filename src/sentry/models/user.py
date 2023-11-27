@@ -86,6 +86,8 @@ class UserManager(BaseManager["User"], DjangoUserManager):
 @control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
+    __relocation_custom_ordinal__ = ["username"]
+
     replication_version: int = 2
 
     id = BoundedBigAutoField(primary_key=True)

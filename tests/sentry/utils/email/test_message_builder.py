@@ -17,7 +17,7 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.email.faker import create_fake_email
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class MessageBuilderTest(TestCase):
     def test_raw_content(self):
         msg = MessageBuilder(
