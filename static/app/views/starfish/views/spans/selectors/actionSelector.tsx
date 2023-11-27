@@ -96,6 +96,7 @@ const HTTP_ACTION_OPTIONS = [
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('HTTP Method'),
   db: t('SQL Command'),
+  resource: t('Resource'),
   other: t('Action'),
   '': t('Action'),
 };

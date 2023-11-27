@@ -12,6 +12,7 @@ export enum StarfishType {
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
+  RESOURCE = 'resource',
   ALL = '',
   OTHER = 'other',
 }
