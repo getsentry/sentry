@@ -8,9 +8,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {MRI} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {formatMetricsUsingUnitAndOp, parseMRI, SortState} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp, SortState} from 'sentry/utils/metrics';
+import {formatMRI} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -109,8 +111,7 @@ export function SummaryTable({
 
   const rows = series
     .map(s => {
-      const parsed = parseMRI(s.seriesName);
-      const name = parsed?.name ?? s.seriesName;
+      const name = formatMRI(s.seriesName as MRI);
 
       return {
         ...s,

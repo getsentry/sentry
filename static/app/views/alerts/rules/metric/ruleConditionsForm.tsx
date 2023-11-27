@@ -25,8 +25,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {fieldToMri} from 'sentry/utils/metrics';
 import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
+import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
@@ -462,7 +462,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
                   return hasDdmAlertsSupport(organization) ? (
                     <MetricSearchBar
-                      mri={fieldToMri(aggregate).mri}
+                      mri={getMRI(aggregate)}
                       projectIds={[project.id]}
                       placeholder={this.searchPlaceholder}
                       query={initialData.query}

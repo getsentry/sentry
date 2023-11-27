@@ -7,12 +7,8 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {
-  MetricDisplayType,
-  MetricsQuery,
-  mriToField,
-  parseMRI,
-} from 'sentry/utils/metrics';
+import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -79,7 +75,7 @@ function useHandleAddQueryToDashboard(
       return undefined;
     }
 
-    const field = mriToField(mri, op);
+    const field = MRIToField(mri, op);
     const limit = !groupBy?.length ? 1 : 10;
 
     const widgetQuery = {
@@ -172,7 +168,7 @@ function useCreateAlertUrl(organization: Organization, metricsQuery: MetricsQuer
         createFromDiscover: true,
         dataset: Dataset.GENERIC_METRICS,
         eventTypes: EventTypes.TRANSACTION,
-        aggregate: mriToField(metricsQuery.mri, metricsQuery.op as string),
+        aggregate: MRIToField(metricsQuery.mri, metricsQuery.op as string),
         referrer: 'ddm',
         // Event type also needs to be added to the query
         query: `${metricsQuery.query}  event.type:transaction`.trim(),

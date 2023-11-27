@@ -7,14 +7,8 @@ import {Series} from 'sentry/types/echarts';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {
-  fieldToMri,
-  getMetricsApiRequestQuery,
-  getSeriesName,
-  getUseCaseFromMRI,
-  groupByOp,
-  parseMRI,
-} from 'sentry/utils/metrics';
+import {getMetricsApiRequestQuery, getSeriesName, groupByOp} from 'sentry/utils/metrics';
+import {formatMRI, getMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
 import {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -98,12 +92,12 @@ function getMetricTableSortOptions(_, widgetQuery) {
   }
 
   return widgetQuery.fields.map((field, i) => {
-    const parsed = parseMRI(fieldToMri(field).mri);
+    const mri = getMRI(field);
     const alias = widgetQuery.fieldAliases?.[i];
 
     return {
-      label: alias ?? parsed?.name ?? '',
-      value: parsed?.mri ?? '',
+      label: alias ?? formatMRI(mri),
+      value: mri,
     };
   });
 }
@@ -186,12 +180,8 @@ function getTagsForMetric(
     return fieldOptions;
   }
   const field = queries?.[0].aggregates[0] ?? '';
-  const {mri} = fieldToMri(field);
+  const mri = getMRI(field);
   const useCase = getUseCaseFromMRI(mri);
-
-  if (!mri) {
-    return fieldOptions;
-  }
 
   return api
     .requestPromise(`/organizations/${organization.slug}/metrics/tags/`, {
@@ -303,12 +293,9 @@ export function transformMetricsResponseToSeries(
   data.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {
       results.push({
-        seriesName: getSeriesName(
-          group,
-          data.groups.length === 1,
-          widgetQuery.columns,
-          queryAlias
-        ),
+        seriesName:
+          queryAlias ||
+          getSeriesName(group, data.groups.length === 1, widgetQuery.columns),
         data: data.intervals.map((interval, index) => ({
           name: interval,
           value: group.series[field][index] ?? 0,

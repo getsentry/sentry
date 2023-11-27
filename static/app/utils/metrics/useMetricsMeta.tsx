@@ -1,18 +1,10 @@
 import {useMemo} from 'react';
 
 import {PageFilters} from 'sentry/types';
-import {UseCase} from 'sentry/utils/metrics';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-// TODO(ddm): reuse from types/metrics.tsx
-type MetricMeta = {
-  mri: string;
-  name: string;
-  operations: string[];
-  type: string;
-  unit: string;
-};
+import {MetricMeta, UseCase} from '../../types/metrics';
 
 interface Options {
   useCases?: UseCase[];

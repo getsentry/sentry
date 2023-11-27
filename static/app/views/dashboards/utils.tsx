@@ -24,7 +24,7 @@ import {
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import {Organization, PageFilters} from 'sentry/types';
+import {MRI, Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -43,11 +43,11 @@ import {
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
-  fieldToMri,
   getDdmUrl,
   MetricDisplayType,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics';
+import {parseField} from 'sentry/utils/metrics/mri';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {
@@ -421,10 +421,9 @@ export function getWidgetDDMUrl(
     project,
     environment: selection.environments,
     widgets: _widget.queries.map(query => {
-      const {mri, op} = fieldToMri(query.aggregates[0]);
+      const {mri: mri, op} = parseField(query.aggregates[0]) ?? {mri: '', op: ''};
       return {
-        // TODO(oggi): Can the MRI be undefined here?
-        mri: mri as string,
+        mri: mri as MRI,
         op,
         groupBy: query.columns,
         query: query.conditions ?? '',
