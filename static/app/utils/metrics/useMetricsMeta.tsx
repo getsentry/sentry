@@ -27,32 +27,43 @@ export function useMetricsMeta(
     ];
   };
 
+  const hasSessions = enabledUseCases.includes('sessions');
+  const hasTransactions = enabledUseCases.includes('transactions');
+  const hasCustom = enabledUseCases.includes('custom');
+
   const commonOptions = {
     staleTime: Infinity,
   };
 
   const sessionsMeta = useApiQuery<MetricMeta[]>(getKey('sessions'), {
     ...commonOptions,
-    enabled: enabledUseCases.includes('sessions'),
+    enabled: hasSessions,
   });
   const txnsMeta = useApiQuery<MetricMeta[]>(getKey('transactions'), {
     ...commonOptions,
-    enabled: enabledUseCases.includes('transactions'),
+    enabled: hasTransactions,
   });
   const customMeta = useApiQuery<MetricMeta[]>(getKey('custom'), {
     ...commonOptions,
-    enabled: enabledUseCases.includes('custom'),
+    enabled: hasCustom,
   });
 
   const combinedMeta = useMemo<Record<string, MetricMeta>>(() => {
     return [
-      ...(sessionsMeta.data ?? []),
-      ...(txnsMeta.data ?? []),
-      ...(customMeta.data ?? []),
+      ...(hasSessions ? sessionsMeta.data ?? [] : []),
+      ...(hasTransactions ? txnsMeta.data ?? [] : []),
+      ...(hasCustom ? customMeta.data ?? [] : []),
     ].reduce((acc, metricMeta) => {
       return {...acc, [metricMeta.mri]: metricMeta};
     }, {});
-  }, [sessionsMeta.data, txnsMeta.data, customMeta.data]);
+  }, [
+    hasSessions,
+    sessionsMeta.data,
+    hasTransactions,
+    txnsMeta.data,
+    hasCustom,
+    customMeta.data,
+  ]);
 
   return {
     data: combinedMeta,

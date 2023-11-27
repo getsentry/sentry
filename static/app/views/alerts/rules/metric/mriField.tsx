@@ -7,7 +7,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricMeta, MRI, ParsedMRI, Project} from 'sentry/types';
 import {getReadableMetricType, isAllowedOp} from 'sentry/utils/metrics';
-import {formatMRI, MRIToField, parseField, parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  DEFAULT_METRIC_ALERT_FIELD,
+  formatMRI,
+  MRIToField,
+  parseField,
+  parseMRI,
+} from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 
 interface Props {
@@ -42,14 +48,21 @@ function MriField({aggregate, project, onChange}: Props) {
 
   useEffect(() => {
     // Auto-select the first mri if none of the available ones is selected
-    if (!selectedMriMeta && metaArr.length > 0) {
+    if (!selectedMriMeta) {
       const newSelection = metaArr[0];
-      onChange(
-        MRIToField(newSelection.mri, filterAndSortOperations(newSelection.operations)[0]),
-        {}
-      );
+      if (newSelection) {
+        onChange(
+          MRIToField(
+            newSelection.mri,
+            filterAndSortOperations(newSelection.operations)[0]
+          ),
+          {}
+        );
+      } else if (aggregate !== DEFAULT_METRIC_ALERT_FIELD) {
+        onChange(DEFAULT_METRIC_ALERT_FIELD, {});
+      }
     }
-  }, [metaArr, onChange, selectedMriMeta, isLoading]);
+  }, [metaArr, onChange, selectedMriMeta, isLoading, aggregate]);
 
   const handleMriChange = useCallback(
     option => {
