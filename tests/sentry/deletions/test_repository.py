@@ -1,14 +1,17 @@
 from unittest.mock import patch
 
 from django.core import mail
+from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import PluginError
 from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
@@ -30,11 +33,38 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         repo2 = Repository.objects.create(
             organization_id=org.id, provider="dummy", name="example/example2"
         )
+        commit_author = CommitAuthor.objects.create(
+            organization_id=org.id,
+            name="Sally",
+            email="sally@example.org",
+        )
         commit = Commit.objects.create(
-            repository_id=repo.id, organization_id=org.id, key="1234abcd"
+            repository_id=repo.id,
+            organization_id=org.id,
+            key="1234abcd",
+            author=commit_author,
         )
         commit2 = Commit.objects.create(
-            repository_id=repo2.id, organization_id=org.id, key="1234abcd"
+            repository_id=repo2.id,
+            organization_id=org.id,
+            key="1234abcd",
+            author=commit_author,
+        )
+        pull = PullRequest.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            key="42",
+            title="fix bugs",
+            message="various fixes",
+            author=commit_author,
+        )
+        comment = PullRequestComment.objects.create(
+            pull_request=pull,
+            external_id=123,
+            group_ids=[1],
+            comment_type=CommentType.OPEN_PR,
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
         )
 
         self.ScheduledDeletion.schedule(instance=repo, days=0)
@@ -44,6 +74,8 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
 
         assert not Repository.objects.filter(id=repo.id).exists()
         assert not Commit.objects.filter(id=commit.id).exists()
+        assert not PullRequest.objects.filter(id=pull.id).exists()
+        assert not PullRequestComment.objects.filter(id=comment.id).exists()
         assert Commit.objects.filter(id=commit2.id).exists()
 
     def test_codeowners(self):
