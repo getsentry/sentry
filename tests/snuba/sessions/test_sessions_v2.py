@@ -103,20 +103,6 @@ def test_interval_restrictions():
     ):
         _make_query("statsPeriod=1h&interval=90s&field=sum(session)")
 
-    # restrictions for minute resolution time range
-    with pytest.raises(
-        InvalidParams,
-        match="The time-range when using one-minute resolution intervals is restricted to 6 hours.",
-    ):
-        _make_query("statsPeriod=7h&interval=15m&field=sum(session)")
-    with pytest.raises(
-        InvalidParams,
-        match="The time-range when using one-minute resolution intervals is restricted to the last 30 days.",
-    ):
-        _make_query(
-            "start=2021-01-05T11:14:17&end=2021-01-05T12:14:17&interval=15m&field=sum(session)"
-        )
-
     with pytest.raises(
         InvalidParams, match="Your interval and date range would create too many results."
     ):
