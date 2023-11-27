@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {
+  DEFAULT_METRIC_ALERT_AGGREGATE,
   fieldToMri,
   getReadableMetricType,
   isAllowedOp,
@@ -37,14 +38,21 @@ function MriField({aggregate, project, onChange}: Props) {
 
   useEffect(() => {
     // Auto-select the first mri if none of the available ones is selected
-    if (!selectedMriMeta && metaArr.length > 0) {
+    if (!selectedMriMeta) {
       const newSelection = metaArr[0];
-      onChange(
-        mriToField(newSelection.mri, filterAndSortOperations(newSelection.operations)[0]),
-        {}
-      );
+      if (newSelection) {
+        onChange(
+          mriToField(
+            newSelection.mri,
+            filterAndSortOperations(newSelection.operations)[0]
+          ),
+          {}
+        );
+      } else if (aggregate !== DEFAULT_METRIC_ALERT_AGGREGATE) {
+        onChange(DEFAULT_METRIC_ALERT_AGGREGATE, {});
+      }
     }
-  }, [metaArr, onChange, selectedMriMeta, isLoading]);
+  }, [metaArr, onChange, selectedMriMeta, isLoading, aggregate]);
 
   const handleMriChange = useCallback(
     option => {
