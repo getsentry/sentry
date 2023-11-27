@@ -693,14 +693,6 @@ const PrimaryItems = styled('div')`
     border-bottom: 1px solid ${p => p.theme.gray400};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
-    &::-webkit-scrollbar {
-      background-color: transparent;
-      width: 8px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: ${p => p.theme.gray400};
-      border-radius: 8px;
-    }
   }
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     overflow-y: visible;
