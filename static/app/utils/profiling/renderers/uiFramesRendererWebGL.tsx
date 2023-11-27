@@ -1,8 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-
 import {
   createAndBindBuffer,
   createProgram,
@@ -14,8 +12,10 @@ import {
   pointToAndEnableVertexAttribute,
   resizeCanvasToDisplaySize,
   upperBound,
-} from '../gl/utils';
-import {UIFrameNode, UIFrames} from '../uiFrames';
+} from 'sentry/utils/profiling/gl/utils';
+import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
+import {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {uiFramesFragment, uiFramesVertext} from './shaders';
 
@@ -24,14 +24,9 @@ const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
 const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
 const VERTICES_PER_FRAME = 6;
 
-class UIFramesRendererWebGL {
-  canvas: HTMLCanvasElement | null;
-  uiFrames: UIFrames;
-
+class UIFramesRendererWebGL extends UIFramesRenderer {
   gl: WebGLRenderingContext | null = null;
   program: WebGLProgram | null = null;
-
-  theme: FlamegraphTheme;
 
   // Vertex and color buffer
   positions: Float32Array = new Float32Array();
@@ -60,21 +55,13 @@ class UIFramesRendererWebGL {
     u_projection: null,
   };
 
-  options: {
-    draw_border: boolean;
-  };
-
   constructor(
     canvas: HTMLCanvasElement,
     uiFrames: UIFrames,
     theme: FlamegraphTheme,
     options: {draw_border: boolean} = {draw_border: false}
   ) {
-    this.uiFrames = uiFrames;
-    this.canvas = canvas;
-    this.theme = theme;
-    this.options = options;
-
+    super(canvas, uiFrames, theme, options);
     this.init();
   }
 
