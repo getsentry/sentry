@@ -7,6 +7,7 @@ import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvid
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
 interface Props {
   eventTimestampMs: number;
@@ -26,10 +27,10 @@ export default function ReplaySection({eventTimestampMs, organization, replayId}
         <ReplayIdCountProvider organization={organization} replayIds={[replayId]}>
           <LazyLoad
             component={replayPreview}
-            replaySlug={replayId}
-            orgSlug={organization.slug}
             eventTimestampMs={eventTimestampMs}
-            fromFeedback
+            focusTab={TabKey.BREADCRUMBS}
+            orgSlug={organization.slug}
+            replaySlug={replayId}
             buttonProps={{
               analyticsEventKey: 'feedback_details.open_replay_details_clicked',
               analyticsEventName: 'Feedback Details: Open Replay Details Clicked',
