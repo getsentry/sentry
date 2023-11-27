@@ -21,6 +21,7 @@ import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/perfo
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import SlowScreens from 'sentry/views/performance/landing/widgets/widgets/slowScreens';
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {_setChartSetting, filterAllowedChartsMetrics, getChartSetting} from '../utils';
@@ -202,6 +203,8 @@ function _WidgetContainer(props: Props) {
       return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE:
       return <PerformanceScoreWidget {...passedProps} {...widgetProps} />;
+    case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID:
+      return <SlowScreens {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }

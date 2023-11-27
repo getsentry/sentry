@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupTagKeySerializerTest(TestCase):
     def test(self):
         user = self.create_user()

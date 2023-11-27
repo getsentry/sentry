@@ -55,7 +55,7 @@ def test_ensure_http_headers_match() -> None:
 SENTRY_SUBNET_SECRET = "hush-hush-im-invisible"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class InternalIntegrationProxyEndpointTest(APITestCase):
     endpoint = "sentry-api-0-internal-integration-proxy"
     secret = SENTRY_SUBNET_SECRET

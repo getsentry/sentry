@@ -107,7 +107,7 @@ def first_symbol_source_id(sources_json):
     return sources[0]["id"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -246,7 +246,7 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -425,7 +425,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.data["detail"] == "You do not have permission to perform this action."
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1173,7 +1173,7 @@ class ProjectUpdateTest(APITestCase):
             assert not poll_project_recap_server.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1372,7 +1372,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
@@ -1437,7 +1437,7 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 

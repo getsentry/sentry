@@ -117,7 +117,6 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
-from sentry.testutils.pytest.fixtures import default_project
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.integrations import ExternalProviders
@@ -781,7 +780,9 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             response.raw = BytesIO(resp.content)
             return response
 
-        with mock.patch("sentry.api_gateway.proxy.external_request", new=proxy_raw_request):
+        with mock.patch(
+            "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
+        ):
             yield
 
 
@@ -1893,8 +1894,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         additional_tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
     ):
-        project: Project = default_project
-        metric_spec = spec.to_metric_spec(project)
+        metric_spec = spec.to_metric_spec(self.project)
         metric_spec_tags = metric_spec["tags"] or [] if metric_spec else []
         tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
 

@@ -11,7 +11,7 @@ APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectRuleConfigurationTest(APITestCase):
     endpoint = "sentry-api-0-project-rules-configuration"
 

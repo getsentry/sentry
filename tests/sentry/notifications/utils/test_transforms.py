@@ -53,7 +53,7 @@ class TransformTestCase(TestCase):
         ]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TransformToNotificationSettingsByUserTestCase(TransformTestCase):
     def test_transform_to_notification_settings_by_recipient_empty(self):
         assert (

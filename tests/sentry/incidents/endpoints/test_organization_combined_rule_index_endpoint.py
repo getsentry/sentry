@@ -14,7 +14,7 @@ from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-organization-combined-rules"
 
