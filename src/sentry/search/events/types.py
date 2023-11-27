@@ -41,6 +41,7 @@ class QueryFramework:
 class EventsMeta(TypedDict):
     fields: Dict[str, str]
     tips: Dict[str, str]
+    isMetricsData: bool
 
 
 class EventsResponse(TypedDict):
