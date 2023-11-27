@@ -66,7 +66,7 @@ def send_email(message):
 
 @instrumented_task(
     name="sentry.tasks.email.send_email_control",
-    queue="email",
+    queue="email.control",
     default_retry_delay=60 * 5,
     max_retries=None,
     silo_mode=SiloMode.CONTROL,
