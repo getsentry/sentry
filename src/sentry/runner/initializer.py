@@ -325,6 +325,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     bootstrap_options(settings, config["options"])
 
+    logging.raiseExceptions = settings.DEBUG
+
     configure_structlog()
 
     # Commonly setups don't correctly configure themselves for production envs
