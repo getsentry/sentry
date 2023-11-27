@@ -151,7 +151,7 @@
         "schema": {
           "type": "integer"
         }
-      },
+      }
     ],
     "responses": {
       "200": {
@@ -178,11 +178,7 @@
                     "sum(session)": 1715553
                   },
                   "series": {
-                    "sum(session)": [
-                      683772,
-                      677788,
-                      353993
-                    ]
+                    "sum(session)": [683772, 677788, 353993]
                   }
                 },
                 {
@@ -193,11 +189,7 @@
                     "sum(session)": 0
                   },
                   "series": {
-                    "sum(session)": [
-                      0,
-                      0,
-                      0
-                    ]
+                    "sum(session)": [0, 0, 0]
                   }
                 },
                 {
@@ -208,11 +200,7 @@
                     "sum(session)": 383
                   },
                   "series": {
-                    "sum(session)": [
-                      33,
-                      26,
-                      324
-                    ]
+                    "sum(session)": [33, 26, 324]
                   }
                 },
                 {
@@ -223,11 +211,7 @@
                     "sum(session)": 1565
                   },
                   "series": {
-                    "sum(session)": [
-                      163,
-                      201,
-                      1201
-                    ]
+                    "sum(session)": [163, 201, 1201]
                   }
                 }
               ]
@@ -254,9 +238,7 @@
     },
     "security": [
       {
-        "auth_token": [
-          "org: read"
-        ]
+        "auth_token": ["org: read"]
       }
     ]
   }
