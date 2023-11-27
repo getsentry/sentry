@@ -583,7 +583,7 @@ from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
-from .endpoints.user_notification_email import UserNotificationEmailEndpoint
+from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
 from .endpoints.user_notification_settings_options import UserNotificationSettingsOptionsEndpoint
 from .endpoints.user_notification_settings_options_detail import (
     UserNotificationSettingsOptionsDetailEndpoint,
@@ -876,9 +876,9 @@ USER_URLS = [
         name="sentry-api-0-user-notifications",
     ),
     re_path(
-        r"^(?P<user_id>[^\/]+)/notifications/email/$",
-        UserNotificationEmailEndpoint.as_view(),
-        name="sentry-api-0-user-notifications-email",
+        r"^(?P<user_id>[^\/]+)/notifications/(?P<notification_type>[^\/]+)/$",
+        UserNotificationFineTuningEndpoint.as_view(),
+        name="sentry-api-0-user-notifications-fine-tuning",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/notification-options/$",
