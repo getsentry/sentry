@@ -58,11 +58,11 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   }
 
   const focusArea = (
-    <ErrorBoundary mini>
-      <FluidPanel title={<SmallMarginFocusTabs />}>
+    <FluidPanel title={<SmallMarginFocusTabs />}>
+      <ErrorBoundary mini>
         <FocusArea />
-      </FluidPanel>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </FluidPanel>
   );
 
   const hasSize = width + height > 0;

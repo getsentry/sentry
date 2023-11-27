@@ -16,9 +16,10 @@ import AccessibilityHeaderCell, {
   COLUMN_COUNT,
 } from 'sentry/views/replays/detail/accessibility/accessibilityHeaderCell';
 import AccessibilityTableCell from 'sentry/views/replays/detail/accessibility/accessibilityTableCell';
-// import AccessibilityDetails from 'sentry/views/replays/detail/accessibility/details';
+import AccessibilityDetails from 'sentry/views/replays/detail/accessibility/details';
 import useAccessibilityFilters from 'sentry/views/replays/detail/accessibility/useAccessibilityFilters';
 import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
@@ -38,7 +39,7 @@ function AccessibilityList() {
   const {currentTime, currentHoverTime, replay} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
-  const accessibilityData = useA11yData();
+  const {data: accessibilityData, isLoading} = useA11yData();
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
@@ -66,7 +67,7 @@ function AccessibilityList() {
   // `undefined` which then gets set into the hook and doesn't update.
   const initialSize = Math.max(150, window.innerHeight * 0.4);
 
-  const {size: containerSize} = useResizableDrawer({
+  const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
     direction: 'up',
     initialSize,
     min: 0,
@@ -98,16 +99,14 @@ function AccessibilityList() {
   });
 
   const onClickCell = useCallback(
-    ({}: {dataIndex: number; rowIndex: number}) => {
-      // eslint-disable-line
-      // if (getDetailRow() === String(dataIndex)) {
-      //   setDetailRow('');
-      // } else {
-      //   setDetailRow(String(dataIndex));
-      //   setScrollToRow(rowIndex);
-      // }
+    ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
+      if (getDetailRow() === String(dataIndex)) {
+        setDetailRow('');
+      } else {
+        setDetailRow(String(dataIndex));
+        setScrollToRow(rowIndex);
+      }
     },
-    // eslint-disable-next-line
     [getDetailRow, setDetailRow]
   );
 
@@ -161,7 +160,9 @@ function AccessibilityList() {
 
   return (
     <FluidHeight>
-      <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} />
+      <FilterLoadingIndicator isLoading={isLoading}>
+        <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} />
+      </FilterLoadingIndicator>
       <AccessibilityTable
         ref={containerRef}
         data-test-id="replay-details-accessibility-tab"
@@ -220,15 +221,14 @@ function AccessibilityList() {
           ) : (
             <Placeholder height="100%" />
           )}
-          {/* <AccessibilityDetails
+          <AccessibilityDetails
             {...resizableDrawerProps}
             item={detailDataIndex ? items[detailDataIndex] : null}
             onClose={() => {
               setDetailRow('');
             }}
-            projectId="1"
             startTimestampMs={startTimestampMs}
-          /> */}
+          />
         </SplitPanel>
       </AccessibilityTable>
     </FluidHeight>

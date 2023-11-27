@@ -123,7 +123,7 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <CodeHighlightCell language="html" hideCopyButton>
-            {a11yIssue.elements?.[0].element ?? EMPTY_CELL}
+            {a11yIssue.element.element ?? EMPTY_CELL}
           </CodeHighlightCell>
         </Cell>
       ),
