@@ -13,6 +13,10 @@ export type FeedbackIssue = Overwrite<
       name: string;
       title: string;
       value: string;
+      sdk?: {
+        name: string;
+        name_normalized: string;
+      };
       source?: null | string;
     };
     owners: null | unknown;
@@ -32,6 +36,11 @@ export type FeedbackIssueList = Overwrite<
       name: string;
       title: string;
       value: string;
+      sdk?: {
+        name: string;
+        name_normalized: string;
+      };
+      source?: null | string;
     };
     owners: null | unknown;
   }

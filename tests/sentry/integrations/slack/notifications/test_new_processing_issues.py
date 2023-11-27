@@ -1,3 +1,5 @@
+from unittest import mock
+
 import responses
 
 from sentry.models.activity import Activity
@@ -6,14 +8,15 @@ from sentry.notifications.notifications.activity.new_processing_issues import (
 )
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.slack import get_attachment
+from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
 from sentry.web.frontend.debug.debug_new_processing_issues_email import get_issues_data
 
 
 class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
     @responses.activate
-    def test_new_processing_issue(self):
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_new_processing_issue(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is held back in reprocessing
         """
@@ -48,8 +51,9 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
         )
 
     @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     @with_feature("organizations:customer-domains")
-    def test_new_processing_issue_customer_domains(self):
+    def test_new_processing_issue_customer_domains(self, mock_func):
         notification = NewProcessingIssuesActivityNotification(
             Activity(
                 project=self.project,
