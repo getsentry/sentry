@@ -293,7 +293,7 @@ export const WIDGET_DEFINITIONS: ({
   },
   [PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE]: {
     title: t('Performance Score'),
-    subTitle: t('The overall performance score across selected projects'),
+    subTitle: t('The overall performance score across selected frontend projects only'),
     titleTooltip: '',
     fields: [],
     dataType: GenericPerformanceWidgetDataType.PERFORMANCE_SCORE,
