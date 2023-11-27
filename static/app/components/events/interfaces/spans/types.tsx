@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import {SpanBarProps} from './spanBar';
@@ -64,6 +65,17 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'hash',
   'exclusive_time',
 ]);
+
+export const KNOWN_SPAN_DATA_FIELD_TITLES = {
+  'code.filepath': t('Code File Path'),
+  'code.function': t('Code Function Name'),
+  'code.namespace': t('Code Namespace'),
+  'code.lineno': t('Code Line Number'),
+  'db.name': t('Database Name'),
+  'db.system': t('Database System'),
+  'server.address': t('Server Address'),
+  'server.port': t('Server Port'),
+};
 
 export type OrphanSpanType = RawSpanType & {
   type: 'orphan';
