@@ -260,6 +260,7 @@ export enum EventOrGroupType {
   HPKP = 'hpkp',
   EXPECTCT = 'expectct',
   EXPECTSTAPLE = 'expectstaple',
+  NEL = 'nel',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
   AGGREGATE_TRANSACTION = 'aggregateTransaction',
