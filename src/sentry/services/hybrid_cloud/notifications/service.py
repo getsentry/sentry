@@ -8,9 +8,7 @@ from typing import List, Mapping, MutableMapping, Optional, Set, Tuple
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
@@ -34,22 +32,6 @@ class NotificationsService(RpcService):
         )
 
         return DatabaseBackedNotificationsService()
-
-    @rpc_method
-    @abstractmethod
-    def update_settings(
-        self,
-        *,
-        external_provider: ExternalProviders,
-        notification_type: NotificationSettingTypes,
-        setting_option: NotificationSettingOptionValues,
-        actor: RpcActor,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-        skip_provider_updates: bool = False,
-        organization_id_for_team: Optional[int] = None,
-    ) -> None:
-        pass
 
     @rpc_method
     @abstractmethod

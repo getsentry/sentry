@@ -16,9 +16,7 @@ from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     NotificationScopeEnum,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
@@ -35,28 +33,6 @@ from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
-    def update_settings(
-        self,
-        *,
-        external_provider: ExternalProviders,
-        notification_type: NotificationSettingTypes,
-        setting_option: NotificationSettingOptionValues,
-        actor: RpcActor,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-        skip_provider_updates: bool = False,
-        organization_id_for_team: Optional[int] = None,
-    ) -> None:
-        NotificationSetting.objects.update_settings(
-            provider=external_provider,
-            type=notification_type,
-            value=setting_option,
-            project=project_id,
-            organization=organization_id,
-            actor=actor,
-            skip_provider_updates=skip_provider_updates,
-        )
-
     def enable_all_settings_for_provider(
         self,
         *,
