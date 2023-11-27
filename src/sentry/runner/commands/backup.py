@@ -172,7 +172,7 @@ def get_encryptor_from_flags(
 
 def write_findings(findings_file: TextIO | None, findings: Sequence[Finding], printer: Callable):
     for f in findings:
-        printer(f.pretty(), err=True)
+        printer(f"\n\n{f.pretty()}", err=True)
 
     if findings_file:
         findings_encoder = FindingJSONEncoder(
@@ -310,11 +310,11 @@ def compare(
 
     res = validate(left_data, right_data, get_default_comparators())
     if res:
+        click.echo(f"\n\nDone, found {len(res.findings)} differences:")
         write_findings(findings_file, res.findings, click.echo)
-        click.echo(f"Done, found {len(res.findings)} differences:\n\n{res.pretty()}")
     else:
+        click.echo("\n\nDone, found 0 differences!")
         write_findings(findings_file, [], click.echo)
-        click.echo("Done, found 0 differences!")
 
 
 @backup.command(name="decrypt")
