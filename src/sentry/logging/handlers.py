@@ -33,7 +33,7 @@ throwaways = frozenset(
 )
 
 
-def _json_encoder(skipkeys: bool = False) -> json.JSONEncoder:
+def _json_encoder(*, skipkeys: bool = False) -> json.JSONEncoder:
     return json.JSONEncoder(
         separators=(",", ":"),
         ignore_nan=True,
