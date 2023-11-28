@@ -74,7 +74,7 @@ class ExternalActor(ReplicatedRegionModel):
                 team = self.team
                 install.notify_remove_external_team(external_team=self, team=team)
                 # Does the provider need to be an input?
-                notifications_service.remove_notification_settings_for_team(
+                notifications_service.remove_notification_settings_for_provider_team(
                     team_id=team.id, provider=ExternalProviders(self.provider)
                 )
 

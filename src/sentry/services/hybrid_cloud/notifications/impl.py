@@ -29,7 +29,7 @@ from sentry.services.hybrid_cloud.notifications.model import NotificationSetting
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
@@ -92,25 +92,15 @@ class DatabaseBackedNotificationsService(NotificationsService):
             **kwargs,
         )
 
-    def remove_notification_settings(
-        self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
-    ) -> None:
-        """
-        Delete notification settings based on an actor_id
-        There is no foreign key relationship so we have to manually cascade.
-        """
-        assert (team_id and not user_id) or (
-            user_id and not team_id
-        ), "Can only remove settings for team or user"
-        # delete all options for team/user
-        query_args = {"team_id": team_id, "user_id": user_id}
-        NotificationSettingOption.objects.filter(**query_args).delete()
-        NotificationSettingProvider.objects.filter(**query_args).delete()
-
-    def remove_notification_settings_for_team(
+    def remove_notification_settings_for_provider_team(
         self, *, team_id: int, provider: ExternalProviders
     ) -> None:
-        self.remove_notification_settings(team_id=team_id, user_id=None, provider=provider)
+        """
+        This function removes provider settings if a team has been unlinked from a provider.
+        """
+        NotificationSettingProvider.objects.filter(
+            team_id=team_id, provider=EXTERNAL_PROVIDERS[provider]
+        ).delete()
 
     def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
         return self._FQ.get_many(filter)

@@ -60,7 +60,7 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def remove_notification_settings_for_team(
+    def remove_notification_settings_for_provider_team(
         self, *, team_id: int, provider: ExternalProviders
     ) -> None:
         pass
