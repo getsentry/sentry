@@ -42,7 +42,7 @@ from sentry.utils.cursors import Cursor
 from sentry.utils.snuba import raw_snql_query
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class PaginatorTest(TestCase):
     cls = Paginator
 
@@ -101,7 +101,7 @@ class PaginatorTest(TestCase):
         assert len(result3) == 0, (result3, list(result3))
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OffsetPaginatorTest(TestCase):
     # offset paginator does not support dynamic limits on is_prev
     def test_simple(self):
@@ -198,7 +198,7 @@ class OffsetPaginatorTest(TestCase):
             paginator.get_result()
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DateTimePaginatorTest(TestCase):
     def test_ascending(self):
         joined = timezone.now()
@@ -913,7 +913,7 @@ def dummy_snuba_request_method(limit, offset, org_id, proj_id, timestamp):
     return raw_snql_query(request, referrer)["data"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CallbackPaginatorTest(APITestCase, SnubaTestCase):
     cls = CallbackPaginator
 

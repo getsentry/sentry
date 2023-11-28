@@ -33,9 +33,9 @@ import {
   PageSamplePerformanceTable,
   TransactionSampleRowWithScoreAndExtra,
 } from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
@@ -105,7 +105,7 @@ export default function PageOverview() {
 
   const query = decodeScalar(location.query.query);
 
-  const {data: pageData, isLoading} = useProjectWebVitalsQuery({transaction});
+  const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({transaction});
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page

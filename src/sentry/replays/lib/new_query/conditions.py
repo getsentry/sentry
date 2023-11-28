@@ -16,7 +16,7 @@ list of supported operations can be found in the "GenericBase" visitor.
 """
 from __future__ import annotations
 
-from typing import Any, TypeVar
+from typing import Any, NoReturn, TypeVar
 from uuid import UUID
 
 from snuba_sdk import Condition, Function, Identifier, Lambda, Op
@@ -266,6 +266,6 @@ class UUIDArray(GenericArray):
         return GenericArray.visit_not_in(expression, to_uuids(value))
 
 
-def not_supported() -> None:
+def not_supported() -> NoReturn:
     """Raise not supported exception."""
     raise OperatorNotSupported("Not supported.")

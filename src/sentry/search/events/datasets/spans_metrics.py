@@ -358,6 +358,58 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "ttid_contribution_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_ttid_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "ttid_count",
+                    snql_distribution=self._resolve_ttid_count,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "ttfd_contribution_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_ttfd_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "ttfd_count",
+                    snql_distribution=self._resolve_ttfd_count,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "avg_compare",
                     required_args=[
                         fields.MetricArg(
@@ -560,6 +612,52 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             condition,
+            alias,
+        )
+
+    def _resolve_ttid_count(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("ttid"),
+                    self.builder.resolve_tag_value("ttid"),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_ttfd_count(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("ttfd"),
+                    self.builder.resolve_tag_value("ttfd"),
+                ],
+            ),
             alias,
         )
 

@@ -523,40 +523,45 @@ class IndexerBatch:
                 amount=self.__message_count[use_case_id],
                 tags={"use_case_id": use_case_id.value},
             )
-
-            metrics.timing(
+            metrics.distribution(
                 "metrics_consumer.process_message.message.size.avg",
                 self.__message_bytes_sum[use_case_id] / self.__message_count[use_case_id],
                 tags={"use_case_id": use_case_id.value},
+                unit="byte",
             )
-            metrics.timing(
+            metrics.distribution(
                 "metrics_consumer.process_message.message.size.max",
                 self.__message_bytes_max[use_case_id],
                 tags={"use_case_id": use_case_id.value},
+                unit="byte",
             )
 
-            metrics.timing(
+            metrics.distribution(
                 "metrics_consumer.process_message.message.tags_len.avg",
                 self.__message_tags_len_sum[use_case_id] / self.__message_count[use_case_id],
                 tags={"use_case_id": use_case_id.value},
+                unit="int",
             )
-            metrics.timing(
+            metrics.distribution(
                 "metrics_consumer.process_message.message.tags_len.max",
-                self.__message_tags_len_sum[use_case_id],
+                self.__message_tags_len_max[use_case_id],
                 tags={"use_case_id": use_case_id.value},
+                unit="int",
             )
 
             if use_case_id in self.__iterable_val_message_count:
-                metrics.timing(
+                metrics.distribution(
                     "metrics_consumer.process_message.message.value_len.avg",
                     self.__message_value_len_sum[use_case_id]
                     / self.__iterable_val_message_count[use_case_id],
                     tags={"use_case_id": use_case_id.value},
+                    unit="int",
                 )
-                metrics.timing(
+                metrics.distribution(
                     "metrics_consumer.process_message.message.value_len.max",
                     self.__message_value_len_max[use_case_id],
                     tags={"use_case_id": use_case_id.value},
+                    unit="int",
                 )
 
         return IndexerOutputMessageBatch(

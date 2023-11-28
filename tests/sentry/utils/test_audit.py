@@ -27,7 +27,7 @@ def fake_http_request(user):
     return request
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class CreateAuditEntryTest(TestCase):
     def setUp(self):
         self.user = self.create_user(username=username)
