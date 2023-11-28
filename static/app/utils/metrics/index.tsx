@@ -32,6 +32,21 @@ export enum MetricDisplayType {
 
 export const defaultMetricDisplayType = MetricDisplayType.LINE;
 
+export const getMetricDisplayType = (displayType: unknown): MetricDisplayType => {
+  if (
+    [
+      MetricDisplayType.AREA,
+      MetricDisplayType.BAR,
+      MetricDisplayType.LINE,
+      MetricDisplayType.TABLE,
+    ].includes(displayType as MetricDisplayType)
+  ) {
+    return displayType as MetricDisplayType;
+  }
+
+  return MetricDisplayType.LINE;
+};
+
 export type MetricTag = {
   key: string;
 };

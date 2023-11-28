@@ -194,26 +194,30 @@ def get_user_actions(
 
                 # these first two cover SDKs 7.44 and 7.45
                 if event_payload_data.get("requestBodySize"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.request_body_size",
                         event_payload_data["requestBodySize"],
+                        unit="byte",
                     )
                 if event_payload_data.get("responseBodySize"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.response_body_size",
                         event_payload_data["responseBodySize"],
+                        unit="byte",
                     )
 
                 # what the most recent SDKs send:
                 if event_payload_data.get("request", {}).get("size"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.request_body_size",
                         event_payload_data["request"]["size"],
+                        unit="byte",
                     )
                 if event_payload_data.get("response", {}).get("size"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.response_body_size",
                         event_payload_data["response"]["size"],
+                        unit="byte",
                     )
         # log the SDK options sent from the SDK 1/500 times
         if (

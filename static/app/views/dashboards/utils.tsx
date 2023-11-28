@@ -44,7 +44,7 @@ import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   getDdmUrl,
-  MetricDisplayType,
+  getMetricDisplayType,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
@@ -427,8 +427,7 @@ export function getWidgetDDMUrl(
         op,
         groupBy: query.columns,
         query: query.conditions ?? '',
-        // TODO(oggi): Handle display type mismatch and remove cast
-        displayType: _widget.displayType as unknown as MetricDisplayType,
+        displayType: getMetricDisplayType(_widget.displayType),
       } satisfies MetricWidgetQueryParams;
     }),
   });
