@@ -2,7 +2,7 @@ import {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import LoadingError from 'sentry/components/loadingError';
 import PanelBody from 'sentry/components/panels/panelBody';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
-import StreamGroup from 'sentry/components/stream/group';
+import StreamGroup, {GroupLoadingPlaceHolder} from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group} from 'sentry/types';
 import theme from 'sentry/utils/theme';
@@ -106,7 +106,12 @@ function GroupList({
 
   return (
     <PanelBody>
-      {(loading ? new Array(25).fill(0) : groupIds).map((id, index) => {
+      {(loading ? new Array(10).fill(0) : groupIds).map((id, index) => {
+        if (loading) {
+          return (
+            <GroupLoadingPlaceHolder narrowGroups={isSavedSearchesOpen} key={index} />
+          );
+        }
         const hasGuideAnchor = id === topIssue;
         // The type cast used to be Group|undefined, but <StreamGroup> would then
         // internally call GroupStore.getState, execute find and just cast to Group

@@ -265,7 +265,7 @@ function BaseGroupRow({
         </StartedColumn>
         <EventsReprocessedColumn>
           {!defined(count) ? (
-            <Placeholder height="17px" />
+            <Placeholder height="18px" />
           ) : (
             <Fragment>
               <Count value={remainingEventsToReprocess} />
@@ -400,7 +400,7 @@ function BaseGroupRow({
   );
 
   return (
-    <Wrapper
+    <StyledGroupPanelItem
       data-test-id="group"
       data-test-reviewed={reviewed}
       onClick={displayReprocessingLayout || !canSelect ? undefined : wrapperToggle}
@@ -463,7 +463,7 @@ function BaseGroupRow({
           {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}
         </Fragment>
       )}
-    </Wrapper>
+    </StyledGroupPanelItem>
   );
 }
 
@@ -471,8 +471,44 @@ const StreamGroup = BaseGroupRow;
 
 export default StreamGroup;
 
+export function GroupLoadingPlaceHolder({narrowGroups}: Pick<Props, 'narrowGroups'>) {
+  return (
+    <StyledGroupPanelItem reviewed={false} useTintRow={false} style={{height: '86px'}}>
+      <GroupCheckBoxWrapper>
+        <Checkbox disabled />
+      </GroupCheckBoxWrapper>
+
+      <GroupSummary canSelect={false}>
+        <div style={{width: '60%'}}>
+          <Placeholder height="14px" />
+        </div>
+        <div style={{width: '48%', marginTop: 4}}>
+          <Placeholder height="12px" />
+        </div>
+        <div style={{marginTop: 12, width: '80%'}}>
+          <Placeholder height="18px" />
+        </div>
+      </GroupSummary>
+
+      <ChartWrapper narrowGroups={!!narrowGroups}>
+        <Placeholder height="18px" />
+      </ChartWrapper>
+
+      <EventCountsWrapper>
+        <Placeholder height="18px" />
+      </EventCountsWrapper>
+      <EventCountsWrapper>
+        <Placeholder height="18px" />
+      </EventCountsWrapper>
+      <AssigneeWrapper narrowGroups>
+        <Placeholder height="18px" />
+      </AssigneeWrapper>
+    </StyledGroupPanelItem>
+  );
+}
+
 // Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)<{
+const StyledGroupPanelItem = styled(PanelItem)<{
   reviewed: boolean;
   useTintRow: boolean;
 }>`
