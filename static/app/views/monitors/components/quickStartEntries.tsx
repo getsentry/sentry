@@ -445,13 +445,13 @@ def init_sentry(**kwargs):
 
 export function PHPUpsertPlatformGuide() {
   const scheduleCode = `// Create a crontab schedule object (every 10 minutes)
-$monitorSchedule = \Sentry\MonitorSchedule::crontab('*/10 * * * *');
+$monitorSchedule = \\Sentry\\MonitorSchedule::crontab('*/10 * * * *');
 
 // Or create an interval schedule object (every 10 minutes)
-$monitorSchedule = \Sentry\MonitorSchedule::interval(10, MonitorScheduleUnit::minute());`;
+$monitorSchedule = \\Sentry\\MonitorSchedule::interval(10, \\Sentry\\MonitorScheduleUnit::minute());`;
 
   const upsertCode = `// Create a config object
-$monitorConfig = new \Sentry\MonitorConfig(
+$monitorConfig = new \\Sentry\\MonitorConfig(
     $monitorSchedule,
     checkinMargin: 5, // Optional check-in margin in minutes
     maxRuntime: 15, // Optional max runtime in minutes
@@ -459,18 +459,18 @@ $monitorConfig = new \Sentry\MonitorConfig(
 );
 
 // 🟡 Notify Sentry your job is running:
-$checkInId = \Sentry\captureCheckIn(
+$checkInId = \\Sentry\\captureCheckIn(
     slug: '<monitor-slug>',
-    status: CheckInStatus::inProgress(),
+    status: \\Sentry\\CheckInStatus::inProgress(),
     monitorConfig: $monitorConfig,
 );
 
 // Execute your scheduled task here...
 
 // 🟢 Notify Sentry your job has completed successfully:
-\Sentry\captureCheckIn(
+\\Sentry\\captureCheckIn(
     slug: '<monitor-slug>',
-    status: CheckInStatus::ok(),
+    status: \\Sentry\\CheckInStatus::inProgress(),
     checkInId: $checkInId,
 );`;
 
