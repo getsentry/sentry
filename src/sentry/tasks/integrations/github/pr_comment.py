@@ -148,14 +148,10 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
 
 
 def get_pr_comment(pr_id: int, comment_type: int) -> PullRequestComment | None:
-    pr_comment = None
     pr_comment_query = PullRequestComment.objects.filter(
         pull_request__id=pr_id, comment_type=comment_type
     )
-    if pr_comment_query.exists():
-        pr_comment = pr_comment_query[0]
-
-    return pr_comment
+    return pr_comment_query[0] if pr_comment_query.exists() else None
 
 
 def create_or_update_comment(
