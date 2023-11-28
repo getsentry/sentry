@@ -1,3 +1,35 @@
+23.11.2
+-------
+
+### Various fixes & improvements
+
+- feat(notifications): replace logic for bulk settings update (#60502) by @scefali
+- ref(notifications): remove some unused hybrid cloud service methods (#60488) by @scefali
+- fix(backup): Fix various small import and comparison bugs (#60593) by @azaslavsky
+- fix(alerts): Chart query overflowing container in alert details (#60597) by @ArthurKnaus
+- fix(perf): Allow `null` size fields in span waterfall (#60601) by @gggritso
+- ref(notifications): remove unused notification manager methods (#60493) by @scefali
+- ref(notifications): stop using update settings tests p2 (#60500) by @scefali
+- ref(notifications): modify legacy option code (#60437) by @scefali
+- ref(notifications): stop using update settings in unsubscribe context (#60445) by @scefali
+- fix(ddm): invalid mri message (#60599) by @obostjancic
+- feat(resources): Add link to resource summary from waterfall (#60557) by @AbhiPrasad
+- chore(perf-web-vitals-widget): Updated description. (#60598) by @Abdkhan14
+- ref(webvitals): Support for using stored performance scores (#60397) by @edwardgou-sentry
+- chore(codeowners): add ddm owners (#60588) by @obostjancic
+- ref(charts): Use `GranularityLadder` class to get chart intervals (#60374) by @gggritso
+- feat(starfish): Fetch better releases in the selector (#60563) by @shruthilayaj
+- feat(profiling): add copy function source button (#60468) by @JonasBa
+- fix(hybrid-cloud): Fix cross-silo access on issue creation (#60595) by @leeandher
+- chore(hybridcloud) Move email reply tasks to a dedicated queue (#60560) by @markstory
+- fix(hybridcloud) Remove externalactor.actor_id (#60548) by @markstory
+- perf(charts): refactor baseChart (#60411) by @JonasBa
+- fix(metrics): Refine text contents for investigation rule notification (#60590) by @RaduW
+- ref(profiling): remove old call tree table (#60052) by @JonasBa
+- feat(ddm): spans use case (#60587) by @obostjancic
+
+_Plus 111 more_
+
 23.11.1
 -------
 

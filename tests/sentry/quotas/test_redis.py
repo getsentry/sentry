@@ -65,7 +65,7 @@ def test_is_rate_limited_script():
     assert list(map(bool, is_rate_limited(client, ("orange", "apple"), (1, now + 60)))) == [False]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RedisQuotaTest(TestCase):
     @cached_property
     def quota(self):

@@ -6,7 +6,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupStatsTest(APITestCase):
     @freeze_time(before_now(days=1).replace(minute=10))
     def test_simple(self):

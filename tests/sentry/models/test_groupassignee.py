@@ -17,7 +17,7 @@ from sentry.types.activity import ActivityType
 pytestmark = requires_snuba
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupAssigneeTestCase(TestCase):
     def test_constraints(self):
         # Can't both be assigned

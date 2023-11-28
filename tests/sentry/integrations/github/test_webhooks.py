@@ -34,7 +34,7 @@ from sentry.testutils.silo import (
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -73,7 +73,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 401
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class InstallationEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
@@ -111,7 +111,7 @@ class InstallationEventWebhookTest(APITestCase):
         assert integration.status == ObjectStatus.ACTIVE
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class InstallationDeleteEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
@@ -192,7 +192,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
             assert integration.status == ObjectStatus.DISABLED
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PushEventWebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -495,7 +495,7 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0] == repo
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PullRequestEventWebhook(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"

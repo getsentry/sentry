@@ -11,7 +11,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class QuotaTest(TestCase):
     def setUp(self):
         self.backend = Quota()

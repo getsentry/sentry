@@ -4,6 +4,7 @@ from itertools import chain, groupby
 import sentry_sdk
 from django.utils import timezone
 from packaging import version
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -114,12 +115,10 @@ class OrganizationSdksEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         try:
             sdks = get_sdk_index()
-
-            if len(sdks) == 0:
-                raise Exception("No SDKs found in index")
-
-            return Response(sdks)
-
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return Response({"detail": "Error occurred while fetching SDKs"}, status=500)
+
+        if len(sdks) == 0:
+            raise NotFound(detail="No SDKs found in index")
+        return Response(sdks)

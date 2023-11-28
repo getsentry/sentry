@@ -167,7 +167,7 @@ def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
                     # the clusterer to avoid scrubbing other tokens. The prefix
                     # `**` in the glob ensures we match the prefix but we don't
                     # scrub it.
-                    new_rules = [ReplacementRule(f"**{r}") for r in new_rules]
+                    new_rules = [ReplacementRule(r) for r in new_rules]
 
                 track_clusterer_run(ClustererNamespace.SPANS, project)
 

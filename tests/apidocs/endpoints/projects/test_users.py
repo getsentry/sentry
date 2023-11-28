@@ -11,7 +11,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectUsersDocs(APIDocsTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

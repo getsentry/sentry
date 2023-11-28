@@ -11,7 +11,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RelayRegisterTest(APITestCase):
     def setUp(self):
         super().setUp()

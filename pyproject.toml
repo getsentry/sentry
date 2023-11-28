@@ -66,17 +66,8 @@ django_settings_module = "sentry.conf.server_mypy"
 module = [
     # TODO: these cause type errors when followed
     "snuba_sdk.*",
-    # this package marks itself as typed but has no annotations
-    "google.cloud.bigtable.*",
-    # https://github.com/googleapis/python-api-core/pull/453
-    "google.api_core.retry",
 ]
 follow_imports = "skip"
-
-# https://github.com/python/mypy/issues/15343
-[[tool.mypy.overrides]]
-module = "google.*"
-ignore_missing_imports = true
 
 # python3 -m tools.mypy_helpers.make_stub_ignores
 # begin: missing 3rd party stubs
@@ -95,6 +86,13 @@ module = [
     "django_zero_downtime_migrations.backends.postgres.schema.*",
     "docker.*",
     "fido2.*",
+    "google.auth.*",
+    "google.cloud.pubsub_v1.*",
+    "google.cloud.storage.blob.*",
+    "google.cloud.storage.bucket.*",
+    "google.cloud.storage.client.*",
+    "google.resumable_media.common.*",
+    "google.rpc.status_pb2.*",
     "google_crc32c.*",
     "honcho.manager.*",
     "honcho.printer.*",
@@ -258,7 +256,6 @@ module = [
     "sentry.api.endpoints.user_identity_config",
     "sentry.api.endpoints.user_index",
     "sentry.api.endpoints.user_notification_details",
-    "sentry.api.endpoints.user_notification_fine_tuning",
     "sentry.api.endpoints.user_permission_details",
     "sentry.api.endpoints.user_permissions",
     "sentry.api.endpoints.user_permissions_config",
@@ -462,7 +459,6 @@ module = [
     "sentry.management.commands.send_fake_data",
     "sentry.middleware.access_log",
     "sentry.middleware.auth",
-    "sentry.middleware.integrations.parsers.base",
     "sentry.middleware.ratelimit",
     "sentry.middleware.subdomain",
     "sentry.middleware.superuser",
@@ -538,6 +534,7 @@ module = [
     "sentry.scim.endpoints.utils",
     "sentry.sdk_updates",
     "sentry.search.events.builder.discover",
+    "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.discover",
     "sentry.search.events.datasets.filter_aliases",
@@ -562,6 +559,7 @@ module = [
     "sentry.shared_integrations.client.proxy",
     "sentry.similarity.features",
     "sentry.snuba.discover",
+    "sentry.snuba.errors",
     "sentry.snuba.issue_platform",
     "sentry.snuba.metrics.datasource",
     "sentry.snuba.metrics.fields.base",
@@ -682,7 +680,6 @@ module = [
     "sentry.web.frontend.setup_wizard",
     "sentry.web.frontend.shared_group_details",
     "sentry.web.frontend.twofactor",
-    "sentry.web.frontend.unsubscribe_notifications",
     "sentry_plugins.asana.plugin",
     "sentry_plugins.base",
     "sentry_plugins.bitbucket.client",
