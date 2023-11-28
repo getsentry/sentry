@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -87,12 +88,12 @@ function useHandleAddQueryToDashboard(
       orderby: '',
     };
 
-    const urlWidgetQuery = new URLSearchParams({
+    const urlWidgetQuery = urlEncode({
       ...widgetQuery,
       aggregates: field,
       fields: field,
       columns: groupBy?.join(',') ?? '',
-    }).toString();
+    });
 
     const widgetAsQueryParams = {
       source: DashboardWidgetSource.DDM,

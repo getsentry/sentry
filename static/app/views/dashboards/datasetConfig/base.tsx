@@ -81,11 +81,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     disableSortReason?: string;
   };
   /**
-   * Used for mapping column names to more desirable
-   * values in tables.
-   */
-  fieldHeaderMap?: Record<string, string>;
-  /**
    * Filter the options available to the parameters list
    * of an aggregate function in QueryField component on the
    * Widget Builder.
@@ -126,6 +121,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     meta: MetaType,
     organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
+  /**
+   * Generate field header used for mapping column
+   * names to more desirable values in tables.
+   */
+  getFieldHeaderMap?: (widgetQuery?: WidgetQuery) => Record<string, string>;
   /**
    * Field options to display in the Group by selector.
    */
@@ -200,6 +200,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * to reset the orderby of the widget query.
    */
   handleOrderByReset?: (widgetQuery: WidgetQuery, newFields: string[]) => WidgetQuery;
+
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.

@@ -57,7 +57,7 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
   getTableSortOptions,
   getTableFieldOptions: (_organization: Organization) =>
     generateIssueWidgetFieldOptions(),
-  fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
+  getFieldHeaderMap: () => ISSUE_FIELD_TO_HEADER_MAP,
   supportedDisplayTypes: [DisplayType.TABLE],
   transformTable: transformIssuesResponseToTable,
 };
