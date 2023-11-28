@@ -10,11 +10,9 @@ from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.team import Team
-from sentry.notifications.types import NotificationScopeType
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
@@ -272,8 +270,8 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         # Test that we didn't make an NotificationSetting object
         # Instead we will use the default in notificationcontroller.py
         with assume_test_silo_mode(SiloMode.CONTROL):
-            team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
+            team_settings = NotificationSettingProvider.objects.filter(
+                team_id=self.team.id,
             )
             assert len(team_settings) == 0
 
@@ -313,9 +311,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
-            )
+            team_settings = NotificationSettingProvider.objects.filter(team_id=self.team.id)
         assert len(team_settings) == 0
 
     @responses.activate
@@ -370,9 +366,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
-            )
+            team_settings = NotificationSettingProvider.objects.filter(team_id=self.team.id)
         assert len(team_settings) == 0
 
     @responses.activate
