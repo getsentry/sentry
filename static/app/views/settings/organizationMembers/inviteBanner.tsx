@@ -167,6 +167,7 @@ export function InviteBanner({
 
   return (
     <Fragment>
+      {/* this is temporary to collect feedback about the banner */}
       <FeedbackWidget />
       <StyledCard>
         <CardTitleContainer>
