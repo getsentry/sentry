@@ -10,7 +10,7 @@ from sentry.testutils.silo import no_silo_test
 pytestmark = pytest.mark.sentry_metrics
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationReleasesTest(AcceptanceTestCase):
     release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
 

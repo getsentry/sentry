@@ -5,7 +5,7 @@ from sentry.testutils.silo import control_silo_test
 from social_auth.models import UserSocialAuth
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class RepositoryProviderTest(TestCase):
     def test_needs_auth_for_user(self):
         user = self.create_user()

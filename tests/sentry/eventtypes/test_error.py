@@ -7,7 +7,7 @@ from sentry.eventtypes.error import ErrorEvent
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetMetadataTest(TestCase):
     def test_simple(self):
         inst = ErrorEvent()
@@ -97,7 +97,7 @@ class GetMetadataTest(TestCase):
         }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetTitleTest(TestCase):
     def test_none_value(self):
         inst = ErrorEvent()

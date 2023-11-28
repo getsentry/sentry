@@ -30,7 +30,7 @@ from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SignatureVercelTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
 
@@ -309,7 +309,7 @@ class VercelReleasesTest(APITestCase):
         assert "Could not determine repository" == response.data["detail"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VercelReleasesNewTest(VercelReleasesTest):
     webhook_url = "/extensions/vercel/delete/"
 

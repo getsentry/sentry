@@ -11,7 +11,7 @@ from sentry.utils.email import group_id_to_email
 body_plain = "foo bar"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestMailgunInboundWebhookView(TestCase):
     def setUp(self):
         super().setUp()

@@ -1,12 +1,13 @@
 import {useState} from 'react';
 
+import {MRI} from 'sentry/types';
 import {MetricDisplayType} from 'sentry/utils/metrics';
 import {MetricWidget, MetricWidgetProps} from 'sentry/views/ddm/widget';
 
 // TODO(ddm): move this to admin
 export default function MetricsExplorer() {
   const [widget, setWidget] = useState<MetricWidgetProps>({
-    mri: '',
+    mri: '' as MRI,
     op: undefined,
     query: '',
     groupBy: [],

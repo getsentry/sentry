@@ -38,7 +38,7 @@ class BaseOrganizationSubscriptionEndpointTest(APITestCase):
             assert resp.status_code == 403
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIncidentSubscribeEndpointTest(BaseOrganizationSubscriptionEndpointTest):
     method = "post"
 
@@ -55,7 +55,7 @@ class OrganizationIncidentSubscribeEndpointTest(BaseOrganizationSubscriptionEndp
         assert sub.user_id == self.user.id
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIncidentUnsubscribeEndpointTest(BaseOrganizationSubscriptionEndpointTest):
     method = "delete"
 

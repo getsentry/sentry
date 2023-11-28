@@ -67,7 +67,7 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
     p95_before_function = Function(
         "quantileIf(0.95)",
         [
-            Function("tupleElement", [Column("snuba_all_spans"), 3]),
+            Function("arrayJoin", [Column("spans.exclusive_time")]),
             Function("less", [Column("timestamp"), regression_breakpoint]),
         ],
     )
@@ -79,7 +79,7 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
     p95_after_function = Function(
         "quantileIf(0.95)",
         [
-            Function("tupleElement", [Column("snuba_all_spans"), 3]),
+            Function("arrayJoin", [Column("spans.exclusive_time")]),
             Function("greater", [Column("timestamp"), regression_breakpoint]),
         ],
     )
