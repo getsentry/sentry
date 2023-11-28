@@ -171,7 +171,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   });
 
   if (sentryConfig.environment === 'development') {
-    /* @__PURE__ */ Spotlight.init();
+    /*#__PURE__*/ Spotlight.init();
   }
 
   // Event processor to fill the debug_meta field with debug IDs based on the
