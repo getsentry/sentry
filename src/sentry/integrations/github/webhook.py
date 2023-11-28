@@ -14,7 +14,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
-from sentry import analytics, options
+from sentry import analytics, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
@@ -40,6 +40,7 @@ from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organ
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo import SiloMode
+from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONData
 
@@ -450,6 +451,7 @@ class PullRequestEventWebhook(Webhook):
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
+        action = event["action"]
 
         """
         The value of the merge_commit_sha attribute changes depending on the
@@ -503,7 +505,7 @@ class PullRequestEventWebhook(Webhook):
 
         author.preload_users()
         try:
-            PullRequest.objects.update_or_create(
+            pr, created = PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
@@ -515,6 +517,22 @@ class PullRequestEventWebhook(Webhook):
                     "merge_commit_sha": merge_commit_sha,
                 },
             )
+
+            if action == "opened" and created:
+                if not features.has("organizations:integrations-open-pr-comment", organization):
+                    logger.info(
+                        "github.open_pr_comment.flag_missing",
+                        extra={"organization_id": organization.id},
+                    )
+                    return
+
+                metrics.incr("github.open_pr_comment.queue_task")
+                logger.info(
+                    "github.open_pr_comment.queue_task",
+                    extra={"pr_id": pr.id},
+                )
+                open_pr_comment_workflow.delay(pr_id=pr.id)
+
         except IntegrityError:
             pass
 
