@@ -1106,7 +1106,7 @@ def notifying_users(uuid: str) -> None:
         # Okay, everything seems fine - go ahead and send those emails.
         for user in imported_users:
             hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
-            LostPasswordHash.send_relocate_account_email(user, hash)
+            LostPasswordHash.send_relocate_account_email(user, hash, relocation.want_org_slugs)
 
         notifying_owner.delay(uuid)
 
