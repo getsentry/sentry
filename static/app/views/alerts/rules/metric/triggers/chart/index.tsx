@@ -511,6 +511,7 @@ class TriggersChart extends PureComponent<Props, State> {
         currentSeriesNames={[formatMRIField(aggregate)]}
         partial={false}
         queryExtras={queryExtras}
+        useOnDemandMetrics
         dataLoadedCallback={onDataLoaded}
       >
         {({
