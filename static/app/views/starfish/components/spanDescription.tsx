@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Project} from 'sentry/types';
 import {StackTraceMiniFrame} from 'sentry/views/starfish/components/stackTraceMiniFrame';
@@ -38,17 +39,18 @@ function DatabaseSpanDescription({span, project}: Props) {
         {formatter.toString(span[SpanMetricsField.SPAN_DESCRIPTION])}
       </CodeSnippet>
 
-      {/* TODO: Feature flag gate */}
-      {span?.data?.['code.filepath'] && (
-        <StackTraceMiniFrame
-          project={project}
-          frame={{
-            absPath: span?.data?.['code.filepath'],
-            lineNo: span?.data?.['code.lineno'],
-            function: span?.data?.['code.function'],
-          }}
-        />
-      )}
+      <Feature features={['organizations:performance-database-view-query-source']}>
+        {span?.data?.['code.filepath'] && (
+          <StackTraceMiniFrame
+            project={project}
+            frame={{
+              absPath: span?.data?.['code.filepath'],
+              lineNo: span?.data?.['code.lineno'],
+              function: span?.data?.['code.function'],
+            }}
+          />
+        )}
+      </Feature>
     </React.Fragment>
   );
 }
