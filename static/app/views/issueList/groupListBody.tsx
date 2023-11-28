@@ -21,6 +21,7 @@ type GroupListBodyProps = {
   groupStatsPeriod: string;
   loading: boolean;
   memberList: IndexedMembersByProject;
+  placeholderListSize;
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
@@ -33,6 +34,7 @@ type GroupListProps = {
   groupStatsPeriod: string;
   loading: boolean;
   memberList: IndexedMembersByProject;
+  placeholderListSize: number;
   query: string;
   sort: string;
 };
@@ -46,6 +48,7 @@ function GroupListBody({
   groupStatsPeriod,
   loading,
   error,
+  placeholderListSize,
   refetchGroups,
   selectedProjectIds,
 }: GroupListBodyProps) {
@@ -71,6 +74,7 @@ function GroupListBody({
   return (
     <IssuesReplayCountProvider groupIds={groupIds}>
       <GroupList
+        placeholderListSize={placeholderListSize}
         loading={loading}
         groupIds={groupIds}
         memberList={memberList}
@@ -91,6 +95,7 @@ function GroupList({
   loading,
   displayReprocessingLayout,
   groupStatsPeriod,
+  placeholderListSize,
 }: GroupListProps) {
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
@@ -106,7 +111,7 @@ function GroupList({
 
   return (
     <PanelBody>
-      {(loading ? new Array(10).fill(0) : groupIds).map((id, index) => {
+      {(loading ? new Array(placeholderListSize).fill(0) : groupIds).map((id, index) => {
         if (loading) {
           return (
             <GroupLoadingPlaceHolder narrowGroups={isSavedSearchesOpen} key={index} />
