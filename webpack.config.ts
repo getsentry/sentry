@@ -535,7 +535,26 @@ if (
     }
   }
 
+  // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
+  const certPath = path.join(__dirname, 'config');
+  const certsAvailable = fs.existsSync(path.join(certPath, 'localhost.pem'));
+
+  // Always use https in dev-ui. For devserver use https if the certificates
+  // have already been generated.
+  const useHttps = IS_UI_DEV_ONLY || certsAvailable;
+
+  const httpsOptions = !certsAvailable
+    ? {}
+    : {
+        key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
+        cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
+      };
+
   appConfig.devServer = {
+    server: {
+      type: useHttps ? 'https' : 'http',
+      options: httpsOptions,
+    },
     headers: {
       'Document-Policy': 'js-profiling',
     },
@@ -645,22 +664,9 @@ if (IS_UI_DEV_ONLY) {
     return slug;
   };
 
-  // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
-  const certPath = path.join(__dirname, 'config');
-  const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
-    ? {}
-    : {
-        key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
-        cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
-      };
-
   appConfig.devServer = {
     ...appConfig.devServer,
     compress: true,
-    server: {
-      type: 'https',
-      options: httpsOptions,
-    },
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
