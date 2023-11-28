@@ -28,7 +28,9 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import {GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   eventData: Event | undefined;
@@ -58,6 +60,15 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
+  const {onClick: copyLink} = useCopyToClipboard({
+    successMessage: t('Feedback URL copied to clipboard'),
+    text:
+      window.location.origin +
+      normalizeUrl(
+        `/organizations/${organization.slug}/feedback/?feedbackSlug=${feedbackItem.project.slug}%3A${feedbackItem.id}&project=${feedbackItem.project.id}/`
+      ),
+  });
+
   return (
     <Fragment>
       <HeaderPanelItem>
@@ -76,6 +87,13 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </Flex>
           </Flex>
           <Flex gap={space(1)} align="center" wrap="wrap">
+            <Button
+              title={t('Copy link to this feedback')}
+              size="xs"
+              onClick={copyLink}
+              aria-label={t('Copy Link')}
+              icon={<IconLink />}
+            />
             <ErrorBoundary mini>
               <FeedbackAssignedTo
                 feedbackIssue={feedbackItem}
