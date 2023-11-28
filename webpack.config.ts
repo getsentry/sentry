@@ -416,10 +416,6 @@ const appConfig: Configuration = {
       mode: IS_PRODUCTION ? 'strict' : undefined,
       debug: false,
     }),
-
-    new WebpackHookPlugin({
-      onBuildStart: ['node node_modules/@spotlightjs/sidecar/src/run.js'],
-    }),
   ],
 
   resolve: {
@@ -617,6 +613,12 @@ if (
       },
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';
+
+    appConfig.plugins?.push(
+      new WebpackHookPlugin({
+        onBuildStart: ['node node_modules/@spotlightjs/sidecar/src/run.js'],
+      })
+    );
   }
 }
 
