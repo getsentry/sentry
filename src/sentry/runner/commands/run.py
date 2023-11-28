@@ -505,22 +505,6 @@ def occurrences_ingest_consumer(**options):
         run_processor_with_signals(consumer)
 
 
-@run.command("ingest-profiles")
-@log_options()
-@click.option("--topic", default="profiles", help="Topic to get profiles data from.")
-@kafka_options("ingest-profiles")
-@strict_offset_reset_option()
-@configuration
-def profiles_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("ingest-profiles", options["group_id"])
-    from sentry.profiles.consumers import get_profiles_process_consumer
-
-    consumer = get_profiles_process_consumer(**options)
-    run_processor_with_signals(consumer)
-
-
 @run.command("consumer")
 @log_options()
 @click.argument(
