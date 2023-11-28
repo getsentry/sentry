@@ -47,6 +47,7 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         if options.get("organizations:session-replay-accessibility-issues-enabled") is False:
+            metrics.incr("session-replay-accessibility-issues-option-disabled")
             return Response(status=404)
 
         try:
