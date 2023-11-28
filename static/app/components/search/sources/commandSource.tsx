@@ -1,7 +1,8 @@
 import {Component} from 'react';
 import {PlainRoute} from 'react-router';
 
-import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
+import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {openSudo} from 'sentry/actionCreators/sudoModal';
 import Access from 'sentry/components/acl/access';
 import {NODE_ENV, usingCustomerDomain} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
