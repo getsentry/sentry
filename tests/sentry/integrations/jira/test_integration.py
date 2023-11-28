@@ -20,9 +20,11 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.signing import sign
@@ -33,6 +35,57 @@ pytestmark = [requires_snuba]
 
 def get_client():
     return StubJiraApiClient()
+
+
+@region_silo_test
+class RegionJiraIntegrationTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="jira:1",
+            provider="jira",
+            name="Jira Cloud",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.name = "Sentry Admin"
+            self.user.save()
+        self.login_as(self.user)
+
+    def test_create_comment(self):
+        installation = self.integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
+        group_note.data = {"text": comment}
+        with mock.patch.object(StubJiraApiClient, "create_comment") as mock_create_comment:
+            with mock.patch.object(installation, "get_client", get_client):
+                installation.create_comment(1, self.user.id, group_note)
+                assert (
+                    mock_create_comment.call_args[0][1]
+                    == "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment
+                )
+
+    def test_update_comment(self):
+        installation = self.integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
+        group_note.data = {"text": comment, "external_id": "123"}
+        with mock.patch.object(StubJiraApiClient, "update_comment") as mock_update_comment:
+            with mock.patch.object(installation, "get_client", get_client):
+                installation.update_comment(1, self.user.id, group_note)
+                assert mock_update_comment.call_args[0] == (
+                    1,
+                    "123",
+                    "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
+                )
 
 
 class JiraIntegrationTest(APITestCase):
@@ -869,47 +922,6 @@ class JiraIntegrationTest(APITestCase):
             installation.get_config_data().get("issues_ignored_fields")
             == "hello world, goodnight, moon"
         )
-
-    def test_create_comment(self):
-        self.user.name = "Sentry Admin"
-        self.user.save()
-        self.login_as(self.user)
-
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-        installation = integration.get_installation(self.organization.id)
-
-        group_note = mock.Mock()
-        comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
-        group_note.data = {"text": comment}
-        with mock.patch.object(StubJiraApiClient, "create_comment") as mock_create_comment:
-            with mock.patch.object(installation, "get_client", get_client):
-                installation.create_comment(1, self.user.id, group_note)
-                assert (
-                    mock_create_comment.call_args[0][1]
-                    == "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment
-                )
-
-    def test_update_comment(self):
-        self.user.name = "Sentry Admin"
-        self.user.save()
-        self.login_as(self.user)
-
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-        installation = integration.get_installation(self.organization.id)
-
-        group_note = mock.Mock()
-        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
-        group_note.data = {"text": comment, "external_id": "123"}
-        with mock.patch.object(StubJiraApiClient, "update_comment") as mock_update_comment:
-            with mock.patch.object(installation, "get_client", get_client):
-                installation.update_comment(1, self.user.id, group_note)
-                assert mock_update_comment.call_args[0] == (
-                    1,
-                    "123",
-                    "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
-                )
 
 
 class JiraMigrationIntegrationTest(APITestCase):
