@@ -1271,22 +1271,61 @@ class MetricsDatasetConfig(DatasetConfig):
         weight_metric_id = self.resolve_metric(column.replace("score", "score.weight"))
 
         return Function(
-            "divide",
+            "greatest",
             [
                 Function(
-                    "sumIf",
+                    "least",
                     [
-                        Column("value"),
-                        Function("equals", [Column("metric_id"), metric_id]),
+                        Function(
+                            "if",
+                            [
+                                Function(
+                                    "greater",
+                                    [
+                                        Function(
+                                            "sumIf",
+                                            [
+                                                Column("value"),
+                                                Function(
+                                                    "equals",
+                                                    [Column("metric_id"), weight_metric_id],
+                                                ),
+                                            ],
+                                        ),
+                                        0.0,
+                                    ],
+                                ),
+                                Function(
+                                    "divide",
+                                    [
+                                        Function(
+                                            "sumIf",
+                                            [
+                                                Column("value"),
+                                                Function(
+                                                    "equals", [Column("metric_id"), metric_id]
+                                                ),
+                                            ],
+                                        ),
+                                        Function(
+                                            "sumIf",
+                                            [
+                                                Column("value"),
+                                                Function(
+                                                    "equals",
+                                                    [Column("metric_id"), weight_metric_id],
+                                                ),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                                0.0,
+                            ],
+                        ),
+                        1.0,
                     ],
                 ),
-                Function(
-                    "sumIf",
-                    [
-                        Column("value"),
-                        Function("equals", [Column("metric_id"), weight_metric_id]),
-                    ],
-                ),
+                0.0,
             ],
             alias,
         )
