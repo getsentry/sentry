@@ -154,7 +154,7 @@ function shouldUseErrorsDataset(
   return (
     dataset === Dataset.ERRORS &&
     /\bis:unresolved\b/.test(query) &&
-    !organization.features.includes('metric-alert-ignore-archived')
+    organization.features.includes('metric-alert-ignore-archived')
   );
 }
 
