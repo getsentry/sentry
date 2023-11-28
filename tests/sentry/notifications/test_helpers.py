@@ -6,17 +6,12 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.rule import Rule
 from sentry.notifications.helpers import (
     collect_groups_by_project,
-    get_scope_type,
     get_subscription_from_attributes,
     get_team_members,
     team_is_valid_recipient,
     validate,
 )
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.notifications.utils import (
     get_email_link_extra_params,
     get_group_settings_link,
@@ -91,22 +86,6 @@ class NotificationHelpersTest(TestCase):
             validate(
                 NotificationSettingTypes.WORKFLOW, NotificationSettingOptionValues.COMMITTED_ONLY
             )
-        )
-
-    def test_get_scope_type(self):
-        assert get_scope_type(NotificationSettingTypes.DEPLOY) == NotificationScopeType.ORGANIZATION
-        assert get_scope_type(NotificationSettingTypes.WORKFLOW) == NotificationScopeType.PROJECT
-        assert (
-            get_scope_type(NotificationSettingTypes.ISSUE_ALERTS) == NotificationScopeType.PROJECT
-        )
-        assert not get_scope_type(NotificationSettingTypes.DEPLOY) == NotificationScopeType.PROJECT
-        assert (
-            not get_scope_type(NotificationSettingTypes.WORKFLOW)
-            == NotificationScopeType.ORGANIZATION
-        )
-        assert (
-            not get_scope_type(NotificationSettingTypes.ISSUE_ALERTS)
-            == NotificationScopeType.ORGANIZATION
         )
 
     def test_get_subscription_from_attributes(self):

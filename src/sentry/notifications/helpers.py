@@ -21,13 +21,11 @@ from sentry.notifications.types import (
     VALID_VALUES_FOR_KEY,
     VALID_VALUES_FOR_KEY_V2,
     GroupSubscriptionReason,
-    NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
@@ -38,8 +36,6 @@ from sentry.types.integrations import (
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-    from sentry.models.organization import Organization
-    from sentry.models.project import Project
     from sentry.models.team import Team
     from sentry.models.user import User
 
@@ -109,57 +105,6 @@ def validate_v2(type: NotificationSettingTypes, value: NotificationSettingOption
     return value in VALID_VALUES_FOR_KEY_V2.get(type, {})
 
 
-def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
-    """In which scope (proj or org) can a user set more specific settings?"""
-    if type in [
-        NotificationSettingTypes.DEPLOY,
-        NotificationSettingTypes.APPROVAL,
-        NotificationSettingTypes.QUOTA,
-        NotificationSettingTypes.QUOTA_ERRORS,
-        NotificationSettingTypes.QUOTA_TRANSACTIONS,
-        NotificationSettingTypes.QUOTA_ATTACHMENTS,
-        NotificationSettingTypes.QUOTA_REPLAYS,
-        NotificationSettingTypes.QUOTA_WARNINGS,
-        NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS,
-    ]:
-        return NotificationScopeType.ORGANIZATION
-
-    if type in [
-        NotificationSettingTypes.WORKFLOW,
-        NotificationSettingTypes.ISSUE_ALERTS,
-        NotificationSettingTypes.SPIKE_PROTECTION,
-    ]:
-        return NotificationScopeType.PROJECT
-
-    raise Exception(
-        f"type {type}, must be alerts, deploy, workflow, approval, quota, quotaErrors, quotaTransactions, quotaAttachments, quotaReplays, quotaWarnings, quotaSpendAllocations, spikeProtection"
-    )
-
-
-def get_scope(
-    user: User | int | None = None,
-    team: Team | int | None = None,
-    project: Project | int | None = None,
-    organization: Organization | int | None = None,
-) -> tuple[NotificationScopeType, int]:
-    """
-    Figure out the scope from parameters and return it as a tuple.
-    TODO(mgaeta): Make sure the user/team is in the project/organization.
-    """
-    if project:
-        return NotificationScopeType.PROJECT, extract_id_from(project)
-
-    if organization:
-        return NotificationScopeType.ORGANIZATION, extract_id_from(organization)
-
-    if user is not None:
-        return NotificationScopeType.USER, extract_id_from(user)
-    if team is not None:
-        return NotificationScopeType.TEAM, extract_id_from(team)
-
-    raise Exception("scope must be either user, team, organization, or project")
-
-
 def get_subscription_from_attributes(
     attrs: Mapping[str, Any]
 ) -> tuple[bool, Mapping[str, str | bool] | None]:
@@ -209,16 +154,6 @@ def recipient_is_team(recipient: RpcActor | Team | RpcUser | User) -> bool:
     if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.TEAM:
         return True
     return isinstance(recipient, Team)
-
-
-def get_recipient_from_team_or_user(user_id: int | None, team_id: int | None) -> RpcUser | Team:
-    if user_id is not None:
-        recipient = RpcUser(id=user_id)
-    elif team_id is not None:
-        recipient = Team.objects.get(id=team_id)
-    if not recipient:
-        raise Exception("Unable to find user or team")
-    return recipient
 
 
 def team_is_valid_recipient(team: Team | RpcActor) -> bool:
