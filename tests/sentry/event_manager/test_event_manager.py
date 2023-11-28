@@ -124,7 +124,7 @@ class EventManagerTestMixin:
         return event
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
@@ -193,7 +193,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
         assert group.data.get("type") == "default"
-        assert group.data.get("metadata") == {"title": "foo bar"}
+        assert group.data.get("metadata").get("title") == "foo bar"
 
     def test_materialze_metadata_simple(self):
         manager = EventManager(make_event(transaction="/dogs/are/great/"))
@@ -1342,7 +1342,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = event.group
         assert group is not None
         assert group.data.get("type") == "default"
-        assert group.data.get("metadata") == {"title": "foo bar"}
+        assert group.data.get("metadata")
+        assert group.data.get("metadata").get("title") == "foo bar"  # type: ignore[union-attr]
 
     def test_message_event_type(self):
         manager = EventManager(
@@ -1360,7 +1361,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = event.group
         assert group is not None
         assert group.data.get("type") == "default"
-        assert group.data.get("metadata") == {"title": "foo bar"}
+        assert group.data.get("metadata")
+        assert group.data.get("metadata").get("title") == "foo bar"  # type: ignore[union-attr]
 
     def test_error_event_type(self):
         manager = EventManager(
@@ -1501,6 +1503,17 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "integrations": None,
             "packages": None,
         }
+
+    def test_sdk_group_tagging(self):
+        manager = EventManager(
+            make_event(**{"sdk": {"name": "sentry-native-unity", "version": "1.0"}})
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert (sdk_metadata := event.group.data.get("metadata").get("sdk"))  # type: ignore[union-attr]
+        assert sdk_metadata.get("name") == "sentry-native-unity"
+        assert sdk_metadata.get("name_normalized") == "sentry.native.unity"
 
     def test_no_message(self):
         # test that the message is handled gracefully
@@ -2785,7 +2798,7 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
             assert commit_list[1].key == LATER_COMMIT_SHA
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseIssueTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -2917,7 +2930,7 @@ class ReleaseIssueTest(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @apply_feature_flag_on_cls("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self):

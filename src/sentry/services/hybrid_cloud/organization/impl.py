@@ -117,6 +117,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except Organization.DoesNotExist:
             return None
 
+    def get_organizations_by_user_and_scope(
+        self, *, region_name: str, user: RpcUser, scope: str
+    ) -> List[RpcOrganization]:
+        organizations = Organization.objects.get_for_user(user=user, scope=scope)
+        return list(map(serialize_rpc_organization, organizations))
+
     def get_default_organization(self) -> RpcOrganization:
         return serialize_rpc_organization(Organization.get_default())
 
@@ -617,7 +623,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
 
-    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+    def get_organization_owner_members(
+        self, *, organization_id: int
+    ) -> List[RpcOrganizationMember]:
         org: Organization = Organization.objects.get(id=organization_id)
         owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
 

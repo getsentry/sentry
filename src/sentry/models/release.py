@@ -54,8 +54,6 @@ from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
-_sha1_re = re.compile(r"^[a-f0-9]{40}$")
-_dotted_path_prefix_re = re.compile(r"^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-")
 DB_VERSION_LENGTH = 250
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import ipaddress
 import logging
+import mimetypes
 import random
 import re
 import time
@@ -140,7 +141,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("sentry.events")
 
-SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
+SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
@@ -199,6 +200,30 @@ def normalized_sdk_tag_from_event(event: Event) -> str:
     except Exception:
         logger.warning("failed to get SDK name", exc_info=True)
         return "other"
+
+
+def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
+    """
+    Returns a metadata dictionary with "sdk" field populated, including a normalized name
+    Returns {} when event type of event is known to not be SDK generated.
+    """
+
+    if event.get_event_type() in SECURITY_REPORT_INTERFACES:
+        return {}
+
+    if not (sdk_metadata := event.data.get("sdk")):
+        return {}
+
+    try:
+        return {
+            "sdk": {
+                "name": sdk_metadata.get("name") or "unknown",
+                "name_normalized": normalized_sdk_tag_from_event(event),
+            }
+        }
+    except Exception:
+        logger.warning("failed to set normalized SDK name", exc_info=True)
+        return {}
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
@@ -709,7 +734,9 @@ class EventManager:
             job["received_timestamp"] - job["recorded_timestamp"],
             tags=metric_tags,
         )
-        metrics.timing("events.size.data.post_save", job["event"].size, tags=metric_tags)
+        metrics.distribution(
+            "events.size.data.post_save", job["event"].size, tags=metric_tags, unit="byte"
+        )
         metrics.incr(
             "events.post_save.normalize.errors",
             amount=len(job["data"].get("errors") or ()),
@@ -1869,12 +1896,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     try:
         short_id = project.next_short_id()
     except OperationalError:
-        metrics.incr(
-            "next_short_id.timeout",
-            tags={
-                "platform": event.platform or "unknown"
-            },  # TODO: remove this tag, it's nor relevant
-        )
+        metrics.incr("next_short_id.timeout")
         sentry_sdk.capture_message("short_id.timeout")
         raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
 
@@ -1890,8 +1912,12 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         else None
     )
 
-    # get severity score for use in alerting
     group_data = kwargs.pop("data", {})
+
+    # add sdk tag to metadata
+    group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
+
+    # get severity score for use in alerting
     if features.has("projects:first-event-severity-calculation", event.project):
         severity = _get_severity_score(event)
         if severity is not None:  # Severity can be 0
@@ -2114,6 +2140,10 @@ severity_connection_pool = connection_from_url(
 
 
 def _get_severity_score(event: Event) -> float | None:
+    # If the event is info-level or lower, auto-mark as low severity
+    if LOG_LEVELS_MAP[event.data["level"]] <= logging.INFO:
+        return 0
+
     op = "event_manager._get_severity_score"
     logger_data = {"event_id": event.data["event_id"], "op": op}
     severity = None
@@ -2432,20 +2462,32 @@ def save_attachment(
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
 
+    content_type = normalize_content_type(attachment.content_type, attachment.name)
+
     file = File.objects.create(
         name=attachment.name,
         type=attachment.type,
-        headers={"Content-Type": attachment.content_type},
+        headers={"Content-Type": content_type},
     )
     file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
+    size = file.size
+    sha1 = file.checksum
+    file_id = file.id
+
     EventAttachment.objects.create(
-        event_id=event_id,
+        # lookup:
         project_id=project.id,
         group_id=group_id,
-        name=attachment.name,
-        file_id=file.id,
+        event_id=event_id,
+        # metadata:
         type=attachment.type,
+        name=attachment.name,
+        content_type=content_type,
+        size=size,
+        sha1=sha1,
+        # storage:
+        file_id=file_id,
     )
 
     track_outcome(
@@ -2459,6 +2501,12 @@ def save_attachment(
         category=DataCategory.ATTACHMENT,
         quantity=attachment.size or 1,
     )
+
+
+def normalize_content_type(content_type: str | None, name: str) -> str:
+    if content_type:
+        return content_type.split(";")[0].strip()
+    return mimetypes.guess_type(name)[0] or "application/octet-stream"
 
 
 def save_attachments(cache_key: Optional[str], attachments: list[Attachment], job: Job) -> None:
@@ -2564,7 +2612,7 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
-            metrics.timing("save_event.transaction.span_count", len(groupings.results))
+            metrics.distribution("save_event.transaction.span_count", len(groupings.results))
             unique_default_hashes = set(groupings.results.values())
             metrics.incr(
                 "save_event.transaction.span_group_count.default",

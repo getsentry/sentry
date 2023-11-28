@@ -117,7 +117,6 @@ export function RequestHeadersSection({item}: SectionProps) {
           value
         ),
         type: warn ? 'warning' : undefined,
-        tooltip: undefined,
       };
     }
   );

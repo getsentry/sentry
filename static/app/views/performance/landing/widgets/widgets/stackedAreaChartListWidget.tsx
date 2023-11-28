@@ -39,10 +39,10 @@ import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/u
 import {
   calculatePerformanceScore,
   calculatePerformanceScoreFromTableDataRow,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsTimeseriesQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -85,7 +85,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   // TODO Abdullah Khan: Create a new widget type/file for Best Page Opportunity
   // Web vitals widget. Code path is very different from generic stacked area chart widget.
   const {data: projectData, isLoading: isProjectWebVitalDataLoading} =
-    useProjectWebVitalsQuery();
+    useProjectRawWebVitalsQuery();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -406,7 +406,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
       listItem =>
         function () {
           const transaction = (listItem.transaction as string | undefined) ?? '';
-          const count = projectData?.data[0]['count()'] as number;
+          const count = projectData?.data?.[0]?.['count()'] as number;
           if (props.chartSetting === PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES) {
             const projectScore = calculatePerformanceScoreFromTableDataRow(
               projectData?.data?.[0]
@@ -419,7 +419,9 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
               fid: listItem['p75(measurements.fid)'] as number,
             });
             const opportunity =
-              projectScore.totalScore !== null && rowScore.totalScore !== null
+              projectScore.totalScore !== null &&
+              rowScore.totalScore !== null &&
+              count !== undefined
                 ? calculateOpportunity(
                     projectScore.totalScore,
                     count,

@@ -11,7 +11,7 @@ from sentry.utils import json
 from . import LINK_SHARED_EVENT, BaseEventTest
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class LinkSharedEventTest(BaseEventTest):
     @responses.activate
     @patch(

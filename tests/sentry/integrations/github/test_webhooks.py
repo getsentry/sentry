@@ -6,6 +6,7 @@ import responses
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
+    INSTALLATION_DELETE_EVENT_EXAMPLE,
     INSTALLATION_EVENT_EXAMPLE,
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
@@ -14,19 +15,26 @@ from fixtures.github import (
 )
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import (
+    all_silo_test,
+    assume_test_silo_mode,
+    control_silo_test,
+    region_silo_test,
+)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -65,7 +73,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 401
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class InstallationEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
@@ -103,7 +111,88 @@ class InstallationEventWebhookTest(APITestCase):
         assert integration.status == ObjectStatus.ACTIVE
 
 
-@region_silo_test(stable=True)
+@all_silo_test
+class InstallationDeleteEventWebhookTest(APITestCase):
+    base_url = "https://api.github.com"
+
+    def setUp(self):
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def test_installation_deleted(self, get_jwt):
+        project = self.project  # force creation
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                name="octocat",
+                organization=self.organization,
+                external_id="2",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(project.organization.id, self.user)
+            assert integration.status == ObjectStatus.ACTIVE
+
+        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+            response = self.client.post(
+                path=self.url,
+                data=INSTALLATION_DELETE_EVENT_EXAMPLE,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="installation",
+                HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+            assert response.status_code == 204
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(external_id=2)
+            assert integration.external_id == "2"
+            assert integration.name == "octocat"
+            assert integration.status == ObjectStatus.DISABLED
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def test_installation_deleted_no_org_integration(self, get_jwt):
+        project = self.project  # force creation
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                name="octocat",
+                organization=self.organization,
+                external_id="2",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(project.organization.id, self.user)
+            assert integration.status == ObjectStatus.ACTIVE
+
+            # Set up condition that the OrganizationIntegration is deleted prior to the webhook event
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id,
+                organization_id=self.organization.id,
+            ).delete()
+
+        response = self.client.post(
+            path=self.url,
+            data=INSTALLATION_DELETE_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(external_id=2)
+            assert integration.external_id == "2"
+            assert integration.name == "octocat"
+            assert integration.status == ObjectStatus.DISABLED
+
+
+@region_silo_test
 class PushEventWebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -406,7 +495,7 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0] == repo
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PullRequestEventWebhook(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"

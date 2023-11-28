@@ -32,6 +32,8 @@ const CHART_HEIGHT = 140;
 type Props = {
   appliedFilters: ModuleFilters;
   moduleName: ModuleName;
+  eventView?: EventView;
+  extraQuery?: string[];
   spanCategory?: string;
   throughputUnit?: RateUnits;
 };
@@ -39,7 +41,8 @@ type Props = {
 type ChartProps = {
   filters: ModuleFilters;
   moduleName: ModuleName;
-  throughtputUnit: RateUnits;
+  throughputUnit: RateUnits;
+  extraQuery?: string[];
 };
 
 function getSegmentLabel(moduleName: ModuleName) {
@@ -51,10 +54,14 @@ export function SpanTimeCharts({
   appliedFilters,
   spanCategory,
   throughputUnit = RateUnits.PER_MINUTE,
+  extraQuery,
 }: Props) {
   const {selection} = usePageFilters();
 
   const eventView = getEventView(moduleName, selection, appliedFilters, spanCategory);
+  if (extraQuery) {
+    eventView.query += ` ${extraQuery.join(' ')}`;
+  }
 
   const {isLoading} = useSpansQuery({
     eventView,
@@ -73,6 +80,7 @@ export function SpanTimeCharts({
       {title: getDurationChartTitle(moduleName), Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
+    [ModuleName.RESOURCE]: [],
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
     [ModuleName.OTHER]: [],
   };
@@ -90,7 +98,8 @@ export function SpanTimeCharts({
             <Comp
               moduleName={moduleName}
               filters={appliedFilters}
-              throughtputUnit={throughputUnit}
+              throughputUnit={throughputUnit}
+              extraQuery={extraQuery}
             />
           </ChartPanel>
         </ChartsContainerItem>
@@ -102,10 +111,14 @@ export function SpanTimeCharts({
 function ThroughputChart({
   moduleName,
   filters,
-  throughtputUnit,
+  throughputUnit,
+  extraQuery,
 }: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
+  if (extraQuery) {
+    eventView.query += ` ${extraQuery.join(' ')}`;
+  }
 
   const label = getSegmentLabel(moduleName);
   const {isLoading, data} = useSpansQuery<
@@ -125,9 +138,9 @@ function ThroughputChart({
     const groupData = dataByGroup[groupName];
 
     let throughputMultiplier = 1; // We're fetching per minute, so default is 1
-    if (throughtputUnit === RateUnits.PER_SECOND) {
+    if (throughputUnit === RateUnits.PER_SECOND) {
       throughputMultiplier = 1 / 60;
-    } else if (throughtputUnit === RateUnits.PER_HOUR) {
+    } else if (throughputUnit === RateUnits.PER_HOUR) {
       throughputMultiplier = 60;
     }
 
@@ -154,20 +167,23 @@ function ThroughputChart({
       }}
       definedAxisTicks={4}
       aggregateOutputFormat="rate"
-      rateUnit={throughtputUnit}
+      rateUnit={throughputUnit}
       stacked
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => formatRate(value, throughtputUnit),
+        valueFormatter: value => formatRate(value, throughputUnit),
       }}
     />
   );
 }
 
-function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
+function DurationChart({moduleName, filters, extraQuery}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
+  if (extraQuery) {
+    eventView.query += ` ${extraQuery.join(' ')}`;
+  }
 
   const label = `avg(${SPAN_SELF_TIME})`;
 

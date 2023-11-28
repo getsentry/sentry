@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
 
-import {openSudo, redirectToProject} from 'sentry/actionCreators/modal';
+import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
+import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {
   PROJECT_MOVED,
@@ -415,7 +416,7 @@ export class Client {
 
     let data = options.data;
 
-    if (data !== undefined && method !== 'GET') {
+    if (data !== undefined && method !== 'GET' && !(data instanceof FormData)) {
       data = JSON.stringify(data);
     }
 

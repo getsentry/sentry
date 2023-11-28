@@ -92,6 +92,16 @@ class OrganizationService(RpcService):
         """
         pass
 
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def get_organizations_by_user_and_scope(
+        self, *, region_name: str, user: RpcUser, scope: str
+    ) -> List[RpcOrganization]:
+        """
+        Fetches organizations for the given user, with the given organization member scope.
+        """
+        pass
+
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
@@ -353,7 +363,9 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+    def get_organization_owner_members(
+        self, *, organization_id: int
+    ) -> List[RpcOrganizationMember]:
         pass
 
 

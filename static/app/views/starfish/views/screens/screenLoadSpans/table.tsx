@@ -22,10 +22,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -51,8 +52,8 @@ export function ScreenLoadSpansTable({
   const organization = useOrganization();
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
-  const truncatedPrimary = centerTruncate(primaryRelease ?? '', 15);
-  const truncatedSecondary = centerTruncate(secondaryRelease ?? '', 15);
+  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
+  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
@@ -103,6 +104,7 @@ export function ScreenLoadSpansTable({
   const {data, isLoading, pageLinks} = useTableQuery({
     eventView,
     enabled: true,
+    referrer: 'api.starfish.mobile-span-table',
   });
 
   const eventViewColumns = eventView.getColumns();
@@ -130,7 +132,9 @@ export function ScreenLoadSpansTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = `/organizations/${organization.slug}/performance/mobile/screens/spans/`;
+      const pathname = normalizeUrl(
+        `/organizations/${organization.slug}/performance/mobile/screens/spans/`
+      );
       const query = {
         ...location.query,
         transaction,

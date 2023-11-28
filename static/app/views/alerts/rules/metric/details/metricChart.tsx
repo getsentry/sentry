@@ -35,7 +35,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
-import Truncate from 'sentry/components/truncate';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -45,6 +44,8 @@ import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
+import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
@@ -93,10 +94,7 @@ type Props = WithRouterProps & {
   selectedIncident?: Incident | null;
 };
 
-type State = {
-  height: number;
-  width: number;
-};
+type State = Record<string, never>;
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
@@ -147,42 +145,7 @@ function getRuleChangeSeries(
 }
 
 class MetricChart extends PureComponent<Props, State> {
-  state = {
-    width: -1,
-    height: -1,
-  };
-
   ref: null | ReactEchartsRef = null;
-
-  /**
-   * Syncs component state with the chart's width/heights
-   */
-  updateDimensions = () => {
-    const chartRef = this.ref?.getEchartsInstance?.();
-    if (!chartRef) {
-      return;
-    }
-
-    const width = chartRef.getWidth();
-    const height = chartRef.getHeight();
-    if (width !== this.state.width || height !== this.state.height) {
-      this.setState({
-        width,
-        height,
-      });
-    }
-  };
-
-  handleRef = (ref: ReactEchartsRef): void => {
-    if (ref && !this.ref) {
-      this.ref = ref;
-      this.updateDimensions();
-    }
-
-    if (!ref) {
-      this.ref = null;
-    }
-  };
 
   handleZoom = (start: DateString, end: DateString) => {
     const {location} = this.props;
@@ -289,7 +252,6 @@ class MetricChart extends PureComponent<Props, State> {
       organization,
       timePeriod: {start, end},
     } = this.props;
-    const {width} = this.state;
     const {dateModified, timeWindow} = rule;
 
     if (loading || !timeseriesData) {
@@ -345,18 +307,6 @@ class MetricChart extends PureComponent<Props, State> {
     const queryFilter =
       filter?.join(' ') + t(' over ') + getDuration(rule.timeWindow * 60);
 
-    const percentOfWidth =
-      width >= 1151
-        ? 15
-        : width < 1151 && width >= 700
-        ? 14
-        : width < 700 && width >= 515
-        ? 13
-        : width < 515 && width >= 300
-        ? 12
-        : 8;
-    const truncateWidth = (percentOfWidth / 100) * width;
-
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
@@ -367,8 +317,16 @@ class MetricChart extends PureComponent<Props, State> {
           </ChartHeader>
           <ChartFilters>
             <StyledCircleIndicator size={8} />
-            <Filters>{rule.aggregate}</Filters>
-            <Truncate value={queryFilter ?? ''} maxLength={truncateWidth} />
+            <Filters>{formatMRIField(rule.aggregate)}</Filters>
+            <Tooltip
+              title={queryFilter}
+              isHoverable
+              skipWrapper
+              overlayStyle={{maxWidth: '90vw', lineBreak: 'anywhere', textAlign: 'left'}}
+              showOnlyOnOverflow
+            >
+              <QueryFilters>{queryFilter}</QueryFilters>
+            </Tooltip>
           </ChartFilters>
           {getDynamicText({
             value: (
@@ -377,11 +335,6 @@ class MetricChart extends PureComponent<Props, State> {
                 start={start}
                 end={end}
                 onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
-                onFinished={() => {
-                  // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-                  // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-                  this.updateDimensions();
-                }}
               >
                 {zoomRenderProps => (
                   <AreaChart
@@ -389,7 +342,6 @@ class MetricChart extends PureComponent<Props, State> {
                     {...chartOption}
                     showTimeInTooltip
                     minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-                    forwardedRef={this.handleRef}
                     additionalSeries={additionalSeries}
                     tooltip={{
                       formatter: seriesParams => {
@@ -572,13 +524,16 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    const queryExtras = getMetricDatasetQueryExtras({
-      organization,
-      location,
-      dataset,
-      newAlertOrQuery: false,
-      useOnDemandMetrics: isOnDemandAlert,
-    });
+    const queryExtras = {
+      ...getMetricDatasetQueryExtras({
+        organization,
+        location,
+        dataset,
+        newAlertOrQuery: false,
+        useOnDemandMetrics: isOnDemandAlert,
+      }),
+      ...getForceMetricsLayerQueryExtras(organization, dataset),
+    };
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
@@ -618,6 +573,7 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
+        useOnDemandMetrics
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) => (
           <Fragment>
@@ -667,12 +623,17 @@ const ChartFilters = styled('div')`
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.textColor};
   display: inline-grid;
-  grid-template-columns: repeat(3, max-content);
+  grid-template-columns: max-content max-content auto;
   align-items: center;
 `;
 
 const Filters = styled('span')`
   margin-right: ${space(1)};
+`;
+
+const QueryFilters = styled('span')`
+  min-width: 0px;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledSectionValue = styled(SectionValue)`

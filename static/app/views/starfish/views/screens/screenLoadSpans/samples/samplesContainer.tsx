@@ -9,14 +9,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
-import {
-  SpanSummaryQueryFilters,
-  useSpanMetrics,
-} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -54,8 +52,9 @@ export function ScreenLoadSampleContainer({
     []
   );
 
-  const filters: SpanSummaryQueryFilters = {
-    transactionName,
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
@@ -67,7 +66,6 @@ export function ScreenLoadSampleContainer({
   }
 
   const {data: spanMetrics} = useSpanMetrics(
-    groupId,
     filters,
     [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
     'api.starfish.span-summary-panel-samples-table-avg'
@@ -81,12 +79,14 @@ export function ScreenLoadSampleContainer({
             <Tooltip title={release}>
               <Link
                 to={{
-                  pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
-                    release
-                  )}/`,
+                  pathname: normalizeUrl(
+                    `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+                      release
+                    )}/`
+                  ),
                 }}
               >
-                {centerTruncate(release)}
+                {formatVersionAndCenterTruncate(release)}
               </Link>
             </Tooltip>
           </SectionTitle>

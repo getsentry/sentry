@@ -37,7 +37,7 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
@@ -109,7 +109,7 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         assert response_old["end"] == response_new["end"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
@@ -1630,7 +1630,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             per_page=3,
             useCase="custom",
             includeSeries="1",
-            allowPrivate="true",
         )
         groups = response.data["groups"]
 
@@ -1639,20 +1638,20 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             {
                 "by": {},
                 "series": {
-                    "count(g:custom/page_load@millisecond)": [2, 3],
-                    "max(g:custom/page_load@millisecond)": [20.0, 21.0],
-                    "min(g:custom/page_load@millisecond)": [1.0, 2.0],
-                    "last(g:custom/page_load@millisecond)": [20.0, 4.0],
-                    "sum(g:custom/page_load@millisecond)": [21.0, 21.0],
-                    "avg(g:custom/page_load@millisecond)": [10.5, 7.0],
+                    "count(page_load)": [2, 3],
+                    "max(page_load)": [20.0, 21.0],
+                    "min(page_load)": [1.0, 2.0],
+                    "last(page_load)": [20.0, 4.0],
+                    "sum(page_load)": [21.0, 21.0],
+                    "avg(page_load)": [10.5, 7.0],
                 },
                 "totals": {
-                    "count(g:custom/page_load@millisecond)": 5,
-                    "max(g:custom/page_load@millisecond)": 21.0,
-                    "min(g:custom/page_load@millisecond)": 1.0,
-                    "last(g:custom/page_load@millisecond)": 4.0,
-                    "sum(g:custom/page_load@millisecond)": 42.0,
-                    "avg(g:custom/page_load@millisecond)": 8.4,
+                    "count(page_load)": 5,
+                    "max(page_load)": 21.0,
+                    "min(page_load)": 1.0,
+                    "last(page_load)": 4.0,
+                    "sum(page_load)": 42.0,
+                    "avg(page_load)": 8.4,
                 },
             }
         ]

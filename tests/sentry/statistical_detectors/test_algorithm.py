@@ -244,6 +244,7 @@ def test_moving_average_cross_over_detector(
         DetectorPayload(
             project_id=1,
             group=0,
+            fingerprint=0,
             count=i + 1,
             value=value,
             timestamp=now + timedelta(hours=i + 1),
@@ -301,6 +302,7 @@ def test_moving_average_cross_over_detector_bad_order(
     payload = DetectorPayload(
         project_id=1,
         group=0,
+        fingerprint=0,
         count=2,
         value=100,
         timestamp=now,
@@ -311,6 +313,7 @@ def test_moving_average_cross_over_detector_bad_order(
     payload = DetectorPayload(
         project_id=1,
         group=0,
+        fingerprint=0,
         count=1,
         value=100,
         timestamp=now - timedelta(hours=1),
@@ -377,6 +380,7 @@ def test_moving_average_relative_change_detector(
         DetectorPayload(
             project_id=1,
             group=0,
+            fingerprint=0,
             count=i + 1,
             value=value,
             timestamp=now + timedelta(hours=i + 1),

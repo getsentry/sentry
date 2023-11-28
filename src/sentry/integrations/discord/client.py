@@ -42,17 +42,20 @@ class DiscordNonProxyClient(ApiClient):
         self.application_id = options.get("discord.application-id")
         self.bot_token = options.get("discord.bot-token")
 
+    def prepare_auth_header(self) -> dict[str, str]:
+        return {"Authorization": f"Bot {self.bot_token}"}
+
     def overwrite_application_commands(self, commands: list[object]) -> None:
         self.put(
             APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
+            headers=self.prepare_auth_header(),
             data=commands,
         )
 
     def get_guild_name(self, guild_id: str) -> str:
         url = GUILD_URL.format(guild_id=guild_id)
-        headers = {"Authorization": f"Bot {self.bot_token}"}
         try:
-            response = self.get(url, headers=headers)
+            response = self.get(url, headers=self.prepare_auth_header())
             return response["name"]  # type: ignore
         except (ApiError, AttributeError):
             return guild_id
@@ -60,7 +63,7 @@ class DiscordNonProxyClient(ApiClient):
 
 class DiscordClient(IntegrationProxyClient):
     integration_name: str = "discord"
-    base_url: str = "https://discord.com/api/v10"
+    base_url: str = DISCORD_BASE_URL
 
     def __init__(
         self,

@@ -7,6 +7,7 @@ from requests.exceptions import Timeout
 
 from sentry.integrations.discord.utils.auth import verify_signature
 from sentry.integrations.discord.utils.channel import ChannelType, validate_channel_id
+from sentry.integrations.discord.utils.channel_from_url import get_channel_id_from_url
 from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils.cases import TestCase
@@ -106,3 +107,37 @@ class ValidateChannelTest(TestCase):
             validate_channel_id(
                 self.channel_id, self.guild_id, self.integration_id, self.guild_name
             )
+
+
+class GetChannelIdFromUrl(TestCase):
+    def test_happy_path(self):
+        channel_id = get_channel_id_from_url("https://discord.com/channels/guild-id/channel-id")
+        assert channel_id == "channel-id"
+
+    def test_happy_path_with_extra_slash(self):
+        channel_id = get_channel_id_from_url("https://discord.com/channels/guild-id/channel-id/")
+        assert channel_id == "channel-id"
+
+    def test_missing_channel_id_with_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels/guild-id/")
+
+    def test_missing_channel_id_no_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels/guild-id")
+
+    def test_missing_guild_and_channel_with_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels/")
+
+    def test_missing_guild_and_channel_no_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels")
+
+    def test_different_link(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://different.com")
+
+    def test_just_channel_id(self):
+        channel_id = get_channel_id_from_url("123455")
+        assert channel_id == "123455"

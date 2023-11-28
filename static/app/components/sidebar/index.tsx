@@ -280,7 +280,7 @@ function Sidebar({location, organization}: Props) {
                   isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
                   isBeta={SCREENS_RELEASE_LEVEL === 'beta'}
                   isNew={SCREENS_RELEASE_LEVEL === 'new'}
-                  label={t('Screens')}
+                  label={t('Mobile')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
                   icon={<SubitemDot collapsed />}
@@ -289,6 +289,7 @@ function Sidebar({location, organization}: Props) {
               <Feature features={['starfish-browser-resource-module-ui']}>
                 <SidebarItem
                   {...sidebarItemProps}
+                  isNew
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"
@@ -340,13 +341,6 @@ function Sidebar({location, organization}: Props) {
           label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/browser/interactions`}
           id="performance-browser-interactions"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Screens')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/mobile/screens/`}
-          id="starfish-mobile-screen-loads"
           icon={<SubitemDot collapsed={collapsed} />}
         />
       </SidebarAccordion>
@@ -529,6 +523,7 @@ function Sidebar({location, organization}: Props) {
                 {profiling}
                 {ddm}
                 {replays}
+                {feedback}
                 {monitors}
                 {alerts}
               </SidebarSection>
@@ -538,7 +533,6 @@ function Sidebar({location, organization}: Props) {
                 {dashboards}
                 {releases}
                 {userFeedback}
-                {feedback}
               </SidebarSection>
 
               <SidebarSection>
@@ -699,14 +693,6 @@ const PrimaryItems = styled('div')`
     border-bottom: 1px solid ${p => p.theme.gray400};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
-    &::-webkit-scrollbar {
-      background-color: transparent;
-      width: 8px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: ${p => p.theme.gray400};
-      border-radius: 8px;
-    }
   }
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     overflow-y: visible;

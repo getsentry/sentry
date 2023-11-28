@@ -1,8 +1,25 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 
-from sentry.tasks.integrations.github.open_pr_comment import get_pr_filenames, safe_for_comment
+from sentry.models.group import Group
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
+from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.tasks.integrations.github.open_pr_comment import (
+    format_issue_table,
+    format_open_pr_comment,
+    get_issue_table_contents,
+    get_pr_filenames,
+    get_projects_and_filenames_from_source_file,
+    get_top_5_issues_by_count_for_file,
+    open_pr_comment_workflow,
+    safe_for_comment,
+)
+from sentry.tasks.integrations.github.pr_comment import PullRequestIssue
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.tasks.integrations.github.test_pr_comment import GithubCommentTestCase
@@ -10,7 +27,7 @@ from tests.sentry.tasks.integrations.github.test_pr_comment import GithubComment
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestSafeForComment(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
@@ -133,7 +150,7 @@ class TestSafeForComment(GithubCommentTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestGetFilenames(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
@@ -144,7 +161,7 @@ class TestGetFilenames(GithubCommentTestCase):
         self.gh_client = installation.get_client()
 
     @responses.activate
-    def test_simple(self):
+    def test_get_pr_filenames(self):
         responses.add(
             responses.GET,
             self.gh_path.format(pull_number=self.pr.key),
@@ -157,3 +174,524 @@ class TestGetFilenames(GithubCommentTestCase):
         )
 
         assert set(get_pr_filenames(self.gh_client, self.gh_repo, self.pr)) == {"bar.py", "baz.py"}
+
+    def test_get_projects_and_filenames_from_source_file(self):
+        projects = [self.create_project() for _ in range(4)]
+
+        source_stack_pairs = [
+            ("", "./"),
+            ("src/sentry", "sentry/"),
+            ("src/", ""),
+            ("src/sentry/", "sentry/"),
+        ]
+        for i, pair in enumerate(source_stack_pairs):
+            source_root, stack_root = pair
+            self.create_code_mapping(
+                project=projects[i],
+                repo=self.gh_repo,
+                source_root=source_root,
+                stack_root=stack_root,
+                default_branch="master",
+            )
+
+        # matching code mapping from a different org
+        other_org_code_mapping = self.create_code_mapping(
+            project=self.another_org_project,
+            repo=self.another_org_repo,
+            source_root="",
+            stack_root="./",
+        )
+        other_org_code_mapping.organization_id = self.another_organization.id
+        other_org_code_mapping.save()
+
+        source_stack_nonmatches = [
+            ("/src/sentry", "sentry"),
+            ("tests/", "tests/"),
+            ("app/", "static/app"),
+        ]
+        for source_root, stack_root in source_stack_nonmatches:
+            self.create_code_mapping(
+                project=self.create_project(),
+                repo=self.gh_repo,
+                source_root=source_root,
+                stack_root=stack_root,
+                default_branch="master",
+            )
+
+        filename = "src/sentry/tasks/integrations/github/open_pr_comment.py"
+        correct_filenames = [
+            filename.replace(source_root, stack_root)
+            for source_root, stack_root in source_stack_pairs
+        ]
+
+        project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
+            self.organization.id, filename
+        )
+        assert project_list == set(projects)
+        assert sentry_filenames == set(correct_filenames)
+
+
+@region_silo_test
+class TestGetCommentIssues(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
+        self.another_org = self.create_organization()
+        self.another_org_project = self.create_project(organization=self.another_org)
+
+    def _create_event(
+        self,
+        culprit=None,
+        timestamp=None,
+        filenames=None,
+        project_id=None,
+        user_id=None,
+        handled=True,
+    ):
+        if culprit is None:
+            culprit = "issue0"
+        if timestamp is None:
+            timestamp = iso_format(before_now(seconds=5))
+        if filenames is None:
+            filenames = ["foo.py", "baz.py"]
+        if project_id is None:
+            project_id = self.project.id
+
+        return self.store_event(
+            data={
+                "message": "hello!",
+                "culprit": culprit,
+                "platform": "python",
+                "timestamp": timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [{"filename": filename} for filename in filenames],
+                            },
+                            "mechanism": {"handled": handled, "type": "generic"},
+                        },
+                    ]
+                },
+                "user": {"id": user_id},
+            },
+            project_id=project_id,
+        )
+
+    def test_simple(self):
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert top_5_issue_ids == [self.group_id]
+        assert top_5_issues[0]["affected_users"] == 6
+
+    def test_project_group_id_mismatch(self):
+        # we fetch all group_ids that belong to the projects passed into the function
+        self._create_event(project_id=self.another_org_project.id)
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert top_5_issue_ids == [self.group_id]
+
+    def test_filename_mismatch(self):
+        group_id = self._create_event(
+            filenames=["foo.py", "bar.py"],
+        ).group.id
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert group_id != self.group_id
+        assert top_5_issue_ids == [self.group_id]
+
+    def test_event_too_old(self):
+        group_id = self._create_event(
+            timestamp=iso_format(before_now(days=15)), filenames=["bar.py", "baz.py"]
+        ).group.id
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert group_id != self.group_id
+        assert top_5_issue_ids == [self.group_id]
+
+    def test_fetches_top_five_issues(self):
+        group_id_1 = [
+            self._create_event(filenames=["bar.py", "baz.py"], user_id=str(i), handled=False)
+            for i in range(5)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(filenames=["hello.py", "baz.py"], user_id=str(i), handled=True)
+            for i in range(4)
+        ][0].group.id
+        group_id_3 = [
+            self._create_event(filenames=["base.py", "baz.py"], user_id=str(i), handled=False)
+            for i in range(3)
+        ][0].group.id
+        group_id_4 = [
+            self._create_event(filenames=["nom.py", "baz.py"], user_id=str(i), handled=True)
+            for i in range(2)
+        ][0].group.id
+        # 6th issue
+        self._create_event(filenames=["nan.py", "baz.py"])
+        # unrelated issue with same stack trace in different project
+        self._create_event(project_id=self.another_org_project.id)
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        users_affected = [issue["affected_users"] for issue in top_5_issues]
+        is_handled = [issue["is_handled"] for issue in top_5_issues]
+
+        assert top_5_issue_ids == [self.group_id, group_id_1, group_id_2, group_id_3, group_id_4]
+        assert users_affected == [6, 5, 4, 3, 2]
+        assert is_handled == [1, 0, 1, 0, 1]
+
+    def test_get_issue_table_contents(self):
+        group_id_1 = [
+            self._create_event(
+                culprit="issue1", filenames=["bar.py", "baz.py"], user_id=str(i), handled=False
+            )
+            for i in range(5)
+        ][0].group.id
+        group_id_2 = [
+            self._create_event(
+                culprit="issue2", filenames=["hello.py", "baz.py"], user_id=str(i), handled=True
+            )
+            for i in range(4)
+        ][0].group.id
+        group_id_3 = [
+            self._create_event(
+                culprit="issue3", filenames=["base.py", "baz.py"], user_id=str(i), handled=False
+            )
+            for i in range(3)
+        ][0].group.id
+        group_id_4 = [
+            self._create_event(
+                culprit="issue4", filenames=["nom.py", "baz.py"], user_id=str(i), handled=True
+            )
+            for i in range(2)
+        ][0].group.id
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        affected_users = [issue["affected_users"] for issue in top_5_issues]
+        event_count = [issue["event_count"] for issue in top_5_issues]
+        is_handled = [bool(issue["is_handled"]) for issue in top_5_issues]
+
+        comment_table_contents = get_issue_table_contents(top_5_issues)
+        group_ids = [self.group_id, group_id_1, group_id_2, group_id_3, group_id_4]
+
+        for i in range(5):
+            subtitle = "issue" + str(i)
+            assert (
+                PullRequestIssue(
+                    title="Error",
+                    subtitle=subtitle,
+                    url=f"http://testserver/organizations/{self.organization.slug}/issues/{group_ids[i]}/",
+                    affected_users=affected_users[i],
+                    event_count=event_count[i],
+                    is_handled=is_handled[i],
+                )
+                in comment_table_contents
+            )
+
+
+@region_silo_test
+class TestFormatComment(TestCase):
+    def setUp(self):
+        super().setUp()
+
+    def test_comment_format(self):
+        file1 = "tests/sentry/tasks/integrations/github/test_open_pr_comment.py"
+        file1_issues = [
+            PullRequestIssue(
+                title="file1 " + str(i),
+                subtitle="subtitle" + str(i),
+                url=f"http://testserver/organizations/{self.organization.slug}/issues/{str(i)}/",
+                affected_users=(5 - i) * 1000,
+                event_count=(5 - i) * 1000,
+                is_handled=True,
+            )
+            for i in range(5)
+        ]
+        file2 = "tests/sentry/tasks/integrations/github/test_pr_comment.py"
+
+        # test truncating the issue description
+        file2_issues = [
+            PullRequestIssue(
+                title="SoftTimeLimitExceeded " + str(i),
+                subtitle="sentry.tasks.low_priority_symbolication.scan_for_suspect" + str(i),
+                url=f"http://testserver/organizations/{self.organization.slug}/issues/{str(i+5)}/",
+                affected_users=(2 - i) * 10000,
+                event_count=(2 - i) * 10000,
+                is_handled=False,
+            )
+            for i in range(2)
+        ]
+
+        issue_table = format_issue_table(file1, file1_issues)
+        toggle_issue_table = format_issue_table(file2, file2_issues, toggle=True)
+        comment = format_open_pr_comment([issue_table, toggle_issue_table])
+
+        assert (
+            comment
+            == """## 🚀 Sentry Issue Report
+You modified these files in this pull request and we noticed these issues associated with them.
+
+📄 **tests/sentry/tasks/integrations/github/test_open_pr_comment.py**
+
+| Issue  | Additional Info |
+| :--------- | :-------- |
+| ‼️ [**file1 0**](http://testserver/organizations/baz/issues/0/?referrer=github-open-pr-bot) subtitle0 | `Handled:` **True** `Event Count:` **5k** `Users:` **5k** |
+| ‼️ [**file1 1**](http://testserver/organizations/baz/issues/1/?referrer=github-open-pr-bot) subtitle1 | `Handled:` **True** `Event Count:` **4k** `Users:` **4k** |
+| ‼️ [**file1 2**](http://testserver/organizations/baz/issues/2/?referrer=github-open-pr-bot) subtitle2 | `Handled:` **True** `Event Count:` **3k** `Users:` **3k** |
+| ‼️ [**file1 3**](http://testserver/organizations/baz/issues/3/?referrer=github-open-pr-bot) subtitle3 | `Handled:` **True** `Event Count:` **2k** `Users:` **2k** |
+| ‼️ [**file1 4**](http://testserver/organizations/baz/issues/4/?referrer=github-open-pr-bot) subtitle4 | `Handled:` **True** `Event Count:` **1k** `Users:` **1k** |
+<details>
+<summary><b>📄 tests/sentry/tasks/integrations/github/test_pr_comment.py (Click to Expand)</b></summary>
+
+| Issue  | Additional Info |
+| :--------- | :-------- |
+| ‼️ [**SoftTimeLimitExceeded 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... | `Handled:` **False** `Event Count:` **20k** `Users:` **20k** |
+| ‼️ [**SoftTimeLimitExceeded 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... | `Handled:` **False** `Event Count:` **10k** `Users:` **10k** |
+</details>
+---
+
+<sub>Did you find this useful? React with a 👍 or 👎 or let us know in #proj-github-pr-comments</sub>"""
+        )
+
+
+@region_silo_test
+class TestOpenPRCommentWorkflow(GithubCommentTestCase):
+    def setUp(self):
+        super().setUp()
+        self.user_id = "user_1"
+        self.app_id = "app_1"
+        self.pr = self.create_pr_issues()
+        self.groups = [
+            {
+                "group_id": g.id,
+                "event_count": 1000 * (i + 1),
+                "affected_users": 1000 * (i + 1),
+                "is_handled": True,
+            }
+            for i, g in enumerate(Group.objects.all())
+        ]
+        self.groups.reverse()
+        self.group_ids = [g["group_id"] for g in self.groups]
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch(
+        "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
+    )
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=True)
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @responses.activate
+    def test_comment_workflow(
+        self,
+        mock_metrics,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
+        # two filenames, the second one has a toggle table
+        mock_pr_filenames.return_value = ["foo.py", "bar.py"]
+        mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
+
+        mock_issues.return_value = self.groups
+
+        responses.add(
+            responses.POST,
+            self.base_url + "/repos/getsentry/sentry/issues/1/comments",
+            json={"id": 1},
+            headers={"X-Ratelimit-Limit": "60", "X-Ratelimit-Remaining": "59"},
+        )
+
+        open_pr_comment_workflow(self.pr.id)
+
+        assert (
+            responses.calls[0].request.body
+            == f'{{"body": "## \\ud83d\\ude80 Sentry Issue Report\\nYou modified these files in this pull request and we noticed these issues associated with them.\\n\\n\\ud83d\\udcc4 **foo.py**\\n\\n| Issue  | Additional Info |\\n| :--------- | :-------- |\\n| \\u203c\\ufe0f [**issue 2**](http://testserver/organizations/foobar/issues/{self.group_ids[0]}/?referrer=github-open-pr-bot) issue2 | `Handled:` **True** `Event Count:` **2k** `Users:` **2k** |\\n| \\u203c\\ufe0f [**issue 1**](http://testserver/organizations/foo/issues/{self.group_ids[1]}/?referrer=github-open-pr-bot) issue1 | `Handled:` **True** `Event Count:` **1k** `Users:` **1k** |\\n<details>\\n<summary><b>\\ud83d\\udcc4 bar.py (Click to Expand)</b></summary>\\n\\n| Issue  | Additional Info |\\n| :--------- | :-------- |\\n| \\u203c\\ufe0f [**issue 2**](http://testserver/organizations/foobar/issues/{self.group_ids[0]}/?referrer=github-open-pr-bot) issue2 | `Handled:` **True** `Event Count:` **2k** `Users:` **2k** |\\n| \\u203c\\ufe0f [**issue 1**](http://testserver/organizations/foo/issues/{self.group_ids[1]}/?referrer=github-open-pr-bot) issue1 | `Handled:` **True** `Event Count:` **1k** `Users:` **1k** |\\n</details>\\n---\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e or let us know in #proj-github-pr-comments</sub>"}}'.encode()
+        )
+
+        pull_request_comment_query = PullRequestComment.objects.all()
+        assert len(pull_request_comment_query) == 1
+        assert pull_request_comment_query[0].external_id == 1
+        assert pull_request_comment_query[0].comment_type == CommentType.OPEN_PR
+        mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_created")
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch(
+        "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
+    )
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=True)
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    @responses.activate
+    def test_comment_workflow_early_return(
+        self,
+        mock_metrics,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
+        mock_pr_filenames.return_value = ["foo.py"]
+        # no codemappings
+        mock_reverse_codemappings.return_value = ([], [])
+        mock_issues.return_value = []
+
+        open_pr_comment_workflow(self.pr.id)
+
+        pull_request_comment_query = PullRequestComment.objects.all()
+        assert len(pull_request_comment_query) == 0
+        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
+
+        # has codemappings but no issues
+        mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
+
+        open_pr_comment_workflow(self.pr.id)
+
+        pull_request_comment_query = PullRequestComment.objects.all()
+        assert len(pull_request_comment_query) == 0
+        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch(
+        "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
+    )
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=True)
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    @responses.activate
+    def test_comment_workflow_api_error(
+        self,
+        mock_metrics,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
+        mock_pr_filenames.return_value = ["foo.py"]
+        mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
+
+        mock_issues.return_value = self.groups
+
+        responses.add(
+            responses.POST,
+            self.base_url + "/repos/getsentry/sentry/issues/1/comments",
+            status=400,
+            json={"id": 1},
+        )
+        responses.add(
+            responses.POST,
+            self.base_url + "/repos/getsentry/sentry/issues/2/comments",
+            status=400,
+            json={
+                "message": "Unable to create comment because issue is locked.",
+                "documentation_url": "https://docs.github.com/articles/locking-conversations/",
+            },
+        )
+        responses.add(
+            responses.POST,
+            self.base_url + "/repos/getsentry/sentry/issues/3/comments",
+            status=400,
+            json={
+                "message": "API rate limit exceeded",
+                "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
+            },
+        )
+
+        with pytest.raises(ApiError):
+            open_pr_comment_workflow(self.pr.id)
+            mock_metrics.incr.assert_called_with("github_open_pr_comment.api_error")
+
+        pr_2 = self.create_pr_issues()
+
+        # does not raise ApiError for locked issue
+        open_pr_comment_workflow(pr_2.id)
+        mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.error", tags={"type": "issue_locked_error"}
+        )
+
+        pr_3 = self.create_pr_issues()
+
+        # does not raise ApiError for rate limited error
+        open_pr_comment_workflow(pr_3.id)
+        mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.error", tags={"type": "rate_limited_error"}
+        )
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    def test_comment_workflow_missing_pr(self, mock_metrics, mock_pr_filenames):
+        PullRequest.objects.all().delete()
+
+        open_pr_comment_workflow(0)
+
+        assert not mock_pr_filenames.called
+        mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.error", tags={"type": "missing_pr"}
+        )
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    def test_comment_workflow_missing_org(self, mock_metrics, mock_pr_filenames):
+        self.pr.organization_id = 0
+        self.pr.save()
+
+        open_pr_comment_workflow(self.pr.id)
+
+        assert not mock_pr_filenames.called
+        mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.error", tags={"type": "missing_org"}
+        )
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    def test_comment_workflow_missing_org_option(self, mock_pr_filenames):
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_open_pr_bot", value=False
+        )
+        open_pr_comment_workflow(self.pr.id)
+
+        assert not mock_pr_filenames.called
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    def test_comment_workflow_missing_repo(self, mock_metrics, mock_pr_filenames):
+        self.pr.repository_id = 0
+        self.pr.save()
+
+        open_pr_comment_workflow(self.pr.id)
+
+        assert not mock_pr_filenames.called
+        mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.error", tags={"type": "missing_repo"}
+        )
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    def test_comment_workflow_missing_integration(self, mock_metrics, mock_pr_filenames):
+        # invalid integration id
+        self.gh_repo.integration_id = 0
+        self.gh_repo.save()
+
+        open_pr_comment_workflow(self.pr.id)
+
+        assert not mock_pr_filenames.called
+        mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.error", tags={"type": "missing_integration"}
+        )
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=False)
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    def test_comment_workflow_not_safe_for_comment(
+        self, mock_metrics, mock_pr_filenames, mock_safe_for_comment
+    ):
+        open_pr_comment_workflow(self.pr.id)
+
+        assert not mock_pr_filenames.called
+        mock_metrics.incr.assert_called_with(
+            "github_open_pr_comment.error", tags={"type": "unsafe_for_comment"}
+        )

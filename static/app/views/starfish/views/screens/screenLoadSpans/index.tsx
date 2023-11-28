@@ -3,6 +3,8 @@ import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -13,7 +15,6 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -59,12 +60,12 @@ function ScreenLoadSpans() {
   const crumbs: Crumb[] = [
     {
       to: screenLoadModule,
-      label: t('Screens'),
+      label: t('Mobile'),
       preservePageFilters: true,
     },
     {
       to: '',
-      label: decodeScalar(location.query.transaction),
+      label: t('Screen Summary'),
     },
   ];
 
@@ -87,6 +88,7 @@ function ScreenLoadSpans() {
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
+            <FeedbackWidget />
             <Layout.Main fullWidth>
               <PageErrorAlert />
               <StarfishPageFiltersContainer>
@@ -97,55 +99,59 @@ function ScreenLoadSpans() {
                     </PageFilterBar>
                     <ReleaseComparisonSelector />
                   </FilterContainer>
-                  <ScreenMetricsRibbon />
+                  <ScreenMetricsRibbon
+                    additionalFilters={[`transaction:${transactionName}`]}
+                  />
                 </Container>
               </StarfishPageFiltersContainer>
-              <ScreenCharts
-                yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
-                additionalFilters={[`transaction:${transactionName}`]}
-                chartHeight={120}
-              />
-              <SampleContainer>
-                <SampleContainerItem>
-                  <ScreenLoadEventSamples
-                    release={primaryRelease}
-                    sortKey="release1Samples"
-                    cursorName="release1Cursor"
-                    transaction={transactionName}
-                    showDeviceClassSelector
-                  />
-                </SampleContainerItem>
-                <SampleContainerItem>
-                  <ScreenLoadEventSamples
-                    release={secondaryRelease}
-                    sortKey="release2Samples"
-                    cursorName="release2Cursor"
-                    transaction={transactionName}
-                  />
-                </SampleContainerItem>
-              </SampleContainer>
-              <ScreenLoadSpansTable
-                transaction={transactionName}
-                primaryRelease={primaryRelease}
-                secondaryRelease={secondaryRelease}
-              />
-              {spanGroup && (
-                <ScreenLoadSpanSamples
-                  groupId={spanGroup}
-                  transactionName={transactionName}
-                  spanDescription={spanDescription}
-                  onClose={() => {
-                    router.replace({
-                      pathname: router.location.pathname,
-                      query: omit(
-                        router.location.query,
-                        'spanGroup',
-                        'transactionMethod'
-                      ),
-                    });
-                  }}
+              <ErrorBoundary mini>
+                <ScreenCharts
+                  yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
+                  additionalFilters={[`transaction:${transactionName}`]}
+                  chartHeight={120}
                 />
-              )}
+                <SampleContainer>
+                  <SampleContainerItem>
+                    <ScreenLoadEventSamples
+                      release={primaryRelease}
+                      sortKey="release1Samples"
+                      cursorName="release1Cursor"
+                      transaction={transactionName}
+                      showDeviceClassSelector
+                    />
+                  </SampleContainerItem>
+                  <SampleContainerItem>
+                    <ScreenLoadEventSamples
+                      release={secondaryRelease}
+                      sortKey="release2Samples"
+                      cursorName="release2Cursor"
+                      transaction={transactionName}
+                    />
+                  </SampleContainerItem>
+                </SampleContainer>
+                <ScreenLoadSpansTable
+                  transaction={transactionName}
+                  primaryRelease={primaryRelease}
+                  secondaryRelease={secondaryRelease}
+                />
+                {spanGroup && (
+                  <ScreenLoadSpanSamples
+                    groupId={spanGroup}
+                    transactionName={transactionName}
+                    spanDescription={spanDescription}
+                    onClose={() => {
+                      router.replace({
+                        pathname: router.location.pathname,
+                        query: omit(
+                          router.location.query,
+                          'spanGroup',
+                          'transactionMethod'
+                        ),
+                      });
+                    }}
+                  />
+                )}
+              </ErrorBoundary>
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>

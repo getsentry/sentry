@@ -35,8 +35,8 @@ function ResourceSummaryCharts(props: {groupId: string}) {
 
   const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries(
-      props.groupId,
       {
+        'span.group': props.groupId,
         ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
           ? {[RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS]}
           : {}),
@@ -98,6 +98,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
         <ChartPanel title={t('Average Resource Size')}>
           <Chart
             height={160}
+            aggregateOutputFormat="size"
             data={[
               spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
               spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],

@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
@@ -16,12 +17,13 @@ import JSCSSView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
 } from 'sentry/views/performance/browser/resources/jsCssView';
-import DomainSelector from 'sentry/views/performance/browser/resources/shared/domainSelector';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
@@ -51,29 +53,33 @@ function ResourcesLandingPage() {
             ]}
           />
 
-          <Layout.Title>
-            {t('Resources')}
-            <FeatureBadge type="alpha" />
-          </Layout.Title>
+          <Layout.Title>{t('Resources')}</Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
+          <FeedbackWidget />
           <FilterOptionsContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
+              <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
             <DomainSelector
+              emptyOptionLocation="top"
               value={filters[SPAN_DOMAIN] || ''}
-              defaultResourceTypes={DEFAULT_RESOURCE_TYPES}
+              additionalQuery={[
+                ...DEFAULT_RESOURCE_FILTERS,
+                `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+              ]}
             />
           </FilterOptionsContainer>
 
           {(!filters[SPAN_OP] ||
             filters[SPAN_OP] === 'resource.script' ||
-            filters[SPAN_OP] === 'resource.css') && <JSCSSView />}
+            filters[SPAN_OP] === 'resource.css' ||
+            filters[SPAN_OP] === 'resource.font') && <JSCSSView />}
 
           {filters[SPAN_OP] === 'resource.img' && <ImageView />}
         </Layout.Main>

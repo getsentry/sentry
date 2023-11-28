@@ -3,7 +3,6 @@ from io import BytesIO
 from unittest import mock
 from uuid import uuid4
 
-import pytest
 from django.urls import reverse
 
 from sentry.models.files.file import File
@@ -18,14 +17,7 @@ from sentry.utils import kafka_config
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@pytest.fixture(autouse=True)
-def setup():
-    with mock.patch.object(kafka_config, "get_kafka_producer_cluster_options"):
-        with mock.patch.object(kafka, "KafkaPublisher"):
-            yield
-
-
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details"
 
@@ -123,6 +115,15 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 error_ids=[],
             )
         )
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp,
+                self.project.id,
+                "error",
+                replay1_id,
+                "a3a62ef6ac86415b83c2416fc2f76db1",
+            )
+        )
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
@@ -147,6 +148,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 ],
                 count_segments=3,
                 activity=4,
+                count_errors=1,
             )
             assert_expected_response(response_data["data"], expected_response)
 
@@ -170,7 +172,9 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         recording_segment_id = recording_segment.id
 
         with self.feature(REPLAYS_FEATURES):
-            with TaskRunner():
+            with TaskRunner(), mock.patch.object(
+                kafka_config, "get_kafka_producer_cluster_options"
+            ), mock.patch.object(kafka, "KafkaPublisher"):
                 response = self.client.delete(self.url)
                 assert response.status_code == 202
 
