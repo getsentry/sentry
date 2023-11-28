@@ -666,7 +666,7 @@ class MarkFailedTestCase(TestCase):
         monitor_incident = monitor_incidents.first()
         assert monitor_incident.starting_checkin == first_checkin
         assert monitor_incident.starting_timestamp == first_checkin.date_added
-        assert monitor_incident.grouphash == monitor_environment.incident_grouphash
+        assert monitor_incident.fingerprint == monitor_environment.incident_fingerprint
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold
@@ -674,7 +674,7 @@ class MarkFailedTestCase(TestCase):
         kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
         occurrence = kwargs["occurrence"]
         occurrence = occurrence.to_dict()
-        assert occurrence["fingerprint"][0] == monitor_incident.grouphash
+        assert occurrence["fingerprint"][0] == monitor_incident.fingerprint
 
         # send another check-in to make sure we don't update last_state_change
         status = next(failure_statuses)
@@ -691,7 +691,7 @@ class MarkFailedTestCase(TestCase):
 
         # check that incident has not changed
         monitor_incident = MonitorIncident.objects.get(id=monitor_incident.id)
-        assert monitor_incident.grouphash == monitor_environment.incident_grouphash
+        assert monitor_incident.fingerprint == monitor_environment.incident_fingerprint
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold + 1
@@ -699,7 +699,7 @@ class MarkFailedTestCase(TestCase):
         kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
         occurrence = kwargs["occurrence"]
         occurrence = occurrence.to_dict()
-        assert occurrence["fingerprint"][0] == monitor_incident.grouphash
+        assert occurrence["fingerprint"][0] == monitor_incident.fingerprint
 
     # Test to make sure that timeout mark_failed (which occur in the past)
     # correctly create issues once passing the failure_issue_threshold
@@ -774,7 +774,7 @@ class MarkFailedTestCase(TestCase):
         monitor_incident = monitor_incidents.first()
         assert monitor_incident.starting_checkin == first_checkin
         assert monitor_incident.starting_timestamp == first_checkin.date_added
-        assert monitor_incident.grouphash == monitor_environment.incident_grouphash
+        assert monitor_incident.fingerprint == monitor_environment.incident_fingerprint
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold
@@ -782,7 +782,7 @@ class MarkFailedTestCase(TestCase):
         kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
         occurrence = kwargs["occurrence"]
         occurrence = occurrence.to_dict()
-        assert occurrence["fingerprint"][0] == monitor_incident.grouphash
+        assert occurrence["fingerprint"][0] == monitor_incident.fingerprint
 
     # we are duplicating this test as the code paths are different, for now
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")

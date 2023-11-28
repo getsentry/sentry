@@ -50,15 +50,15 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         # Resolve any open incidents
         if incident_recovering:
             # TODO(rjo100): Check for multiple open incidents where we only
-            # resolved if recovery_threshold was set and not faiure_issue_threshold
+            # resolved if recovery_threshold was set and not failure_issue_threshold
             active_incidents = MonitorIncident.objects.filter(
                 monitor_environment=monitor_env,
                 resolving_checkin__isnull=True,
             )
 
             # Only send an occurrence if we have an active incident
-            for grouphash in active_incidents.values_list("grouphash", flat=True):
-                resolve_incident_group(grouphash, checkin.monitor.project_id)
+            for fingerprint in active_incidents.values_list("fingerprint", flat=True):
+                resolve_incident_group(fingerprint, checkin.monitor.project_id)
             if active_incidents.update(
                 resolving_checkin=checkin,
                 resolving_timestamp=checkin.date_added,

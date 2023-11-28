@@ -103,7 +103,7 @@ class MarkOkTestCase(TestCase):
             monitor_environment=monitor_environment,
             starting_checkin=first_checkin,
             starting_timestamp=first_checkin.date_added,
-            grouphash=monitor_environment.incident_grouphash,
+            fingerprint=monitor_environment.incident_fingerprint,
         )
 
         # Create OK check-ins
@@ -186,7 +186,7 @@ class MarkOkTestCase(TestCase):
         assert dict(
             status_change,
             **{
-                "fingerprint": [incident.grouphash],
+                "fingerprint": [incident.fingerprint],
                 "project_id": monitor.project_id,
                 "new_status": GroupStatus.RESOLVED,
                 "new_substatus": None,

@@ -620,7 +620,7 @@ class MonitorEnvironment(Model):
         )
 
     @property
-    def incident_grouphash(self):
+    def incident_fingerprint(self):
         # TODO(rjo100): Check to see if there's an active incident
         # if not, use last_state_change as fallback
         active_incident = (
@@ -631,10 +631,10 @@ class MonitorEnvironment(Model):
             .first()
         )
         if active_incident:
-            return active_incident.grouphash
+            return active_incident.fingerprint
 
         # XXX(rjo100): While we migrate monitor issues to using the
-        # Incident stored grouphash we still may have some active issues
+        # Incident stored fingerprint we still may have some active issues
         # that are using the old hashes. We can remove this in the
         # future once all existing issues are resolved.
         return hash_from_values(
@@ -681,7 +681,7 @@ class MonitorIncident(Model):
     This represents the final OK check-in that we receive
     """
 
-    grouphash = models.CharField(max_length=32)
+    fingerprint = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
