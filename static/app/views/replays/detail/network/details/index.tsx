@@ -120,9 +120,11 @@ const CloseButtonWrapper = styled('div')`
 `;
 
 const StyledSplitDivider = styled(SplitDivider)`
+  padding: ${space(0.75)};
+
   :hover,
   &[data-is-held='true'] {
-    z-index: ${p => p.theme.zIndex.initial + 1};
+    z-index: ${p => p.theme.zIndex.initial};
   }
 `;
 

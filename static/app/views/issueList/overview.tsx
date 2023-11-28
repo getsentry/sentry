@@ -27,6 +27,7 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {space} from 'sentry/styles/space';
 import {
@@ -56,6 +57,10 @@ import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
+import {
+  GroupStatsProvider,
+  GroupStatsQuery,
+} from 'sentry/views/issueList/groupStatsProvider';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 import IssueListActions from './actions';
@@ -93,6 +98,7 @@ type Props = {
   savedSearch: SavedSearch;
   savedSearchLoading: boolean;
   savedSearches: SavedSearch[];
+  selectedSearchId: string;
   selection: PageFilters;
   tags: TagCollection;
 } & RouteComponentProps<{searchId?: string}, {}> &
@@ -123,7 +129,7 @@ type State = {
   query?: string;
 };
 
-type EndpointParams = Partial<PageFilters['datetime']> & {
+interface EndpointParams extends Partial<PageFilters['datetime']> {
   environment: string[];
   project: number[];
   cursor?: string;
@@ -132,15 +138,10 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
-};
+}
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
   query: string[];
-};
-
-type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
-  groups: string[];
-  expand?: string | string[];
 };
 
 class IssueListOverview extends Component<Props, State> {
@@ -180,8 +181,14 @@ class IssueListOverview extends Component<Props, State> {
     // Wait for saved searches to load so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
     // But if searches are already there, we can go right to fetching issues
-    if (!this.props.savedSearchLoading) {
-      this.fetchData();
+    if (
+      !this.props.savedSearchLoading ||
+      this.props.organization.features.includes('issue-stream-performance')
+    ) {
+      const loadedFromCache = this.loadFromCache();
+      if (!loadedFromCache) {
+        this.fetchData();
+      }
     }
     this.fetchTags();
     this.fetchMemberList();
@@ -202,6 +209,7 @@ class IssueListOverview extends Component<Props, State> {
     // If the project selection has changed reload the member list and tag keys
     // allowing autocomplete and tag sidebar to be more accurate.
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+      this.loadFromCache();
       this.fetchMemberList();
       this.fetchTags();
     }
@@ -210,8 +218,23 @@ class IssueListOverview extends Component<Props, State> {
     if (this.props.savedSearchLoading) {
       return;
     }
-    if (prevProps.savedSearchLoading) {
-      this.fetchData();
+
+    if (
+      prevProps.savedSearchLoading &&
+      !this.props.savedSearchLoading &&
+      this.props.organization.features.includes('issue-stream-performance')
+    ) {
+      return;
+    }
+
+    if (
+      prevProps.savedSearchLoading &&
+      !this.props.organization.features.includes('issue-stream-performance')
+    ) {
+      const loadedFromCache = this.loadFromCache();
+      if (!loadedFromCache) {
+        this.fetchData();
+      }
       return;
     }
 
@@ -255,6 +278,20 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   componentWillUnmount() {
+    const groups = GroupStore.getState() as Group[];
+    if (
+      groups.length > 0 &&
+      !this.state.issuesLoading &&
+      !this.state.realtimeActive &&
+      this.props.organization.features.includes('issue-stream-performance-cache')
+    ) {
+      IssueListCacheStore.save(this.getCacheEndpointParams(), {
+        groups,
+        queryCount: this.state.queryCount,
+        queryMaxCount: this.state.queryMaxCount,
+        pageLinks: this.state.pageLinks,
+      });
+    }
     this._poller.disable();
     SelectedGroupStore.reset();
     GroupStore.reset();
@@ -264,7 +301,6 @@ class IssueListOverview extends Component<Props, State> {
 
   private _poller: any;
   private _lastRequest: any;
-  private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
 
   getQueryFromSavedSearchOrLocation({
@@ -296,6 +332,39 @@ class IssueListOverview extends Component<Props, State> {
       return location.query.sort as string;
     }
     return DEFAULT_ISSUE_STREAM_SORT;
+  }
+
+  /**
+   * Load the previous
+   * @returns Returns true if the data was loaded from cache
+   */
+  loadFromCache(): boolean {
+    if (!this.props.organization.features.includes('issue-stream-performance-cache')) {
+      return false;
+    }
+
+    const cache = IssueListCacheStore.getFromCache(this.getCacheEndpointParams());
+    if (!cache) {
+      return false;
+    }
+
+    this.setState(
+      {
+        issuesLoading: false,
+        queryCount: cache.queryCount,
+        queryMaxCount: cache.queryMaxCount,
+        pageLinks: cache.pageLinks,
+      },
+      () => {
+        // Handle this in the next tick to avoid being overwritten by GroupStore.reset
+        // Group details clears the GroupStore at the same time this component mounts
+        GroupStore.add(cache.groups);
+        // Clear cache after loading
+        IssueListCacheStore.reset();
+      }
+    );
+
+    return true;
   }
 
   getQuery(): string {
@@ -360,6 +429,14 @@ class IssueListOverview extends Component<Props, State> {
     return pickBy(params, v => defined(v)) as EndpointParams;
   };
 
+  getCacheEndpointParams = (): EndpointParams => {
+    const cursor = this.props.location.query.cursor;
+    return {
+      ...this.getEndpointParams(),
+      cursor,
+    };
+  };
+
   getSelectedProjectIds = (): string[] => {
     return this.props.selection.projects.map(projectId => String(projectId));
   };
@@ -378,48 +455,6 @@ class IssueListOverview extends Component<Props, State> {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
   }
-
-  fetchStats = (groups: string[]) => {
-    // If we have no groups to fetch, just skip stats
-    if (!groups.length) {
-      return;
-    }
-    const requestParams: StatEndpointParams = {
-      ...this.getEndpointParams(),
-      groups,
-    };
-    // If no stats period values are set, use default
-    if (!requestParams.statsPeriod && !requestParams.start) {
-      requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
-    }
-
-    this._lastStatsRequest = this.props.api.request(this.groupStatsEndpoint, {
-      method: 'GET',
-      data: qs.stringify(requestParams),
-      success: data => {
-        if (!data) {
-          return;
-        }
-        GroupStore.onPopulateStats(groups, data);
-        this.trackTabViewed(groups, data);
-      },
-      error: err => {
-        this.setState({
-          error: parseApiError(err),
-        });
-      },
-      complete: () => {
-        this._lastStatsRequest = null;
-
-        // End navigation transaction to prevent additional page requests from impacting page metrics.
-        // Other transactions include stacktrace preview request
-        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
-        if (currentTransaction?.op === 'navigation') {
-          currentTransaction.finish();
-        }
-      },
-    });
-  };
 
   fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
     const {organization} = this.props;
@@ -523,11 +558,35 @@ class IssueListOverview extends Component<Props, State> {
       error: null,
     });
 
+    // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend
+    const savedSearchLookupEnabled = 0;
+    const savedSearchLookupDisabled = 1;
+
     const requestParams: any = {
       ...this.getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
+      savedSearch: this.props.organization.features.includes('issue-stream-performance')
+        ? this.props.savedSearchLoading
+          ? savedSearchLookupEnabled
+          : savedSearchLookupDisabled
+        : savedSearchLookupDisabled,
     };
+
+    if (
+      this.props.organization.features.includes('issue-stream-performance') &&
+      this.props.selectedSearchId
+    ) {
+      requestParams.searchId = this.props.selectedSearchId;
+    }
+
+    if (
+      this.props.organization.features.includes('issue-stream-performance') &&
+      this.props.savedSearchLoading &&
+      !this.props.location.query.query
+    ) {
+      delete requestParams.query;
+    }
 
     const currentQuery = this.props.location.query || {};
     if ('cursor' in currentQuery) {
@@ -544,9 +603,6 @@ class IssueListOverview extends Component<Props, State> {
 
     if (this._lastRequest) {
       this._lastRequest.cancel();
-    }
-    if (this._lastStatsRequest) {
-      this._lastStatsRequest.cancel();
     }
     if (this._lastFetchCountsRequest) {
       this._lastFetchCountsRequest.cancel();
@@ -589,8 +645,6 @@ class IssueListOverview extends Component<Props, State> {
           GroupStore.loadInitialData(data);
         }
         GroupStore.add(data);
-
-        this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
         const queryCount =
@@ -952,9 +1006,6 @@ class IssueListOverview extends Component<Props, State> {
     if (this._lastRequest) {
       this._lastRequest.cancel();
     }
-    if (this._lastStatsRequest) {
-      this._lastStatsRequest.cancel();
-    }
     if (this._lastFetchCountsRequest) {
       this._lastFetchCountsRequest.cancel();
     }
@@ -1112,8 +1163,37 @@ class IssueListOverview extends Component<Props, State> {
     };
   };
 
+  onStatsQuery = (query: GroupStatsQuery) => {
+    switch (query.status) {
+      case 'loading':
+        break;
+      case 'success':
+        const data = Object.values(query.data ?? {});
+        if (data && data[0]) {
+          // The type being cast was wrong in the previous implementations as well
+          // because inference was broken. Ignore it for now.
+          this.trackTabViewed(this.state.groupIds, data as Group[]);
+        }
+        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        if (currentTransaction?.op === 'navigation') {
+          currentTransaction.finish();
+        }
+        break;
+      case 'error':
+        this.setState({
+          // Missing our custom getResponseHeader function, but parseApiError does not require it
+          error: parseApiError(query?.error),
+        });
+        break;
+      default:
+    }
+  };
+
   render() {
-    if (this.props.savedSearchLoading) {
+    if (
+      this.props.savedSearchLoading &&
+      !this.props.organization.features.includes('issue-stream-performance')
+    ) {
       return this.renderLoading();
     }
 
@@ -1183,22 +1263,31 @@ class IssueListOverview extends Component<Props, State> {
                   showProject
                 />
                 <VisuallyCompleteWithData
-                  hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
+                  hasData={this.state.groupIds.length > 0}
                   isLoading={this.state.issuesLoading}
                 >
-                  <GroupListBody
-                    memberList={this.state.memberList}
-                    groupStatsPeriod={this.getGroupStatsPeriod()}
+                  <GroupStatsProvider
                     groupIds={groupIds}
-                    displayReprocessingLayout={displayReprocessingActions}
-                    query={query}
-                    sort={this.getSort()}
-                    selectedProjectIds={selection.projects}
-                    loading={issuesLoading}
-                    error={error}
-                    refetchGroups={this.fetchData}
-                  />
+                    selection={this.props.selection}
+                    organization={this.props.organization}
+                    period={this.getGroupStatsPeriod()}
+                    query={this.getQuery()}
+                    onStatsQuery={this.onStatsQuery}
+                  >
+                    <GroupListBody
+                      memberList={this.state.memberList}
+                      groupStatsPeriod={this.getGroupStatsPeriod()}
+                      groupIds={groupIds}
+                      displayReprocessingLayout={displayReprocessingActions}
+                      sort={this.getSort()}
+                      selectedProjectIds={selection.projects}
+                      loading={issuesLoading}
+                      error={error}
+                      query={query}
+                      refetchGroups={this.fetchData}
+                    />
+                  </GroupStatsProvider>
                 </VisuallyCompleteWithData>
               </PanelBody>
             </Panel>

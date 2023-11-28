@@ -43,17 +43,12 @@ from sentry.web.frontend.project_event import ProjectEventRedirect
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
-from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
-from sentry.web.frontend.unsubscribe_incident_notifications import (
-    UnsubscribeIncidentNotificationsView,
-)
-from sentry.web.frontend.unsubscribe_issue_notifications import UnsubscribeIssueNotificationsView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ("urlpatterns",)
@@ -311,6 +306,11 @@ urlpatterns += [
                     name="sentry-account-set-password-confirm",
                 ),
                 re_path(
+                    r"^relocation/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$",
+                    accounts.relocate_confirm,
+                    name="sentry-account-relocate-confirm",
+                ),
+                re_path(
                     r"^settings/$",
                     RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
                 ),
@@ -365,33 +365,12 @@ urlpatterns += [
                     SetupWizardView.as_view(),
                     name="sentry-project-wizard-fetch",
                 ),
-                # compatibility
-                re_path(
-                    r"^settings/notifications/unsubscribe/(?P<project_id>\d+)/$",
-                    accounts.email_unsubscribe_project,
-                ),
+                # Compatibility
                 re_path(
                     r"^settings/notifications/",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-notifications", permanent=False
                     ),
-                ),
-                # TODO(hybridcloud) These routes can be removed in Jan 2024 as all valid links
-                # will have been generated with hybrid-cloud compatible URLs.
-                re_path(
-                    r"^notifications/unsubscribe/(?P<project_id>\d+)/$",
-                    accounts.email_unsubscribe_project,
-                    name="sentry-account-email-unsubscribe-project",
-                ),
-                re_path(
-                    r"^notifications/unsubscribe/issue/(?P<issue_id>\d+)/$",
-                    UnsubscribeIssueNotificationsView.as_view(),
-                    name="sentry-account-email-unsubscribe-issue",
-                ),
-                re_path(
-                    r"^notifications/unsubscribe/incident/(?P<incident_id>\d+)/$",
-                    UnsubscribeIncidentNotificationsView.as_view(),
-                    name="sentry-account-email-unsubscribe-incident",
                 ),
                 re_path(
                     r"^remove/$",
@@ -681,6 +660,26 @@ urlpatterns += [
         react_page_view,
         name="integration-installation",
     ),
+    re_path(
+        r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
+        GenericReactPageView.as_view(auth_required=False),
+        name="sentry-organization-unsubscribe-project",
+    ),
+    re_path(
+        r"^unsubscribe/project/(?P<project_id>\d+)/$",
+        GenericReactPageView.as_view(auth_required=False),
+        name="sentry-customer-domain-unsubscribe-project",
+    ),
+    re_path(
+        r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
+        GenericReactPageView.as_view(auth_required=False),
+        name="sentry-organization-unsubscribe-issue",
+    ),
+    re_path(
+        r"^unsubscribe/issue/(?P<issue_id>\d+)/$",
+        GenericReactPageView.as_view(auth_required=False),
+        name="sentry-customer-domain-unsubscribe-issue",
+    ),
     # Issues
     re_path(
         r"^issues/(?P<project_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
@@ -834,7 +833,7 @@ urlpatterns += [
     # Restore organization
     re_path(
         r"^restore/",
-        RestoreOrganizationView.as_view(),
+        generic_react_page_view,
         name="sentry-customer-domain-restore-organization",
     ),
     # Project on-boarding
@@ -993,7 +992,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
-                    RestoreOrganizationView.as_view(),
+                    generic_react_page_view,
                     name="sentry-restore-organization",
                 ),
                 re_path(

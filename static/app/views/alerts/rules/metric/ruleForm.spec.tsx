@@ -7,9 +7,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import FormModel from 'sentry/components/forms/model';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -24,12 +26,13 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  let organization, project, routerContext;
+  let organization, project, routerContext, location;
   const createWrapper = props =>
     render(
       <RuleFormContainer
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
+        location={location}
         project={project}
         {...props}
       />,
@@ -42,6 +45,7 @@ describe('Incident Rules Form', () => {
     });
     organization = initialData.organization;
     project = initialData.project;
+    location = initialData.router.location;
     ProjectsStore.loadInitialData([project]);
     routerContext = initialData.routerContext;
     MockApiClient.addMockResponse({
@@ -231,11 +235,7 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      await waitFor(() =>
-        expect(screen.getByTestId('alert-total-events')).toHaveTextContent(
-          'Total Transactions5'
-        )
-      );
+      expect(await screen.findByTestId('alert-total-events')).toHaveTextContent('Total5');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -278,7 +278,7 @@ describe('Incident Rules Form', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             aggregate: 'count()',
-            alertType: 'custom',
+            alertType: 'custom_transactions',
             dataset: 'events',
             datasource: 'error',
             environment: null,
@@ -434,6 +434,38 @@ describe('Incident Rules Form', () => {
 
       await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
       expect(onSubmitSuccess).not.toHaveBeenCalled();
+    });
+
+    it('hides fields when migrating error metric alerts to filter archived issues', async () => {
+      const errorAlert = MetricRule({
+        dataset: Dataset.ERRORS,
+        query: 'example-error',
+      });
+      organization.features = [...organization.features, 'metric-alert-ignore-archived'];
+      location = {...location, query: {migration: '1'}};
+
+      const onSubmitSuccess = jest.fn();
+
+      createWrapper({
+        ruleId: errorAlert.id,
+        rule: {
+          ...errorAlert,
+          eventTypes: ['transaction'],
+        },
+        onSubmitSuccess,
+      });
+
+      expect(
+        await screen.findByText(
+          /Check the chart above and make sure the current thresholds are still valid/
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByLabelText('Looks good to me!'), {delay: null});
+      expect(onSubmitSuccess).toHaveBeenCalled();
+      const formModel = onSubmitSuccess.mock.calls[0][1] as FormModel;
+      expect(formModel.getData()).toEqual(
+        expect.objectContaining({query: 'is:unresolved example-error'})
+      );
     });
   });
 

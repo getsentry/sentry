@@ -69,6 +69,13 @@ export const supportedPlatformExpectedDocKeys: Record<
     '2-configure-performance',
     '3-configure-profiling',
   ],
+  flutter: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
+  'dart-flutter': [
+    '0-alert',
+    '1-install',
+    '2-configure-performance',
+    '3-configure-profiling',
+  ],
 };
 
 function makeDocKey(platformId: SupportedProfilingPlatformSDK, key: string) {

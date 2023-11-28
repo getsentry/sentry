@@ -3,15 +3,19 @@ import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Sort} from 'sentry/utils/discover/fields';
@@ -21,17 +25,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import {
   Row,
   SORTABLE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
-type RowWithScoreAndOpportunity = Row & {opportunity: number; score: number};
+type RowWithScoreAndOpportunity = Row & {score: number; opportunity?: number};
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
@@ -46,6 +53,8 @@ const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
   {key: 'opportunity', width: COL_WIDTH_UNDEFINED, name: 'Opportunity'},
 ];
+
+const MAX_ROWS = 25;
 
 export function PagePerformanceTable() {
   const organization = useOrganization();
@@ -62,32 +71,36 @@ export function PagePerformanceTable() {
   const sort = useWebVitalsSort();
 
   const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
-    useProjectWebVitalsQuery({transaction: query});
+    useProjectRawWebVitalsQuery({transaction: query});
+  const {data: projectScoresData, isLoading: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery({
+      transaction: query,
+      enabled: USE_STORED_SCORES,
+    });
 
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-  });
+  const projectScore = USE_STORED_SCORES
+    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
+    : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   const {
     data,
     pageLinks,
     isLoading: isTransactionWebVitalsQueryLoading,
-  } = useTransactionWebVitalsQuery({limit: 10, transaction: query});
+  } = useTransactionWebVitalsQuery({limit: MAX_ROWS, transaction: query});
 
-  const count = projectData?.data[0]['count()'] as number;
+  const count = projectData?.data?.[0]?.['count()'] as number;
 
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
-    opportunity: calculateOpportunity(
-      projectScore.totalScore,
-      count,
-      row.score,
-      row['count()']
-    ),
+    opportunity:
+      count !== undefined
+        ? calculateOpportunity(
+            projectScore.totalScore ?? 0,
+            count,
+            row.score,
+            row['count()']
+          )
+        : undefined,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -126,19 +139,43 @@ export function PagePerformanceTable() {
     if (col.key === 'score') {
       return (
         <AlignCenter>
-          <span>{col.name}</span>
+          <StyledTooltip
+            isHoverable
+            title={
+              <span>
+                {t('The overall performance rating of this page.')}
+                <br />
+                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                  {t('How is this calculated?')}
+                </ExternalLink>
+              </span>
+            }
+          >
+            <TooltipHeader>{t('Perf Score')}</TooltipHeader>
+          </StyledTooltip>
         </AlignCenter>
       );
     }
     if (col.key === 'opportunity') {
       return (
-        <Tooltip
-          title={t(
-            'The biggest opportunities to improve your cumulative performance score.'
-          )}
-        >
-          <OpportunityHeader>{col.name}</OpportunityHeader>
-        </Tooltip>
+        <AlignRight>
+          <StyledTooltip
+            isHoverable
+            title={
+              <span>
+                {t(
+                  "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
+                )}
+                <br />
+                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                  {t('How is this calculated?')}
+                </ExternalLink>
+              </span>
+            }
+          >
+            <TooltipHeader>{col.name}</TooltipHeader>
+          </StyledTooltip>
+        </AlignRight>
       );
     }
     return <span>{col.name}</span>;
@@ -176,7 +213,7 @@ export function PagePerformanceTable() {
               )
                 ? {pathname: `${location.pathname}overview/`}
                 : {}),
-              query: {...location.query, transaction: row.transaction},
+              query: {...location.query, transaction: row.transaction, query: undefined},
             }}
           >
             {row.transaction}
@@ -194,8 +231,16 @@ export function PagePerformanceTable() {
     ) {
       return <AlignRight>{getFormattedDuration((row[key] as number) / 1000)}</AlignRight>;
     }
-    if (['p75(measurements.cls)', 'opportunity'].includes(key)) {
+    if (key === 'p75(measurements.cls)') {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+    }
+    if (key === 'opportunity') {
+      if (row.opportunity !== undefined) {
+        return (
+          <AlignRight>{Math.round((row.opportunity as number) * 100) / 100}</AlignRight>
+        );
+      }
+      return null;
     }
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
@@ -214,11 +259,48 @@ export function PagePerformanceTable() {
   return (
     <span>
       <SearchBarContainer>
-        <SearchBar placeholder={t('Search for Pages')} onSearch={handleSearch} />
+        <StyledSearchBar
+          placeholder={t('Search for more Pages')}
+          onSearch={handleSearch}
+        />
+        <StyledPagination
+          pageLinks={pageLinks}
+          disabled={
+            (USE_STORED_SCORES && isProjectScoresLoading) ||
+            isProjectWebVitalsQueryLoading ||
+            isTransactionWebVitalsQueryLoading
+          }
+          size="md"
+        />
+        {/* The Pagination component disappears if pageLinks is not defined,
+        which happens any time the table data is loading. So we render a
+        disabled button bar if pageLinks is not defined to minimize ui shifting */}
+        {!pageLinks && (
+          <Wrapper>
+            <ButtonBar merged>
+              <Button
+                icon={<IconChevron direction="left" size="sm" />}
+                size="md"
+                disabled
+                aria-label={t('Previous')}
+              />
+              <Button
+                icon={<IconChevron direction="right" size="sm" />}
+                size="md"
+                disabled
+                aria-label={t('Next')}
+              />
+            </ButtonBar>
+          </Wrapper>
+        )}
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
-          isLoading={isProjectWebVitalsQueryLoading || isTransactionWebVitalsQueryLoading}
+          isLoading={
+            (USE_STORED_SCORES && isProjectScoresLoading) ||
+            isProjectWebVitalsQueryLoading ||
+            isTransactionWebVitalsQueryLoading
+          }
           columnOrder={columnOrder}
           columnSortBy={[]}
           data={tableData}
@@ -229,7 +311,6 @@ export function PagePerformanceTable() {
           location={location}
         />
       </GridContainer>
-      <Pagination pageLinks={pageLinks} />
     </span>
   );
 }
@@ -258,13 +339,35 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
 `;
 
 const SearchBarContainer = styled('div')`
+  display: flex;
   margin-bottom: ${space(1)};
+  gap: ${space(1)};
 `;
 
 const GridContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const OpportunityHeader = styled('span')`
+const TooltipHeader = styled('span')`
   ${p => p.theme.tooltipUnderline()};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;
+
+const Wrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0;
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  top: 1px;
+  position: relative;
 `;

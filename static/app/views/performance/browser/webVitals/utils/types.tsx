@@ -8,7 +8,6 @@ export type Row = {
   'p75(measurements.lcp)': number;
   'p75(measurements.ttfb)': number;
   transaction: string;
-  'transaction.op': string;
 };
 
 export type TransactionSampleRow = {
@@ -53,7 +52,20 @@ export const SORTABLE_FIELDS = [
   'p75(measurements.ttfb)',
 ] as const;
 
+export const SORTABLE_INDEXED_FIELDS = [
+  'measurements.lcp',
+  'measurements.fcp',
+  'measurements.cls',
+  'measurements.ttfb',
+  'measurements.fid',
+] as const;
+
 export const DEFAULT_SORT: Sort = {
   kind: 'desc',
   field: 'count()',
+};
+
+export const DEFAULT_INDEXED_SORT: Sort = {
+  kind: 'desc',
+  field: 'profile.id',
 };

@@ -12,7 +12,6 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
-from django.conf import settings
 from django.db import router, transaction
 from django.utils.text import slugify
 from sentry_sdk.tracing import Span, Transaction
@@ -46,11 +45,6 @@ from sentry.monitors.utils import (
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
-from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.locking.manager import LockManager
-from sentry.utils.services import build_instance_from_options
-
-locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 logger = logging.getLogger(__name__)
 
@@ -85,10 +79,12 @@ def _ensure_monitor_with_config(
     validator = ConfigValidator(data=config)
 
     if not validator.is_valid():
-        logger.info(
-            "monitors.consumer.invalid_config",
-            extra={"slug": monitor_slug, **config},
-        )
+        extra = {
+            "slug": monitor_slug,
+            "config": config,
+            "errors": validator.errors,
+        }
+        logger.info("monitors.consumer.invalid_config", extra=extra)
         return monitor
 
     validated_config = validator.validated_data
@@ -120,7 +116,6 @@ def _ensure_monitor_with_config(
 def check_killswitch(
     metric_kwargs: Dict,
     project: Project,
-    monitor_slug: str,
 ):
     """
     Enforce organization level monitor kill switch. Returns true if the
@@ -133,10 +128,6 @@ def check_killswitch(
         metrics.incr(
             "monitors.checkin.dropped.blocked",
             tags={**metric_kwargs},
-        )
-        logger.info(
-            "monitors.consumer.killswitch",
-            extra={"org_id": project.organization_id, "slug": monitor_slug},
         )
     return is_blocked
 
@@ -163,14 +154,6 @@ def check_ratelimit(
             "monitors.checkin.dropped.ratelimited",
             tags={**metric_kwargs},
         )
-        logger.info(
-            "monitors.consumer.rate_limited",
-            extra={
-                "organization_id": project.organization_id,
-                "slug": monitor_slug,
-                "environment": environment,
-            },
-        )
     return is_blocked
 
 
@@ -194,6 +177,9 @@ def transform_checkin_uuid(
     try:
         check_in_guid = uuid.UUID(check_in_id)
     except ValueError:
+        pass
+
+    if check_in_guid is None:
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_guid_validation"},
@@ -205,9 +191,6 @@ def transform_checkin_uuid(
         )
         return None, False
 
-    if check_in_guid is None:
-        return None, False
-
     # When the UUID is empty we will default to looking for the most
     # recent check-in which is not in a terminal state.
     use_latest_checkin = check_in_guid.int == 0
@@ -217,6 +200,91 @@ def transform_checkin_uuid(
         check_in_guid = uuid.uuid4()
 
     return check_in_guid, use_latest_checkin
+
+
+def update_existing_check_in(
+    txn: Transaction | Span,
+    metric_kwargs: Dict,
+    project_id: int,
+    monitor_environment: MonitorEnvironment,
+    start_time: datetime,
+    existing_check_in: MonitorCheckIn,
+    updated_status: CheckInStatus,
+    updated_duration: float,
+):
+    monitor = monitor_environment.monitor
+
+    if (
+        existing_check_in.project_id != project_id
+        or existing_check_in.monitor_id != monitor.id
+        or existing_check_in.monitor_environment_id != monitor_environment.id
+    ):
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={"source": "consumer", "status": "guid_mismatch"},
+        )
+        txn.set_tag("result", "guid_mismatch")
+        logger.info(
+            "monitors.consumer.guid_exists",
+            extra={
+                "guid": existing_check_in.guid.hex,
+                "slug": existing_check_in.monitor.slug,
+                "payload_slug": monitor.slug,
+            },
+        )
+        return
+
+    if existing_check_in.status in CheckInStatus.FINISHED_VALUES:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "checkin_finished"},
+        )
+        txn.set_tag("result", "checkin_finished")
+        logger.info(
+            "monitors.consumer.check_in_closed",
+            extra={
+                "guid": existing_check_in.guid.hex,
+                "slug": existing_check_in.monitor.slug,
+                "status": existing_check_in.status,
+                "updated_status": updated_status,
+            },
+        )
+        return
+
+    if updated_duration is None:
+        updated_duration = int((start_time - existing_check_in.date_added).total_seconds() * 1000)
+
+    if not valid_duration(updated_duration):
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "failed_duration_check"},
+        )
+        txn.set_tag("result", "failed_duration_check")
+        logger.info(
+            "monitors.consumer.invalid_implicit_duration",
+            extra={
+                "guid": existing_check_in.guid.hex,
+                "slug": existing_check_in.monitor.slug,
+                "duration": updated_duration,
+            },
+        )
+        return
+
+    # update date_added for heartbeat
+    date_updated = existing_check_in.date_updated
+    if updated_status == CheckInStatus.IN_PROGRESS:
+        date_updated = start_time
+
+    updated_timeout_at = get_new_timeout_at(existing_check_in, updated_status, start_time)
+
+    existing_check_in.update(
+        status=updated_status,
+        duration=updated_duration,
+        date_updated=date_updated,
+        timeout_at=updated_timeout_at,
+    )
+
+    return
 
 
 def _process_checkin(
@@ -240,7 +308,7 @@ def _process_checkin(
         "sdk_platform": sdk_platform,
     }
 
-    if check_killswitch(metric_kwargs, project, monitor_slug):
+    if check_killswitch(metric_kwargs, project):
         return
 
     if check_ratelimit(metric_kwargs, project, monitor_slug, environment):
@@ -254,86 +322,6 @@ def _process_checkin(
     )
 
     if guid is None:
-        return
-
-    def update_existing_check_in(
-        existing_check_in: MonitorCheckIn,
-        updated_status: CheckInStatus,
-        updated_duration: float,
-        new_date_updated: datetime,
-    ):
-        if (
-            existing_check_in.project_id != project_id
-            or existing_check_in.monitor_id != monitor.id
-            or existing_check_in.monitor_environment_id != monitor_environment.id
-        ):
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={"source": "consumer", "status": "guid_mismatch"},
-            )
-            txn.set_tag("result", "guid_mismatch")
-            logger.info(
-                "monitors.consumer.guid_exists",
-                extra={
-                    "guid": existing_check_in.guid.hex,
-                    "slug": existing_check_in.monitor.slug,
-                    "payload_slug": monitor.slug,
-                },
-            )
-            return
-
-        if existing_check_in.status in CheckInStatus.FINISHED_VALUES:
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={**metric_kwargs, "status": "checkin_finished"},
-            )
-            txn.set_tag("result", "checkin_finished")
-            logger.info(
-                "monitors.consumer.check_in_closed",
-                extra={
-                    "guid": existing_check_in.guid.hex,
-                    "slug": existing_check_in.monitor.slug,
-                    "status": existing_check_in.status,
-                    "updated_status": updated_status,
-                },
-            )
-            return
-
-        if updated_duration is None:
-            updated_duration = int(
-                (start_time - existing_check_in.date_added).total_seconds() * 1000
-            )
-
-        if not valid_duration(updated_duration):
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={**metric_kwargs, "status": "failed_duration_check"},
-            )
-            txn.set_tag("result", "failed_duration_check")
-            logger.info(
-                "monitors.consumer.invalid_implicit_duration",
-                extra={
-                    "guid": existing_check_in.guid.hex,
-                    "slug": existing_check_in.monitor.slug,
-                    "duration": updated_duration,
-                },
-            )
-            return
-
-        # update date_added for heartbeat
-        date_updated = existing_check_in.date_updated
-        if updated_status == CheckInStatus.IN_PROGRESS:
-            date_updated = new_date_updated
-
-        updated_timeout_at = get_new_timeout_at(existing_check_in, updated_status, new_date_updated)
-
-        existing_check_in.update(
-            status=updated_status,
-            duration=updated_duration,
-            date_updated=date_updated,
-            timeout_at=updated_timeout_at,
-        )
-
         return
 
     monitor_config = params.pop("monitor_config", None)
@@ -396,7 +384,7 @@ def _process_checkin(
         txn.set_tag("result", "failed_validation")
         logger.info(
             "monitors.consumer.monitor_validation_failed",
-            extra={"guid": guid.hex, **params},
+            extra={"guid": guid.hex, "project": project.id, **params},
         )
         return
 
@@ -441,14 +429,9 @@ def _process_checkin(
 
     # 03
     # Create or update check-in
-    lock = locks.get(f"checkin-creation:{guid.hex}", duration=LOCK_TIMEOUT, name="checkin_creation")
+
     try:
-        # use lock.blocking_acquire() as default lock.acquire() fast fails if
-        # lock is in use. We absolutely want to wait to acquire this lock
-        # otherwise we would drop the check-in.
-        with lock.blocking_acquire(
-            INITIAL_LOCK_DELAY, float(LOCK_TIMEOUT), exp_base=LOCK_EXP_BASE
-        ), transaction.atomic(router.db_for_write(Monitor)):
+        with transaction.atomic(router.db_for_write(Monitor)):
             status = getattr(CheckInStatus, validated_params["status"].upper())
             trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
             duration = validated_params["duration"]
@@ -493,7 +476,16 @@ def _process_checkin(
                         return
 
                 txn.set_tag("outcome", "process_existing_checkin")
-                update_existing_check_in(check_in, status, duration, start_time)
+                update_existing_check_in(
+                    txn,
+                    metric_kwargs,
+                    project_id,
+                    monitor_environment,
+                    start_time,
+                    check_in,
+                    status,
+                    duration,
+                )
 
             # 03-B
             # Create a brand new check-in object
@@ -538,7 +530,16 @@ def _process_checkin(
                 # locking this entire process?
                 if not created:
                     txn.set_tag("outcome", "process_existing_checkin_race_condition")
-                    update_existing_check_in(check_in, status, duration, start_time)
+                    update_existing_check_in(
+                        txn,
+                        metric_kwargs,
+                        project_id,
+                        monitor_environment,
+                        start_time,
+                        check_in,
+                        status,
+                        duration,
+                    )
                 else:
                     txn.set_tag("outcome", "create_new_checkin")
                     signal_first_checkin(project, monitor)
@@ -562,16 +563,6 @@ def _process_checkin(
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "complete"},
             )
-    except UnableToAcquireLock:
-        metrics.incr(
-            "monitors.checkin.result",
-            tags={**metric_kwargs, "status": "failed_checkin_creation_lock"},
-        )
-        txn.set_tag("result", "failed_checkin_creation_lock")
-        logger.info(
-            "monitors.consumer.lock_failed",
-            extra={"guid": guid.hex, "slug": monitor_slug},
-        )
     except Exception:
         # Skip this message and continue processing in the consumer.
         metrics.incr(

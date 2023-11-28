@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -24,19 +25,20 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
-import {Recommendations} from 'sentry/views/performance/browser/webVitals/components/recommendations';
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
+import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
 import {
-  calculatePerformanceScore,
+  calculatePerformanceScoreFromTableDataRow,
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsValuesTimeseriesQuery';
+import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
 import {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
@@ -80,15 +82,9 @@ export function PageOverviewWebVitalsDetailPanel({
       : location.query.transaction
     : undefined;
 
-  const {data: projectData} = useProjectWebVitalsQuery({transaction});
+  const {data: projectData} = useProjectRawWebVitalsQuery({transaction});
 
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-  });
+  const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
@@ -135,6 +131,20 @@ export function PageOverviewWebVitalsDetailPanel({
   const tableData: TransactionSampleRowWithScore[] = data.sort(
     (a, b) => a[`${webVital}Score`] - b[`${webVital}Score`]
   );
+
+  const {data: timeseriesData, isLoading: isTimeseriesLoading} =
+    useProjectWebVitalsValuesTimeseriesQuery({transaction});
+
+  const webVitalData: LineChartSeries = {
+    data:
+      !isTimeseriesLoading && webVital
+        ? timeseriesData?.[webVital].map(({name, value}) => ({
+            name,
+            value,
+          }))
+        : [],
+    seriesName: webVital ?? '',
+  };
 
   const getProjectSlug = (row: TransactionSampleRowWithScore): string => {
     return project && !Array.isArray(location.query.project)
@@ -218,12 +228,18 @@ export function PageOverviewWebVitalsDetailPanel({
           <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
         </AlignCenter>
       ) : (
-        <AlignCenter>{' \u2014 '}</AlignCenter>
+        <AlignCenter>
+          <NoValue>{t('(no value)')}</NoValue>
+        </AlignCenter>
       );
     }
     if (key === 'profile.id') {
       if (!defined(project) || !defined(row['profile.id'])) {
-        return <AlignCenter>{' \u2014 '}</AlignCenter>;
+        return (
+          <AlignCenter>
+            <NoValue>{t('(no value)')}</NoValue>
+          </AlignCenter>
+        );
       }
       const target = generateProfileFlamechartRoute({
         orgSlug: organization.slug,
@@ -240,10 +256,12 @@ export function PageOverviewWebVitalsDetailPanel({
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  const webVitalScore = projectScore[`${webVital}Score`];
+
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={webVital ?? undefined} onClose={onClose}>
-        {webVital && projectData && (
+        {webVital && projectData && webVitalScore !== null && (
           <WebVitalDetailHeader
             value={
               webVital !== 'cls'
@@ -258,23 +276,25 @@ export function PageOverviewWebVitalsDetailPanel({
                   ).toFixed(2)
             }
             webVital={webVital}
-            score={projectScore[`${webVital}Score`]}
+            score={webVitalScore}
           />
         )}
-        {transaction && webVital && (
-          <Recommendations transaction={transaction} webVital={webVital} />
-        )}
-        <GridEditable
-          data={tableData}
-          isLoading={isTransactionWebVitalsQueryLoading}
-          columnOrder={columnOrder}
-          columnSortBy={[sort]}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
-          location={location}
-        />
+        <ChartContainer>
+          {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
+        </ChartContainer>
+        <TableContainer>
+          <GridEditable
+            data={tableData}
+            isLoading={isTransactionWebVitalsQueryLoading}
+            columnOrder={columnOrder}
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+            location={location}
+          />
+        </TableContainer>
         <PageErrorAlert />
       </DetailPanel>
     </PageErrorProvider>
@@ -297,6 +317,15 @@ const AlignCenter = styled('span')`
   width: 100%;
 `;
 
+const ChartContainer = styled('div')`
+  position: relative;
+  flex: 1;
+`;
+
 const NoValue = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const TableContainer = styled('div')`
+  margin-bottom: 80px;
 `;

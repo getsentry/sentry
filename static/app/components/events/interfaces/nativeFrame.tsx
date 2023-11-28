@@ -302,6 +302,7 @@ function NativeFrame({
                 title={frame.absPath}
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
+                isHoverable
               >
                 <FileName>
                   {'('}
@@ -365,7 +366,6 @@ function NativeFrame({
           hasContextRegisters={hasContextRegisters(registers)}
           emptySourceNotation={emptySourceNotation}
           hasAssembly={hasAssembly(frame, platform)}
-          expandable={expandable}
           isExpanded={expanded}
           registersMeta={registersMeta}
           frameMeta={frameMeta}

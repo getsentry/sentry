@@ -10,6 +10,7 @@ from django.dispatch import Signal
 
 from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
 from sentry.services.hybrid_cloud.organization.model import (
+    OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
     RpcOrganization,
     RpcOrganizationDeleteResponse,
@@ -88,6 +89,16 @@ class OrganizationService(RpcService):
         Fetches the organization, by an organization slug. If user_id is passed, it will enforce visibility
         rules. This method is differentiated from get_organization_by_slug by not being cached and returning
         RpcOrganizationSummary instead of org contexts
+        """
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def get_organizations_by_user_and_scope(
+        self, *, region_name: str, user: RpcUser, scope: str
+    ) -> List[RpcOrganization]:
+        """
+        Fetches organizations for the given user, with the given organization member scope.
         """
         pass
 
@@ -212,6 +223,13 @@ class OrganizationService(RpcService):
         inviter_id: Optional[int] = None,
         invite_status: Optional[int] = None,
     ) -> RpcOrganizationMember:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_organization_member(
+        self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
+    ) -> Optional[RpcOrganizationMember]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
@@ -345,7 +363,9 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+    def get_organization_owner_members(
+        self, *, organization_id: int
+    ) -> List[RpcOrganizationMember]:
         pass
 
 

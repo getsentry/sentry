@@ -33,7 +33,9 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
+import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
@@ -41,6 +43,7 @@ import {
 } from 'sentry/utils/sessions';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -87,7 +90,6 @@ const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
   [TimePeriod.THREE_DAYS]: t('Last 3 days'),
   [TimePeriod.SEVEN_DAYS]: t('Last 7 days'),
   [TimePeriod.FOURTEEN_DAYS]: t('Last 14 days'),
-  [TimePeriod.THIRTY_DAYS]: t('Last 30 days'),
 };
 
 /**
@@ -98,7 +100,6 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
   TimePeriod.THREE_DAYS,
   TimePeriod.SEVEN_DAYS,
   TimePeriod.FOURTEEN_DAYS,
-  TimePeriod.THIRTY_DAYS,
 ];
 
 /**
@@ -122,9 +123,8 @@ const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
     TimePeriod.THREE_DAYS,
     TimePeriod.SEVEN_DAYS,
     TimePeriod.FOURTEEN_DAYS,
-    TimePeriod.THIRTY_DAYS,
   ],
-  [TimeWindow.ONE_DAY]: [TimePeriod.THIRTY_DAYS],
+  [TimeWindow.ONE_DAY]: [TimePeriod.FOURTEEN_DAYS],
 };
 
 const TIME_WINDOW_TO_SESSION_INTERVAL = {
@@ -301,7 +301,7 @@ class TriggersChart extends PureComponent<Props, State> {
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
       : showExtrapolatedChartData
       ? t('Estimated Transactions')
-      : t('Total Transactions');
+      : t('Total');
 
     return (
       <Fragment>
@@ -388,12 +388,16 @@ class TriggersChart extends PureComponent<Props, State> {
       organization.features.includes('change-alerts') && comparisonDelta
     );
 
-    const queryExtras = getMetricDatasetQueryExtras({
-      organization,
-      location,
-      dataset,
-      newAlertOrQuery,
-    });
+    const queryExtras = {
+      ...getMetricDatasetQueryExtras({
+        organization,
+        location,
+        dataset,
+        newAlertOrQuery,
+      }),
+      ...getForceMetricsLayerQueryExtras(organization, dataset),
+      ...(shouldUseErrorsDiscoverDataset(query, dataset) ? {dataset: 'errors'} : {}),
+    };
 
     if (isOnDemandMetricAlert) {
       return (
@@ -504,9 +508,10 @@ class TriggersChart extends PureComponent<Props, State> {
         period={period}
         yAxis={aggregate}
         includePrevious={false}
-        currentSeriesNames={[aggregate]}
+        currentSeriesNames={[formatMRIField(aggregate)]}
         partial={false}
         queryExtras={queryExtras}
+        useOnDemandMetrics
         dataLoadedCallback={onDataLoaded}
       >
         {({

@@ -32,6 +32,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
             "environment": self.builder._environment_filter_converter,
             "transaction": self._transaction_filter_converter,
+            "transaction.status": self._transaction_status_converter,
             "tags[transaction]": self._transaction_filter_converter,
             constants.TITLE_ALIAS: self._transaction_filter_converter,
             constants.RELEASE_ALIAS: self._release_filter_converter,
@@ -42,14 +43,19 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
+        transaction_alias = (
+            self._resolve_transaction_alias_on_demand
+            if self.builder.use_on_demand
+            else self._resolve_transaction_alias
+        )
         return {
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             constants.TITLE_ALIAS: self._resolve_title_alias,
             constants.PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
-            "transaction": self._resolve_transaction_alias,
-            "tags[transaction]": self._resolve_transaction_alias,
+            "transaction": transaction_alias,
+            "tags[transaction]": transaction_alias,
             constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
                 self.builder, alias
             ),
@@ -563,6 +569,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.lcp",
                                 "measurements.fid",
                                 "measurements.cls",
+                                "measurements.ttfb",
                             ],
                             allow_custom_measurements=False,
                         ),
@@ -572,6 +579,25 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_web_vital_function,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "performance_score",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=[
+                                "measurements.score.fcp",
+                                "measurements.score.lcp",
+                                "measurements.score.fid",
+                                "measurements.score.cls",
+                                "measurements.score.ttfb",
+                            ],
+                            allow_custom_measurements=False,
+                        )
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_web_vital_score_function,
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
@@ -781,7 +807,7 @@ class MetricsDatasetConfig(DatasetConfig):
     # Field Aliases
     def _resolve_title_alias(self, alias: str) -> SelectType:
         """title == transaction in discover"""
-        return self._resolve_transaction_alias(alias)
+        return self.field_alias_converter["transaction"](alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
         return field_aliases.resolve_team_key_transaction_alias(
@@ -801,6 +827,12 @@ class MetricsDatasetConfig(DatasetConfig):
             ],
             alias,
         )
+
+    def _resolve_transaction_alias_on_demand(self, _: str) -> SelectType:
+        """On-demand doesn't need a transform for transaction in it's where clause
+        since conditions are saved on a per-metric basis.
+        """
+        return Column(self.builder.resolve_column_name("transaction"))
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
@@ -889,6 +921,26 @@ class MetricsDatasetConfig(DatasetConfig):
             )
 
         return Condition(self.builder.resolve_column("transaction"), Op(operator), value)
+
+    def _transaction_status_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        operator = search_filter.operator
+        value = search_filter.value.value
+
+        # For backward compatibility, `unknown_error` is converted to `unknown`, since Relay always emits `unknown`
+        # `transaction.status`.
+        if value == "unknown_error":
+            value = "unknown"
+
+        lhs = self.builder.resolve_column("transaction.status")
+
+        if search_filter.value.is_wildcard():
+            return Condition(
+                Function("match", [lhs, f"(?i){value}"]),
+                Op(operator),
+                1,
+            )
+
+        return Condition(lhs, Op(operator), value)
 
     # Query Functions
     def _resolve_count_if(
@@ -1155,6 +1207,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.fp",
             "measurements.fid",
             "measurements.cls",
+            "measurements.ttfb",
         ]:
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 
@@ -1192,6 +1245,46 @@ class MetricsDatasetConfig(DatasetConfig):
                     [
                         Function("equals", [measurement_rating, quality_id]),
                         Function("equals", [Column("metric_id"), metric_id]),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_web_vital_score_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        metric_id = args["metric_id"]
+
+        if column not in [
+            "measurements.score.lcp",
+            "measurements.score.fcp",
+            "measurements.score.fid",
+            "measurements.score.cls",
+            "measurements.score.ttfb",
+        ]:
+            raise InvalidSearchQuery("performance_score only supports measurements")
+
+        weight_metric_id = self.resolve_metric(column.replace("score", "score.weight"))
+
+        return Function(
+            "divide",
+            [
+                Function(
+                    "sumIf",
+                    [
+                        Column("value"),
+                        Function("equals", [Column("metric_id"), metric_id]),
+                    ],
+                ),
+                Function(
+                    "sumIf",
+                    [
+                        Column("value"),
+                        Function("equals", [Column("metric_id"), weight_metric_id]),
                     ],
                 ),
             ],

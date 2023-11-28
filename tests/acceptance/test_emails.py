@@ -71,7 +71,7 @@ def replace_amp(text: str) -> str:
     return re.sub("¬", "&not", text)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

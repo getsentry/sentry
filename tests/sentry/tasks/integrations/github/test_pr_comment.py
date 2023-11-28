@@ -28,7 +28,6 @@ from sentry.tasks.integrations.github.pr_comment import (
     github_comment_reactions,
     github_comment_workflow,
     pr_to_issue_query,
-    safe_for_comment,
 )
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
@@ -41,6 +40,7 @@ pytestmark = [requires_snuba]
 
 class GithubCommentTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
 
     def setUp(self):
         super().setUp()
@@ -158,7 +158,7 @@ class GithubCommentTestCase(IntegrationTestCase):
         return pr
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestPrToIssueQuery(GithubCommentTestCase):
     def test_simple(self):
         """one pr with one issue"""
@@ -229,7 +229,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_simple(self):
         group1 = [
@@ -268,7 +268,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         assert len(res) == 5
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestCommentBuilderQueries(GithubCommentTestCase):
     def test_simple(self):
         ev1 = self.store_event(
@@ -313,7 +313,7 @@ class TestCommentBuilderQueries(GithubCommentTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestFormatComment(TestCase):
     def test_format_comment(self):
         issues = [
@@ -334,10 +334,8 @@ class TestFormatComment(TestCase):
         assert formatted_comment == expected_comment
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestCommentWorkflow(GithubCommentTestCase):
-    base_url = "https://api.github.com"
-
     def setUp(self):
         super().setUp()
         self.user_id = "user_1"
@@ -429,49 +427,18 @@ class TestCommentWorkflow(GithubCommentTestCase):
             status=400,
             json={"id": 1},
         )
-
-        with pytest.raises(ApiError):
-            github_comment_workflow(self.pr.id, self.project.id)
-            assert cache.get(self.cache_key) is None
-            mock_metrics.incr.assert_called_with("github_pr_comment.api_error")
-
-    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @responses.activate
-    def test_comment_workflow_api_error_locked_issue(self, mock_metrics, mock_issues):
-        cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
-        mock_issues.return_value = [
-            {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
-        ]
-
         responses.add(
             responses.POST,
-            self.base_url + "/repos/getsentry/sentry/issues/1/comments",
+            self.base_url + "/repos/getsentry/sentry/issues/2/comments",
             status=400,
             json={
                 "message": "Unable to create comment because issue is locked.",
                 "documentation_url": "https://docs.github.com/articles/locking-conversations/",
             },
         )
-
-        github_comment_workflow(self.pr.id, self.project.id)
-        assert cache.get(self.cache_key) is None
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "issue_locked_error"}
-        )
-
-    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @responses.activate
-    def test_comment_workflow_api_error_rate_limited(self, mock_metrics, mock_issues):
-        cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
-        mock_issues.return_value = [
-            {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
-        ]
-
         responses.add(
             responses.POST,
-            self.base_url + "/repos/getsentry/sentry/issues/1/comments",
+            self.base_url + "/repos/getsentry/sentry/issues/3/comments",
             status=400,
             json={
                 "message": "API rate limit exceeded",
@@ -479,8 +446,29 @@ class TestCommentWorkflow(GithubCommentTestCase):
             },
         )
 
-        github_comment_workflow(self.pr.id, self.project.id)
-        assert cache.get(self.cache_key) is None
+        with pytest.raises(ApiError):
+            github_comment_workflow(self.pr.id, self.project.id)
+            assert cache.get(self.cache_key) is None
+            mock_metrics.incr.assert_called_with("github_pr_comment.api_error")
+
+        pr_2 = self.create_pr_issues()
+        cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pr_2.id)
+        cache.set(cache_key, True, timedelta(minutes=5).total_seconds())
+
+        # does not raise ApiError for locked issue
+        github_comment_workflow(pr_2.id, self.project.id)
+        assert cache.get(cache_key) is None
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "issue_locked_error"}
+        )
+
+        pr_3 = self.create_pr_issues()
+        cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pr_3.id)
+        cache.set(cache_key, True, timedelta(minutes=5).total_seconds())
+
+        # does not raise ApiError for rate limited error
+        github_comment_workflow(pr_3.id, self.project.id)
+        assert cache.get(cache_key) is None
         mock_metrics.incr.assert_called_with(
             "github_pr_comment.error", tags={"type": "rate_limited_error"}
         )
@@ -583,7 +571,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestCommentReactionsTask(GithubCommentTestCase):
     base_url = "https://api.github.com"
 
@@ -726,7 +714,6 @@ class TestCommentReactionsTask(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
     def test_comment_reactions_task_api_error_rate_limited(self, mock_metrics):
-
         responses.add(
             responses.GET,
             self.base_url + "/repos/getsentry/sentry/issues/comments/2",
@@ -748,7 +735,6 @@ class TestCommentReactionsTask(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
     def test_comment_reactions_task_api_error_404(self, mock_metrics):
-
         responses.add(
             responses.GET,
             self.base_url + "/repos/getsentry/sentry/issues/comments/2",
@@ -761,126 +747,3 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
         mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.not_found_error")
-
-
-@region_silo_test(stable=True)
-class TestSafeForComment(GithubCommentTestCase):
-    base_url = "https://api.github.com"
-
-    def setUp(self):
-        super().setUp()
-        self.pr = self.create_pr_issues()
-        self.mock_metrics = patch("sentry.tasks.integrations.github.pr_comment.metrics").start()
-        self.gh_path = self.base_url + "/repos/getsentry/sentry/pulls/{pull_number}"
-        installation = self.integration.get_installation(organization_id=self.organization.id)
-        self.gh_client = installation.get_client()
-
-    @responses.activate
-    def test_simple(self):
-        responses.add(
-            responses.GET,
-            self.gh_path.format(pull_number=self.pr.key),
-            status=200,
-            json={"changed_files": 5, "additions": 100, "deletions": 100, "state": "open"},
-        )
-
-        assert safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-
-    @responses.activate
-    def test_error__rate_limited(self):
-        responses.add(
-            responses.GET,
-            self.gh_path.format(pull_number=self.pr.key),
-            status=429,
-            json={
-                "message": "API rate limit exceeded",
-                "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
-            },
-        )
-
-        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.api_error", tags={"type": "gh_rate_limited", "code": 429}
-        )
-
-    @responses.activate
-    def test_error__missing_pr(self):
-        responses.add(
-            responses.GET, self.gh_path.format(pull_number=self.pr.key), status=404, json={}
-        )
-
-        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.api_error",
-            tags={"type": "missing_gh_pull_request", "code": 404},
-        )
-
-    @responses.activate
-    def test_error__api_error(self):
-        responses.add(
-            responses.GET, self.gh_path.format(pull_number=self.pr.key), status=400, json={}
-        )
-
-        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 400}
-        )
-
-    @responses.activate
-    def test_not_open_pr(self):
-        responses.add(
-            responses.GET,
-            self.gh_path.format(pull_number=self.pr.key),
-            status=200,
-            json={"changed_files": 5, "additions": 100, "deletions": 100, "state": "closed"},
-        )
-
-        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.rejected_comment", tags={"reason": "incorrect_state"}
-        )
-
-    @responses.activate
-    def test_too_many_files(self):
-        responses.add(
-            responses.GET,
-            self.gh_path.format(pull_number=self.pr.key),
-            status=200,
-            json={"changed_files": 11, "additions": 100, "deletions": 100, "state": "open"},
-        )
-
-        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
-        )
-
-    @responses.activate
-    def test_too_many_lines(self):
-        responses.add(
-            responses.GET,
-            self.gh_path.format(pull_number=self.pr.key),
-            status=200,
-            json={"changed_files": 5, "additions": 300, "deletions": 300, "state": "open"},
-        )
-
-        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        self.mock_metrics.incr.assert_called_with(
-            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
-        )
-
-    @responses.activate
-    def test_too_many_files_and_lines(self):
-        responses.add(
-            responses.GET,
-            self.gh_path.format(pull_number=self.pr.key),
-            status=200,
-            json={"changed_files": 11, "additions": 300, "deletions": 300, "state": "open"},
-        )
-
-        assert not safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        self.mock_metrics.incr.assert_any_call(
-            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
-        )
-        self.mock_metrics.incr.assert_any_call(
-            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
-        )

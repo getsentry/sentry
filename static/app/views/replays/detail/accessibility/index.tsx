@@ -7,9 +7,8 @@ import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-// import useA11yData from 'sentry/utils/replays/hooks/useA11yData';
+import useA11yData from 'sentry/utils/replays/hooks/useA11yData';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import useMockA11yData from 'sentry/utils/replays/hooks/useMockA11yData';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/accessibilityFilters';
@@ -17,9 +16,10 @@ import AccessibilityHeaderCell, {
   COLUMN_COUNT,
 } from 'sentry/views/replays/detail/accessibility/accessibilityHeaderCell';
 import AccessibilityTableCell from 'sentry/views/replays/detail/accessibility/accessibilityTableCell';
-// import AccessibilityDetails from 'sentry/views/replays/detail/accessibility/details';
+import AccessibilityDetails from 'sentry/views/replays/detail/accessibility/details';
 import useAccessibilityFilters from 'sentry/views/replays/detail/accessibility/useAccessibilityFilters';
 import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
@@ -36,11 +36,10 @@ const cellMeasurer = {
 };
 
 function AccessibilityList() {
-  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const {currentTime, currentHoverTime} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
-  const accessibilityData = useMockA11yData();
-  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
+  const {data: accessibilityData, isLoading} = useA11yData();
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
@@ -67,7 +66,7 @@ function AccessibilityList() {
   // `undefined` which then gets set into the hook and doesn't update.
   const initialSize = Math.max(150, window.innerHeight * 0.4);
 
-  const {size: containerSize} = useResizableDrawer({
+  const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
     direction: 'up',
     initialSize,
     min: 0,
@@ -99,16 +98,14 @@ function AccessibilityList() {
   });
 
   const onClickCell = useCallback(
-    ({}: {dataIndex: number; rowIndex: number}) => {
-      // eslint-disable-line
-      // if (getDetailRow() === String(dataIndex)) {
-      //   setDetailRow('');
-      // } else {
-      //   setDetailRow(String(dataIndex));
-      //   setScrollToRow(rowIndex);
-      // }
+    ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
+      if (getDetailRow() === String(dataIndex)) {
+        setDetailRow('');
+      } else {
+        setDetailRow(String(dataIndex));
+        setScrollToRow(rowIndex);
+      }
     },
-    // eslint-disable-next-line
     [getDetailRow, setDetailRow]
   );
 
@@ -151,7 +148,6 @@ function AccessibilityList() {
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
-              startTimestampMs={startTimestampMs}
               style={{...style, height: BODY_HEIGHT}}
             />
           )
@@ -162,7 +158,9 @@ function AccessibilityList() {
 
   return (
     <FluidHeight>
-      <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} />
+      <FilterLoadingIndicator isLoading={isLoading}>
+        <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} />
+      </FilterLoadingIndicator>
       <AccessibilityTable
         ref={containerRef}
         data-test-id="replay-details-accessibility-tab"
@@ -221,15 +219,13 @@ function AccessibilityList() {
           ) : (
             <Placeholder height="100%" />
           )}
-          {/* <AccessibilityDetails
+          <AccessibilityDetails
             {...resizableDrawerProps}
             item={detailDataIndex ? items[detailDataIndex] : null}
             onClose={() => {
               setDetailRow('');
             }}
-            projectId="1"
-            startTimestampMs={startTimestampMs}
-          /> */}
+          />
         </SplitPanel>
       </AccessibilityTable>
     </FluidHeight>

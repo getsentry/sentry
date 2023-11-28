@@ -36,7 +36,7 @@ TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectSerializerTest(TestCase):
     def setUp(self):
@@ -47,13 +47,6 @@ class ProjectSerializerTest(TestCase):
         self.project = self.create_project(teams=[self.team], organization=self.organization)
 
     def test_simple(self):
-        result = serialize(self.project, self.user)
-        assert result["slug"] == self.project.slug
-        assert result["name"] == self.project.name
-        assert result["id"] == str(self.project.id)
-
-    @with_feature("organizations:notification-settings-v2")
-    def test_simple_settings_v2(self):
         result = serialize(self.project, self.user)
         assert result["slug"] == self.project.slug
         assert result["name"] == self.project.name
@@ -303,7 +296,7 @@ class ProjectSerializerTest(TestCase):
         assert_has_features(late_blue, [blue_flag])
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self):
@@ -441,6 +434,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasReplays"] is True
+
+    def test_has_feedbacks_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasFeedbacks"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_feedbacks))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasFeedbacks"] is True
 
     def test_has_monitors_flag(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
@@ -660,7 +663,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert check_has_health_data.call_count == 1
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectWithOrganizationSerializerTest(TestCase):
     def test_simple(self):
@@ -677,7 +680,7 @@ class ProjectWithOrganizationSerializerTest(TestCase):
         assert result["organization"] == serialize(organization, user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class DetailedProjectSerializerTest(TestCase):
     def setUp(self):
@@ -715,7 +718,7 @@ class DetailedProjectSerializerTest(TestCase):
         assert "sentry:symbol_sources" not in result["options"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property

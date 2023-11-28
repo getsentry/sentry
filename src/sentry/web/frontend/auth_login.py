@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from random import randint
 from typing import Any, Optional, Union
 
@@ -43,6 +44,8 @@ from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
+
+logger = logging.getLogger("sentry.auth")
 
 
 # Stores callbacks that are called to get additional template context data before the login page
@@ -273,7 +276,6 @@ class AuthLoginView(BaseView):
             )
             return self.add_to_org_and_redirect_to_next_register_step(request=request, user=user)
         else:
-
             context.update(
                 {
                     "op": "register",
@@ -324,9 +326,7 @@ class AuthLoginView(BaseView):
         """
 
         # Attempt to directly accept any pending invites
-        invite_helper = ApiInviteHelper.from_session(
-            request=request,
-        )
+        invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
         # In single org mode, associate the user to the only organization.
         #
@@ -618,9 +618,7 @@ class AuthLoginView(BaseView):
             request.session.pop("invite_email", None)
 
             # Attempt to directly accept any pending invites
-            invite_helper = ApiInviteHelper.from_session(
-                request=request,
-            )
+            invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
             # In single org mode, associate the user to the only organization.
             #

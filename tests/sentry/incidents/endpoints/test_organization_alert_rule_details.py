@@ -31,8 +31,10 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
+from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
+    find_channel_id_for_alert_rule,
+)
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -43,7 +45,7 @@ pytestmark = [requires_snuba]
 
 
 class AlertRuleDetailsBase(AlertRuleBase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-alert-rule-details"
 
@@ -151,7 +153,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -265,7 +267,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -603,7 +605,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(audit_log_entry) == 1
 
 
-class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
+@region_silo_test
+class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
+    method = "put"
+
     def _mock_slack_response(self, url: str, body: dict[str, Any], status: int = 200) -> None:
         responses.add(
             method=responses.GET,
@@ -653,7 +658,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
@@ -778,7 +783,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
             ]
         }
 
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     @responses.activate
     def test_create_slack_alert_with_empty_channel_id(
@@ -812,13 +817,14 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         )
         self.login_as(self.user)
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
         test_params = self.valid_params.copy()
         test_params["triggers"] = [
             {
@@ -937,7 +943,10 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         )  # Did not increment from the last assertion because we early out on the validation error
 
 
-class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsPutEndpointTest):
+@region_silo_test
+class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
+    method = "put"
+
     def test_sentry_app(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -1119,7 +1128,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsPutEndpointTest):
         assert error_message in resp.data["sentry_app"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 
@@ -1156,31 +1165,6 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
 
     def test_snapshot_and_create_new_with_same_name(self):
-        with self.tasks():
-            self.create_member(
-                user=self.user, organization=self.organization, role="owner", teams=[self.team]
-            )
-            self.login_as(self.user)
-
-            # We attach the rule to an incident so the rule is snapshotted instead of deleted.
-            incident = self.create_incident(alert_rule=self.alert_rule)
-
-            with self.feature("organizations:incidents"):
-                self.get_success_response(
-                    self.organization.slug, self.alert_rule.id, status_code=204
-                )
-
-            alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
-
-            assert not AlertRule.objects.filter(id=alert_rule.id).exists()
-            assert AlertRule.objects_with_snapshots.filter(id=alert_rule.id).exists()
-            assert alert_rule.status == AlertRuleStatus.SNAPSHOT.value
-
-            # We also confirm that the incident is automatically resolved.
-            assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
-
-    @with_feature("organizations:notification-settings-v2")
-    def test_snapshot_and_create_new_with_same_name_v2(self):
         with self.tasks():
             self.create_member(
                 user=self.user, organization=self.organization, role="owner", teams=[self.team]

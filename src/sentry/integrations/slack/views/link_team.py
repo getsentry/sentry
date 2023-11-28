@@ -13,12 +13,11 @@ from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, region_silo_view
@@ -192,19 +191,20 @@ class SlackLinkTeamView(BaseView):
                 },
             )
 
-        # Turn on notifications for all of a team's projects.
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor(id=team.id, actor_type=ActorType.TEAM),
-            organization_id_for_team=team.organization_id,
+        has_team_workflow = features.has(
+            "organizations:team-workflow-notifications", team.organization
         )
+        # Turn on notifications for all of a team's projects.
+        # TODO(jangjodi): Remove this once the flag is removed
+        if not has_team_workflow:
+            notifications_service.enable_all_settings_for_provider(
+                external_provider=ExternalProviderEnum.SLACK,
+                team_id=team.id,
+                types=[NotificationSettingEnum.ISSUE_ALERTS],
+            )
         message = SUCCESS_LINKED_MESSAGE.format(
             slug=team.slug,
-            workflow_addon=" and workflow"
-            if features.has("organizations:team-workflow-notifications", team.organization)
-            else "",
+            workflow_addon=" and workflow" if has_team_workflow else "",
             channel_name=channel_name,
         )
         integration_service.send_message(

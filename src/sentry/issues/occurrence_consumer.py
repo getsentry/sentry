@@ -13,7 +13,7 @@ from sentry import nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType
@@ -100,7 +100,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     """
     try:
         with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
-            metrics.timing("occurrence.ingest.size.data", len(payload))
+            metrics.distribution("occurrence.ingest.size.data", len(payload), unit="byte")
 
             occurrence_data = {
                 "id": UUID(payload["id"]).hex,
@@ -115,6 +115,8 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "detection_time": payload["detection_time"],
                 "level": payload.get("level", DEFAULT_LEVEL),
             }
+
+            process_occurrence_data(occurrence_data)
 
             if payload.get("event_id"):
                 occurrence_data["event_id"] = UUID(payload["event_id"]).hex
@@ -172,6 +174,9 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         "occurrence_ingest.event_payload_invalid",
                         sample_rate=1.0,
                         tags={"occurrence_type": occurrence_data["type"]},
+                    )
+                    logger.exception(
+                        "Error validating event payload, falling back to legacy validation"
                     )
                     try:
                         jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)

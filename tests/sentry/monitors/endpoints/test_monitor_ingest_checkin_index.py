@@ -8,7 +8,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
@@ -26,7 +26,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class CreateMonitorCheckInTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-monitor-ingest-check-in-index"

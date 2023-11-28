@@ -15,10 +15,13 @@ from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationScopeEnum,
+    NotificationSettingEnum,
+    NotificationSettingsOptionEnum,
+)
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications.service import notifications_service
-from sentry.types.integrations import ExternalProviders
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -47,12 +50,14 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
         if not request.user_from_signed_request:
             raise NotFound()
         instance = self.fetch_instance(request, organization_slug, id)
-        display_name = ""
-        if hasattr(request.user, "get_display_name"):
-            display_name = request.user.get_display_name()
         view_url = ""
         if hasattr(instance, "get_absolute_url"):
             view_url = str(instance.get_absolute_url())
+        display_name = ""
+        user = request.user
+        if hasattr(user, "get_display_name"):
+            display_name = str(user.get_display_name())
+
         data = {
             "viewUrl": view_url,
             "type": self.object_type,
@@ -93,12 +98,12 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
         return data
 
     def unsubscribe(self, request: Request, instance: Project):
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.EMAIL,
-            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-            setting_option=NotificationSettingOptionValues.NEVER,
+        notifications_service.update_notification_options(
             actor=RpcActor(id=request.user.pk, actor_type=ActorType.USER),
-            project_id=instance.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS,
+            scope_type=NotificationScopeEnum.PROJECT,
+            scope_identifier=instance.id,
+            value=NotificationSettingsOptionEnum.NEVER,
         )
 
 

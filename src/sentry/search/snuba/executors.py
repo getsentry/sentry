@@ -424,6 +424,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 if gc != GroupCategory.PROFILE.value
                 or features.has("organizations:issue-platform", organization, actor=actor)
             }
+            # if we're not searching for feedbacks, then hide them by default
+            group_categories.discard(GroupCategory.FEEDBACK.value)
 
         if not features.has("organizations:performance-issues-search", organization):
             group_categories.discard(GroupCategory.PERFORMANCE.value)
@@ -492,7 +494,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         rows.sort(key=lambda row: row["group_id"])
 
         if not get_sample:
-            metrics.timing("snuba.search.num_result_groups", row_length)
+            metrics.distribution("snuba.search.num_result_groups", row_length)
 
         if get_sample:
             sort_field = "sample"
@@ -846,7 +848,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             )
             span.set_data("Max Candidates", max_candidates)
             span.set_data("Result Size", len(group_ids))
-        metrics.timing("snuba.search.num_candidates", len(group_ids))
+        metrics.distribution("snuba.search.num_candidates", len(group_ids))
         too_many_candidates = False
         if not group_ids:
             # no matches could possibly be found from this point on
@@ -932,7 +934,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 actor=actor,
                 aggregate_kwargs=aggregate_kwargs,
             )
-            metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
+            metrics.distribution("snuba.search.num_snuba_results", len(snuba_groups))
             count = len(snuba_groups)
             more_results = count >= limit and (offset + limit) < total
             offset += len(snuba_groups)
@@ -1001,7 +1003,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # more results.
             paginator_results.prev.has_results = True
 
-        metrics.timing("snuba.search.num_chunks", num_chunks)
+        metrics.distribution("snuba.search.num_chunks", num_chunks)
 
         groups = Group.objects.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
@@ -1228,7 +1230,6 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         actor: Optional[Any] = None,
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
-
         if not validate_cdc_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
 

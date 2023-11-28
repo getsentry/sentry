@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Callable
 
 from django.conf import settings
@@ -9,11 +10,13 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import resolve, reverse
 
-from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.http import absolute_uri
+
+logger = logging.getLogger(__name__)
 
 
 def _org_exists(slug):
@@ -81,7 +84,7 @@ class CustomerDomainMiddleware:
         ):
             return self.get_response(request)
         subdomain = request.subdomain
-        if subdomain is None or resolve_region(request) is not None:
+        if subdomain is None or subdomain_is_region(request):
             return self.get_response(request)
 
         if (
@@ -92,6 +95,7 @@ class CustomerDomainMiddleware:
             # We kick any request to the logout view.
             logout(request)
             redirect_url = absolute_uri(reverse("sentry-logout"))
+            logger.info("customer_domain.redirect.logout", extra={"location": redirect_url})
             return HttpResponseRedirect(redirect_url)
 
         activeorg = _resolve_activeorg(request)
@@ -103,5 +107,6 @@ class CustomerDomainMiddleware:
         auth.set_active_org(request, activeorg)
         redirect_url = _resolve_redirect_url(request, activeorg)
         if redirect_url is not None and len(redirect_url) > 0:
+            logger.info("customer_domain.redirect", extra={"location": redirect_url})
             return HttpResponseRedirect(redirect_url)
         return self.get_response(request)

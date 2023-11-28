@@ -10,7 +10,7 @@ import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -69,6 +69,17 @@ FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 class EventsMeta(TypedDict):
     fields: Dict[str, str]
+    datasetReason: NotRequired[str]
+    isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+
+
+# When calling make build-spectacular-docs we hit this issue
+# https://github.com/tfranzel/drf-spectacular/issues/1041
+# This is a work around
+EventsMeta.__annotations__["datasetReason"] = str
+EventsMeta.__annotations__["isMetricsData"] = bool
+EventsMeta.__annotations__["isMetricsExtractedData"] = bool
 
 
 class EventsResponse(TypedDict):
@@ -125,13 +136,15 @@ def format_time(data, start, end, rollup, orderby):
     return rv
 
 
-def zerofill(data, start, end, rollup, orderby):
+def zerofill(data, start, end, rollup, orderby, time_col_name=None):
     rv = []
     start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
     end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
     data_by_time = {}
 
     for obj in data:
+        if time_col_name:
+            obj["time"] = obj.pop(time_col_name)
         # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
         if isinstance(obj["time"], str):
             # `datetime.fromisoformat` is new in Python3.7 and before Python3.11, it is not a full
@@ -187,6 +200,7 @@ def query(
     skip_tag_resolution=False,
     extra_columns=None,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -267,6 +281,7 @@ def timeseries_query(
     has_metrics=False,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -412,6 +427,8 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -725,6 +742,7 @@ def spans_histogram_query(
     normalize_results=True,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
 ):
     """
     API for generating histograms for span exclusive time.
@@ -813,6 +831,7 @@ def histogram_query(
     normalize_results=True,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
 ):
     """
     API for generating histograms for numeric columns.

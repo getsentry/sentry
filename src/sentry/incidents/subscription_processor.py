@@ -11,7 +11,7 @@ from django.db import router, transaction
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import features, options
+from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -552,36 +552,35 @@ class SubscriptionProcessor:
         """
         self.trigger_alert_counts[trigger.id] += 1
 
-        if options.get("metric_alerts.rate_limit"):
-            # If an incident was created for this rule, trigger type, and subscription
-            # within the last 10 minutes, don't make another one
-            last_it = (
-                IncidentTrigger.objects.filter(alert_rule_trigger=trigger)
-                .order_by("-incident_id")
-                .select_related("incident")
-                .first()
+        # If an incident was created for this rule, trigger type, and subscription
+        # within the last 10 minutes, don't make another one
+        last_it = (
+            IncidentTrigger.objects.filter(alert_rule_trigger=trigger)
+            .order_by("-incident_id")
+            .select_related("incident")
+            .first()
+        )
+        last_incident: Incident | None = last_it.incident if last_it else None
+        last_incident_projects = (
+            [project.id for project in last_incident.projects.all()] if last_incident else []
+        )
+        minutes_since_last_incident = (
+            (timezone.now() - last_incident.date_added).seconds / 60 if last_incident else None
+        )
+        if (
+            last_incident
+            and self.subscription.project.id in last_incident_projects
+            and minutes_since_last_incident <= 10
+        ):
+            metrics.incr(
+                "incidents.alert_rules.hit_rate_limit",
+                tags={
+                    "last_incident_id": last_incident.id,
+                    "project_id": self.subscription.project.id,
+                    "trigger_id": trigger.id,
+                },
             )
-            last_incident: Incident | None = last_it.incident if last_it else None
-            last_incident_projects = (
-                [project.id for project in last_incident.projects.all()] if last_incident else []
-            )
-            minutes_since_last_incident = (
-                (timezone.now() - last_incident.date_added).seconds / 60 if last_incident else None
-            )
-            if (
-                last_incident
-                and self.subscription.project.id in last_incident_projects
-                and minutes_since_last_incident <= 10
-            ):
-                metrics.incr(
-                    "incidents.alert_rules.hit_rate_limit",
-                    tags={
-                        "last_incident_id": last_incident.id,
-                        "project_id": self.subscription.project.id,
-                        "trigger_id": trigger.id,
-                    },
-                )
-                return None
+            return None
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
 

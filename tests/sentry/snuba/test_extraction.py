@@ -6,6 +6,7 @@ from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
+    SearchQueryConverter,
     apdex_tag_spec,
     cleanup_query,
     failure_tag_spec,
@@ -43,10 +44,56 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration query is on-demand
-        ("count[)", "", False),  # Malformed aggregate should return false
+        ("count()", "", False),  # Malformed aggregate should return false
+        (
+            "count()",
+            "event.type:error transaction.duration:>0",
+            False,
+        ),  # event.type:error not supported by metrics
+        (
+            "count()",
+            "event.type:default transaction.duration:>0",
+            False,
+        ),  # event.type:error not supported by metrics
+        (
+            "count()",
+            "error.handled:true transaction.duration:>0",
+            False,
+        ),  # error.handled is an error search term
     ],
 )
 def test_should_use_on_demand(agg, query, result):
+    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
+
+
+@pytest.mark.parametrize(
+    "agg, query, result",
+    [
+        ("sum(c:custom/page_load@millisecond)", "release:a", False),
+        ("sum(c:custom/page_load@millisecond)", "transaction.duration:>0", False),
+        (
+            "p75(d:transactions/measurements.fcp@millisecond)",
+            "release:a",
+            False,
+        ),
+        (
+            "p75(d:transactions/measurements.fcp@millisecond)",
+            "transaction.duration:>0",
+            False,
+        ),
+        (
+            "p95(d:spans/duration@millisecond)",
+            "release:a",
+            False,
+        ),
+        (
+            "p95(d:spans/duration@millisecond)",
+            "transaction.duration:>0",
+            False,
+        ),
+    ],
+)
+def test_should_use_on_demand_with_mri(agg, query, result):
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
 
@@ -70,7 +117,7 @@ class TestCreatesOndemandMetricSpec:
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
             ("p100(transaction.duration)", "transaction.duration:>0"),
-            # we dont support custom percentiles that can be mapped to one of standard percentiles
+            # we don't support custom percentiles that can be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
@@ -178,6 +225,19 @@ def test_spec_simple_query_with_environment_only():
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.environment", "op": "eq", "value": "production"}
+
+
+def test_spec_context_mapping():
+    spec = OnDemandMetricSpec("count()", "device:SM-A226B")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "name": "event.contexts.device.model",
+        "op": "eq",
+        "value": "SM-A226B",
+    }
 
 
 def test_spec_query_with_parentheses_and_environment():
@@ -398,6 +458,44 @@ def test_spec_with_has():
     }
 
 
+def test_spec_with_message():
+    spec = OnDemandMetricSpec(
+        "avg(measurements.lcp)", 'message:"issues" AND !message:"alerts" AND "api"'
+    )
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.transaction", "op": "glob", "value": ["*issues*"]},
+            {
+                "inner": {"name": "event.transaction", "op": "glob", "value": ["*alerts*"]},
+                "op": "not",
+            },
+            {"name": "event.transaction", "op": "glob", "value": ["*api*"]},
+        ],
+        "op": "and",
+    }
+
+
+def test_spec_with_unknown_error_status():
+    spec = OnDemandMetricSpec(
+        "avg(measurements.lcp)", "transaction.status:unknown_error OR transaction.status:unknown"
+    )
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.contexts.trace.status", "op": "eq", "value": "unknown"},
+            {"name": "event.contexts.trace.status", "op": "eq", "value": "unknown"},
+        ],
+        "op": "or",
+    }
+
+
 def test_spec_ignore_fields():
     with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
     without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
@@ -587,3 +685,26 @@ def test_to_standard_metrics_query(dirty, clean):
     clean_tokens = parse_search_query(clean)
 
     assert cleaned_up_tokens == clean_tokens
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        (
+            "has:profile.id",
+            {
+                "op": "not",
+                "inner": {"op": "eq", "name": "event.contexts.profile.profile_id", "value": None},
+            },
+        ),
+        (
+            "profile.id:abc123",
+            {"op": "eq", "name": "event.contexts.profile.profile_id", "value": "abc123"},
+        ),
+    ],
+)
+def test_search_query_converter(query, expected):
+    tokens = parse_search_query(query)
+    converter = SearchQueryConverter(tokens)
+    condition = converter.convert()
+    assert expected == condition

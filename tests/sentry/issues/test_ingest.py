@@ -1,5 +1,5 @@
 from collections import namedtuple
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import md5
 from unittest import mock
@@ -18,7 +18,6 @@ from sentry.issues.grouptype import (
 from sentry.issues.ingest import (
     _create_issue_kwargs,
     materialize_metadata,
-    process_occurrence_data,
     save_issue_from_occurrence,
     save_issue_occurrence,
     send_issue_occurrence_to_eventstream,
@@ -50,10 +49,6 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         occurrence = self.build_occurrence(event_id=event.event_id)
         saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
         assert group_info is not None
-        occurrence = replace(
-            occurrence,
-            fingerprint=[md5(fp.encode("utf-8")).hexdigest() for fp in occurrence.fingerprint],
-        )
         self.assert_occurrences_identical(occurrence, saved_occurrence)
         assert Group.objects.filter(grouphash__hash=saved_occurrence.fingerprint[0]).exists()
         now = datetime.now()
@@ -131,18 +126,17 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             save_issue_occurrence(occurrence.to_dict(), event)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         data = self.build_occurrence_data(fingerprint=["hi", "bye"])
-        process_occurrence_data(data)
         assert data["fingerprint"] == [
             md5(b"hi").hexdigest(),
             md5(b"bye").hexdigest(),
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test_new_group(self) -> None:
         occurrence = self.build_occurrence(type=ErrorGroupType.type_id)
@@ -182,12 +176,12 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
     def test_existing_group(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
-        occurrence = self.build_occurrence()
+        occurrence = self.build_occurrence(fingerprint=["some-fingerprint"])
         save_issue_from_occurrence(occurrence, event, None)
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=occurrence.fingerprint, subtitle="new subtitle", issue_title="new title"
+            fingerprint=["some-fingerprint"], subtitle="new subtitle", issue_title="new title"
         )
         with self.tasks():
             updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
@@ -206,13 +200,13 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
     def test_existing_group_different_category(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
-        occurrence = self.build_occurrence()
+        occurrence = self.build_occurrence(fingerprint=["some-fingerprint"])
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=occurrence.fingerprint, type=MonitorCheckInFailure.type_id
+            fingerprint=["some-fingerprint"], type=MonitorCheckInFailure.type_id
         )
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
@@ -359,6 +353,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
                 "contact_email": "test@test.com",
                 "message": "test",
                 "name": "Name Test",
+                "source": "crash report widget",
             },
         )
         event = self.store_event(data={}, project_id=self.project.id)
@@ -373,6 +368,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "contact_email": "test@test.com",
             "message": "test",
             "name": "Name Test",
+            "source": "crash report widget",
         }
 
 

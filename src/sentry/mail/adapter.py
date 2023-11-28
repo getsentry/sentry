@@ -6,11 +6,8 @@ from sentry import digests
 from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.notifications.helpers import should_use_notifications_v2
-from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -20,11 +17,11 @@ from sentry.notifications.types import (
     FallthroughChoiceType,
     NotificationSettingEnum,
 )
+from sentry.notifications.utils.participants import get_notification_recipients_v2
 from sentry.plugins.base.structs import Notification
-from sentry.services.hybrid_cloud.actor import ActorType
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.tasks.digests import deliver_digest
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -60,6 +57,7 @@ class MailAdapter:
             "target_type": target_type.value,
             "target_identifier": target_identifier,
             "fallthrough_choice": fallthrough_choice.value if fallthrough_choice else None,
+            "notification_uuid": notification_uuid,
         }
         log_event = "dispatched"
         for future in futures:
@@ -109,32 +107,15 @@ class MailAdapter:
         notifications for the provided project.
         """
         user_ids = project.member_set.values_list("user_id", flat=True)
-        users = user_service.get_many(filter=dict(user_ids=list(user_ids)))
-
-        if should_use_notifications_v2(project.organization):
-            controller = NotificationController(
-                recipients=users,
-                project_ids=[project.id],
-                organization_id=project.organization_id,
-                provider=ExternalProviderEnum.EMAIL,
-                type=NotificationSettingEnum.ISSUE_ALERTS,
-            )
-            return controller.get_notification_recipients(
-                type=NotificationSettingEnum.ISSUE_ALERTS,
-                actor_type=ActorType.USER,
-            )[ExternalProviders.EMAIL]
-
-        accepting_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
-            project, users
+        actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
+        recipients = get_notification_recipients_v2(
+            recipients=actors,
+            type=NotificationSettingEnum.ISSUE_ALERTS,
+            project_ids=[project.id],
+            organization_id=project.organization_id,
+            actor_type=ActorType.USER,
         )
-        email_recipients = accepting_recipients.get(ExternalProviders.EMAIL, ())
-
-        users_by_id = {user.id: user for user in users}
-        return [
-            users_by_id[recipient.id]
-            for recipient in email_recipients
-            if recipient.actor_type == ActorType.USER
-        ]
+        return recipients.get(ExternalProviders.EMAIL)
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)

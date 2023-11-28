@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Mapping, Optional
 
+from django.http import HttpRequest
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
@@ -33,10 +34,9 @@ def get_invite_state(
     member_id: int,
     organization_slug: Optional[str],
     user_id: int,
+    request: HttpRequest,
 ) -> Optional[RpcUserInviteContext]:
     if organization_slug is None:
-        logger.info("organization.member_invite.no_slug", extra={"member_id": member_id})
-
         member_mapping: OrganizationMemberMapping | None = None
         member_mappings: Mapping[int, OrganizationMemberMapping] = {
             omm.organization_id: omm
@@ -61,6 +61,16 @@ def get_invite_state(
             organization_id=member_mapping.organization_id,
             organization_member_id=member_id,
             user_id=user_id,
+        )
+
+        logger.info(
+            "organization.member_invite.no_slug",
+            extra={
+                "member_id": member_id,
+                "org_id": member_mapping.organization_id,
+                "url": request.path,
+                "method": request.method,
+            },
         )
     else:
         invite_context = organization_service.get_invite_by_slug(
@@ -94,7 +104,10 @@ class AcceptOrganizationInvite(Endpoint):
         self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
     ) -> Response:
         invite_context = get_invite_state(
-            member_id=int(member_id), organization_slug=organization_slug, user_id=request.user.id
+            member_id=int(member_id),
+            organization_slug=organization_slug,
+            user_id=request.user.id,
+            request=request,
         )
         if invite_context is None:
             return self.respond_invalid()
@@ -188,6 +201,7 @@ class AcceptOrganizationInvite(Endpoint):
             member_id=int(member_id),
             organization_slug=organization_slug,
             user_id=request.user.id,
+            request=request,
         )
         if invite_context is None:
             return self.respond_invalid()

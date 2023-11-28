@@ -4,7 +4,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 from time import time
-from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -12,7 +12,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options
+from sentry import features
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -32,12 +32,19 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig, SdkName
+from sentry.utils.sdk_crashes.build_sdk_crash_detection_configs import (
+    build_sdk_crash_detection_configs,
+)
 from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState, GroupStates
+    from sentry.models.group import Group
+    from sentry.models.project import Project
+    from sentry.models.team import Team
+    from sentry.ownership.grammar import Rule
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +82,6 @@ def _should_send_error_created_hooks(project):
     result = cache.get(cache_key)
 
     if result is None:
-
         org = Organization.objects.get_from_cache(id=project.organization_id)
         if not features.has("organizations:integrations-event-hooks", organization=org):
             cache.set(cache_key, 0, 60)
@@ -93,7 +99,7 @@ def _should_send_error_created_hooks(project):
     return result
 
 
-def should_write_event_stats(event: Event):
+def should_write_event_stats(event: Union[Event, GroupEvent]):
     # For now, we only want to write these stats for error events. If we start writing them for
     # other event types we'll throw off existing stats and potentially cause various alerts to fire.
     # We might decide to write these stats for other event types later, either under different keys
@@ -105,10 +111,19 @@ def should_write_event_stats(event: Event):
     )
 
 
-def format_event_platform(event: Event):
-    platform = event.group.platform
-    if not platform:
+def format_event_platform(event: Union[Event, GroupEvent]):
+    if not event.group:
+        logger.error(
+            "Group not found on event during formatting", extra={"event_id": event.event_id}
+        )
         return
+    if not event.group.platform:
+        logger.error(
+            "Platform not found on group during formatting",
+            extra={"event_id": event.event_id, "group_id": event.group.id},
+        )
+        return
+    platform = event.group.platform
     return platform.split("-", 1)[0].split("_", 1)[0]
 
 
@@ -120,7 +135,7 @@ def _capture_event_stats(event: Event) -> None:
     tags = {"platform": platform}
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
     metrics.incr(f"events.processed.{platform}", skip_internal=False)
-    metrics.timing("events.size.data", event.size, tags=tags)
+    metrics.distribution("events.size.data", event.size, tags=tags, unit="byte")
 
 
 def _update_escalating_metrics(event: Event) -> None:
@@ -143,6 +158,12 @@ def _capture_group_stats(job: PostProcessJob) -> None:
     if not job["group_state"]["is_new"] or not should_write_event_stats(event):
         return
 
+    if not event.group:
+        logger.error(
+            "Group not found on event while capturing group stats",
+            extra={"event_id": event.event_id},
+        )
+        return
     with metrics.timer("post_process._capture_group_stats.duration"):
         platform = format_event_platform(event)
         tags = {"platform": platform}
@@ -198,7 +219,6 @@ def handle_owner_assignment(job):
             # - we tried to calculate and could not find issue owners with TTL 1 day
             # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
-
                 with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
                     if should_issue_owners_ratelimit(project.id, group.id):
                         logger.info(
@@ -269,9 +289,14 @@ def handle_owner_assignment(job):
                             },
                         ):
                             # see ProjectOwnership.get_issue_owners
-                            issue_owners = []
+                            issue_owners: Sequence[
+                                Tuple[
+                                    Rule,
+                                    Sequence[Union[Team, RpcUser]],
+                                    str,
+                                ]
+                            ] = []
                         else:
-
                             issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
                             # Cache for 1 day after we calculated. We don't need to move that fast.
@@ -307,7 +332,11 @@ def handle_invalid_group_owners(group):
         owner.delete()
 
 
-def handle_group_owners(project, group, issue_owners):
+def handle_group_owners(
+    project: Project,
+    group: Group,
+    issue_owners: Sequence[Tuple[Rule, Sequence[Union[Team, RpcUser]], str]],
+):
     """
     Stores group owners generated by `ProjectOwnership.get_issue_owners` in the
     `GroupOwner` model, and handles any diffing/changes of which owners we're keeping.
@@ -327,8 +356,7 @@ def handle_group_owners(project, group, issue_owners):
                 group=group,
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
             )
-            new_owners = {}
-            owners: Union[List[RpcUser], List[Team]]
+            new_owners: dict = {}
             for rule, owners, source in issue_owners:
                 for owner in owners:
                     # Can potentially have multiple rules pointing to the same owner
@@ -339,25 +367,29 @@ def handle_group_owners(project, group, issue_owners):
 
             # Owners already in the database that we'll keep
             keeping_owners = set()
-            for owner in current_group_owners:
-                owner_type = (
+            for group_owner in current_group_owners:
+                owner_rule_type = (
                     OwnerRuleType.CODEOWNERS.value
-                    if owner.type == GroupOwnerType.CODEOWNERS.value
+                    if group_owner.type == GroupOwnerType.CODEOWNERS.value
                     else OwnerRuleType.OWNERSHIP_RULE.value
                 )
                 lookup_key = (
-                    (Team, owner.team_id, owner_type)
-                    if owner.team_id is not None
-                    else (User, owner.user_id, owner_type)
+                    (Team, group_owner.team_id, owner_rule_type)
+                    if group_owner.team_id is not None
+                    else (User, group_owner.user_id, owner_rule_type)
                 )
                 # Old groupowner assignments get deleted
+                lookup_key_value = None
                 if lookup_key not in new_owners:
-                    owner.delete()
+                    group_owner.delete()
+                else:
+                    lookup_key_value = new_owners.get(lookup_key)
                 # Old groupowner assignment from outdated rules get deleted
-                if new_owners.get(lookup_key) and (owner.context or {}).get(
-                    "rule"
-                ) not in new_owners.get(lookup_key):
-                    owner.delete()
+                if (
+                    lookup_key_value
+                    and (group_owner.context or {}).get("rule") not in lookup_key_value
+                ):
+                    group_owner.delete()
                 else:
                     keeping_owners.add(lookup_key)
 
@@ -448,6 +480,15 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
 fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
 
+def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -> bool:
+    return (
+        features.has("organizations:escalating-metrics-backend", event.project.organization)
+        and not is_transaction_event
+        and event.group is not None
+        and event.group.issue_type.should_detect_escalation(event.project.organization)
+    )
+
+
 @instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
@@ -522,7 +563,9 @@ def post_process_group(
                 # occurrence
                 return
 
-            occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project_id)
+            occurrence = (
+                IssueOccurrence.fetch(occurrence_id, project_id=project_id) if project_id else None
+            )
             if not occurrence:
                 logger.error(
                     "Failed to fetch occurrence",
@@ -596,10 +639,7 @@ def post_process_group(
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
-        if (
-            features.has("organizations:escalating-metrics-backend", event.project.organization)
-            and not is_transaction_event
-        ):
+        if should_update_escalating_metrics(event, is_transaction_event):
             _update_escalating_metrics(event)
 
         group_events: Mapping[int, GroupEvent] = {
@@ -609,11 +649,14 @@ def post_process_group(
             for ge in group_events.values():
                 ge.occurrence = occurrence
 
-        multi_groups: Sequence[Tuple[GroupEvent, GroupState]] = [
-            (group_events.get(gs.get("id")), gs)
-            for gs in (group_states or ())
-            if gs.get("id") is not None
-        ]
+        multi_groups = []
+        if group_states:
+            for gs in group_states:
+                gs_id = gs.get("id")
+                if gs_id:
+                    associated_event = group_events.get(gs_id)
+                    if associated_event:
+                        multi_groups.append((associated_event, gs))
 
         group_jobs: Sequence[PostProcessJob] = [
             {
@@ -639,10 +682,12 @@ def post_process_group(
 
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
-    issue_category = group_event.group.issue_category
+    issue_category = group_event.group.issue_category if group_event.group else None
     issue_category_metric = issue_category.name.lower() if issue_category else None
 
-    if not group_event.group.issue_type.allow_post_process_group(group_event.group.organization):
+    if group_event.group and not group_event.group.issue_type.allow_post_process_group(
+        group_event.group.organization
+    ):
         return
 
     if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
@@ -688,8 +733,7 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)
-
+    event.data = EventDict(event.data, skip_renormalization=True)  # type: ignore[assignment]  # python/mypy#3004
     return event
 
 
@@ -703,13 +747,25 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
     if event.group_id is not None:
         # deprecated event.group and event.group_id usage, kept here for backwards compatibility
         event.group, _ = get_group_with_redirect(event.group_id)
-        event.group_id = event.group.id
-        # We buffer updates to last_seen, assume its at least >= the event datetime
-        event.group.last_seen = max(event.datetime, event.group.last_seen)
+        if event.group:
+            event.group_id = event.group.id
+            # We buffer updates to last_seen, assume its at least >= the event datetime
+            event.group.last_seen = max(event.datetime, event.group.last_seen)
 
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
-    group_states = group_states or ([{"id": event.group_id}] if event.group_id else [])
+    group_states = group_states or (
+        [
+            {
+                "id": event.group_id,
+                "is_new": False,
+                "is_new_group_environment": False,
+                "is_regression": False,
+            }
+        ]
+        if event.group_id
+        else []
+    )
     rebound_groups = []
     for group_state in group_states:
         rebound_group = get_group_with_redirect(group_state["id"])[0]
@@ -745,6 +801,13 @@ def process_inbox_adds(job: PostProcessJob) -> None:
 
             from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 
+            if not event.group:
+                logger.error(
+                    "Group not found on event while processing inbox adds",
+                    extra={"event_id": event.event_id},
+                )
+                return
+
             if is_reprocessed and is_new:
                 # keep Group.status=UNRESOLVED and Group.substatus=ONGOING if its reprocessed
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
@@ -779,6 +842,7 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
+    from sentry.eventstore.models import Event, GroupEvent
     from sentry.issues.escalating import is_escalating, manage_issue_states
     from sentry.models.group import GroupStatus
     from sentry.models.groupinbox import GroupInboxReason
@@ -787,8 +851,18 @@ def process_snoozes(job: PostProcessJob) -> None:
 
     event = job["event"]
     group = event.group
+    if not group:
+        logger.error(
+            "Group not found on event while processing snoozes", extra={"event_id": event.event_id}
+        )
+        return
+    if isinstance(event, Event):
+        event = GroupEvent.from_event(event, group)
 
-    # Check is group is escalating
+    if not group.issue_type.should_detect_escalation(group.organization):
+        return
+
+    # Check if group is escalating
     if (
         features.has("organizations:escalating-issues", group.organization)
         and group.status == GroupStatus.IGNORED
@@ -913,12 +987,23 @@ def process_replay_link(job: PostProcessJob) -> None:
 
 
 def process_rules(job: PostProcessJob) -> None:
+    from sentry.eventstore.models import Event, GroupEvent
+
     if job["is_reprocessed"]:
         return
 
     from sentry.rules.processor import RuleProcessor
 
     group_event = job["event"]
+    if isinstance(group_event, Event):
+        if group_event.group:
+            group_event = GroupEvent.from_event(group_event, group_event.group)
+        else:
+            logger.error(
+                "Group not found on event while processing rules",
+                extra={"event_id": group_event.event_id},
+            )
+            return
     is_new = job["group_state"]["is_new"]
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
@@ -1180,27 +1265,15 @@ def sdk_crash_monitoring(job: PostProcessJob):
     if not features.has("organizations:sdk-crash-detection", event.project.organization):
         return
 
-    cocoa_project_id = options.get(
-        "issues.sdk_crash_detection.cocoa.project_id",
-    )
-    if not cocoa_project_id or cocoa_project_id == 0:
-        sentry_sdk.capture_message("Cocoa project_id is not set.")
+    configs = build_sdk_crash_detection_configs()
+    if not configs or len(configs) == 0:
         return None
-
-    cocoa_sample_rate = options.get("issues.sdk_crash_detection.cocoa.sample_rate")
-    # When the sample rate is 0, we can skip the sdk crash detection.
-    if not cocoa_sample_rate or cocoa_sample_rate == 0:
-        return None
-
-    cocoa_config = SDKCrashDetectionConfig(
-        sdk_name=SdkName.Cocoa, project_id=cocoa_project_id, sample_rate=cocoa_sample_rate
-    )
 
     with metrics.timer("post_process.sdk_crash_monitoring.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
             sdk_crash_detection.detect_sdk_crash(
                 event=event,
-                configs=[cocoa_config],
+                configs=configs,
             )
 
 
@@ -1223,6 +1296,32 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     )
 
 
+def feedback_filter_decorator(func):
+    def wrapper(job):
+        if not should_postprocess_feedback(job):
+            return
+        return func(job)
+
+    return wrapper
+
+
+def should_postprocess_feedback(job: PostProcessJob) -> bool:
+    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+
+    event = job["event"]
+    if (
+        hasattr(event, "occurrence")
+        and event.occurrence is not None
+        and event.occurrence.evidence_data.get("source")
+        in [
+            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
+            FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT.value,
+        ]
+    ):
+        return True
+    return False
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1241,6 +1340,11 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         fire_error_processed,
         sdk_crash_monitoring,
         process_replay_link,
+    ],
+    GroupCategory.FEEDBACK: [
+        feedback_filter_decorator(process_snoozes),
+        feedback_filter_decorator(process_inbox_adds),
+        feedback_filter_decorator(process_rules),
     ],
 }
 

@@ -2,7 +2,6 @@ import pytest
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 
@@ -11,9 +10,8 @@ pytestmark = [requires_snuba]
 
 @pytest.fixture(autouse=True)
 def openai_features():
-    with Feature({"organizations:open-ai-suggestion": True}):
-        with override_settings(OPENAI_API_KEY="X"):
-            yield
+    with override_settings(OPENAI_API_KEY="X"):
+        yield
 
 
 @pytest.fixture(autouse=True)

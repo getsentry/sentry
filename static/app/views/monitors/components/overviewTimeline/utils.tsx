@@ -33,7 +33,7 @@ export function getConfigFromTimeRange(
   const subMinutePxBuckets = startEndMinutes < timelineWidth;
 
   for (const minutes of minuteRanges) {
-    if (minutes > timeLabelMinutes) {
+    if (minutes >= Math.floor(timeLabelMinutes)) {
       return {
         dateLabelFormat: getFormat({timeOnly: true, seconds: subMinutePxBuckets}),
         elapsedMinutes: startEndMinutes,

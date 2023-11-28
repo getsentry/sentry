@@ -53,7 +53,7 @@ perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
 rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
@@ -69,7 +69,6 @@ class OrganizationMetricsPermissionTest(APITestCase):
         return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
 
     def test_permissions(self):
-
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=[])
 
@@ -85,7 +84,7 @@ class OrganizationMetricsPermissionTest(APITestCase):
             assert response.status_code in (200, 400, 404)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-index"

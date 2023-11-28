@@ -12,12 +12,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   EMPTY_OPTION_VALUE,
   EmptyContainer,
 } from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 type Props = {
+  additionalQuery?: string[];
+  emptyOptionLocation?: 'top' | 'bottom';
   moduleName?: ModuleName;
   spanCategory?: string;
   value?: string;
@@ -35,6 +38,8 @@ export function DomainSelector({
   value = '',
   moduleName = ModuleName.ALL,
   spanCategory,
+  additionalQuery = [],
+  emptyOptionLocation = 'bottom',
 }: Props) {
   const [state, setState] = useState<State>({
     search: '',
@@ -42,7 +47,13 @@ export function DomainSelector({
     shouldRequeryOnInputChange: false,
   });
   const location = useLocation();
-  const eventView = getEventView(location, moduleName, spanCategory, state.search);
+  const eventView = getEventView(
+    location,
+    moduleName,
+    spanCategory,
+    state.search,
+    additionalQuery
+  );
 
   const {data: domains, isLoading} = useSpansQuery<
     Array<{[SpanMetricsField.SPAN_DOMAIN]: Array<string>}>
@@ -82,9 +93,17 @@ export function DomainSelector({
 
   const optionsReady = !isLoading && !state.inputChanged;
 
+  const emptyOption = {
+    value: EMPTY_OPTION_VALUE,
+    label: (
+      <EmptyContainer>{t('(No %s)', LABEL_FOR_MODULE_NAME[moduleName])}</EmptyContainer>
+    ),
+  };
+
   const options = optionsReady
     ? [
         {value: '', label: 'All'},
+        ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
         ...transformedDomains
           .map(datum => {
             return {
@@ -93,14 +112,7 @@ export function DomainSelector({
             };
           })
           .sort((a, b) => a.value.localeCompare(b.value)),
-        {
-          value: EMPTY_OPTION_VALUE,
-          label: (
-            <EmptyContainer>
-              {t('(No %s)', LABEL_FOR_MODULE_NAME[moduleName])}
-            </EmptyContainer>
-          ),
-        },
+        ...(emptyOptionLocation === 'bottom' ? [emptyOption] : []),
       ]
     : [];
 
@@ -129,6 +141,7 @@ export function DomainSelector({
           query: {
             ...location.query,
             [SpanMetricsField.SPAN_DOMAIN]: newValue.value,
+            [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
       }}
@@ -140,6 +153,7 @@ export function DomainSelector({
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('Host'),
   db: t('Table'),
+  resource: t('Resource'),
   other: t('Domain'),
   '': t('Domain'),
 };
@@ -148,20 +162,22 @@ function getEventView(
   location: Location,
   moduleName: ModuleName,
   spanCategory?: string,
-  search?: string
+  search?: string,
+  additionalQuery?: string[]
 ) {
   const query = [
     ...buildEventViewQuery({
       moduleName,
       location: {
         ...location,
-        query: omit(location.query, SpanMetricsField.SPAN_DOMAIN),
+        query: omit(location.query, ['span.action', 'span.domain']),
       },
       spanCategory,
     }),
     ...(search && search.length > 0
       ? [`${SpanMetricsField.SPAN_DOMAIN}:*${[search]}*`]
       : []),
+    ...(additionalQuery || []),
   ].join(' ');
   return EventView.fromNewQueryWithLocation(
     {

@@ -6,6 +6,16 @@ from packaging.version import InvalidVersion, Version
 from sentry.db.models import NodeData
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
+from sentry.utils.sdk_crashes.path_replacer import PathReplacer
+
+
+@dataclass
+class SDKFrameConfig:
+    function_patterns: Set[str]
+
+    filename_patterns: Set[str]
+
+    path_replacer: PathReplacer
 
 
 @dataclass
@@ -16,9 +26,7 @@ class SDKCrashDetectorConfig:
 
     system_library_paths: Set[str]
 
-    sdk_frame_function_matchers: Set[str]
-
-    sdk_frame_filename_matchers: Set[str]
+    sdk_frame_config: SDKFrameConfig
 
     sdk_crash_ignore_functions_matchers: Set[str]
 
@@ -39,7 +47,10 @@ class SDKCrashDetector:
 
     @property
     def fields_containing_paths(self) -> Set[str]:
-        return {"package", "module", "abs_path"}
+        return {"package", "module", "abs_path", "filename"}
+
+    def replace_sdk_frame_path(self, path: str) -> str:
+        return self.config.sdk_frame_config.path_replacer.replace_path(path)
 
     def should_detect_sdk_crash(self, event_data: NodeData) -> bool:
         sdk_name = get_path(event_data, "sdk", "name")
@@ -86,7 +97,6 @@ class SDKCrashDetector:
         # Cocoa SDK frames can be marked as in_app. Therefore, the algorithm only checks if frames
         # are SDK frames or from system libraries.
         for frame in reversed(frames):
-
             function = frame.get("function")
             if function:
                 for matcher in self.config.sdk_crash_ignore_functions_matchers:
@@ -110,14 +120,14 @@ class SDKCrashDetector:
 
         function = frame.get("function")
         if function:
-            for matcher in self.config.sdk_frame_function_matchers:
-                if glob_match(function, matcher, ignorecase=True):
+            for patterns in self.config.sdk_frame_config.function_patterns:
+                if glob_match(function, patterns, ignorecase=True):
                     return True
 
         filename = frame.get("filename")
         if filename:
-            for matcher in self.config.sdk_frame_filename_matchers:
-                if glob_match(filename, matcher, ignorecase=True):
+            for patterns in self.config.sdk_frame_config.filename_patterns:
+                if glob_match(filename, patterns, ignorecase=True):
                     return True
 
         return False

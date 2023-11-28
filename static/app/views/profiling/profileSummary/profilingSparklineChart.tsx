@@ -20,7 +20,7 @@ function asSeries(
   return {
     data: data.map(p => ({
       name: p.timestamp * 1e3,
-      value: p.value / 1e6 ?? 0,
+      value: p.value ?? 0,
     })),
     color,
     seriesName,
@@ -103,8 +103,8 @@ function makeSeriesBeforeAfterLines(
   beforeLine.markLine = {
     data: [
       [
-        {value: 'Past', coord: [start * 1e3, aggregate_range_1 / 1e6]},
-        {coord: [breakpoint * 1e3, aggregate_range_1 / 1e6]},
+        {value: 'Past', coord: [start * 1e3, aggregate_range_1]},
+        {coord: [breakpoint * 1e3, aggregate_range_1]},
       ],
     ],
     label: {
@@ -132,9 +132,9 @@ function makeSeriesBeforeAfterLines(
       [
         {
           value: 'Present',
-          coord: [breakpoint * 1e3, aggregate_range_2 / 1e6],
+          coord: [breakpoint * 1e3, aggregate_range_2],
         },
-        {coord: [end * 1e3, aggregate_range_2 / 1e6]},
+        {coord: [end * 1e3, aggregate_range_2]},
       ],
     ],
     label: {

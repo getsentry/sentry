@@ -1,129 +1,66 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import BarSeries from 'sentry/components/charts/series/barSeries';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import VisualMap from 'sentry/components/charts/components/visualMap';
+import {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
+import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {getUserTimezone} from 'sentry/utils/dates';
 import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType, RateUnits} from 'sentry/utils/discover/fields';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useRouter from 'sentry/utils/useRouter';
 import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 import {getIntervalLine} from 'sentry/views/performance/utils';
 
 interface ChartProps {
-  end: string;
+  datetime: PageFilters['datetime'];
   evidenceData: NormalizedTrendsTransaction;
   percentileSeries: Series[];
-  start: string;
-  throughputSeries: Series;
 }
 
-function LineChart({
-  percentileSeries,
-  throughputSeries,
-  evidenceData,
-  start,
-  end,
-}: ChartProps) {
+function LineChart({datetime, percentileSeries, evidenceData}: ChartProps) {
   const theme = useTheme();
   const router = useRouter();
 
-  const leftSeries = useMemo(() => {
-    const needsLabel = true;
+  const series = useMemo(() => {
     const intervalSeries = getIntervalLine(
       theme,
-      percentileSeries || [],
+      percentileSeries,
       0.5,
-      needsLabel,
+      true,
       evidenceData,
       true
     );
-    return [
-      ...percentileSeries,
-      ...intervalSeries.filter(s => !s.markArea), // get rid of the shading
-    ];
+    return [...percentileSeries, ...intervalSeries];
   }, [percentileSeries, evidenceData, theme]);
 
-  const rightSeries = useMemo(() => [throughputSeries], [throughputSeries]);
-
-  const series = useMemo(() => {
-    return [
-      ...rightSeries.map(({seriesName, data, ...options}) =>
-        BarSeries({
-          ...options,
-          name: seriesName,
-          data: data?.map(({value, name, itemStyle}) => {
-            if (itemStyle === undefined) {
-              return [name, value];
-            }
-            return {value: [name, value], itemStyle};
-          }),
-          animation: false,
-          animationThreshold: 1,
-          animationDuration: 0,
-          yAxisIndex: 1,
-        })
-      ),
-      ...leftSeries.map(({seriesName, data, ...options}) =>
-        LineSeries({
-          ...options,
-          name: seriesName,
-          data: data?.map(({value, name}) => [name, value]),
-          animation: false,
-          animationThreshold: 1,
-          animationDuration: 0,
-          showSymbol: false,
-          yAxisIndex: 0,
-        })
-      ),
-    ];
-  }, [leftSeries, rightSeries]);
-
   const chartOptions: Omit<
-    React.ComponentProps<typeof BaseChart>,
+    React.ComponentProps<typeof EChartsLineChart>,
     'series'
   > = useMemo(() => {
     const legend = {
       right: 16,
       top: 12,
-      data: [...percentileSeries.map(s => s.seriesName), throughputSeries.seriesName],
+      data: percentileSeries.map(s => s.seriesName),
     };
 
-    const durationUnit = getDurationUnit(leftSeries);
-
-    const yAxes: React.ComponentProps<typeof BaseChart>['yAxes'] = [
-      {
-        minInterval: durationUnit,
-        axisLabel: {
-          color: theme.chartLabel,
-          formatter: (value: number) =>
-            axisLabelFormatter(value, 'duration', undefined, durationUnit),
-        },
-      },
-    ];
-
-    if (rightSeries.length) {
-      yAxes.push({
-        axisLabel: {
-          color: theme.chartLabel,
-          formatter: (value: number) =>
-            axisLabelFormatter(value, 'rate', true, undefined, RateUnits.PER_SECOND),
-        },
-      });
-    }
+    const durationUnit = getDurationUnit(series);
 
     return {
+      axisPointer: {
+        link: [
+          {
+            xAxisIndex: [0, 1],
+            yAxisIndex: [0, 1],
+          },
+        ],
+      },
       colors: [theme.gray200, theme.gray500],
       grid: {
-        left: '10px',
-        right: '10px',
         top: '40px',
         bottom: '0px',
       },
@@ -135,14 +72,40 @@ function LineChart({
         },
       },
       xAxis: {type: 'time'},
-      yAxes,
+      yAxis: {
+        minInterval: durationUnit,
+        axisLabel: {
+          color: theme.chartLabel,
+          formatter: (value: number) =>
+            axisLabelFormatter(value, 'duration', undefined, durationUnit),
+        },
+      },
+      options: {
+        visualMap: VisualMap({
+          show: false,
+          type: 'piecewise',
+          selectedMode: false,
+          dimension: 0,
+          pieces: [
+            {
+              gte: 0,
+              lt: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+              color: theme.gray500,
+            },
+            {
+              gte: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+              color: theme.red300,
+            },
+          ],
+        }),
+      },
     };
-  }, [theme, leftSeries, rightSeries, percentileSeries, throughputSeries]);
+  }, [series, theme, percentileSeries, evidenceData.breakpoint]);
 
   return (
-    <ChartZoom router={router} start={start} end={end} utc={getUserTimezone() === 'UTC'}>
+    <ChartZoom router={router} {...datetime}>
       {zoomRenderProps => (
-        <BaseChart {...zoomRenderProps} {...chartOptions} series={series} />
+        <EChartsLineChart {...zoomRenderProps} {...chartOptions} series={series} />
       )}
     </ChartZoom>
   );

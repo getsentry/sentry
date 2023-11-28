@@ -12,11 +12,27 @@ import {
   WidgetDataConstraint,
   WidgetDataProps,
 } from '../types';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 export function WidgetHeader<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T>
 ) {
-  const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle} = props;
+  const {title, titleTooltip, Subtitle, HeaderActions, InteractiveTitle, chartSetting} =
+    props;
+  const isWebVitalsWidget = [
+    PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES,
+    PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE,
+  ].includes(chartSetting);
+
+  const isResourcesWidget =
+    chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES;
+
+  const featureBadge = isWebVitalsWidget ? (
+    <FeatureBadge type="new" />
+  ) : isResourcesWidget ? (
+    <FeatureBadge type="alpha" />
+  ) : null;
+
   return (
     <WidgetHeaderContainer>
       <TitleContainer>
@@ -26,6 +42,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
           ) : (
             <TextOverflow>{title}</TextOverflow>
           )}
+          {featureBadge}
           <MEPTag />
           {titleTooltip && (
             <QuestionTooltip position="top" size="sm" title={titleTooltip} />
@@ -48,6 +65,7 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   ${FeatureBadge} {
     position: relative;
     top: -${space(0.25)};
+    margin-left: ${space(0.25)};
   }
 `;
 

@@ -267,7 +267,7 @@ def _make_ref_query(ref: str, blame_queries: str, index: int) -> str:
 
 def _make_blame_query(path: str, index: int) -> str:
     return f"""
-                    blame{index}: blame(path: "{path}") {{
+                    blame{index}: blame(path: "{path.strip('/')}") {{
                         ranges {{
                             commit {{
                                 oid

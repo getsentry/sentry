@@ -23,7 +23,7 @@ def actor_key(actor):
     return actor.id
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectOwnershipTestCase(TestCase):
     def setUp(self):
         self.user2 = self.create_user("bar@localhost", username="bar")

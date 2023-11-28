@@ -16,7 +16,6 @@ export const STANDARD_SEARCH_FIELD_KEYS = new Set([
 ]);
 
 export const ON_DEMAND_METRICS_UNSUPPORTED_TAGS = new Set([
-  FieldKey.APP_IN_FOREGROUND,
   FieldKey.ERROR_RECEIVED,
   FieldKey.HTTP_REFERER,
   FieldKey.ID,

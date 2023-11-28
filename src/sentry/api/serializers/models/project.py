@@ -17,7 +17,6 @@ from typing import (
 )
 
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
@@ -50,19 +49,7 @@ from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
-from sentry.notifications.helpers import (
-    get_most_specific_notification_setting_value,
-    should_use_notifications_v2,
-    transform_to_notification_settings_by_scope,
-)
-from sentry.notifications.types import (
-    NotificationSettingEnum,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
 from sentry.roles import organization_roles
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
@@ -315,10 +302,6 @@ class ProjectSerializer(Serializer):
             span.set_data("Object Count", len(item_list))
             return span
 
-        use_notifications_v2 = should_use_notifications_v2(item_list[0].organization)
-        skip_subscriptions = features.has(
-            "organizations:cleanup-project-serializer", item_list[0].organization
-        )
         with measure_span("preamble"):
             project_ids = [i.id for i in item_list]
             if user.is_authenticated and item_list:
@@ -327,31 +310,8 @@ class ProjectSerializer(Serializer):
                         user_id=user.id, project_id__in=project_ids
                     ).values_list("project_id", flat=True)
                 )
-
-                if not skip_subscriptions:
-                    if use_notifications_v2:
-                        subscriptions = notifications_service.get_subscriptions_for_projects(
-                            user_id=user.id,
-                            project_ids=project_ids,
-                            type=NotificationSettingEnum.ISSUE_ALERTS,
-                        )
-                    else:
-                        notification_settings_by_scope = (
-                            transform_to_notification_settings_by_scope(
-                                notifications_service.get_settings_for_user_by_projects(
-                                    type=NotificationSettingTypes.ISSUE_ALERTS,
-                                    user_id=user.id,
-                                    parent_ids=project_ids,
-                                )
-                            )
-                        )
             else:
                 bookmarks = set()
-                if not skip_subscriptions:
-                    if use_notifications_v2:
-                        subscriptions = {}
-                    else:
-                        notification_settings_by_scope = {}
 
         with measure_span("stats"):
             stats = None
@@ -388,32 +348,7 @@ class ProjectSerializer(Serializer):
                 serialized["features"] = features_by_project[project]
 
         with measure_span("other"):
-            # Avoid duplicate queries for actors.
-            if isinstance(user, AnonymousUser):
-                recipient_actor = user
-            else:
-                recipient_actor = RpcActor.from_object(user)
             for project, serialized in result.items():
-                if not skip_subscriptions:
-                    is_subscribed = False
-                    if use_notifications_v2:
-                        if project.id in subscriptions:
-                            (_, has_enabled_subscriptions, _) = subscriptions[project.id]
-                            is_subscribed = has_enabled_subscriptions
-                        else:
-                            # If there are no settings, default to the EMAIL default
-                            # setting, which is ALWAYS.
-                            is_subscribed = True
-                    else:
-                        value = get_most_specific_notification_setting_value(
-                            notification_settings_by_scope,
-                            recipient=recipient_actor,
-                            parent_id=project.id,
-                            type=NotificationSettingTypes.ISSUE_ALERTS,
-                        )
-                        is_subscribed = value == NotificationSettingOptionValues.ALWAYS
-                        serialized["isSubscribed"] = is_subscribed
-
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,
@@ -549,6 +484,7 @@ class ProjectSerializer(Serializer):
             "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
+            "hasFeedbacks": bool(obj.flags.has_feedbacks),
             "hasSessions": bool(obj.flags.has_sessions),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
@@ -779,6 +715,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasSessions=bool(obj.flags.has_sessions),
             hasProfiles=bool(obj.flags.has_profiles),
             hasReplays=bool(obj.flags.has_replays),
+            hasFeedbacks=bool(obj.flags.has_feedbacks),
             hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             platform=obj.platform,

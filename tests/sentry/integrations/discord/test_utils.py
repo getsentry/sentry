@@ -1,11 +1,13 @@
 from unittest import mock
 
+from cryptography.exceptions import InvalidSignature
 from django.core.exceptions import ValidationError
 from pytest import raises
 from requests.exceptions import Timeout
 
 from sentry.integrations.discord.utils.auth import verify_signature
 from sentry.integrations.discord.utils.channel import ChannelType, validate_channel_id
+from sentry.integrations.discord.utils.channel_from_url import get_channel_id_from_url
 from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils.cases import TestCase
@@ -17,22 +19,17 @@ class AuthTest(TestCase):
         signature = "DBC99471F8DD30BA0F488912CF9BA7AC1E938047782BB72FF9A6873D452A1A75DC9F8A07182B8EB7FC67A3771C2271D568DCDC2AB2A5D927A42A4F0FC233C506"
         timestamp = "1688960024"
         body = '{"type":1}'
-        message = timestamp + body
 
-        result = verify_signature(public_key_string, signature, message)
-
-        assert result
+        verify_signature(public_key_string, signature, timestamp, body)
 
     def test_verify_signature_invalid(self):
         public_key_string = "3AC1A3E56E967E1C61E3D17B37FA1865CB20CD6C54418631F4E8AE4D1E83EE0E"
         signature = "0123456789abcdef"
         timestamp = "1688960024"
         body = '{"type":1}'
-        message = timestamp + body
 
-        result = verify_signature(public_key_string, signature, message)
-
-        assert not result
+        with raises(InvalidSignature):
+            verify_signature(public_key_string, signature, timestamp, body)
 
 
 class ValidateChannelTest(TestCase):
@@ -110,3 +107,37 @@ class ValidateChannelTest(TestCase):
             validate_channel_id(
                 self.channel_id, self.guild_id, self.integration_id, self.guild_name
             )
+
+
+class GetChannelIdFromUrl(TestCase):
+    def test_happy_path(self):
+        channel_id = get_channel_id_from_url("https://discord.com/channels/guild-id/channel-id")
+        assert channel_id == "channel-id"
+
+    def test_happy_path_with_extra_slash(self):
+        channel_id = get_channel_id_from_url("https://discord.com/channels/guild-id/channel-id/")
+        assert channel_id == "channel-id"
+
+    def test_missing_channel_id_with_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels/guild-id/")
+
+    def test_missing_channel_id_no_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels/guild-id")
+
+    def test_missing_guild_and_channel_with_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels/")
+
+    def test_missing_guild_and_channel_no_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels")
+
+    def test_different_link(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://different.com")
+
+    def test_just_channel_id(self):
+        channel_id = get_channel_id_from_url("123455")
+        assert channel_id == "123455"
