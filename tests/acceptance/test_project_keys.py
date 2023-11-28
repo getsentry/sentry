@@ -5,7 +5,7 @@ from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ProjectKeysTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -32,7 +32,7 @@ class ProjectKeysTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_test_id("project-keys")
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ProjectKeyDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

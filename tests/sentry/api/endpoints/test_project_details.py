@@ -19,7 +19,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.environment import EnvironmentProject
 from sentry.models.integrations.integration import Integration
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -29,13 +28,11 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
@@ -110,7 +107,7 @@ def first_symbol_source_id(sources_json):
     return sources[0]["id"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -249,7 +246,7 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -378,7 +375,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             teams=[self.team],
             role="member",
         )
-        # members are only allowed to update 'isBookmarked' and 'isSubscribed' fields
+        # members are only allowed to update 'isBookmarked' fields
         token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
         response = self.client.put(
@@ -428,7 +425,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.data["detail"] == "You do not have permission to perform this action."
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -720,27 +717,6 @@ class ProjectUpdateTest(APITestCase):
         assert not ProjectBookmark.objects.filter(
             project_id=self.project.id, user_id=self.user.id
         ).exists()
-
-    def test_subscription(self):
-        self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="true")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            value0 = NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.EMAIL,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                user_id=self.user.id,
-                project=self.project,
-            )
-            assert value0 == NotificationSettingOptionValues.ALWAYS
-
-        self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="false")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            value1 = NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.EMAIL,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                user_id=self.user.id,
-                project=self.project,
-            )
-        assert value1 == NotificationSettingOptionValues.NEVER
 
     def test_security_token(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")
@@ -1197,7 +1173,7 @@ class ProjectUpdateTest(APITestCase):
             assert not poll_project_recap_server.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1396,7 +1372,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
@@ -1461,7 +1437,7 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 
@@ -1545,7 +1521,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             assert "dynamicSamplingRules" not in response.data
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 

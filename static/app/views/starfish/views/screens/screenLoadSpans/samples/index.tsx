@@ -16,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {ScreenLoadSampleContainer} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples/samplesContainer';
@@ -67,10 +68,12 @@ export function ScreenLoadSpanSamples({
       ? `${transactionMethod} ${transactionName}`
       : transactionName;
 
-  const link = `${transactionRoute}?${qs.stringify({
-    project: query.project,
-    transaction: transactionName,
-  })}`;
+  const link = normalizeUrl(
+    `/organizations/${organization.slug}${transactionRoute}?${qs.stringify({
+      project: query.project,
+      transaction: transactionName,
+    })}`
+  );
 
   function defaultOnClose() {
     router.replace({

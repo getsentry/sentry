@@ -320,38 +320,12 @@ sentry.CaptureCheckIn(
 export function JavaCronQuickStart(props: QuickStartProps) {
   const {slug} = withDefaultProps(props);
 
-  const checkInSuccessCode = `import io.sentry.CheckIn;
-import io.sentry.CheckInStatus;
-import io.sentry.Sentry;
-import io.sentry.protocol.SentryId;
+  const checkInSuccessCode = `import io.sentry.util.CheckInUtils;
 
-// 🟡 Notify Sentry your job is running:
-SentryId checkInId = Sentry.captureCheckIn(
-    new CheckIn(
-        "${slug}",
-        CheckInStatus.IN_PROGRESS
-    )
-);
-
-// Execute your scheduled task here...
-
-// 🟢 Notify Sentry your job has completed successfully:
-Sentry.captureCheckIn(
-    new CheckIn(
-        checkInId,
-        "${slug}",
-        CheckInStatus.OK
-    )
-);`;
-
-  const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
-Sentry.captureCheckIn(
-    new CheckIn(
-        checkInId,
-        "${slug}",
-        CheckInStatus.ERROR
-    )
-);`;
+String result = CheckInUtils.withCheckIn("${slug}", () -> {
+    // Execute your scheduled task here...
+    return "computed result";
+});`;
 
   return (
     <Fragment>
@@ -364,8 +338,6 @@ Sentry.captureCheckIn(
         )}
       </div>
       <CodeSnippet language="java">{checkInSuccessCode}</CodeSnippet>
-      <div>{t('To notify Sentry if your job execution fails')}</div>
-      <CodeSnippet language="java">{checkInFailCode}</CodeSnippet>
     </Fragment>
   );
 }
@@ -473,13 +445,13 @@ def init_sentry(**kwargs):
 
 export function PHPUpsertPlatformGuide() {
   const scheduleCode = `// Create a crontab schedule object (every 10 minutes)
-$monitorSchedule = \Sentry\MonitorSchedule::crontab('*/10 * * * *');
+$monitorSchedule = \\Sentry\\MonitorSchedule::crontab('*/10 * * * *');
 
 // Or create an interval schedule object (every 10 minutes)
-$monitorSchedule = \Sentry\MonitorSchedule::interval(10, MonitorScheduleUnit::minute());`;
+$monitorSchedule = \\Sentry\\MonitorSchedule::interval(10, \\Sentry\\MonitorScheduleUnit::minute());`;
 
   const upsertCode = `// Create a config object
-$monitorConfig = new \Sentry\MonitorConfig(
+$monitorConfig = new \\Sentry\\MonitorConfig(
     $monitorSchedule,
     checkinMargin: 5, // Optional check-in margin in minutes
     maxRuntime: 15, // Optional max runtime in minutes
@@ -487,18 +459,18 @@ $monitorConfig = new \Sentry\MonitorConfig(
 );
 
 // 🟡 Notify Sentry your job is running:
-$checkInId = \Sentry\captureCheckIn(
+$checkInId = \\Sentry\\captureCheckIn(
     slug: '<monitor-slug>',
-    status: CheckInStatus::inProgress(),
+    status: \\Sentry\\CheckInStatus::inProgress(),
     monitorConfig: $monitorConfig,
 );
 
 // Execute your scheduled task here...
 
 // 🟢 Notify Sentry your job has completed successfully:
-\Sentry\captureCheckIn(
+\\Sentry\\captureCheckIn(
     slug: '<monitor-slug>',
-    status: CheckInStatus::inProgress(),
+    status: \\Sentry\\CheckInStatus::inProgress(),
     checkInId: $checkInId,
 );`;
 
@@ -674,6 +646,7 @@ MonitorSchedule monitorSchedule = MonitorSchedule.crontab("*/10 * * * *");
 MonitorSchedule monitorSchedule = MonitorSchedule.interval(10, MonitorScheduleUnit.MINUTE);`;
 
   const upsertCode = `import io.sentry.MonitorConfig;
+import io.sentry.util.CheckInUtils;
 
 // Create a config object
 MonitorConfig monitorConfig = new MonitorConfig(monitorSchedule);
@@ -681,24 +654,10 @@ monitorConfig.setTimezone("Europe/Vienna"); // Optional timezone
 monitorConfig.setCheckinMargin(5L); // Optional check-in margin in minutes
 monitorConfig.setMaxRuntime(15L); // Optional max runtime in minutes
 
-// 🟡 Notify Sentry your job is running:
-CheckIn checkIn = new CheckIn(
-    "<monitor-slug>",
-    CheckInStatus.IN_PROGRESS
-);
-checkIn.setMonitorConfig(monitorConfig);
-SentryId checkInId = Sentry.captureCheckIn(checkIn);
-
-// Execute your scheduled task here...
-
-// 🟢 Notify Sentry your job has completed successfully:
-Sentry.captureCheckIn(
-    new CheckIn(
-        checkInId,
-        "<monitor-slug>",
-        CheckInStatus.OK
-    )
-);`;
+String result = CheckInUtils.withCheckIn("<monitor-slug>", monitorConfig, () -> {
+    // Execute your scheduled task here...
+    return "computed result";
+});`;
 
   return (
     <Fragment>

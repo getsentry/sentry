@@ -129,6 +129,7 @@ class ConfigValidator(serializers.Serializer):
     timezone = serializers.ChoiceField(
         choices=pytz.all_timezones,
         required=False,
+        allow_blank=True,
         help_text="tz database style timezone string",
     )
 
@@ -169,6 +170,10 @@ class ConfigValidator(serializers.Serializer):
             schedule_type = self.instance.get("schedule_type")
         else:
             schedule_type = None
+
+        # Remove blank timezone values
+        if attrs.get("timezone") == "":
+            del attrs["timezone"]
 
         schedule = attrs.get("schedule")
         if not schedule:

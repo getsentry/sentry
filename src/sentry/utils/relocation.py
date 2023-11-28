@@ -159,7 +159,7 @@ artifacts:
   objects:
     location: "$bucket_root/relocations/runs/$uuid/findings/"
     paths: ["/workspace/findings/**"]
-timeout: 2400s
+timeout: 3600s
 options:
   machineType: "N1_HIGHCPU_32"
   env:
@@ -193,7 +193,7 @@ IMPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/import-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
 
@@ -207,6 +207,8 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
     args:
       $docker_compose_cmd
       $docker_compose_run
+      - "-v"
+      - "/workspace/in:/in"
       - "-v"
       - "/workspace/out:/out"
       - "-v"
@@ -222,7 +224,7 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/export-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
 
@@ -269,7 +271,7 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/compare-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
 

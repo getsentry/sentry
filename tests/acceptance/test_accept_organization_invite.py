@@ -6,9 +6,9 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-# When we want to set this stable=True, we'll need to configure regions in order for invites to work.
+# When we want to set this @region_silo_test, we'll need to configure regions in order for invites to work.
 # See the accept_organization_invite.py#get_invite_state logic
-@no_silo_test(stable=True)
+@no_silo_test
 class AcceptOrganizationInviteTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

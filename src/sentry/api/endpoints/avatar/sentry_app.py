@@ -10,7 +10,7 @@ from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 
 
 @control_silo_endpoint
-class SentryAppAvatarEndpoint(AvatarMixin, SentryAppBaseEndpoint):
+class SentryAppAvatarEndpoint(AvatarMixin[SentryAppAvatar], SentryAppBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,

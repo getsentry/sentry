@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
@@ -53,6 +53,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     eventView,
     enabled: true,
     limit: 25,
+    referrer: 'api.starfish.get-span-operations',
   });
 
   const options = [
@@ -68,8 +69,8 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
   ];
 
   return (
-    <StyledSelectControl
-      inFieldLabel={t('Operation:')}
+    <StyledCompactSelect
+      triggerProps={{prefix: t('Operation'), size: 'xs'}}
       value={value}
       options={options ?? []}
       onChange={newValue => {
@@ -85,7 +86,6 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
   );
 }
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledCompactSelect = styled(CompactSelect)`
   margin-bottom: ${space(1)};
-  width: 180px;
 `;

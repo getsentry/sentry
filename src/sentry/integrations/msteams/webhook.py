@@ -11,7 +11,7 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from sentry import analytics, audit_log, eventstore, features, options
 from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
@@ -21,6 +21,7 @@ from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
@@ -140,28 +141,52 @@ def verify_signature(request):
 class MsTeamsWebhookMixin:
     provider = "msteams"
 
-    def get_integration_from_channel_data(self, request: HttpRequest) -> RpcIntegration | None:
+    def infer_team_id_from_channel_data(self, request: HttpRequest) -> str | None:
         try:
             data = request.data
             channel_data = data["channelData"]
             team_id = channel_data["team"]["id"]
-            return integration_service.get_integration(provider=self.provider, external_id=team_id)
+            return team_id
         except Exception:
             pass
         return None
 
-    def get_integration_from_payload(self, request: HttpRequest) -> RpcIntegration | None:
+    def get_integration_from_channel_data(self, request: HttpRequest) -> RpcIntegration | None:
+        team_id = self.infer_team_id_from_channel_data(request)
+        if team_id is None:
+            return None
+        return integration_service.get_integration(provider=self.provider, external_id=team_id)
+
+    def infer_integration_id_from_card_action(self, request: HttpRequest) -> int | None:
+        # The bot builds and sends Adaptive Cards to the channel, and in it will include card actions and context.
+        # The context will include the "integrationId".
+        # Whenever a user interacts with the card, MS Teams will send the card action and the context to the bot.
+        # Here we parse the "integrationId" from the context.
+        #
+        # See: https://learn.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/cards-actions?tabs=json#actionsubmit
         try:
             data = request.data
             payload = data["value"]["payload"]
             integration_id = payload["integrationId"]
-            return integration_service.get_integration(integration_id=integration_id)
+            return integration_id
         except Exception:
             pass
         return None
 
+    def get_integration_from_card_action(self, request: HttpRequest) -> RpcIntegration | None:
+        integration_id = self.infer_integration_id_from_card_action(request)
+        if integration_id is None:
+            return None
+        return integration_service.get_integration(integration_id=integration_id)
 
-@region_silo_endpoint
+    def can_infer_integration(self, request: HttpRequest) -> bool:
+        return (
+            self.infer_integration_id_from_card_action(request) is not None
+            or self.infer_team_id_from_channel_data(request) is not None
+        )
+
+
+@all_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
@@ -177,29 +202,35 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     @transaction_start("MsTeamsWebhookEndpoint")
     def post(self, request: HttpRequest) -> HttpResponse:
         # verify_signature will raise the exception corresponding to the error
-        verify_signature(request)
+        self.verify_webhook_request(request)
 
         data = request.data
         conversation_type = data.get("conversation", {}).get("conversationType")
+        event_type = data["type"]
 
         # only care about conversationUpdate and message
-        if data["type"] == "message":
+        if event_type == "message":
             # the only message events we care about are those which
             # are from a user submitting an option on a card, which
             # will always contain an "payload.actionType" in the data.
             if data.get("value", {}).get("payload", {}).get("actionType"):
+                # Processing card actions can only occur in the Region silo.
+                if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                    return self.respond(status=400)
                 return self.handle_action_submitted(request)
             elif conversation_type == "channel":
                 return self.handle_channel_message(request)
             else:
                 return self.handle_personal_message(request)
-        elif data["type"] == "conversationUpdate":
+        elif event_type == "conversationUpdate":
             channel_data = data["channelData"]
             event = channel_data.get("eventType")
             # TODO: Handle other events
             if event == "teamMemberAdded":
                 return self.handle_team_member_added(request)
             elif event == "teamMemberRemoved":
+                if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                    return self.respond(status=400)
                 return self.handle_team_member_removed(request)
             elif (
                 data.get("membersAdded") and conversation_type == "personal"
@@ -207,6 +238,9 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
                 return self.handle_personal_member_add(request)
 
         return self.respond(status=204)
+
+    def verify_webhook_request(self, request: HttpRequest) -> bool:
+        return verify_signature(request)
 
     def handle_personal_member_add(self, request: HttpRequest):
         data = request.data
@@ -396,7 +430,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         else:
             conversation_id = channel_data["channel"]["id"]
 
-        integration = self.get_integration_from_payload(request)
+        integration = self.get_integration_from_card_action(request)
         if integration is None:
             logger.info(
                 "msteams.action.missing-integration", extra={"integration_id": integration_id}

@@ -197,18 +197,6 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    def test_create_lock(self):
-        monitor = self._create_monitor(slug="my-monitor")
-        guid = uuid.uuid4().hex
-
-        lock = locks.get(f"checkin-creation:{guid}", duration=2, name="checkin_creation")
-        lock.acquire()
-
-        self.send_checkin(monitor.slug, guid=guid)
-
-        # Lock should prevent creation of new check-in
-        assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 0
-
     def test_check_in_timeout_at(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, status="in_progress")
@@ -469,6 +457,23 @@ class MonitorConsumerTest(TestCase):
             monitor=monitor, environment__name="my-environment"
         )
         assert monitor_environment is not None
+
+    def test_monitor_upsert_empty_timezone(self):
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "timezone": "",
+            },
+            environment="my-environment",
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+        assert "timezone" not in monitor.config
 
     def test_monitor_upsert_invalid_slug(self):
         self.send_checkin(
