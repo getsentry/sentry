@@ -1,7 +1,7 @@
 import mapValues from 'lodash/mapValues';
 
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
+import type {Organization, TagCollection} from 'sentry/types';
 import {
   FieldKey,
   makeTagCollection,
@@ -256,7 +256,9 @@ export function datasetSupportedTags(
 ): TagCollection | undefined {
   return mapValues(
     {
-      [Dataset.ERRORS]: undefined,
+      [Dataset.ERRORS]: org.features.includes('metric-alert-ignore-archived')
+        ? [FieldKey.IS]
+        : undefined,
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
         : transactionSupportedTags(org),
@@ -326,17 +328,27 @@ function transactionOmittedTags(org: Organization) {
     : undefined;
 }
 
-export function getSupportedAndOmittedTags(dataset: Dataset, organization: Organization) {
+export function getSupportedAndOmittedTags(
+  dataset: Dataset,
+  organization: Organization
+): {
+  omitTags?: string[];
+  supportedTags?: TagCollection;
+} {
   const omitTags = datasetOmittedTags(dataset, organization);
   const supportedTags = datasetSupportedTags(dataset, organization);
 
   const result = {omitTags, supportedTags};
 
   // remove undefined values, since passing explicit undefined to the SeachBar overrides its defaults
-  return Object.keys({omitTags, supportedTags}).reduce((acc, key) => {
+  return Object.keys({omitTags, supportedTags}).reduce<{
+    omitTags?: string[];
+    supportedTags?: TagCollection;
+  }>((acc, key) => {
     if (result[key] !== undefined) {
       acc[key] = result[key];
     }
+
     return acc;
   }, {});
 }
