@@ -3,10 +3,6 @@ import {mat3} from 'gl-matrix';
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
-import {
-  DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
-  FlamegraphRendererOptions,
-} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
@@ -18,7 +14,7 @@ export class UIFramesRenderer2D extends UIFramesRenderer {
     canvas: HTMLCanvasElement,
     uiFrames: UIFrames,
     theme: FlamegraphTheme,
-    options: FlamegraphRendererOptions = DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS
+    options: {draw_border: boolean} = {draw_border: false}
   ) {
     super(canvas, uiFrames, theme, options);
     this.initCanvasContext();
