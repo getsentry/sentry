@@ -12,7 +12,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectRuleEnableTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-enable"
     method = "PUT"

@@ -34,7 +34,7 @@ from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
 from sentry import deletions
-from sentry.db.models.base import ModelSiloLimit
+from sentry.db.models.base import BaseModel, ModelSiloLimit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.deletions.base import BaseDeletionTask
@@ -85,22 +85,25 @@ def strip_silo_mode_test_suffix(name: str) -> str:
 class SiloModeTestDecorator:
     """Decorate a test case that is expected to work in a given silo mode.
 
-    Tests marked to work in monolith mode are always executed.
-    Tests marked additionally to work in region or control mode only do so when the test is marked as stable=True
+    A test marked with a single silo mode runs only in that mode by default. An
+    `include_monolith_run=True` will add a secondary run in monolith mode.
 
-    When testing in a silo mode, if the decorator is on a test case class,
+    If a test is marked with both control and region modes, then the primary run will
+    be in monolith mode and a secondary run will be generated in each silo mode.
+
+    When testing on more than one mode, if the decorator is on a test case class,
     an additional class is dynamically generated and added to the module for Pytest
     to pick up. For example, if you write
 
     ```
-        @control_silo_test(stable=True)
+        @control_silo_test(include_monolith_run=True)
         class MyTest(TestCase):
             def setUp(self):      ...
             def test_stuff(self): ...
     ```
 
-    then your result set should include test runs for both `MyTest` (in monolith
-    mode) and `MyTest__InControlMode`.
+    then your result set should include test runs for both `MyTest` (in control mode)
+    and `MyTest__InMonolithMode`.
     """
 
     def __init__(self, *silo_modes: SiloMode) -> None:
@@ -109,13 +112,13 @@ class SiloModeTestDecorator:
     def __call__(
         self,
         decorated_obj: Any = None,
-        stable: bool = False,
         regions: Sequence[Region] = (),
+        include_monolith_run: bool = False,
     ) -> Any:
         mod = _SiloModeTestModification(
             silo_modes=self.silo_modes,
             regions=tuple(regions or _DEFAULT_TEST_REGIONS),
-            stable=stable,
+            include_monolith_run=include_monolith_run,
         )
 
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
@@ -127,12 +130,9 @@ class _SiloModeTestModification:
 
     silo_modes: frozenset[SiloMode]
     regions: tuple[Region, ...]
-    stable: bool
+    include_monolith_run: bool
 
-    # The default values can be treated as switches for desired global behavior,
-    # when we're ready to change.
-    include_monolith_run: bool = True
-    run_original_class_in_silo_mode: bool = False
+    run_original_class_in_silo_mode: bool = True
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
@@ -184,7 +184,7 @@ class _SiloModeTestModification:
         """
         if len(self.silo_modes) == 1:
             (silo_mode,) = self.silo_modes
-            if not self.include_monolith_run:
+            if not (self.include_monolith_run or settings.FORCE_SILOED_TESTS):
                 return silo_mode, ()
             if self.run_original_class_in_silo_mode:
                 return silo_mode, (SiloMode.MONOLITH,)
@@ -234,10 +234,9 @@ class _SiloModeTestModification:
             # _silo_modes is used to mark the class as silo decorated in the above validation
             decorated_obj._silo_modes = self.silo_modes
 
-        # Only run non monolith tests when they are marked stable or we are explicitly running for
-        # that mode.
-        if SENTRY_USE_MONOLITH_DBS or not (self.stable or settings.FORCE_SILOED_TESTS):
-            # In this case, simply force the current silo mode (monolith)
+        if SENTRY_USE_MONOLITH_DBS:
+            # In this case, skip modifying the object and let it run in the default
+            # silo mode (monolith)
             return decorated_obj
 
         if is_test_case_class:
@@ -276,19 +275,21 @@ control_silo_test = SiloModeTestDecorator(SiloMode.CONTROL)
 """
 Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to CONTROL.
-
-When the stable=True parameter is provided tests will be
-run twice as both CONTROL and MONOLITH modes.
 """
 
 region_silo_test = SiloModeTestDecorator(SiloMode.REGION)
 """
 Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to REGION.
-
-When the stable=True parameter is provided tests will be
-run twice as both REGION and MONOLITH modes.
 """
+
+
+# assume_test_silo_mode vs assume_test_silo_mode_of: What's the difference?
+#
+# These two functions are similar ways to express the same thing. Generally,
+# assume_test_silo_mode_of is preferable because it does more to communicate your
+# intent and matches the style used by functions such as `router.db_for_write`. But
+# assume_test_silo_mode is used in more places because it has existed longer.
 
 
 @contextmanager
@@ -318,6 +319,51 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
         with override_settings(**overrides):
             yield
     else:
+        yield
+
+
+@contextmanager
+def assume_test_silo_mode_of(*models: Type[BaseModel], can_be_monolith: bool = True) -> Any:
+    """Potentially swap to the silo mode to match the provided model classes.
+
+    The argument should be one or more model classes that are scoped to exactly one
+    non-monolith mode. That is, they must be tagged with `control_silo_only_model` or
+    `region_silo_only_model`. The enclosed context is swapped into the appropriate
+    mode, allowing the model to be accessed.
+
+    If no silo-scoped models are provided, no mode swap is performed.
+
+    The intent is that you list the cross-silo models that you intend to access
+    within the block. However, this is for the sake of expressiveness only. The
+    context will not actually check that you access only those models; it will allow
+    you to access any model that happens to share the same silo mode.
+    """
+
+    def unpack_modes() -> Iterable[SiloMode]:
+        for model in models:
+            try:
+                meta = getattr(model, "_meta")
+            except AttributeError as e:
+                raise ValueError(
+                    f"Expected a model class with a _meta attribute: {model.__name__} did not have `_meta`"
+                ) from e
+
+            silo_limit: ModelSiloLimit | None = getattr(meta, "silo_limit", None)
+            if silo_limit:
+                yield from silo_limit.modes
+
+    unique_modes = {mode for mode in unpack_modes() if mode != SiloMode.MONOLITH}
+    if not unique_modes:
+        yield
+        return
+    if len(unique_modes) > 1:
+        model_names = [m.__name__ for m in models]
+        raise ValueError(
+            f"Models ({model_names!r}) don't share a unique silo mode ({unique_modes!r})"
+        )
+    (mode,) = unique_modes
+
+    with assume_test_silo_mode(mode, can_be_monolith):
         yield
 
 

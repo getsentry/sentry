@@ -15,7 +15,7 @@ import PerformanceScoreRing from 'sentry/views/performance/browser/webVitals/com
 import {
   PERFORMANCE_SCORE_WEIGHTS,
   ProjectScore,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 import {ORDER} from '../performanceScoreChart';

@@ -72,7 +72,7 @@ class EnvironmentBase(APITestCase):
             assert self.segment_data == close_streaming_response(response)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
     def init_environment(self):
         metadata = RecordingSegmentStorageMeta(
@@ -86,7 +86,7 @@ class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
         FilestoreBlob().set(metadata, self.segment_data)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
     def init_environment(self):
         metadata = RecordingSegmentStorageMeta(

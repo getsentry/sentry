@@ -16,7 +16,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FileBlobTest(TestCase):
     def test_from_file(self):
         fileobj = ContentFile(b"foo bar")

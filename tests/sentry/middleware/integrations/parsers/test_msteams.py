@@ -26,7 +26,7 @@ from tests.sentry.integrations.msteams.test_helpers import (
 )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class MsTeamsRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()

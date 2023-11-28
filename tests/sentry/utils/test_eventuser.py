@@ -16,7 +16,7 @@ from sentry.utils.eventuser import EventUser
 now = before_now(days=1).replace(minute=10).replace(second=0).replace(microsecond=0)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(now)
 class EventUserTestCase(APITestCase, SnubaTestCase):
     def setUp(self):

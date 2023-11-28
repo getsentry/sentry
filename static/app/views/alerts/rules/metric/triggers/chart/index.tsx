@@ -33,8 +33,9 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
-import {getForceMetricsLayerQueryExtras} from 'sentry/utils/ddm/features';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
+import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
@@ -42,6 +43,7 @@ import {
 } from 'sentry/utils/sessions';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -394,6 +396,7 @@ class TriggersChart extends PureComponent<Props, State> {
         newAlertOrQuery,
       }),
       ...getForceMetricsLayerQueryExtras(organization, dataset),
+      ...(shouldUseErrorsDiscoverDataset(query, dataset) ? {dataset: 'errors'} : {}),
     };
 
     if (isOnDemandMetricAlert) {
@@ -505,9 +508,10 @@ class TriggersChart extends PureComponent<Props, State> {
         period={period}
         yAxis={aggregate}
         includePrevious={false}
-        currentSeriesNames={[aggregate]}
+        currentSeriesNames={[formatMRIField(aggregate)]}
         partial={false}
         queryExtras={queryExtras}
+        useOnDemandMetrics
         dataLoadedCallback={onDataLoaded}
       >
         {({

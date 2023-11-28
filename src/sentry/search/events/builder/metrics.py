@@ -1642,7 +1642,11 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
     ) -> Optional[WhereType]:
         """Given a list of top events construct the conditions"""
         conditions = []
+
         for field in self.fields:
+            if fields.is_function(field):
+                # A function will never be in a top_events dict.
+                continue
             resolved_field = self.resolve_column(field)
 
             values: Set[Any] = set()

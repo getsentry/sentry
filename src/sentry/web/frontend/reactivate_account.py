@@ -5,9 +5,10 @@ from rest_framework.request import Request
 
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import auth
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 
+@control_silo_view
 class ReactivateAccountView(BaseView):
     # auth check is managed by view code
     auth_required = False
