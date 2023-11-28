@@ -1,56 +1,56 @@
 ---
-created: '2023-01-11T11:41:29.165976Z'
+created: '2023-11-28T16:01:08.782196Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
-    app (stacktrace of system takes precedence)
+    app
       stacktrace
-        frame (non app frame)
+        frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "main"
-        frame (non app frame)
+        frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "normalFunc"
-        frame (non app frame)
+        frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (non app frame)
+        frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
@@ -58,54 +58,57 @@ app:
           function*
             "throwError"
 --------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
 system:
-  hash: "894c3489e2ade384dc107bca6829d134"
+  hash: null
   component:
-    system*
-      stacktrace*
-        frame*
+    system
+      stacktrace
+        frame (ignored by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "main"
-        frame*
+        frame (ignored by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "normalFunc"
-        frame*
+        frame (ignored by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (ignored due to recursion)
+        frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame (ignored due to recursion)
+        frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame*
+        frame (ignored by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
-        frame*
+        frame (ignored by stack trace rule (module:io.sentry.* -app -group))
           module*
             "io.sentry.example.Application"
           filename (module takes precedence)
