@@ -31,7 +31,6 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
@@ -253,66 +252,6 @@ def get_values_by_provider_by_type(
         )
         for provider in all_providers
     }
-
-
-def transform_to_notification_settings_by_recipient(
-    notification_settings: Iterable[RpcNotificationSetting],
-    recipients: Iterable[RpcActor],
-) -> Mapping[
-    RpcActor,
-    Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
-]:
-    """
-    Given an unsorted list of notification settings, create a mapping of users
-    to a map of notification scopes to setting values.
-    """
-    team_mapping = {r.id: r for r in recipients if r.actor_type == ActorType.TEAM}
-    user_mapping = {r.id: r for r in recipients if r.actor_type == ActorType.USER}
-
-    notification_settings_by_recipient: MutableMapping[
-        RpcActor,
-        MutableMapping[
-            NotificationScopeType,
-            MutableMapping[ExternalProviders, NotificationSettingOptionValues],
-        ],
-    ] = defaultdict(lambda: defaultdict(dict))
-    for ns in notification_settings:
-        if ns.team_id is not None:
-            recipient = team_mapping[ns.team_id]
-        else:
-            assert ns.user_id is not None
-            recipient = user_mapping[ns.user_id]
-        scope_type = NotificationScopeType(ns.scope_type)
-        value = NotificationSettingOptionValues(ns.value)
-        provider = ExternalProviders(ns.provider)
-        notification_settings_by_recipient[recipient][scope_type][provider] = value
-    return notification_settings_by_recipient
-
-
-def transform_to_notification_settings_by_scope(
-    notification_settings: Iterable[RpcNotificationSetting],
-) -> Mapping[
-    NotificationScopeType,
-    Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
-]:
-    """
-    Given an unsorted list of notification settings, create a mapping of scopes
-    (user or parent) and their IDs to a map of provider to notifications setting values.
-    """
-    notification_settings_by_scopes: MutableMapping[
-        NotificationScopeType,
-        MutableMapping[int, MutableMapping[ExternalProviders, NotificationSettingOptionValues]],
-    ] = defaultdict(lambda: defaultdict(lambda: dict()))
-
-    for notification_setting in notification_settings:
-        scope_type = NotificationScopeType(notification_setting.scope_type)
-        scope_id = notification_setting.scope_identifier
-        provider = ExternalProviders(notification_setting.provider)
-        value = NotificationSettingOptionValues(notification_setting.value)
-
-        notification_settings_by_scopes[scope_type][scope_id][provider] = value
-
-    return notification_settings_by_scopes
 
 
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
