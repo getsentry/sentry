@@ -183,7 +183,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                 "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
                 "dataset": "errors",
-                "query": "status:unresolved",
+                "query": "is:unresolved",
             },
         )
         assert response.status_code == 200, response.content

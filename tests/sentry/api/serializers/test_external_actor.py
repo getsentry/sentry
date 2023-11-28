@@ -13,7 +13,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders, get_provider_name
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ExternalActorSerializerTest(TestCase):
     def setUp(self):
         self.user = self.create_user()

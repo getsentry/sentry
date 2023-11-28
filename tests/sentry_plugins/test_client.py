@@ -58,7 +58,7 @@ class ApiClientTest(TestCase):
         assert resp.status_code == 200
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AuthApiClientTest(TestCase):
     @responses.activate
     def test_without_authorization(self):
