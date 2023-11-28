@@ -107,8 +107,7 @@ function useOpenOnboardingSidebar(organization?: Organization) {
   }, [openOnboardingSidebar]);
 }
 
-function Sidebar({organization}: Props) {
-  const location = useLocation();
+function Sidebar({location, organization}: Props) {
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
