@@ -1,10 +1,6 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import keyBy from 'lodash/keyBy';
-import omit from 'lodash/omit';
-import {Highlight} from 'prism-react-renderer';
-import Prism from 'prismjs';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -26,8 +22,8 @@ import {
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
-import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -73,25 +69,6 @@ export function getLineCoverage(
   return [lineCoverage, hasCoverage];
 }
 
-const useLoadPrismLanguage = (fileExtension: string, hasSyntaxHighlighting: boolean) => {
-  useEffect(() => {
-    if (!hasSyntaxHighlighting || !fileExtension) {
-      return;
-    }
-
-    loadPrismLanguage(fileExtension, {
-      onError: () => {
-        Sentry.withScope(scope => {
-          scope.setTag('prism_language', fileExtension);
-          Sentry.captureException(
-            new Error('Prism.js failed to load language for stack trace')
-          );
-        });
-      },
-    });
-  }, [fileExtension, hasSyntaxHighlighting]);
-};
-
 function Context({
   hasContextVars = false,
   hasContextSource = false,
@@ -134,9 +111,6 @@ function Context({
     }
   );
 
-  const fileExtension = getFileExtension(frame.filename || '') ?? '';
-  useLoadPrismLanguage(fileExtension, hasSyntaxHighlighting);
-
   /**
    * frame.lineNo is the highlighted frame in the middle of the context
    */
@@ -161,6 +135,12 @@ function Context({
       : {}
   );
 
+  const fileExtension = getFileExtension(frame.filename || '') ?? '';
+  const tokens = usePrismTokens({
+    code: contextLines.map(([, code]) => code).join('\n'),
+    language: fileExtension,
+  });
+
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
       <EmptyContext>
@@ -183,69 +163,57 @@ function Context({
       data-test-id="frame-context"
     >
       {frame.context && hasSyntaxHighlighting ? (
-        <Highlight
-          language={fileExtension}
-          code={contextLines.map(([, code]) => code).join('\n')}
-          prism={Prism}
-        >
-          {({getLineProps, getTokenProps, tokens}) => (
-            <CodeWrapper className={prismClassName}>
-              <pre className={prismClassName}>
-                <code className={prismClassName}>
-                  {tokens.map((line, i) => {
-                    const contextLine = contextLines[i];
-                    const isActive = activeLineNumber === contextLine[0];
-                    const hasComponents = isActive && components.length > 0;
-                    const showStacktraceLink = hasStacktraceLink && isActive;
+        <CodeWrapper className={prismClassName}>
+          <pre className={prismClassName}>
+            <code className={prismClassName}>
+              {tokens.map((line, i) => {
+                const contextLine = contextLines[i];
+                const isActive = activeLineNumber === contextLine[0];
+                const hasComponents = isActive && components.length > 0;
+                const showStacktraceLink = hasStacktraceLink && isActive;
 
-                    return (
-                      <Fragment key={i}>
-                        <ContextLineWrapper
-                          {...omit(getLineProps({line}), 'style')}
-                          isActive={isActive}
-                        >
-                          <ContextLineNumber
-                            lineNumber={contextLine[0]}
-                            isActive={isActive}
-                            coverage={lineCoverage[i]}
-                          />
-                          <ContextLineCode>
-                            {line.map((token, key) => (
-                              <span
-                                key={key}
-                                {...omit(getTokenProps({token}), 'style')}
-                              />
-                            ))}
-                          </ContextLineCode>
-                        </ContextLineWrapper>
-                        {hasComponents && (
-                          <ErrorBoundary mini>
-                            <OpenInContextLine
-                              key={i}
-                              lineNo={contextLine[0]}
-                              filename={frame.filename || ''}
-                              components={components}
-                            />
-                          </ErrorBoundary>
-                        )}
-                        {showStacktraceLink && (
-                          <ErrorBoundary customComponent={null}>
-                            <StacktraceLink
-                              key={i}
-                              line={contextLine[1]}
-                              frame={frame}
-                              event={event}
-                            />
-                          </ErrorBoundary>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </code>
-              </pre>
-            </CodeWrapper>
-          )}
-        </Highlight>
+                return (
+                  <Fragment key={i}>
+                    <ContextLineWrapper isActive={isActive}>
+                      <ContextLineNumber
+                        lineNumber={contextLine[0]}
+                        isActive={isActive}
+                        coverage={lineCoverage[i]}
+                      />
+                      <ContextLineCode>
+                        {line.map((token, key) => (
+                          <span key={key} className={token.className}>
+                            {token.children}
+                          </span>
+                        ))}
+                      </ContextLineCode>
+                    </ContextLineWrapper>
+                    {hasComponents && (
+                      <ErrorBoundary mini>
+                        <OpenInContextLine
+                          key={i}
+                          lineNo={contextLine[0]}
+                          filename={frame.filename || ''}
+                          components={components}
+                        />
+                      </ErrorBoundary>
+                    )}
+                    {showStacktraceLink && (
+                      <ErrorBoundary customComponent={null}>
+                        <StacktraceLink
+                          key={i}
+                          line={contextLine[1]}
+                          frame={frame}
+                          event={event}
+                        />
+                      </ErrorBoundary>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </code>
+          </pre>
+        </CodeWrapper>
       ) : null}
 
       {frame.context && !hasSyntaxHighlighting
