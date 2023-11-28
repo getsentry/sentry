@@ -24,6 +24,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -1347,11 +1348,13 @@ def detect_new_escalation(job: PostProcessJob):
     If we detect that the group has escalated, set has_escalated to True in the
     job.
     """
+    from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
+
     if not features.has("projects:first-event-severity-new-escalation", job["event"].project):
         return
     group = job["event"].group
-    group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
-    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS:
+    group_age_hours = (datetime.now() - group.first_seen).total_seconds() / 3600
+    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or group.substatus != GroupSubStatus.NEW:
         return
     # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
     # this group at the same time. In that case, just exit early, no need to retry.
@@ -1362,6 +1365,8 @@ def detect_new_escalation(job: PostProcessJob):
             group_hourly_event_rate = group.times_seen_with_pending / group_age_hours
             if group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True
+                group.update(substatus=GroupSubStatus.ESCALATING)
+                add_group_to_inbox(group, GroupInboxReason.ESCALATING)
     except UnableToAcquireLock:
         return
 
@@ -1370,8 +1375,8 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
         process_snoozes,
-        detect_new_escalation,
         process_inbox_adds,
+        detect_new_escalation,
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,
