@@ -22,8 +22,6 @@ logger = logging.getLogger(__name__)
 
 from rest_framework.request import Request
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
 openai_policy_check = Signal()
 
 # How many stacktrace frames do we want per exception?
@@ -111,6 +109,20 @@ BLOCKED_TAGS = frozenset(
         "otel",
     ]
 )
+
+openai_client: OpenAI | None = None
+
+
+def get_openai_client() -> OpenAI:
+    global openai_client
+
+    if openai_client:
+        return openai_client
+
+    # this will raise if OPENAI_API_KEY is not set
+    openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+    return openai_client
 
 
 def get_openai_policy(organization):
@@ -250,6 +262,8 @@ def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
     """Runs an OpenAI request to suggest a fix."""
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
     event_info = describe_event_for_ai(event_data, model=model)
+
+    client = get_openai_client()
 
     response = client.chat.completions.create(
         model=model,
