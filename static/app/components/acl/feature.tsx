@@ -10,6 +10,8 @@ import withProject from 'sentry/utils/withProject';
 
 import ComingSoon from './comingSoon';
 
+const renderComingSoon = () => <ComingSoon />;
+
 type Props = {
   /**
    * If children is a function then will be treated as a render prop and
@@ -167,7 +169,7 @@ class Feature extends Component<Props> {
         ? false
         : typeof renderDisabled === 'function'
         ? renderDisabled
-        : () => <ComingSoon />;
+        : renderComingSoon;
 
     // Override the renderDisabled function with a hook store function if there
     // is one registered for the feature.
