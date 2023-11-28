@@ -22,7 +22,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
-import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -32,7 +31,6 @@ import {
   InboxDetails,
   IssueCategory,
   NewQuery,
-  Organization,
   User,
 } from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
@@ -40,8 +38,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import withOrganization from 'sentry/utils/withOrganization';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   DISCOVER_EXCLUSION_FIELDS,
@@ -52,8 +50,8 @@ import {
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 
 type Props = {
+  group: Group;
   id: string;
-  organization: Organization;
   canSelect?: boolean;
   customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
@@ -75,7 +73,7 @@ type Props = {
 
 function BaseGroupRow({
   id,
-  organization,
+  group,
   customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
@@ -94,8 +92,7 @@ function BaseGroupRow({
   narrowGroups = false,
   showLastTriggered = false,
 }: Props) {
-  const groups = useLegacyStore(GroupStore);
-  const group = groups.find(item => item.id === id) as Group;
+  const organization = useOrganization();
   const issueTypeConfig = getConfigForIssueType(group);
 
   const selectedGroups = useLegacyStore(SelectedGroupStore);
@@ -470,7 +467,7 @@ function BaseGroupRow({
   );
 }
 
-const StreamGroup = withOrganization(BaseGroupRow);
+const StreamGroup = BaseGroupRow;
 
 export default StreamGroup;
 

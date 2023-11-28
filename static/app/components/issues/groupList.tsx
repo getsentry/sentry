@@ -298,15 +298,16 @@ class GroupList extends Component<Props, State> {
                     <Placeholder height="3rem" />
                   </GroupPlaceholder>
                 ))
-              : groups.map(({id, project}) => {
-                  const members = memberList?.hasOwnProperty(project.slug)
-                    ? memberList[project.slug]
+              : groups.map(group => {
+                  const members = memberList?.hasOwnProperty(group.project.slug)
+                    ? memberList[group.project.slug]
                     : undefined;
 
                   return (
                     <StreamGroup
-                      key={id}
-                      id={id}
+                      key={group.id}
+                      id={group.id}
+                      group={group}
                       canSelect={canSelectGroups}
                       withChart={withChart}
                       withColumns={withColumns}

@@ -55,13 +55,16 @@ function PreviewTable({
     }
     const memberList = indexMembersByProject(members);
     return previewGroups.map((id, index) => {
-      const group = GroupStore.get(id) as Group | undefined;
+      // The type cast used to be Group|undefined, but <StreamGroup> would then
+      // internally call GroupStore.getState, execute find and just cast to Group
+      const group = GroupStore.get(id) as Group;
 
       return (
         <StreamGroup
           index={index}
           key={id}
           id={id}
+          group={group}
           hasGuideAnchor={false}
           memberList={group?.project ? memberList[group.project.slug] : undefined}
           displayReprocessingLayout={false}

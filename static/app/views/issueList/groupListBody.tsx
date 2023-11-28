@@ -1,6 +1,5 @@
 import {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
@@ -32,6 +31,7 @@ type GroupListProps = {
   displayReprocessingLayout: boolean;
   groupIds: string[];
   groupStatsPeriod: string;
+  loading: boolean;
   memberList: IndexedMembersByProject;
   query: string;
   sort: string;
@@ -52,15 +52,11 @@ function GroupListBody({
   const api = useApi();
   const organization = useOrganization();
 
-  if (loading) {
-    return <LoadingIndicator hideMessage />;
-  }
-
   if (error) {
     return <LoadingError message={error} onRetry={refetchGroups} />;
   }
 
-  if (!groupIds.length) {
+  if (!groupIds.length && !loading) {
     return (
       <NoGroupsHandler
         api={api}
@@ -75,6 +71,7 @@ function GroupListBody({
   return (
     <IssuesReplayCountProvider groupIds={groupIds}>
       <GroupList
+        loading={loading}
         groupIds={groupIds}
         memberList={memberList}
         query={query}
@@ -91,6 +88,7 @@ function GroupList({
   memberList,
   query,
   sort,
+  loading,
   displayReprocessingLayout,
   groupStatsPeriod,
 }: GroupListProps) {
@@ -108,15 +106,18 @@ function GroupList({
 
   return (
     <PanelBody>
-      {groupIds.map((id, index) => {
+      {(loading ? new Array(25).fill(0) : groupIds).map((id, index) => {
         const hasGuideAnchor = id === topIssue;
-        const group = GroupStore.get(id) as Group | undefined;
+        // The type cast used to be Group|undefined, but <StreamGroup> would then
+        // internally call GroupStore.getState, execute find and just cast to Group
+        const group = GroupStore.get(id) as Group;
 
         return (
           <StreamGroup
             index={index}
             key={id}
             id={id}
+            group={group}
             statsPeriod={groupStatsPeriod}
             query={query}
             hasGuideAnchor={hasGuideAnchor}
