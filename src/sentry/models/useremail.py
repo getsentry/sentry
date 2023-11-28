@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, ClassVar, Iterable, List, Mapping, Optional, T
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Subquery
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -56,6 +57,13 @@ class UserEmail(ControlOutboxProducingModel):
         _("verified"),
         default=False,
         help_text=_("Designates whether this user has confirmed their email."),
+    )
+    is_billing_notification_verified = models.BooleanField(
+        _("verified"),
+        default=False,
+        help_text=_(
+            "Designates whether this user has confirmed receiving billing notifications at this email."
+        ),
     )
 
     objects: ClassVar[UserEmailManager] = UserEmailManager()
@@ -140,3 +148,18 @@ class UserEmail(ControlOutboxProducingModel):
         # `--merge_users=true` case is handled in the `normalize_before_relocation_import()` method
         # above).
         return (useremail.pk, ImportKind.Inserted)
+
+    @classmethod
+    def find_billing_emails_for(cls, organization_id: int) -> List[UserEmail]:
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
+
+        admin_and_owners = OrganizationMemberMapping.objects.filter(
+            role__in=["admin", "owner"], organization_id=organization_id
+        ).values("user_id")
+        return list(
+            cls.objects.filter(
+                user_id__in=Subquery(admin_and_owners),
+                is_billing_notification_verified=True,
+                is_verified=True,
+            )
+        )
