@@ -16,7 +16,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import StreamGroup from 'sentry/components/stream/group';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types';
@@ -26,7 +25,9 @@ import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/ove
 
 // Mock <IssueListActions>
 jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
-jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
+jest.mock('sentry/components/stream/group', () => {
+  return {default: () => null, GroupLoadingPlaceHolder: () => null, __esModule: true};
+});
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -177,8 +178,6 @@ describe('IssueList', function () {
     let issuesRequest: jest.Mock;
 
     beforeEach(function () {
-      jest.mocked(StreamGroup).mockClear();
-
       recentSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
         method: 'GET',
