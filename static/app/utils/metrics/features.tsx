@@ -1,6 +1,7 @@
 import type {Organization} from 'sentry/types';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
+// TODO(ddm): rename this since dashboards and code locations are also behind it
 export function hasDdmAlertsSupport(organization: Organization) {
   return organization.features.includes('ddm-experimental');
 }

@@ -1,7 +1,7 @@
 import {Project} from 'sentry-fixture/project';
 
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, GroupActivityType, GroupStats, TimeseriesValue} from 'sentry/types';
+import {Group, GroupActivityType} from 'sentry/types';
 
 const MOCK_PROJECT = TestStubs.Project();
 
@@ -102,48 +102,6 @@ describe('GroupStore', function () {
         g('1'),
         g('3'), // parent
       ]);
-    });
-  });
-
-  describe('onPopulateStats()', function () {
-    const stats: Record<string, TimeseriesValue[]> = {auto: [[1611576000, 10]]};
-
-    beforeEach(function () {
-      jest.spyOn(GroupStore, 'trigger');
-      GroupStore.items = [g('1'), g('2'), g('3')];
-    });
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it('should merge stats into existing groups', function () {
-      GroupStore.onPopulateStats(
-        ['1', '2', '3'],
-        [
-          {id: '1', stats} as GroupStats,
-          {id: '2', stats} as GroupStats,
-          {id: '3', stats} as GroupStats,
-        ]
-      );
-
-      const group = GroupStore.getAllItems()[0] as Group;
-
-      expect(group.stats).toEqual(stats);
-      expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
-    });
-
-    it('should not change current item ids', function () {
-      GroupStore.onPopulateStats(
-        ['2', '3'],
-        [{id: '2', stats} as GroupStats, {id: '3', stats} as GroupStats]
-      );
-
-      const group1 = GroupStore.getAllItems()[0] as Group;
-      const group2 = GroupStore.getAllItems()[1] as Group;
-
-      expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['2', '3']));
-      expect(group1.stats).not.toEqual(stats);
-      expect(group2.stats).toEqual(stats);
     });
   });
 

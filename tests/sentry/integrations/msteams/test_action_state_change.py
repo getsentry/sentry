@@ -4,6 +4,7 @@ from unittest.mock import patch
 import responses
 from django.http import HttpResponse
 
+from sentry.api.client import ApiClient
 from sentry.integrations.msteams.card_builder.identity import build_linking_card
 from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.integrations.msteams.utils import ACTION_TYPE
@@ -200,7 +201,7 @@ class StatusActionTest(APITestCase):
         assert self.group1.get_status() == GroupStatus.IGNORED
 
     @responses.activate
-    @patch("sentry.api.client.put")
+    @patch.object(ApiClient, "put")
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_ignore_with_params(self, verify, client_put):
         client_put.return_value = HttpResponse(status=200)
@@ -339,7 +340,7 @@ class StatusActionTest(APITestCase):
         assert b"Assign" in responses.calls[0].request.body
 
     @responses.activate
-    @patch("sentry.api.client.put")
+    @patch.object(ApiClient, "put")
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_resolve_with_params(self, verify, client_put):
         client_put.return_value = HttpResponse(status=200)

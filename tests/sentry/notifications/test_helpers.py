@@ -2,7 +2,7 @@ import types
 from urllib.parse import parse_qs, urlparse
 
 from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.rule import Rule
 from sentry.notifications.helpers import (
     collect_groups_by_project,
@@ -39,25 +39,21 @@ def mock_event(*, transaction, data=None):
 class NotificationHelpersTest(TestCase):
     def setUp(self):
         super().setUp()
-
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingOption.objects.create(
+                user_id=self.user.id,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                type="workflow",
+                value="always",
+            )
+            NotificationSettingOption.objects.create(
+                user_id=self.user.id,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                type="deploy",
+                value="always",
+            )
 
     def test_get_deploy_values_by_provider_empty_settings(self):
         values_by_provider = get_values_by_provider_by_type(
