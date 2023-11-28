@@ -2,8 +2,9 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from django.utils import timezone
 
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -285,6 +286,15 @@ class TestGetCommentIssues(TestCase):
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert top_5_issue_ids == [self.group_id]
         assert top_5_issues[0]["affected_users"] == 6
+
+    def test_filters_resolved_issue(self):
+        group = Group.objects.all()[0]
+        group.resolved_at = timezone.now()
+        group.status = GroupStatus.RESOLVED
+        group.save()
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        assert len(top_5_issues) == 0
 
     def test_project_group_id_mismatch(self):
         # we fetch all group_ids that belong to the projects passed into the function

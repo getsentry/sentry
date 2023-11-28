@@ -11,7 +11,7 @@ from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderB
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.integrations.github.client import GitHubAppsClient
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
@@ -216,6 +216,7 @@ def get_top_5_issues_by_count_for_file(
     group_ids = list(
         Group.objects.filter(
             last_seen__gte=datetime.now() - timedelta(days=14),
+            status=GroupStatus.UNRESOLVED,
             project__in=projects,
         ).values_list("id", flat=True)
     )
