@@ -1350,9 +1350,11 @@ def detect_new_escalation(job: PostProcessJob):
     """
     from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 
-    if not features.has("projects:first-event-severity-new-escalation", job["event"].project):
-        return
     group = job["event"].group
+    if not group or not features.has(
+        "projects:first-event-severity-new-escalation", job["event"].project
+    ):
+        return
     group_age_hours = (datetime.now() - group.first_seen).total_seconds() / 3600
     if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or group.substatus != GroupSubStatus.NEW:
         return
