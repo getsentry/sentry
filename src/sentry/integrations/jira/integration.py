@@ -21,7 +21,6 @@ from sentry.integrations import (
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.service import organization_service
@@ -924,15 +923,12 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         jira_issue = client.get_issue(external_issue.key)
         jira_project = jira_issue["fields"]["project"]
 
-        try:
-            external_project = IntegrationExternalProject.objects.get(
-                external_id=jira_project["id"],
-                organization_integration_id__in=OrganizationIntegration.objects.filter(
-                    organization_id=external_issue.organization_id,
-                    integration_id=external_issue.integration_id,
-                ),
-            )
-        except IntegrationExternalProject.DoesNotExist:
+        external_project = integration_service.get_integration_external_project(
+            external_id=jira_project["id"],
+            organization_id=external_issue.organization_id,
+            integration_id=external_issue.integration_id,
+        )
+        if not external_project:
             return
 
         jira_status = (
