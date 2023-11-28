@@ -26,16 +26,11 @@ export const useProjectWebVitalsScoresQuery = ({
   const projectEventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
-        'avg(measurements.score.lcp)',
-        'avg(measurements.score.fcp)',
-        'avg(measurements.score.cls)',
-        'avg(measurements.score.fid)',
-        'avg(measurements.score.ttfb)',
-        'avg(measurements.score.weight.lcp)',
-        'avg(measurements.score.weight.fcp)',
-        'avg(measurements.score.weight.cls)',
-        'avg(measurements.score.weight.fid)',
-        'avg(measurements.score.weight.ttfb)',
+        'performance_score(measurements.score.lcp)',
+        'performance_score(measurements.score.fcp)',
+        'performance_score(measurements.score.cls)',
+        'performance_score(measurements.score.fid)',
+        'performance_score(measurements.score.ttfb)',
         'avg(measurements.score.total)',
         'count()',
       ],

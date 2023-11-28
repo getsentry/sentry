@@ -37,16 +37,11 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
-        'avg(measurements.score.lcp)',
-        'avg(measurements.score.fcp)',
-        'avg(measurements.score.cls)',
-        'avg(measurements.score.fid)',
-        'avg(measurements.score.ttfb)',
-        'avg(measurements.score.weight.lcp)',
-        'avg(measurements.score.weight.fcp)',
-        'avg(measurements.score.weight.cls)',
-        'avg(measurements.score.weight.fid)',
-        'avg(measurements.score.weight.ttfb)',
+        'performance_score(measurements.score.lcp)',
+        'performance_score(measurements.score.fcp)',
+        'performance_score(measurements.score.cls)',
+        'performance_score(measurements.score.fid)',
+        'performance_score(measurements.score.ttfb)',
         'count()',
       ],
       name: 'Web Vitals',
@@ -98,49 +93,46 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     total: [],
   };
 
-  result?.data?.['avg(measurements.score.lcp)']?.data.forEach((interval, index) => {
-    const lcp: number =
-      interval[1][0].count *
-      result?.data?.['avg(measurements.score.weight.lcp)']?.data[index][1][0].count *
-      100;
-    const fcp: number =
-      interval[1][0].count *
-      result?.data?.['avg(measurements.score.weight.fcp)']?.data[index][1][0].count *
-      100;
-    const cls: number =
-      interval[1][0].count *
-      result?.data?.['avg(measurements.score.weight.cls)']?.data[index][1][0].count *
-      100;
-    const ttfb: number =
-      interval[1][0].count *
-      result?.data?.['avg(measurements.score.weight.ttfb)']?.data[index][1][0].count *
-      100;
-    const fid: number =
-      interval[1][0].count *
-      result?.data?.['avg(measurements.score.weight.fid)']?.data[index][1][0].count *
-      100;
+  result?.data?.['performance_score(measurements.score.lcp)']?.data.forEach(
+    (interval, index) => {
+      const lcp: number =
+        result?.data?.['performance_score(measurements.score.lcp)']?.data[index][1][0]
+          .count * 100;
+      const fcp: number =
+        result?.data?.['performance_score(measurements.score.fcp)']?.data[index][1][0]
+          .count * 100;
+      const cls: number =
+        result?.data?.['performance_score(measurements.score.cls)']?.data[index][1][0]
+          .count * 100;
+      const ttfb: number =
+        result?.data?.['performance_score(measurements.score.ttfb)']?.data[index][1][0]
+          .count * 100;
+      const fid: number =
+        result?.data?.['performance_score(measurements.score.fid)']?.data[index][1][0]
+          .count * 100;
 
-    data.cls.push({
-      value: cls ?? 0,
-      name: interval[0] * 1000,
-    });
-    data.lcp.push({
-      value: lcp ?? 0,
-      name: interval[0] * 1000,
-    });
-    data.fcp.push({
-      value: fcp ?? 0,
-      name: interval[0] * 1000,
-    });
-    data.ttfb.push({
-      value: ttfb ?? 0,
-      name: interval[0] * 1000,
-    });
-    data.fid.push({
-      value: fid ?? 0,
-      name: interval[0] * 1000,
-    });
-  });
+      data.cls.push({
+        value: cls ?? 0,
+        name: interval[0] * 1000,
+      });
+      data.lcp.push({
+        value: lcp ?? 0,
+        name: interval[0] * 1000,
+      });
+      data.fcp.push({
+        value: fcp ?? 0,
+        name: interval[0] * 1000,
+      });
+      data.ttfb.push({
+        value: ttfb ?? 0,
+        name: interval[0] * 1000,
+      });
+      data.fid.push({
+        value: fid ?? 0,
+        name: interval[0] * 1000,
+      });
+    }
+  );
 
   return {data, isLoading: result.isLoading};
 };

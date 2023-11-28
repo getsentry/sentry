@@ -10,7 +10,7 @@ export const calculatePerformanceScoreFromStoredTableDataRow = (
 };
 
 function getWebVitalScore(data: TableDataRow, webVital: WebVitals): number {
-  return data[`avg(measurements.score.${webVital})`] as number;
+  return data[`performance_score(measurements.score.${webVital})`] as number;
 }
 function getTotalScore(data: TableDataRow): number {
   return data[`avg(measurements.score.total)`] as number;
