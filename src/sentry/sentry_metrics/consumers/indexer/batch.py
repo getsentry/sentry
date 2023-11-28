@@ -501,15 +501,17 @@ class IndexerBatch:
                 amount=self.__message_count[use_case_id],
                 tags={"use_case_id": use_case_id.value},
             )
-            metrics.timing(
+            metrics.distribution(
                 "metrics_consumer.process_message.message.size.avg",
                 self.__message_size_sum[use_case_id] / self.__message_count[use_case_id],
                 tags={"use_case_id": use_case_id.value},
+                unit="byte",
             )
-            metrics.timing(
+            metrics.distribution(
                 "metrics_consumer.process_message.message.size.max",
                 self.__message_size_max[use_case_id],
                 tags={"use_case_id": use_case_id.value},
+                unit="byte",
             )
         return IndexerOutputMessageBatch(
             new_messages,

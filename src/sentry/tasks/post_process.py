@@ -135,7 +135,7 @@ def _capture_event_stats(event: Event) -> None:
     tags = {"platform": platform}
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
     metrics.incr(f"events.processed.{platform}", skip_internal=False)
-    metrics.timing("events.size.data", event.size, tags=tags)
+    metrics.distribution("events.size.data", event.size, tags=tags, unit="byte")
 
 
 def _update_escalating_metrics(event: Event) -> None:

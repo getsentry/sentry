@@ -102,7 +102,7 @@ class ProjectOptionRuleStore:
         converted_rules = [list(tup) for tup in self._sort(rules)]
 
         # Track the number of rules per project.
-        metrics.timing(self._tracker, len(converted_rules))
+        metrics.distribution(self._tracker, len(converted_rules))
 
         project.update_option(self._storage, converted_rules)
 

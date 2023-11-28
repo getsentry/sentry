@@ -163,9 +163,13 @@ def _report_size_metrics(
     size_compressed: Optional[int] = None, size_uncompressed: Optional[int] = None
 ) -> None:
     if size_compressed:
-        metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
+        metrics.distribution(
+            "replays.usecases.ingest.size_compressed", size_compressed, unit="byte"
+        )
     if size_uncompressed:
-        metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
+        metrics.distribution(
+            "replays.usecases.ingest.size_uncompressed", size_uncompressed, unit="byte"
+        )
 
 
 def replay_click_post_processor(

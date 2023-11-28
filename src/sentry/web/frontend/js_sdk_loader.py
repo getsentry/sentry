@@ -212,6 +212,6 @@ class JavaScriptSdkLoader(BaseView):
             response["Surrogate-Key"] = f"project/{key.project_id} sdk/{sdk_version} sdk-loader"
 
         ms = int((time.time() - start_time) * 1000)
-        metrics.timing("js-sdk-loader.duration", ms, instance=instance)
+        metrics.distribution("js-sdk-loader.duration", ms, instance=instance, unit="millisecond")
 
         return response

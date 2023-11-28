@@ -100,7 +100,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     """
     try:
         with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
-            metrics.timing("occurrence.ingest.size.data", len(payload))
+            metrics.distribution("occurrence.ingest.size.data", len(payload), unit="byte")
 
             occurrence_data = {
                 "id": UUID(payload["id"]).hex,

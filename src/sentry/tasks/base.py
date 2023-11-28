@@ -68,7 +68,7 @@ def track_memory_usage(metric, **kwargs):
     try:
         yield
     finally:
-        metrics.timing(metric, get_rss_usage() - before, **kwargs)
+        metrics.distribution(metric, get_rss_usage() - before, unit="byte", **kwargs)
 
 
 def load_model_from_db(cls, instance_or_id, allow_cache=True):
@@ -110,10 +110,8 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
             if start_time and record_timing:
                 curr_time = datetime.now().timestamp()
                 duration = (curr_time - start_time) * 1000
-                metrics.timing(
-                    "jobs.queue_time",
-                    duration,
-                    instance=instance,
+                metrics.distribution(
+                    "jobs.queue_time", duration, instance=instance, unit="millisecond"
                 )
 
             with configure_scope() as scope:

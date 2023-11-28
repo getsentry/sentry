@@ -92,16 +92,16 @@ def get_all_pii_configs(project):
 
 def scrub_data(project, event):
     for config in get_all_pii_configs(project):
-        metrics.timing(
+        metrics.distribution(
             "datascrubbing.config.num_applications", len(config.get("applications") or ())
         )
         total_rules = 0
         for selector, rules in (config.get("applications") or {}).items():
-            metrics.timing("datascrubbing.config.selectors.size", len(selector))
-            metrics.timing("datascrubbing.config.rules_per_selector.size", len(rules))
+            metrics.distribution("datascrubbing.config.selectors.size", len(selector))
+            metrics.distribution("datascrubbing.config.rules_per_selector.size", len(rules))
             total_rules += len(rules)
 
-        metrics.timing("datascrubbing.config.rules.size", total_rules)
+        metrics.distribution("datascrubbing.config.rules.size", total_rules)
 
         event = pii_strip_event(config, event)
 

@@ -202,7 +202,7 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
             )
 
             if self.change_metric is not None:
-                metrics.timing(self.change_metric, relative_change_new)
+                metrics.distribution(self.change_metric, relative_change_new)
         except ZeroDivisionError:
             relative_change_old = 0
             relative_change_new = 0
