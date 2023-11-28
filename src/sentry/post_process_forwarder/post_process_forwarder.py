@@ -21,7 +21,7 @@ from django.conf import settings
 
 from sentry.consumers.synchronized import SynchronizedConsumer
 from sentry.utils import metrics
-from sentry.utils.arroyo import MetricsWrapper
+from sentry.utils.arroyo import MetricsWrapper, RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -142,18 +142,48 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
     def _dispatch_function(self, message: Message[KafkaPayload]) -> None:
         raise NotImplementedError()
 
-    def __init__(self, concurrency: int):
-        self.__concurrency = concurrency
-        self.__max_pending_futures = concurrency + 1000
+    def __init__(
+        self,
+        mode: str,
+        num_processes: int,
+        input_block_size: int,
+        output_block_size: int,
+        max_batch_size: int,
+        max_batch_time: int,
+        concurrency: int,
+    ) -> None:
+        self.mode = mode
+        self.num_processes = num_processes
+        self.input_block_size = input_block_size
+        self.output_block_size = output_block_size
+        self.max_batch_size = max_batch_size
+        self.max_batch_time = max_batch_time
+        self.concurrency = concurrency
+        self.max_pending_futures = concurrency + 1000
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTaskInThreads(
-            self._dispatch_function,
-            self.__concurrency,
-            self.__max_pending_futures,
-            CommitOffsets(commit),
-        )
+        if self.mode == "multithreaded":
+            logger.info("Starting multithreaded post process forwarder")
+            return RunTaskInThreads(
+                processing_function=self._dispatch_function,
+                concurrency=self.concurrency,
+                max_pending_futures=self.max_pending_futures,
+                next_step=CommitOffsets(commit),
+            )
+        elif self.mode == "multiprocess":
+            logger.info("Starting multiprocess post process forwarder")
+            return RunTaskWithMultiprocessing(
+                function=self._dispatch_function,
+                next_step=CommitOffsets(commit),
+                num_processes=self.num_processes,
+                max_batch_size=self.max_batch_size,
+                max_batch_time=self.max_batch_time,
+                input_block_size=self.input_block_size,
+                output_block_size=self.output_block_size,
+            )
+        else:
+            raise ValueError(f"Invalid mode {self.mode}")

@@ -95,13 +95,21 @@ _METRICS_LAST_SEEN_UPDATER_OPTIONS = [
     click.Option(["--indexer-db"], default="postgres"),
 ]
 
-_POST_PROCESS_FORWARDER_OPTIONS = [
+_POST_PROCESS_FORWARDER_OPTIONS = multiprocessing_options(
+    default_max_batch_size=1000, default_max_batch_time_ms=1000
+) + [
     click.Option(
         ["--concurrency"],
         default=5,
         type=int,
         help="Thread pool size for post process worker.",
-    )
+    ),
+    click.Option(
+        ["--mode"],
+        default="multithreaded",
+        type=click.Choice(["multithreaded", "multiprocess"]),
+        help="Mode to run post process forwarder in.",
+    ),
 ]
 
 
