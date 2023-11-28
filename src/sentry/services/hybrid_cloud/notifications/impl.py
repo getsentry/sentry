@@ -86,6 +86,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         """
         This function removes provider settings if a team has been unlinked from a provider.
         """
+        # skip if not a supported provider with settings
+        if provider not in EXTERNAL_PROVIDERS:
+            return
         NotificationSettingProvider.objects.filter(
             team_id=team_id, provider=EXTERNAL_PROVIDERS[provider]
         ).delete()
