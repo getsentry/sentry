@@ -312,11 +312,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 attrs[item].update({"owners": owner_details.get(item.id)})
 
-        if self._expand("actions"):
+        if self._expand("pluginActions"):
             for item in item_list:
                 action_list = get_actions(item, request)
                 attrs[item].update({"pluginActions": action_list.get(item.id)})
 
+        if self._expand("pluginIssues"):
             for item in item_list:
                 plugin_issue_list = get_available_issue_plugins(item, request)
                 attrs[item].update({"pluginIssues": plugin_issue_list.get(item.id)})
