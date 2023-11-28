@@ -2042,7 +2042,7 @@ class PostProcessGroupErrorTest(
             tags={"issue_category": "error", "pipeline": "process_rules"},
         )
         metric_timer_mock.assert_any_call(
-            "sentry.tasks.post_process.run_post_process_job.pipeline.duration",
+            "tasks.post_process.run_post_process_job.pipeline.duration",
             tags={
                 "pipeline": "process_rules",
                 "issue_category": "error",

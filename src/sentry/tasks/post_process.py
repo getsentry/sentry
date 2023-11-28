@@ -700,7 +700,7 @@ def run_post_process_job(job: PostProcessJob):
     for pipeline_step in pipeline:
         try:
             with metrics.timer(
-                "sentry.tasks.post_process.run_post_process_job.pipeline.duration",
+                "tasks.post_process.run_post_process_job.pipeline.duration",
                 tags={
                     "pipeline": pipeline_step.__name__,
                     "issue_category": issue_category_metric,
