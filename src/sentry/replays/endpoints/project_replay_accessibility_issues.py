@@ -8,6 +8,7 @@ import requests
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import metrics
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -42,6 +43,7 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             project.organization,
             actor=request.user,
         ):
+            metrics.incr("session-replay-accessibility-issues-flag-disabled")
             return Response(status=404)
 
         try:
@@ -50,6 +52,9 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         def data_fn(offset, limit):
+            # Increment a counter for every call to the accessibility service.
+            metrics.incr("session-replay-accessibility-issues-count")
+
             # We only support direct-storage.  Filestore is deprecated and should be removed from
             # the driver.
             segments = fetch_direct_storage_segments_meta(project.id, replay_id, offset, limit)
