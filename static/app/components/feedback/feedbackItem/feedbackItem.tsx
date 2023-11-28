@@ -126,18 +126,18 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
               </Button>
             </ErrorBoundary>
           </Flex>
-          {eventData && (
-            <Flex align="flex-start" wrap="wrap" gap={space(2)}>
-              <ErrorBoundary mini>
-                <IssueTrackingSection
-                  group={feedbackItem as unknown as Group}
-                  project={feedbackItem.project}
-                  event={eventData}
-                />
-              </ErrorBoundary>
-            </Flex>
-          )}
         </Flex>
+        {eventData && (
+          <RowGapLinks>
+            <ErrorBoundary mini>
+              <IssueTrackingSection
+                group={feedbackItem as unknown as Group}
+                project={feedbackItem.project}
+                event={eventData}
+              />
+            </ErrorBoundary>
+          </RowGapLinks>
+        )}
       </HeaderPanelItem>
       <OverflowPanelItem>
         <Section
@@ -182,6 +182,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 const HeaderPanelItem = styled(PanelItem)`
   display: grid;
   padding: ${space(1)} ${space(2)};
+  gap: ${space(2)};
 `;
 
 const OverflowPanelItem = styled(PanelItem)`
@@ -190,6 +191,13 @@ const OverflowPanelItem = styled(PanelItem)`
   flex-direction: column;
   flex-grow: 1;
   gap: ${space(3)};
+`;
+
+const RowGapLinks = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  column-gap: ${space(2)};
 `;
 
 const Blockquote = styled('blockquote')`
