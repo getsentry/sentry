@@ -22,7 +22,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
-        integration = self.get_integration_from_payload(self.request)
+        integration = self.get_integration_from_card_action(self.request)
         if integration is None:
             integration = self.get_integration_from_channel_data(self.request)
         if integration:
@@ -31,6 +31,9 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class not in self.region_view_classes:
+            return self.get_response_from_control_silo()
+
+        if not self.can_infer_integration(self.request):
             return self.get_response_from_control_silo()
 
         regions = self.get_regions_from_organizations()

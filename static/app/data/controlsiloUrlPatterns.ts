@@ -168,6 +168,7 @@ const patterns: RegExp[] = [
   new RegExp('^extensions/bitbucket/search/[^/]+/[^/]+/$'),
   new RegExp('^extensions/vercel/delete/$'),
   new RegExp('^extensions/vercel/webhook/$'),
+  new RegExp('^extensions/msteams/webhook/$'),
   new RegExp('^extensions/msteams/configure/$'),
   new RegExp('^extensions/msteams/link-identity/[^/]+/$'),
   new RegExp('^extensions/msteams/unlink-identity/[^/]+/$'),

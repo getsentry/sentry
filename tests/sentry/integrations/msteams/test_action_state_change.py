@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import responses
 from django.http import HttpResponse
+from django.urls import reverse
 
 from sentry.api.client import ApiClient
 from sentry.integrations.msteams.card_builder.identity import build_linking_card
@@ -82,7 +83,6 @@ class StatusActionTest(APITestCase):
         ignore_input=None,
         assign_input=None,
     ):
-
         replyToId = "12345"
 
         channel_data = {"tenant": {"id": tenant_id}}
@@ -120,7 +120,8 @@ class StatusActionTest(APITestCase):
             "replyToId": replyToId,
         }
 
-        return self.client.post("/extensions/msteams/webhook/", data=payload)
+        webhook_url = reverse("sentry-integration-msteams-webhooks")
+        return self.client.post(webhook_url, data=payload)
 
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_vaue=True)
     @patch("sentry.integrations.msteams.link_identity.sign")

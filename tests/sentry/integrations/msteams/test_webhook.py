@@ -5,7 +5,10 @@ from urllib.parse import urlencode
 
 import pytest
 import responses
+from django.test import override_settings
+from django.urls import reverse
 
+from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
@@ -26,7 +29,7 @@ from .test_helpers import (
     WELL_KNOWN_KEYS,
 )
 
-webhook_url = "/extensions/msteams/webhook/"
+webhook_url = reverse("sentry-integration-msteams-webhooks")
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
 kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
@@ -239,6 +242,27 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 204
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not Integration.objects.filter(id=integration.id)
+
+    @responses.activate
+    @mock.patch("sentry.utils.jwt.decode")
+    @mock.patch("time.time")
+    def test_invalid_silo_member_removed(self, mock_time, mock_decode):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(external_id=team_id, provider="msteams")
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            resp = self.client.post(
+                path=webhook_url,
+                data=EXAMPLE_TEAM_MEMBER_REMOVED,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            )
+            assert resp.status_code == 400
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert Integration.objects.filter(id=integration.id)
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
@@ -535,3 +559,40 @@ class MsTeamsWebhookTest(APITestCase):
             "utf-8"
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+    @responses.activate
+    @mock.patch("sentry.utils.jwt.decode")
+    @mock.patch("time.time")
+    def test_invalid_silo_card_action_payload(self, mock_time, mock_decode):
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            integration = Integration.objects.create(external_id=team_id, provider="msteams")
+            CARD_ACTION_RESPONSE = {
+                "type": "message",
+                "from": {"id": "user_id"},
+                "channelData": {
+                    "tenant": {"id": "f5ffd8cf-a1aa-4242-adad-86509faa3be5"},
+                    "channel": {"id": "channel_id"},
+                },
+                "conversation": {"conversationType": "channel", "id": "conversation_id"},
+                "value": {
+                    "payload": {
+                        "groupId": "groupId",
+                        "eventId": "eventId",
+                        "actionType": ACTION_TYPE.ASSIGN,
+                        "rules": [],
+                        "integrationId": integration.id,
+                    },
+                    "assignInput": "me",
+                },
+                "replyToId": "replyToId",
+                "serviceUrl": "https://smba.trafficmanager.net/amer/",
+            }
+            response = self.client.post(
+                path=webhook_url,
+                data=CARD_ACTION_RESPONSE,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            )
+            assert response.status_code == 400
