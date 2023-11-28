@@ -3,12 +3,12 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
-from typing import List, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
+from typing import List, Mapping, MutableMapping, Optional, Set, Tuple
 
 from sentry.notifications.types import (
+    NotificationScopeEnum,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
+    NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
@@ -18,7 +18,7 @@ from sentry.services.hybrid_cloud.notifications.model import NotificationSetting
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class NotificationsService(RpcService):
@@ -35,68 +35,26 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_settings_for_recipient_by_parent(
+    def enable_all_settings_for_provider(
         self,
         *,
-        type: NotificationSettingTypes,
-        parent_id: int,
-        recipients: Sequence[RpcActor],
-    ) -> List[RpcNotificationSetting]:
+        external_provider: ExternalProviderEnum,
+        user_id: Optional[int] = None,
+        team_id: Optional[int] = None,
+        types: Optional[List[NotificationSettingEnum]] = None,
+    ) -> None:
         pass
 
     @rpc_method
     @abstractmethod
-    def get_settings_for_users(
+    def update_notification_options(
         self,
         *,
-        types: List[NotificationSettingTypes],
-        users: List[RpcUser],
-        value: NotificationSettingOptionValues,
-    ) -> List[RpcNotificationSetting]:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def get_settings_for_user_by_projects(
-        self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
-    ) -> List[RpcNotificationSetting]:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def update_settings(
-        self,
-        *,
-        external_provider: ExternalProviders,
-        notification_type: NotificationSettingTypes,
-        setting_option: NotificationSettingOptionValues,
         actor: RpcActor,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-        skip_provider_updates: bool = False,
-        organization_id_for_team: Optional[int] = None,
-    ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def bulk_update_settings(
-        self,
-        *,
-        notification_type_to_value_map: Mapping[
-            NotificationSettingTypes, NotificationSettingOptionValues
-        ],
-        external_provider: ExternalProviders,
-        user_id: int,
-    ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def uninstall_slack_settings(
-        self,
-        organization_id: int,
-        project_ids: List[int],
+        type: NotificationSettingEnum,
+        scope_type: NotificationScopeEnum,
+        scope_identifier: int,
+        value: NotificationSettingsOptionEnum,
     ) -> None:
         pass
 

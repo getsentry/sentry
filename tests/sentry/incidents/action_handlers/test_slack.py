@@ -14,7 +14,7 @@ from . import FireTest
 
 
 @freeze_time()
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):

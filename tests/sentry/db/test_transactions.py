@@ -122,39 +122,39 @@ class CaseMixin:
             do_assertions()
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class TestDjangoTestCaseTransactions(CaseMixin, TestCase):
     pass
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class TestDjangoTransactionTestCaseTransactions(CaseMixin, TransactionTestCase):
     def test_collect_transaction_queries(self):
         return
 
 
 class TestPytestDjangoDbAll(CaseMixin):
-    @no_silo_test(stable=True)
+    @no_silo_test
     @django_db_all
     def test_in_test_assert_no_transaction(self):
         super().test_in_test_assert_no_transaction()
 
-    @no_silo_test(stable=True)
+    @no_silo_test
     @django_db_all
     def test_transaction_on_commit(self):
         super().test_transaction_on_commit()
 
-    @no_silo_test(stable=True)
+    @no_silo_test
     @django_db_all
     def test_safe_transaction_boundaries(self):
         super().test_safe_transaction_boundaries()
 
-    @no_silo_test(stable=True)
+    @no_silo_test
     @django_db_all
     def test_bad_transaction_boundaries(self):
         super().test_bad_transaction_boundaries()
 
-    @no_silo_test(stable=True)
+    @no_silo_test
     @django_db_all
     def test_collect_transaction_queries(self):
         super().test_collect_transaction_queries()
@@ -170,7 +170,7 @@ class FakeRegionService:
         return 2
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class TestDelegatedByOpenTransaction(TestCase):
     def test_selects_mode_in_transaction_or_default(self):
         service: Any = silo_mode_delegation(
@@ -197,7 +197,7 @@ class TestDelegatedByOpenTransaction(TestCase):
                 assert service.a() == FakeControlService().a()
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
     @patch("sentry.services.hybrid_cloud.in_test_environment", return_value=False)
     def test_selects_mode_in_transaction_or_default(self, patch):

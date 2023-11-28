@@ -10,7 +10,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 @with_feature("organizations:eventuser-from-snuba")
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):

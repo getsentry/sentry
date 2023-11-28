@@ -6,16 +6,9 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.models.notificationsetting import NotificationSetting
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
 from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.rpc import generate_request_signature
 from sentry.testutils.cases import APITestCase
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
@@ -137,36 +130,3 @@ class RpcServiceEndpointTest(APITestCase):
         assert response.data == {
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
         }
-
-    def test_with_enum_serialization(self):
-        path = self._get_path("notifications", "get_settings_for_user_by_projects")
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        data = {
-            "args": {
-                "type": 20,
-                "user_id": self.user.id,
-                "parent_ids": [self.project.id],
-            }
-        }
-        response = self._send_post_request(path, data)
-        assert response.status_code == 200
-        response_body = response.json()
-        setting = NotificationSetting.objects.filter(user_id=self.user.id).get()
-        assert response_body["value"] == [
-            {
-                "id": setting.id,
-                "scope_type": NotificationScopeType.USER.value,
-                "scope_identifier": self.user.id,
-                "target_id": response_body["value"][0]["target_id"],
-                "team_id": None,
-                "user_id": self.user.id,
-                "provider": ExternalProviders.EMAIL.value,
-                "type": NotificationSettingTypes.ISSUE_ALERTS.value,
-                "value": 20,
-            }
-        ]

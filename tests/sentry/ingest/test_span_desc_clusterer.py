@@ -12,9 +12,6 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     ProjectOptionRuleStore,
-    RedisRuleStore,
-    bump_last_used,
-    get_redis_rules,
     get_rules,
     get_sorted_rules,
     update_rules,
@@ -95,13 +92,11 @@ def test_record_span_desc_url(mocked_record, default_organization):
                 "spans": [
                     {
                         "op": "resource.css",
-                        "sentry_tags": {
-                            "description": "https://*.domain.com/jane/path/to/something.en-us.js"
-                        },
+                        "description": "https://www.domain.com/jane/path/to/something.en-us.js;p?q=s",
                     },
                     {
                         "op": "resource.css",
-                        "sentry_tags": {"description": "webroot/my.js"},
+                        "description": "webroot/my.js",
                     },
                 ],
             },
@@ -110,7 +105,7 @@ def test_record_span_desc_url(mocked_record, default_organization):
             mock.call(
                 ClustererNamespace.SPANS,
                 Project(id=111, name="project", slug=None),
-                "/jane/path/to/something.en-us.js",
+                "www.domain.com/jane/path/to/something.en-us.js",
             ),
             mock.call(
                 ClustererNamespace.SPANS,
@@ -256,10 +251,10 @@ def test_run_clusterer_task(cluster_projects_span_descs, default_organization):
 
         rules = get_rules(ClustererNamespace.SPANS, project1)
         assert rules.keys() == {
-            "**/org/*/**",
-            "**/user/*/**",
-            "**/test/path/*/**",
-            "**/users/spans.desc/*/**",
+            "/org/*/**",
+            "/user/*/**",
+            "/test/path/*/**",
+            "/users/spans.desc/*/**",
         }
 
         assert (
@@ -285,12 +280,12 @@ def test_clusterer_only_runs_when_enough_data(mock_update_rules, default_project
     # Transaction names are deleted if there aren't enough
     assert get_rules(ClustererNamespace.SPANS, project) == {}
 
-    _record_sample(ClustererNamespace.SPANS, project, "/span-desc/number/1")
-    _record_sample(ClustererNamespace.SPANS, project, "/span-desc/number/2")
+    _record_sample(ClustererNamespace.SPANS, project, "http://domain.com/span-desc/number/1")
+    _record_sample(ClustererNamespace.SPANS, project, "http://domain.com/span-desc/number/2")
     cluster_projects_span_descs([project])
     assert mock_update_rules.call_count == 2
     assert mock_update_rules.call_args == mock.call(
-        ClustererNamespace.SPANS, project, ["**/span-desc/number/*/**"]
+        ClustererNamespace.SPANS, project, ["http://domain.com/span-desc/number/*/**"]
     )
 
 
@@ -299,123 +294,6 @@ def test_get_deleted_project():
     deleted_project = Project(pk=666, organization=Organization(pk=666))
     _record_sample(ClustererNamespace.SPANS, deleted_project, "foo")
     assert list(get_active_projects(ClustererNamespace.SPANS)) == []
-
-
-@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 10)
-@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD_SPANS", 5)
-@mock.patch(
-    "sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs.delay",
-    wraps=cluster_projects_span_descs,  # call immediately
-)
-@django_db_all
-def test_span_descs_clusterer_bumps_rules(_, default_organization):
-    with Feature("projects:span-metrics-extraction"), override_options(
-        {"span_descs.bump-lifetime-sample-rate": 1.0}
-    ):
-        project1 = Project(id=123, name="project1", organization_id=default_organization.id)
-        project1.save()
-
-        for i in range(10):
-            _record_sample(
-                ClustererNamespace.SPANS,
-                project1,
-                f"/remains/to-scrub-{project1.name}-{i}/settings",
-            )
-
-        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
-            spawn_clusterers_span_descs()
-
-        assert get_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 1}
-
-        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 2):
-            record_span_descriptions(
-                project1,
-                {
-                    "spans": [
-                        {
-                            "op": "resource.css",
-                            "sentry_tags": {"description": "webroot/my.js"},
-                        },
-                    ],
-                    "_meta": {
-                        "spans": {
-                            "0": {
-                                "sentry_tags": {
-                                    "description": {
-                                        "": {"rem": [["description:**/remains/*/**", "s"]]}
-                                    }
-                                }
-                            }
-                        }
-                    },
-                },
-            )
-
-        # _get_rules fetches from project options, which arent updated yet.
-        assert get_redis_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 2}
-        assert get_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 1}
-        # Update rules to update the project option storage.
-        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
-            assert 0 == update_rules(ClustererNamespace.SPANS, project1, [])
-        # After project options are updated, the last_seen should also be updated.
-        assert get_redis_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 2}
-        assert get_rules(ClustererNamespace.SPANS, project1) == {"**/remains/*/**": 2}
-
-
-@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 3)
-@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD_SPANS", 2)
-@mock.patch(
-    "sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs.delay",
-    wraps=cluster_projects_span_descs,  # call immediately
-)
-@django_db_all
-def test_dont_store_inexisting_rules(_, default_organization):
-    with Feature("projects:span-metrics-extraction"), override_options(
-        {"span_descs.bump-lifetime-sample-rate": 1.0}
-    ):
-        rogue_span_payload = {
-            "spans": [
-                {
-                    "op": "resource.css",
-                    "sentry_tags": {"description": "webroot/my.js"},
-                },
-            ],
-            "_meta": {
-                "spans": {
-                    "0": {
-                        "sentry_tags": {
-                            "description": {
-                                "": {
-                                    "rem": [
-                                        [
-                                            "description:**/i/am/a/rogue/rule/dont/store/me/**",
-                                            "s",
-                                        ]
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-        }
-
-        project1 = Project(id=234, name="project1", organization_id=default_organization.id)
-        project1.save()
-        for i in range(3):
-            _record_sample(
-                ClustererNamespace.SPANS, project1, f"/user/span_descs-{project1.name}-{i}/settings"
-            )
-
-        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
-            spawn_clusterers_span_descs()
-
-        record_span_descriptions(
-            project1,
-            rogue_span_payload,
-        )
-
-        assert get_rules(ClustererNamespace.SPANS, project1) == {"**/user/*/**": 1}
 
 
 @django_db_all
@@ -428,7 +306,6 @@ def test_record_span_descriptions_no_databag(default_organization):
             "spans": [
                 {
                     "op": "resource.css",
-                    "sentry_tags": {"description": "webroot/my.js"},
                 },
             ],
         }
@@ -455,18 +332,3 @@ def test_stale_rules_arent_saved(default_project):
     with freeze_time("2001-01-01 01:00:00"):
         update_rules(ClustererNamespace.SPANS, default_project, [ReplacementRule("baz/baz")])
     assert get_sorted_rules(ClustererNamespace.SPANS, default_project) == [("baz/baz", 978310800)]
-
-
-def test_bump_last_used():
-    """Redis update works and does not delete other keys in the set."""
-    project1 = Project(id=123, name="project1")
-    RedisRuleStore(namespace=ClustererNamespace.SPANS).write(
-        project1, {ReplacementRule("foo"): 1, ReplacementRule("bar"): 2}
-    )
-    assert get_redis_rules(ClustererNamespace.SPANS, project1) == {"foo": 1, "bar": 2}
-    with freeze_time("2000-01-01 01:00:00"):
-        bump_last_used(ClustererNamespace.SPANS, project1, "bar")
-    assert get_redis_rules(ClustererNamespace.SPANS, project1) == {
-        "foo": 1,
-        "bar": 946688400,
-    }
