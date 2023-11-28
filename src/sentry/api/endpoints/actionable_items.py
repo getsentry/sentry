@@ -64,12 +64,23 @@ class ActionableItemsEndpoint(ProjectEndpoint):
 
         # Add NextJS Errors
         sdk = event.data.get("sdk")
-
         if sdk and sdk.name == "sentry.javascript.nextjs":
-            culprit = event.data.get("culprit")
+            culprit = event.data.get("culprit", "")
+            title = event.data.get("title", "")
+
+            issue = None
+
             if "handleHardNavigation" in culprit:
-                actions.append(NextJSIssues(NextJSIssues.HANDLE_HARD_NAVIGATION).get_api_context())
-        actions.append(NextJSIssues(NextJSIssues.HANDLE_HARD_NAVIGATION).get_api_context())
+                issue = NextJSIssues.HANDLE_HARD_NAVIGATION
+            elif "throwOnHydrationMismatch" in culprit:
+                issue = NextJSIssues.HYDRATION_ERROR
+            elif "staticGenerationBailout" in culprit:
+                issue = NextJSIssues.STATIC_GENERATION_BAILOUT
+            elif "ChunkLoadError" in title:
+                issue = NextJSIssues.CHUNK_LOAD_ERROR
+
+            if issue:
+                actions.append(NextJSIssues(issue).get_api_context())
 
         priority_get = lambda x: priority_ranking.get(x["type"], ActionPriority.UNKNOWN)
         sorted_errors = sorted(actions, key=priority_get)

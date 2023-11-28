@@ -17,7 +17,7 @@ import {
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
 import {NextJSIssues} from 'sentry/constants/nextjsissues';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -427,15 +427,16 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
   };
 
   const errorTypes = Object.keys(errorMessages);
-  const isInfoAlert =
-    errorTypes.length === 1 && InfoIssues.includes(errorTypes[0] as NextJSIssues);
+  const infoIssues = errorTypes.filter(error =>
+    InfoIssues.includes(error as NextJSIssues)
+  );
 
-  if (isInfoAlert) {
+  if (infoIssues.length > 0) {
     return (
       <StyledAlert showIcon type="info">
-        {t(
-          'This is a handleHardNavigation error. Follow this link to find out how to fix it'
-        )}
+        {tct('This is a handleHardNavigation error. [click] to find out how to fix it', {
+          click: <a href="#resources-and-maybe-solutions">Click here</a>,
+        })}
       </StyledAlert>
     );
   }
