@@ -14,7 +14,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.region import get_local_region
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedTest(TestCase):
     def setUp(self):
@@ -194,7 +194,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.status_code == 400, resp.content
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedEnvironmentTest(TestCase):
     def setUp(self):

@@ -25,14 +25,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import {
   Row,
   SORTABLE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type RowWithScoreAndOpportunity = Row & {score: number; opportunity?: number};
@@ -68,9 +71,17 @@ export function PagePerformanceTable() {
   const sort = useWebVitalsSort();
 
   const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
-    useProjectWebVitalsQuery({transaction: query});
+    useProjectRawWebVitalsQuery({transaction: query});
+  const {data: projectScoresData, isLoading: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery({
+      transaction: query,
+      enabled: USE_STORED_SCORES,
+    });
 
-  const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+  const projectScore = USE_STORED_SCORES
+    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
+    : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+
   const {
     data,
     pageLinks,
@@ -254,7 +265,11 @@ export function PagePerformanceTable() {
         />
         <StyledPagination
           pageLinks={pageLinks}
-          disabled={isProjectWebVitalsQueryLoading || isTransactionWebVitalsQueryLoading}
+          disabled={
+            (USE_STORED_SCORES && isProjectScoresLoading) ||
+            isProjectWebVitalsQueryLoading ||
+            isTransactionWebVitalsQueryLoading
+          }
           size="md"
         />
         {/* The Pagination component disappears if pageLinks is not defined,
@@ -281,7 +296,11 @@ export function PagePerformanceTable() {
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
-          isLoading={isProjectWebVitalsQueryLoading || isTransactionWebVitalsQueryLoading}
+          isLoading={
+            (USE_STORED_SCORES && isProjectScoresLoading) ||
+            isProjectWebVitalsQueryLoading ||
+            isTransactionWebVitalsQueryLoading
+          }
           columnOrder={columnOrder}
           columnSortBy={[]}
           data={tableData}

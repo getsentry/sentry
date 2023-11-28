@@ -1,31 +1,19 @@
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
+import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 
 export function DurationAggregateSelector() {
-  const location = useLocation();
-
-  const {selectedAggregate, availableAggregates} = useAvailableDurationAggregates();
+  const availableAggregates = useAvailableDurationAggregates();
+  const [selectedAggregate, setSelectedAggregate] = useSelectedDurationAggregate();
 
   // If only one aggregate is available, render a plain string
   if (availableAggregates.length === 1) {
     return DURATION_AGGREGATE_LABELS[selectedAggregate];
   }
-
-  const handleDurationFunctionChange = option => {
-    browserHistory.push({
-      ...location,
-      query: {
-        ...location.query,
-        aggregate: option.value,
-      },
-    });
-  };
 
   // If multiple aggregates are available, render a dropdown list
   return (
@@ -36,7 +24,9 @@ export function DurationAggregateSelector() {
         label: DURATION_AGGREGATE_LABELS[availableAggregate],
       }))}
       value={selectedAggregate}
-      onChange={handleDurationFunctionChange}
+      onChange={option => {
+        setSelectedAggregate(option.value);
+      }}
       triggerProps={{borderless: true, size: 'zero'}}
     />
   );

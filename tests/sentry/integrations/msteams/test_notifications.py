@@ -22,7 +22,7 @@ pytestmark = [requires_snuba]
 TEST_CARD = {"type": "test_card"}
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 @patch(
     "sentry.integrations.msteams.MSTeamsNotificationsMessageBuilder.build_notification_card",
     Mock(return_value=TEST_CARD),

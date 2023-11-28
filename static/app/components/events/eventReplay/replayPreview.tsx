@@ -26,15 +26,15 @@ type Props = {
   orgSlug: string;
   replaySlug: string;
   buttonProps?: Partial<ComponentProps<typeof LinkButton>>;
-  fromFeedback?: boolean;
+  focusTab?: TabKey;
 };
 
 function ReplayPreview({
+  buttonProps,
+  eventTimestampMs,
+  focusTab,
   orgSlug,
   replaySlug,
-  eventTimestampMs,
-  buttonProps,
-  fromFeedback,
 }: Props) {
   const routes = useRoutes();
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
@@ -122,7 +122,7 @@ function ReplayPreview({
     pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
+      t_main: focusTab ?? TabKey.ERRORS,
       t: initialTimeOffsetMs / 1000,
     },
   };

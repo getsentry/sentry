@@ -1556,7 +1556,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             assert set(actual) == {(p1.id, 4), (p2.id, 2)}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @parametrize_backend
 class InitWithoutUserTestCase(TestCase, SnubaTestCase):
     backend = SessionsReleaseHealthBackend()

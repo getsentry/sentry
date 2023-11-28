@@ -11,7 +11,7 @@ from sentry.utils import snuba
 from sentry.utils.samples import load_data
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()

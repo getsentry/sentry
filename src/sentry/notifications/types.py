@@ -205,15 +205,8 @@ class FineTuningAPIKey(Enum):
 
 
 class UserOptionsSettingsKey(Enum):
-    DEPLOY = "deployNotifications"
     SELF_ACTIVITY = "personalActivityNotifications"
     SELF_ASSIGN = "selfAssignOnResolve"
-    SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
-    WORKFLOW = "workflowNotifications"
-    ACTIVE_RELEASE = "activeReleaseNotifications"
-    APPROVAL = "approvalNotifications"
-    QUOTA = "quotaNotifications"
-    SPIKE_PROTECTION = "spikeProtectionNotifications"
 
 
 VALID_VALUES_FOR_KEY = {

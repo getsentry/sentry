@@ -533,7 +533,9 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
           <Layout.Body>
             <Layout.Main fullWidth>
-              <ReleaseFeedbackBanner />
+              {organization.features.includes('releases-v2-banner') && (
+                <ReleaseFeedbackBanner />
+              )}
 
               {this.renderHealthCta()}
 

@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthOrganizationChannelLoginTest(TestCase):
     def create_auth_provider(self, partner_org_id, sentry_org_id):
         config_data = FlyOAuth2Provider.build_config(resource={"id": partner_org_id})

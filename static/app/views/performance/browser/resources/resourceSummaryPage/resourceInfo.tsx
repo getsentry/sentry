@@ -110,7 +110,7 @@ function ResourceInfo(props: Props) {
       {hasNoData && (
         <Alert style={{width: '100%'}} type="warning" showIcon>
           {t(
-            "We couldn't find any size information for this resource, this is likely because the `allow-timing-origin` header is not set"
+            "We couldn't find any size information for this resource, this is likely because the `timing-allow-origin` header is not set."
           )}
         </Alert>
       )}

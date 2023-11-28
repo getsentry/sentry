@@ -408,7 +408,7 @@ def cli_import_then_export(
             assert len(findings) == 0
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GoodImportExportCommandTests(TransactionTestCase):
     """
     Test success cases of the `sentry import` and `sentry export` CLI command. We're not asserting
