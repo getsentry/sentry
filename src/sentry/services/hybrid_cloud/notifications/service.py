@@ -11,12 +11,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
-from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
-from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
@@ -63,22 +58,6 @@ class NotificationsService(RpcService):
     def remove_notification_settings_for_provider_team(
         self, *, team_id: int, provider: ExternalProviders
     ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def serialize_many(
-        self,
-        *,
-        filter: NotificationSettingFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
-    ) -> List[OpaqueSerializedResponse]:
         pass
 
     @rpc_method
