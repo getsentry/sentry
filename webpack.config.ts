@@ -616,7 +616,7 @@ if (
 
     appConfig.plugins?.push(
       new WebpackHookPlugin({
-        onBuildStart: ['node node_modules/@spotlightjs/sidecar/src/run.js'],
+        onBuildStart: ['yarn run sidecar'],
       })
     );
   }
