@@ -459,7 +459,7 @@ You modified these files in this pull request and we noticed these issues associ
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestOpenPRCommentWorkflow(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
