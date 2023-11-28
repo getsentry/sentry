@@ -11,7 +11,7 @@ from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderB
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.integrations.github.client import GitHubAppsClient
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
@@ -31,6 +31,7 @@ from sentry.tasks.integrations.github.pr_comment import (
     PullRequestIssue,
     create_or_update_comment,
     format_comment_url,
+    get_pr_comment,
 )
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
@@ -216,6 +217,7 @@ def get_top_5_issues_by_count_for_file(
     group_ids = list(
         Group.objects.filter(
             last_seen__gte=datetime.now() - timedelta(days=14),
+            status=GroupStatus.UNRESOLVED,
             project__in=projects,
         ).values_list("id", flat=True)
     )
@@ -363,9 +365,11 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     issue_list: List[Dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
     issue_id_list: List[int] = [issue["group_id"] for issue in issue_list]
 
+    pr_comment = get_pr_comment(pr_id, comment_type=CommentType.OPEN_PR)
+
     try:
         create_or_update_comment(
-            pr_comment=None,
+            pr_comment=pr_comment,
             client=client,
             repo=repo,
             pr_key=pull_request.key,

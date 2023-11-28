@@ -25,6 +25,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -388,7 +389,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return self.get_client().create_comment(issue_id, quoted_comment)
 
     def create_comment_attribution(self, user_id, comment_text):
-        user = User.objects.get(id=user_id)
+        user = user_service.get_user(user_id=user_id)
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
@@ -924,9 +925,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         jira_project = jira_issue["fields"]["project"]
 
         external_project = integration_service.get_integration_external_project(
-            external_id=jira_project["id"],
             organization_id=external_issue.organization_id,
             integration_id=external_issue.integration_id,
+            external_id=jira_project["id"],
         )
         if not external_project:
             logger.info(

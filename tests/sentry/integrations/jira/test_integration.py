@@ -20,10 +20,16 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, region_silo_test
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    assume_test_silo_mode_of,
+    control_silo_test,
+    region_silo_test,
+)
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.signing import sign
@@ -36,11 +42,14 @@ def get_client():
     return StubJiraApiClient()
 
 
-@control_silo_test
-class JiraIntegrationTest(APITestCase):
-    @cached_property
-    def integration(self):
-        integration = Integration.objects.create(
+@region_silo_test
+class RegionJiraIntegrationTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="jira:1",
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -50,225 +59,13 @@ class JiraIntegrationTest(APITestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        integration.add_organization(self.organization, self.user)
-        return integration
-
-    def setUp(self):
-        super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.name = "Sentry Admin"
+            self.user.save()
         self.login_as(self.user)
-
-    def test_update_organization_config_sync_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-
-        installation = integration.get_installation(self.organization.id)
-
-        # test validation
-        data = {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": {10100: {"on_resolve": "", "on_unresolve": "3"}},
-        }
-
-        with pytest.raises(IntegrationError):
-            installation.update_organization_config(data)
-
-        data = {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": {10100: {"on_resolve": "4", "on_unresolve": "3"}},
-        }
-
-        installation.update_organization_config(data)
-
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        assert org_integration.config == {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": True,
-        }
-
-        assert IntegrationExternalProject.objects.filter(
-            organization_integration_id=org_integration.id,
-            resolved_status="4",
-            unresolved_status="3",
-        ).exists()
-
-        # test update existing
-        data = {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": {10100: {"on_resolve": "4", "on_unresolve": "5"}},
-        }
-
-        installation.update_organization_config(data)
-
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        assert org_integration.config == {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": True,
-        }
-
-        assert IntegrationExternalProject.objects.filter(
-            organization_integration_id=org_integration.id,
-            resolved_status="4",
-            unresolved_status="5",
-        ).exists()
-
-        assert (
-            IntegrationExternalProject.objects.filter(
-                organization_integration_id=org_integration.id
-            ).count()
-            == 1
-        )
-
-        # test disable forward
-        data = {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": {},
-        }
-
-        installation.update_organization_config(data)
-
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        assert org_integration.config == {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": False,
-        }
-
-        assert (
-            IntegrationExternalProject.objects.filter(
-                organization_integration_id=org_integration.id
-            ).count()
-            == 0
-        )
-
-    def test_update_organization_config_issues_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-
-        installation = integration.get_installation(self.organization.id)
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-        assert "issues_ignored_fields" not in org_integration.config
-
-        # Parses user-supplied CSV
-        installation.update_organization_config(
-            {"issues_ignored_fields": "\nhello world ,,\ngoodnight\nmoon , ,"}
-        )
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-        assert org_integration.config.get("issues_ignored_fields") == [
-            "hello world",
-            "goodnight",
-            "moon",
-        ]
-
-        # No-ops if updated value is not specified
-        installation.update_organization_config({})
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-        assert org_integration.config.get("issues_ignored_fields") == [
-            "hello world",
-            "goodnight",
-            "moon",
-        ]
-
-    def test_get_config_data(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        org_integration.config = {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": True,
-        }
-        org_integration.save()
-
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id="12345",
-            unresolved_status="in_progress",
-            resolved_status="done",
-        )
-
-        installation = integration.get_installation(self.organization.id)
-
-        assert installation.get_config_data() == {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
-            "issues_ignored_fields": "",
-        }
-
-    def test_get_config_data_issues_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-
-        installation = integration.get_installation(self.organization.id)
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        # If config has not be configured yet, uses empty string fallback
-        assert "issues_ignored_fields" not in org_integration.config
-        assert installation.get_config_data().get("issues_ignored_fields") == ""
-
-        # List is serialized as comma-separated list
-        org_integration.config["issues_ignored_fields"] = ["hello world", "goodnight", "moon"]
-        org_integration.save()
-        installation = integration.get_installation(self.organization.id)
-        assert (
-            installation.get_config_data().get("issues_ignored_fields")
-            == "hello world, goodnight, moon"
-        )
 
     def test_create_comment(self):
-        self.user.name = "Sentry Admin"
-        self.user.save()
-        self.login_as(self.user)
-
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-        installation = integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
@@ -282,13 +79,7 @@ class JiraIntegrationTest(APITestCase):
                 )
 
     def test_update_comment(self):
-        self.user.name = "Sentry Admin"
-        self.user.save()
-        self.login_as(self.user)
-
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-        installation = integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
@@ -301,154 +92,6 @@ class JiraIntegrationTest(APITestCase):
                     "123",
                     "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
                 )
-
-
-@region_silo_test
-class JiraMigrationIntegrationTest(APITestCase):
-    @cached_property
-    def integration(self):
-        integration = Integration.objects.create(
-            provider="jira",
-            name="Jira Cloud",
-            metadata={
-                "oauth_client_id": "oauth-client-id",
-                "shared_secret": "a-super-secret-key-from-atlassian",
-                "base_url": "https://example.atlassian.net",
-                "domain_name": "example.atlassian.net",
-            },
-        )
-        integration.add_organization(self.organization, self.user)
-        return integration
-
-    def setUp(self):
-        super().setUp()
-        self.plugin = JiraPlugin()
-        self.plugin.set_option("enabled", True, self.project)
-        self.plugin.set_option("default_project", "SEN", self.project)
-        self.plugin.set_option("instance_url", "https://example.atlassian.net", self.project)
-        self.plugin.set_option("ignored_fields", "hellboy, meow", self.project)
-        with assume_test_silo_mode_of(Integration):
-            self.installation = self.integration.get_installation(self.organization.id)
-        self.login_as(self.user)
-
-    def test_migrate_plugin(self):
-        """Test that 2 projects with the Jira plugin enabled that each have an issue created
-        from the plugin are migrated along with the ignored fields
-        """
-        project2 = self.create_project(
-            name="hellbar", organization=self.organization, teams=[self.team]
-        )
-        plugin2 = JiraPlugin()
-        plugin2.set_option("enabled", True, project2)
-        plugin2.set_option("default_project", "BAR", project2)
-        plugin2.set_option("instance_url", "https://example.atlassian.net", project2)
-
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        plugin_issue = GroupMeta.objects.create(
-            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
-        )
-        group2 = self.create_group(message="Hello world", culprit="foo.bar")
-        plugin2_issue = GroupMeta.objects.create(
-            key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1"
-        )
-        with assume_test_silo_mode_of(OrganizationIntegration):
-            org_integration = OrganizationIntegration.objects.get(
-                integration_id=self.integration.id
-            )
-            org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
-            org_integration.save()
-
-        with self.tasks():
-            self.installation.migrate_issues()
-
-        assert ExternalIssue.objects.filter(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            key=plugin_issue.value,
-        ).exists()
-        assert ExternalIssue.objects.filter(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            key=plugin2_issue.value,
-        ).exists()
-        assert not GroupMeta.objects.filter(
-            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
-        ).exists()
-        assert not GroupMeta.objects.filter(
-            key=f"{self.plugin.slug}:tid", group_id=group.id, value="BAR-1"
-        ).exists()
-
-        with assume_test_silo_mode_of(OrganizationIntegration):
-            oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-            assert len(oi.config["issues_ignored_fields"]) == 4
-
-        assert self.plugin.get_option("enabled", self.project) is False
-        assert plugin2.get_option("enabled", project2) is False
-
-    def test_instance_url_mismatch(self):
-        """Test that if the plugin's instance URL does not match the integration's base URL, we don't migrate the issues"""
-        self.plugin.set_option("instance_url", "https://hellboy.atlassian.net", self.project)
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        plugin_issue = GroupMeta.objects.create(
-            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
-        )
-        with self.tasks():
-            self.installation.migrate_issues()
-
-        assert not ExternalIssue.objects.filter(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            key=plugin_issue.value,
-        ).exists()
-        assert GroupMeta.objects.filter(
-            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
-        ).exists()
-
-    def test_external_issue_already_exists(self):
-        """Test that if an issue already exists during migration, we continue with no issue"""
-
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1")
-        group2 = self.create_group(message="Hello world", culprit="foo.bar")
-        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1")
-        integration_issue = ExternalIssue.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            key="BAR-1",
-        )
-        GroupLink.objects.create(
-            group_id=group2.id,
-            project_id=self.project.id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=integration_issue.id,
-            relationship=GroupLink.Relationship.references,
-        )
-
-        with self.tasks():
-            self.installation.migrate_issues()
-
-
-@region_silo_test
-class JiraIntegrationRegionTest(APITestCase):
-    def setUp(self):
-        super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
-
-    @cached_property
-    def integration(self):
-        integration = self.create_integration(
-            organization=self.organization,
-            external_id="jira-123",
-            provider="jira",
-            name="Jira Cloud",
-            metadata={
-                "oauth_client_id": "oauth-client-id",
-                "shared_secret": "a-super-secret-key-from-atlassian",
-                "base_url": "https://example.atlassian.net",
-                "domain_name": "example.atlassian.net",
-            },
-        )
-        return integration
 
     def test_get_create_issue_config(self):
         event = self.store_event(
@@ -1080,6 +723,357 @@ class JiraIntegrationRegionTest(APITestCase):
         assert assign_issue_url in assign_issue_response.url
         assert assign_issue_response.status_code == 200
         assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
+
+
+@control_silo_test
+class JiraIntegrationTest(APITestCase):
+    @cached_property
+    def integration(self):
+        integration = Integration.objects.create(
+            provider="jira",
+            name="Jira Cloud",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        return integration
+
+    def setUp(self):
+        super().setUp()
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.login_as(self.user)
+
+    def test_update_organization_config_sync_keys(self):
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+
+        installation = integration.get_installation(self.organization.id)
+
+        # test validation
+        data = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": {10100: {"on_resolve": "", "on_unresolve": "3"}},
+        }
+
+        with pytest.raises(IntegrationError):
+            installation.update_organization_config(data)
+
+        data = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": {10100: {"on_resolve": "4", "on_unresolve": "3"}},
+        }
+
+        installation.update_organization_config(data)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        assert org_integration.config == {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": True,
+        }
+
+        assert IntegrationExternalProject.objects.filter(
+            organization_integration_id=org_integration.id,
+            resolved_status="4",
+            unresolved_status="3",
+        ).exists()
+
+        # test update existing
+        data = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": {10100: {"on_resolve": "4", "on_unresolve": "5"}},
+        }
+
+        installation.update_organization_config(data)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        assert org_integration.config == {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": True,
+        }
+
+        assert IntegrationExternalProject.objects.filter(
+            organization_integration_id=org_integration.id,
+            resolved_status="4",
+            unresolved_status="5",
+        ).exists()
+
+        assert (
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=org_integration.id
+            ).count()
+            == 1
+        )
+
+        # test disable forward
+        data = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": {},
+        }
+
+        installation.update_organization_config(data)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        assert org_integration.config == {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": False,
+        }
+
+        assert (
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=org_integration.id
+            ).count()
+            == 0
+        )
+
+    def test_update_organization_config_issues_keys(self):
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+
+        installation = integration.get_installation(self.organization.id)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        assert "issues_ignored_fields" not in org_integration.config
+
+        # Parses user-supplied CSV
+        installation.update_organization_config(
+            {"issues_ignored_fields": "\nhello world ,,\ngoodnight\nmoon , ,"}
+        )
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        assert org_integration.config.get("issues_ignored_fields") == [
+            "hello world",
+            "goodnight",
+            "moon",
+        ]
+
+        # No-ops if updated value is not specified
+        installation.update_organization_config({})
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        assert org_integration.config.get("issues_ignored_fields") == [
+            "hello world",
+            "goodnight",
+            "moon",
+        ]
+
+    def test_get_config_data(self):
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        org_integration.config = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": True,
+        }
+        org_integration.save()
+
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="12345",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        installation = integration.get_installation(self.organization.id)
+
+        assert installation.get_config_data() == {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
+            "issues_ignored_fields": "",
+        }
+
+    def test_get_config_data_issues_keys(self):
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+
+        installation = integration.get_installation(self.organization.id)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        # If config has not be configured yet, uses empty string fallback
+        assert "issues_ignored_fields" not in org_integration.config
+        assert installation.get_config_data().get("issues_ignored_fields") == ""
+
+        # List is serialized as comma-separated list
+        org_integration.config["issues_ignored_fields"] = ["hello world", "goodnight", "moon"]
+        org_integration.save()
+        installation = integration.get_installation(self.organization.id)
+        assert (
+            installation.get_config_data().get("issues_ignored_fields")
+            == "hello world, goodnight, moon"
+        )
+
+
+@region_silo_test
+class JiraMigrationIntegrationTest(APITestCase):
+    @cached_property
+    def integration(self):
+        integration = Integration.objects.create(
+            provider="jira",
+            name="Jira Cloud",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        return integration
+
+    def setUp(self):
+        super().setUp()
+        self.plugin = JiraPlugin()
+        self.plugin.set_option("enabled", True, self.project)
+        self.plugin.set_option("default_project", "SEN", self.project)
+        self.plugin.set_option("instance_url", "https://example.atlassian.net", self.project)
+        self.plugin.set_option("ignored_fields", "hellboy, meow", self.project)
+        with assume_test_silo_mode_of(Integration):
+            self.installation = self.integration.get_installation(self.organization.id)
+        self.login_as(self.user)
+
+    def test_migrate_plugin(self):
+        """Test that 2 projects with the Jira plugin enabled that each have an issue created
+        from the plugin are migrated along with the ignored fields
+        """
+        project2 = self.create_project(
+            name="hellbar", organization=self.organization, teams=[self.team]
+        )
+        plugin2 = JiraPlugin()
+        plugin2.set_option("enabled", True, project2)
+        plugin2.set_option("default_project", "BAR", project2)
+        plugin2.set_option("instance_url", "https://example.atlassian.net", project2)
+
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        plugin_issue = GroupMeta.objects.create(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        )
+        group2 = self.create_group(message="Hello world", culprit="foo.bar")
+        plugin2_issue = GroupMeta.objects.create(
+            key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1"
+        )
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
+            org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
+            org_integration.save()
+
+        with self.tasks():
+            self.installation.migrate_issues()
+
+        assert ExternalIssue.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key=plugin_issue.value,
+        ).exists()
+        assert ExternalIssue.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key=plugin2_issue.value,
+        ).exists()
+        assert not GroupMeta.objects.filter(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        ).exists()
+        assert not GroupMeta.objects.filter(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="BAR-1"
+        ).exists()
+
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+            assert len(oi.config["issues_ignored_fields"]) == 4
+
+        assert self.plugin.get_option("enabled", self.project) is False
+        assert plugin2.get_option("enabled", project2) is False
+
+    def test_instance_url_mismatch(self):
+        """Test that if the plugin's instance URL does not match the integration's base URL, we don't migrate the issues"""
+        self.plugin.set_option("instance_url", "https://hellboy.atlassian.net", self.project)
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        plugin_issue = GroupMeta.objects.create(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        )
+        with self.tasks():
+            self.installation.migrate_issues()
+
+        assert not ExternalIssue.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key=plugin_issue.value,
+        ).exists()
+        assert GroupMeta.objects.filter(
+            key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1"
+        ).exists()
+
+    def test_external_issue_already_exists(self):
+        """Test that if an issue already exists during migration, we continue with no issue"""
+
+        group = self.create_group(message="Hello world", culprit="foo.bar")
+        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group.id, value="SEN-1")
+        group2 = self.create_group(message="Hello world", culprit="foo.bar")
+        GroupMeta.objects.create(key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1")
+        integration_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key="BAR-1",
+        )
+        GroupLink.objects.create(
+            group_id=group2.id,
+            project_id=self.project.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=integration_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        with self.tasks():
+            self.installation.migrate_issues()
 
 
 @control_silo_test
