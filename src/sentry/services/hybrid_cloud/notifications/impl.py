@@ -102,11 +102,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
         assert (team_id and not user_id) or (
             user_id and not team_id
         ), "Can only remove settings for team or user"
-        team_ids = [team_id] if team_id else None
-        user_ids = [user_id] if user_id else None
-        NotificationSetting.objects._filter(
-            team_ids=team_ids, user_ids=user_ids, provider=provider
-        ).delete()
         # delete all options for team/user
         query_args = {"team_id": team_id, "user_id": user_id}
         NotificationSettingOption.objects.filter(**query_args).delete()
@@ -122,7 +117,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
 
     def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
         assert organization_id, "organization_id must be a positive integer"
-        NotificationSetting.objects.remove_for_organization(organization_id=organization_id)
         NotificationSettingOption.objects.filter(
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=organization_id,
@@ -133,7 +127,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
         ).delete()
 
     def remove_notification_settings_for_project(self, *, project_id: int) -> None:
-        NotificationSetting.objects.remove_for_project(project_id=project_id)
         NotificationSettingOption.objects.filter(
             scope_type=NotificationScopeEnum.PROJECT.value,
             scope_identifier=project_id,
