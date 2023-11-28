@@ -150,6 +150,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         )
         return {
             project: (s.is_disabled, s.is_active, s.has_only_inactive_subscriptions)
+            # TODO(Steve): Simplify API to pass in one project at a time
             for project, s in controller.get_subscriptions_status_for_projects(
                 user=user, project_ids=project_ids, type=type
             ).items()
