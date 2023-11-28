@@ -70,7 +70,7 @@ describe('StreamGroup', function () {
 
   it('marks as resolved', function () {
     const {routerContext, organization} = initializeOrg();
-    render(<StreamGroup id="1337" query="is:unresolved" />, {
+    render(<StreamGroup id="1337" group={group1} query="is:unresolved" />, {
       context: routerContext,
       organization,
     });
