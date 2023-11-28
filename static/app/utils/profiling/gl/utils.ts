@@ -2,17 +2,55 @@ import {useLayoutEffect, useState} from 'react';
 import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
+import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {clamp, colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {
+  FlamegraphRenderer,
+  FlamegraphRendererConstructor,
+} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
+import {
+  UIFramesRenderer,
+  UIFramesRendererConstructor,
+} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
+import {SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
-import {CanvasPoolManager} from '../canvasScheduler';
-import {clamp, colorComponentsToRGBA} from '../colors/utils';
-import {FlamegraphCanvas} from '../flamegraphCanvas';
-import {SpanChartRenderer2D} from '../renderers/spansRenderer';
-import {SpanChartNode} from '../spanChart';
-import {Rect} from '../speedscope';
+export function initializeFlamegraphRenderer(
+  renderers: FlamegraphRendererConstructor[],
+  constructorArgs: ConstructorParameters<FlamegraphRendererConstructor>
+): FlamegraphRenderer | null;
+export function initializeFlamegraphRenderer(
+  renderers: UIFramesRendererConstructor[],
+  constructorArgs: ConstructorParameters<UIFramesRendererConstructor>
+): UIFramesRenderer | null;
+export function initializeFlamegraphRenderer(
+  renderers: FlamegraphRendererConstructor[] | UIFramesRendererConstructor[],
+  constructorArgs:
+    | ConstructorParameters<FlamegraphRendererConstructor>
+    | ConstructorParameters<UIFramesRendererConstructor>
+): FlamegraphRenderer | UIFramesRenderer | null {
+  for (const renderer of renderers) {
+    let r: FlamegraphRenderer | UIFramesRenderer | null = null;
+    try {
+      // @ts-expect-error ts complains that constructor args are not of tuple
+      // type, even though they are.
+      r = new renderer(...constructorArgs);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+
+    // A renderer should only fail if the rendering context was unavailable
+    if (r && r.ctx !== null) {
+      return r;
+    }
+  }
+
+  return null;
+}
 
 export function createShader(
   gl: WebGLRenderingContext,
@@ -238,9 +276,15 @@ export function transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
   );
 }
 
-function getContext(canvas: HTMLCanvasElement, context: '2d'): CanvasRenderingContext2D;
-function getContext(canvas: HTMLCanvasElement, context: 'webgl'): WebGLRenderingContext;
-function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
+export function getContext(
+  canvas: HTMLCanvasElement,
+  context: '2d'
+): CanvasRenderingContext2D;
+export function getContext(
+  canvas: HTMLCanvasElement,
+  context: 'webgl'
+): WebGLRenderingContext;
+export function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
   const ctx =
     context === 'webgl'
       ? canvas.getContext(context, {antialias: false})
@@ -251,9 +295,25 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
   return ctx;
 }
 
-// Exported separately as writing export function for each overload as
-// breaks the line width rules and makes it harder to read.
-export {getContext};
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: '2d'
+): CanvasRenderingContext2D;
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: 'webgl'
+): WebGLRenderingContext;
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: string
+): RenderingContext | null {
+  const ctx =
+    context === 'webgl'
+      ? canvas.getContext(context, {antialias: false})
+      : canvas.getContext(context);
+  return ctx;
+}
+
 export const ELLIPSIS = '\u2026';
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
   if (!string) {

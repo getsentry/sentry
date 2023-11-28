@@ -157,6 +157,7 @@ export function getTitle(
       };
     }
     case EventOrGroupType.CSP:
+    case EventOrGroupType.NEL:
       return {
         title: customTitle ?? metadata.directive ?? '',
         subtitle: metadata.uri ?? '',

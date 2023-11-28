@@ -249,7 +249,7 @@ class GetPreviousReleasesTestCase(TestCase):
         assert releases[1] == release1
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetEventFileCommitters(CommitTestCase):
     def setUp(self):
         super().setUp()

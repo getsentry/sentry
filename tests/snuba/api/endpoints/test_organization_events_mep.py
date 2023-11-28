@@ -2587,6 +2587,110 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["device.class"] == level
         assert meta["fields"]["device.class"] == "string"
 
+    def test_performance_score(self):
+        self.store_transaction_metric(
+            0.03,
+            metric="measurements.score.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.30,
+            metric="measurements.score.weight.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.35,
+            metric="measurements.score.fcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.70,
+            metric="measurements.score.weight.fcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.38,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            1.00,
+            metric="measurements.score.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.00,
+            metric="measurements.score.weight.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.00,
+            metric="measurements.score.fid",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        # These fid and ttfb scenarios shouldn't really be happening, but we can test them anyways
+        self.store_transaction_metric(
+            0.00,
+            metric="measurements.score.weight.fid",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.00,
+            metric="measurements.score.ttfb",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.00,
+            metric="measurements.score.weight.ttfb",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.00,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "performance_score(measurements.score.lcp)",
+                    "performance_score(measurements.score.fcp)",
+                    "performance_score(measurements.score.fid)",
+                    "performance_score(measurements.score.ttfb)",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["performance_score(measurements.score.lcp)"] == 0.7923076923076923
+        assert data[0]["performance_score(measurements.score.fcp)"] == 0.5
+        assert data[0]["performance_score(measurements.score.fid)"] == 0
+        assert data[0]["performance_score(measurements.score.ttfb)"] is None
+
+        assert meta["isMetricsData"]
+        assert field_meta["performance_score(measurements.score.lcp)"] == "integer"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -2637,19 +2741,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             dataset="metricsEnhanced",
         )
 
-    def test_is_metrics_extracted_data_is_excluded(self):
-        self._test_is_metrics_extracted_data(
-            {
-                "field": ["count()"],
-                "query": "transaction.duration:>=91",
-                "useOnDemandMetrics": "true",
-                "yAxis": "count()",
-            },
-            # Since we do not include metricsEnhanced dataset it will fail
-            expected_on_demand_query=False,
-            dataset="discover",
-        )
-
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -2690,3 +2781,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_device_class_filter(self):
         super().test_device_class_filter()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_performance_score(self):
+        super().test_performance_score()

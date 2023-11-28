@@ -11,6 +11,7 @@ from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.notifications.types import NotificationScopeType
@@ -125,7 +126,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.login_as(user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -161,8 +162,13 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
+            team_settings = NotificationSettingProvider.objects.filter(
+                team_id=self.team.id,
+                provider="slack",
+                type="alerts",
+                scope_type="team",
+                scope_identifier=self.team.id,
+                value="always",
             )
             assert len(team_settings) == 1
 
@@ -272,7 +278,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(team_settings) == 0
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()

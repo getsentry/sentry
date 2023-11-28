@@ -14,7 +14,7 @@ from sentry.utils import json
 from . import FireTest
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class MsTeamsActionHandlerTest(FireTest):
     @responses.activate

@@ -49,7 +49,7 @@ class DummySAML2Provider(GenericSAML2Provider):
         return dummy_provider_config
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"

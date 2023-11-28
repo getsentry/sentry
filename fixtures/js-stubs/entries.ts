@@ -18,7 +18,6 @@ export function Entries123Target(): TEntry[] {
                   symbol: null,
                   module: '<unknown module>',
                   lineNo: null,
-                  errors: null,
                   package: null,
                   absPath:
                     'https://sentry.io/hiventy/kraken-prod/issues/438681831/?referrer=slack#',
@@ -607,7 +606,6 @@ export function Entries123Base(): TEntry[] {
                   symbol: null,
                   module: '<unknown module>',
                   lineNo: null,
-                  errors: null,
                   package: null,
                   absPath:
                     'https://sentry.io/hiventy/kraken-prod/issues/438681831/?referrer=slack#',

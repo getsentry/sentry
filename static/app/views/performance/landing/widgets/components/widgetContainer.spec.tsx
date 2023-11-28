@@ -925,7 +925,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            '!span.description:browser-extension://* span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] !resource.render_blocking_status:blocking transaction.op:pageload',
+            '!span.description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] ) transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),

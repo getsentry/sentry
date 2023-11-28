@@ -191,20 +191,17 @@ def record_span_descriptions(
             continue
         safe_execute(_record_sample, ClustererNamespace.SPANS, project, description)
 
-        update_rule_rate = options.get("span_descs.bump-lifetime-sample-rate")
-        if update_rule_rate and random.random() < update_rule_rate:
-            safe_execute(
-                _update_span_description_rule_lifetime, project, event_data, _with_transaction=False
-            )
-
 
 def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
-    if not span.get("op") in ("resource.css", "resource.script"):
+    if not span.get("op") in ("resource.css", "resource.script", "resource.img"):
         return None
 
-    sentry_tags = span.get("sentry_tags") or {}
-    if url := sentry_tags.get("description"):
-        return urlparse(url).path
+    if url := span.get("description"):
+        try:
+            parsed = urlparse(url)
+        except ValueError:
+            return None
+        return f"{parsed.netloc}{parsed.path}"
 
     return None
 

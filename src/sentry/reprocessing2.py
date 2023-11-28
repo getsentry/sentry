@@ -336,15 +336,15 @@ def _send_delete_old_primary_hash_messages(
     # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
     # event per hash, a different solution may need to be considered.
     ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
-    metrics.timing(
+    metrics.distribution(
         key="reprocessing2.buffered_delete_old_primary_hash.event_count",
         value=event_count,
     )
-    metrics.timing(
+    metrics.distribution(
         key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_count",
         value=len(old_primary_hashes),
     )
-    metrics.timing(
+    metrics.distribution(
         key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
         value=ratio,
     )

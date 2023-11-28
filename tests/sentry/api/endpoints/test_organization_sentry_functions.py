@@ -25,7 +25,7 @@ class OrganizationSentryFunctionBase(APITestCase):
         }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationSentryFunctionsPost(OrganizationSentryFunctionBase):
     method = "POST"
 
@@ -85,7 +85,7 @@ class OrganizationSentryFunctionsPost(OrganizationSentryFunctionBase):
         assert response.data == "organizations:sentry-functions flag set to false"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationSentryFunctionsGet(OrganizationSentryFunctionBase):
     endpoint = "sentry-api-0-organization-sentry-functions"
     method = "GET"

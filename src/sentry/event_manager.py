@@ -732,7 +732,9 @@ class EventManager:
             job["received_timestamp"] - job["recorded_timestamp"],
             tags=metric_tags,
         )
-        metrics.timing("events.size.data.post_save", job["event"].size, tags=metric_tags)
+        metrics.distribution(
+            "events.size.data.post_save", job["event"].size, tags=metric_tags, unit="byte"
+        )
         metrics.incr(
             "events.post_save.normalize.errors",
             amount=len(job["data"].get("errors") or ()),
@@ -2125,6 +2127,10 @@ severity_connection_pool = connection_from_url(
 
 
 def _get_severity_score(event: Event) -> float | None:
+    # If the event is info-level or lower, auto-mark as low severity
+    if LOG_LEVELS_MAP[event.data["level"]] <= logging.INFO:
+        return 0
+
     op = "event_manager._get_severity_score"
     logger_data = {"event_id": event.data["event_id"], "op": op}
     severity = None
@@ -2593,7 +2599,7 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
-            metrics.timing("save_event.transaction.span_count", len(groupings.results))
+            metrics.distribution("save_event.transaction.span_count", len(groupings.results))
             unique_default_hashes = set(groupings.results.values())
             metrics.incr(
                 "save_event.transaction.span_group_count.default",
