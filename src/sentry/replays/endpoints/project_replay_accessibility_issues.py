@@ -17,6 +17,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.replays.lib.storage import make_filename
 from sentry.replays.usecases.reader import fetch_direct_storage_segments_meta
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 
 REFERRER = "replays.query.query_replay_clicks_dataset"
@@ -26,9 +27,20 @@ logger = logging.getLogger()
 
 @region_silo_endpoint
 class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
+    # Internal API maintenance decoration.
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+
+    # Rate Limits
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+        }
     }
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
