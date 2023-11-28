@@ -34,8 +34,8 @@ function DatabaseSpanDescription({span, project}: Props) {
   const formatter = new SQLishFormatter();
 
   return (
-    <React.Fragment>
-      <CodeSnippet language="sql">
+    <Frame>
+      <CodeSnippet language="sql" isRounded={false}>
         {formatter.toString(span[SpanMetricsField.SPAN_DESCRIPTION])}
       </CodeSnippet>
 
@@ -51,9 +51,15 @@ function DatabaseSpanDescription({span, project}: Props) {
           />
         )}
       </Feature>
-    </React.Fragment>
+    </Frame>
   );
 }
+
+const Frame = styled('div')`
+  border: solid 1px ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+`;
 
 const WordBreak = styled('div')`
   word-break: break-word;
