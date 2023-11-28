@@ -20,6 +20,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.models.project import Project
+from sentry.silo.base import SiloMode
 from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_string
@@ -233,7 +234,7 @@ class MessageBuilder:
         cc: Sequence[str] | None = None,
         bcc: Sequence[str] | None = None,
     ) -> None:
-        from sentry.tasks.email import send_email
+        from sentry.tasks.email import send_email, send_email_control
 
         fmt = options.get("system.logging-format")
         messages = self.get_built_messages(to, cc=cc, bcc=bcc)
@@ -244,7 +245,10 @@ class MessageBuilder:
 
         log_mail_queued = partial(logger.info, "mail.queued", extra=extra)
         for message in messages:
-            safe_execute(send_email.delay, message=message, _with_transaction=False)
+            send_email_task = send_email.delay
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                send_email_task = send_email_control.delay
+            safe_execute(send_email_task, message=message, _with_transaction=False)
             extra["message_id"] = message.extra_headers["Message-Id"]
             metrics.incr("email.queued", instance=self.type, skip_internal=False)
             if fmt == LoggingFormat.HUMAN:
