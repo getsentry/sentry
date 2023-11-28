@@ -55,7 +55,9 @@ import {
 } from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
+  hasIgnoreArchivedFeatureFlag,
   hasMigrationFeatureFlag,
+  ruleNeedsErrorMigration,
   ruleNeedsMigration,
 } from 'sentry/views/alerts/utils/migrationUi';
 import {
@@ -193,6 +195,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const aggregate = _aggregate ?? rule.aggregate;
     const dataset = _dataset ?? rule.dataset;
 
+    const isErrorMigration =
+      this.props.location?.query?.migration === '1' &&
+      hasIgnoreArchivedFeatureFlag(this.props.organization) &&
+      ruleNeedsErrorMigration(rule);
+    // TODO(issues): Does this need to be smarter about where its inserting the new filter?
+    const query = isErrorMigration
+      ? `is:unresolved ${rule.query ?? ''}`
+      : rule.query ?? '';
+
     return {
       ...super.getDefaultState(),
 
@@ -200,7 +211,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       aggregate,
       dataset,
       eventTypes: eventTypes ?? rule.eventTypes ?? [],
-      query: rule.query ?? '',
+      query,
       isQueryValid: true, // Assume valid until input is changed
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
@@ -881,8 +892,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
     } = this.state;
 
-    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
     const isMigration = this.props.location?.query?.migration === '1';
+    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
+    const isTransactionMigration = isMigration && ruleNeedsMigration(rule);
 
     const chartProps = {
       organization,
@@ -892,7 +904,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       query: this.chartQuery,
       aggregate,
       // If the alert is being migrated, we want to use the generic metrics dataset to allow users to edit their thresholds
-      dataset: isMigration ? Dataset.GENERIC_METRICS : dataset,
+      dataset: isTransactionMigration ? Dataset.GENERIC_METRICS : dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
       timeWindow,
       environment,
@@ -1007,8 +1019,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const formDisabled = loading || !hasAlertWrite;
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
-    const showMigrationWarning =
+    const showTransactionMigrationWarning =
       !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+    const showErrorMigrationWarning =
+      !!ruleId &&
+      hasIgnoreArchivedFeatureFlag(organization) &&
+      ruleNeedsErrorMigration(rule);
 
     return (
       <Main fullWidth>
@@ -1091,7 +1107,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
-            {showMigrationWarning && (
+            {showTransactionMigrationWarning && (
               <Alert type="warning" showIcon>
                 {tct(
                   'Check the chart above and make sure the current thresholds are still valid, given that this alert is now based on [tooltip:total events].',
@@ -1114,6 +1130,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                       />
                     ),
                   }
+                )}
+              </Alert>
+            )}
+            {showErrorMigrationWarning && (
+              <Alert type="warning" showIcon>
+                {t(
+                  'Check the chart above and make sure the current thresholds are still valid, given that this alert is now filtering out resolved and archived errors.'
                 )}
               </Alert>
             )}

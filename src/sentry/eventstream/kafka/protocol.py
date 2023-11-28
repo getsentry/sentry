@@ -94,7 +94,7 @@ def get_task_kwargs_for_message(value: bytes) -> Optional[dict[str, Any]]:
     dispatched.
     """
 
-    metrics.timing("eventstream.events.size.data", len(value))
+    metrics.distribution("eventstream.events.size.data", len(value), unit="byte")
     payload = json.loads(value, use_rapid_json=True)
 
     try:

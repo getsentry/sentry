@@ -197,7 +197,10 @@ def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
         return None
 
     if url := span.get("description"):
-        parsed = urlparse(url)
+        try:
+            parsed = urlparse(url)
+        except ValueError:
+            return None
         return f"{parsed.netloc}{parsed.path}"
 
     return None

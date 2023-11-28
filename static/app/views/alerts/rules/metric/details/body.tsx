@@ -20,6 +20,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {RuleActionsCategories} from 'sentry/types/alerts';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
@@ -157,7 +158,7 @@ export default function MetricDetailsBody({
     isOnDemandMetricAlert(dataset, aggregate, query) &&
     shouldShowOnDemandMetricAlertUI(organization);
 
-  const showMigrationWarning =
+  const showTransactionMigrationWarning =
     hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
 
   const migrationFormLink =
@@ -204,7 +205,7 @@ export default function MetricDetailsBody({
             triggerLabel={relativeOptions[timePeriod.period ?? '']}
           />
 
-          {showMigrationWarning ? (
+          {showTransactionMigrationWarning ? (
             <Alert
               type="warning"
               showIcon
@@ -221,6 +222,8 @@ export default function MetricDetailsBody({
               {t('The current thresholds for this alert could use some review.')}
             </Alert>
           ) : null}
+
+          <ErrorMigrationWarning project={project} rule={rule} />
 
           <MetricChart
             api={api}
