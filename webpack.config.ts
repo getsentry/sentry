@@ -12,6 +12,7 @@ import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
+import WebpackHookPlugin from 'webpack-hook-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
@@ -414,6 +415,10 @@ const appConfig: Configuration = {
     WebpackReactSourcemapsPlugin({
       mode: IS_PRODUCTION ? 'strict' : undefined,
       debug: false,
+    }),
+
+    new WebpackHookPlugin({
+      onBuildStart: ['node node_modules/@spotlightjs/sidecar/src/run.js'],
     }),
   ],
 

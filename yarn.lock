@@ -2778,10 +2778,10 @@
   dependencies:
     "@sinonjs/commons" "^2.0.0"
 
-"@spotlightjs/core@^0.0.14":
-  version "0.0.14"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/core/-/core-0.0.14.tgz#b629a08269029387a288d9c95e4c69ab4d8e6455"
-  integrity sha512-H7L9+jqPiHYxYuXB8B6iWW9zBlwBLLUgYE5n4ts67i8W4dDMJiZEALAW0/aKREmH4psWnUkNKklmM/dSpLmVOw==
+"@spotlightjs/overlay@^0.0.17":
+  version "0.0.17"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-0.0.17.tgz#d3855148937a4fa6485ac478b46f52bd88d83cf7"
+  integrity sha512-zBcPwAMDG2hbrPKFShSl3yukGliXTScnY3e7hu3CpvvvylAA5isc8gOINVBz3AlRlf3EquVByWk+T+yxg2QlAw==
   dependencies:
     "@fontsource/raleway" "^5.0.8"
     "@sentry/utils" "^7.77.0"
@@ -2795,6 +2795,13 @@
     sql-formatter "^12.2.4"
     tailwindcss "^3.3.3"
     usehooks-ts "^2.9.1"
+
+"@spotlightjs/sidecar@^0.0.12":
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/sidecar/-/sidecar-0.0.12.tgz#ca63fac24f6daa4adc898d6deefe869a292e7a6b"
+  integrity sha512-iBZ+GslkcoPRS8yokkZLcx69DCZYJlSCOqXPdqsxlYGsz5IWxm+5/CPw2aAh9CsLmshV2ub1ALQwCZk/bRZPTg==
+  dependencies:
+    kleur "^4.1.5"
 
 "@styled/typescript-styled-plugin@^1.0.0":
   version "1.0.0"
@@ -8215,6 +8222,11 @@ kleur@^3.0.3:
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
   integrity sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==
 
+kleur@^4.1.5:
+  version "4.1.5"
+  resolved "https://registry.yarnpkg.com/kleur/-/kleur-4.1.5.tgz#95106101795f7050c6c650f350c683febddb1780"
+  integrity sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==
+
 klona@^2.0.4:
   version "2.0.5"
   resolved "https://registry.yarnpkg.com/klona/-/klona-2.0.5.tgz#d166574d90076395d9963aa7a928fabb8d76afbc"
@@ -9438,10 +9450,18 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@^5.6.2, platformicons@^5.8.1:
+platformicons@^5.6.2:
   version "5.8.1"
   resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.8.1.tgz#b8baaba8131670a34035cd41979cfaecfdc25c39"
   integrity sha512-/89WN1dJCqL4kK+ddblpHEQ1Z6jkLXM1PSV3zOT/dhfDDp+BhLwE1Wf72qOQ3HrHXsQTYlpybw3xrxjPUknBwg==
+  dependencies:
+    "@types/node" "*"
+    "@types/react" "*"
+
+platformicons@^5.8.2:
+  version "5.8.2"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.8.2.tgz#5546afd48724c0a113ac63e7bf5c6aead9e5f062"
+  integrity sha512-B9qr5y5nlKW1T0XV7T3OUDieHG57KyaXUI6t4Y4ZMFWuzartRzdM5VKSL2Yc19V6FA45HkSgCAuq3xlOdh8mvA==
   dependencies:
     "@types/node" "*"
     "@types/react" "*"
@@ -11978,6 +11998,11 @@ webpack-dev-server@^4.15.1:
     spdy "^4.0.2"
     webpack-dev-middleware "^5.3.1"
     ws "^8.13.0"
+
+webpack-hook-plugin@^1.0.7:
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/webpack-hook-plugin/-/webpack-hook-plugin-1.0.7.tgz#689c2a24e16df247be91d8649e9da048774308ec"
+  integrity sha512-8GJ+LiR+0rrShCSeeFMaKONX7xMMW3H9Hszmy5IsCereZUJ5AoLhJgn5BhySQChA4Q5lZ7/9KtidDypYHQDDmA==
 
 webpack-merge@^5.7.3:
   version "5.7.3"
