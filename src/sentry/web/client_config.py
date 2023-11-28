@@ -169,7 +169,7 @@ class _ClientConfig:
         ):
             yield "organizations:customer-domains"
         if options.get("hybrid_cloud.multi-region-selector") or features.has(
-            "hybrid-cloud:region-provisioning-allow-list", actor=self.user
+            "user:region-provisioning-allow-list", actor=self.user
         ):
             yield "organizations:multi-region-selector"
 
