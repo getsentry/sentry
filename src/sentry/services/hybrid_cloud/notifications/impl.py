@@ -16,8 +16,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
-from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
+from sentry.services.hybrid_cloud.notifications import NotificationsService
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
@@ -106,9 +105,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self, *, team_id: int, provider: ExternalProviders
     ) -> None:
         self.remove_notification_settings(team_id=team_id, user_id=None, provider=provider)
-
-    def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
-        return self._FQ.get_many(filter)
 
     def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
         assert organization_id, "organization_id must be a positive integer"
