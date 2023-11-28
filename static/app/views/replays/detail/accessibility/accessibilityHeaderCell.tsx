@@ -27,6 +27,7 @@ const COLUMNS: {
     label: t('Type'),
   },
   {field: 'element', label: t('Element')},
+  {field: '', label: ''},
 ];
 
 export const COLUMN_COUNT = COLUMNS.length;

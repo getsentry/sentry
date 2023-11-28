@@ -28,6 +28,13 @@ export type HydratedA11yFrame = Overwrite<
   Omit<RawA11yFrame, 'elements' | 'help'>,
   {
     /**
+     * For compatibility with Frames, to highlight the element within the replay
+     */
+    data: {
+      element: A11yIssueElement;
+      label: string;
+    };
+    /**
      * Rename `help` to conform to ReplayFrame basics.
      */
     description: string;
@@ -57,9 +64,17 @@ export default function hydrateA11yFrame(
   return raw.elements.map((element): HydratedA11yFrame => {
     const timestamp = new Date(raw.timestamp);
     const timestampMs = timestamp.getTime();
+    const elementWithoutIframe = {
+      ...element,
+      target: element.target[0] === 'iframe' ? element.target.slice(1) : element.target,
+    };
     return {
+      data: {
+        element: elementWithoutIframe,
+        label: raw.id,
+      },
       description: raw.help,
-      element,
+      element: elementWithoutIframe,
       help_url: raw.help_url,
       id: raw.id,
       impact: raw.impact,
