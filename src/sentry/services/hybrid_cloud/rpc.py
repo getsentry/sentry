@@ -584,7 +584,10 @@ class _RemoteSiloCall:
     def _fire_request(self, headers: Mapping[str, str], data: bytes) -> requests.Response:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
-        return requests.post(url, headers=headers, data=data)
+        try:
+            return requests.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
+        except requests.Timeout as e:
+            raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
 
 
 class RpcAuthenticationSetupException(Exception):

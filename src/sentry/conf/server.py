@@ -671,6 +671,9 @@ SENTRY_REGION_CONFIG: Any = ()
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET = None
 
+# Timeout for RPC requests between regions
+RPC_TIMEOUT = 5.0
+
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
