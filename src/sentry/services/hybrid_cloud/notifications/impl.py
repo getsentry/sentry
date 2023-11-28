@@ -4,7 +4,6 @@ from typing import List, Mapping, MutableMapping, Optional, Tuple
 
 from django.db import router, transaction
 
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
@@ -18,7 +17,7 @@ from sentry.notifications.types import (
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import NotificationsService
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
@@ -81,34 +80,21 @@ class DatabaseBackedNotificationsService(NotificationsService):
             **kwargs,
         )
 
-    def remove_notification_settings(
-        self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
-    ) -> None:
-        """
-        Delete notification settings based on an actor_id
-        There is no foreign key relationship so we have to manually cascade.
-        """
-        assert (team_id and not user_id) or (
-            user_id and not team_id
-        ), "Can only remove settings for team or user"
-        team_ids = [team_id] if team_id else None
-        user_ids = [user_id] if user_id else None
-        NotificationSetting.objects._filter(
-            team_ids=team_ids, user_ids=user_ids, provider=provider
-        ).delete()
-        # delete all options for team/user
-        query_args = {"team_id": team_id, "user_id": user_id}
-        NotificationSettingOption.objects.filter(**query_args).delete()
-        NotificationSettingProvider.objects.filter(**query_args).delete()
-
-    def remove_notification_settings_for_team(
+    def remove_notification_settings_for_provider_team(
         self, *, team_id: int, provider: ExternalProviders
     ) -> None:
-        self.remove_notification_settings(team_id=team_id, user_id=None, provider=provider)
+        """
+        This function removes provider settings if a team has been unlinked from a provider.
+        """
+        # skip if not a supported provider with settings
+        if provider not in EXTERNAL_PROVIDERS:
+            return
+        NotificationSettingProvider.objects.filter(
+            team_id=team_id, provider=EXTERNAL_PROVIDERS[provider]
+        ).delete()
 
     def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
         assert organization_id, "organization_id must be a positive integer"
-        NotificationSetting.objects.remove_for_organization(organization_id=organization_id)
         NotificationSettingOption.objects.filter(
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=organization_id,
@@ -119,7 +105,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
         ).delete()
 
     def remove_notification_settings_for_project(self, *, project_id: int) -> None:
-        NotificationSetting.objects.remove_for_project(project_id=project_id)
         NotificationSettingOption.objects.filter(
             scope_type=NotificationScopeEnum.PROJECT.value,
             scope_identifier=project_id,
