@@ -204,7 +204,8 @@ def timer(
     else:
         current_tags["result"] = "success"
     finally:
-        timing(key, time.monotonic() - start, instance, current_tags, sample_rate, stacklevel + 1)
+        # stacklevel must be increased by 2 because of the contextmanager indirection
+        timing(key, time.monotonic() - start, instance, current_tags, sample_rate, stacklevel + 2)
 
 
 def wraps(
