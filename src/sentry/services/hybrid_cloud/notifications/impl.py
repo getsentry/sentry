@@ -4,7 +4,6 @@ from typing import List, Mapping, MutableMapping, Optional, Tuple
 
 from django.db import router, transaction
 
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
