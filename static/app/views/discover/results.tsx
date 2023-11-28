@@ -361,6 +361,14 @@ export class Results extends Component<Props, State> {
       query,
     });
 
+    // If the user is searching for unresolved issues, we want to search the errors dataset
+    if (
+      /\bis:unresolved\b/.test(query) &&
+      this.props.organization.features.includes('metric-alert-ignore-archived')
+    ) {
+      queryParams.dataset = 'errors';
+    }
+
     // do not propagate pagination when making a new search
     const searchQueryParams = omit(queryParams, 'cursor');
 
