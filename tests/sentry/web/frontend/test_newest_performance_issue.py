@@ -29,7 +29,7 @@ nplus_one_no_timestamp = {**get_event("n-plus-one-in-django-index-view")}
 del nplus_one_no_timestamp["timestamp"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class NewestIssueViewTest(TestCase, PerformanceIssueTestCase):
     @cached_property
     def path(self):
