@@ -462,8 +462,8 @@ class SanitizationTests(ImportTestCase):
                         model["fields"]["ip_address"] = "8.8.8.8"
 
                 # Add a two copies of the same IP - so the user now has 2 `UserIP` models for the IP
-                # `8.8.8.9`, and 1 for `8.8.8.8`. After import, we would expect to only see one
-                # model for each IP.
+                # `8.8.8.9`, 1 for `8.8.8.8`, and 1 for `8.8.8.7`. After import, we would expect to
+                # only see one model for each IP.
                 models.append(
                     {
                         "model": "sentry.userip",
@@ -492,6 +492,20 @@ class SanitizationTests(ImportTestCase):
                         },
                     }
                 )
+                models.append(
+                    {
+                        "model": "sentry.userip",
+                        "pk": 4,
+                        "fields": {
+                            "user": 2,
+                            "ip_address": "8.8.8.7",
+                            "country_code": None,  # Unknown value - importing should fix this.
+                            "region_code": None,  # Unknown value - importing should fix this.
+                            "first_seen": "2014-04-05T03:29:45.000Z",
+                            "last_seen": "2014-04-05T03:29:45.000Z",
+                        },
+                    }
+                )
 
                 json.dump(self.sort_in_memory_json(models), tmp_file)
 
@@ -499,13 +513,12 @@ class SanitizationTests(ImportTestCase):
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert UserIP.objects.count() == 2
-            assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
-            assert UserIP.objects.filter(country_code="US").exists()
-            assert UserIP.objects.filter(region_code="CA").exists()
-            assert UserIP.objects.filter(ip_address="8.8.8.9").exists()
-            assert UserIP.objects.filter(country_code="US").exists()
-            assert UserIP.objects.filter(region_code="CA").exists()
+            assert UserIP.objects.count() == 3
+            assert UserIP.objects.filter(ip_address="8.8.8.9").count() == 1
+            assert UserIP.objects.filter(ip_address="8.8.8.8").count() == 1
+            assert UserIP.objects.filter(ip_address="8.8.8.7").count() == 1
+            assert UserIP.objects.filter(country_code="US").count() == 3
+            assert UserIP.objects.filter(region_code="CA").count() == 3
 
     def test_bad_invalid_user_ip(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -525,6 +538,110 @@ class SanitizationTests(ImportTestCase):
 
                 assert err.value.context.get_kind() == RpcImportErrorKind.ValidationError
                 assert err.value.context.on.model == "sentry.userip"
+
+    # Regression test for getsentry/self-hosted#2571.
+    def test_good_multiple_useremails_per_user_in_user_scope(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+
+                # Add two copies (1 verified, 1 not) of the same `UserEmail` - so the user now has 3
+                # `UserEmail` models, the latter of which have no corresponding `Email` entry.
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 100,
+                        "fields": {
+                            "user": 2,
+                            "email": "second@example.com",
+                            "validation_hash": "7jvwev0oc8sFyEyEwfvDAwxidtGzpAov",
+                            "date_hash_added": "2023-06-22T22:59:56.521Z",
+                            "is_verified": True,
+                        },
+                    }
+                )
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 101,
+                        "fields": {
+                            "user": 2,
+                            "email": "third@example.com",
+                            "validation_hash": "",
+                            "date_hash_added": "2023-06-22T22:59:57.521Z",
+                            "is_verified": False,
+                        },
+                    }
+                )
+
+                json.dump(self.sort_in_memory_json(models), tmp_file)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert UserEmail.objects.count() == 3
+            assert UserEmail.objects.values("user").distinct().count() == 1
+            assert UserEmail.objects.filter(email="testing@example.com").exists()
+            assert UserEmail.objects.filter(email="second@example.com").exists()
+            assert UserEmail.objects.filter(email="third@example.com").exists()
+
+            # Validations are scrubbed and regenerated in non-global scopes.
+            assert UserEmail.objects.filter(validation_hash="").count() == 0
+            assert UserEmail.objects.filter(is_verified=True).count() == 0
+
+    # Regression test for getsentry/self-hosted#2571.
+    def test_good_multiple_useremails_per_user_in_global_scope(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+
+                # Add two copies (1 verified, 1 not) of the same `UserEmail` - so the user now has 3
+                # `UserEmail` models, the latter of which have no corresponding `Email` entry.
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 100,
+                        "fields": {
+                            "user": 2,
+                            "email": "second@example.com",
+                            "validation_hash": "7jvwev0oc8sFyEyEwfvDAwxidtGzpAov",
+                            "date_hash_added": "2023-06-22T22:59:56.521Z",
+                            "is_verified": True,
+                        },
+                    }
+                )
+                models.append(
+                    {
+                        "model": "sentry.useremail",
+                        "pk": 101,
+                        "fields": {
+                            "user": 2,
+                            "email": "third@example.com",
+                            "validation_hash": "",
+                            "date_hash_added": "2023-06-22T22:59:57.521Z",
+                            "is_verified": False,
+                        },
+                    }
+                )
+
+                json.dump(self.sort_in_memory_json(models), tmp_file)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert UserEmail.objects.count() == 3
+            assert UserEmail.objects.values("user").distinct().count() == 1
+            assert UserEmail.objects.filter(email="testing@example.com").exists()
+            assert UserEmail.objects.filter(email="second@example.com").exists()
+            assert UserEmail.objects.filter(email="third@example.com").exists()
+
+            # Validation hashes are not touched in the global scope.
+            assert UserEmail.objects.filter(validation_hash="").count() == 1
+            assert UserEmail.objects.filter(is_verified=True).count() == 2
 
     def test_bad_invalid_user_option(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -546,7 +663,7 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.on.model == "sentry.useroption"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SignalingTests(ImportTestCase):
     """
     Some models are automatically created via signals and similar automagic from related models. We
@@ -623,7 +740,7 @@ class SignalingTests(ImportTestCase):
             self.test_import_signaling_organization()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ScopingTests(ImportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually imported.
@@ -1206,7 +1323,7 @@ class FilterTests(ImportTestCase):
 COLLISION_TESTED: set[NormalizedModelName] = set()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CollisionTests(ImportTestCase):
     """
     Ensure that collisions are properly handled in different flag modes.
@@ -1220,9 +1337,11 @@ class CollisionTests(ImportTestCase):
         # Take note of the `ApiTokens` that were created by the exhaustive organization - this is
         # the one we'll be importing.
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_no_refresh_set = ApiToken.objects.create(
-                user=owner, token=generate_token(), expires_at=expires_at
-            )
+            colliding_no_refresh_set = ApiToken.objects.create(user=owner, token=generate_token())
+            colliding_no_refresh_set.refresh_token = None
+            colliding_no_refresh_set.expires_at = None
+            colliding_no_refresh_set.save()
+
             colliding_same_refresh_only = ApiToken.objects.create(
                 user=owner,
                 token=generate_token(),
@@ -1262,7 +1381,14 @@ class CollisionTests(ImportTestCase):
                 colliding_same_both.user_id = owner.id
                 colliding_same_both.save()
                 assert ApiToken.objects.count() == 4
-                assert ApiToken.objects.filter(token=colliding_no_refresh_set.token).count() == 1
+                assert (
+                    ApiToken.objects.filter(
+                        token=colliding_no_refresh_set.token,
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 1
+                )
                 assert (
                     ApiToken.objects.filter(
                         refresh_token=colliding_same_refresh_only.refresh_token
@@ -1284,7 +1410,14 @@ class CollisionTests(ImportTestCase):
             # Ensure that old tokens have not been mutated.
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert ApiToken.objects.count() == 8
-                assert ApiToken.objects.filter(token=colliding_no_refresh_set.token).count() == 1
+                assert (
+                    ApiToken.objects.filter(
+                        token=colliding_no_refresh_set.token,
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 1
+                )
                 assert (
                     ApiToken.objects.filter(
                         refresh_token=colliding_same_refresh_only.refresh_token
@@ -1298,6 +1431,16 @@ class CollisionTests(ImportTestCase):
                         refresh_token=colliding_same_both.refresh_token,
                     ).count()
                     == 1
+                )
+
+                # Ensure newly added entries with nulled `refresh_token` and/or `expires_at` have
+                # kept those fields nulled.
+                assert (
+                    ApiToken.objects.filter(
+                        refresh_token__isnull=True,
+                        expires_at__isnull=True,
+                    ).count()
+                    == 2
                 )
 
             with open(tmp_path, "rb") as tmp_file:

@@ -4,6 +4,7 @@ from uuid import UUID
 
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.authentication import (
     ApiKeyAuthentication,
     DSNAuthentication,
@@ -111,6 +112,7 @@ class MonitorIngestEndpoint(Endpoint):
           - When using DSN auth
     """
 
+    owner = ApiOwner.CRONS
     authentication_classes = (
         DSNAuthentication,
         UserAuthTokenAuthentication,

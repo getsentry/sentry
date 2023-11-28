@@ -10,7 +10,7 @@ from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, gen
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,

@@ -172,7 +172,6 @@ export type Frame = {
   absPath: string | null;
   colNo: number | null;
   context: Array<[number, string]>;
-  errors: Array<any> | null;
   filename: string | null;
   function: string | null;
   inApp: boolean;
@@ -261,6 +260,7 @@ export enum EventOrGroupType {
   HPKP = 'hpkp',
   EXPECTCT = 'expectct',
   EXPECTSTAPLE = 'expectstaple',
+  NEL = 'nel',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
   AGGREGATE_TRANSACTION = 'aggregateTransaction',

@@ -594,7 +594,7 @@ class QueryField extends Component<Props> {
         break;
       case FieldValueKind.FIELD:
       case FieldValueKind.METRICS:
-        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
+        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'metric';
         tagType = 'highlight';
         break;
       default:
@@ -689,7 +689,7 @@ class QueryField extends Component<Props> {
         const operation =
           AGGREGATIONS[fieldValue.function[0]] ??
           SESSIONS_OPERATIONS[fieldValue.function[0]];
-        if (operation.parameters.length > 0) {
+        if (operation?.parameters.length > 0) {
           if (containerColumns === 3 && operation.parameters.length === 1) {
             gridColumnsQuantity = 2;
           } else {

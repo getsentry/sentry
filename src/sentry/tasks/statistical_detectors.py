@@ -4,7 +4,7 @@ import heapq
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, DefaultDict, Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, DefaultDict, Dict, Generator, List, Optional, Tuple, Union
 
 import sentry_sdk
 from django.utils import timezone as django_timezone
@@ -51,7 +51,7 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetector,
     MovingAverageRelativeChangeDetectorConfig,
 )
-from sentry.statistical_detectors.detector import DetectorPayload, TrendType
+from sentry.statistical_detectors.detector import DetectorPayload, RegressionDetector, TrendType
 from sentry.statistical_detectors.issue_platform_adapter import (
     fingerprint_regression,
     send_regression_to_platform,
@@ -113,30 +113,24 @@ def run_detection() -> None:
     performance_projects_count = 0
     profiling_projects_count = 0
 
-    for project in RangeQuerySetWrapper(
-        Project.objects.filter(status=ObjectStatus.ACTIVE).select_related("organization"),
-        step=100,
+    for project_id, flags in RangeQuerySetWrapper(
+        Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", "flags"),
+        result_value_getter=lambda item: item[0],
     ):
-        if project.flags.has_transactions and (
-            features.has(
-                "organizations:performance-statistical-detectors-ema", project.organization
-            )
-        ):
-            performance_projects.append(project)
+        if flags & Project.flags.has_transactions:
+            performance_projects.append(project_id)
             performance_projects_count += 1
 
             if len(performance_projects) >= PROJECTS_PER_BATCH:
                 detect_transaction_trends.delay(
-                    list({p.organization_id for p in performance_projects}),
-                    [p.id for p in performance_projects],
+                    [],
+                    performance_projects,
                     now,
                 )
                 performance_projects = []
 
-        if project.flags.has_profiles and (
-            features.has("organizations:profiling-statistical-detectors-ema", project.organization)
-        ):
-            profiling_projects.append(project.id)
+        if flags & Project.flags.has_profiles:
+            profiling_projects.append(project_id)
             profiling_projects_count += 1
 
             if len(profiling_projects) >= PROJECTS_PER_BATCH:
@@ -146,8 +140,8 @@ def run_detection() -> None:
     # make sure to dispatch a task to handle the remaining projects
     if performance_projects:
         detect_transaction_trends.delay(
-            list({p.organization_id for p in performance_projects}),
-            [p.id for p in performance_projects],
+            [],
+            performance_projects,
             now,
         )
     if profiling_projects:
@@ -166,6 +160,106 @@ def run_detection() -> None:
     )
 
 
+class EndpointRegressionDetector(RegressionDetector):
+    kind = "endpoint"
+    config = MovingAverageRelativeChangeDetectorConfig(
+        change_metric="statistical_detectors.rel_change.transactions",
+        min_data_points=6,
+        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
+        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
+        threshold=0.2,
+    )
+    store = RedisDetectorStore(detector_type=DetectorType.ENDPOINT)  # e for endpoint
+    state_cls = MovingAverageDetectorState
+    detector_cls = MovingAverageRelativeChangeDetector
+
+    @classmethod
+    def query_payloads(
+        cls,
+        projects: List[Project],
+        start: datetime,
+    ) -> List[DetectorPayload]:
+        return query_transactions(projects, start)
+
+    @classmethod
+    def update_metrics(cls, projects, total, regressed, improved):
+        metrics.incr(
+            "statistical_detectors.performance.projects.active",
+            amount=projects,
+            sample_rate=1.0,
+        )
+
+        metrics.incr(
+            "statistical_detectors.total.transactions",
+            amount=total,
+            sample_rate=1.0,
+        )
+
+        # This is the number of regressed functions found in this iteration
+        metrics.incr(
+            "statistical_detectors.regressed.transactions",
+            amount=regressed,
+            sample_rate=1.0,
+        )
+
+        # This is the number of improved functions found in this iteration
+        metrics.incr(
+            "statistical_detectors.improved.transactions",
+            amount=improved,
+            sample_rate=1.0,
+        )
+
+
+class FunctionRegressionDetector(RegressionDetector):
+    kind = "function"
+    config = MovingAverageRelativeChangeDetectorConfig(
+        change_metric="statistical_detectors.rel_change.functions",
+        min_data_points=6,
+        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
+        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
+        threshold=0.2,
+    )
+    store = RedisDetectorStore(detector_type=DetectorType.FUNCTION)
+    state_cls = MovingAverageDetectorState
+    detector_cls = MovingAverageRelativeChangeDetector
+
+    @classmethod
+    def query_payloads(
+        cls,
+        projects: List[Project],
+        start: datetime,
+    ) -> List[DetectorPayload]:
+        return query_functions(projects, start)
+
+    @classmethod
+    def update_metrics(cls, projects, total, regressed, improved):
+        metrics.incr(
+            "statistical_detectors.profiling.projects.active",
+            amount=projects,
+            sample_rate=1.0,
+        )
+
+        metrics.incr(
+            "statistical_detectors.total.functions",
+            amount=total,
+            sample_rate=1.0,
+        )
+
+        # This is the number of regressed functions found in this iteration
+        metrics.incr(
+            "statistical_detectors.regressed.functions",
+            amount=regressed,
+            sample_rate=1.0,
+        )
+
+        # This is the number of improved functions found in this iteration
+        metrics.incr(
+            "statistical_detectors.improved.functions",
+            amount=improved,
+            sample_rate=1.0,
+        )
+
+
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_transaction_trends",
     queue="performance.statistical_detector",
@@ -181,7 +275,11 @@ def detect_transaction_trends(
     #
     # If we filter this in the earlier step, it makes the initial dispatch
     # task take longer than necessary.
-    projects = Project.objects.filter(id__in=project_ids)
+    projects = [
+        project
+        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
+        if features.has("organizations:performance-statistical-detectors-ema", project.organization)
+    ]
     settings = get_performance_issue_settings(projects)
     projects = [
         project
@@ -190,7 +288,7 @@ def detect_transaction_trends(
     ]
 
     ratelimit = options.get("statistical_detectors.ratelimit.ema")
-    trends = _detect_transaction_trends(projects, start)
+    trends = EndpointRegressionDetector.detect_trends(projects, start)
     regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
@@ -295,105 +393,6 @@ def _detect_transaction_change_points(
             sentry_sdk.capture_exception(e)
             metrics.incr("statistical_detectors.breakpoint.errors", tags={"type": "transactions"})
             continue
-
-
-def get_all_transaction_payloads(
-    projects: List[Project], start: datetime, end: datetime
-) -> Generator[DetectorPayload, None, None]:
-    projects_per_query = options.get("statistical_detectors.query.batch_size")
-    assert projects_per_query > 0
-
-    for chunked_projects in chunked(projects, projects_per_query):
-        try:
-            yield from query_transactions(chunked_projects, start, end, TRANSACTIONS_PER_PROJECT)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            continue
-
-
-def _detect_transaction_trends(
-    projects: List[Project], start: datetime
-) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None]:
-    unique_project_ids: Set[int] = set()
-
-    transactions_count = 0
-    regressed_count = 0
-    improved_count = 0
-
-    detector_config = MovingAverageRelativeChangeDetectorConfig(
-        change_metric="statistical_detectors.rel_change.transactions",
-        min_data_points=6,
-        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
-        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.2,
-    )
-
-    detector_store = RedisDetectorStore(detector_type=DetectorType.ENDPOINT)  # e for endpoint
-
-    start = start - timedelta(hours=1)
-    start = start.replace(minute=0, second=0, microsecond=0)
-    end = start + timedelta(hours=1)
-    all_transaction_payloads = get_all_transaction_payloads(projects, start, end)
-
-    for payloads in chunked(all_transaction_payloads, 100):
-        transactions_count += len(payloads)
-
-        raw_states = detector_store.bulk_read_states(payloads)
-
-        states = []
-
-        for raw_state, payload in zip(raw_states, payloads):
-            try:
-                state = MovingAverageDetectorState.from_redis_dict(raw_state)
-            except Exception as e:
-                state = MovingAverageDetectorState.empty()
-
-                if raw_state:
-                    # empty raw state implies that there was no
-                    # previous state so no need to capture an exception
-                    sentry_sdk.capture_exception(e)
-
-            detector = MovingAverageRelativeChangeDetector(state, detector_config)
-            trend_type, score = detector.update(payload)
-            states.append(None if trend_type is None else detector.state.to_redis_dict())
-
-            if trend_type == TrendType.Regressed:
-                regressed_count += 1
-            elif trend_type == TrendType.Improved:
-                improved_count += 1
-
-            unique_project_ids.add(payload.project_id)
-
-            yield (trend_type, score, payload)
-
-        detector_store.bulk_write_states(payloads, states)
-
-    # This is the total number of functions examined in this iteration
-    metrics.incr(
-        "statistical_detectors.total.transactions",
-        amount=transactions_count,
-        sample_rate=1.0,
-    )
-
-    # This is the number of regressed functions found in this iteration
-    metrics.incr(
-        "statistical_detectors.regressed.transactions",
-        amount=regressed_count,
-        sample_rate=1.0,
-    )
-
-    # This is the number of improved functions found in this iteration
-    metrics.incr(
-        "statistical_detectors.improved.transactions",
-        amount=improved_count,
-        sample_rate=1.0,
-    )
-
-    metrics.incr(
-        "statistical_detectors.performance.projects.active",
-        amount=len(unique_project_ids),
-        sample_rate=1.0,
-    )
 
 
 def query_transactions_timeseries(
@@ -569,10 +568,13 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
-    projects = Project.objects.filter(id__in=project_ids)
-
+    projects = [
+        project
+        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
+        if features.has("organizations:profiling-statistical-detectors-ema", project.organization)
+    ]
     ratelimit = options.get("statistical_detectors.ratelimit.ema")
-    trends = _detect_function_trends(projects, start)
+    trends = FunctionRegressionDetector.detect_trends(projects, start)
     regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
@@ -634,87 +636,6 @@ def detect_function_change_points(
     metrics.incr(
         "statistical_detectors.emitted.functions",
         amount=emitted_count,
-        sample_rate=1.0,
-    )
-
-
-def _detect_function_trends(
-    projects: List[Project], start: datetime
-) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None]:
-    unique_project_ids: Set[int] = set()
-
-    functions_count = 0
-    regressed_count = 0
-    improved_count = 0
-
-    detector_config = MovingAverageRelativeChangeDetectorConfig(
-        change_metric="statistical_detectors.rel_change.functions",
-        min_data_points=6,
-        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
-        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.2,
-    )
-
-    detector_store = RedisDetectorStore(detector_type=DetectorType.FUNCTION)
-
-    for payloads in chunked(all_function_payloads(projects, start), 100):
-        functions_count += len(payloads)
-
-        raw_states = detector_store.bulk_read_states(payloads)
-
-        states = []
-
-        for raw_state, payload in zip(raw_states, payloads):
-            try:
-                state = MovingAverageDetectorState.from_redis_dict(raw_state)
-            except Exception as e:
-                state = MovingAverageDetectorState.empty()
-
-                if raw_state:
-                    # empty raw state implies that there was no
-                    # previous state so no need to capture an exception
-                    sentry_sdk.capture_exception(e)
-
-            detector = MovingAverageRelativeChangeDetector(state, detector_config)
-            trend_type, score = detector.update(payload)
-
-            states.append(None if trend_type is None else detector.state.to_redis_dict())
-
-            if trend_type == TrendType.Regressed:
-                regressed_count += 1
-            elif trend_type == TrendType.Improved:
-                improved_count += 1
-
-            unique_project_ids.add(payload.project_id)
-
-            yield (trend_type, score, payload)
-
-        detector_store.bulk_write_states(payloads, states)
-
-    # This is the total number of functions examined in this iteration
-    metrics.incr(
-        "statistical_detectors.total.functions",
-        amount=functions_count,
-        sample_rate=1.0,
-    )
-
-    # This is the number of regressed functions found in this iteration
-    metrics.incr(
-        "statistical_detectors.regressed.functions",
-        amount=regressed_count,
-        sample_rate=1.0,
-    )
-
-    # This is the number of improved functions found in this iteration
-    metrics.incr(
-        "statistical_detectors.improved.functions",
-        amount=improved_count,
-        sample_rate=1.0,
-    )
-
-    metrics.incr(
-        "statistical_detectors.profiling.projects.active",
-        amount=len(unique_project_ids),
         sample_rate=1.0,
     )
 
@@ -852,21 +773,6 @@ def emit_function_regression_issue(
     return data.get("occurrences")
 
 
-def all_function_payloads(
-    projects: List[Project],
-    start: datetime,
-) -> Generator[DetectorPayload, None, None]:
-    projects_per_query = options.get("statistical_detectors.query.batch_size")
-    assert projects_per_query > 0
-
-    for projects in chunked(projects, projects_per_query):
-        try:
-            yield from query_functions(projects, start)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            continue
-
-
 def all_function_timeseries(
     functions_list: List[Tuple[Project, int]],
     start: datetime,
@@ -897,9 +803,12 @@ BACKEND_TRANSACTION_OPS = [
 def query_transactions(
     projects: List[Project],
     start: datetime,
-    end: datetime,
-    transactions_per_project: int,
+    transactions_per_project: int = TRANSACTIONS_PER_PROJECT,
 ) -> List[DetectorPayload]:
+    start = start - timedelta(hours=1)
+    start = start.replace(minute=0, second=0, microsecond=0)
+    end = start + timedelta(hours=1)
+
     org_ids = list({p.organization_id for p in projects})
     project_ids = list({p.id for p in projects})
 

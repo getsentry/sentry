@@ -22,7 +22,7 @@ class SentryInternalAppTokenTest(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
     def test_create_token(self):
         self.login_as(user=self.user)
@@ -70,7 +70,7 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         assert response.status_code == 403
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
     def test_get_tokens(self):
         self.login_as(self.user)

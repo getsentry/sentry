@@ -9255,10 +9255,10 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@^5.8.1:
-  version "5.8.1"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.8.1.tgz#b8baaba8131670a34035cd41979cfaecfdc25c39"
-  integrity sha512-/89WN1dJCqL4kK+ddblpHEQ1Z6jkLXM1PSV3zOT/dhfDDp+BhLwE1Wf72qOQ3HrHXsQTYlpybw3xrxjPUknBwg==
+platformicons@^5.8.2:
+  version "5.8.2"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.8.2.tgz#5546afd48724c0a113ac63e7bf5c6aead9e5f062"
+  integrity sha512-B9qr5y5nlKW1T0XV7T3OUDieHG57KyaXUI6t4Y4ZMFWuzartRzdM5VKSL2Yc19V6FA45HkSgCAuq3xlOdh8mvA==
   dependencies:
     "@types/node" "*"
     "@types/react" "*"
@@ -11291,10 +11291,10 @@ typescript-template-language-service-decorator@^2.3.2:
   resolved "https://registry.yarnpkg.com/typescript-template-language-service-decorator/-/typescript-template-language-service-decorator-2.3.2.tgz#095c1b5ea88c839d9b202fad3ec8c87c1b062953"
   integrity sha512-hN0zNkr5luPCeXTlXKxsfBPlkAzx86ZRM1vPdL7DbEqqWoeXSxplACy98NpKpLmXsdq7iePUzAXloCAoPKBV6A==
 
-typescript@^5.2.2:
-  version "5.2.2"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.2.2.tgz#5ebb5e5a5b75f085f22bc3f8460fba308310fa78"
-  integrity sha512-mI4WrpHsbCIcwT9cF4FZvr80QUeKvsUsUvKDoR+X/7XHQH98xYD8YHZg7ANtz2GtZt/CBq2QJ0thkGJMHfqc1w==
+typescript@^5.3.2:
+  version "5.3.2"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.3.2.tgz#00d1c7c1c46928c5845c1ee8d0cc2791031d4c43"
+  integrity sha512-6l+RyNy7oAHDfxC4FzSJcz9vnjTKxrLpDG5M2Vu4SHRVNg6xzqZp6LYSR9zjqQTu8DU/f5xwxUdADOkbrIX2gQ==
 
 u2f-api@1.0.10:
   version "1.0.10"

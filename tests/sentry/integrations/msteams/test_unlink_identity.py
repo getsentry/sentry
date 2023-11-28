@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import unsign
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
     def setUp(self):
         super(TestCase, self).setUp()

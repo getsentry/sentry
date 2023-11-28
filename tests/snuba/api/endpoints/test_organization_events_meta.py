@@ -138,6 +138,29 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
+    def test_errors_dataset_event(self):
+        """Test that the errors dataset returns data for an issue's short ID"""
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            group_1 = self.store_event(
+                data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
+            ).group
+        url = reverse(
+            "sentry-api-0-organization-events-meta",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+        with self.feature(self.features):
+            response = self.client.get(
+                url,
+                {
+                    "query": f"issue:{group_1.qualified_short_id} is:unresolved",
+                    "dataset": "errors",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 1
+
     def test_transaction_event_with_last_seen(self):
         data = {
             "event_id": "a" * 32,

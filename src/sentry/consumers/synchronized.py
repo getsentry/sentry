@@ -162,21 +162,23 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
                 remote_offsets[commit.group][commit.partition] = commit.offset
 
             if commit.orig_message_ts is not None:
-                metrics.timing(
+                metrics.distribution(
                     "commit_log_msg_latency",
                     (now - commit.orig_message_ts) * 1000,
                     tags={
                         "partition": str(commit.partition.index),
                         "group": commit.group,
                     },
+                    unit="millisecond",
                 )
-            metrics.timing(
+            metrics.distribution(
                 "commit_log_latency",
                 (now - datetime.timestamp(message.timestamp)) * 1000,
                 tags={
                     "partition": str(commit.partition.index),
                     "group": commit.group,
                 },
+                unit="millisecond",
             )
 
         self.__commit_log_consumer.close()

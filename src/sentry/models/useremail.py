@@ -120,13 +120,19 @@ class UserEmail(ControlOutboxProducingModel):
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
     ) -> Optional[Tuple[int, ImportKind]]:
-        # The `UserEmail` was automatically generated `post_save()`. We just need to update it with
-        # the data being imported. Note that if we've reached this point, we cannot be merging into
-        # an existing user, and are instead modifying the just-created `UserEmail` for a new one.
-        useremail = self.__class__.objects.get(user=self.user, email=self.email)
-        for f in self._meta.fields:
-            if f.name not in ["id", "pk"]:
-                setattr(useremail, f.name, getattr(self, f.name))
+        # The `UserEmail` was automatically generated `post_save()`, but only if it was the user's
+        # primary email. We just need to update it with the data being imported. Note that if we've
+        # reached this point, we cannot be merging into an existing user, and are instead modifying
+        # the just-created `UserEmail` for a new one.
+        try:
+            useremail = self.__class__.objects.get(user=self.user, email=self.email)
+            for f in self._meta.fields:
+                if f.name not in ["id", "pk"]:
+                    setattr(useremail, f.name, getattr(self, f.name))
+        except self.__class__.DoesNotExist:
+            # This is a non-primary email, so was not auto-created - go ahead and add it in.
+            useremail = self
+
         useremail.save()
 
         # If we've entered this method at all, we can be sure that the `UserEmail` was created as

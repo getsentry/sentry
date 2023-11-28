@@ -9,7 +9,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectKeyTest(TestCase):
     model = ProjectKey
 

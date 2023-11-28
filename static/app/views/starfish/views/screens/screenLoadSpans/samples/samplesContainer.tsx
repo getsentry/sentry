@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -78,9 +79,11 @@ export function ScreenLoadSampleContainer({
             <Tooltip title={release}>
               <Link
                 to={{
-                  pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
-                    release
-                  )}/`,
+                  pathname: normalizeUrl(
+                    `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+                      release
+                    )}/`
+                  ),
                 }}
               >
                 {formatVersionAndCenterTruncate(release)}
