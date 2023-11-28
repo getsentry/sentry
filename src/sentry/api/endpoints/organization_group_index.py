@@ -275,6 +275,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             collapse=collapse,
             project_ids=project_ids,
             organization_id=organization.id,
+            request=request,
         )
 
         # we ignore date range for both short id and event ids

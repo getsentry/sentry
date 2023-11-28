@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
+from rest_framework.request import Request
 
 from sentry import features, release_health, tsdb
 from sentry.api.serializers.models.group import (
@@ -20,6 +21,7 @@ from sentry.constants import StatsPeriod
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.groupactions import get_actions, get_available_issue_plugins
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.snuba.dataset import Dataset
@@ -185,6 +187,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         expand=None,
         organization_id=None,
         project_ids=None,
+        request=None,
     ):
         super().__init__(
             environment_ids,
@@ -195,6 +198,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             expand=expand,
             organization_id=organization_id,
             project_ids=project_ids,
+            request=request,
         )
 
         if stats_period is not None:
@@ -207,7 +211,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_end = stats_period_end
 
     def get_attrs(
-        self, item_list: Sequence[Group], user: Any, **kwargs: Any
+        self,
+        item_list: Sequence[Group],
+        request: Request,
+        user: Any,
+        **kwargs: Any,
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         if not self._collapse("base"):
             attrs = super().get_attrs(item_list, user)
@@ -304,6 +312,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 attrs[item].update({"owners": owner_details.get(item.id)})
 
+        if self._expand("actions"):
+            for item in item_list:
+                action_list = get_actions(item, request)
+                attrs[item].update({"pluginActions": action_list.get(item.id)})
+
+            for item in item_list:
+                plugin_issue_list = get_available_issue_plugins(item, request)
+                attrs[item].update({"pluginIssues": plugin_issue_list.get(item.id)})
+
         return attrs
 
     def serialize(
@@ -349,6 +366,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("owners"):
             result["owners"] = attrs["owners"]
+
+        if self._expand("pluginActions"):
+            result["pluginActions"] = attrs["pluginActions"]
+
+        if self._expand("pluginIssues"):
+            result["pluginIssues"] = attrs["pluginIssues"]
 
         return result
 
