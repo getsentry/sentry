@@ -1,8 +1,6 @@
-import {MouseEvent} from 'react';
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import {
@@ -10,11 +8,9 @@ import {
   KeyValueTuple,
   SectionItem,
 } from 'sentry/views/replays/detail/accessibility/details/components';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 export type SectionProps = {
   item: HydratedA11yFrame;
-  startTimestampMs: number;
 };
 
 export function ElementSection({item}: SectionProps) {
@@ -27,9 +23,7 @@ export function ElementSection({item}: SectionProps) {
   );
 }
 
-export function GeneralSection({item, startTimestampMs}: SectionProps) {
-  const {setCurrentTime} = useReplayContext();
-
+export function GeneralSection({item}: SectionProps) {
   const data: KeyValueTuple[] = [
     {
       key: t('Impact'),
@@ -39,20 +33,6 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
     {key: t('Type'), value: item.id},
     {key: t('Help'), value: <a href={item.help_url}>{item.description}</a>},
     {key: t('Path'), value: item.element.target.join(' ')},
-    {
-      key: t('Timestamp'),
-      value: (
-        <TimestampButton
-          format="mm:ss.SSS"
-          onClick={(event: MouseEvent) => {
-            event.stopPropagation();
-            setCurrentTime(item.offsetMs);
-          }}
-          startTimestampMs={startTimestampMs}
-          timestampMs={item.timestampMs}
-        />
-      ),
-    },
   ];
 
   return (

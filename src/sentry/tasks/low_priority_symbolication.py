@@ -79,7 +79,7 @@ def _update_lpq_eligibility(project_id: int) -> None:
 
     # NOTE: tagging this metrics with `tags={"project_id": project_id}` would
     # have too excessive cardinality to use in production.
-    metrics.timing("symbolication.lpq.computation.used_budget", used_budget)
+    metrics.distribution("symbolication.lpq.computation.used_budget", used_budget)
 
     options = settings.SENTRY_LPQ_OPTIONS
     exceeds_budget = used_budget > options["project_budget"]

@@ -14,7 +14,6 @@ import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
 type Props = {
   item: null | HydratedA11yFrame;
   onClose: () => void;
-  startTimestampMs: number;
 } & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
 
 function AccessibilityDetails({
@@ -23,7 +22,6 @@ function AccessibilityDetails({
   onClose,
   onDoubleClick,
   onMouseDown,
-  startTimestampMs,
 }: Props) {
   if (!item) {
     return null;
@@ -52,7 +50,7 @@ function AccessibilityDetails({
         </CloseButtonWrapper>
       </StyledStacked>
 
-      <AccessibilityDetailsContent item={item} startTimestampMs={startTimestampMs} />
+      <AccessibilityDetailsContent item={item} />
     </Fragment>
   );
 }
