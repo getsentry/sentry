@@ -42,6 +42,7 @@ class DatadogMetricsBackend(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         tags = dict(tags or ())
 
@@ -62,6 +63,7 @@ class DatadogMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        stacklevel: int = 0,
     ) -> None:
         tags = dict(tags or ())
 
@@ -83,6 +85,7 @@ class DatadogMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         tags = dict(tags or ())
 
@@ -104,6 +107,7 @@ class DatadogMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         # We keep the same implementation for Datadog.
         self.timing(key, value, instance, tags, sample_rate)

@@ -48,17 +48,46 @@ class MetricsWrapper(Metrics):
             return {**self.__tags, **tags}
 
     def increment(
-        self, name: str, value: Union[int, float] = 1, tags: Optional[Tags] = None
+        self,
+        name: str,
+        value: Union[int, float] = 1,
+        tags: Optional[Tags] = None,
+        stacklevel: int = 0,
     ) -> None:
         # sentry metrics backend uses `incr` instead of `increment`
-        self.__backend.incr(key=self.__merge_name(name), amount=value, tags=self.__merge_tags(tags))
+        self.__backend.incr(
+            key=self.__merge_name(name),
+            amount=value,
+            tags=self.__merge_tags(tags),
+            stacklevel=stacklevel + 1,
+        )
 
-    def gauge(self, name: str, value: Union[int, float], tags: Optional[Tags] = None) -> None:
-        self.__backend.gauge(key=self.__merge_name(name), value=value, tags=self.__merge_tags(tags))
+    def gauge(
+        self,
+        name: str,
+        value: Union[int, float],
+        tags: Optional[Tags] = None,
+        stacklevel: int = 0,
+    ) -> None:
+        self.__backend.gauge(
+            key=self.__merge_name(name),
+            value=value,
+            tags=self.__merge_tags(tags),
+            stacklevel=stacklevel + 1,
+        )
 
-    def timing(self, name: str, value: Union[int, float], tags: Optional[Tags] = None) -> None:
+    def timing(
+        self,
+        name: str,
+        value: Union[int, float],
+        tags: Optional[Tags] = None,
+        stacklevel: int = 0,
+    ) -> None:
         self.__backend.timing(
-            key=self.__merge_name(name), value=value, tags=self.__merge_tags(tags)
+            key=self.__merge_name(name),
+            value=value,
+            tags=self.__merge_tags(tags),
+            stacklevel=stacklevel + 1,
         )
 
 
@@ -110,7 +139,6 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
         initializer: Optional[Callable[[], None]] = None,
         **kwargs: Any,
     ) -> RunTaskWithMultiprocessing:
-
         from django.conf import settings
 
         if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
