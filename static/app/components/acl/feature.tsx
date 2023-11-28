@@ -27,7 +27,7 @@ type Props = {
    *
    * Use `organizations:` or `projects:` prefix strings to specify a feature with context.
    */
-  features: string[];
+  features: string | string[];
   /**
    * The following properties will be set by the HoCs
    */
@@ -80,23 +80,23 @@ type FeatureRenderProps = {
  * call the original children function  but override the `renderDisabled`
  * with another function/component.
  */
-type RenderDisabledProps = FeatureRenderProps & {
+interface RenderDisabledProps extends FeatureRenderProps {
   children: React.ReactNode | ChildrenRenderFn;
   renderDisabled?: (props: FeatureRenderProps) => React.ReactNode;
-};
+}
 
 export type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
 
-type ChildRenderProps = FeatureRenderProps & {
+interface ChildRenderProps extends FeatureRenderProps {
   renderDisabled?: undefined | boolean | RenderDisabledFn;
-};
+}
 
 export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;
 
 type AllFeatures = {
-  configFeatures: string[];
-  organization: string[];
-  project: string[];
+  configFeatures: ReadonlyArray<string>;
+  organization: ReadonlyArray<string>;
+  project: ReadonlyArray<string>;
 };
 
 /**
@@ -119,9 +119,6 @@ class Feature extends Component<Props> {
   }
 
   hasFeature(feature: string, features: AllFeatures) {
-    const shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
-    const shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
-
     // Array of feature strings
     const {configFeatures, organization, project} = features;
 
@@ -131,10 +128,12 @@ class Feature extends Component<Props> {
       return true;
     }
 
+    const shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
     if (shouldMatchOnlyProject) {
       return project.includes(shouldMatchOnlyProject[1]);
     }
 
+    const shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
     if (shouldMatchOnlyOrg) {
       return organization.includes(shouldMatchOnlyOrg[1]);
     }
@@ -157,7 +156,10 @@ class Feature extends Component<Props> {
     const allFeatures = this.getAllFeatures();
     const method = requireAll ? 'every' : 'some';
     const hasFeature =
-      !features || features[method](feat => this.hasFeature(feat, allFeatures));
+      !features ||
+      (typeof features === 'string'
+        ? this.hasFeature(features, allFeatures)
+        : features[method](feat => this.hasFeature(feat, allFeatures)));
 
     // Default renderDisabled to the ComingSoon component
     let customDisabledRender =
@@ -179,7 +181,7 @@ class Feature extends Component<Props> {
     const renderProps = {
       organization,
       project,
-      features,
+      features: Array.isArray(features) ? features : [features],
       hasFeature,
     };
 
