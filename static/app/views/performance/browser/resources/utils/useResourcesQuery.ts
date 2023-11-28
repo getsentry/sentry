@@ -28,6 +28,7 @@ const {
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Props = {
+  referrer: string;
   sort: ValidSort;
   cursor?: string;
   defaultResourceTypes?: string[];
@@ -62,6 +63,7 @@ export const useResourcesQuery = ({
   query,
   limit,
   cursor,
+  referrer,
 }: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -111,6 +113,7 @@ export const useResourcesQuery = ({
       refetchOnWindowFocus: false,
     },
     cursor,
+    referrer,
   });
 
   const data = result?.data?.data.map(row => ({
