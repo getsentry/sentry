@@ -86,7 +86,7 @@ def patch_sentry_sdk():
         if options.get("delightful_metrics.enable_capture_envelope"):
             envelope = real_emit(self, flushable_buckets, code_locations)
             if envelope is not None:
-                metrics.timing(
+                metrics.distribution(
                     key="minimetrics.encoded_metrics_size",
                     value=len(envelope.items[0].payload.get_bytes()),
                     sample_rate=1.0,
