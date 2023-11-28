@@ -87,7 +87,7 @@ export function SampleList({
       : transactionName;
 
   const link = normalizeUrl(
-    `/organizations/${organization.slug}/${transactionRoute}?${qs.stringify({
+    `/organizations/${organization.slug}${transactionRoute}?${qs.stringify({
       project: query.project,
       transaction: transactionName,
     })}`
