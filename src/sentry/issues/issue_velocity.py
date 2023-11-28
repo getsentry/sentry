@@ -5,7 +5,18 @@ of events per issue per hour, which is then stored per project in Redis.
 import datetime
 import logging
 
-from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
+from snuba_sdk import (  # Limit,
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -26,24 +37,39 @@ def calculate_velocity_threshold_for_project(project: Project) -> int | None:
     """
     now = datetime.now()
     one_week_ago = now - datetime.timedelta(days=7)
+    # query = Query(
+    #     match=Entity(EntityKey.Events.value),
+    #     select=[
+    #         Column("group_id"),  # for each issue
+    #         Function("quantile(0.9)", [Function("division (per hour)", parameters=[Function("division (per issue)", parameters=[Function("sum", Column(""))])])], "p90"),
+    #     ],
+    #     where=[
+    #         Condition(Column("timestamp"), Op.LT, now),
+    #         Condition(Column("timestamp"), Op.GTE, one_week_ago),
+    #         Condition(Column("project_id"), Op.EQ, project.id),
+    #     ],
+    #     groupby=[Column("group_id")],
+    #     having=[
+    #         Condition(
+    #             Function("count", [], "event_count"), Op.GT, 1
+    #         )  # only issues that had an event in the last week
+    #     ],
+    #     limit=Limit(1),
+    # )
+
+    # the below query gets the hourly counts for a project
     query = Query(
         match=Entity(EntityKey.Events.value),
-        select=[
-            Column("group_id"),  # for each issue
-            Function("quantile(0.9)", ["""the number of events per issue per hour"""], "p90"),
-        ],
+        select=[Column("time"), Column("group_id"), Function("count", [], "event_count")],
         where=[
             Condition(Column("timestamp"), Op.LT, now),
             Condition(Column("timestamp"), Op.GTE, one_week_ago),
             Condition(Column("project_id"), Op.EQ, project.id),
         ],
-        groupby=[Column("group_id")],
-        having=[
-            Condition(
-                Function("count", [], "event_count"), Op.GT, 1
-            )  # only issues that had an event in the last week
-        ],
-        limit=Limit(1),
+        having=[Condition(Column("event_count"), Op.GT, 1)],
+        groupby=[Column("time"), Column("group_id")],
+        orderby=[OrderBy(Column("time"), Direction.ASC)],
+        granularity=Granularity(3600),
     )
 
     request = Request(
