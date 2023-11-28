@@ -184,6 +184,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
