@@ -144,7 +144,7 @@ type Props = DeprecatedAsyncView['props'] &
 
 type State = DeprecatedAsyncView['state'] & {
   emails: UserEmail[] | null;
-  fineTuneData: Record<string, any> | null;
+  emailsByProject: Record<string, any> | null;
   notifications: Record<string, any> | null;
   projects: Project[] | null;
 };
@@ -155,7 +155,6 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
     const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       ['notifications', '/users/me/notifications/'],
-      ['fineTuneData', `/users/me/notifications/${fineTuneType}/`],
     ];
 
     if (isGroupedByProject(fineTuneType)) {
@@ -163,9 +162,10 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
       endpoints.push(['projects', `/projects/`, {query: {organizationId}}]);
     }
 
-    endpoints.push(['emails', '/users/me/emails/']);
+    // special logic for email
     if (fineTuneType === 'email') {
       endpoints.push(['emails', '/users/me/emails/']);
+      endpoints.push(['emailsByProject', `/users/me/notifications/email/`]);
     }
 
     return endpoints;
@@ -215,7 +215,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
       return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
 
-    const {notifications, projects, fineTuneData, projectsPageLinks} = this.state;
+    const {notifications, projects, emailsByProject, projectsPageLinks} = this.state;
 
     const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
@@ -229,7 +229,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
       field.options = this.emailChoices.map(({email}) => ({value: email, label: email}));
     }
 
-    if (!notifications || !fineTuneData) {
+    if (!notifications || (!emailsByProject && fineTuneType === 'email')) {
       return null;
     }
 
@@ -237,6 +237,20 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
     const paginationObject = parseLinkHeader(projectsPageLinks ?? '');
     const hasMore = paginationObject?.next?.results;
     const hasPrevious = paginationObject?.previous?.results;
+
+    const mainContent = (
+      <Fragment>
+        {isProject && hasProjects && (
+          <AccountNotificationsByProject projects={projects!} field={field} />
+        )}
+
+        {isProject && !hasProjects && (
+          <EmptyMessage>{t('No projects found')}</EmptyMessage>
+        )}
+
+        {!isProject && <AccountNotificationsByOrganizationContainer field={field} />}
+      </Fragment>
+    );
 
     return (
       <div>
@@ -262,24 +276,19 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
             )}
           </StyledPanelHeader>
           <PanelBody>
-            <Form
-              saveOnBlur
-              apiMethod="PUT"
-              apiEndpoint={`/users/me/notifications/${fineTuneType}/`}
-              initialData={fineTuneData}
-            >
-              {isProject && hasProjects && (
-                <AccountNotificationsByProject projects={projects!} field={field} />
-              )}
-
-              {isProject && !hasProjects && (
-                <EmptyMessage>{t('No projects found')}</EmptyMessage>
-              )}
-
-              {!isProject && (
-                <AccountNotificationsByOrganizationContainer field={field} />
-              )}
-            </Form>
+            {/* Only email needs the form to change the emmail */}
+            {fineTuneType === 'email' && emailsByProject ? (
+              <Form
+                saveOnBlur
+                apiMethod="PUT"
+                apiEndpoint="/users/me/notifications/email/"
+                initialData={emailsByProject}
+              >
+                {mainContent}
+              </Form>
+            ) : (
+              mainContent
+            )}
           </PanelBody>
         </Panel>
 
