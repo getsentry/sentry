@@ -2342,7 +2342,7 @@ SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 SENTRY_MANAGED_USER_FIELDS = ()
 
 # Secret key for OpenAI
-OPENAI_API_KEY = None
+OPENAI_API_KEY: str | None = None
 
 SENTRY_SCOPES = {
     "org:read",

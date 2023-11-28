@@ -72,7 +72,7 @@ mmh3==4.0.0
 msgpack==1.0.4
 multidict==6.0.4
 oauthlib==3.1.0
-openai==0.27.0
+openai==1.3.5
 packaging==21.3
 parsimonious==0.9.0
 petname==2.6
