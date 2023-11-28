@@ -118,6 +118,7 @@ def incr(
     skip_internal: bool = True,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     unit: Optional[str] = None,
+    stacklevel: int = 0,
 ) -> None:
     should_send_internal = (
         not metrics_skip_all_internal
@@ -130,7 +131,7 @@ def incr(
         internal.incr(key, instance, tags, amount, sample_rate)
 
     try:
-        backend.incr(key, instance, tags, amount, sample_rate, unit)
+        backend.incr(key, instance, tags, amount, sample_rate, unit, stacklevel + 1)
         if should_send_internal:
             backend.incr("internal_metrics.incr", key, None, 1, sample_rate)
     except Exception:
@@ -145,9 +146,10 @@ def gauge(
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     unit: Optional[str] = None,
+    stacklevel: int = 0,
 ) -> None:
     try:
-        backend.gauge(key, value, instance, tags, sample_rate, unit)
+        backend.gauge(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -159,9 +161,10 @@ def timing(
     instance: Optional[str] = None,
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> None:
     try:
-        backend.timing(key, value, instance, tags, sample_rate)
+        backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -174,9 +177,10 @@ def distribution(
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     unit: Optional[str] = None,
+    stacklevel: int = 0,
 ) -> None:
     try:
-        backend.distribution(key, value, instance, tags, sample_rate, unit)
+        backend.distribution(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -188,6 +192,7 @@ def timer(
     instance: Optional[str] = None,
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> Generator[MutableTags, None, None]:
     start = time.monotonic()
     current_tags: MutableTags = dict(tags or ())
@@ -199,7 +204,7 @@ def timer(
     else:
         current_tags["result"] = "success"
     finally:
-        timing(key, time.monotonic() - start, instance, current_tags, sample_rate)
+        timing(key, time.monotonic() - start, instance, current_tags, sample_rate, stacklevel + 1)
 
 
 def wraps(
@@ -207,11 +212,18 @@ def wraps(
     instance: Optional[str] = None,
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> Callable[[F], F]:
     def wrapper(f: F) -> F:
         @functools.wraps(f)
         def inner(*args: Any, **kwargs: Any) -> Any:
-            with timer(key, instance=instance, tags=tags, sample_rate=sample_rate):
+            with timer(
+                key,
+                instance=instance,
+                tags=tags,
+                sample_rate=sample_rate,
+                stacklevel=stacklevel + 1,
+            ):
                 return f(*args, **kwargs)
 
         return inner  # type: ignore
