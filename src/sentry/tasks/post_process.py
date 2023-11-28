@@ -59,6 +59,7 @@ class PostProcessJob(TypedDict, total=False):
     is_reprocessed: bool
     has_reappeared: bool
     has_alert: bool
+    has_escalated: bool
 
 
 def _get_service_hooks(project_id):
@@ -665,6 +666,7 @@ def post_process_group(
                 "is_reprocessed": is_reprocessed,
                 "has_reappeared": bool(not gs["is_new"]),
                 "has_alert": False,
+                "has_escalated": False,
             }
             for ge, gs in multi_groups
         ]
@@ -1329,10 +1331,46 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     return False
 
 
+def get_project_counts(project: Project) -> int:
+    # Dummy function, we'll replace this in a later pr.
+    return 1000
+
+
+MAX_NEW_ESCALATION_AGE_HOURS = 24
+
+
+def detect_new_escalation(job: PostProcessJob):
+    """
+    Detects whether a new issue is escalating. New issues are issues less than
+    MAX_NEW_ESCALATION_AGE_HOURS hours old.
+
+    If we detect that the group has escalated, set has_escalated to True in the
+    job.
+    """
+    if not features.has("projects:first-event-severity-new-escalation", job["event"].project):
+        return
+    group = job["event"].group
+    group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
+    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS:
+        return
+    # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
+    # this group at the same time. In that case, just exit early, no need to retry.
+    lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
+    try:
+        with lock.acquire():
+            project_escalation_rate = get_project_counts(group.project)
+            group_hourly_event_rate = group.times_seen_with_pending / group_age_hours
+            if group_hourly_event_rate > project_escalation_rate:
+                job["has_escalated"] = True
+    except UnableToAcquireLock:
+        return
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
         process_snoozes,
+        detect_new_escalation,
         process_inbox_adds,
         process_commits,
         handle_owner_assignment,
