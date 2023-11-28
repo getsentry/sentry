@@ -233,9 +233,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             MOCK_DATETIME_START_OF_DAY - datetime.timedelta(days=1)
         ).strftime(SNUBA_TIME_FORMAT)
 
-        one_day = 24 * 60 * 60
-        expected_start = adjust_start(MOCK_DATETIME_START_OF_DAY, 2 * one_day)
-        expected_end = adjust_end(MOCK_DATETIME.replace(minute=0, second=0), one_day)
+        expected_start = MOCK_DATETIME_START_OF_DAY - datetime.timedelta(days=1)
+        expected_end = MOCK_DATETIME_START_OF_DAY + datetime.timedelta(days=1)
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
             "start": expected_start.strftime(SNUBA_TIME_FORMAT),
@@ -286,9 +285,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         start_of_day_snuba_format = MOCK_DATETIME_START_OF_DAY.strftime(SNUBA_TIME_FORMAT)
         start_of_previous_day_snuba_format = start_of_previous_day.strftime(SNUBA_TIME_FORMAT)
 
-        one_day = 24 * 60 * 60
-        expected_start = adjust_start(MOCK_DATETIME_START_OF_DAY, 2 * one_day)
-        expected_end = adjust_end(MOCK_DATETIME.replace(hour=12, minute=28, second=0), one_day)
+        expected_start = MOCK_DATETIME_START_OF_DAY - datetime.timedelta(days=1)
+        expected_end = MOCK_DATETIME_START_OF_DAY + datetime.timedelta(days=1)
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
