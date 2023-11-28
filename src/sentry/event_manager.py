@@ -2127,6 +2127,10 @@ severity_connection_pool = connection_from_url(
 
 
 def _get_severity_score(event: Event) -> float | None:
+    # If the event is info-level or lower, auto-mark as low severity
+    if LOG_LEVELS_MAP[event.data["level"]] <= logging.INFO:
+        return 0
+
     op = "event_manager._get_severity_score"
     logger_data = {"event_id": event.data["event_id"], "op": op}
     severity = None

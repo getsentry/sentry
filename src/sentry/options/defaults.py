@@ -1663,6 +1663,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "delightful_metrics.enable_code_locations",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
@@ -1703,4 +1709,22 @@ register(
     "releases_v2.single-tenant",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# sample rate for using v2 of deobfuscation that
+# uses function params when line info is missing
+register(
+    "profiling.android.deobfuscation_v2_sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# org IDs that will be using v2 of deobfuscation
+# regardless of the sample rate defined by:
+# "profiling.android.deobfuscation_v2_sample_rate"
+register(
+    "profiling.android.deobfuscation_v2_org_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

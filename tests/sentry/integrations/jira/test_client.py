@@ -31,7 +31,7 @@ def mock_authorize_request(prepared_request: PreparedRequest):
     SENTRY_SUBNET_SECRET=secret,
     SENTRY_CONTROL_ADDRESS=control_address,
 )
-@control_silo_test(stable=True)
+@control_silo_test
 class JiraClientTest(TestCase):
     def setUp(self):
         self.integration = Integration.objects.create(

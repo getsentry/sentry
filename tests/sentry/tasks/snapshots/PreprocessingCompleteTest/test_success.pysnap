@@ -1,5 +1,5 @@
 ---
-created: '2023-11-21T23:19:32.012053Z'
+created: '2023-11-22T21:27:02.622251Z'
 creator: sentry
 source: tests/sentry/tasks/test_relocation.py
 ---
@@ -204,6 +204,8 @@ steps:
   - --rm
   - -T
   - -v
+  - /workspace/in:/in
+  - -v
   - /workspace/out:/out
   - -v
   - /workspace/findings:/findings
@@ -232,6 +234,8 @@ steps:
   - run
   - --rm
   - -T
+  - -v
+  - /workspace/in:/in
   - -v
   - /workspace/out:/out
   - -v
@@ -263,6 +267,8 @@ steps:
   - run
   - --rm
   - -T
+  - -v
+  - /workspace/in:/in
   - -v
   - /workspace/out:/out
   - -v

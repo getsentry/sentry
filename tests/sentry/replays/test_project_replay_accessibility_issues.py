@@ -14,7 +14,7 @@ REPLAYS_FEATURES = {
 }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-accessibility-issues"
 

@@ -27,6 +27,10 @@ const roles = [
   },
 ] as OrgRole[];
 
+const mockRefObject = {
+  current: document.body as HTMLDivElement,
+};
+
 describe('InviteMissingMembersModal', function () {
   const team = TestStubs.Team();
   const org = Organization({access: ['member:write'], teams: [team]});
@@ -43,6 +47,7 @@ describe('InviteMissingMembersModal', function () {
     organization: Organization(),
     missingMembers: [],
     allowedRoles: [],
+    modalContainerRef: mockRefObject,
   };
 
   beforeEach(function () {

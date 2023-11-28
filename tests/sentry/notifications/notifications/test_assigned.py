@@ -3,14 +3,11 @@ from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
 from sentry.models.activity import Activity
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import get_attachment, get_channel, install_slack
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import ExternalProviders
 
 pytestmark = [requires_snuba]
 
@@ -40,12 +37,6 @@ class AssignedNotificationAPITest(APITestCase):
 
         UserOption.objects.create(user=user, key="self_notifications", value="1")
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user_id=user.id,
-        )
         self.access_token = "xoxb-access-token"
         self.identity = self.create_identity(
             user=user, identity_provider=self.provider, external_id=user.id

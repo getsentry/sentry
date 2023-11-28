@@ -9,6 +9,7 @@ from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
     fetch_slugifed_email_username,
 )
+from sentry.experiments.manager import ExperimentManager
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -19,7 +20,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationProjectsExperimentCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-experiment"
     method = "post"
@@ -31,7 +32,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         self.login_as(user=self.user)
         self.email_username = fetch_slugifed_email_username(self.user.email)
         self.t1 = f"team-{self.email_username}"
-        self.mock_experiment_get = patch("sentry.experiments.manager.get", return_value=1).start()
+        self.mock_experiment_get = patch.object(ExperimentManager, "get", return_value=1).start()
 
     @cached_property
     def path(self):
