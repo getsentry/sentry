@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, List, MutableMapping, Optional
+from typing import Any, Callable, Dict, List, MutableMapping, Optional, Tuple
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -179,11 +179,11 @@ class DatabaseBackedUserService(UserService):
 
     def get_or_create_user_by_email(
         self, *, email: str, ident: Optional[str] = None, referrer: Optional[str] = None
-    ) -> RpcUser:
+    ) -> Tuple[RpcUser, bool]:
         with transaction.atomic(router.db_for_write(User)):
             rpc_user = self.get_user_by_email(email=email, ident=ident)
             if rpc_user:
-                return rpc_user
+                return (rpc_user, False)
 
             # Create User if it doesn't exist
             user = User.objects.create(
@@ -195,7 +195,7 @@ class DatabaseBackedUserService(UserService):
                 sender=self, user=user, source="api", referrer=referrer or "unknown"
             )
             user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
-            return serialize_rpc_user(user)
+            return (serialize_rpc_user(user), True)
 
     def get_user_by_email(
         self,
