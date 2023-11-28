@@ -20,7 +20,6 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {hasIgnoreArchivedFeatureFlag} from 'sentry/views/alerts/utils/migrationUi';
 
 export type AlertType =
   | 'issues'
@@ -256,7 +255,9 @@ export function datasetSupportedTags(
 ): TagCollection | undefined {
   return mapValues(
     {
-      [Dataset.ERRORS]: hasIgnoreArchivedFeatureFlag(org) ? [FieldKey.IS] : undefined,
+      [Dataset.ERRORS]: org.features.includes('metric-alert-ignore-archived')
+        ? [FieldKey.IS]
+        : undefined,
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
         : transactionSupportedTags(org),
