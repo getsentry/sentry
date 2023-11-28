@@ -8,7 +8,6 @@ type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type Props = {
   text: string;
-  children?: React.ReactNode;
   iconSize?: React.ComponentProps<typeof IconCopy>['size'];
   onError?: undefined | ((error: Error) => void);
 } & Overwrite<
@@ -34,7 +33,6 @@ export function CopyToClipboardButton({
   return (
     <CopyButton
       aria-label={label}
-      size={props.size}
       title={label}
       tooltipProps={{delay: 0}}
       translucentBorder
