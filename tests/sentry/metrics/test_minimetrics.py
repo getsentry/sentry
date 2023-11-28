@@ -239,7 +239,7 @@ def test_composite_backend_does_not_recurse(hub):
     # make sure that we did actually internally forward to the composite
     # backend so the test does not accidentally succeed.
     assert "incr" in accessed
-    assert "timing" in accessed
+    assert "distribution" in accessed
 
     metrics = hub.client.transport.get_metrics()
 
