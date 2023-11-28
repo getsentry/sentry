@@ -17,6 +17,7 @@ from sentry.api.helpers.actionable_items_helper import (
     priority_ranking,
 )
 from sentry.models.eventerror import EventError
+from sentry.models.nextjsissues import NextJSIssues
 from sentry.models.project import Project
 
 
@@ -60,6 +61,15 @@ class ActionableItemsEndpoint(ProjectEndpoint):
             response = EventError(event_error).get_api_context()
 
             actions.append(response)
+
+        # Add NextJS Errors
+        sdk = event.data.get("sdk")
+
+        if sdk and sdk.name == "sentry.javascript.nextjs":
+            culprit = event.data.get("culprit")
+            if "handleHardNavigation" in culprit:
+                actions.append(NextJSIssues(NextJSIssues.HANDLE_HARD_NAVIGATION).get_api_context())
+        actions.append(NextJSIssues(NextJSIssues.HANDLE_HARD_NAVIGATION).get_api_context())
 
         priority_get = lambda x: priority_ranking.get(x["type"], ActionPriority.UNKNOWN)
         sorted_errors = sorted(actions, key=priority_get)

@@ -10,6 +10,7 @@ import {
   NativeProcessingErrors,
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
+import {NextJSIssues} from 'sentry/constants/nextjsissues';
 import {tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
@@ -30,7 +31,8 @@ export type ActionableItemTypes =
   | HttpProcessingErrors
   | GenericSchemaErrors
   | ProguardProcessingErrors
-  | NativeProcessingErrors;
+  | NativeProcessingErrors
+  | NextJSIssues;
 
 export const ActionableItemWarning = [
   ProguardProcessingErrors.PROGUARD_MISSING_LINENO,
@@ -40,6 +42,8 @@ export const ActionableItemWarning = [
   GenericSchemaErrors.PAST_TIMESTAMP,
   GenericSchemaErrors.VALUE_TOO_LONG,
 ];
+
+export const InfoIssues = [NextJSIssues.HANDLE_HARD_NAVIGATION];
 
 interface BaseActionableItem {
   data: any;
@@ -99,6 +103,9 @@ interface InvalidEnvironmentError extends BaseActionableItem {
 interface InvalidAttributeError extends BaseActionableItem {
   type: GenericSchemaErrors.INVALID_ATTRIBUTE;
 }
+interface HandleHardNavigationError extends BaseActionableItem {
+  type: NextJSIssues.HANDLE_HARD_NAVIGATION;
+}
 
 export type ActionableItemErrors =
   | ProguardMissingLineNoError
@@ -116,7 +123,8 @@ export type ActionableItemErrors =
   | ValueTooLongError
   | InvalidDataError
   | InvalidEnvironmentError
-  | InvalidAttributeError;
+  | InvalidAttributeError
+  | HandleHardNavigationError;
 
 export function shouldErrorBeShown(error: EventErrorData, event: Event) {
   if (

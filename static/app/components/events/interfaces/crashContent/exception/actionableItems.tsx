@@ -16,6 +16,7 @@ import {
   NativeProcessingErrors,
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
+import {NextJSIssues} from 'sentry/constants/nextjsissues';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Project} from 'sentry/types';
@@ -29,6 +30,7 @@ import {
   ActionableItemErrors,
   ActionableItemTypes,
   ActionableItemWarning,
+  InfoIssues,
   shouldErrorBeShown,
   useFetchProguardMappingFiles,
 } from './actionableItemsUtils';
@@ -211,6 +213,13 @@ function getErrorMessage(
           desc: null,
           data: errorData,
           meta: metaData,
+        },
+      ];
+    case NextJSIssues.HANDLE_HARD_NAVIGATION:
+      return [
+        {
+          title: t('Handle Hard Navigation'),
+          desc: t('This is how you can handle the handle hard navigation'),
         },
       ];
 
@@ -417,14 +426,28 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
     });
   };
 
-  const hasErrorAlert = Object.keys(errorMessages).some(
+  const errorTypes = Object.keys(errorMessages);
+  const isInfoAlert =
+    errorTypes.length === 1 && InfoIssues.includes(errorTypes[0] as NextJSIssues);
+
+  if (isInfoAlert) {
+    return (
+      <StyledAlert showIcon type="info">
+        {t(
+          'This is a handleHardNavigation error. Follow this link to find out how to fix it'
+        )}
+      </StyledAlert>
+    );
+  }
+
+  const hasErrorAlert = errorTypes.some(
     error =>
       !ActionableItemWarning.includes(
         error as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
       )
   );
 
-  for (const errorKey in Object.keys(errorMessages)) {
+  for (const errorKey in errorTypes) {
     const isWarning = ActionableItemWarning.includes(
       errorKey as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
     );

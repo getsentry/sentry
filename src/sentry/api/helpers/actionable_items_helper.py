@@ -1,12 +1,14 @@
 from sentry.models.eventerror import EventError
+from sentry.models.nextjsissues import NextJSIssues
 from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 
 
 class ActionPriority:
-    HIGH = 1
-    MEDIUM = 2
-    LOW = 3
-    UNKNOWN = 4
+    HIGHEST = 1
+    HIGH = 2
+    MEDIUM = 3
+    LOW = 4
+    UNKNOWN = 5
 
 
 sourcemap_sdks = [
@@ -54,6 +56,7 @@ priority_ranking = {
     SourceMapProcessingIssue.DIST_MISMATCH: ActionPriority.HIGH,
     SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND: ActionPriority.HIGH,
     SourceMapProcessingIssue.DEBUG_ID_NO_SOURCEMAPS: ActionPriority.HIGH,
+    NextJSIssues.HANDLE_HARD_NAVIGATION: ActionPriority.HIGHEST,
 }
 
 errors_to_hide = [
