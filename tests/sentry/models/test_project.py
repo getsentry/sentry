@@ -425,7 +425,7 @@ class CopyProjectSettingsTest(TestCase):
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
         recipients = get_notification_recipients_v2(
-            recipients=users,
+            recipients=RpcActor.many_from_object(users),
             type=NotificationSettingEnum.ISSUE_ALERTS,
             project_ids=[self.project.id],
             organization_id=self.project.organization.id,
