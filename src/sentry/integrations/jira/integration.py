@@ -929,7 +929,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             integration_id=external_issue.integration_id,
         )
         if not external_project:
-            self.logger.info(
+            logger.info(
                 "jira.external-project-not-found",
                 extra={
                     "integration_id": external_issue.integration_id,
