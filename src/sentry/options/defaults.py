@@ -380,6 +380,12 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "organizations:session-replay-accessibility-issues-enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)

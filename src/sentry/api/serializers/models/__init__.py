@@ -39,7 +39,6 @@ from .incidentseen import *  # noqa: F401,F403
 from .integration import *  # noqa: F401,F403
 from .integration_feature import *  # noqa: F401,F403
 from .notification_action import *  # noqa: F401,F403
-from .notification_setting import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
 from .organization_access_request import *  # noqa: F401,F403
 from .organization_member.base import *  # noqa: F401,F403

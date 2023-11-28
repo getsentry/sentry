@@ -597,6 +597,7 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
+        useOnDemandMetrics
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) => (
           <Fragment>
