@@ -65,7 +65,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
     text:
       window.location.origin +
       normalizeUrl(
-        `/organizations/${organization.slug}/feedback/?feedbackSlug=${feedbackItem.project.slug}%3A${feedbackItem.id}&project=${feedbackItem.project.id}/`
+        `/organizations/${organization.slug}/feedback/?feedbackSlug=${feedbackItem.project.slug}:${feedbackItem.id}&project=${feedbackItem.project.id}`
       ),
   });
 
