@@ -39,7 +39,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.deletions.base import BaseDeletionTask
 from sentry.models.actor import Actor
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.silo import SiloMode, match_fence_query
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
@@ -556,7 +555,7 @@ def validate_hcfk_has_global_id(model: Type[Model], related_model: Type[Model]):
         return
 
     # This particular relation is being removed before we go multi region.
-    if related_model is Actor and model is NotificationSetting:
+    if related_model is Actor:
         return
 
     # but they cannot point to region models otherwise.
