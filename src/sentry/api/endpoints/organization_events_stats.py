@@ -210,6 +210,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             metric_types = ",".join(metric_type_values)
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
+        on_demand_metrics_enabled = (
+            batch_features.get("organizations:on-demand-metrics-extraction", False)
+            or batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
+        ) and use_on_demand_metrics
+
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
 
         def get_event_stats(
@@ -254,13 +259,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 # their queries since right now the metrics layer has not full feature parity with the query builder.
                 use_metrics_layer=force_metrics_layer
                 or batch_features.get("organizations:use-metrics-layer", False),
-                on_demand_metrics_enabled=use_on_demand_metrics
-                and (
-                    batch_features.get("organizations:on-demand-metrics-extraction", False)
-                    or batch_features.get(
-                        "organizations:on-demand-metrics-extraction-widgets", False
-                    )
-                ),
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
             )
 

@@ -23,6 +23,7 @@ __all__ = (
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "ErrorsMRI",
+    "ParsedMRI",
     "parse_mri",
     "get_available_operations",
 )
@@ -179,6 +180,18 @@ class ParsedMRI:
     @property
     def mri_string(self) -> str:
         return f"{self.entity}:{self.namespace}/{self.name}@{self.unit}"
+
+    def is_counter(self) -> bool:
+        return self.entity == "c"
+
+    def is_distribution(self) -> bool:
+        return self.entity == "d"
+
+    def is_set(self) -> bool:
+        return self.entity == "s"
+
+    def is_gauge(self) -> bool:
+        return self.entity == "g"
 
 
 def parse_mri(mri_string: Optional[str]) -> Optional[ParsedMRI]:

@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import timedelta, timezone
 from unittest import mock
 
 import pytest
@@ -6,7 +6,9 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.extraction import OnDemandMetricSpec
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -28,7 +30,6 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         self.features = {"organizations:discover-basic": True}
 
     def test_simple(self):
-
         self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id)
 
         with self.feature(self.features):
@@ -234,6 +235,209 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             )
 
             assert len(mock_quantize.mock_calls) == 2
+
+
+@region_silo_test
+class OrganizationEventsMetaWithEndpoint(MetricsEnhancedPerformanceTestCase):
+    endpoint = "sentry-api-0-organization-events-meta"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.url = reverse(
+            "sentry-api-0-organization-events-meta",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+        self.features = {
+            "organizations:on-demand-metrics-extraction": True,
+            "organizations:on-demand-metrics-extraction-widgets": True,
+        }
+
+    def do_request(self, data, url=None, features=None):
+        if features is None:
+            features = {"organizations:discover-basic": True}
+        features.update(self.features)
+        with self.feature(features):
+            return self.client.get(self.url if url is None else url, data=data, format="json")
+
+    @pytest.mark.skip(reason="On demand metrics not supported")
+    def test_with_on_demand_metrics(self):
+        for field in ("count()", "p95(transaction.duration)"):
+            query = "transaction.duration:>=100"
+            spec = OnDemandMetricSpec(field=field, query=query)
+
+            for hour in range(0, 5):
+                self.store_on_demand_metric(
+                    hour,
+                    spec=spec,
+                    timestamp=self.day_ago + timedelta(hours=hour),
+                )
+
+            response = self.do_request(
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(days=1)),
+                    "query": query,
+                    "useOnDemandMetrics": "true",
+                    "forceMetricsLayer": "true",
+                    "dataset": "metricsEnhanced",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            assert response.data["count"] == 10.0
+
+    def test_with_invalid_custom_metric(self):
+        mri = "page_click"
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(days=1)),
+                "query": "page_name:login",
+                "customMetric": mri,
+                "useOnDemandMetrics": "true",
+                "forceMetricsLayer": "true",
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 400
+
+    def test_with_invalid_tag(self):
+        mri = "c:custom/page_click@none"
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(days=1)),
+                "query": "page_name:login",
+                "customMetric": mri,
+                "useOnDemandMetrics": "true",
+                "forceMetricsLayer": "true",
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 400
+
+    def test_with_counter_custom_metric(self):
+        mri = "c:custom/page_click@none"
+
+        for value, page_name in ((1, "home"), (2, "login"), (3, "signup")):
+            self.store_transaction_metric(
+                value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_counters",
+                timestamp=self.day_ago + timedelta(hours=value),
+                use_case_id=UseCaseID.CUSTOM,
+                tags={"page_name": page_name},
+            )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(days=1)),
+                "query": "page_name:login",
+                "customMetric": mri,
+                "useOnDemandMetrics": "true",
+                "forceMetricsLayer": "true",
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 2
+
+    def test_with_distribution_custom_metric(self):
+        mri = "d:custom/page_load@second"
+
+        for value, page_name in ((1.5, "home"), (2.2, "login"), (3.5, "signup")):
+            self.store_transaction_metric(
+                value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_distributions",
+                timestamp=self.day_ago + timedelta(hours=value),
+                use_case_id=UseCaseID.CUSTOM,
+                tags={"page_name": page_name},
+            )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(days=1)),
+                "customMetric": mri,
+                "useOnDemandMetrics": "true",
+                "forceMetricsLayer": "true",
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 3
+
+    def test_with_set_custom_metric(self):
+        mri = "s:custom/user@second"
+
+        for value, page_name in (("marco", "home"), ("marco", "home"), ("mario", "signup")):
+            self.store_transaction_metric(
+                value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_sets",
+                timestamp=self.day_ago + timedelta(hours=1),
+                use_case_id=UseCaseID.CUSTOM,
+                tags={"page_name": page_name},
+            )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(days=1)),
+                "customMetric": mri,
+                "query": "page_name:home",
+                "useOnDemandMetrics": "true",
+                "forceMetricsLayer": "true",
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 1
+
+    def test_with_gauge_custom_metric(self):
+        mri = "g:custom/page_speed@millisecond"
+
+        for value, page_name in ((120.4, "home"), (200.2, "home"), (80.5, "signup")):
+            self.store_transaction_metric(
+                value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_gauges",
+                timestamp=self.day_ago + timedelta(hours=1),
+                use_case_id=UseCaseID.CUSTOM,
+                tags={"page_name": page_name},
+            )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(days=1)),
+                "customMetric": mri,
+                "query": "page_name:home",
+                "useOnDemandMetrics": "true",
+                "forceMetricsLayer": "true",
+                "dataset": "metricsEnhanced",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        # The `store_transaction_metric` code writes a gauge with `count = int(value)`, so we have here 120 + 200.
+        assert response.data["count"] == 320
 
 
 @region_silo_test
