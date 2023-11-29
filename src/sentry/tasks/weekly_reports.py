@@ -279,7 +279,7 @@ def project_event_counts_for_organization(ctx):
         orderby=[OrderBy(Column("time"), Direction.ASC)],
     )
     if features.has("organizations:weekly-report-logs", ctx.organization):  # TODO(isabella): remove
-        query.set_limit(10000)
+        query = query.set_limit(10000)
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
     data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
 
