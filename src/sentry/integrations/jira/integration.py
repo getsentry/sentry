@@ -929,6 +929,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             external_id=jira_project["id"],
         )
         if not external_project:
+            logger.info(
+                "jira.external-project-not-found",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "is_resolved": is_resolved,
+                    "issue_key": external_issue.key,
+                },
+            )
             return
 
         jira_status = (
