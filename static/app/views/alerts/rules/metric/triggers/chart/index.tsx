@@ -82,6 +82,7 @@ type Props = {
   header?: React.ReactNode;
   isOnDemandMetricAlert?: boolean;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
+  showTotalCount?: boolean;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -158,15 +159,18 @@ class TriggersChart extends PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    if (!isSessionAggregate(this.props.aggregate)) {
+    const {aggregate, showTotalCount} = this.props;
+    if (showTotalCount && !isSessionAggregate(aggregate)) {
       this.fetchTotalCount();
     }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {query, environment, timeWindow, aggregate, projects} = this.props;
+    const {query, environment, timeWindow, aggregate, projects, showTotalCount} =
+      this.props;
     const {statsPeriod} = this.state;
     if (
+      showTotalCount &&
       !isSessionAggregate(aggregate) &&
       (!isEqual(prevProps.projects, projects) ||
         prevProps.environment !== environment ||
@@ -243,6 +247,7 @@ class TriggersChart extends PureComponent<Props, State> {
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
+        ...getForceMetricsLayerQueryExtras(organization, dataset),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -284,6 +289,7 @@ class TriggersChart extends PureComponent<Props, State> {
       aggregate,
       comparisonType,
       organization,
+      showTotalCount,
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
@@ -335,12 +341,16 @@ class TriggersChart extends PureComponent<Props, State> {
         )}
 
         <ChartControls>
-          <InlineContainer data-test-id="alert-total-events">
-            <SectionHeading>{totalCountLabel}</SectionHeading>
-            <SectionValue>
-              {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
-            </SectionValue>
-          </InlineContainer>
+          {showTotalCount ? (
+            <InlineContainer data-test-id="alert-total-events">
+              <SectionHeading>{totalCountLabel}</SectionHeading>
+              <SectionValue>
+                {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
+              </SectionValue>
+            </InlineContainer>
+          ) : (
+            <InlineContainer />
+          )}
           <InlineContainer>
             <CompactSelect
               size="sm"
