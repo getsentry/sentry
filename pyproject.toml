@@ -350,7 +350,6 @@ module = [
     "sentry.identity.providers.dummy",
     "sentry.identity.slack.provider",
     "sentry.identity.vsts.provider",
-    "sentry.incidents.action_handlers",
     "sentry.incidents.endpoints.bases",
     "sentry.incidents.endpoints.organization_alert_rule_details",
     "sentry.incidents.endpoints.organization_alert_rule_index",
