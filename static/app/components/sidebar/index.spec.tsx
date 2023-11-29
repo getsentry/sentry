@@ -15,7 +15,7 @@ import {SentryServiceStatus} from 'sentry/types';
 jest.mock('sentry/actionCreators/serviceIncidents');
 
 describe('Sidebar', function () {
-  const {organization, router, routerContext} = initializeOrg();
+  const {organization, routerContext} = initializeOrg();
   const broadcast = Broadcast();
   const user = User();
   const apiMocks = {
@@ -134,9 +134,11 @@ describe('Sidebar', function () {
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
 
-      rerender(getElement({location: {...router.location, pathname: 'new-path-name'}}));
+      const oldPath = routerContext.context.location.pathname;
+      routerContext.context.location.pathname = '/other/path';
+      rerender(getElement({}));
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
-      await tick();
+      routerContext.context.location.pathname = oldPath;
     });
 
     it('can have onboarding feature', async function () {

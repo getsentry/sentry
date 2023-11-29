@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useContext, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
@@ -60,7 +59,6 @@ import SidebarItem from './sidebarItem';
 import {SidebarOrientation, SidebarPanelKey} from './types';
 
 type Props = {
-  location?: Location;
   organization?: Organization;
 };
 
@@ -109,7 +107,8 @@ function useOpenOnboardingSidebar(organization?: Organization) {
   }, [openOnboardingSidebar]);
 }
 
-function Sidebar({location, organization}: Props) {
+function Sidebar({organization}: Props) {
+  const location = useLocation();
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);

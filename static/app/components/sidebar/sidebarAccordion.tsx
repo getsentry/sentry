@@ -1,4 +1,4 @@
-import {Children, isValidElement} from 'react';
+import {Children, isValidElement, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -32,6 +32,14 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     return false;
   });
 
+  const handleExpandAccordionClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setExpanded(!expanded);
+    },
+    [expanded, setExpanded]
+  );
+
   return (
     <SidebarAccordionWrapper>
       <SidebarAccordionHeaderWrap>
@@ -45,10 +53,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
             <SidebarAccordionExpandButton
               size="zero"
               borderless
-              onClick={e => {
-                e.preventDefault();
-                setExpanded(!expanded);
-              }}
+              onClick={handleExpandAccordionClick}
               aria-controls={mainItemId}
               aria-label={expanded ? t('Collapse') : t('Expand')}
               sidebarCollapsed={sidebarCollapsed}
