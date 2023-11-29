@@ -45,7 +45,7 @@ const {SPM} = SpanFunction;
 const RESOURCE_SIZE_ALERT: PageAlert = {
   type: 'info',
   message: t(
-    `If you're noticing unusually large resource sizes, try updating to SDK version 3.82.0 or higher.`
+    `If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher.`
   ),
 };
 
