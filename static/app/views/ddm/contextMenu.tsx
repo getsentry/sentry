@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -8,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {hasDDMExperimentalFeature, hasDDMFeature} from 'sentry/utils/metrics/features';
 import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -30,7 +32,7 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
     displayType
   );
 
-  if (!organization.features.includes('ddm-experimental')) {
+  if (!hasDDMFeature(organization)) {
     return null;
   }
 
@@ -46,7 +48,8 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
         {
           key: 'add-dashoard',
           label: t('Add to Dashboard'),
-          disabled: !handleAddQueryToDashboard,
+          disabled:
+            !hasDDMExperimentalFeature(organization) || !handleAddQueryToDashboard,
           onAction: handleAddQueryToDashboard,
         },
       ]}
@@ -87,12 +90,12 @@ function useHandleAddQueryToDashboard(
       orderby: '',
     };
 
-    const urlWidgetQuery = new URLSearchParams({
+    const urlWidgetQuery = urlEncode({
       ...widgetQuery,
       aggregates: field,
       fields: field,
       columns: groupBy?.join(',') ?? '',
-    }).toString();
+    });
 
     const widgetAsQueryParams = {
       source: DashboardWidgetSource.DDM,

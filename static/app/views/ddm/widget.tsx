@@ -248,7 +248,7 @@ function MetricWidgetBody({
           setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
         />
       )}
-      <CodeLocations mri={metricsQuery.mri} />
+      <CodeLocations mri={metricsQuery.mri} projects={projects} />
     </StyledMetricWidgetBody>
   );
 }

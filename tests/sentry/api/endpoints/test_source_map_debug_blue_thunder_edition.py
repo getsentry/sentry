@@ -73,7 +73,7 @@ def create_event(
     return event
 
 
-@region_silo_test  # TODO(hybrid-cloud): stable=True blocked on actors
+@region_silo_test
 class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-event-source-map-debug-blue-thunder-edition"
 
