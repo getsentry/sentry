@@ -4,7 +4,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {GroupStatus, GroupStatusResolution, MarkReviewed} from 'sentry/types';
+import {Group, GroupStatus, GroupStatusResolution, MarkReviewed} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
@@ -40,20 +40,31 @@ describe('StreamGroup', function () {
 
   it('renders with anchors', function () {
     const {routerContext, organization} = initializeOrg();
-    render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
-      context: routerContext,
-      organization,
-    });
+    render(
+      <StreamGroup
+        id="1337"
+        group={GroupStore.get('1337')}
+        as
+        Group
+        hasGuideAnchor
+        {...routerContext}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
 
     expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
   });
 
   it('marks as reviewed', function () {
     const {routerContext, organization} = initializeOrg();
-    render(
+    const {rerender} = render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+        group={GroupStore.get('1337')}
         {...routerContext}
       />,
       {context: routerContext, organization}
@@ -64,16 +75,32 @@ describe('StreamGroup', function () {
     act(() => GroupStore.onUpdate('1337', undefined, data));
     act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
 
+    rerender(
+      <StreamGroup
+        id="1337"
+        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+        group={GroupStore.get('1337')}
+        {...routerContext}
+      />
+    );
+
     // Reviewed only applies styles, difficult to select with RTL
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
   });
 
   it('marks as resolved', function () {
     const {routerContext, organization} = initializeOrg();
-    render(<StreamGroup id="1337" group={group1} query="is:unresolved" />, {
-      context: routerContext,
-      organization,
-    });
+    const {rerender} = render(
+      <StreamGroup
+        id="1337"
+        group={GroupStore.get('1337') as Group}
+        query="is:unresolved"
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
 
     expect(screen.queryByTestId('resolved-issue')).not.toBeInTheDocument();
     const data: GroupStatusResolution = {
@@ -82,6 +109,14 @@ describe('StreamGroup', function () {
     };
     act(() => GroupStore.onUpdate('1337', undefined, data));
     act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
+
+    rerender(
+      <StreamGroup
+        id="1337"
+        group={GroupStore.get('1337') as Group}
+        query="is:unresolved"
+      />
+    );
     expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
   });
 
@@ -91,6 +126,7 @@ describe('StreamGroup', function () {
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+        group={GroupStore.get('1337') as Group}
         {...routerContext}
       />,
       {context: routerContext, organization}
