@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, TypedDict
 
 from sentry.silo.base import SiloMode
 
-from .. import logger
+from . import logger
 
 if TYPE_CHECKING:
     from sentry.models.organizationmember import OrganizationMember
