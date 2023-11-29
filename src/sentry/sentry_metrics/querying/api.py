@@ -153,7 +153,7 @@ class MutableTimeseries:
         self._validate()
 
     def _validate_filters(self, filters: Optional[ConditionGroup]):
-        for f in filters:
+        for f in filters or ():
             if isinstance(f, BooleanCondition):
                 if f.op == BooleanOp.OR:
                     raise InvalidMetricsQueryError("The OR operator is not supported")
