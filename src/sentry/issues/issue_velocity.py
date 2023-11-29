@@ -5,6 +5,7 @@ of events per issue per hour, which is then stored per project in Redis.
 import datetime
 import logging
 
+import sentry_sdk
 from snuba_sdk import (  # Limit,
     Column,
     Condition,
@@ -20,11 +21,13 @@ from snuba_sdk import (  # Limit,
 
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.utils.redis import redis_clusters
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
 REFERRER = "sentry.issues.issue_velocity"
+CLUSTER_KEY = ""
 
 
 def calculate_velocity_threshold_for_project(project: Project) -> int | None:
@@ -114,8 +117,12 @@ def set_velocity_threshold_for_project(project: Project) -> None:
         logger.error("Velocity threshold couldn't be calculated", extra={"project_id": project.id})
         return
     # store in redis
+    with sentry_sdk.start_span(op="cluster.{CLUSTER_KEY}.set_velocity_threshold_for_project"):
+        client = redis_clusters.get(CLUSTER_KEY)
+        client.set(project.id, f"{threshold}")
 
 
 def get_velocity_threshold_for_project(project: Project) -> int:
     # get from redis
-    pass
+    client = redis_clusters.get(CLUSTER_KEY)
+    return client.get(project.id)
