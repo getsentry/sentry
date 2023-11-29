@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import Tag from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -188,7 +188,7 @@ export function QueryBuilder({
 }
 
 interface MetricSearchBarProps
-  extends Omit<Partial<SearchBarProps>, 'tags' | 'projectIds'> {
+  extends Omit<Partial<SmartSearchBarProps>, 'tags' | 'projectIds'> {
   onChange: (value: string) => void;
   projectIds: string[];
   disabled?: boolean;
@@ -261,8 +261,8 @@ export function MetricSearchBar({
       onSearch={handleChange}
       placeholder={t('Filter by tags')}
       query={query}
+      hasRecentSearches
       savedSearchType={SavedSearchType.METRIC}
-      projectIds={projectIdNumbers}
       {...props}
     />
   );
@@ -289,7 +289,7 @@ const QueryBuilderRow = styled('div')`
   padding-bottom: 0;
 `;
 
-const WideSearchBar = styled(SearchBar)`
+const WideSearchBar = styled(SmartSearchBar)`
   width: 100%;
   opacity: ${p => (p.disabled ? '0.6' : '1')};
 `;
