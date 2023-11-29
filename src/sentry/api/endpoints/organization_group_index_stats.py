@@ -120,8 +120,8 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
                 else None,
                 organization_id=organization.id,
                 project_ids=project_ids,
-                request=request,
             ),
+            request=request,
         )
 
         response = Response(context)
