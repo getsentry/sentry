@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
@@ -12,6 +12,7 @@ import GridEditable, {
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {PageAlert, usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
@@ -41,10 +42,16 @@ const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 const {SPM} = SpanFunction;
 
+const RESOURCE_SIZE_ALERT: PageAlert = {
+  type: 'info',
+  message: t(
+    `If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher.`
+  ),
+};
+
 type Row = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
-  'http.decoded_response_content_length': number;
   'project.id': number;
   'resource.render_blocking_status': string;
   'span.description': string;
@@ -66,6 +73,7 @@ type Props = {
 function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+  const {setPageError, pageError} = usePageError();
 
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
@@ -76,7 +84,6 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
     {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: t('Resource Description')},
-    {key: SPAN_OP, width: COL_WIDTH_UNDEFINED, name: t('Type')},
     {
       key: `${SPM}()`,
       width: COL_WIDTH_UNDEFINED,
@@ -94,14 +101,19 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       name: DataTitles['avg(http.response_content_length)'],
     },
   ];
-  const tableData: Row[] = data.length
-    ? data.map(span => ({
-        ...span,
-        'http.decoded_response_content_length': Math.floor(
-          Math.random() * (1000 - 500) + 500
-        ),
-      }))
-    : [];
+  const tableData: Row[] = data;
+
+  useEffect(() => {
+    if (pageError !== RESOURCE_SIZE_ALERT) {
+      for (const row of tableData) {
+        const encodedSize = row[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`];
+        if (encodedSize >= 2147483647) {
+          setPageError(RESOURCE_SIZE_ALERT);
+          break;
+        }
+      }
+    }
+  }, [tableData, setPageError, pageError]);
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
@@ -158,12 +170,6 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
         return <span>{t('Font')}</span>;
       }
       return <span>{spanOp}</span>;
-    }
-    if (key === 'http.decoded_response_content_length') {
-      const isUncompressed =
-        row['http.response_content_length'] ===
-        row['http.decoded_response_content_length'];
-      return <span>{isUncompressed ? t('true') : t('false')}</span>;
     }
     if (key === 'time_spent_percentage()') {
       return (

@@ -31,6 +31,8 @@ import {
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
   QuickStartProps,
+  RubyRailsMixinPlatformGuide,
+  RubySidekiqAutoPlatformGuide,
   RubyUpsertPlatformGuide,
 } from './quickStartEntries';
 
@@ -38,6 +40,8 @@ enum GuideKey {
   BEAT_AUTO = 'beat_auto',
   UPSERT = 'upsert',
   MANUAL = 'manual',
+  MIXIN = 'mixin',
+  SIDEKIQ_AUTO = 'sidekiq_auto',
 }
 
 interface PlatformGuide {
@@ -98,7 +102,18 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
       key: GuideKey.UPSERT,
     },
   ],
-  'ruby-rails': [],
+  'ruby-rails': [
+    {
+      Guide: RubySidekiqAutoPlatformGuide,
+      title: 'Sidekiq Auto Discovery',
+      key: GuideKey.SIDEKIQ_AUTO,
+    },
+    {
+      Guide: RubyRailsMixinPlatformGuide,
+      title: 'Mixin',
+      key: GuideKey.MIXIN,
+    },
+  ],
 };
 
 export function isValidPlatform(platform?: string | null): platform is SupportedPlatform {
