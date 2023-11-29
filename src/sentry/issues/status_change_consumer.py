@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 from sentry_sdk.tracing import NoOpSpan, Transaction
 
@@ -107,7 +107,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
 
 
 def get_groups_from_fingerprints(
-    project_id: int, fingerprints: list[list[str]]
+    project_id: int, fingerprints: Iterable[Iterable[str]]
 ) -> dict[str, Group]:
     """
     Returns the list of groups given a list of fingerprints.
