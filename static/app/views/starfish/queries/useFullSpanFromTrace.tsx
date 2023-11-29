@@ -9,12 +9,17 @@ import {SpanIndexedField} from 'sentry/views/starfish/types';
 export function useFullSpanFromTrace(
   group?: string,
   sorts?: Sort[],
-  enabled: boolean = true
+  enabled: boolean = true,
+  transaction?: string
 ) {
   const filters: {[key: string]: string} = {};
 
   if (group) {
     filters[SpanIndexedField.SPAN_GROUP] = group;
+  }
+
+  if (transaction) {
+    filters[SpanIndexedField.TRANSACTION] = transaction ?? '';
   }
 
   const indexedSpansResponse = useIndexedSpans(filters, sorts, 1, enabled);
