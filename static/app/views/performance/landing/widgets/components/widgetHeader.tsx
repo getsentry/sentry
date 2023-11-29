@@ -30,7 +30,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
   const featureBadge = isWebVitalsWidget ? (
     <FeatureBadge type="new" />
   ) : isResourcesWidget ? (
-    <FeatureBadge type="alpha" />
+    <FeatureBadge type="new" />
   ) : null;
 
   return (
