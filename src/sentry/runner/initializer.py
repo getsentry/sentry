@@ -19,6 +19,15 @@ logger = logging.getLogger("sentry.runner.initializer")
 T = TypeVar("T")
 
 
+class ConfigurationError(ValueError, click.ClickException):
+    def show(self, file=None):
+        if file is None:
+            from click._compat import get_text_stderr
+
+            file = get_text_stderr()
+        click.secho(f"!! Configuration error: {self!r}", file=file, fg="red")
+
+
 def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) -> None:
     from sentry.plugins.base import plugins
 
@@ -176,8 +185,6 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
             # Gracefully fail if yaml file doesn't exist
             options = {}
         except (AttributeError, ParserError, ScannerError) as e:
-            from .importer import ConfigurationError
-
             raise ConfigurationError("Malformed config.yml file: %s" % str(e))
 
         # Empty options file, so fail gracefully
@@ -185,8 +192,6 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
             options = {}
         # Options needs to be a dict
         elif not isinstance(options, dict):
-            from .importer import ConfigurationError
-
             raise ConfigurationError("Malformed config.yml file")
     else:
         options = {}
@@ -325,6 +330,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     bootstrap_options(settings, config["options"])
 
+    logging.raiseExceptions = settings.DEBUG
+
     configure_structlog()
 
     # Commonly setups don't correctly configure themselves for production envs
@@ -364,8 +371,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         settings.SENTRY_DEBUGGER = settings.DEBUG
 
     monkeypatch_drf_listfield_serializer_errors()
-
-    monkeypatch_model_unpickle()
 
     import django
 
@@ -417,8 +422,6 @@ def setup_services(validate: bool = True) -> None:
         tagstore,
         tsdb,
     )
-
-    from .importer import ConfigurationError
 
     service_list = (
         analytics,
@@ -487,17 +490,6 @@ def __model_unpickle_compat(
 
 def __simple_class_factory_compat(model: T, attrs: Any) -> T:
     return model
-
-
-def monkeypatch_model_unpickle() -> None:
-    # https://code.djangoproject.com/ticket/27187
-    # Django 1.10 breaks pickle compat with 1.9 models.
-    django.db.models.base.model_unpickle = __model_unpickle_compat
-
-    # Django 1.10 needs this to unpickle 1.9 models, but we can't branch while
-    # monkeypatching else our monkeypatched funcs won't be pickleable.
-    # So just vendor simple_class_factory from 1.9.
-    django.db.models.base.simple_class_factory = __simple_class_factory_compat
 
 
 def monkeypatch_django_migrations() -> None:
@@ -640,8 +632,6 @@ def apply_legacy_settings(settings: Any) -> None:
     # this is the only value that should prevent the app from booting up. Currently FLAG_REQUIRED is used to
     # trigger the Installation Wizard, not abort startup.
     if not settings.SENTRY_OPTIONS.get("system.secret-key"):
-        from .importer import ConfigurationError
-
         raise ConfigurationError(
             "`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one."
         )
@@ -695,8 +685,6 @@ def validate_snuba() -> None:
             snuba_enabled_features.add(feature)
 
     if snuba_enabled_features and not eventstream_is_snuba:
-        from .importer import ConfigurationError
-
         show_big_error(
             """
 You have features enabled which require Snuba,
@@ -712,8 +700,6 @@ See: https://github.com/getsentry/snuba#sentry--snuba
         raise ConfigurationError("Cannot continue without Snuba configured.")
 
     if not eventstream_is_snuba:
-        from .importer import ConfigurationError
-
         show_big_error(
             """
 It appears that you are requiring Snuba,

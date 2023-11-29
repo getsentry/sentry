@@ -31,6 +31,9 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
+from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
+    find_channel_id_for_alert_rule,
+)
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -150,7 +153,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -264,7 +267,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -602,7 +605,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(audit_log_entry) == 1
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -655,7 +658,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
@@ -780,7 +783,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             ]
         }
 
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     @responses.activate
     def test_create_slack_alert_with_empty_channel_id(
@@ -940,7 +943,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         )  # Did not increment from the last assertion because we early out on the validation error
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -1125,7 +1128,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
         assert error_message in resp.data["sentry_app"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 

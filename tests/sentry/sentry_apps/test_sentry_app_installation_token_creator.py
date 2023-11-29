@@ -18,7 +18,7 @@ class TestCreatorBase(TestCase):
         self.create_project(organization=self.org)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestCreatorInternal(TestCreatorBase):
     def setUp(self):
         super().setUp()
@@ -59,7 +59,7 @@ class TestCreatorInternal(TestCreatorBase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestCreatorExternal(TestCreatorBase):
     def setUp(self):
         super().setUp()

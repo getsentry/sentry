@@ -10,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_only_return_latest_event(self):
         self.login_as(user=self.user)

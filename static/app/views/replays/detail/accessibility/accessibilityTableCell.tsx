@@ -1,20 +1,20 @@
 import {ComponentProps, CSSProperties, forwardRef} from 'react';
 import classNames from 'classnames';
 
+import {Button} from 'sentry/components/button';
 import {
-  ButtonWrapper,
   Cell,
   CodeHighlightCell,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconFire, IconInfo, IconWarning} from 'sentry/icons';
+import {IconFire, IconInfo, IconPlay, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import {Color} from 'sentry/utils/theme';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 const EMPTY_CELL = '--';
 
@@ -33,7 +33,6 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortAccessibility>['sortConfig'];
-  startTimestampMs: number;
   style: CSSProperties;
 }
 
@@ -50,7 +49,6 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
       onMouseLeave,
       rowIndex,
       sortConfig,
-      startTimestampMs,
       style,
     }: Props,
     ref
@@ -122,24 +120,23 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps}>
-          <CodeHighlightCell language="html" hideCopyButton>
-            {a11yIssue.elements?.[0].element ?? EMPTY_CELL}
+          <CodeHighlightCell language="html" hideCopyButton data-render-inline>
+            {a11yIssue.element.element ?? EMPTY_CELL}
           </CodeHighlightCell>
         </Cell>
       ),
       () => (
-        <Cell {...columnProps} numeric>
-          <ButtonWrapper>
-            <TimestampButton
-              format="mm:ss.SSS"
-              onClick={event => {
-                event.stopPropagation();
-                onClickTimestamp(a11yIssue);
-              }}
-              startTimestampMs={startTimestampMs}
-              timestampMs={a11yIssue.timestampMs}
-            />
-          </ButtonWrapper>
+        <Cell {...columnProps}>
+          <Button
+            size="xs"
+            borderless
+            aria-label={t('See in replay')}
+            icon={<IconPlay size="xs" color={isSelected ? 'white' : 'black'} />}
+            onClick={e => {
+              e.stopPropagation();
+              onClickTimestamp(a11yIssue);
+            }}
+          />
         </Cell>
       ),
     ];

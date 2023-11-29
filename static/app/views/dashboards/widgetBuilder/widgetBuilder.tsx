@@ -34,6 +34,7 @@ import {
   getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -180,7 +181,6 @@ function WidgetBuilder({
   }
 
   const hasReleaseHealthFeature = organization.features.includes('dashboards-rh-widget');
-  const hasCustomMetricsFeature = organization.features.includes('ddm-experimental');
 
   const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
     if (widgetType === WidgetType.RELEASE) {
@@ -209,8 +209,9 @@ function WidgetBuilder({
   const notDashboardsOrigin = [
     DashboardWidgetSource.DISCOVERV2,
     DashboardWidgetSource.ISSUE_DETAILS,
-    DashboardWidgetSource.DDM,
   ].includes(source);
+
+  const dataset = source === DashboardWidgetSource.DDM ? DataSet.METRICS : DataSet.EVENTS;
 
   const api = useApi();
 
@@ -237,7 +238,7 @@ function WidgetBuilder({
       loading: !!notDashboardsOrigin,
       userHasModified: false,
       prebuiltWidgetId: null,
-      dataSet: DataSet.EVENTS,
+      dataSet: dataset,
       queryConditionsValid: true,
       selectedDashboard: dashboard.id || NEW_DASHBOARD_ID,
     };
@@ -786,7 +787,9 @@ function WidgetBuilder({
       widgetData.limit = undefined;
     }
 
-    if (!(await dataIsValid(widgetData))) {
+    const isValid = await dataIsValid(widgetData);
+
+    if (!isValid) {
       return;
     }
 
@@ -900,13 +903,15 @@ function WidgetBuilder({
             ...queryParamsWithoutSource,
             ...query,
           }
-        : undefined;
+        : {};
+
+    const sanitizedQuery = omit(pathQuery, ['defaultWidgetQuery', 'defaultTitle']);
 
     if (id === NEW_DASHBOARD_ID) {
       router.push(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboards/new/`,
-          query: pathQuery,
+          query: sanitizedQuery,
         })
       );
       return;
@@ -915,7 +920,7 @@ function WidgetBuilder({
     router.push(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboard/${id}/`,
-        query: pathQuery,
+        query: sanitizedQuery,
       })
     );
   }
@@ -1127,7 +1132,7 @@ function WidgetBuilder({
                                     displayType={state.displayType}
                                     onChange={handleDataSetChange}
                                     hasReleaseHealthFeature={hasReleaseHealthFeature}
-                                    hasCustomMetricsFeature={hasCustomMetricsFeature}
+                                    hasCustomMetricsFeature={hasDDMFeature(organization)}
                                   />
                                   {isTabularChart && (
                                     <DashboardsMEPConsumer>
@@ -1192,6 +1197,7 @@ function WidgetBuilder({
                                       organization={organization}
                                       tags={tags}
                                       dataSet={state.dataSet}
+                                      queries={state.queries}
                                     />
                                   )}
                                   {displaySortByStep && (

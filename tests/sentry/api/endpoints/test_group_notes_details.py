@@ -16,7 +16,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()

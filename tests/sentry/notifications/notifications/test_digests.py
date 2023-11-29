@@ -17,7 +17,6 @@ from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.slack import send_notification
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -162,9 +161,8 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
 class DigestSlackNotification(SlackActivityNotificationTest):
     @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     @mock.patch.object(sentry, "digests")
-    def test_slack_digest_notification(self, digests, mock_func):
+    def test_slack_digest_notification(self, digests):
         """
         Test that with digests enabled, but Slack notification settings
         (and not email settings), we send a Slack notification

@@ -16,7 +16,7 @@ from sentry.types.region import Region, RegionCategory
 from sentry.utils.signing import sign
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DiscordRequestParserTest(TestCase):
     get_response = MagicMock()
     factory = RequestFactory()
@@ -57,6 +57,24 @@ class DiscordRequestParserTest(TestCase):
             response = parser.get_response()
             assert response.status_code == 200
             assert response.data == {"type": 1}
+            assert not get_response_from_first_region.called
+
+    def test_interactions_endpoint_routing_ping_no_integration(self):
+        # Discord PING without an identifier linking to an integration
+        data = {"type": DiscordRequestTypes.PING}
+        parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
+        assert parser.get_integration_from_request() is None
+        with patch.object(parser, "get_regions_from_organizations", return_value=[]), patch.object(
+            parser, "get_response_from_first_region"
+        ) as get_response_from_first_region, patch.object(
+            parser, "get_response_from_control_silo"
+        ) as mock_response_from_control, assume_test_silo_mode(
+            SiloMode.CONTROL, can_be_monolith=False
+        ):
+            response = parser.get_response()
+            assert response.status_code == 200
+            assert response.data == {"type": 1}
+            assert not mock_response_from_control.called
             assert not get_response_from_first_region.called
 
     def test_interactions_endpoint_routing_command(self):

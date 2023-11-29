@@ -8,7 +8,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupCurrentReleaseTest(APITestCase):
     def _set_up_current_release(self, group_seen_on_latest_release):
         clock = MockClock()
