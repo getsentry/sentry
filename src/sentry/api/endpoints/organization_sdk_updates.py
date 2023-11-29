@@ -27,6 +27,9 @@ def by_project_id(sdk):
 
 
 def serialize(data, projects):
+    # filter out SDKs with empty sdk.name or sdk.version
+    nonempty_sdks = [sdk for sdk in data if sdk["sdk.name"] != "" and sdk["sdk.version"] != ""]
+
     # Build datastructure of the latest version of each SDK in use for each
     # project we have events for.
     latest_sdks = chain.from_iterable(
@@ -38,7 +41,7 @@ def serialize(data, projects):
             }
             for sdk_name, sdks in groupby(sorted(sdks_used, key=by_sdk_name), key=by_sdk_name)
         ]
-        for project_id, sdks_used in groupby(data, key=by_project_id)
+        for project_id, sdks_used in groupby(nonempty_sdks, key=by_project_id)
     )
 
     # Determine suggested upgrades for each project
