@@ -67,7 +67,10 @@ interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   staleTime: number;
 }
 
-type UseApiQueryResult<TData, TError> = reactQuery.UseQueryResult<TData, TError> & {
+export type UseApiQueryResult<TData, TError> = reactQuery.UseQueryResult<
+  TData,
+  TError
+> & {
   /**
    * Get a header value from the response
    */
