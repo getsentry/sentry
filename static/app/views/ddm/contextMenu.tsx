@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
 import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -29,25 +30,36 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
     displayType
   );
 
-  if (!organization.features.includes('ddm-experimental')) {
+  const hasDdmAlerts = hasDdmAlertsSupport(organization);
+  const hasDdmWidgets = organization.features.includes('ddm-experimental');
+
+  if (!hasDdmWidgets && !hasDdmAlerts) {
     return null;
   }
 
   return (
     <StyledDropdownMenuControl
       items={[
-        {
-          key: 'add-alert',
-          label: t('Create Alert'),
-          disabled: !createAlert,
-          onAction: createAlert,
-        },
-        {
-          key: 'add-dashoard',
-          label: t('Add to Dashboard'),
-          disabled: !handleAddQueryToDashboard,
-          onAction: handleAddQueryToDashboard,
-        },
+        ...(hasDdmAlerts
+          ? [
+              {
+                key: 'add-alert',
+                label: t('Create Alert'),
+                disabled: !createAlert,
+                onAction: createAlert,
+              },
+            ]
+          : []),
+        ...(hasDdmWidgets
+          ? [
+              {
+                key: 'add-dashoard',
+                label: t('Add to Dashboard'),
+                disabled: !handleAddQueryToDashboard,
+                onAction: handleAddQueryToDashboard,
+              },
+            ]
+          : []),
       ]}
       triggerProps={{
         'aria-label': t('Widget actions'),
