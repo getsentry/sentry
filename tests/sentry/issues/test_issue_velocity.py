@@ -63,6 +63,7 @@ class VelocityThresholdCalculationTests(TestCase, SnubaTestCase, SearchIssueTest
         # first and second most frequent issues, which in this case have 6 and 5 events respectively
         expected_threshold = ((6 / WEEK_IN_HOURS) + (5 / WEEK_IN_HOURS)) / 2
         actual_threshold = calculate_velocity_threshold_for_project(self.project)
+        assert actual_threshold is not None
 
         # clickhouse's quantile function is approximate
         # https://clickhouse.com/docs/en/sql-reference/aggregate-functions/reference/quantile
@@ -103,4 +104,5 @@ class VelocityThresholdCalculationTests(TestCase, SnubaTestCase, SearchIssueTest
         )
 
         threshold = calculate_velocity_threshold_for_project(self.project)
+        assert threshold is not None
         assert math.isnan(threshold)

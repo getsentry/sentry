@@ -122,10 +122,10 @@ def set_velocity_threshold_for_project(project: Project) -> None:
     # store in redis
     with sentry_sdk.start_span(op="cluster.{CLUSTER_KEY}.set_velocity_threshold_for_project"):
         client = redis_clusters.get(CLUSTER_KEY)
-        client.set(project.id, f"{threshold}")
+        client.set(str(project.id), f"{threshold}")
 
 
-def get_velocity_threshold_for_project(project: Project) -> int:
+def get_velocity_threshold_for_project(project: Project):
     # get from redis
     client = redis_clusters.get(CLUSTER_KEY)
-    return client.get(project.id)
+    return client.get(str(project.id))
