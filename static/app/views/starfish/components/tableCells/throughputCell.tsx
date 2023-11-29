@@ -14,7 +14,7 @@ type Props = {
 export function ThroughputCell({rate, unit, containerProps}: Props) {
   return (
     <NumberContainer {...containerProps}>
-      {rate ? formatRate(rate, unit, {minimumValue: 0.01}) : '--'}
+      {rate ? formatRate(rate, unit, {minimumValue: 0.001}) : '--'}
     </NumberContainer>
   );
 }
