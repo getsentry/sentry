@@ -14,6 +14,7 @@ interface CodeSnippetProps {
   language: string;
   className?: string;
   dark?: boolean;
+  ['data-render-inline']?: boolean;
   /**
    * Makes the text of the element and its sub-elements not selectable.
    * Userful when loading parts of a code snippet, and
@@ -42,17 +43,18 @@ interface CodeSnippetProps {
 
 export function CodeSnippet({
   children,
-  language,
+  className,
   dark,
+  'data-render-inline': dataRenderInline,
+  disableUserSelection,
   filename,
   hideCopyButton,
-  onCopy,
-  className,
-  onSelectAndCopy,
-  disableUserSelection,
+  language,
   onAfterHighlight,
-  selectedTab,
+  onCopy,
+  onSelectAndCopy,
   onTabClick,
+  selectedTab,
   tabs,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
@@ -99,7 +101,10 @@ export function CodeSnippet({
       : t('Unable to copy');
 
   return (
-    <Wrapper className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}>
+    <Wrapper
+      className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}
+      data-render-inline={dataRenderInline}
+    >
       <Header isSolid={hasSolidHeader}>
         {hasTabs && (
           <Fragment>
@@ -159,6 +164,10 @@ const Wrapper = styled('div')`
   ${p => prismStyles(p.theme)}
   pre {
     margin: 0;
+  }
+
+  &[data-render-inline='true'] pre {
+    padding: 0;
   }
 `;
 

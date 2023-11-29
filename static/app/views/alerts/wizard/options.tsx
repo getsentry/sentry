@@ -1,7 +1,7 @@
 import mapValues from 'lodash/mapValues';
 
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
+import type {Organization, TagCollection} from 'sentry/types';
 import {
   FieldKey,
   makeTagCollection,
@@ -11,7 +11,7 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {DEFAULT_METRIC_ALERT_FIELD} from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -71,7 +71,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
   custom_metrics: t('Custom Metric'),
-  custom_transactions: t('Custom Metric'),
+  custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
 };
@@ -103,14 +103,14 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
       'lcp',
       'fid',
       'cls',
-      ...(hasDdmAlertsSupport(org)
+      ...(hasDDMExperimentalFeature(org)
         ? (['custom_transactions'] satisfies AlertType[])
         : []),
     ],
   },
   {
-    categoryHeading: hasDdmAlertsSupport(org) ? t('Metrics') : t('Custom'),
-    options: [hasDdmAlertsSupport(org) ? 'custom_metrics' : 'custom_transactions'],
+    categoryHeading: hasDDMExperimentalFeature(org) ? t('Metrics') : t('Custom'),
+    options: [hasDDMExperimentalFeature(org) ? 'custom_metrics' : 'custom_transactions'],
   },
 ];
 
@@ -256,7 +256,9 @@ export function datasetSupportedTags(
 ): TagCollection | undefined {
   return mapValues(
     {
-      [Dataset.ERRORS]: undefined,
+      [Dataset.ERRORS]: org.features.includes('metric-alert-ignore-archived')
+        ? [FieldKey.IS]
+        : undefined,
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
         : transactionSupportedTags(org),
@@ -326,17 +328,27 @@ function transactionOmittedTags(org: Organization) {
     : undefined;
 }
 
-export function getSupportedAndOmittedTags(dataset: Dataset, organization: Organization) {
+export function getSupportedAndOmittedTags(
+  dataset: Dataset,
+  organization: Organization
+): {
+  omitTags?: string[];
+  supportedTags?: TagCollection;
+} {
   const omitTags = datasetOmittedTags(dataset, organization);
   const supportedTags = datasetSupportedTags(dataset, organization);
 
   const result = {omitTags, supportedTags};
 
   // remove undefined values, since passing explicit undefined to the SeachBar overrides its defaults
-  return Object.keys({omitTags, supportedTags}).reduce((acc, key) => {
+  return Object.keys({omitTags, supportedTags}).reduce<{
+    omitTags?: string[];
+    supportedTags?: TagCollection;
+  }>((acc, key) => {
     if (result[key] !== undefined) {
       acc[key] = result[key];
     }
+
     return acc;
   }, {});
 }

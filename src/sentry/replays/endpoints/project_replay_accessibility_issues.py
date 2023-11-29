@@ -8,6 +8,7 @@ import requests
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import metrics
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -17,6 +18,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.replays.lib.storage import make_filename
 from sentry.replays.usecases.reader import fetch_direct_storage_segments_meta
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 
 REFERRER = "replays.query.query_replay_clicks_dataset"
@@ -26,9 +28,20 @@ logger = logging.getLogger()
 
 @region_silo_endpoint
 class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
+    # Internal API maintenance decoration.
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+
+    # Rate Limits
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+        }
     }
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
@@ -42,6 +55,11 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             project.organization,
             actor=request.user,
         ):
+            metrics.incr("session-replay-accessibility-issues-flag-disabled")
+            return Response(status=404)
+
+        if options.get("organizations:session-replay-accessibility-issues-enabled") is False:
+            metrics.incr("session-replay-accessibility-issues-option-disabled")
             return Response(status=404)
 
         try:
@@ -50,6 +68,9 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         def data_fn(offset, limit):
+            # Increment a counter for every call to the accessibility service.
+            metrics.incr("session-replay-accessibility-issues-count")
+
             # We only support direct-storage.  Filestore is deprecated and should be removed from
             # the driver.
             segments = fetch_direct_storage_segments_meta(project.id, replay_id, offset, limit)

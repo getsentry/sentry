@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -8,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
-import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -30,36 +31,25 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
     displayType
   );
 
-  const hasDdmAlerts = hasDdmAlertsSupport(organization);
-  const hasDdmWidgets = organization.features.includes('ddm-experimental');
-
-  if (!hasDdmWidgets && !hasDdmAlerts) {
+  if (!hasDDMFeature(organization)) {
     return null;
   }
 
   return (
     <StyledDropdownMenuControl
       items={[
-        ...(hasDdmAlerts
-          ? [
-              {
-                key: 'add-alert',
-                label: t('Create Alert'),
-                disabled: !createAlert,
-                onAction: createAlert,
-              },
-            ]
-          : []),
-        ...(hasDdmWidgets
-          ? [
-              {
-                key: 'add-dashoard',
-                label: t('Add to Dashboard'),
-                disabled: !handleAddQueryToDashboard,
-                onAction: handleAddQueryToDashboard,
-              },
-            ]
-          : []),
+        {
+          key: 'add-alert',
+          label: t('Create Alert'),
+          disabled: !createAlert,
+          onAction: createAlert,
+        },
+        {
+          key: 'add-dashoard',
+          label: t('Add to Dashboard'),
+          disabled: !handleAddQueryToDashboard,
+          onAction: handleAddQueryToDashboard,
+        },
       ]}
       triggerProps={{
         'aria-label': t('Widget actions'),
@@ -98,12 +88,12 @@ function useHandleAddQueryToDashboard(
       orderby: '',
     };
 
-    const urlWidgetQuery = new URLSearchParams({
+    const urlWidgetQuery = urlEncode({
       ...widgetQuery,
       aggregates: field,
       fields: field,
       columns: groupBy?.join(',') ?? '',
-    }).toString();
+    });
 
     const widgetAsQueryParams = {
       source: DashboardWidgetSource.DDM,
