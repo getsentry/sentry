@@ -219,7 +219,7 @@ type Props = WithRouterProps &
      */
     disallowWildcard?: boolean;
     /**
-     * Disables the OR operator
+     * Disables specified boolean operators
      */
     disallowedLogicalOperators?: Set<BooleanOperator>;
     dropdownClassName?: string;
