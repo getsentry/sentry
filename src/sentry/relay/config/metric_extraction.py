@@ -317,8 +317,8 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     if query_killswitch:
         return False
 
-    if not widget_query.columns:
-        # No columns means no high-cardinality tags.
+    # No columns or only errors means no high-cardinality tags.
+    if not widget_query.columns or widget_query.conditions == "conditions=event.type:error":
         return True
 
     max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
@@ -353,9 +353,10 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
                 count = processed_results["data"][0][unique_columns[index]]
                 if count > max_cardinality_allowed:
                     cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
-                    scope.set_tag("column_name", column)
-                    scope.set_tag("widget_id", widget_query.id)
-                    scope.set_tag("org_id", project.organization_id)
+                    scope.set_tag("widget_query.column_name", column)
+                    scope.set_tag("widget_query.widget_id", widget_query.id)
+                    scope.set_tag("widget_query.org_id", project.organization_id)
+                    scope.set_tag("widget_query.conditions", widget_query.conditions)
                     raise HighCardinalityWidgetException(
                         f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
                     )
