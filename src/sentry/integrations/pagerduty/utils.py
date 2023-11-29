@@ -24,7 +24,7 @@ def build_incident_attachment(
     incident,
     integration_key,
     new_status: IncidentStatus,
-    metric_value: int | None = None,
+    metric_value: float | None = None,
     notfiication_uuid: str | None = None,
 ) -> dict[str, Any]:
     data = incident_attachment_info(
@@ -59,7 +59,7 @@ def build_incident_attachment(
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: int,
+    metric_value: float,
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:

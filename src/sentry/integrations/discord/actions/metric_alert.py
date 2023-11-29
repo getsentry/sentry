@@ -17,9 +17,9 @@ from ..utils import logger
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: int,
+    metric_value: float,
     new_status: IncidentStatus,
-) -> None:
+) -> bool:
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
         try:
@@ -39,7 +39,7 @@ def send_incident_alert_notification(
             "discord.metric_alert.no_channel",
             extra={"guild_id": incident.identifier},
         )
-        return
+        return False
 
     message = DiscordMetricAlertMessageBuilder(
         alert_rule=incident.alert_rule,
@@ -57,3 +57,6 @@ def send_incident_alert_notification(
             "discord.metric_alert.messsage_send_failure",
             extra={"error": error, "guild_id": incident.identifier, "channel_id": channel},
         )
+        return False
+    else:
+        return True

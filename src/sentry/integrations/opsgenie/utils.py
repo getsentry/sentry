@@ -17,7 +17,7 @@ from .client import OpsgenieClient
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: int | None = None,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
     data = incident_attachment_info(
@@ -59,7 +59,7 @@ def get_team(team_id: Optional[str], org_integration: Optional[RpcOrganizationIn
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: int,
+    metric_value: float,
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:

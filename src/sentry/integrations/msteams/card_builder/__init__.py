@@ -35,7 +35,7 @@ AdaptiveCard = Mapping[str, Union[str, Sequence[Block], Sequence[Action]]]
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: int | None = None,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> Dict[str, Any]:
     data = incident_attachment_info(
