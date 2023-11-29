@@ -216,7 +216,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
       <Footer>
         <Tooltip disabled={isFormValid} title={t('Please select a project')}>
           <Button priority="primary" disabled={!isFormValid} onClick={handleSubmit}>
-            {t('Create Alert')}
+            {t('Continue')}
           </Button>
         </Tooltip>
       </Footer>
