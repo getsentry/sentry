@@ -7,6 +7,7 @@ from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tupl
 from snuba_sdk import (
     AliasedExpression,
     Column,
+    Formula,
     MetricsQuery,
     MetricsScope,
     Request,
@@ -20,7 +21,8 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
-from sentry.snuba.dataset import Dataset
+from sentry.sentry_metrics.querying.registry.default import DEFAULT_REGISTRY
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics_layer.query import run_query
 
 # TODO: remove this and perform the transpilation of the grammar to MQL.
@@ -41,8 +43,11 @@ ResultValue = Optional[Union[int, float, List[Optional[Union[int, float]]]]]
 Series = List[Tuple[str, ResultValue]]
 # Type representing a single aggregate value.
 Total = ResultValue
-# Type representing the group key as a tuple of tuples ((`key_1`, `value_1`), (`key_2, `value_2), ...)
+# Type representing the group key as a tuple of tuples ((`key_1`, `value_1`), (`key_2, `value_2), ...).
 GroupKey = Tuple[Tuple[str, str], ...]
+# Type representing the query that is performed. It should not be confused with the `MetricsQuery` which is the
+# structure holding all the metadata for the entire query to be performed.
+Query = Union[Timeseries, Formula]
 
 
 @dataclass
@@ -145,23 +150,40 @@ class ExecutionResult:
         return self.result["meta"]
 
 
-class MutableTimeseries:
+class MutableQuery:
     PERCENTILE_REGEX = re.compile(r"^p(\d{1,3})$")
 
-    def __init__(self, timeseries: Timeseries):
-        self._timeseries = timeseries
+    def __init__(self, query: Query):
+        self._query = query
 
-    def inject_environments(self, environments: Sequence[Environment]) -> "MutableTimeseries":
-        if environments:
-            environment_names = [environment.name for environment in environments]
-            existing_filters = self._timeseries.filters[:] if self._timeseries.filters else []
-            self._timeseries = self._timeseries.set_filters(
-                existing_filters + [Condition(Column("environment"), Op.IN, environment_names)]
+    def _alias_ops(self, query: Query) -> Query:
+        if isinstance(query, Formula):
+            return query.set_parameters(
+                [self._alias_ops(parameter) for parameter in query.parameters]
             )
+        elif isinstance(query, Timeseries):
+            if (entry := DEFAULT_REGISTRY.get(query.aggregate)) is not None:
+                # TODO: infer entity from timeseries metric.
+                if entry.is_supported(EntityKey.GenericMetricsGauges):
+                    return entry.get(query)
+
+        return query
+
+    def alias_aggregates(self) -> "MutableQuery":
+        pass
+
+    def inject_environments(self, environments: Sequence[Environment]) -> "MutableQuery":
+        # TODO: implement environment injection in formulas.
+        # if environments:
+        #     environment_names = [environment.name for environment in environments]
+        #     existing_filters = self._timeseries.filters[:] if self._timeseries.filters else []
+        #     self._timeseries = self._timeseries.set_filters(
+        #         existing_filters + [Condition(Column("environment"), Op.IN, environment_names)]
+        #     )
 
         return self
 
-    def alias_operators(self) -> "MutableTimeseries":
+    def alias_operators(self) -> "MutableQuery":
         # In case we have a percentile in the form `px` where `x` is in the range [0-100], we want to convert it to
         # the quantiles operation which generalizes any percentile.
         if (match := self.PERCENTILE_REGEX.match(self._timeseries.aggregate)) is not None:
@@ -216,13 +238,13 @@ class QueryParser:
         field: str,
         filters: Optional[Sequence[Condition]],
         group_bys: Optional[Sequence[Column]],
-    ) -> MutableTimeseries:
+    ) -> MutableQuery:
         """
         Parses the field with the MQL grammar.
         """
         timeseries = parse_mql(field).query
         modified_timeseries = timeseries.set_filters(filters).set_groupby(group_bys)
-        return MutableTimeseries(timeseries=modified_timeseries)
+        return MutableQuery(timeseries=modified_timeseries)
 
     def generate_queries(
         self, environments: Sequence[Environment]
