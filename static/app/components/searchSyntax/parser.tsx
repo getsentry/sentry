@@ -686,15 +686,18 @@ export class TokenConverter {
    */
   checkInvalidLogicalBoolean = (value: BooleanOperator) => {
     if (this.config.disallowedLogicalOperators.has(value)) {
-      return value === BooleanOperator.OR
-        ? {
-            type: InvalidReason.LOGICAL_OR_NOT_ALLOWED,
-            reason: this.config.invalidMessages[InvalidReason.LOGICAL_OR_NOT_ALLOWED],
-          }
-        : {
-            type: InvalidReason.LOGICAL_AND_NOT_ALLOWED,
-            reason: this.config.invalidMessages[InvalidReason.LOGICAL_AND_NOT_ALLOWED],
-          };
+      if (value === BooleanOperator.OR) {
+        return {
+          type: InvalidReason.LOGICAL_OR_NOT_ALLOWED,
+          reason: this.config.invalidMessages[InvalidReason.LOGICAL_OR_NOT_ALLOWED],
+        };
+      }
+      if (value === BooleanOperator.AND) {
+        return {
+          type: InvalidReason.LOGICAL_AND_NOT_ALLOWED,
+          reason: this.config.invalidMessages[InvalidReason.LOGICAL_AND_NOT_ALLOWED],
+        };
+      }
     }
 
     return null;
