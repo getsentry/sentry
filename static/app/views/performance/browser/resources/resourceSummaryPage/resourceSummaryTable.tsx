@@ -23,7 +23,7 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
 import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
@@ -123,7 +123,11 @@ function ResourceSummaryTable() {
                 <FullSpanDescription
                   group={groupId}
                   language="http"
-                  transaction={row[TRANSACTION]}
+                  filters={{
+                    [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]:
+                      row[RESOURCE_RENDER_BLOCKING_STATUS],
+                    [SpanIndexedField.TRANSACTION]: row[TRANSACTION],
+                  }}
                 />
               </Fragment>
             }

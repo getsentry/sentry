@@ -9,23 +9,14 @@ import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatte
 
 const formatter = new SQLishFormatter();
 
-export function FullSpanDescription({
-  group,
-  shortDescription,
-  language,
-  transaction,
-}: Props) {
+export function FullSpanDescription({group, shortDescription, language, filters}: Props) {
   const {
     data: fullSpan,
     isLoading,
     isFetching,
-  } = useFullSpanFromTrace(group, undefined, Boolean(group), transaction);
+  } = useFullSpanFromTrace(group, undefined, Boolean(group), filters);
 
   const description = fullSpan?.description ?? shortDescription;
-
-  if (!description && shortDescription) {
-    return null;
-  }
 
   if (isLoading && isFetching) {
     return (
@@ -33,6 +24,10 @@ export function FullSpanDescription({
         <LoadingIndicator mini hideMessage relative />
       </PaddedSpinner>
     );
+  }
+
+  if (!description) {
+    return null;
   }
 
   if (language === 'sql') {
@@ -51,10 +46,10 @@ export function FullSpanDescription({
 }
 
 interface Props {
+  filters?: Record<string, string>;
   group?: string;
   language?: 'sql' | 'http';
   shortDescription?: string;
-  transaction?: string;
 }
 
 const LINE_LENGTH = 60;

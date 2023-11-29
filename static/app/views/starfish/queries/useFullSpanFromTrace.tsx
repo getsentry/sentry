@@ -10,16 +10,16 @@ export function useFullSpanFromTrace(
   group?: string,
   sorts?: Sort[],
   enabled: boolean = true,
-  transaction?: string
+  extraFilters?: Record<string, string>
 ) {
-  const filters: {[key: string]: string} = {};
+  let filters: {[key: string]: string} = {};
 
   if (group) {
     filters[SpanIndexedField.SPAN_GROUP] = group;
   }
 
-  if (transaction) {
-    filters[SpanIndexedField.TRANSACTION] = transaction ?? '';
+  if (extraFilters) {
+    filters = {...filters, ...extraFilters};
   }
 
   const indexedSpansResponse = useIndexedSpans(filters, sorts, 1, enabled);
