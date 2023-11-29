@@ -208,16 +208,13 @@ class QueryParser:
         """
         Builds a set of MQL filters from a single query string.
 
-        The algorithm assumes a list of space separated strings and excludes all `AND` and `OR` boolean operators since
-        they are not needed in MQL. In addition, it assumes no parentheses are supplied, since
+        In this case the query passed, is assumed to be already compatible with the filters grammar of MQL, thus no
+        transformation are performed.
         """
         if not self._query:
             return None
 
-        filters = self._query.split(" ")
-        cleaned_filters = [f for f in filters if f not in ("AND", "OR")]
-
-        return ",".join(cleaned_filters)
+        return self._query
 
     def _build_mql_group_bys(self) -> Optional[str]:
         """

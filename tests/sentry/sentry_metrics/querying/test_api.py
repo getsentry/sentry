@@ -166,7 +166,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[2]["series"] == {field: [0.0, 5.0, 3.0]}
         assert groups[2]["totals"] == {field: 8.0}
 
-    def test_query_with_filters(self) -> None:
+    def test_query_with_two_simple_filters(self) -> None:
         # Query with one aggregation, one group by and two filters.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -186,6 +186,72 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["by"] == {"platform": "ios"}
         assert groups[0]["series"] == {field: [0.0, 3.0, 3.0]}
         assert groups[0]["totals"] == {field: 6.0}
+
+    def test_query_one_negated_filter(self) -> None:
+        # Query with one aggregation, one group by and two filters.
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query="!platform:ios transaction:/hello",
+            group_bys=["platform"],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {"platform": "android"}
+        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
+        assert groups[0]["totals"] == {field: 3.0}
+
+    def test_query_one_in_filter(self) -> None:
+        # Query with one aggregation, one group by and two filters.
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query="platform:[android, ios]",
+            group_bys=["platform"],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 2
+        assert groups[0]["by"] == {"platform": "android"}
+        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
+        assert groups[0]["totals"] == {field: 3.0}
+        assert groups[1]["by"] == {"platform": "ios"}
+        assert groups[1]["series"] == {field: [0.0, 3.0, 3.0]}
+        assert groups[1]["totals"] == {field: 6.0}
+
+    def test_query_one_not_in_filter(self) -> None:
+        # Query with one aggregation, one group by and two filters.
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query='!platform:["android", "ios"]',
+            group_bys=["platform"],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {"platform": "windows"}
+        assert groups[0]["series"] == {field: [0.0, 5.0, 3.0]}
+        assert groups[0]["totals"] == {field: 8.0}
 
     def test_query_with_multiple_aggregations(self) -> None:
         # Query with two aggregations.
