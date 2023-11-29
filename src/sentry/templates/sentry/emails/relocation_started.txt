@@ -1,4 +1,4 @@
-Your relocation request has been accepted. You requested that the following organizations be migrating to sentry.io:
+Your relocation request has been accepted. You requested that the following organizations be moved to sentry.io:
 
 {% for org in orgs %}
 * {{ org }}
