@@ -71,7 +71,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
   custom_metrics: t('Custom Metric'),
-  custom_transactions: t('Custom Metric'),
+  custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
 };

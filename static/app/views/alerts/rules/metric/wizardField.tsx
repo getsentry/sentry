@@ -108,7 +108,7 @@ export default function WizardField({
         ...(hasDdmAlertsSupport(organization)
           ? [
               {
-                label: AlertWizardAlertNames.custom_metrics,
+                label: AlertWizardAlertNames.custom_transactions,
                 value: 'custom_transactions' as const,
               },
             ]
@@ -118,12 +118,15 @@ export default function WizardField({
     {
       label: hasDdmAlertsSupport(organization) ? t('METRICS') : t('CUSTOM'),
       options: [
-        {
-          label: AlertWizardAlertNames.custom_metrics,
-          value: hasDdmAlertsSupport(organization)
-            ? 'custom_metrics'
-            : 'custom_transactions',
-        },
+        hasDdmAlertsSupport(organization)
+          ? {
+              label: AlertWizardAlertNames.custom_metrics,
+              value: 'custom_metrics',
+            }
+          : {
+              label: AlertWizardAlertNames.custom_transactions,
+              value: 'custom_transactions',
+            },
       ],
     },
   ];
