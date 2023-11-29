@@ -466,7 +466,6 @@ module = [
     "sentry.models.auditlogentry",
     "sentry.models.integrations.external_issue",
     "sentry.models.integrations.sentry_app_installation",
-    "sentry.models.notificationsetting",
     "sentry.models.organizationaccessrequest",
     "sentry.models.organizationmember",
     "sentry.monitors.consumers.monitor_consumer",
