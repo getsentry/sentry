@@ -2,8 +2,7 @@ import types
 
 import pytest
 
-from sentry.runner.importer import ConfigurationError
-from sentry.runner.initializer import apply_legacy_settings, bootstrap_options
+from sentry.runner.initializer import ConfigurationError, apply_legacy_settings, bootstrap_options
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
