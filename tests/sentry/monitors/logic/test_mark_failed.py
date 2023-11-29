@@ -242,7 +242,7 @@ class MarkFailedTestCase(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            status=monitor.status,
+            status=MonitorStatus.OK,
         )
 
         successful_check_in = MonitorCheckIn.objects.create(
@@ -585,6 +585,7 @@ class MarkFailedTestCase(TestCase):
         monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
         assert len(monitor_incidents) == 0
 
+    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_issue_threshold(self, mock_produce_occurrence_to_kafka):
         failure_issue_threshold = 8

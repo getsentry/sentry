@@ -42,7 +42,9 @@ def mark_failed(
     computed based on the tasks reference time.
     """
     monitor_env = failed_checkin.monitor_environment
-    failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 0)
+    failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 1)
+    if not failure_issue_threshold:
+        failure_issue_threshold = 1
 
     # Compute the next check-in time from our reference time
     next_checkin = monitor_env.monitor.get_next_expected_checkin(ts)
@@ -70,15 +72,6 @@ def mark_failed(
         "next_checkin_latest": next_checkin_latest,
     }
 
-    # Additionally update status when not using thresholds. The threshold based
-    # failure will only update status once it has passed the threshold.
-    if not failure_issue_threshold:
-        failed_status_map = {
-            CheckInStatus.MISSED: MonitorStatus.MISSED_CHECKIN,
-            CheckInStatus.TIMEOUT: MonitorStatus.TIMEOUT,
-        }
-        field_updates["status"] = failed_status_map.get(failed_checkin.status, MonitorStatus.ERROR)
-
     affected = monitors_to_update.update(**field_updates)
 
     # If we did not update the monitor environment it means there was a newer
@@ -95,7 +88,14 @@ def mark_failed(
     monitor_env.refresh_from_db()
 
     # Create incidents + issues
-    if failure_issue_threshold:
+    use_issue_platform = False
+    try:
+        organization = Organization.objects.get(id=monitor_env.monitor.organization_id)
+        use_issue_platform = features.has("organizations:issue-platform", organization=organization)
+    except Organization.DoesNotExist:
+        pass
+
+    if use_issue_platform:
         return mark_failed_threshold(failed_checkin, failure_issue_threshold)
     else:
         return mark_failed_no_threshold(failed_checkin)
@@ -112,21 +112,52 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     # check to see if we need to update the status
     if monitor_env.status == MonitorStatus.OK:
-        # reverse the list after slicing in order to start with oldest check-in
-        # use .values() to speed up query
-        previous_checkins = list(
-            reversed(
-                MonitorCheckIn.objects.filter(
-                    monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
+        if failure_issue_threshold > 1:
+            # reverse the list after slicing in order to start with oldest check-in
+            # use .values() to speed up query
+            previous_checkins = list(
+                reversed(
+                    MonitorCheckIn.objects.filter(
+                        monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
+                    )
+                    .order_by("-date_added")
+                    .values("id", "date_added", "status")[:failure_issue_threshold]
                 )
-                .exclude(status=CheckInStatus.IN_PROGRESS)
-                .order_by("-date_added")
-                .values("id", "date_added", "status")[:failure_issue_threshold]
             )
-        )
-        # check for successive failed previous check-ins
-        if not all([checkin["status"] != CheckInStatus.OK for checkin in previous_checkins]):
-            return False
+            future_checkins = list(
+                MonitorCheckIn.objects.filter(
+                    monitor_environment=monitor_env, date_added__gt=failed_checkin.date_added
+                )
+                .order_by("date_added")
+                .values("id", "date_added", "status")[: failure_issue_threshold - 1]
+            )
+            evaluated_checkins = previous_checkins + future_checkins
+            # check for successive failed check-ins
+            consecutive_failed_checkins, failure_index = 0, 0
+            for index, checkin in enumerate(evaluated_checkins):
+                if checkin["status"] not in [CheckInStatus.OK, CheckInStatus.IN_PROGRESS]:
+                    consecutive_failed_checkins += 1
+                    if consecutive_failed_checkins == failure_issue_threshold:
+                        failure_index = index
+                        break
+                else:
+                    consecutive_failed_checkins = 0
+
+            # if threshold not met, ignore
+            if consecutive_failed_checkins < failure_issue_threshold:
+                return False
+
+            failure_index = failure_index - failure_issue_threshold + 1
+            num_occurrences = failure_issue_threshold
+        else:
+            failure_index = 0
+            num_occurrences = 1
+            evaluated_checkins = [
+                MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
+                .order_by("-date_added")
+                .values("id", "date_added", "status")
+                .first()
+            ]
 
         # change monitor status + update fingerprint timestamp
         monitor_env.status = MonitorStatus.ERROR
@@ -135,7 +166,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
         # Do not create incident if monitor is disabled
         if not monitor_disabled:
-            starting_checkin = previous_checkins[0]
+            starting_checkin = evaluated_checkins[failure_index]
 
             # for new incidents, generate a new hash from a uuid to use
             fingerprint = hash_from_values([uuid.uuid4()])
@@ -154,7 +185,9 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
     ]:
         # if monitor environment has a failed status, get the most recent
         # check-in and send occurrence
-        previous_checkins = [
+        failure_index = 0
+        num_occurrences = 1
+        evaluated_checkins = [
             MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
             .order_by("-date_added")
             .values("id", "date_added", "status")
@@ -171,8 +204,9 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
     if monitor_disabled:
         return True
 
-    for previous_checkin in previous_checkins:
-        checkin_from_db = MonitorCheckIn.objects.get(id=previous_checkin["id"])
+    # Create issue from failed check-ins
+    for checkin_index in range(failure_index, failure_index + num_occurrences):
+        checkin_from_db = MonitorCheckIn.objects.get(id=evaluated_checkins[checkin_index]["id"])
         create_issue_platform_occurrence(checkin_from_db, fingerprint)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
@@ -189,17 +223,7 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
     if monitor_env.monitor.status == MonitorObjectStatus.DISABLED:
         return True
 
-    use_issue_platform = False
-    try:
-        organization = Organization.objects.get(id=monitor_env.monitor.organization_id)
-        use_issue_platform = features.has("organizations:issue-platform", organization=organization)
-    except Organization.DoesNotExist:
-        pass
-
-    if use_issue_platform:
-        create_issue_platform_occurrence(failed_checkin)
-    else:
-        create_legacy_event(failed_checkin)
+    create_legacy_event(failed_checkin)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
