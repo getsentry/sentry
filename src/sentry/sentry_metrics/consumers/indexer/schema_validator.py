@@ -44,5 +44,5 @@ class MetricsSchemaValidator:
             return None
 
         validation_sample_rate = self.schema_validation_rules.get(use_case_id, 1.0)
-        if random.random() <= validation_sample_rate:
+        if random.random() < validation_sample_rate:
             return self.input_codec.validate(message)
