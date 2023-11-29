@@ -308,8 +308,9 @@ class DiscordNotifyServiceFormTest(TestCase):
         assert mock_get_channel_id_from_url.call_count == 1
 
     def test_no_server(self):
-        self.form.full_clean()
-        assert not self.form.is_valid()
+        form = DiscordNotifyServiceForm(integrations=self.integrations)
+        form.full_clean()
+        assert not form.is_valid()
 
     @mock.patch(
         "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
@@ -361,5 +362,33 @@ class DiscordNotifyServiceFormTest(TestCase):
 
         form.full_clean()
         assert not form.is_valid()
+        assert mock_validate_channel_id.call_count == 1
+        assert mock_get_channel_id_from_url.call_count == 1
+
+    def test_get_channel_id_bad(self):
+        form = DiscordNotifyServiceForm(
+            data={
+                "server": self.discord_integration.id,
+                "channel_id": "https://discord.com/channels/server/",
+                "tags": "environment",
+            },
+            integrations=self.integrations,
+        )
+
+        form.full_clean()
+        assert not form.is_valid()
+
+    @mock.patch(
+        "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
+        return_value=None,
+    )
+    @mock.patch(
+        "sentry.integrations.discord.actions.issue_alert.form.get_channel_id_from_url",
+        return_value="new_channel_id",
+    )
+    def test_get_channel_id_updates(self, mock_validate_channel_id, mock_get_channel_id_from_url):
+        self.form.full_clean()
+        assert self.form.is_valid()
+        assert self.form.cleaned_data["channel_id"] == "new_channel_id"
         assert mock_validate_channel_id.call_count == 1
         assert mock_get_channel_id_from_url.call_count == 1
