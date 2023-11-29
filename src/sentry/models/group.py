@@ -826,6 +826,15 @@ class Group(Model):
         return self.project.organization
 
     @property
+    def sdk(self) -> str | None:
+        """returns normalized SDK name"""
+
+        try:
+            return self.get_event_metadata()["sdk"]["name_normalized"]
+        except KeyError:
+            return None
+
+    @property
     def checksum(self):
         warnings.warn("Group.checksum is no longer used", DeprecationWarning)
         return ""
