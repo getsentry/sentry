@@ -11,11 +11,10 @@ describe('ProviderItem', function () {
   const org = Organization({
     features: [descopeFeatureName(provider.requiredFeature)],
   });
-  const routerContext = TestStubs.routerContext([{organization: org}]);
 
   it('renders', function () {
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
-      context: routerContext,
+      organization: org,
     });
 
     expect(
@@ -26,7 +25,7 @@ describe('ProviderItem', function () {
   it('calls configure callback', async function () {
     const mock = jest.fn();
     render(<ProviderItem active={false} provider={provider} onConfigure={mock} />, {
-      context: routerContext,
+      organization: org,
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Configure'}));

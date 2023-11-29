@@ -143,7 +143,11 @@ function extractFeatures(props: FeatureProps): string | ReadonlyArray<string> {
 
 function hasSingleFeature(feature: string, features: AllFeatures) {
   // Array of feature strings
-  const {configFeatures, organization, project} = features;
+  const {
+    configFeatures,
+    organization: organizationFeatures,
+    project: projectFeatures,
+  } = features;
 
   // Check config store first as this overrides features scoped to org or
   // project contexts.
@@ -153,16 +157,16 @@ function hasSingleFeature(feature: string, features: AllFeatures) {
 
   const shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
   if (shouldMatchOnlyOrg) {
-    return organization.includes(shouldMatchOnlyOrg[1]);
+    return organizationFeatures.includes(shouldMatchOnlyOrg[1]);
   }
 
   const shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
   if (shouldMatchOnlyProject) {
-    return project.includes(shouldMatchOnlyProject[1]);
+    return projectFeatures.includes(shouldMatchOnlyProject[1]);
   }
 
   // default, check all feature arrays
-  return organization.includes(feature) || project.includes(feature);
+  return organizationFeatures.includes(feature) || projectFeatures.includes(feature);
 }
 
 function hasFeatureAccess(
