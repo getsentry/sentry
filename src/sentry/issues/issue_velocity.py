@@ -90,14 +90,14 @@ def calculate_velocity_threshold_for_project(project: Project) -> int | None:
         tenant_ids={"referrer": REFERRER, "organization_id": project.organization.id},
     )
 
-    hourly_event_counts_per_issue = raw_snql_query(request, referrer=REFERRER)["data"]
-    if len(hourly_event_counts_per_issue) == 0:
+    result = raw_snql_query(request, referrer=REFERRER)["data"]
+    if len(result) == 0:
         return None
 
-    num_issues = len(hourly_event_counts_per_issue)
-    last_element_in_percentile = hourly_event_counts_per_issue[int(num_issues * 0.05)]
-
-    return last_element_in_percentile["event_count"]
+    try:
+        return result[0]["p90"]
+    except KeyError:
+        return None
 
 
 def set_velocity_threshold_for_project(project: Project) -> None:
