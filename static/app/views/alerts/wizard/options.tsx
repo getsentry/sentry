@@ -11,7 +11,7 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {DEFAULT_METRIC_ALERT_FIELD} from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -103,14 +103,14 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
       'lcp',
       'fid',
       'cls',
-      ...(hasDdmAlertsSupport(org)
+      ...(hasDDMExperimentalFeature(org)
         ? (['custom_transactions'] satisfies AlertType[])
         : []),
     ],
   },
   {
-    categoryHeading: hasDdmAlertsSupport(org) ? t('Metrics') : t('Custom'),
-    options: [hasDdmAlertsSupport(org) ? 'custom_metrics' : 'custom_transactions'],
+    categoryHeading: hasDDMExperimentalFeature(org) ? t('Metrics') : t('Custom'),
+    options: [hasDDMExperimentalFeature(org) ? 'custom_metrics' : 'custom_transactions'],
   },
 ];
 
