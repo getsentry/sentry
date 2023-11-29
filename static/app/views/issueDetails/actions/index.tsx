@@ -276,7 +276,7 @@ export function Actions(props: Props) {
 
     return (
       <Feature
-        features={['projects:discard-groups']}
+        features="projects:discard-groups"
         hookName="feature-disabled:discard-groups"
         organization={organization}
         project={project}
@@ -473,7 +473,7 @@ export function Actions(props: Props) {
       {discoverCap.enabled && (
         <Feature
           hookName="feature-disabled:open-in-discover"
-          features={['discover-basic']}
+          features="discover-basic"
           organization={organization}
         >
           <ActionButton

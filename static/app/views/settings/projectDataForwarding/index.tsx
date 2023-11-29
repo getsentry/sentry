@@ -146,7 +146,7 @@ class ProjectDataForwarding extends DeprecatedAsyncComponent<Props, State> {
     return (
       <div data-test-id="data-forwarding-settings">
         <Feature
-          features={['projects:data-forwarding']}
+          features="projects:data-forwarding"
           hookName="feature-disabled:data-forwarding"
         >
           {({hasFeature, features}) => (

@@ -277,7 +277,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
 export function InvestigationRuleCreation(props: Props) {
   const organization = useOrganization();
   return (
-    <Feature features={['investigation-bias']}>
+    <Feature features="investigation-bias">
       <InvestigationRuleCreationInternal {...props} organization={organization} />
     </Feature>
   );

@@ -35,7 +35,7 @@ function ThresholdTypeForm({
   }
 
   return (
-    <Feature features={['organizations:change-alerts']} organization={organization}>
+    <Feature features="organizations:change-alerts" organization={organization}>
       <FormRow>
         <StyledRadioGroup
           disabled={disabled}

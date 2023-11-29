@@ -550,7 +550,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                             withChart
                           />
 
-                          <Feature features={['performance-view']}>
+                          <Feature features="performance-view">
                             {hasReleaseComparisonPerformance ? (
                               <PerformanceCardTable
                                 organization={organization}

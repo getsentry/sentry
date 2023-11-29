@@ -23,7 +23,7 @@ function GroupReplaysContainer(props: Props) {
 
   return (
     <Feature
-      features={['session-replay']}
+      features="session-replay"
       organization={organization}
       renderDisabled={renderNoAccess}
     >
