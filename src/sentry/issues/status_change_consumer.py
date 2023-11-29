@@ -106,27 +106,29 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
         )
 
 
-def get_group_from_fingerprint(status_change: StatusChangeMessageData) -> Group | None:
-    grouphash = (
-        GroupHash.objects.filter(
-            project=status_change["project_id"],
-            hash=status_change["fingerprint"][0],
-        )
-        .select_related("group")
-        .first()
-    )
+def get_groups_from_fingerprints(
+    project_id: int, fingerprints: list[list[str]]
+) -> dict[str, Group]:
+    fingerprints_set = {fingerprint[0] for fingerprint in fingerprints}
+    grouphash = GroupHash.objects.filter(
+        project=project_id,
+        hash__in=fingerprints_set,
+    ).select_related("group")
 
-    if not grouphash:
+    result: dict[str, Group] = {grouphash.hash: grouphash.group for grouphash in grouphash}
+    found_fingerprints = set(result.keys())
+
+    for fingerprint in fingerprints_set - found_fingerprints:
+        full_fingerprint = [f for f in fingerprints if f[0] == fingerprint][0]
         logger.error(
             "grouphash.not_found",
             extra={
-                "project_id": status_change["project_id"],
-                "fingerprint": status_change["fingerprint"],
+                "project_id": project_id,
+                "fingerprint": full_fingerprint,
             },
         )
-        return None
 
-    return grouphash.group
+    return result
 
 
 def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -177,7 +179,10 @@ def process_status_change_message(
         return None
 
     with metrics.timer("occurrence_consumer._process_message.status_change.get_group"):
-        group = get_group_from_fingerprint(status_change_data)
+        groups_by_fingerprints = get_groups_from_fingerprints(
+            status_change_data["project_id"], [status_change_data["fingerprint"]]
+        )
+        group = groups_by_fingerprints.get(status_change_data["fingerprint"][0], None)
         if not group:
             metrics.incr(
                 "occurrence_ingest.status_change.dropped_group_not_found",
@@ -189,4 +194,4 @@ def process_status_change_message(
     with metrics.timer("occurrence_consumer._process_message.status_change.update_group_status"):
         update_status(group, status_change_data)
 
-    return group  # group, is_regression
+    return group
