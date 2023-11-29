@@ -27,6 +27,13 @@ interface LazyRenderProps {
   observerOptions?: Partial<IntersectionObserverInit>;
 }
 
+/**
+ * A component that renders its children when it becomes visible in the viewport.
+ * If the browser doesn't support IntersectionObserver, the children are rendered immediately.
+ *
+ * @param props
+ * @param props.children
+ */
 export function LazyRender(props: LazyRenderProps) {
   // If the browser doesn't support IntersectionObserver, render the children immediately.
   const [visible, setVisible] = useState<boolean>(!supportsIntersectionObserver());
