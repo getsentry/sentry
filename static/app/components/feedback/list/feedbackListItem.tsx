@@ -80,7 +80,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             };
           }}
           onClick={() => {
-            trackAnalytics('feedback_list.details_link.click', {organization});
+            trackAnalytics('feedback.list-item-selected', {organization});
           }}
         >
           <InteractionStateLayer />

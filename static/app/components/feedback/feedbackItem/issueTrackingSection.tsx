@@ -18,6 +18,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -60,7 +61,17 @@ export default function IssueTrackingSection({group, event, project}: Props) {
   return actions.length ? (
     <Fragment>
       {actions.map(({type, key, props}) => (
-        <Fragment key={key}>{renderers[type](props)}</Fragment>
+        <span
+          key={key}
+          onClick={() => {
+            trackAnalytics('feedback.details-integration-issue-clicked', {
+              organization,
+              integration_key: key,
+            });
+          }}
+        >
+          {renderers[type](props)}
+        </span>
       ))}
     </Fragment>
   ) : (
