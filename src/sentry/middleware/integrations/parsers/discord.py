@@ -31,7 +31,7 @@ class DiscordRequestParser(BaseRequestParser):
     _discord_request: DiscordRequest | None = None
 
     @property
-    def discord_request(self) -> DiscordRequest | None:
+    def discord_request(self) -> DiscordRequest:
         if self._discord_request is not None:
             return self._discord_request
         drf_request: Request = DiscordInteractionsEndpoint().initialize_request(self.request)
