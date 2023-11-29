@@ -10,8 +10,10 @@ import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflow
 import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
 import useDetailsSplit from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useA11yData from 'sentry/utils/replays/hooks/useA11yData';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useOrganization from 'sentry/utils/useOrganization';
 import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/accessibilityFilters';
 import AccessibilityHeaderCell, {
   COLUMN_COUNT,
@@ -37,6 +39,7 @@ const cellMeasurer = {
 };
 
 function AccessibilityList() {
+  const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
@@ -74,9 +77,19 @@ function AccessibilityList() {
     handleHeight: RESIZEABLE_HANDLE_HEIGHT,
     frames: accessibilityData,
     urlParamName: 'a_detail_row',
-    onShowDetails: useCallback(({rowIndex}) => {
-      setScrollToRow(rowIndex);
-    }, []),
+    onShowDetails: useCallback(
+      ({dataIndex, rowIndex}) => {
+        setScrollToRow(rowIndex);
+
+        const item = items[dataIndex];
+        trackAnalytics('replay.accessibility-issue-clicked', {
+          organization,
+          issue_description: item.description,
+          issue_impact: item.impact,
+        });
+      },
+      [items, organization]
+    ),
   });
 
   const {

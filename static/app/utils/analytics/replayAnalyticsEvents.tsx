@@ -3,6 +3,10 @@ import {Output} from 'sentry/views/replays/detail/network/details/getOutputType'
 import {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
+  'replay.accessibility-issue-clicked': {
+    issue_description: string;
+    issue_impact: string | undefined;
+  };
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
@@ -100,6 +104,7 @@ export type ReplayEventParameters = {
 export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
+  'replay.accessibility-issue-clicked': 'Clicked Replay Accessibility Issue',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-layout-changed': 'Changed Replay Details Layout',
   'replay.details-network-panel-closed': 'Closed Replay Network Details Panel',
