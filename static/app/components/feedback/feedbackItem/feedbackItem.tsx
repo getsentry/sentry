@@ -14,6 +14,7 @@ import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedback
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import IssueTrackingSection from 'sentry/components/feedback/feedbackItem/issueTrackingSection';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
@@ -25,7 +26,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event, Group} from 'sentry/types';
 import {GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -126,6 +127,17 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </ErrorBoundary>
           </Flex>
         </Flex>
+        {eventData && (
+          <RowGapLinks>
+            <ErrorBoundary mini>
+              <IssueTrackingSection
+                group={feedbackItem as unknown as Group}
+                project={feedbackItem.project}
+                event={eventData}
+              />
+            </ErrorBoundary>
+          </RowGapLinks>
+        )}
       </HeaderPanelItem>
       <OverflowPanelItem>
         <Section
@@ -170,6 +182,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 const HeaderPanelItem = styled(PanelItem)`
   display: grid;
   padding: ${space(1)} ${space(2)};
+  gap: ${space(2)};
 `;
 
 const OverflowPanelItem = styled(PanelItem)`
@@ -178,6 +191,13 @@ const OverflowPanelItem = styled(PanelItem)`
   flex-direction: column;
   flex-grow: 1;
   gap: ${space(3)};
+`;
+
+const RowGapLinks = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  column-gap: ${space(2)};
 `;
 
 const Blockquote = styled('blockquote')`

@@ -130,7 +130,7 @@ function Controls({
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            <Feature features={['dashboards-import']}>
+            <Feature features="dashboards-import">
               <Button
                 data-test-id="dashboard-export"
                 onClick={e => {
@@ -211,7 +211,7 @@ function DashboardEditFeature({
   return (
     <Feature
       hookName="feature-disabled:dashboards-edit"
-      features={['organizations:dashboards-edit']}
+      features="organizations:dashboards-edit"
       renderDisabled={renderDisabled}
     >
       {({hasFeature}) => children(hasFeature)}

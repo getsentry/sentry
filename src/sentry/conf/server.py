@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
@@ -1270,7 +1271,7 @@ BGTASKS = {
 # The loggers that it overrides are root and any in LOGGING.overridable.
 # Be very careful with this in a production system, because the celery
 # logger can be extremely verbose when given INFO or DEBUG.
-LOGGING = {
+LOGGING: LoggingConfig = {
     "default_level": "INFO",
     "version": 1,
     "disable_existing_loggers": True,
@@ -1725,6 +1726,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-issues-render-blocking-assets-detector": False,
     # Enable MN+1 DB performance issue type
     "organizations:performance-issues-m-n-plus-one-db-detector": False,
+    # Enable trace details page with embedded spans
+    "organizations:performance-trace-details": False,
     # Enable FE/BE for tracing without performance
     "organizations:performance-tracing-without-performance": True,
     # Enable database view powered by span metrics
@@ -3013,6 +3016,8 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "enable_db_query_source": True,
+    "db_query_source_threshold_ms": 500,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
