@@ -13,7 +13,7 @@ from snuba_sdk import (
     Rollup,
     Timeseries,
 )
-from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, ConditionGroup, Op
 from snuba_sdk.dsl.dsl import parse_mql
 from snuba_sdk.query_visitors import InvalidQueryError
 
@@ -149,6 +149,19 @@ class MutableTimeseries:
 
     def __init__(self, timeseries: Timeseries):
         self._timeseries = timeseries
+
+        self._validate()
+
+    def _validate_filters(self, filters: Optional[ConditionGroup]):
+        for f in filters:
+            if isinstance(f, BooleanCondition):
+                if f.op == BooleanOp.OR:
+                    raise InvalidMetricsQueryError("The OR operator is not supported")
+
+                self._validate_filters(filters)
+
+    def _validate(self):
+        self._validate_filters(self._timeseries.filters)
 
     def inject_environments(self, environments: Sequence[Environment]) -> "MutableTimeseries":
         if environments:
