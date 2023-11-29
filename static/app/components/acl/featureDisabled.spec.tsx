@@ -33,7 +33,7 @@ describe('FeatureDisabled', function () {
     render(
       <FeatureDisabled
         message={customMessage}
-        feature="organization:my-features"
+        features="organization:my-features"
         featureName="Some Feature"
       />
     );
@@ -46,7 +46,7 @@ describe('FeatureDisabled', function () {
     render(
       <FeatureDisabled
         alert={customAlert}
-        feature="organization:my-features"
+        features="organization:my-features"
         featureName="Some Feature"
       />
     );
@@ -57,7 +57,7 @@ describe('FeatureDisabled', function () {
     render(
       <FeatureDisabled
         alert
-        feature="organization:my-features"
+        features="organization:my-features"
         featureName="Some Feature"
       />
     );
