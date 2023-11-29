@@ -177,6 +177,16 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
+        logger.info(
+            "github.search_repositories",
+            extra={
+                "metadata": self.model.metadata,
+                "name": self.model.name,
+                "query": query,
+                "full_query": full_query,
+                "organization_id": self.org_integration.organization_id,
+            },
+        )
         response = self.get_client().search_repositories(full_query)
         return [
             {
