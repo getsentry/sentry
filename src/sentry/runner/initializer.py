@@ -4,19 +4,24 @@ import importlib.metadata
 import logging
 import os
 import sys
-from typing import Any, TypeVar
+from typing import Any
 
 import click
 from django.conf import settings
 
 from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_atomic
-from sentry.utils import metrics, warnings
+from sentry.utils import warnings
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
-logger = logging.getLogger("sentry.runner.initializer")
 
-T = TypeVar("T")
+class ConfigurationError(ValueError, click.ClickException):
+    def show(self, file=None):
+        if file is None:
+            from click._compat import get_text_stderr
+
+            file = get_text_stderr()
+        click.secho(f"!! Configuration error: {self!r}", file=file, fg="red")
 
 
 def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) -> None:
@@ -176,8 +181,6 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
             # Gracefully fail if yaml file doesn't exist
             options = {}
         except (AttributeError, ParserError, ScannerError) as e:
-            from .importer import ConfigurationError
-
             raise ConfigurationError("Malformed config.yml file: %s" % str(e))
 
         # Empty options file, so fail gracefully
@@ -185,8 +188,6 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
             options = {}
         # Options needs to be a dict
         elif not isinstance(options, dict):
-            from .importer import ConfigurationError
-
             raise ConfigurationError("Malformed config.yml file")
     else:
         options = {}
@@ -418,8 +419,6 @@ def setup_services(validate: bool = True) -> None:
         tsdb,
     )
 
-    from .importer import ConfigurationError
-
     service_list = (
         analytics,
         buffer,
@@ -465,28 +464,6 @@ def validate_regions(settings: Any) -> None:
         return
 
     load_from_config(region_config).validate_all()
-
-
-import django.db.models.base
-
-model_unpickle = django.db.models.base.model_unpickle
-
-
-def __model_unpickle_compat(
-    model_id: str, attrs: Any | None = None, factory: Any | None = None
-) -> object:
-    if attrs is not None or factory is not None:
-        metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat", sample_rate=1)
-        logger.error(
-            "django.compat.model-unpickle-compat",
-            extra={"model_id": model_id, "attrs": attrs, "factory": factory},
-            exc_info=True,
-        )
-    return model_unpickle(model_id)
-
-
-def __simple_class_factory_compat(model: T, attrs: Any) -> T:
-    return model
 
 
 def monkeypatch_django_migrations() -> None:
@@ -629,8 +606,6 @@ def apply_legacy_settings(settings: Any) -> None:
     # this is the only value that should prevent the app from booting up. Currently FLAG_REQUIRED is used to
     # trigger the Installation Wizard, not abort startup.
     if not settings.SENTRY_OPTIONS.get("system.secret-key"):
-        from .importer import ConfigurationError
-
         raise ConfigurationError(
             "`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one."
         )
@@ -684,8 +659,6 @@ def validate_snuba() -> None:
             snuba_enabled_features.add(feature)
 
     if snuba_enabled_features and not eventstream_is_snuba:
-        from .importer import ConfigurationError
-
         show_big_error(
             """
 You have features enabled which require Snuba,
@@ -701,8 +674,6 @@ See: https://github.com/getsentry/snuba#sentry--snuba
         raise ConfigurationError("Cannot continue without Snuba configured.")
 
     if not eventstream_is_snuba:
-        from .importer import ConfigurationError
-
         show_big_error(
             """
 It appears that you are requiring Snuba,
