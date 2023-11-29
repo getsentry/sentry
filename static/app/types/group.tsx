@@ -55,6 +55,9 @@ export enum IssueCategory {
   CRON = 'cron',
   PROFILE = 'profile',
 }
+export enum ErrorTitles {
+  CHUNK_LOAD_ERROR = 'chunk_load_error',
+}
 
 export enum IssueType {
   // Error
