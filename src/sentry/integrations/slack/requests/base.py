@@ -175,7 +175,7 @@ class SlackRequest:
                 extra={
                     "signing_secret_opt": signing_secret,
                     "verification_token_opt": verification_token,
-                    "verification_token_data": self.data.get("token"),
+                    "request_data": self.request.data,
                     **self.logging_data,
                 },
             )
