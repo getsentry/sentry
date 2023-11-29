@@ -652,7 +652,11 @@ def SOCIAL_AUTH_DEFAULT_USERNAME() -> str:
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
-# Hybrid cloud multi-silo configuration
+# Hybrid cloud multi-silo configuration #
+
+# Defined by `sentry devserver` to enable siloed local development
+SILO_DEVSERVER = os.environ.get("SENTRY_SILO_DEVSERVER", False)
+
 # Which silo this instance runs as (CONTROL|REGION|MONOLITH|None) are the expected values
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 
@@ -661,9 +665,6 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
-
-# Enable siloed development environment.
-USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
 # List of the available regions, or a JSON string
 # that is parsed.
@@ -801,7 +802,7 @@ CELERY_IMPORTS = (
 default_exchange = Exchange("default", type="direct")
 control_exchange = default_exchange
 
-if USE_SILOS:
+if SILO_DEVSERVER:
     control_exchange = Exchange("control", type="direct")
 
 
@@ -3791,42 +3792,6 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
-
-# USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
-# Split databases are also required for the USE_SILOS devserver flow.
-if USE_SILOS:
-    # Add connections for the region & control silo databases.
-    DATABASES["control"] = DATABASES["default"].copy()
-    DATABASES["control"]["NAME"] = "control"
-
-    # Use the region database in the default connection as region
-    # silo database is the 'default' elsewhere in application logic.
-    DATABASES["default"]["NAME"] = "region"
-
-    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
-
-if USE_SILOS:
-    # Addresses are hardcoded based on the defaults
-    # we use in commands/devserver.
-    region_port = os.environ.get("SENTRY_BACKEND_PORT", "8010")
-    SENTRY_REGION_CONFIG = [
-        {
-            "name": "us",
-            "snowflake_id": 1,
-            "category": "MULTI_TENANT",
-            "address": f"http://us.localhost:{region_port}",
-            "api_token": "dev-region-silo-token",
-        }
-    ]
-    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
-    # RPC authentication and address information
-    RPC_SHARED_SECRET = [
-        "a-long-value-that-is-shared-but-also-secret",
-    ]
-    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
-    SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
-
-
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
 
@@ -3985,3 +3950,41 @@ REGION_PINNED_URL_NAMES = {
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
+
+if SILO_DEVSERVER:
+    # Add connections for the region & control silo databases.
+    DATABASES["control"] = DATABASES["default"].copy()
+    DATABASES["control"]["NAME"] = "control"
+
+    # Use the region database in the default connection as region
+    # silo database is the 'default' elsewhere in application logic.
+    DATABASES["default"]["NAME"] = "region"
+
+    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+    # Addresses are hardcoded based on the defaults
+    # we use in commands/devserver.
+    region_port = os.environ.get("SENTRY_REGION_SILO_PORT", "8010")
+    SENTRY_REGION_CONFIG = [
+        {
+            "name": "us",
+            "snowflake_id": 1,
+            "category": "MULTI_TENANT",
+            "address": f"http://127.0.0.1:{region_port}",
+            "api_token": "dev-region-silo-token",
+        }
+    ]
+    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
+
+    # RPC authentication and address information
+    RPC_SHARED_SECRET = [
+        "a-long-value-that-is-shared-but-also-secret",
+    ]
+    RPC_TIMEOUT = 15.0
+
+    bind = os.environ.get("SENTRY_DEVSERVER_BIND").split(":")
+    SENTRY_WEB_HOST = bind[0]
+    SENTRY_WEB_PORT = bind[1]
+
+    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
+    SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
