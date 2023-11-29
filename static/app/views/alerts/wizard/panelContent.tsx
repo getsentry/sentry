@@ -2,7 +2,8 @@ import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
 import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
 import diagramCrashFreeUsers from 'sentry-images/spot/alerts-wizard-crash-free-users.svg';
-import diagramCustom from 'sentry-images/spot/alerts-wizard-custom.svg';
+import diagramCustomTransaction from 'sentry-images/spot/alerts-wizard-custom.svg';
+import diagramCustomMetrics from 'sentry-images/spot/alerts-wizard-custom-metrics.svg';
 import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
 import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.svg';
 import diagramFID from 'sentry-images/spot/alerts-wizard-fid.svg';
@@ -127,7 +128,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
       t('When the average TTFB of a page is longer than 600 millliseconds.'),
     ],
-    illustration: diagramCustom,
+    illustration: diagramCustomTransaction,
   },
   custom_metrics: {
     description: t(
@@ -139,7 +140,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
         'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
       ),
     ],
-    illustration: diagramCustom,
+    illustration: diagramCustomMetrics,
   },
   crash_free_sessions: {
     description: t(

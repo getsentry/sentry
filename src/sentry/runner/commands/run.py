@@ -505,57 +505,6 @@ def occurrences_ingest_consumer(**options):
         run_processor_with_signals(consumer)
 
 
-@run.command("ingest-metrics-parallel-consumer")
-@log_options()
-@kafka_options("ingest-metrics-consumer", allow_force_cluster=False)
-@strict_offset_reset_option()
-@configuration
-@click.option(
-    "--processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--ingest-profile", required=True)
-@click.option("--indexer-db", default="postgres")
-@click.option("max_msg_batch_size", "--max-msg-batch-size", type=int, default=50)
-@click.option("max_msg_batch_time", "--max-msg-batch-time-ms", type=int, default=10000)
-@click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
-@click.option("max_parallel_batch_time", "--max-parallel-batch-time-ms", type=int, default=10000)
-@click.option("--group-instance-id", type=str, default=None)
-def metrics_parallel_consumer(**options):
-    from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
-
-    streamer = get_parallel_metrics_consumer(**options)
-
-    from arroyo import configure_metrics
-
-    from sentry.utils.arroyo import MetricsWrapper
-    from sentry.utils.metrics import backend
-
-    metrics_wrapper = MetricsWrapper(backend, name="sentry_metrics.indexer")
-    configure_metrics(metrics_wrapper)
-
-    run_processor_with_signals(streamer)
-
-
-@run.command("ingest-profiles")
-@log_options()
-@click.option("--topic", default="profiles", help="Topic to get profiles data from.")
-@kafka_options("ingest-profiles")
-@strict_offset_reset_option()
-@configuration
-def profiles_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("ingest-profiles", options["group_id"])
-    from sentry.profiles.consumers import get_profiles_process_consumer
-
-    consumer = get_profiles_process_consumer(**options)
-    run_processor_with_signals(consumer)
-
-
 @run.command("consumer")
 @log_options()
 @click.argument(
@@ -733,28 +682,6 @@ def monitors_consumer(**options):
 
     consumer = get_monitor_check_ins_consumer(**options)
     run_processor_with_signals(consumer)
-
-
-@run.command("indexer-last-seen-updater")
-@log_options()
-@configuration
-@kafka_options(
-    "indexer-last-seen-updater-consumer",
-    allow_force_cluster=False,
-    include_batching_options=True,
-    default_max_batch_size=100,
-)
-@strict_offset_reset_option()
-@click.option("--ingest-profile", required=True)
-@click.option("--indexer-db", default="postgres")
-def last_seen_updater(**options):
-    from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
-    from sentry.utils.metrics import global_tags
-
-    config, consumer = get_last_seen_updater(**options)
-
-    with global_tags(_all_threads=True, pipeline=config.internal_metrics_tag):
-        run_processor_with_signals(consumer)
 
 
 @run.command("backpressure-monitor")

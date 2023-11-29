@@ -5,25 +5,19 @@ import logging
 from collections import deque
 from typing import Any, Deque, Mapping, Optional, Union, cast
 
-from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.commit import ONCE_PER_SECOND
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
-from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.types import Commit, FilteredPayload, Message, Partition, Topic
+from arroyo.types import Commit, FilteredPayload, Message, Partition
 
 from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
     initialize_subprocess_state,
 )
-from sentry.sentry_metrics.consumers.indexer.common import (
-    BatchMessages,
-    IndexerOutputMessageBatch,
-    get_config,
-)
+from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, IndexerOutputMessageBatch
 from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.consumers.indexer.routing_producer import (
@@ -32,9 +26,6 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
-
-# from usageaccountant import UsageAccumulator, UsageUnit
-
 
 logger = logging.getLogger(__name__)
 
@@ -205,49 +196,3 @@ def get_metrics_producer_strategy(
             commit_function=commit,
             output_topic=config.output_topic,
         )
-
-
-def get_parallel_metrics_consumer(
-    max_msg_batch_size: int,
-    max_msg_batch_time: float,
-    max_parallel_batch_size: int,
-    max_parallel_batch_time: float,
-    processes: int,
-    input_block_size: int,
-    output_block_size: int,
-    group_id: str,
-    auto_offset_reset: str,
-    strict_offset_reset: bool,
-    ingest_profile: str,
-    indexer_db: str,
-    group_instance_id: Optional[str],
-) -> StreamProcessor[KafkaPayload]:
-    processing_factory = MetricsConsumerStrategyFactory(
-        max_msg_batch_size=max_msg_batch_size,
-        max_msg_batch_time=max_msg_batch_time,
-        max_parallel_batch_size=max_parallel_batch_size,
-        max_parallel_batch_time=max_parallel_batch_time,
-        processes=processes,
-        input_block_size=input_block_size,
-        output_block_size=output_block_size,
-        ingest_profile=ingest_profile,
-        indexer_db=indexer_db,
-    )
-
-    return StreamProcessor(
-        KafkaConsumer(
-            get_config(
-                processing_factory.config.input_topic,
-                group_id,
-                auto_offset_reset=auto_offset_reset,
-                strict_offset_reset=strict_offset_reset,
-                group_instance_id=group_instance_id,
-            )
-        ),
-        Topic(processing_factory.config.input_topic),
-        processing_factory,
-        ONCE_PER_SECOND,
-        # We drop any in flight messages in processing step prior to produce.
-        # The SimpleProduceStep has a hardcoded join timeout of 5 seconds.
-        join_timeout=0.0,
-    )

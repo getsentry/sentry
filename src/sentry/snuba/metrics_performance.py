@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence
@@ -14,7 +16,7 @@ from sentry.search.events.builder import (
     TopMetricsQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -100,7 +102,7 @@ def bulk_timeseries_query(
     on_demand_metrics_type: Optional[MetricSpecType] = None,
     groupby: Optional[Column] = None,
     apply_formatting: Optional[bool] = True,
-) -> SnubaTSResult:
+) -> SnubaTSResult | EventsResponse:
     """
     High-level API for doing *bulk* arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
@@ -113,7 +115,6 @@ def bulk_timeseries_query(
     if metrics_compatible:
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_queries = []
-            metrics_query = None
             for query in queries:
                 metrics_query = TimeseriesMetricQueryBuilder(
                     params,
@@ -133,18 +134,18 @@ def bulk_timeseries_query(
 
             metrics_referrer = referrer + ".metrics-enhanced"
             bulk_result = bulk_snql_query(metrics_queries, metrics_referrer)
-            result = {"data": []}
+            _result: dict[str, Any] = {"data": []}
             for br in bulk_result:
-                result["data"] = [*result["data"], *br["data"]]
-                result["meta"] = br["meta"]
+                _result["data"] = [*_result["data"], *br["data"]]
+                _result["meta"] = br["meta"]
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-            result = metrics_query.process_results(result)
+            result = metrics_query.process_results(_result)
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
 
             # Sometimes additional formatting needs to be done downstream
             if not apply_formatting:
-                return result
+                return result  # EventsResponseData type
 
             result["data"] = (
                 discover.zerofill(
@@ -416,7 +417,7 @@ def top_events_timeseries(
 
     translated_groupby = top_events_builder.translated_groupby
 
-    results = (
+    results: dict[str, Any] = (
         {discover.OTHER_KEY: {"order": limit, "data": other_result["data"]}}
         if len(other_result.get("data", []))
         else {}
@@ -560,7 +561,7 @@ def normalize_histogram_results(fields, histogram_params, results):
     """
 
     # zerofill and rename the columns while making sure to adjust for precision
-    bucket_maps = {field: {} for field in fields}
+    bucket_maps: dict[str, Any] = {field: {} for field in fields}
     # Only one row in metrics result
     data = results["data"][0]
     for field in fields:
@@ -568,7 +569,7 @@ def normalize_histogram_results(fields, histogram_params, results):
         histogram_alias = get_function_alias(histogram_column)
         bucket_maps[field] = {start: height for start, end, height in data[histogram_alias]}
 
-    new_data = {field: [] for field in fields}
+    new_data: dict[str, Any] = {field: [] for field in fields}
     for i in range(histogram_params.num_buckets):
         bucket = histogram_params.start_offset + histogram_params.bucket_size * i
         for field in fields:

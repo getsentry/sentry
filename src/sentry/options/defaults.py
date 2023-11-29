@@ -380,6 +380,12 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "organizations:session-replay-accessibility-issues-enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
@@ -1666,6 +1672,12 @@ register(
 register(
     "delightful_metrics.enable_code_locations",
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.metrics_summary_sample_rate",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

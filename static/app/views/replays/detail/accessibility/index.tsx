@@ -1,16 +1,17 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
-import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
+import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
+import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
+import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
+import useDetailsSplit from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
 import {t} from 'sentry/locale';
 import useA11yData from 'sentry/utils/replays/hooks/useA11yData';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/accessibilityFilters';
 import AccessibilityHeaderCell, {
   COLUMN_COUNT,
@@ -36,11 +37,10 @@ const cellMeasurer = {
 };
 
 function AccessibilityList() {
-  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const {currentTime, currentHoverTime} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const {data: accessibilityData, isLoading} = useA11yData();
-  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
@@ -63,28 +63,21 @@ function AccessibilityList() {
       deps,
     });
 
-  // `initialSize` cannot depend on containerRef because the ref starts as
-  // `undefined` which then gets set into the hook and doesn't update.
-  const initialSize = Math.max(150, window.innerHeight * 0.4);
-
-  const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
-    direction: 'up',
-    initialSize,
-    min: 0,
-    onResize: () => {},
+  const {
+    onClickCell,
+    onCloseDetailsSplit,
+    resizableDrawerProps,
+    selectedIndex,
+    splitSize,
+  } = useDetailsSplit({
+    containerRef,
+    handleHeight: RESIZEABLE_HANDLE_HEIGHT,
+    frames: accessibilityData,
+    urlParamName: 'a_detail_row',
+    onShowDetails: useCallback(({rowIndex}) => {
+      setScrollToRow(rowIndex);
+    }, []),
   });
-  const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
-    'a_detail_row',
-    ''
-  );
-  const detailDataIndex = getDetailRow();
-
-  const maxContainerHeight =
-    (containerRef.current?.clientHeight || window.innerHeight) - RESIZEABLE_HANDLE_HEIGHT;
-  const splitSize =
-    accessibilityData && detailDataIndex
-      ? Math.min(maxContainerHeight, containerSize)
-      : undefined;
 
   const {
     handleClick: onClickToJump,
@@ -98,18 +91,6 @@ function AccessibilityList() {
     setScrollToRow,
   });
 
-  const onClickCell = useCallback(
-    ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
-      if (getDetailRow() === String(dataIndex)) {
-        setDetailRow('');
-      } else {
-        setDetailRow(String(dataIndex));
-        setScrollToRow(rowIndex);
-      }
-    },
-    [getDetailRow, setDetailRow]
-  );
-
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const a11yIssue = items[rowIndex - 1];
 
@@ -121,13 +102,7 @@ function AccessibilityList() {
         parent={parent}
         rowIndex={rowIndex}
       >
-        {({
-          measure: _,
-          registerChild,
-        }: {
-          measure: () => void;
-          registerChild?: (element?: Element) => void;
-        }) =>
+        {({measure: _, registerChild}) =>
           rowIndex === 0 ? (
             <AccessibilityHeaderCell
               ref={e => e && registerChild?.(e)}
@@ -149,7 +124,6 @@ function AccessibilityList() {
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
-              startTimestampMs={startTimestampMs}
               style={{...style, height: BODY_HEIGHT}}
             />
           )
@@ -163,10 +137,7 @@ function AccessibilityList() {
       <FilterLoadingIndicator isLoading={isLoading}>
         <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} />
       </FilterLoadingIndicator>
-      <AccessibilityTable
-        ref={containerRef}
-        data-test-id="replay-details-accessibility-tab"
-      >
+      <GridTable ref={containerRef} data-test-id="replay-details-accessibility-tab">
         <SplitPanel
           style={{
             gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
@@ -223,73 +194,13 @@ function AccessibilityList() {
           )}
           <AccessibilityDetails
             {...resizableDrawerProps}
-            item={detailDataIndex ? items[detailDataIndex] : null}
-            onClose={() => {
-              setDetailRow('');
-            }}
-            startTimestampMs={startTimestampMs}
+            item={selectedIndex ? items[selectedIndex] : null}
+            onClose={onCloseDetailsSplit}
           />
         </SplitPanel>
-      </AccessibilityTable>
+      </GridTable>
     </FluidHeight>
   );
 }
-
-const SplitPanel = styled('div')`
-  width: 100%;
-  height: 100%;
-
-  position: relative;
-  display: grid;
-  overflow: auto;
-`;
-
-const OverflowHidden = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  display: grid;
-`;
-
-const AccessibilityTable = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-
-  .beforeHoverTime + .afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.purple200};
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 999999999%;
-  }
-
-  .beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple200};
-    content: '';
-    right: 0;
-    position: absolute;
-    bottom: 0;
-    width: 999999999%;
-  }
-
-  .beforeCurrentTime + .afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.purple300};
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 999999999%;
-  }
-
-  .beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple300};
-    content: '';
-    right: 0;
-    position: absolute;
-    bottom: 0;
-    width: 999999999%;
-  }
-`;
 
 export default AccessibilityList;
