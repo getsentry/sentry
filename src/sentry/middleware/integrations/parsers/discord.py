@@ -34,6 +34,8 @@ class DiscordRequestParser(BaseRequestParser):
     def discord_request(self) -> DiscordRequest:
         if self._discord_request is not None:
             return self._discord_request
+        if self.view_class != DiscordInteractionsEndpoint:
+            return None
         drf_request: Request = DiscordInteractionsEndpoint().initialize_request(self.request)
         self._discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
         return self._discord_request
