@@ -109,6 +109,12 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
 def get_groups_from_fingerprints(
     project_id: int, fingerprints: list[list[str]]
 ) -> dict[str, Group]:
+    """
+    Returns the list of groups given a list of fingerprints.
+
+    Note that fingerprints for issue platform are expected to be
+    processed via `process_occurrence_data` prior to calling this function.
+    """
     fingerprints_set = {fingerprint[0] for fingerprint in fingerprints}
     grouphash = GroupHash.objects.filter(
         project=project_id,
