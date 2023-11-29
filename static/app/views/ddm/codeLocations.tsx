@@ -30,8 +30,13 @@ export function CodeLocations({
     return null;
   }
 
-  const frameToShow = data?.codeLocations[0].frames[0];
-  const otherFrames = data?.codeLocations[0].frames.slice(1) ?? [];
+  const codeLocations = data?.codeLocations;
+  if (!codeLocations) {
+    return null;
+  }
+
+  const frameToShow = codeLocations[codeLocations.length - 1].frames[0];
+  const otherFrames = codeLocations[codeLocations.length - 1].frames.slice(1) ?? [];
 
   if (!frameToShow) {
     return null;
