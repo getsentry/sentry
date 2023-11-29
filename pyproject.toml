@@ -526,7 +526,6 @@ module = [
     "sentry.rules.history.endpoints.project_rule_group_history",
     "sentry.rules.history.endpoints.project_rule_stats",
     "sentry.rules.history.preview",
-    "sentry.runner.initializer",
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
