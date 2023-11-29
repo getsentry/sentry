@@ -56,7 +56,6 @@ type Props = {
   showReleaseAdoptionStages: boolean;
 };
 
-// TODO: change to functional component
 function ReleaseCard({
   release,
   organization,
