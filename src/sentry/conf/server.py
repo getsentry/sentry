@@ -3015,6 +3015,8 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "enable_db_query_source": True,
+    "db_query_source_threshold_ms": 500,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
