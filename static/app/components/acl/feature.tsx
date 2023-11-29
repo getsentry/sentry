@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import React, {useMemo} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
@@ -30,7 +30,6 @@ interface BaseProps {
    * all the required feature.
    */
   children: React.ReactNode | ChildrenRenderFn;
-  project: Project;
   /**
    * Specify the key to use for hookstore functionality.
    *
@@ -42,6 +41,7 @@ interface BaseProps {
    */
   hookName?: keyof FeatureDisabledHooks;
   organization?: Organization;
+  project?: Project;
   /**
    * Custom renderer function for when the feature is not enabled.
    *
@@ -110,7 +110,7 @@ type AllFeatures = {
 
 function extractFeaturesFromEntities(
   organization: Organization,
-  project: Project,
+  project: Project | undefined,
   config: Config
 ) {
   return {
@@ -138,7 +138,7 @@ function extractFeatures(props: FeatureProps): string | ReadonlyArray<string> {
   }
 
   // @ts-expect-error same as above
-  return props.feature ?? props.oneOf ?? props.anyOf;
+  return props.feature ?? props.oneOf ?? props.allOf;
 }
 
 function hasSingleFeature(feature: string, features: AllFeatures) {
@@ -187,12 +187,17 @@ function hasFeatureAccess(
     return hasSingleFeature(features, allFeatures);
   }
 
-  throw new TypeError('Invalid feature props');
+  throw new TypeError(
+    `Invalid feature props, neither feature nor allOf or oneOf is defined, got ${JSON.stringify(
+      features
+    )}`
+  );
 }
 
 /**
  * Component to handle feature flags.
  */
+
 function Feature(props: FeatureProps) {
   const config = useLegacyStore(ConfigStore);
   const contextOrganization = useOrganization();
@@ -205,16 +210,18 @@ function Feature(props: FeatureProps) {
     config
   );
 
+  const renderDisabled = props.renderDisabled ?? false;
+
   const hasFeature = useMemo(() => {
     return hasFeatureAccess(props, features, allFeaturesByEntity);
   }, [props, allFeaturesByEntity, features]);
 
   // Default renderDisabled to the ComingSoon component
   let customDisabledRender =
-    props.renderDisabled === false
+    renderDisabled === false
       ? false
-      : typeof props.renderDisabled === 'function'
-      ? props.renderDisabled
+      : typeof renderDisabled === 'function'
+      ? renderDisabled
       : renderComingSoon;
 
   // Override the renderDisabled function with a hook store function if there
@@ -247,4 +254,7 @@ function Feature(props: FeatureProps) {
   return hasFeature && props.children ? props.children : null;
 }
 
-export default withProject<FeatureProps>(Feature);
+// HOC types + discriminated union doesnt play nice, so we'll cast to our type
+export default withProject(
+  Feature as unknown as React.ComponentType<FeatureProps>
+) as unknown as React.ComponentType<FeatureProps>;

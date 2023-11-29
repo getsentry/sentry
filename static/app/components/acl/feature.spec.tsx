@@ -1,303 +1,395 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Feature from 'sentry/components/acl/feature';
-import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 
+function HasFeatureContent() {
+  return <p>Has access</p>;
+}
+
 describe('Feature', function () {
-  const organization = Organization({
-    features: ['org-foo', 'org-bar', 'bar'],
+  describe('invalid props', () => {
+    it('throws if neither is provided', () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      expect(() =>
+        // @ts-expect-error
+        render(<Feature feature={undefined} anyOf={undefined} oneOf={undefined} />)
+      ).toThrow(
+        'Invalid feature props, neither feature nor allOf or oneOf is defined, got undefined'
+      );
+    });
   });
-  const project = TestStubs.Project({
-    features: ['project-foo', 'project-bar'],
+
+  describe('has feature', () => {
+    describe('allOf', () => {
+      it('has feature with org scope', () => {
+        render(
+          <Feature
+            allOf={['organization:a', 'organization:b']}
+            organization={Organization({features: ['organization:a', 'organization:b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature with project scope', () => {
+        render(
+          <Feature
+            allOf={['project:a', 'project:b']}
+            project={Project({features: ['project:a', 'project:b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature with no project scope', () => {
+        render(
+          <Feature allOf={['a', 'b']} project={Project({features: ['a', 'b']})}>
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature with no org scope', () => {
+        render(
+          <Feature allOf={['a', 'b']} organization={Organization({features: ['a', 'b']})}>
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature when list is empty', () => {
+        render(
+          <Feature
+            allOf={[]}
+            organization={Organization({features: ['organization:a', 'organization:b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
+      });
+    });
+
+    describe('oneOf', () => {
+      it('has feature with org scope', () => {
+        render(
+          <Feature
+            oneOf={['organization:a', 'organization:b']}
+            organization={Organization({features: ['organization:a']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature with project scope', () => {
+        render(
+          <Feature
+            oneOf={['project:a', 'project:b']}
+            project={Project({features: ['project:a']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature with no project scope', () => {
+        render(
+          <Feature oneOf={['a', 'b']} project={Project({features: ['a', 'b']})}>
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature with no org scope', () => {
+        render(
+          <Feature oneOf={['a', 'b']} organization={Organization({features: ['a', 'b']})}>
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature when list is empty', () => {
+        render(
+          <Feature
+            allOf={[]}
+            organization={Organization({features: ['organization:a', 'organization:b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
+      });
+    });
+
+    describe('feature', () => {
+      it('has feature with org scope', () => {
+        render(
+          <Feature
+            feature="organization:a"
+            organization={Organization({features: ['organization:a']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature with project scope', () => {
+        render(
+          <Feature feature="project:a" project={Project({features: ['project:a']})}>
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature with no project scope', () => {
+        render(
+          <Feature feature="a" project={Project({features: ['a', 'b']})}>
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+      it('has feature with no org scope', () => {
+        render(
+          <Feature feature="a" organization={Organization({features: ['a', 'b']})}>
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.getByText('Has access')).toBeInTheDocument();
+      });
+    });
   });
-  const routerContext = TestStubs.routerContext([
-    {
-      organization,
-      project,
-    },
-  ]);
 
-  describe('as render prop', function () {
-    const childrenMock = jest.fn().mockReturnValue(null);
-    beforeEach(function () {
-      childrenMock.mockClear();
-    });
+  describe('does not have feature', () => {
+    describe('allOf', () => {
+      it('does not have feature without org scope', () => {
+        render(
+          <Feature
+            allOf={['organization:a', 'organization:b']}
+            organization={Organization({features: ['a', 'b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
 
-    it('has features', function () {
-      const features = ['org-foo', 'project-foo'];
-
-      render(<Feature features={features}>{childrenMock}</Feature>, {
-        context: routerContext,
+        expect(screen.queryByText('Has access')).not.toBeInTheDocument();
       });
+      it('does not have feature without project scope', () => {
+        render(
+          <Feature
+            allOf={['project:a', 'project:b']}
+            project={Project({features: ['a', 'b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        features,
-        organization,
-        project,
-        renderDisabled: false,
+        expect(screen.queryByText('Has access')).not.toBeInTheDocument();
       });
-    });
+      it('does not have feature without scope', () => {
+        render(
+          <Feature
+            allOf={['feature']}
+            organization={Organization({features: ['a', 'b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
 
-    it('has features when oneOf', function () {
-      const features = ['org-foo', 'project-foo', 'apple'];
-
-      render(<Feature oneOf={features}>{childrenMock}</Feature>, {
-        context: routerContext,
-      });
-
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        organization,
-        project,
-        features,
-        renderDisabled: false,
+        expect(screen.queryByText('Has access')).not.toBeInTheDocument();
       });
     });
 
-    it('has no features', function () {
-      render(<Feature feature="org-baz">{childrenMock}</Feature>, {
-        context: routerContext,
-      });
+    describe('oneOf', () => {
+      it('does not have feature without org scope', () => {
+        render(
+          <Feature
+            oneOf={['organization:a', 'organization:b']}
+            organization={Organization({features: ['a', 'b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: false,
-        organization,
-        project,
-        features: ['org-baz'],
-        renderDisabled: false,
+        expect(screen.queryByText('Has access')).not.toBeInTheDocument();
+      });
+      it('does not have feature without project scope', () => {
+        render(
+          <Feature
+            oneOf={['project:a', 'project:b']}
+            project={Project({features: ['a', 'b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.queryByText('Has access')).not.toBeInTheDocument();
+      });
+      it('does not have feature without scope', () => {
+        render(
+          <Feature
+            oneOf={['feature']}
+            organization={Organization({features: ['a', 'b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.queryByText('Has access')).not.toBeInTheDocument();
       });
     });
 
-    it('calls render function when no features', function () {
-      const noFeatureRenderer = jest.fn(() => null);
+    describe('feature', () => {
+      it('does not have feature without org scope', () => {
+        render(
+          <Feature
+            feature="organization:a"
+            organization={Organization({features: ['a', 'b']})}
+          >
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.queryByText('Has access')).not.toBeInTheDocument();
+      });
+      it('does not have feature without project scope', () => {
+        render(
+          <Feature feature="project:a" project={Project({features: ['a', 'b']})}>
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.queryByText('Has access')).not.toBeInTheDocument();
+      });
+      it('does not have feature without scope', () => {
+        render(
+          <Feature feature="feature" organization={Organization({features: ['a', 'b']})}>
+            <HasFeatureContent />
+          </Feature>
+        );
+
+        expect(screen.queryByText('Has access')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('render prop', () => {
+    it('has feature', () => {
+      const mockRender = jest.fn(() => 'Has render prop access');
       render(
-        <Feature feature="org-baz" renderDisabled={noFeatureRenderer}>
-          {childrenMock}
-        </Feature>,
-        {context: routerContext}
+        <Feature
+          feature="organization:a"
+          project={Project({features: ['organization:a']})}
+          organization={Organization({features: ['organization:a']})}
+        >
+          {mockRender}
+        </Feature>
       );
 
-      expect(childrenMock).not.toHaveBeenCalled();
-      expect(noFeatureRenderer).toHaveBeenCalledWith({
-        hasFeature: false,
-        children: childrenMock,
-        organization,
-        project,
-        features: ['org-baz'],
-      });
-    });
-
-    it('can specify org from props', function () {
-      const customOrg = Organization({features: ['org-bazar']});
-      render(
-        <Feature organization={customOrg} features="org-bazar">
-          {childrenMock}
-        </Feature>,
-        {context: routerContext}
-      );
-
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        organization: customOrg,
-        project,
-        features: ['org-bazar'],
-        renderDisabled: false,
-      });
-    });
-
-    it('can specify project from props', function () {
-      const customProject = TestStubs.Project({features: ['project-baz']});
-      render(
-        <Feature project={customProject} features="project-baz">
-          {childrenMock}
-        </Feature>,
-        {context: routerContext}
-      );
-
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        organization,
-        project: customProject,
-        features: ['project-baz'],
-        renderDisabled: false,
-      });
-    });
-
-    it('handles no org/project', function () {
-      const features = ['org-foo', 'project-foo'];
-      render(<Feature features={features}>{childrenMock}</Feature>, {
-        context: routerContext,
-      });
-
-      expect(childrenMock).toHaveBeenCalledWith(
+      expect(mockRender).toHaveBeenCalledWith(
         expect.objectContaining({
           hasFeature: true,
-          organization,
-          project,
-          features,
-          renderDisabled: false,
+          features: expect.arrayContaining(['organization:a']),
+          organization: expect.anything(),
+          project: expect.anything(),
+        })
+      );
+      expect(screen.getByText('Has render prop access')).toBeInTheDocument();
+    });
+    it('does not have feature', () => {
+      const mockRender = jest.fn(() => 'Has render prop access');
+      render(
+        <Feature
+          feature="not-included"
+          project={Project({features: ['organization:a']})}
+          organization={Organization({features: ['organization:a']})}
+        >
+          {mockRender}
+        </Feature>
+      );
+
+      expect(mockRender).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: false,
+          features: expect.arrayContaining(['not-included']),
+          organization: expect.anything(),
+          project: expect.anything(),
         })
       );
     });
-
-    it('handles features prefixed with org/project', function () {
-      render(<Feature features="organizations:org-bar">{childrenMock}</Feature>, {
-        context: routerContext,
-      });
-
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        organization,
-        project,
-        features: ['organizations:org-bar'],
-        renderDisabled: false,
-      });
-
-      render(<Feature features="projects:bar">{childrenMock}</Feature>, {
-        context: routerContext,
-      });
-
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: false,
-        organization,
-        project,
-        features: ['projects:bar'],
-        renderDisabled: false,
-      });
-    });
-
-    it('checks ConfigStore.config.features (e.g. `organizations:create`)', function () {
-      ConfigStore.config = TestStubs.Config({
-        features: new Set(['organizations:create']),
-      });
-
-      render(<Feature features="organizations:create">{childrenMock}</Feature>, {
-        context: routerContext,
-      });
-
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: true,
-        organization,
-        project,
-        features: ['organizations:create'],
-        renderDisabled: false,
-      });
-    });
   });
 
-  describe('no children', function () {
-    it('should display renderDisabled with no feature', function () {
-      render(
-        <Feature features="nope" renderDisabled={() => <span>disabled</span>}>
-          <div>The Child</div>
-        </Feature>,
-        {context: routerContext}
-      );
-      expect(screen.getByText('disabled')).toBeInTheDocument();
-    });
+  it('render via render function', () => {
+    render(
+      <Feature
+        feature="organization:a"
+        organization={Organization({features: ['organization:a']})}
+      >
+        {({hasFeature}) => <p>{hasFeature ? 'custom access' : 'no custom access'}</p>}
+      </Feature>
+    );
 
-    it('should display be empty when on', function () {
-      render(
-        <Feature features="org-bar" renderDisabled={() => <span>disabled</span>}>
-          <div>The Child</div>
-        </Feature>,
-        {context: routerContext}
-      );
-      expect(screen.queryByText('disabled')).not.toBeInTheDocument();
-    });
+    expect(screen.getByText('custom access')).toBeInTheDocument();
   });
+  it('renders coming soon if enabled via prop', () => {
+    render(
+      <Feature
+        feature="not-included"
+        organization={Organization({features: ['organization:a']})}
+        renderDisabled
+      >
+        <HasFeatureContent />
+      </Feature>
+    );
 
-  describe('as React node', function () {
-    it('has features', function () {
-      render(
-        <Feature features="org-bar">
-          <div>The Child</div>
-        </Feature>,
-        {context: routerContext}
-      );
-
-      expect(screen.getByText('The Child')).toBeInTheDocument();
-    });
-
-    it('has no features', function () {
-      render(
-        <Feature feature="org-baz">
-          <div>The Child</div>
-        </Feature>,
-        {context: routerContext}
-      );
-
-      expect(screen.queryByText('The Child')).not.toBeInTheDocument();
-    });
-
-    it('renders a default disabled component', function () {
-      render(
-        <Feature feature="org-baz" renderDisabled>
-          <div>The Child</div>
-        </Feature>,
-        {context: routerContext}
-      );
-
-      expect(screen.getByText('This feature is coming soon!')).toBeInTheDocument();
-      expect(screen.queryByText('The Child')).not.toBeInTheDocument();
-    });
-
-    it('calls renderDisabled function when no features', function () {
-      const noFeatureRenderer = jest.fn(() => null);
-      const children = <div>The Child</div>;
-      render(
-        <Feature feature="org-baz" renderDisabled={noFeatureRenderer}>
-          {children}
-        </Feature>,
-        {context: routerContext}
-      );
-
-      expect(screen.queryByText('The Child')).not.toBeInTheDocument();
-
-      expect(noFeatureRenderer).toHaveBeenCalledWith({
-        hasFeature: false,
-        children,
-        organization,
-        project,
-        features: ['org-baz'],
-      });
-    });
+    expect(screen.getByText('This feature is coming soon!')).toBeInTheDocument();
   });
+  it('with custom renderDisabled', () => {
+    render(
+      <Feature
+        feature="not-included"
+        organization={Organization({features: ['organization:a']})}
+        renderDisabled={() => <p>custom disabled</p>}
+      >
+        <HasFeatureContent />
+      </Feature>
+    );
 
-  describe('using HookStore for renderDisabled', function () {
-    let hookFn;
+    expect(screen.getByText('custom disabled')).toBeInTheDocument();
+  });
+  it('uses sentry hook to override renderDisabled', () => {
+    HookStore.hooks = {
+      'not-included-hook': [() => <p>hook content</p>],
+    };
+    render(
+      <Feature
+        feature="not-included-feature"
+        // restricted to keyof hooks
+        hookName={'not-included-hook' as any}
+        organization={Organization({features: ['organization:a']})}
+      >
+        <HasFeatureContent />
+      </Feature>
+    );
 
-    beforeEach(function () {
-      hookFn = jest.fn(() => null);
-      HookStore.add('feature-disabled:sso-basic', hookFn);
-    });
-
-    afterEach(function () {
-      HookStore.remove('feature-disabled:sso-basic', hookFn);
-    });
-
-    it('uses hookName if provided', function () {
-      const children = <div>The Child</div>;
-      render(
-        <Feature feature="org-bazar" hookName="feature-disabled:sso-basic">
-          {children}
-        </Feature>,
-        {context: routerContext}
-      );
-
-      expect(screen.queryByText('The Child')).not.toBeInTheDocument();
-
-      expect(hookFn).toHaveBeenCalledWith({
-        hasFeature: false,
-        children,
-        organization,
-        project,
-        features: ['org-bazar'],
-      });
-    });
+    expect(screen.getByText('hook content')).toBeInTheDocument();
   });
 });
