@@ -10,6 +10,7 @@ import {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {
+  BooleanOperator,
   FilterType,
   InvalidReason,
   ParseResult,
@@ -214,13 +215,13 @@ type Props = WithRouterProps &
      */
     disallowFreeText?: boolean;
     /**
-     * Disables the OR operator
-     */
-    disallowLogicalOr?: boolean;
-    /**
      * Disables wildcard searches (in freeText and in the value of key:value searches mode)
      */
     disallowWildcard?: boolean;
+    /**
+     * Disables the OR operator
+     */
+    disallowedLogicalOperators?: Set<BooleanOperator>;
     dropdownClassName?: string;
     /**
      * Keys that have duration values
@@ -408,7 +409,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
-      disallowLogicalOr: !this.props.disallowLogicalOr,
+      disallowedLogicalOperators: this.props.disallowedLogicalOperators,
       disallowWildcard: this.props.disallowWildcard,
       disallowFreeText: this.props.disallowFreeText,
       invalidMessages: this.props.invalidMessages,
@@ -484,7 +485,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
-      disallowLogicalOr: !this.props.disallowLogicalOr,
+      disallowedLogicalOperators: this.props.disallowedLogicalOperators,
       disallowWildcard: this.props.disallowWildcard,
       disallowFreeText: this.props.disallowFreeText,
       invalidMessages: this.props.invalidMessages,
@@ -2072,7 +2073,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             mergeItemsWith={this.props.mergeSearchGroupWith}
             invalidMessages={this.props.invalidMessages}
             disallowWildcard={this.props.disallowWildcard}
-            disallowLogicalOr={!this.props.disallowLogicalOr}
+            disallowedLogicalOperators={this.props.disallowedLogicalOperators}
             disallowFreeText={this.props.disallowFreeText}
             booleanKeys={this.props.booleanKeys}
             dateKeys={this.props.dateKeys}

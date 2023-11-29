@@ -52,7 +52,7 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
       return <NumberToken token={token} />;
 
     case Token.VALUE_BOOLEAN:
-      return <Boolean>{token.value}</Boolean>;
+      return <Boolean>{token.text}</Boolean>;
 
     case Token.VALUE_ISO_8601_DATE:
       return <DateTime>{token.text}</DateTime>;
@@ -93,7 +93,7 @@ function useTokenValidation(
   const [hasLeft, setHasLeft] = useState(!isActive);
 
   // Used to trigger the shake animation when the element becomes invalid
-  const filterElementRef = useRef<HTMLSpanElement>(null);
+  const tokenElementRef = useRef<HTMLSpanElement>(null);
 
   // Trigger the effect when isActive changes to updated whether the cursor has
   // left the token.
@@ -113,21 +113,21 @@ function useTokenValidation(
   // animation by clearing the style, set it to running, and re-applying the
   // animation
   useEffect(() => {
-    if (!filterElementRef.current || !showInvalid || reduceMotion) {
+    if (!tokenElementRef.current || !showInvalid || reduceMotion) {
       return;
     }
 
-    const style = filterElementRef.current.style;
+    const style = tokenElementRef.current.style;
 
     style.animation = 'none';
-    void filterElementRef.current.offsetTop;
+    void tokenElementRef.current.offsetTop;
 
     window.requestAnimationFrame(
       () => (style.animation = `${shakeAnimation.name} 300ms`)
     );
   }, [reduceMotion, showInvalid]);
 
-  return {filterElementRef, showInvalid, showWarning, showTooltip, isActive};
+  return {tokenElementRef, showInvalid, showWarning, showTooltip, isActive};
 }
 
 function FilterToken({
@@ -137,7 +137,7 @@ function FilterToken({
   cursor: number;
   filter: TokenResult<Token.FILTER>;
 }) {
-  const {showInvalid, showTooltip, showWarning, filterElementRef, isActive} =
+  const {showInvalid, showTooltip, showWarning, tokenElementRef, isActive} =
     useTokenValidation(cursor, filter);
 
   return (
@@ -149,7 +149,7 @@ function FilterToken({
       skipWrapper
     >
       <TokenGroup
-        ref={filterElementRef}
+        ref={tokenElementRef}
         active={isActive}
         invalid={showInvalid}
         warning={showWarning}
@@ -171,7 +171,7 @@ function FreeTextToken({
   cursor: number;
   token: TokenResult<Token.FREE_TEXT>;
 }) {
-  const {showInvalid, showTooltip, filterElementRef, isActive} = useTokenValidation(
+  const {showInvalid, showTooltip, tokenElementRef, isActive} = useTokenValidation(
     cursor,
     token
   );
@@ -184,7 +184,7 @@ function FreeTextToken({
       forceVisible
       skipWrapper
     >
-      <FreeTextTokenGroup ref={filterElementRef} active={isActive} invalid={showInvalid}>
+      <FreeTextTokenGroup ref={tokenElementRef} active={isActive} invalid={showInvalid}>
         <FreeText>{token.text}</FreeText>
       </FreeTextTokenGroup>
     </Tooltip>
@@ -198,7 +198,7 @@ function LogicalBooleanToken({
   cursor: number;
   token: TokenResult<Token.LOGIC_BOOLEAN>;
 }) {
-  const {showInvalid, showTooltip, filterElementRef} = useTokenValidation(cursor, token);
+  const {showInvalid, showTooltip, tokenElementRef} = useTokenValidation(cursor, token);
 
   return (
     <Tooltip
@@ -208,7 +208,7 @@ function LogicalBooleanToken({
       forceVisible
       skipWrapper
     >
-      <LogicBoolean ref={filterElementRef} invalid={showInvalid}>
+      <LogicBoolean ref={tokenElementRef} invalid={showInvalid}>
         {token.text}
       </LogicBoolean>
     </Tooltip>
@@ -372,10 +372,7 @@ const Unit = styled('span')`
 const LogicBoolean = styled('span')<{invalid: boolean}>`
   font-weight: bold;
   color: ${p => p.theme.gray300};
-  ${p =>
-    p.invalid &&
-    `
-    color: ${p.theme.red400}`}
+  ${p => p.invalid && `color: ${p.theme.red400}`}
 `;
 
 const Boolean = styled('span')`

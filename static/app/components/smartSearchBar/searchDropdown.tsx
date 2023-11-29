@@ -6,7 +6,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {parseSearch, SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {
+  BooleanOperator,
+  parseSearch,
+  SearchConfig,
+} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
@@ -36,8 +40,8 @@ type Props = {
   customPerformanceMetrics?: CustomMeasurementCollection;
   dateKeys?: Set<string>;
   disallowFreeText?: boolean;
-  disallowLogicalOr?: boolean;
   disallowWildcard?: boolean;
+  disallowedLogicalOperators?: Set<BooleanOperator>;
   durationKeys?: Set<string>;
   invalidMessages?: SearchConfig['invalidMessages'];
   maxMenuHeight?: number;
@@ -73,7 +77,7 @@ function SearchDropdown({
   percentageKeys,
   sizeKeys,
   textOperatorKeys,
-  disallowLogicalOr,
+  disallowedLogicalOperators,
   disallowWildcard,
   disallowFreeText,
   invalidMessages,
@@ -109,7 +113,7 @@ function SearchDropdown({
                         additionalSearchConfig={{
                           supportedTags,
                           disallowWildcard,
-                          disallowLogicalOr,
+                          disallowedLogicalOperators,
                           disallowFreeText,
                           invalidMessages,
                           booleanKeys,

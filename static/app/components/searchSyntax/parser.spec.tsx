@@ -1,6 +1,7 @@
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
 import {
+  BooleanOperator,
   InvalidReason,
   ParseResult,
   parseSearch,
@@ -134,9 +135,9 @@ describe('searchSyntax/parser', function () {
     });
   });
 
-  it('applies disallowLogicalOr', () => {
+  it('applies disallowLogicalOperators (OR)', () => {
     const result = parseSearch('foo:bar OR AND', {
-      disallowFreeText: true,
+      disallowedLogicalOperators: new Set([BooleanOperator.OR]),
       invalidMessages: {
         [InvalidReason.LOGICAL_OR_NOT_ALLOWED]: 'Custom message',
       },
@@ -160,11 +161,11 @@ describe('searchSyntax/parser', function () {
     expect(and.invalid).toBe(null);
   });
 
-  it('applies allowBoolean', () => {
+  it('applies disallowLogicalOperators (AND)', () => {
     const result = parseSearch('foo:bar OR AND', {
-      allowBoolean: false,
+      disallowedLogicalOperators: new Set([BooleanOperator.AND]),
       invalidMessages: {
-        [InvalidReason.LOGICAL_BOOLEAN_NOT_ALLOWED]: 'Custom message',
+        [InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'Custom message',
       },
     });
 
@@ -179,12 +180,9 @@ describe('searchSyntax/parser', function () {
     const and = result[5] as TokenResult<Token.LOGIC_BOOLEAN>;
 
     expect(foo.invalid).toBe(null);
-    expect(or.invalid).toEqual({
-      type: InvalidReason.LOGICAL_BOOLEAN_NOT_ALLOWED,
-      reason: 'Custom message',
-    });
+    expect(or.invalid).toBe(null);
     expect(and.invalid).toEqual({
-      type: InvalidReason.LOGICAL_BOOLEAN_NOT_ALLOWED,
+      type: InvalidReason.LOGICAL_AND_NOT_ALLOWED,
       reason: 'Custom message',
     });
   });

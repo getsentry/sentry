@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {BooleanOperator} from 'sentry/components/searchSyntax/parser';
 import Tag from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -198,6 +199,7 @@ interface MetricSearchBarProps
 
 const EMPTY_ARRAY = [];
 const EMPTY_SET = new Set<never>();
+const DISSALLOWED_LOGICAL_OPERATORS = new Set([BooleanOperator.OR]);
 
 export function MetricSearchBar({
   mri,
@@ -259,7 +261,7 @@ export function MetricSearchBar({
       onGetTagValues={getTagValues}
       supportedTags={supportedTags}
       highlightUnsupportedTags
-      disallowLogicalOr
+      disallowedLogicalOperators={DISSALLOWED_LOGICAL_OPERATORS}
       disallowFreeText
       onClose={handleChange}
       onSearch={handleChange}
