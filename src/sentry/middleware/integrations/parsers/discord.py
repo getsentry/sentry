@@ -70,20 +70,23 @@ class DiscordRequestParser(BaseRequestParser):
         if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 
+        is_discord_interactions_endpoint = self.view_class == DiscordInteractionsEndpoint
+
+        # Handle any Requests that doesn't depend on Integration/Organization prior to fetching the Regions.
+        if is_discord_interactions_endpoint and self.discord_request:
+            if self.discord_request.is_ping():
+                return DiscordInteractionsEndpoint.respond_ping()
+
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
             logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
-        if self.view_class == DiscordInteractionsEndpoint:
-            if self.discord_request:
-                if self.discord_request.is_ping():
-                    return DiscordInteractionsEndpoint.respond_ping()
+        if is_discord_interactions_endpoint and self.discord_request:
+            if self.discord_request.is_command():
+                return self.get_response_from_first_region()
 
-                if self.discord_request.is_command():
-                    return self.get_response_from_first_region()
-
-                if self.discord_request.is_message_component():
-                    return self.get_response_from_all_regions()
+            if self.discord_request.is_message_component():
+                return self.get_response_from_all_regions()
 
         return self.get_response_from_control_silo()
