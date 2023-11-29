@@ -51,7 +51,7 @@ const issueTypeConfig: Config = {
 function getErrorResourceConfig(title: string) {
   let errorTitle = '';
 
-  if (title.includes('RuntimeError')) {
+  if (title.includes('ChunkLoadError')) {
     errorTitle = ErrorTitles.CHUNK_LOAD_ERROR;
   }
   const resource = titleResourceMap[errorTitle];
