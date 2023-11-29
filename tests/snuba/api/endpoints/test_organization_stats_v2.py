@@ -162,12 +162,22 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "intervals": ["2021-03-14T12:00:00Z"],
+            "intervals": [
+                "2021-03-14T12:00:00Z",
+                "2021-03-14T13:00:00Z",
+                "2021-03-14T14:00:00Z",
+                "2021-03-14T15:00:00Z",
+                "2021-03-14T16:00:00Z",
+            ],
             "groups": [
-                {"by": {}, "series": {"sum(quantity)": [0]}, "totals": {"sum(quantity)": 0}}
+                {
+                    "by": {},
+                    "series": {"sum(quantity)": [0, 0, 0, 0, 0]},
+                    "totals": {"sum(quantity)": 0},
+                }
             ],
             "start": "2021-03-14T12:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "end": "2021-03-14T17:00:00Z",
         }
 
     def test_unknown_category(self):
@@ -260,12 +270,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "series": {"sum(quantity)": [6]}, "totals": {"sum(quantity)": 6}}
+                {"by": {}, "series": {"sum(quantity)": [0, 6]}, "totals": {"sum(quantity)": 6}}
             ],
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
         }
 
         response = self.do_request(
@@ -281,6 +291,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
             "intervals": [
+                "2021-03-13T12:00:00Z",
                 "2021-03-13T18:00:00Z",
                 "2021-03-14T00:00:00Z",
                 "2021-03-14T06:00:00Z",
@@ -289,12 +300,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "groups": [
                 {
                     "by": {},
-                    "series": {"sum(quantity)": [0, 0, 6, 0]},
+                    "series": {"sum(quantity)": [0, 0, 0, 6, 0]},
                     "totals": {"sum(quantity)": 6},
                 }
             ],
-            "start": "2021-03-13T18:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T12:00:00Z",
+            "end": "2021-03-14T18:00:00Z",
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
@@ -312,11 +323,11 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "series": {"sum(quantity)": [7]}, "totals": {"sum(quantity)": 7}}
+                {"by": {}, "series": {"sum(quantity)": [0, 7]}, "totals": {"sum(quantity)": 7}}
             ],
         }
 
@@ -348,8 +359,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "groups": [],
         }
 
@@ -411,8 +422,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "groups": [
                 {
                     "by": {"project": self.project.id},
@@ -441,9 +452,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": "2021-03-12T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-12T00:00:00Z", "2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
                 {
                     "by": {
@@ -452,12 +463,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                         "category": "attachment",
                     },
                     "totals": {"sum(quantity)": 1024},
-                    "series": {"sum(quantity)": [0, 1024]},
+                    "series": {"sum(quantity)": [0, 0, 1024]},
                 },
                 {
                     "by": {"outcome": "accepted", "reason": "none", "category": "error"},
                     "totals": {"sum(quantity)": 6},
-                    "series": {"sum(quantity)": [0, 6]},
+                    "series": {"sum(quantity)": [0, 0, 6]},
                 },
                 {
                     "by": {
@@ -466,7 +477,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                         "outcome": "rate_limited",
                     },
                     "totals": {"sum(quantity)": 1},
-                    "series": {"sum(quantity)": [0, 1]},
+                    "series": {"sum(quantity)": [0, 0, 1]},
                 },
             ],
         }
@@ -487,9 +498,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": "2021-03-12T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-12T00:00:00Z", "2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
                 {
                     "by": {
@@ -498,12 +509,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                         "reason": "spike_protection",
                     },
                     "totals": {"sum(quantity)": 1024, "sum(times_seen)": 1},
-                    "series": {"sum(quantity)": [0, 1024], "sum(times_seen)": [0, 1]},
+                    "series": {"sum(quantity)": [0, 0, 1024], "sum(times_seen)": [0, 0, 1]},
                 },
                 {
                     "by": {"outcome": "accepted", "reason": "none", "category": "error"},
                     "totals": {"sum(quantity)": 6, "sum(times_seen)": 6},
-                    "series": {"sum(quantity)": [0, 6], "sum(times_seen)": [0, 6]},
+                    "series": {"sum(quantity)": [0, 0, 6], "sum(times_seen)": [0, 0, 6]},
                 },
                 {
                     "by": {
@@ -512,7 +523,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                         "outcome": "rate_limited",
                     },
                     "totals": {"sum(quantity)": 1, "sum(times_seen)": 1},
-                    "series": {"sum(quantity)": [0, 1], "sum(times_seen)": [0, 1]},
+                    "series": {"sum(quantity)": [0, 0, 1], "sum(times_seen)": [0, 0, 1]},
                 },
             ],
         }
@@ -535,8 +546,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "groups": [
                 {
                     "by": {"project": self.project.id},
@@ -600,11 +611,11 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [6]}}
+                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [0, 6]}}
             ],
         }
 
@@ -626,19 +637,19 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
                 {
                     "by": {"category": "attachment"},
                     "totals": {"sum(times_seen)": 1},
-                    "series": {"sum(times_seen)": [1]},
+                    "series": {"sum(times_seen)": [0, 1]},
                 },
                 {
                     "by": {"category": "transaction"},
                     "totals": {"sum(times_seen)": 1},
-                    "series": {"sum(times_seen)": [1]},
+                    "series": {"sum(times_seen)": [0, 1]},
                 },
             ],
         }
@@ -660,11 +671,11 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [6]}}
+                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [0, 6]}}
             ],
         }
 
@@ -684,11 +695,11 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [6]}}
+                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [0, 6]}}
             ],
         }
 
@@ -708,10 +719,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T11:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-14T11:15:00Z",
+            "end": "2021-03-14T12:30:00Z",
             "intervals": [
-                "2021-03-14T11:00:00Z",
                 "2021-03-14T11:15:00Z",
                 "2021-03-14T11:30:00Z",
                 "2021-03-14T11:45:00Z",
@@ -722,7 +732,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 {
                     "by": {},
                     "totals": {"sum(quantity)": 6},
-                    "series": {"sum(quantity)": [0, 6, 0, 0, 0, 0]},
+                    "series": {"sum(quantity)": [6, 0, 0, 0, 0]},
                 }
             ],
         }

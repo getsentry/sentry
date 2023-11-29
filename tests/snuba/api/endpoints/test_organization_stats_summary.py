@@ -161,7 +161,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 200, response.content
         assert response.data == {
             "start": "2021-03-14T12:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "end": "2021-03-14T17:00:00Z",
             "projects": [],
         }
 
@@ -255,8 +255,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [],
         }
 
@@ -298,8 +298,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -356,8 +356,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-12T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -426,8 +426,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-12T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -501,8 +501,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response_per_group.status_code == 200, response_per_group.content
         assert response_per_group.data == {
-            "start": "2021-03-13T13:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T12:00:00Z",
+            "end": "2021-03-14T13:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -561,8 +561,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -603,8 +603,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -664,8 +664,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -699,8 +699,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
