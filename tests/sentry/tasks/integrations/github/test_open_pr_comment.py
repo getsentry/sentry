@@ -209,6 +209,7 @@ class TestGetFilenames(GithubCommentTestCase):
             ("/src/sentry", "sentry"),
             ("tests/", "tests/"),
             ("app/", "static/app"),
+            ("tasks/integrations", "tasks"),  # random match in the middle of the string
         ]
         for source_root, stack_root in source_stack_nonmatches:
             self.create_code_mapping(
@@ -221,8 +222,9 @@ class TestGetFilenames(GithubCommentTestCase):
 
         filename = "src/sentry/tasks/integrations/github/open_pr_comment.py"
         correct_filenames = [
-            filename.replace(source_root, stack_root)
-            for source_root, stack_root in source_stack_pairs
+            "./src/sentry/tasks/integrations/github/open_pr_comment.py",
+            "sentry//tasks/integrations/github/open_pr_comment.py",
+            "sentry/tasks/integrations/github/open_pr_comment.py",
         ]
 
         project_list, sentry_filenames = get_projects_and_filenames_from_source_file(

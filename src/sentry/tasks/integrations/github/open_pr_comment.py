@@ -209,7 +209,7 @@ def get_projects_and_filenames_from_source_file(
         for code_mapping in code_mappings:
             project_list.add(code_mapping.project)
             sentry_filenames.add(
-                pr_filename.replace(code_mapping.source_root, code_mapping.stack_root)
+                pr_filename.replace(code_mapping.source_root, code_mapping.stack_root, 1)
             )
     return project_list, sentry_filenames
 
