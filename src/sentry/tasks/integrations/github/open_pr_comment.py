@@ -135,11 +135,13 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
 def safe_for_comment(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
 ) -> bool:
+    logger.info("github.open_pr_comment.check_safe_for_comment")
     try:
         pullrequest_resp = gh_client.get_pullrequest(
             repo=repository.name, pull_number=pull_request.key
         )
     except ApiError as e:
+        logger.info("github.open_pr_comment.api_error")
         if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
             metrics.incr(
                 OPEN_PR_METRICS_BASE.format(key="api_error"),
@@ -184,6 +186,8 @@ def get_pr_filenames(
 
     # new files will not have sentry issues associated with them
     pr_filenames: List[str] = [file["filename"] for file in pr_files if file["status"] != "added"]
+
+    logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pr_filenames)})
     return pr_filenames
 
 
@@ -263,11 +267,14 @@ def get_top_5_issues_by_count_for_file(
     name="sentry.tasks.integrations.open_pr_comment_workflow", silo_mode=SiloMode.REGION
 )
 def open_pr_comment_workflow(pr_id: int) -> None:
+    logger.info("github.open_pr_comment.start_workflow")
+
     # CHECKS
     # check PR exists to get PR key
     try:
         pull_request = PullRequest.objects.get(id=pr_id)
     except PullRequest.DoesNotExist:
+        logger.info("github.open_pr_comment.pr_missing")
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_pr"})
         return
 
@@ -309,6 +316,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
 
     # CREATING THE COMMENT
     if not safe_for_comment(gh_client=client, repository=repo, pull_request=pull_request):
+        logger.info("github.open_pr_comment.not_safe_for_comment")
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(key="error"),
             tags={"type": "unsafe_for_comment"},
@@ -337,6 +345,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         issue_table_contents[pr_filename] = get_issue_table_contents(top_issues)
 
     if not len(issue_table_contents):
+        logger.info("github.open_pr_comment.no_issues")
         # don't leave a comment if no issues for files in PR
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="no_issues"))
         return
