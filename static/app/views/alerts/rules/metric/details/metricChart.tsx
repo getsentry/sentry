@@ -226,7 +226,7 @@ class MetricChart extends PureComponent<Props, State> {
           </Fragment>
         </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
-          <Feature features={['discover-basic']}>
+          <Feature features="discover-basic">
             <Button size="sm" {...props}>
               {buttonText}
             </Button>
@@ -573,6 +573,7 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
+        useOnDemandMetrics
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) => (
           <Fragment>

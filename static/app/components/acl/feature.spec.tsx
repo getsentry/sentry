@@ -62,7 +62,7 @@ describe('Feature', function () {
     });
 
     it('has no features', function () {
-      render(<Feature features={['org-baz']}>{childrenMock}</Feature>, {
+      render(<Feature features="org-baz">{childrenMock}</Feature>, {
         context: routerContext,
       });
 
@@ -78,7 +78,7 @@ describe('Feature', function () {
     it('calls render function when no features', function () {
       const noFeatureRenderer = jest.fn(() => null);
       render(
-        <Feature features={['org-baz']} renderDisabled={noFeatureRenderer}>
+        <Feature features="org-baz" renderDisabled={noFeatureRenderer}>
           {childrenMock}
         </Feature>,
         {context: routerContext}
@@ -97,7 +97,7 @@ describe('Feature', function () {
     it('can specify org from props', function () {
       const customOrg = Organization({features: ['org-bazar']});
       render(
-        <Feature organization={customOrg} features={['org-bazar']}>
+        <Feature organization={customOrg} features="org-bazar">
           {childrenMock}
         </Feature>,
         {context: routerContext}
@@ -115,7 +115,7 @@ describe('Feature', function () {
     it('can specify project from props', function () {
       const customProject = TestStubs.Project({features: ['project-baz']});
       render(
-        <Feature project={customProject} features={['project-baz']}>
+        <Feature project={customProject} features="project-baz">
           {childrenMock}
         </Feature>,
         {context: routerContext}
@@ -148,7 +148,7 @@ describe('Feature', function () {
     });
 
     it('handles features prefixed with org/project', function () {
-      render(<Feature features={['organizations:org-bar']}>{childrenMock}</Feature>, {
+      render(<Feature features="organizations:org-bar">{childrenMock}</Feature>, {
         context: routerContext,
       });
 
@@ -160,7 +160,7 @@ describe('Feature', function () {
         renderDisabled: false,
       });
 
-      render(<Feature features={['projects:bar']}>{childrenMock}</Feature>, {
+      render(<Feature features="projects:bar">{childrenMock}</Feature>, {
         context: routerContext,
       });
 
@@ -178,7 +178,7 @@ describe('Feature', function () {
         features: new Set(['organizations:create']),
       });
 
-      render(<Feature features={['organizations:create']}>{childrenMock}</Feature>, {
+      render(<Feature features="organizations:create">{childrenMock}</Feature>, {
         context: routerContext,
       });
 
@@ -195,7 +195,7 @@ describe('Feature', function () {
   describe('no children', function () {
     it('should display renderDisabled with no feature', function () {
       render(
-        <Feature features={['nope']} renderDisabled={() => <span>disabled</span>}>
+        <Feature features="nope" renderDisabled={() => <span>disabled</span>}>
           <div>The Child</div>
         </Feature>,
         {context: routerContext}
@@ -205,7 +205,7 @@ describe('Feature', function () {
 
     it('should display be empty when on', function () {
       render(
-        <Feature features={['org-bar']} renderDisabled={() => <span>disabled</span>}>
+        <Feature features="org-bar" renderDisabled={() => <span>disabled</span>}>
           <div>The Child</div>
         </Feature>,
         {context: routerContext}
@@ -217,7 +217,7 @@ describe('Feature', function () {
   describe('as React node', function () {
     it('has features', function () {
       render(
-        <Feature features={['org-bar']}>
+        <Feature features="org-bar">
           <div>The Child</div>
         </Feature>,
         {context: routerContext}
@@ -228,7 +228,7 @@ describe('Feature', function () {
 
     it('has no features', function () {
       render(
-        <Feature features={['org-baz']}>
+        <Feature features="org-baz">
           <div>The Child</div>
         </Feature>,
         {context: routerContext}
@@ -239,7 +239,7 @@ describe('Feature', function () {
 
     it('renders a default disabled component', function () {
       render(
-        <Feature features={['org-baz']} renderDisabled>
+        <Feature features="org-baz" renderDisabled>
           <div>The Child</div>
         </Feature>,
         {context: routerContext}
@@ -253,7 +253,7 @@ describe('Feature', function () {
       const noFeatureRenderer = jest.fn(() => null);
       const children = <div>The Child</div>;
       render(
-        <Feature features={['org-baz']} renderDisabled={noFeatureRenderer}>
+        <Feature features="org-baz" renderDisabled={noFeatureRenderer}>
           {children}
         </Feature>,
         {context: routerContext}
@@ -286,7 +286,7 @@ describe('Feature', function () {
     it('uses hookName if provided', function () {
       const children = <div>The Child</div>;
       render(
-        <Feature features={['org-bazar']} hookName="feature-disabled:sso-basic">
+        <Feature features="org-bazar" hookName="feature-disabled:sso-basic">
           {children}
         </Feature>,
         {context: routerContext}

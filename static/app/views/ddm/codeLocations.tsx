@@ -6,17 +6,23 @@ import {Button} from 'sentry/components/button';
 import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Frame} from 'sentry/types';
-import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
+import {Frame, PageFilters} from 'sentry/types';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export function CodeLocations({mri}: {mri: string}) {
-  const {data} = useMetricsCodeLocations(mri);
+export function CodeLocations({
+  mri,
+  projects,
+}: {
+  mri: string;
+  projects?: PageFilters['projects'];
+}) {
+  const {data} = useMetricsCodeLocations(mri, projects);
   const [isExpanded, setIsExpanded] = useState(false);
   const organization = useOrganization();
 
-  if (!hasDdmAlertsSupport(organization)) {
+  if (!hasDDMExperimentalFeature(organization)) {
     return null;
   }
 
@@ -24,8 +30,13 @@ export function CodeLocations({mri}: {mri: string}) {
     return null;
   }
 
-  const frameToShow = data?.codeLocations[0].frames[0];
-  const otherFrames = data?.codeLocations[0].frames.slice(1) ?? [];
+  const codeLocations = data?.codeLocations;
+  if (!codeLocations) {
+    return null;
+  }
+
+  const frameToShow = codeLocations[codeLocations.length - 1].frames[0];
+  const otherFrames = codeLocations[codeLocations.length - 1].frames.slice(1) ?? [];
 
   if (!frameToShow) {
     return null;
@@ -43,19 +54,21 @@ export function CodeLocations({mri}: {mri: string}) {
             />
           </LeftLineTitle>
         </DefaultLineTitleWrapper>
-        <ToggleButton size="xs" borderless onClick={() => setIsExpanded(curr => !curr)}>
-          {isExpanded
-            ? tn(
-                'Hide %s more code location',
-                'Hide %s more code locations',
-                otherFrames.length
-              )
-            : tn(
-                'Show %s more code location',
-                'Show %s more code locations',
-                otherFrames.length
-              )}
-        </ToggleButton>
+        {otherFrames.length > 0 && (
+          <ToggleButton size="xs" borderless onClick={() => setIsExpanded(curr => !curr)}>
+            {isExpanded
+              ? tn(
+                  'Hide %s more code location',
+                  'Hide %s more code locations',
+                  otherFrames.length
+                )
+              : tn(
+                  'Show %s more code location',
+                  'Show %s more code locations',
+                  otherFrames.length
+                )}
+          </ToggleButton>
+        )}
       </DefaultLine>
       {isExpanded &&
         otherFrames.map(frame => (
