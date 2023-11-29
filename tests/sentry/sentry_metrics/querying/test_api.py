@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 from django.utils import timezone as django_timezone
 
-from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError, run_metrics_query
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
@@ -274,6 +274,24 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["by"] == {}
         assert groups[0]["series"] == {field_2: [0.0, 5.0, 3.0], field_1: [0.0, 1.0, 2.0]}
         assert groups[0]["totals"] == {field_2: 5.0, field_1: 1.0}
+
+    def test_query_with_invalid_filters(self) -> None:
+        # Query with one aggregation, one group by and two filters.
+        field = f"sum({TransactionMRI.DURATION.value})"
+
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_query(
+                fields=[field],
+                query='platform:"android" OR platform:ios',
+                group_bys=["platform"],
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
 
     @pytest.mark.skip(reason="sessions are not supported in the new metrics layer")
     def test_with_sessions(self) -> None:
