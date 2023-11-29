@@ -367,8 +367,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     monkeypatch_drf_listfield_serializer_errors()
 
-    monkeypatch_model_unpickle()
-
     import django
 
     django.setup()
@@ -489,17 +487,6 @@ def __model_unpickle_compat(
 
 def __simple_class_factory_compat(model: T, attrs: Any) -> T:
     return model
-
-
-def monkeypatch_model_unpickle() -> None:
-    # https://code.djangoproject.com/ticket/27187
-    # Django 1.10 breaks pickle compat with 1.9 models.
-    django.db.models.base.model_unpickle = __model_unpickle_compat
-
-    # Django 1.10 needs this to unpickle 1.9 models, but we can't branch while
-    # monkeypatching else our monkeypatched funcs won't be pickleable.
-    # So just vendor simple_class_factory from 1.9.
-    django.db.models.base.simple_class_factory = __simple_class_factory_compat
 
 
 def monkeypatch_django_migrations() -> None:
