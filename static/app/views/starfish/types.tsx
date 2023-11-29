@@ -114,6 +114,7 @@ export enum SpanIndexedField {
   PROJECT = 'project',
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
+  TRANSACTION = 'transaction',
 }
 
 export type SpanIndexedFieldTypes = {
