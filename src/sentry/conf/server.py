@@ -3982,9 +3982,9 @@ if SILO_DEVSERVER:
     ]
     RPC_TIMEOUT = 15.0
 
-    bind = os.environ.get("SENTRY_DEVSERVER_BIND").split(":")
+    bind = str(os.environ.get("SENTRY_DEVSERVER_BIND")).split(":")
     SENTRY_WEB_HOST = bind[0]
-    SENTRY_WEB_PORT = bind[1]
+    SENTRY_WEB_PORT = int(bind[1])
 
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
