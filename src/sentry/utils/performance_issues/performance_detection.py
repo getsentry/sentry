@@ -332,7 +332,7 @@ def _detect_performance_problems(
     detectors: List[PerformanceDetector] = [
         detector_class(detection_settings, data)
         for detector_class in DETECTOR_CLASSES
-        if detector_class.is_enabled()
+        if detector_class.is_detector_enabled()
     ]
 
     for detector in detectors:

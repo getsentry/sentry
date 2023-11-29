@@ -113,7 +113,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     group_type = PerformanceFileIOMainThreadGroupType
 
     @classmethod
-    def is_enabled(cls) -> bool:
+    def is_detector_enabled(cls) -> bool:
         return not options.get("performance_issues.file_io_main_thread.disabled")
 
     def init(self):
