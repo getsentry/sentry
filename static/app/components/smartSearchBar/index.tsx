@@ -202,6 +202,14 @@ type Props = WithRouterProps &
      */
     disabled?: boolean;
     /**
+     * Disables free text searches
+     */
+    disallowFreeText?: boolean;
+    /**
+     * Disables the OR operator
+     */
+    disallowLogicalOr?: boolean;
+    /**
      * Disables wildcard searches (in freeText and in the value of key:value searches mode)
      */
     disallowWildcard?: boolean;
@@ -366,7 +374,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
+      disallowLogicalOr: !this.props.disallowLogicalOr,
       disallowWildcard: this.props.disallowWildcard,
+      disallowFreeText: this.props.disallowFreeText,
       invalidMessages: this.props.invalidMessages,
     }),
     searchTerm: '',
@@ -433,7 +443,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
+      disallowLogicalOr: !this.props.disallowLogicalOr,
       disallowWildcard: this.props.disallowWildcard,
+      disallowFreeText: this.props.disallowFreeText,
       invalidMessages: this.props.invalidMessages,
     };
     return {
@@ -944,7 +956,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       tree: parsedQuery,
       noResultValue: true,
       visitorTest: ({token, returnResult, skipToken}) => {
-        return token.type !== Token.FILTER && token.type !== Token.FREE_TEXT
+        return token.type !== Token.FILTER &&
+          token.type !== Token.FREE_TEXT &&
+          token.type !== Token.LOGIC_BOOLEAN
           ? null
           : token.invalid
           ? returnResult(false)

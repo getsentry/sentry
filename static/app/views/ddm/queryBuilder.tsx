@@ -257,6 +257,9 @@ export function MetricSearchBar({
       organization={org}
       onGetTagValues={getTagValues}
       supportedTags={supportedTags}
+      highlightUnsupportedTags
+      disallowLogicalOr
+      disallowFreeText
       onClose={handleChange}
       onSearch={handleChange}
       placeholder={t('Filter by tags')}

@@ -258,7 +258,10 @@ type FilterTypeConfig = typeof filterTypeConfig;
  * invalidMessages option
  */
 export enum InvalidReason {
+  FREE_TEXT_NOT_ALLOWED = 'free-text-not-allowed',
   WILDCARD_NOT_ALLOWED = 'wildcard-not-allowed',
+  LOGICAL_BOOLEAN_NOT_ALLOWED = 'logic-boolean-not-allowed',
+  LOGICAL_OR_NOT_ALLOWED = 'logic-or-not-allowed',
   MUST_BE_QUOTED = 'must-be-quoted',
   FILTER_MUST_HAVE_VALUE = 'filter-must-have-value',
   INVALID_BOOLEAN = 'invalid-boolean',
@@ -441,6 +444,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.LOGIC_BOOLEAN as const,
     value: bool,
+    invalid: this.checkInvalidLogicalBoolean(bool),
   });
 
   tokenKeySimple = (value: string, quoted: boolean) => ({
@@ -661,10 +665,37 @@ export class TokenConverter {
    * Checks the validity of a free text based on the provided search configuration
    */
   checkInvalidFreeText = (value: string) => {
+    if (this.config.disallowFreeText) {
+      return {
+        type: InvalidReason.FREE_TEXT_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.FREE_TEXT_NOT_ALLOWED],
+      };
+    }
     if (this.config.disallowWildcard && value.includes('*')) {
       return {
         type: InvalidReason.WILDCARD_NOT_ALLOWED,
         reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
+      };
+    }
+
+    return null;
+  };
+
+  /**
+   * Checks the validity of a logical boolean filter based on the provided search configuration
+   */
+  checkInvalidLogicalBoolean = (value: BooleanOperator) => {
+    if (!this.config.allowBoolean) {
+      return {
+        type: InvalidReason.LOGICAL_BOOLEAN_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.LOGICAL_BOOLEAN_NOT_ALLOWED],
+      };
+    }
+
+    if (!this.config.disallowLogicalOr && value === BooleanOperator.OR) {
+      return {
+        type: InvalidReason.LOGICAL_OR_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.LOGICAL_OR_NOT_ALLOWED],
       };
     }
 
@@ -900,6 +931,14 @@ export type SearchConfig = {
    */
   dateKeys: Set<string>;
   /**
+   * Disallow free text search
+   */
+  disallowFreeText: boolean;
+  /**
+   * Disallow OR
+   */
+  disallowLogicalOr: boolean;
+  /**
    * Disallow wildcards in free text search AND in tag values
    */
   disallowWildcard: boolean;
@@ -981,9 +1020,18 @@ const defaultConfig: SearchConfig = {
   ]),
   sizeKeys: new Set([]),
   allowBoolean: true,
+  disallowLogicalOr: false,
+  disallowFreeText: false,
   disallowWildcard: false,
   invalidMessages: {
+    [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t('Free text is not supported in this search'),
     [InvalidReason.WILDCARD_NOT_ALLOWED]: t('Wildcards not supported in search'),
+    [InvalidReason.LOGICAL_BOOLEAN_NOT_ALLOWED]: t(
+      'Boolean operators are not allowed in this search'
+    ),
+    [InvalidReason.LOGICAL_OR_NOT_ALLOWED]: t(
+      'The OR operator is not allowed in this search'
+    ),
     [InvalidReason.MUST_BE_QUOTED]: t('Quotes must enclose text or be escaped'),
     [InvalidReason.FILTER_MUST_HAVE_VALUE]: t('Filter must have a value'),
     [InvalidReason.INVALID_BOOLEAN]: t('Invalid boolean. Expected true, 1, false, or 0.'),
