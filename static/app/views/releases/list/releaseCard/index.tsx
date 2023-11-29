@@ -18,6 +18,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Release} from 'sentry/types';
 
+import {ThresholdStatus} from '../../utils/types';
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import {ReleasesRequestRenderProps} from '../releasesRequest';
 
@@ -54,6 +55,7 @@ type Props = {
   selection: PageFilters;
   showHealthPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
+  thresholdStatuses: ThresholdStatus[];
 };
 
 function ReleaseCard({
@@ -67,12 +69,9 @@ function ReleaseCard({
   isTopRelease,
   getHealthData,
   showReleaseAdoptionStages,
+  thresholdStatuses,
 }: Props) {
   const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
-
-  // TODO: fetch release threshold status
-  // Query for every release card??
-  // Query a full batch and match via card?
 
   const [projectsToShow, projectsToHide] = useMemo(() => {
     // sort health rows inside release card alphabetically by project name,

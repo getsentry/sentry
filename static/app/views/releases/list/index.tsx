@@ -177,6 +177,13 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     });
   }
 
+  getThresholdsByProject = () => {
+    const thresholdStatuses = this.state.thresholdStatuses;
+    // Key by project + release version
+    // Then filter by environment
+    // threshold statuses already key'd by proj-env-release
+  };
+
   getQuery() {
     const {query} = this.props.location.query;
 
@@ -494,7 +501,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     showReleaseAdoptionStages: boolean
   ) {
     const {location, selection, organization, router} = this.props;
-    const {releases, reloading, releasesPageLinks} = this.state;
+    const {releases, reloading, releasesPageLinks, thresholdStatuses} = this.state;
 
     const selectedProject = this.getSelectedProject();
     const hasReleasesSetup = selectedProject?.features.includes('releases');
@@ -542,21 +549,28 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                 />
               )}
 
-              {releases.map((release, index) => (
-                <ReleaseCard
-                  key={`${release.version}-${release.projects[0].slug}`}
-                  activeDisplay={activeDisplay}
-                  release={release}
-                  organization={organization}
-                  location={location}
-                  selection={selection}
-                  reloading={reloading}
-                  showHealthPlaceholders={isHealthLoading}
-                  isTopRelease={index === 0}
-                  getHealthData={getHealthData}
-                  showReleaseAdoptionStages={showReleaseAdoptionStages}
-                />
-              ))}
+              {releases.map((release, index) => {
+                console.log('release: ', release);
+                // const thresholds = Object.values(thresholdStatuses).filter(threshold => threshold.)
+                // threshold statuses - if multiple thresholds, they'll be bucketed under proj-env-release
+                //
+                return (
+                  <ReleaseCard
+                    key={`${release.version}-${release.projects[0].slug}`}
+                    activeDisplay={activeDisplay}
+                    release={release}
+                    organization={organization}
+                    location={location}
+                    selection={selection}
+                    reloading={reloading}
+                    showHealthPlaceholders={isHealthLoading}
+                    isTopRelease={index === 0}
+                    getHealthData={getHealthData}
+                    showReleaseAdoptionStages={showReleaseAdoptionStages}
+                    thresholdStatuses={thresholdStatuses}
+                  />
+                );
+              })}
               <Pagination pageLinks={releasesPageLinks} />
             </Fragment>
           );
@@ -595,6 +609,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {organization.features.includes('releases-v2-banner') && (
                 <ReleaseFeedbackBanner />
               )}
+              {/* TODO remove */}
               {JSON.stringify(this.state.thresholdStatuses)}
 
               {this.renderHealthCta()}
