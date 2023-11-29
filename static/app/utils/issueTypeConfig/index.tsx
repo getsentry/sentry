@@ -13,6 +13,7 @@ type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 type IssueCategoryAndType = {
   issueCategory: IssueCategory;
   issueType?: IssueType;
+  title?: string;
 };
 
 type GetConfigForIssueTypeParams = {eventOccurrenceType: number} | IssueCategoryAndType;
@@ -47,6 +48,37 @@ const issueTypeConfig: Config = {
   [IssueCategory.CRON]: cronConfig,
 };
 
+enum ErrorTitles {
+  CHUNK_LOAD_ERROR = 'chunk_load_error',
+}
+
+const titleResourceMap = {
+  [ErrorTitles.CHUNK_LOAD_ERROR]: {
+    resources: {
+      description: t(
+        'ChunkLoadErrors occur when the JavaScript chunks (bundles) that an application is trying to load encounter issues during the loading process. Some common causes are dynamic imports, version mismatching, and code splitting issues. To learn more about how to fix ChunkLoadErrors, check out these resources:'
+      ),
+      links: [
+        {
+          text: t('How to fix ChunkLoadErrors'),
+          link: 'https://sentry.io',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+};
+
+function getErrorResourceConfig(title: string) {
+  let errorTitle = '';
+
+  if (title.includes('RuntimeError')) {
+    errorTitle = ErrorTitles.CHUNK_LOAD_ERROR;
+  }
+  const resource = titleResourceMap[errorTitle];
+  return resource ?? {};
+}
+
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
   if (eventOccurrenceType >= 1000) {
     return IssueCategory.PERFORMANCE;
@@ -68,7 +100,7 @@ export const getIssueCategoryAndTypeFromOccurrenceType = (
  * configuration. If not found there, it takes from the base config.
  */
 export const getConfigForIssueType = (params: GetConfigForIssueTypeParams) => {
-  const {issueCategory, issueType} =
+  const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
       ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
@@ -81,10 +113,13 @@ export const getConfigForIssueType = (params: GetConfigForIssueTypeParams) => {
 
   const categoryConfig = categoryMap._categoryDefaults;
   const overrideConfig = issueType ? categoryMap[issueType] : {};
+  const errorResourceConfig =
+    issueType === IssueType.ERROR && title ? getErrorResourceConfig(title) : {};
 
   return {
     ...BASE_CONFIG,
     ...categoryConfig,
     ...overrideConfig,
+    ...errorResourceConfig,
   };
 };
