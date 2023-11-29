@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import re
-import shutil
 import threading
 import types
 from typing import MutableSequence, NoReturn, Sequence
-from urllib.parse import urlparse
 
 import click
 
@@ -174,25 +172,7 @@ def devserver(
 
     from django.conf import settings
 
-    from sentry import options
     from sentry.services.http import SentryHTTPServer
-
-    url_prefix = options.get("system.url-prefix")
-    parsed_url = urlparse(url_prefix)
-
-    # Make sure we're trying to use a port that we can actually bind to
-    needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024
-    has_https = shutil.which("https") is not None
-
-    if needs_https and not has_https:
-        from sentry.runner.initializer import show_big_error
-
-        show_big_error(
-            [
-                "missing `https` on your `$PATH`, but https is needed",
-                "`$ brew install mattrobenolt/stuff/https`",
-            ]
-        )
 
     uwsgi_overrides: dict[str, int | bool | str | None] = {
         "http-keepalive": True,
@@ -336,24 +316,6 @@ def devserver(
 
         if occurrence_ingest:
             kafka_consumers.add("ingest-occurrences")
-
-    if needs_https and has_https:
-        https_port = str(parsed_url.port)
-        https_host = parsed_url.hostname
-
-        # Determine a random port for the backend http server
-        import socket
-
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((host, 0))
-        port = s.getsockname()[1]
-        s.close()
-        bind = "%s:%d" % (host, port)
-
-        daemons += [
-            ("https", ["https", "-host", https_host, "-listen", host + ":" + https_port, bind])
-        ]
 
     # Create all topics if the Kafka eventstream is selected
     if kafka_consumers:
