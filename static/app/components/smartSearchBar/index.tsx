@@ -2070,8 +2070,17 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             supportedTags={supportedTags}
             customInvalidTagMessage={this.props.customInvalidTagMessage}
             mergeItemsWith={this.props.mergeSearchGroupWith}
-            disallowWildcard={this.props.disallowWildcard}
             invalidMessages={this.props.invalidMessages}
+            disallowWildcard={this.props.disallowWildcard}
+            disallowLogicalOr={!this.props.disallowLogicalOr}
+            disallowFreeText={this.props.disallowFreeText}
+            booleanKeys={this.props.booleanKeys}
+            dateKeys={this.props.dateKeys}
+            durationKeys={this.props.durationKeys}
+            numericKeys={this.props.numericKeys}
+            percentageKeys={this.props.percentageKeys}
+            sizeKeys={this.props.sizeKeys}
+            textOperatorKeys={this.props.textOperatorKeys}
           />
         )}
       </Container>

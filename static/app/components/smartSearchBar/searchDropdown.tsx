@@ -30,16 +30,25 @@ type Props = {
   loading: boolean;
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
+  booleanKeys?: Set<string>;
   className?: string;
   customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   customPerformanceMetrics?: CustomMeasurementCollection;
+  dateKeys?: Set<string>;
+  disallowFreeText?: boolean;
+  disallowLogicalOr?: boolean;
   disallowWildcard?: boolean;
+  durationKeys?: Set<string>;
   invalidMessages?: SearchConfig['invalidMessages'];
   maxMenuHeight?: number;
   mergeItemsWith?: Record<string, SearchItem>;
+  numericKeys?: Set<string>;
   onIconClick?: (value: string) => void;
+  percentageKeys?: Set<string>;
   runShortcut?: (shortcut: Shortcut) => void;
+  sizeKeys?: Set<string>;
   supportedTags?: TagCollection;
+  textOperatorKeys?: Set<string>;
   visibleShortcuts?: Shortcut[];
 };
 
@@ -57,7 +66,16 @@ function SearchDropdown({
   supportedTags,
   customInvalidTagMessage,
   mergeItemsWith,
+  booleanKeys,
+  dateKeys,
+  durationKeys,
+  numericKeys,
+  percentageKeys,
+  sizeKeys,
+  textOperatorKeys,
+  disallowLogicalOr,
   disallowWildcard,
+  disallowFreeText,
   invalidMessages,
 }: Props) {
   return (
@@ -89,12 +107,21 @@ function SearchDropdown({
                         onClick={onClick}
                         onIconClick={onIconClick}
                         additionalSearchConfig={{
+                          supportedTags,
+                          disallowWildcard,
+                          disallowLogicalOr,
+                          disallowFreeText,
+                          invalidMessages,
+                          booleanKeys,
+                          dateKeys,
+                          durationKeys,
+                          numericKeys,
+                          percentageKeys,
+                          sizeKeys,
+                          textOperatorKeys,
                           ...getSearchConfigFromCustomPerformanceMetrics(
                             customPerformanceMetrics
                           ),
-                          supportedTags,
-                          disallowWildcard,
-                          invalidMessages,
                         }}
                         customInvalidTagMessage={customInvalidTagMessage}
                       />
