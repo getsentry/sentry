@@ -624,6 +624,8 @@ function useTrackView({
     trace_status: 'none',
     // Will be updated in GroupDetailsHeader if there are replays
     group_has_replay: false,
+    // Will be updated in ReplayPreview if there is a replay
+    event_replay_status: 'none',
     // Will be updated in SuspectCommits if there are suspect commits
     num_suspect_commits: 0,
     suspect_commit_calculation: 'no suspect commit',
