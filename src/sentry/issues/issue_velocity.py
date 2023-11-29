@@ -2,11 +2,13 @@
 of events per issue per hour, which is then stored per project in Redis.
 """
 
-import datetime
 import logging
+import math
+from datetime import datetime, timedelta
+from typing import Optional
 
 import sentry_sdk
-from snuba_sdk import (  # Limit,
+from snuba_sdk import (
     Column,
     Condition,
     Direction,
@@ -28,23 +30,14 @@ logger = logging.getLogger(__name__)
 
 REFERRER = "sentry.issues.issue_velocity"
 CLUSTER_KEY = ""
+WEEK_IN_HOURS = 7 * 24
 
 
-def calculate_velocity_threshold_for_project(project: Project) -> int | None:
+def calculate_velocity_threshold_for_project(project: Project) -> Optional[float]:
     now = datetime.now()
-    one_week_ago = now - datetime.timedelta(days=7)
-    ninety_days_ago = now - datetime.timedelta(days=90)
+    one_week_ago = now - timedelta(days=7)
+    ninety_days_ago = now - timedelta(days=90)
 
-    """ @ wednesday isabella this is it i'm pretty sure
-    MATCH (search_issues)
-    SELECT group_id, min(timestamp) AS first_seen, countIf(greaterOrEquals(timestamp, one_week_ago)) AS num_events_for_issue_in_past_week, if(less(first_seen, one_week_ago), divide(num_events_for_issue_in_past_week, 7*24), divide(num_events_for_issue_in_past_week, dateDiff('hour', first_seen, now))) AS events_per_issue_per_hour
-    BY group_id
-    WHERE timestamp >= 90_days_ago
-        AND timestamp < now
-    AND project_id = project.id
-    HAVING num_events_for_issue_in_past_week > 1 ORDER BY first_seen DESC
-
-    """
     subquery = Query(
         match=Entity(EntityKey.IssuePlatform.value),
         select=[
@@ -55,32 +48,40 @@ def calculate_velocity_threshold_for_project(project: Project) -> int | None:
                 [
                     Function("greaterOrEquals", [Column("timestamp"), one_week_ago])
                 ],  # count events for the issue that occurred within the past week
-                "num_events_for_issue_in_past_week",
+                "past_week_event_count",
             ),
             Function(
-                "if",  # if the issue was first seen within the past week, we divide the number of events by its age in hours, otherwise we divide the number of events by 7 days in hours
+                "if",
                 [
-                    Function("less", [Column("first_seen"), one_week_ago]),
-                    Function("divide", [Column("num_events_for_issues_in_past_week"), 168]),
-                    Function("divide"),
-                    [
-                        Column("num_events_for_issues_in_past_week"),
-                        Function("dateDiff", ["hour", Column("first_seen"), now]),
-                    ],
-                    "events_per_issue_per_hour",
+                    Function(
+                        "less", [Column("first_seen"), one_week_ago]
+                    ),  # if the issue is older than a week
+                    Function(
+                        "divide", [Column("past_week_event_count"), WEEK_IN_HOURS]
+                    ),  # divide the number of events in the week by a week in hours
+                    Function(
+                        "divide",
+                        [
+                            Column("past_week_event_count"),
+                            Function(
+                                "dateDiff", ["hour", Column("first_seen"), now]
+                            ),  # otherwise divide by its age in hours
+                        ],
+                    ),
                 ],
+                "hourly_event_rate",
             ),
         ],
         groupby=[Column("group_id")],
         where=[
             Condition(
                 Column("timestamp"), Op.GTE, ninety_days_ago
-            ),  # we include issues up to the oldest retention date so that we can properly determine whether an issue is older than the week or not
+            ),  # include issues up to the oldest retention date to determine whether an issue is older than the week or not
             Condition(Column("timestamp"), Op.LT, now),
             Condition(Column("project_id"), Op.EQ, project.id),
         ],
         having=[
-            Condition(Column("num_events_for_issues_in_past_week"), Op.GT, 1)
+            Condition(Column("past_week_event_count"), Op.GT, 1)
         ],  # exclude any issues that had only 1 event in the past week
         orderby=[OrderBy(Column("first_seen"), Direction.ASC)],
         limit=Limit(10000),
@@ -89,13 +90,13 @@ def calculate_velocity_threshold_for_project(project: Project) -> int | None:
     query = Query(
         match=subquery,
         select=[
-            Function("quantile(0.9)", Column("events_per_issue_per_hour"), "p90")
-        ],  # get the 90th percentile of the event frequency in the past week
+            Function("quantile(0.9)", [Column("hourly_event_rate")], "p90")
+        ],  # get the approximate 90th percentile of the event frequency in the past week
         limit=Limit(1),
     )
 
     request = Request(
-        dataset=Dataset.PerformanceMetrics.value,
+        dataset=Dataset.IssuePlatform.value,
         app_id=REFERRER,
         query=query,
         tenant_ids={"referrer": REFERRER, "organization_id": project.organization.id},
@@ -116,6 +117,8 @@ def set_velocity_threshold_for_project(project: Project) -> None:
     if threshold is None:
         logger.error("Velocity threshold couldn't be calculated", extra={"project_id": project.id})
         return
+    elif math.isnan(threshold):
+        pass  # TODO
     # store in redis
     with sentry_sdk.start_span(op="cluster.{CLUSTER_KEY}.set_velocity_threshold_for_project"):
         client = redis_clusters.get(CLUSTER_KEY)
