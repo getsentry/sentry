@@ -637,30 +637,31 @@ export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup
 export const getSearchConfigFromCustomPerformanceMetrics = (
   customPerformanceMetrics?: CustomMeasurementCollection
 ): Partial<SearchConfig> => {
+  if (!customPerformanceMetrics) {
+    return {};
+  }
   const searchConfigMap: Record<string, string[]> = {
     sizeKeys: [...defaultConfig.sizeKeys],
     durationKeys: [...defaultConfig.durationKeys],
     percentageKeys: [...defaultConfig.percentageKeys],
     numericKeys: [...defaultConfig.numericKeys],
   };
-  if (customPerformanceMetrics) {
-    Object.keys(customPerformanceMetrics).forEach(metricName => {
-      const {fieldType} = customPerformanceMetrics[metricName];
-      switch (fieldType) {
-        case 'size':
-          searchConfigMap.sizeKeys.push(metricName);
-          break;
-        case 'duration':
-          searchConfigMap.durationKeys.push(metricName);
-          break;
-        case 'percentage':
-          searchConfigMap.percentageKeys.push(metricName);
-          break;
-        default:
-          searchConfigMap.numericKeys.push(metricName);
-      }
-    });
-  }
+  Object.keys(customPerformanceMetrics).forEach(metricName => {
+    const {fieldType} = customPerformanceMetrics[metricName];
+    switch (fieldType) {
+      case 'size':
+        searchConfigMap.sizeKeys.push(metricName);
+        break;
+      case 'duration':
+        searchConfigMap.durationKeys.push(metricName);
+        break;
+      case 'percentage':
+        searchConfigMap.percentageKeys.push(metricName);
+        break;
+      default:
+        searchConfigMap.numericKeys.push(metricName);
+    }
+  });
   const searchConfig = {
     sizeKeys: new Set(searchConfigMap.sizeKeys),
     durationKeys: new Set(searchConfigMap.durationKeys),

@@ -405,7 +405,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       percentageKeys: this.props.percentageKeys,
       sizeKeys: this.props.sizeKeys,
       textOperatorKeys: this.props.textOperatorKeys,
-      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
@@ -413,6 +412,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       disallowWildcard: this.props.disallowWildcard,
       disallowFreeText: this.props.disallowFreeText,
       invalidMessages: this.props.invalidMessages,
+      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
     }),
     searchTerm: '',
     searchGroups: [],
@@ -481,7 +481,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       percentageKeys: this.props.percentageKeys,
       sizeKeys: this.props.sizeKeys,
       textOperatorKeys: this.props.textOperatorKeys,
-      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
@@ -489,6 +488,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       disallowWildcard: this.props.disallowWildcard,
       disallowFreeText: this.props.disallowFreeText,
       invalidMessages: this.props.invalidMessages,
+      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
     };
     return {
       query,
