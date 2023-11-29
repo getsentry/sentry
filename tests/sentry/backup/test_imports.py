@@ -885,9 +885,10 @@ class DatabaseResetTests(ImportTestCase):
 
         for dependency in dependencies():
             model = get_model(dependency)
-            assert model.objects.count() == 0  # type: ignore
-            with connections[router.db_for_read(model)].cursor() as cursor:  # type: ignore
-                cursor.execute(f"SELECT MAX(id) FROM {model._meta.db_table}")  # type: ignore
+            assert model is not None
+            assert model.objects.count() == 0
+            with connections[router.db_for_read(model)].cursor() as cursor:
+                cursor.execute(f"SELECT MAX(id) FROM {model._meta.db_table}")
                 sequence_number = cursor.fetchone()[0]
                 assert sequence_number == 1 or sequence_number is None
         # During the setup of a fresh Sentry instance, there are a couple of models that are automatically created.
