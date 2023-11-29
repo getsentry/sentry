@@ -37,9 +37,9 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
             </ExternalLink>
           }
         >
-          {t('a11y')}
+          {t('Accessibility')}
         </Tooltip>
-        <FeatureBadge type="alpha" />
+        <FeatureBadge type="beta" />
       </Fragment>
     ) : null,
     [TabKey.MEMORY]: t('Memory'),

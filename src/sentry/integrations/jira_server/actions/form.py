@@ -5,18 +5,22 @@ from typing import Any
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from sentry.models.integrations.integration import Integration
 from sentry.rules.actions import IntegrationNotifyServiceForm
+from sentry.services.hybrid_cloud.integration.service import integration_service
 
 
 class JiraServerNotifyServiceForm(IntegrationNotifyServiceForm):
+    provider = "jira_server"
+
     def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean() or {}
 
-        integration = cleaned_data.get("integration")
-        try:
-            Integration.objects.get(id=integration)
-        except Integration.DoesNotExist:
+        integration_id = cleaned_data.get("integration")
+        integration = integration_service.get_integration(
+            integration_id=integration_id, provider=self.provider
+        )
+
+        if not integration:
             raise forms.ValidationError(
                 _("Jira Server integration is a required field."), code="invalid"
             )

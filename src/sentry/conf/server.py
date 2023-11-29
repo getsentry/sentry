@@ -671,6 +671,9 @@ SENTRY_REGION_CONFIG: Any = ()
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET = None
 
+# Timeout for RPC requests between regions
+RPC_TIMEOUT = 5.0
+
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
@@ -805,7 +808,7 @@ CELERY_QUEUES_CONTROL = [
     Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
     Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
     Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
-    Queue("email", routing_key="email", exchange=control_exchange),
+    Queue("email.control", routing_key="email.control", exchange=control_exchange),
     Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
     Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
     Queue(
@@ -838,6 +841,7 @@ CELERY_QUEUES_REGION = [
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
+    Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
@@ -884,6 +888,7 @@ CELERY_QUEUES_REGION = [
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
     Queue("merge", routing_key="merge"),
+    Queue("notifications", routing_key="notifications"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
@@ -1720,12 +1725,16 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-issues-render-blocking-assets-detector": False,
     # Enable MN+1 DB performance issue type
     "organizations:performance-issues-m-n-plus-one-db-detector": False,
+    # Enable trace details page with embedded spans
+    "organizations:performance-trace-details": False,
     # Enable FE/BE for tracing without performance
-    "organizations:performance-tracing-without-performance": False,
+    "organizations:performance-tracing-without-performance": True,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable database view query source UI
+    "organizations:performance-database-view-query-source": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable performance score calculation for transactions in relay
@@ -1886,8 +1895,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
-    # Enable metric alert rate limiting
-    "organizations:metric-alert-rate-limiting": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
     # Enable logs for debugging weekly reports
@@ -3008,6 +3015,8 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "enable_db_query_source": True,
+    "db_query_source_threshold_ms": 500,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")

@@ -17,8 +17,8 @@ from sentry.utils import json
 pytestmark = pytest.mark.sentry_metrics
 
 
+@region_silo_test
 @freeze_time("2023-11-21T10:30:30.000Z")
-@region_silo_test(stable=True)
 class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-ddm-meta"
 
