@@ -143,7 +143,7 @@ def zerofill(data, start, end, rollup, orderby, time_col_name=None):
     data_by_time = {}
 
     for obj in data:
-        if time_col_name:
+        if time_col_name and time_col_name in obj:
             obj["time"] = obj.pop(time_col_name)
         # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
         if isinstance(obj["time"], str):
