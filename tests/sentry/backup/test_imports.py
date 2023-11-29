@@ -6,6 +6,7 @@ import tempfile
 from datetime import date, datetime
 from pathlib import Path
 from typing import Tuple
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -14,9 +15,10 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+from django.db import connections, router
 from django.utils import timezone
 
-from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model, get_model_name
 from sentry.backup.helpers import ImportFlags, LocalFileDecryptor
 from sentry.backup.imports import (
     ImportingError,
@@ -49,12 +51,14 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor
+from sentry.receivers import create_default_projects
 from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -857,6 +861,90 @@ class ScopingTests(ImportTestCase):
         )
 
 
+@region_silo_test
+class DatabaseResetTests(ImportTestCase):
+    """
+    Ensure that database resets work as intended in different import scopes.
+    """
+
+    def import_empty_backup_file(self, import_fn):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_empty_file_path = tmp_dir + "empty_backup.json"
+            with open(tmp_empty_file_path, "w") as tmp_file:
+                json.dump([], tmp_file)
+            with open(tmp_empty_file_path, "rb") as empty_backup_json:
+                import_fn(empty_backup_json, printer=NOOP_PRINTER)
+
+    @mock.patch("sentry.backup.imports.is_split_db", return_value=False)
+    def test_clears_existing_models_in_global_scope(self, is_split_db):
+        if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+            return
+
+        create_default_projects()
+        self.import_empty_backup_file(import_in_global_scope)
+
+        for dependency in dependencies():
+            model = get_model(dependency)
+            assert model is not None
+            assert model.objects.count() == 0
+            with connections[router.db_for_read(model)].cursor() as cursor:
+                cursor.execute(f"SELECT MAX(id) FROM {model._meta.db_table}")
+                sequence_number = cursor.fetchone()[0]
+                assert sequence_number == 1 or sequence_number is None
+        # During the setup of a fresh Sentry instance, there are a couple of models that are automatically created.
+        # The Sentry org, a Sentry team, and an internal project. During a global import, we want to avoid persisting
+        # these default models and start from scratch. These explicit assertions are here just to double check that these
+        # models have been wiped.
+
+        assert Project.objects.count() == 0
+        assert ProjectKey.objects.count() == 0
+        assert Organization.objects.count() == 0
+        assert OrganizationMember.objects.count() == 0
+        assert Team.objects.count() == 0
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            export_to_file(path, ExportScope.Global)
+            with open(path) as tmp_file:
+                assert tmp_file.read() == "[]"
+
+    def test_persist_existing_models_in_user_scope(self):
+        owner = self.create_exhaustive_user("owner", email="owner@example.com")
+        user = self.create_exhaustive_user("user", email="user@example.com")
+        self.create_exhaustive_organization("neworg", owner, user, None)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+        self.import_empty_backup_file(import_in_user_scope)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+
+    def test_persist_existing_models_in_config_scope(self):
+        owner = self.create_exhaustive_user("owner", email="owner@example.com")
+        user = self.create_exhaustive_user("user", email="user@example.com")
+        self.create_exhaustive_organization("neworg", owner, user, None)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+        self.import_empty_backup_file(import_in_config_scope)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+
+    def test_persist_existing_models_in_organization_scope(self):
+        owner = self.create_exhaustive_user("owner", email="owner@example.com")
+        user = self.create_exhaustive_user("user", email="user@example.com")
+        self.create_exhaustive_organization("neworg", owner, user, None)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+        self.import_empty_backup_file(import_in_organization_scope)
+        assert Organization.objects.count() == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert User.objects.count() == 3
+
+
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
 # here.
 @region_silo_test
@@ -1313,7 +1401,7 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+                import_in_config_scope(tmp_file, printer=NOOP_PRINTER)
 
             # Ensure that old tokens have not been mutated.
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1660,190 +1748,6 @@ class CollisionTests(ImportTestCase):
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_config_scope(
-                    tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
-                )
-
-            option_chunk = RegionImportChunk.objects.get(
-                model="sentry.option", min_ordinal=1, max_ordinal=1
-            )
-            assert len(option_chunk.inserted_map) == 0
-            assert len(option_chunk.existing_map) == 1
-            assert len(option_chunk.overwrite_map) == 0
-            assert Option.objects.count() == 1
-            assert Option.objects.filter(value__exact="y").exists()
-
-            relay_chunk = RegionImportChunk.objects.get(
-                model="sentry.relay", min_ordinal=1, max_ordinal=1
-            )
-            assert len(relay_chunk.inserted_map) == 0
-            assert len(relay_chunk.existing_map) == 1
-            assert len(relay_chunk.overwrite_map) == 0
-            assert Relay.objects.count() == 1
-            assert Relay.objects.filter(public_key__exact="invalid").exists()
-
-            relay_usage_chunk = RegionImportChunk.objects.get(
-                model="sentry.relayusage", min_ordinal=1, max_ordinal=1
-            )
-            assert len(relay_usage_chunk.inserted_map) == 0
-            assert len(relay_usage_chunk.existing_map) == 1
-            assert len(relay_usage_chunk.overwrite_map) == 0
-            assert RelayUsage.objects.count() == 1
-            assert RelayUsage.objects.filter(public_key__exact="invalid").exists()
-
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                control_option_chunk = ControlImportChunk.objects.get(
-                    model="sentry.controloption", min_ordinal=1, max_ordinal=1
-                )
-                assert len(control_option_chunk.inserted_map) == 0
-                assert len(control_option_chunk.existing_map) == 1
-                assert len(control_option_chunk.overwrite_map) == 0
-                assert ControlOption.objects.count() == 1
-                assert ControlOption.objects.filter(value__exact="z").exists()
-
-                assert UserRole.objects.count() == 1
-                actual_user_role = UserRole.objects.first()
-                assert len(actual_user_role.permissions) == 1
-                assert actual_user_role.permissions[0] == "other.admin"
-
-            with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
-
-    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
-    def test_colliding_configs_overwrite_configs_enabled_in_global_scope(self):
-        owner = self.create_exhaustive_user("owner", is_admin=True)
-        self.create_exhaustive_global_configs(owner)
-
-        # Take note of the configs we want to track - this is the one we'll be importing.
-        colliding_option = Option.objects.all().first()
-        colliding_relay = Relay.objects.all().first()
-        colliding_relay_usage = RelayUsage.objects.all().first()
-
-        old_relay_public_key = colliding_relay.public_key
-        old_relay_usage_public_key = colliding_relay_usage.public_key
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_control_option = ControlOption.objects.all().first()
-            colliding_user_role = UserRole.objects.all().first()
-            old_user_role_permissions = colliding_user_role.permissions
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-
-            colliding_option.value = "y"
-            colliding_option.save()
-
-            colliding_relay.public_key = "invalid"
-            colliding_relay.save()
-
-            colliding_relay_usage.public_key = "invalid"
-            colliding_relay_usage.save()
-
-            assert Option.objects.count() == 1
-            assert Relay.objects.count() == 1
-            assert RelayUsage.objects.count() == 1
-
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                colliding_control_option.value = "z"
-                colliding_control_option.save()
-
-                colliding_user_role.permissions = ["other.admin"]
-                colliding_user_role.save()
-
-                assert ControlOption.objects.count() == 1
-                assert UserRole.objects.count() == 1
-
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_global_scope(
-                    tmp_file, flags=ImportFlags(overwrite_configs=True), printer=NOOP_PRINTER
-                )
-
-            option_chunk = RegionImportChunk.objects.get(
-                model="sentry.option", min_ordinal=1, max_ordinal=1
-            )
-            assert len(option_chunk.inserted_map) == 0
-            assert len(option_chunk.existing_map) == 0
-            assert len(option_chunk.overwrite_map) == 1
-            assert Option.objects.count() == 1
-            assert Option.objects.filter(value__exact="a").exists()
-
-            relay_chunk = RegionImportChunk.objects.get(
-                model="sentry.relay", min_ordinal=1, max_ordinal=1
-            )
-            assert len(relay_chunk.inserted_map) == 0
-            assert len(relay_chunk.existing_map) == 0
-            assert len(relay_chunk.overwrite_map) == 1
-            assert Relay.objects.count() == 1
-            assert Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
-
-            relay_usage_chunk = RegionImportChunk.objects.get(
-                model="sentry.relayusage", min_ordinal=1, max_ordinal=1
-            )
-            assert len(relay_usage_chunk.inserted_map) == 0
-            assert len(relay_usage_chunk.existing_map) == 0
-            assert len(relay_usage_chunk.overwrite_map) == 1
-            assert RelayUsage.objects.count() == 1
-            assert RelayUsage.objects.filter(public_key__exact=old_relay_usage_public_key).exists()
-
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                control_option_chunk = ControlImportChunk.objects.get(
-                    model="sentry.controloption", min_ordinal=1, max_ordinal=1
-                )
-                assert len(control_option_chunk.inserted_map) == 0
-                assert len(control_option_chunk.existing_map) == 0
-                assert len(control_option_chunk.overwrite_map) == 1
-                assert ControlOption.objects.count() == 1
-                assert ControlOption.objects.filter(value__exact="b").exists()
-
-                actual_user_role = UserRole.objects.first()
-                assert len(actual_user_role.permissions) == len(old_user_role_permissions)
-                for i, actual_permission in enumerate(actual_user_role.permissions):
-                    assert actual_permission == old_user_role_permissions[i]
-
-            with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
-
-    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
-    def test_colliding_configs_overwrite_configs_disabled_in_global_scope(self):
-        owner = self.create_exhaustive_user("owner", is_admin=True)
-        self.create_exhaustive_global_configs(owner)
-
-        # Take note of the configs we want to track - this is the one we'll be importing.
-        colliding_option = Option.objects.all().first()
-        colliding_relay = Relay.objects.all().first()
-        colliding_relay_usage = RelayUsage.objects.all().first()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_control_option = ControlOption.objects.all().first()
-            colliding_user_role = UserRole.objects.all().first()
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-
-            colliding_option.value = "y"
-            colliding_option.save()
-
-            colliding_relay.public_key = "invalid"
-            colliding_relay.save()
-
-            colliding_relay_usage.public_key = "invalid"
-            colliding_relay_usage.save()
-
-            assert Option.objects.count() == 1
-            assert Relay.objects.count() == 1
-            assert RelayUsage.objects.count() == 1
-
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                colliding_control_option.value = "z"
-                colliding_control_option.save()
-
-                colliding_user_role.permissions = ["other.admin"]
-                colliding_user_role.save()
-
-                assert ControlOption.objects.count() == 1
-                assert UserRole.objects.count() == 1
-
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_global_scope(
                     tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
                 )
 

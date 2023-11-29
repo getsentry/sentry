@@ -630,3 +630,11 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
         model_dependencies_remaining = sorted(skipped, key=lambda mr: get_model_name(mr.model))
 
     return model_list
+
+
+# No arguments, so we lazily cache the result after the first calculation.
+@lru_cache(maxsize=1)
+def reversed_dependencies() -> list[Type[models.base.Model]]:
+    sorted = list(sorted_dependencies())
+    sorted.reverse()
+    return sorted

@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import click
 from django.core import serializers
-from django.db import transaction
+from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
 
 from sentry.backup.dependencies import (
@@ -16,11 +16,14 @@ from sentry.backup.dependencies import (
     PrimaryKeyMap,
     dependencies,
     get_model_name,
+    reversed_dependencies,
 )
 from sentry.backup.helpers import Decryptor, Filter, ImportFlags, decrypt_encrypted_tarball
 from sentry.backup.scopes import ImportScope
+from sentry.db.models.paranoia import ParanoidModel
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.nodestore.django.models import Node
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcFilter,
     RpcImportError,
@@ -47,6 +50,23 @@ __all__ = (
 class ImportingError(Exception):
     def __init__(self, context: RpcImportError) -> None:
         self.context = context
+
+
+def _clear_model_tables_before_import():
+    reversed = reversed_dependencies()
+
+    for model in reversed:
+        using = router.db_for_write(model)
+        manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
+        manager.all().delete()  # type: ignore
+
+        # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
+        # solution.
+        if model is not Node:
+            table = model._meta.db_table
+            seq = f"{table}_id_seq"
+            with connections[using].cursor() as cursor:
+                cursor.execute("SELECT setval(%s, 1, false)", [seq])
 
 
 def _import(
@@ -326,6 +346,12 @@ def _import(
     pk_map = PrimaryKeyMap()
     if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
         with unguarded_write(using="default"), transaction.atomic(using="default"):
+            if scope == ImportScope.Global:
+                try:
+                    _clear_model_tables_before_import()
+                except DatabaseError as e:
+                    printer("Database could not be reset before importing")
+                    raise e
             do_writes(pk_map)
     else:
         do_writes(pk_map)

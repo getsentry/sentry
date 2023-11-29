@@ -10,6 +10,8 @@ from unittest.mock import patch
 from click.testing import CliRunner
 from google_crc32c import value as crc32c
 
+from sentry.backup.dependencies import get_model_name
+from sentry.backup.findings import InstanceID
 from sentry.backup.helpers import (
     DecryptionError,
     EncryptionError,
@@ -19,8 +21,9 @@ from sentry.backup.helpers import (
     unwrap_encrypted_export_tarball,
 )
 from sentry.backup.imports import ImportingError
+from sentry.models.email import Email
 from sentry.runner.commands.backup import backup, export, import_
-from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
+from sentry.services.hybrid_cloud.import_export.model import RpcImportError, RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
@@ -422,7 +425,6 @@ class GoodImportExportCommandTests(TransactionTestCase):
 
         # Global imports assume a clean database.
         clear_database()
-        cli_import_then_export("global", import_args=["--overwrite-configs"])
 
     def test_config_scope(self):
         cli_import_then_export("config")
@@ -547,12 +549,17 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
         self.cli_encrypted_import_then_export_use_gcp_kms("users", fake_kms_client)
 
 
+@patch("sentry.backup.imports.ImportExportService.get_importer_for_model")
 class BadImportExportDomainErrorTests(TransactionTestCase):
-    def test_import_integrity_error_exit_code(self):
-        # First import should succeed.
-        rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH])
-        assert rv.exit_code == 0, rv.output
-
+    def test_import_integrity_error_exit_code(self, get_importer_for_model):
+        importer_mock_fn = (
+            lambda model_name, scope, flags, filter_by, pk_map, json_data: RpcImportError(
+                kind=RpcImportErrorKind.IntegrityError,
+                on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+                reason="Test integrity error",
+            )
+        )
+        get_importer_for_model.return_value = importer_mock_fn
         # Global imports assume an empty DB, so this should fail with an `IntegrityError`.
         rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH])
         assert (
