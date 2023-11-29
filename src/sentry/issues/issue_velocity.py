@@ -46,14 +46,16 @@ def calculate_velocity_threshold_for_project(project: Project) -> int | None:
         match=Entity(EntityKey.IssuePlatform.value),
         select=[
             Column("group_id"),
-            Function("min", [Column("timestamp")], "first_seen"),
+            Function("min", [Column("timestamp")], "first_seen"),  # when the issue was first seen
             Function(
                 "countIf",
-                [Function("greaterOrEquals", [Column("timestamp"), one_week_ago])],
+                [
+                    Function("greaterOrEquals", [Column("timestamp"), one_week_ago])
+                ],  # count events for the issue that occurred within the past week
                 "num_events_for_issue_in_past_week",
             ),
             Function(
-                "if",
+                "if",  # if the issue was first seen within the past week, we divide the number of events by its age in hours, otherwise we divide the number of events by 7 days in hours
                 [
                     Function("less", [Column("first_seen"), one_week_ago]),
                     Function("divide", [Column("num_events_for_issues_in_past_week"), 168]),
@@ -68,18 +70,24 @@ def calculate_velocity_threshold_for_project(project: Project) -> int | None:
         ],
         groupby=[Column("group_id")],
         where=[
-            Condition(Column("timestamp"), Op.GTE, ninety_days_ago),
+            Condition(
+                Column("timestamp"), Op.GTE, ninety_days_ago
+            ),  # we include issues up to the oldest retention date so that we can properly determine whether an issue is older than the week or not
             Condition(Column("timestamp"), Op.LT, now),
             Condition(Column("project_id"), Op.EQ, project.id),
         ],
-        having=[Condition(Column("num_events_for_issues_in_past_week"), Op.GT, 1)],
+        having=[
+            Condition(Column("num_events_for_issues_in_past_week"), Op.GT, 1)
+        ],  # exclude any issues that had only 1 event in the past week
         orderby=[OrderBy(Column("first_seen"), Direction.ASC)],
         limit=Limit(10000),
     )
 
     query = Query(
         match=subquery,
-        select=[Function("quantile(0.9)", Column("events_per_issue_per_hour"), "p90")],
+        select=[
+            Function("quantile(0.9)", Column("events_per_issue_per_hour"), "p90")
+        ],  # get the 90th percentile of the event frequency in the past week
         limit=Limit(1),
     )
 
