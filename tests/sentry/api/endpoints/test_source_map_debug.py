@@ -13,7 +13,7 @@ from sentry.testutils.skips import requires_kafka, requires_snuba
 pytestmark = [requires_snuba, requires_kafka]
 
 
-@region_silo_test  # TODO(hybrid-cloud): stable=True blocked on actors
+@region_silo_test
 class SourceMapDebugEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-event-source-map-debug"
 

@@ -57,6 +57,7 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
   const {data, isLoading} = useTableQuery({
     eventView,
     enabled: !isReleasesLoading,
+    referrer: 'api.starfish.mobile-screen-totals',
   });
 
   const undefinedText = '--';
@@ -94,7 +95,7 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
           <DurationCell
             milliseconds={
               data.data[0]?.[
-                `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`
+                `avg_if(measurements.time_to_full_display,release,${primaryRelease})`
               ] as number
             }
           />

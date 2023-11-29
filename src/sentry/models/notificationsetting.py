@@ -1,5 +1,3 @@
-from typing import ClassVar
-
 import sentry_sdk
 from django.conf import settings
 from django.db import models
@@ -14,7 +12,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.notifications.manager import NotificationsManager
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -106,8 +103,6 @@ class NotificationSetting(Model):
         ),
         null=False,
     )
-
-    objects: ClassVar[NotificationsManager] = NotificationsManager()
 
     class Meta:
         app_label = "sentry"

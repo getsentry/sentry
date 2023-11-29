@@ -61,6 +61,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
+from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -1518,11 +1519,12 @@ def get_column_from_aggregate(aggregate):
     return None
 
 
-def check_aggregate_column_support(aggregate):
+def check_aggregate_column_support(aggregate, allow_mri=False):
     column = get_column_from_aggregate(aggregate)
     return (
         column is None
         or is_measurement(column)
+        or (is_mri(column) and allow_mri)
         or column in SUPPORTED_COLUMNS
         or column in TRANSLATABLE_COLUMNS
     )

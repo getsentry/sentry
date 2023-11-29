@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -7,7 +6,6 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -303,19 +301,14 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
     );
 
     return (
-      <Fragment>
-        <PageHeadingWithTopMargins withMargins>
-          {t('2. Set your alert frequency')}
-        </PageHeadingWithTopMargins>
-        <Content>
-          <RadioGroupWithPadding
-            choices={issueAlertOptionsChoices}
-            label={t('Options for creating an alert')}
-            onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
-            value={this.state.alertSetting}
-          />
-        </Content>
-      </Fragment>
+      <Content>
+        <RadioGroupWithPadding
+          choices={issueAlertOptionsChoices}
+          label={t('Options for creating an alert')}
+          onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
+          value={this.state.alertSetting}
+        />
+      </Content>
     );
   }
 }
@@ -344,13 +337,6 @@ const InlineSelectControl = styled(SelectControl)`
 
 const RadioGroupWithPadding = styled(RadioGroup)`
   margin-bottom: ${space(2)};
-`;
-
-const PageHeadingWithTopMargins = styled(Layout.Title)`
-  margin-top: 65px;
-  margin-bottom: 0;
-  padding-bottom: ${space(3)};
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 `;
 
 const RadioItemWrapper = styled('div')`

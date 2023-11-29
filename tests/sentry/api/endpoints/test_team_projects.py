@@ -7,7 +7,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "get"
@@ -37,7 +37,7 @@ class TeamProjectsListTest(APITestCase):
         assert str(proj3.id) not in response.data
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamProjectsCreateTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "post"

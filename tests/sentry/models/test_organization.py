@@ -15,17 +15,13 @@ from sentry.api.endpoints.organization_details import (
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
@@ -36,10 +32,9 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
@@ -184,7 +179,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         self.assertFalse(has_changed(inst, "name"))
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class Require2fa(TestCase, HybridCloudTestMixin):
     def setUp(self):
         self.owner = self.create_user("foo@example.com")
@@ -429,23 +424,19 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         assert url == "http://acme.testserver/issues/?project=123#ref"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDeletionTest(TestCase):
     def add_org_notification_settings(self, org: Organization, user: User):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.create(
-                scope_type=NotificationScopeType.ORGANIZATION.value,
-                target_id=user.id,
-                provider=ExternalProviders.EMAIL.value,
-                type=NotificationSettingTypes.DEPLOY.value,
-                scope_identifier=org.id,
-                user=user,
-                value=NotificationSettingOptionValues.NEVER.value,
-            )
-
-            assert NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.ORGANIZATION.value, scope_identifier=org.id
-            ).exists()
+            args = {
+                "scope_type": "organization",
+                "scope_identifier": org.id,
+                "type": "deploy",
+                "user_id": user.id,
+                "value": "never",
+            }
+            NotificationSettingOption.objects.create(**args)
+            NotificationSettingProvider.objects.create(**args, provider="slack")
 
     def test_hybrid_cloud_deletion(self):
         org = self.create_organization()
@@ -480,11 +471,12 @@ class OrganizationDeletionTest(TestCase):
             # Ensure they are all now gone.
             assert not UserOption.objects.filter(organization_id=org_id).exists()
 
-            assert NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.ORGANIZATION.value,
+            assert NotificationSettingOption.objects.filter(
+                scope_type="organization",
                 scope_identifier=unaffected_org.id,
             ).exists()
 
-            assert not NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.ORGANIZATION.value, scope_identifier=org_id
+            assert not NotificationSettingOption.objects.filter(
+                scope_type="organization",
+                scope_identifier=org_id,
             ).exists()

@@ -1,4 +1,13 @@
-import {t} from 'sentry/locale';
+import {
+  FORTY_EIGHT_HOURS,
+  GranularityLadder,
+  ONE_HOUR,
+  SIX_HOURS,
+  SIXTY_DAYS,
+  THIRTY_DAYS,
+  TWENTY_FOUR_HOURS,
+  TWO_WEEKS,
+} from 'sentry/components/charts/utils';
 
 export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.python': '1.29.2',
@@ -12,21 +21,27 @@ export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.android': '6.30.0',
 };
 
+export const DEFAULT_INTERVAL = '10m';
+
 export const DEFAULT_DURATION_AGGREGATE = 'avg';
 
-export const AVAILABLE_DURATION_AGGREGATES = ['avg', 'p50', 'p75', 'p95', 'p99']; // TODO: `max` is not a supported aggregate for this dataset on the backend. Why?
+export const CHART_HEIGHT = 160;
 
-const DURATION_AGGREGATE_LABELS = {
-  avg: t('Average Duration'),
-  p50: t('Duration p50'),
-  p75: t('Duration p75'),
-  p95: t('Duration p95'),
-  p99: t('Duration p99'),
-};
+export const COUNTER_GRANULARITIES = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [TWENTY_FOUR_HOURS, '30m'],
+  [SIX_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '1m'],
+]);
 
-export const AVAILABLE_DURATION_AGGREGATE_OPTIONS = AVAILABLE_DURATION_AGGREGATES.map(
-  aggregate => ({
-    value: aggregate,
-    label: DURATION_AGGREGATE_LABELS[aggregate],
-  })
-);
+export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
+  [TWO_WEEKS, '1d'],
+  [FORTY_EIGHT_HOURS, '1h'],
+  [TWENTY_FOUR_HOURS, '30m'],
+  [SIX_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '1m'],
+]);

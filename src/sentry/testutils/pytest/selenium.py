@@ -1,13 +1,11 @@
 # TODO(dcramer): this heavily inspired by pytest-selenium, and it's possible
 # we could simply inherit from the plugin at this point
-from __future__ import annotations
-
 import logging
 import os
 import sys
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Callable, MutableSequence
+from typing import MutableSequence
 from urllib.parse import urlparse
 
 import pytest
@@ -117,8 +115,8 @@ class Browser:
             self.set_window_size(size["previous"]["width"], size["previous"]["height"])
 
     @contextmanager
-    def full_viewport(self, width=None, height=None):
-        return self.set_viewport(width, height, fit_content=True)
+    def full_viewport(self, width=None, height=None, fit_content=True):
+        return self.set_viewport(width, height, fit_content)
 
     @contextmanager
     def mobile_viewport(self, width=375, height=812):
@@ -221,7 +219,6 @@ class Browser:
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
         """
-        condition: Callable[[expected_conditions.AnyDriver], object]
         if selector:
             condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
         elif xpath:
@@ -243,7 +240,6 @@ class Browser:
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
         """
-        condition: Callable[[expected_conditions.AnyDriver], object]
         if selector:
             condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
         elif title:
@@ -255,23 +251,27 @@ class Browser:
 
         return self
 
-    def wait_for_images_loaded(self, timeout=10):
+    def wait_until_script_execution(self, script, timeout=10):
+        """
+        Waits until ``script`` executes and evaluates truthy,
+        or until ``timeout`` is hit, whichever happens first.
+        """
         wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script(
-                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
-            )
-        )
+        wait.until(lambda driver: driver.execute_script(script))
 
         return self
+
+    def wait_for_images_loaded(self, timeout=10):
+        return self.wait_until_script_execution(
+            """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)""",
+            timeout,
+        )
 
     def wait_for_fonts_loaded(self, timeout=10):
-        wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script("""return document.fonts.status === 'loaded'""")
+        return self.wait_until_script_execution(
+            """return document.fonts.status === 'loaded'""",
+            timeout,
         )
-
-        return self
 
     @property
     def switch_to(self):

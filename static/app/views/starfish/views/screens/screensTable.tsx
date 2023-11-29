@@ -1,11 +1,13 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import {
   TableData,
   TableDataRow,
@@ -16,6 +18,9 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -32,10 +37,19 @@ type Props = {
 
 export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const location = useLocation();
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
   const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
+
+  const project = useMemo(() => {
+    if (selection.projects.length !== 1) {
+      return null;
+    }
+    return projects.find(p => p.id === String(selection.projects));
+  }, [projects, selection.projects]);
 
   const eventViewColumns = eventView.getColumns();
 
@@ -74,15 +88,17 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         <Fragment>
           <TopResultsIndicator count={TOP_SCREENS} index={index} />
           <Link
-            to={`/organizations/${
-              organization.slug
-            }/performance/mobile/screens/spans/?${qs.stringify({
-              ...location.query,
-              project: row['project.id'],
-              transaction: row.transaction,
-              primaryRelease,
-              secondaryRelease,
-            })}`}
+            to={normalizeUrl(
+              `/organizations/${
+                organization.slug
+              }/performance/mobile/screens/spans/?${qs.stringify({
+                ...location.query,
+                project: row['project.id'],
+                transaction: row.transaction,
+                primaryRelease,
+                secondaryRelease,
+              })}`
+            )}
             style={{display: `block`, width: `100%`}}
           >
             {row.transaction}
@@ -97,6 +113,34 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
       organization,
       unit: data?.meta.units?.[column.key],
     });
+    if (
+      column.key.includes('time_to_full_display') &&
+      row[column.key] === 0 &&
+      project?.platform &&
+      ['android', 'apple-ios'].includes(project.platform)
+    ) {
+      const docsUrl =
+        project?.platform === 'android'
+          ? 'https://docs.sentry.io/platforms/android/performance/instrumentation/automatic-instrumentation/#time-to-full-display'
+          : 'https://docs.sentry.io/platforms/apple/guides/ios/performance/instrumentation/automatic-instrumentation/#time-to-full-display';
+      return (
+        <div style={{textAlign: 'right'}}>
+          <Tooltip
+            title={tct(
+              'Measuring TTFD requires manual instrumentation in your application. To learn how to collect TTFD, see the documentation [link].',
+              {
+                link: <ExternalLink href={docsUrl}>{t('here')}</ExternalLink>,
+              }
+            )}
+            showUnderline
+            isHoverable
+          >
+            {rendered}
+          </Tooltip>
+        </div>
+      );
+    }
+
     return rendered;
   }
 
@@ -192,6 +236,7 @@ export function useTableQuery({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {isReady: pageFiltersReady} = usePageFilters();
 
   const result = useDiscoverQuery({
     eventView,
@@ -202,7 +247,7 @@ export function useTableQuery({
     cursor,
     options: {
       refetchOnWindowFocus: false,
-      enabled,
+      enabled: enabled && pageFiltersReady,
       staleTime,
     },
   });

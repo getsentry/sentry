@@ -24,7 +24,7 @@ from sentry.utils import json
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackTasksTest(TestCase):
     def setUp(self):
         self.integration = install_slack(self.organization)

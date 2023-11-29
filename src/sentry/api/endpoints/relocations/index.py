@@ -83,7 +83,7 @@ class RelocationIndexEndpoint(Endpoint):
         ).exists():
             return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=409)
 
-        # TODO(getsentry/team-ospo#203): check import size, and maybe throttle based on that
+        # TODO(getsentry/team-ospo#216): check import size, and maybe throttle based on that
         # information.
 
         file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)

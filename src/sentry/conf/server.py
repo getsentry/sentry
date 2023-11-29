@@ -134,6 +134,7 @@ SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
+SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -475,14 +476,16 @@ CSP_BASE_URI = [
     "'none'",
 ]
 CSP_STYLE_SRC = [
-    "'self'",
     "'unsafe-inline'",
+    "*",  # required for replays
 ]
 CSP_IMG_SRC = [
-    "'self'",
     "blob:",
     "data:",
-    "https://secure.gravatar.com",
+    "*",  # required for replays
+]
+CSP_MEDIA_SRC = [
+    "*",  # required for replays
 ]
 
 if ENVIRONMENT == "development":
@@ -668,6 +671,9 @@ SENTRY_REGION_CONFIG: Any = ()
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET = None
 
+# Timeout for RPC requests between regions
+RPC_TIMEOUT = 5.0
+
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
@@ -802,7 +808,7 @@ CELERY_QUEUES_CONTROL = [
     Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
     Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
     Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
-    Queue("email", routing_key="email", exchange=control_exchange),
+    Queue("email.control", routing_key="email.control", exchange=control_exchange),
     Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
     Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
     Queue(
@@ -835,6 +841,7 @@ CELERY_QUEUES_REGION = [
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
+    Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
@@ -881,6 +888,7 @@ CELERY_QUEUES_REGION = [
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
     Queue("merge", routing_key="merge"),
+    Queue("notifications", routing_key="notifications"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
@@ -1145,6 +1153,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 10 minutes
         "schedule": crontab(minute="*/10"),
     },
+    "clean_custom_rule_notifications": {
+        "task": "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
+        # Run every 7 minutes
+        "schedule": crontab(minute="*/7"),
+    },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
@@ -1381,6 +1394,31 @@ if os.environ.get("OPENAPIGENERATE", False):
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
+SENTRY_EARLY_FEATURES = {
+    "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
+    "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
+    "organizations:anr-analyze-frames": "Enable anr frame analysis",
+    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
+    "organizations:device-classification": "Enable device.class as a selectable column",
+    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
+    "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
+    "organizations:performance-new-trends": "Enable new trends",
+    "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
+    "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
+    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
+    "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
+    "organizations:integrations-opsgenie-migration": "Enable one-click migration from Opsgenie plugin",
+    "organizations:integrations-gh-invite": "Enables inviting new members based on GitHub commit activity",
+    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
+    "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
+    "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
+    "organizations:performance-span-histogram-view": "Enable histogram view in span details",
+    "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
+    "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
+    "organizations:anr-improvements": "Enable anr improvements ui",
+    "organizations:source-maps-debugger-blue-thunder-edition": "Enable source maps debugger",
+}
+
 SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables user registration.
     "auth:register": True,
@@ -1462,8 +1500,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
-    # Enable participants purge
-    "organizations:participants-purge": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
@@ -1512,6 +1548,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:set-grouping-config": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enables syntax highlighting in the stack trace
+    "organizations:issue-details-stacktrace-syntax-highlighting": False,
     # Enable issue platform
     "organizations:issue-platform": False,
     # Enable additional logging for issue platform
@@ -1538,6 +1576,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-extraction": False,
     # Enables the usage of the new metrics layer in the metrics API.
     "organizations:metrics-api-new-metrics-layer": False,
+    # Enables the metrics metadata.
+    "organizations:metric-meta": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Extract on demand metrics
@@ -1560,6 +1600,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:transaction-metrics-extraction": False,
     # True if Relay should drop raw session payloads after extracting metrics from them.
     "organizations:release-health-drop-sessions": False,
+    # Enable ignoring archived issues in metric alerts
+    "organizations:metric-alert-ignore-archived": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1590,6 +1632,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
     "organizations:integrations-opsgenie-migration": False,
+    # Enable stacktrace linking
+    "organizations:integrations-stacktrace-link": True,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
@@ -1681,12 +1725,16 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-issues-render-blocking-assets-detector": False,
     # Enable MN+1 DB performance issue type
     "organizations:performance-issues-m-n-plus-one-db-detector": False,
+    # Enable trace details page with embedded spans
+    "organizations:performance-trace-details": False,
     # Enable FE/BE for tracing without performance
-    "organizations:performance-tracing-without-performance": False,
+    "organizations:performance-tracing-without-performance": True,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable database view query source UI
+    "organizations:performance-database-view-query-source": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable performance score calculation for transactions in relay
@@ -1728,8 +1776,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-trial-ended-banner": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
-    # Enable the Replay Details > New timeline
-    "organizations:session-replay-new-timeline": False,
     # Enable the accessibility issues endpoint
     "organizations:session-replay-accessibility-issues": False,
     # Enable the new suggested assignees feature
@@ -1825,10 +1871,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
-    # Enable the new notification settings system
-    "organizations:notification-settings-v2": False,
     # Enable new release UI
-    "organizations:release-ui-v2": False,
+    "organizations:releases-v2": False,
+    "organizations:releases-v2-st": False,
+    "organizations:releases-v2-banner": False,
+    # Enable the metrics layer for alerts queries.
+    "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
@@ -1847,10 +1895,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
-    # Enable metric alert rate limiting
-    "organizations:metric-alert-rate-limiting": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
+    # Enable logs for debugging weekly reports
+    "organizations:weekly-report-logs": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -2054,6 +2102,10 @@ SENTRY_ENABLE_INVITES = True
 
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN: str | None = None
+
+# Origins that are allowed to use credentials. This list is in addition
+# to all subdomains of system.url-prefix
+ALLOWED_CREDENTIAL_ORIGINS: list[str] = []
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"
@@ -3898,6 +3950,33 @@ SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
+
+# Backwards compatibility for URLs that don't
+# have enough context to route via organization.
+# New usage of these endpoints should use the region domains,
+# but existing customers have been using these routes
+# on the main domain for a long time.
+REGION_PINNED_URL_NAMES = {
+    # These paths have organization scoped aliases
+    "sentry-api-0-builtin-symbol-sources",
+    "sentry-api-0-grouping-configs",
+    # These paths are used by relay which is implicitly region scoped
+    "sentry-api-0-relays-index",
+    "sentry-api-0-relay-register-challenge",
+    "sentry-api-0-relay-register-response",
+    "sentry-api-0-relay-projectconfigs",
+    "sentry-api-0-relay-projectids",
+    "sentry-api-0-relay-publickeys",
+    "sentry-api-0-relays-healthcheck",
+    "sentry-api-0-relays-details",
+    # Backwards compatibility for US customers.
+    # New usage of these is region scoped.
+    "sentry-error-page-embed",
+    "sentry-release-hook",
+    "sentry-api-0-organizations",
+    "sentry-api-0-projects",
+    "sentry-api-0-accept-project-transfer",
+}
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"

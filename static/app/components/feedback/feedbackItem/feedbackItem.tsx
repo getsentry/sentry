@@ -14,6 +14,7 @@ import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedback
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import IssueTrackingSection from 'sentry/components/feedback/feedbackItem/issueTrackingSection';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
@@ -25,10 +26,12 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event, Group} from 'sentry/types';
 import {GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   eventData: Event | undefined;
@@ -58,6 +61,15 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
+  const {onClick: copyLink} = useCopyToClipboard({
+    successMessage: t('Feedback URL copied to clipboard'),
+    text:
+      window.location.origin +
+      normalizeUrl(
+        `/organizations/${organization.slug}/feedback/?feedbackSlug=${feedbackItem.project.slug}:${feedbackItem.id}&project=${feedbackItem.project.id}`
+      ),
+  });
+
   return (
     <Fragment>
       <HeaderPanelItem>
@@ -76,6 +88,13 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </Flex>
           </Flex>
           <Flex gap={space(1)} align="center" wrap="wrap">
+            <Button
+              title={t('Copy link to this feedback')}
+              size="xs"
+              onClick={copyLink}
+              aria-label={t('Copy Link')}
+              icon={<IconLink />}
+            />
             <ErrorBoundary mini>
               <FeedbackAssignedTo
                 feedbackIssue={feedbackItem}
@@ -108,6 +127,17 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </ErrorBoundary>
           </Flex>
         </Flex>
+        {eventData && (
+          <RowGapLinks>
+            <ErrorBoundary mini>
+              <IssueTrackingSection
+                group={feedbackItem as unknown as Group}
+                project={feedbackItem.project}
+                event={eventData}
+              />
+            </ErrorBoundary>
+          </RowGapLinks>
+        )}
       </HeaderPanelItem>
       <OverflowPanelItem>
         <Section
@@ -129,7 +159,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </TextCopyInput>
           </ErrorBoundary>
         </Section>
-        {feedbackItem.level === 'error' && crashReportId && (
+        {crashReportId && (
           <CrashReportSection
             organization={organization}
             crashReportId={crashReportId}
@@ -152,6 +182,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 const HeaderPanelItem = styled(PanelItem)`
   display: grid;
   padding: ${space(1)} ${space(2)};
+  gap: ${space(2)};
 `;
 
 const OverflowPanelItem = styled(PanelItem)`
@@ -160,6 +191,13 @@ const OverflowPanelItem = styled(PanelItem)`
   flex-direction: column;
   flex-grow: 1;
   gap: ${space(3)};
+`;
+
+const RowGapLinks = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  column-gap: ${space(2)};
 `;
 
 const Blockquote = styled('blockquote')`

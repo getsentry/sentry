@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from sentry import audit_log, features, ratelimits, roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
@@ -112,6 +113,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.ENTERPRISE
     permission_classes = [RelaxedMemberPermission]
 
     def _get_member(

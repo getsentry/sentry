@@ -2,6 +2,9 @@ import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Event} from 'sentry/types';
+import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
+
+import {useTransactionsDelta} from './transactionsDeltaProvider';
 
 interface EventDifferenialFlamegraphProps {
   event: Event;
@@ -9,7 +12,6 @@ interface EventDifferenialFlamegraphProps {
 
 export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProps) {
   const evidenceData = props.event.occurrence?.evidenceData;
-
   const fingerprint = evidenceData?.fingerprint;
   const breakpoint = evidenceData?.breakpoint;
 
@@ -31,6 +33,16 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
       );
     });
   }, [isValid, fingerprint, breakpoint]);
+
+  const projectID = parseInt(props.event.projectID, 10);
+  const transactions = useTransactionsDelta();
+
+  useDifferentialFlamegraphQuery({
+    projectID,
+    breakpoint,
+    environments: [],
+    transaction: transactions.data?.data?.[0]?.transaction as string,
+  });
 
   if (!isValid) {
     return null;

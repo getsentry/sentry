@@ -1086,9 +1086,10 @@ class NumericColumn(ColumnArg):
         self.allow_array_value = allow_array_value
 
     def _normalize(self, value: str) -> str:
+        from sentry.snuba.metrics.naming_layer.mri import is_mri
+
         # This method is written in this way so that `get_type` can always call
         # this even in child classes where `normalize` have been overridden.
-
         # Shortcutting this for now
         # TODO: handle different datasets better here
         if self.spans and value in ["span.duration", "span.self_time"]:
@@ -1097,6 +1098,8 @@ class NumericColumn(ColumnArg):
         if not snuba_column and is_measurement(value):
             return value
         if not snuba_column and is_span_op_breakdown(value):
+            return value
+        if not snuba_column and is_mri(value):
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
@@ -2136,7 +2139,7 @@ class MetricArg(FunctionArg):
         self.allow_mri = allow_mri
 
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
-        from sentry.snuba.metrics.naming_layer.mapping import is_mri
+        from sentry.snuba.metrics.naming_layer.mri import is_mri
 
         allowed_column = True
         if self.allowed_columns is not None and len(self.allowed_columns) > 0:

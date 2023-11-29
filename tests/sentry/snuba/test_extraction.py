@@ -6,6 +6,7 @@ from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
+    SearchQueryConverter,
     apdex_tag_spec,
     cleanup_query,
     failure_tag_spec,
@@ -43,7 +44,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration query is on-demand
-        ("count[)", "", False),  # Malformed aggregate should return false
+        ("count()", "", False),  # Malformed aggregate should return false
         (
             "count()",
             "event.type:error transaction.duration:>0",
@@ -62,6 +63,37 @@ from sentry.testutils.pytest.fixtures import django_db_all
     ],
 )
 def test_should_use_on_demand(agg, query, result):
+    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
+
+
+@pytest.mark.parametrize(
+    "agg, query, result",
+    [
+        ("sum(c:custom/page_load@millisecond)", "release:a", False),
+        ("sum(c:custom/page_load@millisecond)", "transaction.duration:>0", False),
+        (
+            "p75(d:transactions/measurements.fcp@millisecond)",
+            "release:a",
+            False,
+        ),
+        (
+            "p75(d:transactions/measurements.fcp@millisecond)",
+            "transaction.duration:>0",
+            False,
+        ),
+        (
+            "p95(d:spans/duration@millisecond)",
+            "release:a",
+            False,
+        ),
+        (
+            "p95(d:spans/duration@millisecond)",
+            "transaction.duration:>0",
+            False,
+        ),
+    ],
+)
+def test_should_use_on_demand_with_mri(agg, query, result):
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
 
@@ -85,7 +117,7 @@ class TestCreatesOndemandMetricSpec:
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
             ("p100(transaction.duration)", "transaction.duration:>0"),
-            # we dont support custom percentiles that can be mapped to one of standard percentiles
+            # we don't support custom percentiles that can be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
@@ -653,3 +685,26 @@ def test_to_standard_metrics_query(dirty, clean):
     clean_tokens = parse_search_query(clean)
 
     assert cleaned_up_tokens == clean_tokens
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        (
+            "has:profile.id",
+            {
+                "op": "not",
+                "inner": {"op": "eq", "name": "event.contexts.profile.profile_id", "value": None},
+            },
+        ),
+        (
+            "profile.id:abc123",
+            {"op": "eq", "name": "event.contexts.profile.profile_id", "value": "abc123"},
+        ),
+    ],
+)
+def test_search_query_converter(query, expected):
+    tokens = parse_search_query(query)
+    converter = SearchQueryConverter(tokens)
+    condition = converter.convert()
+    assert expected == condition

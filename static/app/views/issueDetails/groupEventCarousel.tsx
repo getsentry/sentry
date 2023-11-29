@@ -10,7 +10,6 @@ import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FeatureBadge from 'sentry/components/featureBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
@@ -146,12 +145,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
   const eventNavDropdownOptions = [
     {
       value: EventNavDropdownOption.RECOMMENDED,
-      label: (
-        <div>
-          {t('Recommended')}
-          <FeatureBadge type="new" />
-        </div>
-      ),
+      label: t('Recommended'),
       textValue: t('Recommended'),
       details: t('Event with the most context'),
     },
@@ -251,7 +245,8 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
     projectCanLinkToReplay(group.project);
 
   const downloadJson = () => {
-    const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
+    const host = organization.links.regionUrl;
+    const jsonUrl = `${host}/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
     window.open(jsonUrl);
     trackAnalytics('issue_details.event_json_clicked', {
       organization,
