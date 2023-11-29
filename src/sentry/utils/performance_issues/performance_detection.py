@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
 
 import sentry_sdk
 
@@ -306,6 +306,23 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
     }
 
 
+DETECTOR_CLASSES: List[Type[PerformanceDetector]] = [
+    ConsecutiveDBSpanDetector,
+    ConsecutiveHTTPSpanDetector,
+    DBMainThreadDetector,
+    SlowDBQueryDetector,
+    RenderBlockingAssetSpanDetector,
+    NPlusOneDBSpanDetector,
+    NPlusOneDBSpanDetectorExtended,
+    FileIOMainThreadDetector,
+    NPlusOneAPICallsDetector,
+    MNPlusOneDBSpanDetector,
+    UncompressedAssetSpanDetector,
+    LargeHTTPPayloadDetector,
+    HTTPOverheadDetector,
+]
+
+
 def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project
 ) -> List[PerformanceProblem]:
@@ -313,19 +330,9 @@ def _detect_performance_problems(
 
     detection_settings = get_detection_settings(project.id)
     detectors: List[PerformanceDetector] = [
-        ConsecutiveDBSpanDetector(detection_settings, data),
-        ConsecutiveHTTPSpanDetector(detection_settings, data),
-        DBMainThreadDetector(detection_settings, data),
-        SlowDBQueryDetector(detection_settings, data),
-        RenderBlockingAssetSpanDetector(detection_settings, data),
-        NPlusOneDBSpanDetector(detection_settings, data),
-        NPlusOneDBSpanDetectorExtended(detection_settings, data),
-        FileIOMainThreadDetector(detection_settings, data),
-        NPlusOneAPICallsDetector(detection_settings, data),
-        MNPlusOneDBSpanDetector(detection_settings, data),
-        UncompressedAssetSpanDetector(detection_settings, data),
-        LargeHTTPPayloadDetector(detection_settings, data),
-        HTTPOverheadDetector(detection_settings, data),
+        detector_class(detection_settings, data)
+        for detector_class in DETECTOR_CLASSES
+        if detector_class.is_enabled()
     ]
 
     for detector in detectors:

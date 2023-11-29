@@ -1734,3 +1734,10 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# The flag disables the file io on main thread detector
+register(
+    "performance-issues.file-io-main-thread.disabled",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
