@@ -32,7 +32,7 @@ import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   getForceMetricsLayerQueryExtras,
-  hasDdmAlertsSupport,
+  hasDDMExperimentalFeature,
 } from 'sentry/utils/metrics/features';
 import {DEFAULT_METRIC_ALERT_FIELD, formatMRIField} from 'sentry/utils/metrics/mri';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
@@ -1091,7 +1091,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               thresholdChart={wizardBuilderChart}
               onFilterSearch={this.handleFilterUpdate}
               allowChangeEventTypes={
-                hasDdmAlertsSupport(organization)
+                hasDDMExperimentalFeature(organization)
                   ? dataset === Dataset.ERRORS
                   : dataset === Dataset.ERRORS || alertType === 'custom_transactions'
               }

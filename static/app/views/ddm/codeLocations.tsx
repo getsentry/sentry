@@ -7,7 +7,7 @@ import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Frame, PageFilters} from 'sentry/types';
-import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -22,7 +22,7 @@ export function CodeLocations({
   const [isExpanded, setIsExpanded] = useState(false);
   const organization = useOrganization();
 
-  if (!hasDdmAlertsSupport(organization)) {
+  if (!hasDDMExperimentalFeature(organization)) {
     return null;
   }
 

@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -31,7 +32,7 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
     displayType
   );
 
-  if (!organization.features.includes('ddm-experimental')) {
+  if (!hasDDMFeature(organization)) {
     return null;
   }
 
