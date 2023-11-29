@@ -1,12 +1,14 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
@@ -19,14 +21,16 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {parseAssembly} from '../utils';
 
 import {Assembly} from './assembly';
-import ContextLine from './contextLine';
+import ContextLineNumber from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
@@ -81,6 +85,10 @@ function Context({
   frameMeta,
   registersMeta,
 }: Props) {
+  const hasSyntaxHighlighting =
+    organization?.features?.includes('issue-details-stacktrace-syntax-highlighting') ??
+    false;
+
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -127,6 +135,12 @@ function Context({
       : {}
   );
 
+  const fileExtension = getFileExtension(frame.filename || '') ?? '';
+  const tokens = usePrismTokens({
+    code: contextLines.map(([, code]) => code).join('\n'),
+    language: fileExtension,
+  });
+
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
     return emptySourceNotation ? (
       <EmptyContext>
@@ -138,6 +152,9 @@ function Context({
 
   const startLineNo = hasContextSource ? frame.context[0][0] : 0;
   const hasStacktraceLink = frame.inApp && !!frame.filename && isExpanded;
+
+  const prismClassName = fileExtension ? `language-${fileExtension}` : '';
+
   return (
     <Wrapper
       start={startLineNo}
@@ -145,42 +162,97 @@ function Context({
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
       data-test-id="frame-context"
     >
-      {frame.context &&
-        contextLines.map((line, index) => {
-          const isActive = activeLineNumber === line[0];
-          const hasComponents = isActive && components.length > 0;
-          const showStacktraceLink = hasStacktraceLink && isActive;
+      {frame.context && hasSyntaxHighlighting ? (
+        <CodeWrapper className={prismClassName}>
+          <pre className={prismClassName}>
+            <code className={prismClassName}>
+              {tokens.map((line, i) => {
+                const contextLine = contextLines[i];
+                const isActive = activeLineNumber === contextLine[0];
+                const hasComponents = isActive && components.length > 0;
+                const showStacktraceLink = hasStacktraceLink && isActive;
 
-          return (
-            <ContextLine
-              key={index}
-              line={line}
-              isActive={isActive}
-              coverage={lineCoverage[index]}
-            >
-              {hasComponents && (
-                <ErrorBoundary mini>
-                  <OpenInContextLine
-                    key={index}
-                    lineNo={line[0]}
-                    filename={frame.filename || ''}
-                    components={components}
-                  />
-                </ErrorBoundary>
-              )}
-              {showStacktraceLink && (
-                <ErrorBoundary customComponent={null}>
-                  <StacktraceLink
-                    key={index}
-                    line={line[1]}
-                    frame={frame}
-                    event={event}
-                  />
-                </ErrorBoundary>
-              )}
-            </ContextLine>
-          );
-        })}
+                return (
+                  <Fragment key={i}>
+                    <ContextLineWrapper isActive={isActive}>
+                      <ContextLineNumber
+                        lineNumber={contextLine[0]}
+                        isActive={isActive}
+                        coverage={lineCoverage[i]}
+                      />
+                      <ContextLineCode>
+                        {line.map((token, key) => (
+                          <span key={key} className={token.className}>
+                            {token.children}
+                          </span>
+                        ))}
+                      </ContextLineCode>
+                    </ContextLineWrapper>
+                    {hasComponents && (
+                      <ErrorBoundary mini>
+                        <OpenInContextLine
+                          key={i}
+                          lineNo={contextLine[0]}
+                          filename={frame.filename || ''}
+                          components={components}
+                        />
+                      </ErrorBoundary>
+                    )}
+                    {showStacktraceLink && (
+                      <ErrorBoundary customComponent={null}>
+                        <StacktraceLink
+                          key={i}
+                          line={contextLine[1]}
+                          frame={frame}
+                          event={event}
+                        />
+                      </ErrorBoundary>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </code>
+          </pre>
+        </CodeWrapper>
+      ) : null}
+
+      {frame.context && !hasSyntaxHighlighting
+        ? contextLines.map((line, index) => {
+            const isActive = activeLineNumber === line[0];
+            const hasComponents = isActive && components.length > 0;
+            const showStacktraceLink = hasStacktraceLink && isActive;
+
+            return (
+              <ContextLine
+                key={index}
+                line={line}
+                isActive={isActive}
+                coverage={lineCoverage[index]}
+              >
+                {hasComponents && (
+                  <ErrorBoundary mini>
+                    <OpenInContextLine
+                      key={index}
+                      lineNo={line[0]}
+                      filename={frame.filename || ''}
+                      components={components}
+                    />
+                  </ErrorBoundary>
+                )}
+                {showStacktraceLink && (
+                  <ErrorBoundary customComponent={null}>
+                    <StacktraceLink
+                      key={index}
+                      line={line[1]}
+                      frame={frame}
+                      event={event}
+                    />
+                  </ErrorBoundary>
+                )}
+              </ContextLine>
+            );
+          })
+        : null}
 
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
@@ -219,6 +291,21 @@ const Wrapper = styled('ol')<{startLineNo: number}>`
   }
 `;
 
+const CodeWrapper = styled('div')`
+  position: relative;
+  padding: 0;
+
+  ${p => prismStyles(p.theme)}
+  && pre {
+    white-space: pre-wrap;
+    margin: 0;
+    overflow: hidden;
+    background: ${p => p.theme.background};
+    padding: 0;
+    border-radius: 0;
+  }
+`;
+
 const EmptyContext = styled('div')`
   display: flex;
   align-items: center;
@@ -226,4 +313,19 @@ const EmptyContext = styled('div')`
   padding: 20px;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const ContextLineWrapper = styled('div')<{isActive: boolean}>`
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: ${space(1)};
+  background: ${p =>
+    p.isActive ? 'var(--prism-highlight-background)' : p.theme.background};
+  padding-right: ${space(2)};
+`;
+
+const ContextLineCode = styled('div')`
+  line-height: 24px;
+  white-space: pre-wrap;
+  vertical-align: middle;
 `;
