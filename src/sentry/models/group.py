@@ -799,7 +799,7 @@ class Group(Model):
         """
         return self.data.get("type", "default")
 
-    def get_event_metadata(self) -> Mapping[str, str]:
+    def get_event_metadata(self) -> Mapping[str, Any]:
         """
         Return the metadata of this issue.
 
