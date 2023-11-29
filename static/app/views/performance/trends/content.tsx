@@ -317,7 +317,7 @@ class TrendsContent extends Component<Props, State> {
                   )}
                 />
               </ListContainer>
-              <Feature features="organizations:performance-trendsv2-dev-only">
+              <Feature feature="organizations:performance-trendsv2-dev-only">
                 <ListContainer>
                   <ChangedTransactions
                     trendChangeType={TrendChangeType.IMPROVED}

@@ -509,7 +509,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     return (
       <Feature
         organization={organization}
-        features="discover-query"
+        feature="discover-query"
         hookName="feature-disabled:discover-saved-query-create"
         renderDisabled={renderDisabled}
       >
@@ -575,7 +575,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       <ResponsiveButtonBar gap={1}>
         {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
         {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
-        <Feature organization={organization} features="incidents">
+        <Feature organization={organization} feature="incidents">
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
 

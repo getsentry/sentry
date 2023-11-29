@@ -14,7 +14,7 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
 
   return (
     <Feature
-      features="dashboards-edit"
+      feature="dashboards-edit"
       organization={organization}
       renderDisabled={() => (
         <Layout.Page withPadding>

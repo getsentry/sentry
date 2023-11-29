@@ -111,7 +111,7 @@ class ProjectIssueGrouping extends DeprecatedAsyncView<Props, State> {
             fields={[fields.groupingEnhancements]}
           />
 
-          <Feature features="set-grouping-config" organization={organization}>
+          <Feature feature="set-grouping-config" organization={organization}>
             <JsonForm
               {...jsonFormProps}
               title={t('Change defaults')}

@@ -21,7 +21,7 @@ export function ModulePageProviders({title, children, baseURL}: Props) {
         <SentryDocumentTitle title={title} orgSlug={organization.slug}>
           <Layout.Page>
             <Feature
-              features="performance-database-view"
+              feature="performance-database-view"
               organization={organization}
               renderDisabled={NoAccess}
             >

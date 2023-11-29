@@ -196,7 +196,7 @@ class ThresholdControl extends Component<Props, State> {
           )}
         </Container>
         {!hideControl && (
-          <Feature features="metric-alert-threshold-period">
+          <Feature feature="metric-alert-threshold-period">
             <SelectContainer>
               <SelectControl
                 isDisabled={disabled}

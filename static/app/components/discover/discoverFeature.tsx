@@ -32,7 +32,7 @@ function DiscoverFeature({children}: Props) {
   return (
     <Feature
       hookName="feature-disabled:open-discover"
-      features="organizations:discover-basic"
+      feature="organizations:discover-basic"
       renderDisabled={renderDisabled}
     >
       {({hasFeature}) => children({hasFeature})}

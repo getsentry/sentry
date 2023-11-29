@@ -862,7 +862,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             )}
           </Access>
         </Form>
-        <Feature features="organizations:dynamic-sampling">
+        <Feature feature="organizations:dynamic-sampling">
           <Form
             saveOnBlur
             allowUndo
@@ -910,7 +910,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           </Form>
         </Feature>
         <Fragment>
-          <Feature features="organizations:performance-issues-dev">
+          <Feature feature="organizations:performance-issues-dev">
             <Form
               saveOnBlur
               allowUndo

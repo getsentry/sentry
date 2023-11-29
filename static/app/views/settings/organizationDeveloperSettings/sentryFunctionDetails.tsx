@@ -151,7 +151,7 @@ function SentryFunctionDetails(props: Props) {
 
   return (
     <div>
-      <Feature features="organizations:sentry-functions">
+      <Feature feature="organizations:sentry-functions">
         <h2>
           {sentryFunction ? t('Editing Sentry Function') : t('Create Sentry Function')}
         </h2>

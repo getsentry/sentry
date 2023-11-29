@@ -105,7 +105,7 @@ function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
   return (
     <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
       <Feature
-        features="projects:rate-limits"
+        feature="projects:rate-limits"
         hookName="feature-disabled:rate-limits"
         renderDisabled={({children, ...props}) =>
           typeof children === 'function' &&

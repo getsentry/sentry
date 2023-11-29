@@ -203,7 +203,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
       <div>
         {isGettingStarted && showPerformancePrompt && (
           <Feature
-            features="performance-view"
+            feature="performance-view"
             hookName="feature-disabled:performance-new-project"
           >
             {({hasFeature}) => {

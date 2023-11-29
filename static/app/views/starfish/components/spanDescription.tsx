@@ -38,7 +38,7 @@ function DatabaseSpanDescription({span, project}: Props) {
         {formatter.toString(span[SpanMetricsField.SPAN_DESCRIPTION])}
       </CodeSnippet>
 
-      <Feature features={['organizations:performance-database-view-query-source']}>
+      <Feature feature="organizations:performance-database-view-query-source">
         {span?.data?.['code.filepath'] && (
           <StackTraceMiniFrame
             project={project}

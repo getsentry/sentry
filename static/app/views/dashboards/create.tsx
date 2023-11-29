@@ -46,7 +46,7 @@ function CreateDashboard(props: Props) {
 
   return (
     <Feature
-      features="dashboards-edit"
+      feature="dashboards-edit"
       organization={props.organization}
       renderDisabled={renderDisabled}
     >

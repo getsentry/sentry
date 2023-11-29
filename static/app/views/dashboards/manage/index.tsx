@@ -285,7 +285,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     return (
       <Feature
         organization={organization}
-        features="dashboards-edit"
+        feature="dashboards-edit"
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
@@ -325,7 +325,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
                     >
                       {t('Create Dashboard')}
                     </Button>
-                    <Feature features="dashboards-import">
+                    <Feature feature="dashboards-import">
                       <Button
                         onClick={() => {
                           openImportDashboardFromFileModal({

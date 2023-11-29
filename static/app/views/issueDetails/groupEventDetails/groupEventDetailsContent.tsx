@@ -221,7 +221,7 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
-        <Feature features="profiling-differential-flamegraph" organization={organization}>
+        <Feature feature="profiling-differential-flamegraph" organization={organization}>
           <ErrorBoundary mini>
             <EventDifferenialFlamegraph event={event} />
           </ErrorBoundary>

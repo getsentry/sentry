@@ -257,7 +257,7 @@ function PageLayout(props: Props) {
       projectSlug={project?.slug}
     >
       <Feature
-        features={['performance-view', ...features]}
+        allOf={['performance-view', ...features]}
         organization={organization}
         renderDisabled={NoAccess}
       >

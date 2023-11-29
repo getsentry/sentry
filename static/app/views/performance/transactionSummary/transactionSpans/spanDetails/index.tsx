@@ -45,7 +45,7 @@ export default function SpanDetails(props: Props) {
       projectSlug={project?.slug}
     >
       <Feature
-        features="performance-view"
+        feature="performance-view"
         organization={organization}
         renderDisabled={NoAccess}
       >

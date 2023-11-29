@@ -211,7 +211,7 @@ class QueryList extends Component<Props> {
             });
           }}
           renderContextMenu={() => (
-            <Feature organization={organization} features="dashboards-edit">
+            <Feature organization={organization} feature="dashboards-edit">
               {({hasFeature}) => {
                 return hasFeature && this.renderDropdownMenu(menuItems);
               }}
@@ -313,7 +313,7 @@ class QueryList extends Component<Props> {
             />
           )}
           renderContextMenu={() => (
-            <Feature organization={organization} features="dashboards-edit">
+            <Feature organization={organization} feature="dashboards-edit">
               {({hasFeature}) => this.renderDropdownMenu(menuItems(hasFeature))}
             </Feature>
           )}

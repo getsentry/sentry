@@ -93,14 +93,13 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
 
     return (
       <Feature
-        features={
+        allOf={
           isTransactionDataset
             ? ['organizations:incidents', 'organizations:performance-view']
             : isMetricAlert
             ? ['organizations:incidents']
             : []
         }
-        requireAll
         organization={organization}
         hookName="feature-disabled:alert-wizard-performance"
         renderDisabled={renderNoAccess}

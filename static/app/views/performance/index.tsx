@@ -31,7 +31,7 @@ function PerformanceContainer({organization, location, children}: Props) {
   return (
     <Feature
       hookName="feature-disabled:performance-page"
-      features="performance-view"
+      feature="performance-view"
       organization={organization}
       renderDisabled={renderNoAccess}
     >

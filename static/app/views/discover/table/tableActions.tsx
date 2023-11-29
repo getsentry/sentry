@@ -44,7 +44,7 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
   const {tableData} = props;
   return (
     <Feature
-      features="organizations:discover-query"
+      feature="organizations:discover-query"
       renderDisabled={() => renderBrowserExportButton(canEdit, props)}
     >
       {tableData?.data && tableData.data.length < 50
@@ -127,7 +127,6 @@ type FeatureWrapperProps = Props & {
 
 function FeatureWrapper(props: FeatureWrapperProps) {
   const noEditMessage = t('Requires discover query feature.');
-  const editFeatures = ['organizations:discover-query'];
 
   const renderDisabled = p => (
     <Hovercard
@@ -147,7 +146,7 @@ function FeatureWrapper(props: FeatureWrapperProps) {
     <Feature
       hookName="feature-disabled:grid-editable-actions"
       renderDisabled={renderDisabled}
-      features={editFeatures}
+      feature="organizations:discover-query"
     >
       {({hasFeature}) => props.children(hasFeature, props)}
     </Feature>

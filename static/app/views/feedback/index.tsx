@@ -17,7 +17,7 @@ export default function FeedbackContainer({children}: Props) {
 
   return (
     <Feature
-      features="user-feedback-ui"
+      feature="user-feedback-ui"
       organization={organization}
       renderDisabled={NoAccess}
     >

@@ -12,7 +12,7 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
 
 function ProjectPerformanceContainer(props: Props) {
   return (
-    <Feature features="performance-view">
+    <Feature feature="performance-view">
       <ProjectPerformance {...props} />
     </Feature>
   );

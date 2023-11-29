@@ -16,7 +16,7 @@ type Props = RouteComponentProps<{groupId: string}, {}> & {
 function GroupEventAttachmentsContainer({organization, group}: Props) {
   return (
     <Feature
-      features="event-attachments"
+      feature="event-attachments"
       organization={organization}
       renderDisabled={props => (
         <FeatureDisabled {...props} featureName={t('Event Attachments')} />

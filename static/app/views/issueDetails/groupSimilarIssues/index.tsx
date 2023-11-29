@@ -6,7 +6,7 @@ type Props = React.ComponentProps<typeof SimilarStackTrace>;
 
 function GroupSimilarIssues({project, ...props}: Props) {
   return (
-    <Feature features="similarity-view" project={project}>
+    <Feature feature="similarity-view" project={project}>
       <SimilarStackTrace project={project} {...props} />
     </Feature>
   );

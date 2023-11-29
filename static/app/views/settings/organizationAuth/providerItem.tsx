@@ -95,7 +95,7 @@ function ProviderItem({provider, active, onConfigure}: Props) {
   return (
     <Feature
       {...featureProps}
-      features={[featureKey].filter(f => f)}
+      allOf={[featureKey].filter(f => f)}
       renderDisabled={({children, ...props}) =>
         typeof children === 'function' &&
         // TODO(ts): the Feature component isn't correctly templatized to allow

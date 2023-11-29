@@ -208,7 +208,7 @@ function CustomRepositories({
   }
 
   return (
-    <Feature features="custom-symbol-sources" organization={organization}>
+    <Feature feature="custom-symbol-sources" organization={organization}>
       {({hasFeature}) => (
         <Access access={['project:write']} project={project}>
           {({hasAccess}) => {

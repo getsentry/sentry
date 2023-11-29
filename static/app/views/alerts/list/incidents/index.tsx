@@ -307,7 +307,7 @@ function IncidentsListContainer(props: Props) {
 
   return (
     <Feature
-      features="incidents"
+      feature="incidents"
       hookName="feature-disabled:alerts-page"
       renderDisabled={renderDisabled}
     >

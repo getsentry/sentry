@@ -5,13 +5,11 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import Trace from 'sentry/views/replays/detail/trace/trace';
 
-const features = ['organizations:performance-view'];
-
 function PerfDisabled() {
   return (
     <FeatureDisabled
       featureName={t('Performance Monitoring')}
-      features={features}
+      features="organizations:performance-view"
       hideHelpToggle
       message={t('Requires performance monitoring.')}
     />
@@ -25,7 +23,7 @@ function TraceFeature() {
 
   return (
     <Feature
-      features={features}
+      feature="organizations:performance-view"
       hookName={undefined}
       organization={organization}
       renderDisabled={PerfDisabled}

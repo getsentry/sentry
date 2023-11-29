@@ -84,7 +84,7 @@ function DebugFileCustomRepository({
 
   if (sourceType === CustomRepoType.APP_STORE_CONNECT) {
     return (
-      <Feature organization={organization} features="app-store-connect-multiple">
+      <Feature organization={organization} feature="app-store-connect-multiple">
         {({hasFeature, features}) => {
           if (
             hasFeature ||
@@ -123,7 +123,7 @@ function DebugFileCustomRepository({
   }
 
   return (
-    <Feature organization={organization} features="custom-symbol-sources">
+    <Feature organization={organization} feature="custom-symbol-sources">
       {({hasFeature, features}) => {
         if (hasFeature) {
           if (sourceType === CustomRepoType.HTTP) {

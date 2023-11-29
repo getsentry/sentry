@@ -18,7 +18,7 @@ function StarfishContainer({organization, children}: Props) {
   return (
     <Feature
       hookName="feature-disabled:starfish-view"
-      features="starfish-view"
+      feature="starfish-view"
       organization={organization}
       renderDisabled={NoAccess}
     >

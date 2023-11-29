@@ -41,7 +41,6 @@ export default function QuickTraceMeta({
   project,
 }: Props) {
   const organization = useOrganization();
-  const features = ['performance-view'];
 
   const noFeatureMessage = t('Requires performance monitoring.');
 
@@ -97,7 +96,10 @@ export default function QuickTraceMeta({
   }
 
   return (
-    <Feature hookName="feature-disabled:performance-quick-trace" features={features}>
+    <Feature
+      hookName="feature-disabled:performance-quick-trace"
+      feature="performance-view"
+    >
       {({hasFeature}) => {
         // also need to enable the performance feature
         if (!hasFeature) {
@@ -105,7 +107,7 @@ export default function QuickTraceMeta({
             <Hovercard
               body={
                 <FeatureDisabled
-                  features={features}
+                  features="performance-view"
                   hideHelpToggle
                   message={noFeatureMessage}
                   featureName={noFeatureMessage}

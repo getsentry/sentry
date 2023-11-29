@@ -7,7 +7,7 @@ function MonitorsContainer({children}: {children?: React.ReactNode}) {
   const organization = useOrganization();
 
   return (
-    <Feature features="monitors" renderDisabled>
+    <Feature feature="monitors" renderDisabled>
       <NoProjectMessage organization={organization}>
         <PageFiltersContainer>{children}</PageFiltersContainer>
       </NoProjectMessage>

@@ -14,8 +14,7 @@ function DDMContainer({children}: Props) {
 
   return (
     <Feature
-      features={['ddm-ui', 'custom-metrics']}
-      requireAll
+      allOf={['ddm-ui', 'custom-metrics']}
       organization={organization}
       renderDisabled={() => (
         <Layout.Page withPadding>

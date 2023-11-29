@@ -158,7 +158,7 @@ class ResultsHeader extends Component<Props, State> {
             </GuideAnchor>
           ) : (
             <Fragment>
-              <Feature features="organizations:discover-query">
+              <Feature feature="organizations:discover-query">
                 <DiscoverBreadcrumb
                   eventView={eventView}
                   organization={organization}

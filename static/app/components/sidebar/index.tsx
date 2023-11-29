@@ -202,7 +202,7 @@ function Sidebar({organization}: Props) {
   const discover2 = hasOrganization && (
     <Feature
       hookName="feature-disabled:discover2-sidebar-item"
-      features="discover-basic"
+      feature="discover-basic"
       organization={organization}
     >
       <SidebarItem
@@ -218,7 +218,7 @@ function Sidebar({organization}: Props) {
   const performance = hasOrganization && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
-      features="performance-view"
+      feature="performance-view"
       organization={organization}
     >
       {(() => {
@@ -236,7 +236,7 @@ function Sidebar({organization}: Props) {
               to={`/organizations/${organization.slug}/performance/`}
               id="performance"
             >
-              <Feature features="performance-database-view" organization={organization}>
+              <Feature feature="performance-database-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   label={
@@ -251,7 +251,7 @@ function Sidebar({organization}: Props) {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features="starfish-browser-webvitals" organization={organization}>
+              <Feature feature="starfish-browser-webvitals" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   isAlpha={WEBVITALS_RELEASE_LEVEL === 'alpha'}
@@ -267,7 +267,7 @@ function Sidebar({organization}: Props) {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features="performance-screens-view" organization={organization}>
+              <Feature feature="performance-screens-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
@@ -279,7 +279,7 @@ function Sidebar({organization}: Props) {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features="starfish-browser-resource-module-ui">
+              <Feature feature="starfish-browser-resource-module-ui">
                 <SidebarItem
                   {...sidebarItemProps}
                   isNew
@@ -310,7 +310,7 @@ function Sidebar({organization}: Props) {
   const starfish = hasOrganization && (
     <Feature
       hookName="feature-disabled:starfish-view"
-      features="starfish-view"
+      feature="starfish-view"
       organization={organization}
     >
       <SidebarAccordion
@@ -351,7 +351,7 @@ function Sidebar({organization}: Props) {
   );
 
   const userFeedback = hasOrganization && (
-    <Feature features="old-user-feedback" organization={organization}>
+    <Feature feature="old-user-feedback" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconSupport />}
@@ -363,7 +363,7 @@ function Sidebar({organization}: Props) {
   );
 
   const feedback = hasOrganization && (
-    <Feature features="user-feedback-ui" organization={organization}>
+    <Feature feature="user-feedback-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
@@ -387,7 +387,7 @@ function Sidebar({organization}: Props) {
   );
 
   const monitors = hasOrganization && (
-    <Feature features="monitors" organization={organization}>
+    <Feature feature="monitors" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconTimer />}
@@ -402,9 +402,8 @@ function Sidebar({organization}: Props) {
   const replays = hasOrganization && (
     <Feature
       hookName="feature-disabled:replay-sidebar-item"
-      features="session-replay-ui"
+      feature="session-replay-ui"
       organization={organization}
-      requireAll={false}
     >
       <SidebarItem
         {...sidebarItemProps}
@@ -417,11 +416,7 @@ function Sidebar({organization}: Props) {
   );
 
   const ddm = hasOrganization && (
-    <Feature
-      features={['ddm-ui', 'custom-metrics']}
-      organization={organization}
-      requireAll
-    >
+    <Feature allOf={['ddm-ui', 'custom-metrics']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconGraph />}
@@ -436,9 +431,8 @@ function Sidebar({organization}: Props) {
   const dashboards = hasOrganization && (
     <Feature
       hookName="feature-disabled:dashboards-sidebar-item"
-      features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
+      oneOf={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
       organization={organization}
-      requireAll={false}
     >
       <SidebarItem
         {...sidebarItemProps}
@@ -454,9 +448,8 @@ function Sidebar({organization}: Props) {
   const profiling = hasOrganization && (
     <Feature
       hookName="feature-disabled:profiling-sidebar-item"
-      features="profiling"
+      feature="profiling"
       organization={organization}
-      requireAll={false}
     >
       <SidebarItem
         {...sidebarItemProps}

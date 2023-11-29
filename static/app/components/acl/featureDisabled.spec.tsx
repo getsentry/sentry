@@ -5,7 +5,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 describe('FeatureDisabled', function () {
   it('renders', function () {
     render(
-      <FeatureDisabled features="organization:my-features" featureName="Some Feature" />
+      <FeatureDisabled feature="organization:my-features" featureName="Some Feature" />
     );
 
     expect(
@@ -33,7 +33,7 @@ describe('FeatureDisabled', function () {
     render(
       <FeatureDisabled
         message={customMessage}
-        features="organization:my-features"
+        feature="organization:my-features"
         featureName="Some Feature"
       />
     );
@@ -46,7 +46,7 @@ describe('FeatureDisabled', function () {
     render(
       <FeatureDisabled
         alert={customAlert}
-        features="organization:my-features"
+        feature="organization:my-features"
         featureName="Some Feature"
       />
     );
@@ -57,7 +57,7 @@ describe('FeatureDisabled', function () {
     render(
       <FeatureDisabled
         alert
-        features="organization:my-features"
+        feature="organization:my-features"
         featureName="Some Feature"
       />
     );
