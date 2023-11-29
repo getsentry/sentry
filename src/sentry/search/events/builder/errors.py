@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import dataclasses
 from typing import List, Optional
 
 from snuba_sdk import (
+    AliasedExpression,
     Column,
     Condition,
     Direction,
@@ -74,12 +76,24 @@ class ErrorsQueryBuilderMixin:
         super().resolve_query(query, selected_columns, groupby_columns, equations, orderby)
         self.resolve_match()
 
+    def aliased_column(self, name: str) -> SelectType:
+        aliased_col: SelectType = super().aliased_column(name)
+        if isinstance(aliased_col, AliasedExpression):
+            return dataclasses.replace(
+                aliased_col, exp=self._apply_column_entity(aliased_col.exp.name)
+            )
+        elif isinstance(aliased_col, Column):
+            return self._apply_column_entity(aliased_col.name)
+
     def column(self, name: str) -> Column:
         """Given an unresolved sentry column name and return a snql column.
 
         :param name: The unresolved sentry name.
         """
         resolved_column = self.resolve_column_name(name)
+        return self._apply_column_entity(resolved_column)
+
+    def _apply_column_entity(self, resolved_column: str) -> Column:
         if resolved_column == "status":
             resolved_column = f"group_{resolved_column}"
             entity = Entity("group_attributes", alias="ga")
