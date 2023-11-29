@@ -10,6 +10,10 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RateUnits} from 'sentry/utils/discover/fields';
+import {
+  PageErrorAlert,
+  PageErrorProvider,
+} from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ImageView from 'sentry/views/performance/browser/resources/imageView';
@@ -38,52 +42,54 @@ function ResourcesLandingPage() {
       title={[t('Performance'), t('Resources')].join(' — ')}
       baseURL="/performance/browser/resources"
     >
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: 'Resources',
-              },
-            ]}
-          />
-
-          <Layout.Title>{t('Resources')}</Layout.Title>
-        </Layout.HeaderContent>
-      </Layout.Header>
-
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <FeedbackWidget />
-          <FilterOptionsContainer columnCount={2}>
-            <PageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
-            <DomainSelector
-              emptyOptionLocation="top"
-              value={filters[SPAN_DOMAIN] || ''}
-              additionalQuery={[
-                ...DEFAULT_RESOURCE_FILTERS,
-                `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+      <PageErrorProvider>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: 'Performance',
+                  to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
+                  preservePageFilters: true,
+                },
+                {
+                  label: 'Resources',
+                },
               ]}
             />
-          </FilterOptionsContainer>
 
-          {(!filters[SPAN_OP] ||
-            filters[SPAN_OP] === 'resource.script' ||
-            filters[SPAN_OP] === 'resource.css' ||
-            filters[SPAN_OP] === 'resource.font') && <JSCSSView />}
+            <Layout.Title>{t('Resources')}</Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <FeedbackWidget />
+            <PageErrorAlert />
+            <FilterOptionsContainer columnCount={2}>
+              <PageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
+              </PageFilterBar>
+              <DomainSelector
+                emptyOptionLocation="top"
+                value={filters[SPAN_DOMAIN] || ''}
+                additionalQuery={[
+                  ...DEFAULT_RESOURCE_FILTERS,
+                  `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+                ]}
+              />
+            </FilterOptionsContainer>
 
-          {filters[SPAN_OP] === 'resource.img' && <ImageView />}
-        </Layout.Main>
-      </Layout.Body>
+            {(!filters[SPAN_OP] ||
+              filters[SPAN_OP] === 'resource.script' ||
+              filters[SPAN_OP] === 'resource.css' ||
+              filters[SPAN_OP] === 'resource.font') && <JSCSSView />}
+
+            {filters[SPAN_OP] === 'resource.img' && <ImageView />}
+          </Layout.Main>
+        </Layout.Body>
+      </PageErrorProvider>
     </ModulePageProviders>
   );
 }
