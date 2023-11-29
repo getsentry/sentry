@@ -289,7 +289,7 @@ default_manager.add("projects:span-metrics-extraction-all-modules", ProjectFeatu
 default_manager.add("projects:span-metrics-extraction-resource", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 
 # User scoped features
-default_manager.add("user:region-provisioning-allow-list", SystemFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("user:region-provisioning-allow-list", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL)
