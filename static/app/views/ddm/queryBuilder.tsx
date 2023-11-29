@@ -197,6 +197,7 @@ interface MetricSearchBarProps
 }
 
 const EMPTY_ARRAY = [];
+const EMPTY_SET = new Set<never>();
 
 export function MetricSearchBar({
   mri,
@@ -266,6 +267,13 @@ export function MetricSearchBar({
       query={query}
       savedSearchType={SavedSearchType.METRIC}
       projectIds={projectIdNumbers}
+      durationKeys={EMPTY_SET}
+      percentageKeys={EMPTY_SET}
+      numericKeys={EMPTY_SET}
+      dateKeys={EMPTY_SET}
+      booleanKeys={EMPTY_SET}
+      sizeKeys={EMPTY_SET}
+      textOperatorKeys={EMPTY_SET}
       {...props}
     />
   );

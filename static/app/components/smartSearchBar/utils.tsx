@@ -1,5 +1,6 @@
 // eslint-disable-next-line simple-import-sort/imports
 import {
+  defaultConfig,
   filterTypeConfig,
   interchangeableFilterOperators,
   SearchConfig,
@@ -637,10 +638,10 @@ export const getSearchConfigFromCustomPerformanceMetrics = (
   customPerformanceMetrics?: CustomMeasurementCollection
 ): Partial<SearchConfig> => {
   const searchConfigMap: Record<string, string[]> = {
-    sizeKeys: [],
-    durationKeys: [],
-    percentageKeys: [],
-    numericKeys: [],
+    sizeKeys: [...defaultConfig.sizeKeys],
+    durationKeys: [...defaultConfig.durationKeys],
+    percentageKeys: [...defaultConfig.percentageKeys],
+    numericKeys: [...defaultConfig.numericKeys],
   };
   if (customPerformanceMetrics) {
     Object.keys(customPerformanceMetrics).forEach(metricName => {

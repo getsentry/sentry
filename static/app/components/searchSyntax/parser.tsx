@@ -1,4 +1,4 @@
-import mergeWith from 'lodash/mergeWith';
+import merge from 'lodash/merge';
 import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
@@ -981,7 +981,7 @@ export type SearchConfig = {
   validateKeys?: boolean;
 };
 
-const defaultConfig: SearchConfig = {
+export const defaultConfig: SearchConfig = {
   textOperatorKeys: new Set([
     'release.version',
     'release.build',
@@ -1064,14 +1064,7 @@ export function parseSearch(
   const configCopy = {...defaultConfig};
 
   // Merge additionalConfig with defaultConfig
-  const config = mergeWith(configCopy, additionalConfig, (srcValue, destValue) => {
-    if (destValue instanceof Set) {
-      return new Set([...destValue, ...srcValue]);
-    }
-
-    // Use default merge behavior
-    return undefined;
-  });
+  const config = merge(configCopy, additionalConfig);
 
   try {
     return grammar.parse(query, {...options, config});
