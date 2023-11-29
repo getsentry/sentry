@@ -4,19 +4,15 @@ import importlib.metadata
 import logging
 import os
 import sys
-from typing import Any, TypeVar
+from typing import Any
 
 import click
 from django.conf import settings
 
 from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_atomic
-from sentry.utils import metrics, warnings
+from sentry.utils import warnings
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
-
-logger = logging.getLogger("sentry.runner.initializer")
-
-T = TypeVar("T")
 
 
 def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) -> None:
@@ -465,28 +461,6 @@ def validate_regions(settings: Any) -> None:
         return
 
     load_from_config(region_config).validate_all()
-
-
-import django.db.models.base
-
-model_unpickle = django.db.models.base.model_unpickle
-
-
-def __model_unpickle_compat(
-    model_id: str, attrs: Any | None = None, factory: Any | None = None
-) -> object:
-    if attrs is not None or factory is not None:
-        metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat", sample_rate=1)
-        logger.error(
-            "django.compat.model-unpickle-compat",
-            extra={"model_id": model_id, "attrs": attrs, "factory": factory},
-            exc_info=True,
-        )
-    return model_unpickle(model_id)
-
-
-def __simple_class_factory_compat(model: T, attrs: Any) -> T:
-    return model
 
 
 def monkeypatch_django_migrations() -> None:
