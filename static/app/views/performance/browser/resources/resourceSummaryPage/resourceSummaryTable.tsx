@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory, Link} from 'react-router';
+import styled from '@emotion/styled';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -8,6 +9,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -15,16 +17,22 @@ import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resourc
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePageQuery';
 import {useResourceSummarySort} from 'sentry/views/performance/browser/resources/utils/useResourceSummarySort';
+import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
+import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
-const {RESOURCE_RENDER_BLOCKING_STATUS, SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} =
-  SpanMetricsField;
+const {
+  RESOURCE_RENDER_BLOCKING_STATUS,
+  SPAN_SELF_TIME,
+  HTTP_RESPONSE_CONTENT_LENGTH,
+  TRANSACTION,
+} = SpanMetricsField;
 
 type Row = {
   'avg(http.response_content_length)': number;
@@ -90,7 +98,7 @@ function ResourceSummaryTable() {
         query = `${RESOURCE_RENDER_BLOCKING_STATUS}:${blockingStatus}`;
       }
 
-      return (
+      const link = (
         <Link
           to={{
             pathname: location.pathname,
@@ -103,6 +111,30 @@ function ResourceSummaryTable() {
         >
           {row[key]}
         </Link>
+      );
+
+      return (
+        <DescriptionWrapper>
+          <WiderHovercard
+            position="right"
+            body={
+              <Fragment>
+                <TitleWrapper>{t('Example')}</TitleWrapper>
+                <FullSpanDescription
+                  group={groupId}
+                  language="http"
+                  filters={{
+                    [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]:
+                      row[RESOURCE_RENDER_BLOCKING_STATUS],
+                    [SpanIndexedField.TRANSACTION]: row[TRANSACTION],
+                  }}
+                />
+              </Fragment>
+            }
+          >
+            {link}
+          </WiderHovercard>
+        </DescriptionWrapper>
       );
     }
     if (key === RESOURCE_RENDER_BLOCKING_STATUS) {
@@ -161,5 +193,15 @@ export const getActionName = (transactionOp: string) => {
       return transactionOp;
   }
 };
+
+const TitleWrapper = styled('div')`
+  margin-bottom: ${space(1)};
+`;
+
+const DescriptionWrapper = styled('div')`
+  .inline-flex {
+    display: inline-flex;
+  }
+`;
 
 export default ResourceSummaryTable;
