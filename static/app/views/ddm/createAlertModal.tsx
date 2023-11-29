@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -58,12 +58,42 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     getInitialFormState(metricsQuery)
   );
 
+  const selectedProject = projects.find(p => p.id === formState.project);
+  const isFormValid = formState.project !== null;
+
+  const {data, isLoading, refetch, isError} = useMetricsData({
+    mri: metricsQuery.mri,
+    op: metricsQuery.op,
+    projects: formState.project ? [parseInt(formState.project, 10)] : [],
+    environments: formState.environment ? [formState.environment] : [],
+    datetime: metricsQuery.datetime,
+    query: metricsQuery.query,
+  });
+
+  const chartSeries = useMemo(
+    () =>
+      data &&
+      getChartSeries(data, {
+        displayType: MetricDisplayType.AREA,
+        focusedSeries: undefined,
+        groupBy: [],
+        hoveredLegend: undefined,
+      }),
+    [data]
+  );
+
   const projectOptions = useMemo(() => {
     const nonMemberProjects: Project[] = [];
     const memberProjects: Project[] = [];
-    projects.forEach(project =>
-      project.isMember ? memberProjects.push(project) : nonMemberProjects.push(project)
-    );
+    projects
+      .filter(
+        project =>
+          metricsQuery.projects.length === 0 ||
+          metricsQuery.projects.includes(parseInt(project.id, 10))
+      )
+      .forEach(project =>
+        project.isMember ? memberProjects.push(project) : nonMemberProjects.push(project)
+      );
 
     return [
       {
@@ -83,22 +113,23 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
         })),
       },
     ];
-  }, [projects]);
+  }, [metricsQuery.projects, projects]);
 
-  const selectedProject = projects.find(p => p.id === formState.project);
+  const environmentOptions = useMemo(
+    () => [
+      {
+        value: null,
+        label: t('All Environments'),
+      },
+      ...(selectedProject?.environments.map(env => ({
+        value: env,
+        label: env,
+      })) ?? []),
+    ],
+    [selectedProject?.environments]
+  );
 
-  const isFormValid = formState.project !== null;
-
-  const {data, isLoading, refetch, isError} = useMetricsData({
-    mri: metricsQuery.mri,
-    op: metricsQuery.op,
-    projects: formState.project ? [parseInt(formState.project, 10)] : [],
-    environments: formState.environment ? [formState.environment] : [],
-    datetime: metricsQuery.datetime,
-    query: metricsQuery.query,
-  });
-
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     router.push(
       `/organizations/${organization.slug}/alerts/new/metric/?${qs.stringify({
         // Needed, so alerts-create also collects environment via event view
@@ -113,7 +144,15 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
         project: selectedProject!.slug,
       })}`
     );
-  };
+  }, [
+    formState.environment,
+    metricsQuery.mri,
+    metricsQuery.op,
+    metricsQuery.query,
+    organization.slug,
+    router,
+    selectedProject,
+  ]);
 
   return (
     <Fragment>
@@ -139,16 +178,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
           />
           <SelectControl
             placeholder={t('Select an environment')}
-            options={[
-              {
-                value: null,
-                label: t('All Environments'),
-              },
-              ...(selectedProject?.environments.map(env => ({
-                value: env,
-                label: env,
-              })) ?? []),
-            ]}
+            options={environmentOptions}
             disabled={!selectedProject}
             value={formState.environment}
             onChange={({value}) => setFormState(prev => ({...prev, environment: value}))}
@@ -197,14 +227,9 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
             </PanelBody>
             {isLoading && <StyledLoadingIndicator />}
             {isError && <LoadingError onRetry={refetch} />}
-            {data && (
+            {chartSeries && (
               <AreaChart
-                series={getChartSeries(data, {
-                  displayType: MetricDisplayType.AREA,
-                  focusedSeries: undefined,
-                  groupBy: [],
-                  hoveredLegend: undefined,
-                })}
+                series={chartSeries}
                 isGroupedByDate
                 height={200}
                 grid={{top: 20, bottom: 20, left: 15, right: 25}}

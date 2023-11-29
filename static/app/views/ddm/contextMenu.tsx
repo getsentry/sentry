@@ -149,7 +149,8 @@ function useCreateAlert(organization: Organization, metricsQuery: MetricsQuery) 
     if (
       !metricsQuery.mri ||
       !metricsQuery.op ||
-      parseMRI(metricsQuery.mri)?.useCase !== 'custom'
+      parseMRI(metricsQuery.mri)?.useCase !== 'custom' ||
+      !organization.access.includes('alerts:write')
     ) {
       return undefined;
     }
