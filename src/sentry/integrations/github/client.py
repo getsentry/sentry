@@ -182,7 +182,6 @@ class GithubProxyClient(IntegrationProxyClient):
 
 
 class GitHubClientMixin(GithubProxyClient):
-
     allow_redirects = True
 
     base_url = "https://api.github.com"
