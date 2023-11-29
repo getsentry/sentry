@@ -48,7 +48,7 @@ function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOpt
 
 export function MetricsEventsDropdown() {
   return (
-    <Feature features={['performance-use-metrics']}>
+    <Feature features="performance-use-metrics">
       <InnerDropdown />
     </Feature>
   );

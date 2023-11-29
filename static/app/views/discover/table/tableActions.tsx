@@ -44,7 +44,7 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
   const {tableData} = props;
   return (
     <Feature
-      features={['organizations:discover-query']}
+      features="organizations:discover-query"
       renderDisabled={() => renderBrowserExportButton(canEdit, props)}
     >
       {tableData?.data && tableData.data.length < 50
