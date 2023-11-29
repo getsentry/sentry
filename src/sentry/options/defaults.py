@@ -1737,7 +1737,7 @@ register(
 
 # The flag disables the file io on main thread detector
 register(
-    "performance-issues.file-io-main-thread.disabled",
+    "performance_issues.file_io_main_thread.disabled",
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
