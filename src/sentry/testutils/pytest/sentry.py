@@ -104,7 +104,7 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
     # silence (noisy) loggers by default when testing
-    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"  # type: ignore[index]
+    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"
 
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}

@@ -273,11 +273,10 @@ def configure_structlog() -> None:
 
     lvl = os.environ.get("SENTRY_LOG_LEVEL")
 
-    if lvl:
-        if lvl not in logging._nameToLevel:
-            raise AttributeError("%s is not a valid logging level." % lvl)
+    if lvl and lvl not in logging._nameToLevel:
+        raise AttributeError("%s is not a valid logging level." % lvl)
 
-    settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})
+    settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})  # type: ignore[union-attr]  # https://github.com/python/typeshed/pull/6193/files#r1408253621
 
     if lvl:
         for logger in settings.LOGGING["overridable"]:
@@ -500,7 +499,7 @@ def monkeypatch_drf_listfield_serializer_errors() -> None:
         return [self.child.run_validation(item) for item in data]
         # End code retained from < drf 3.8.x.
 
-    ListField.to_internal_value = to_internal_value  # type: ignore[method-assign]
+    ListField.to_internal_value = to_internal_value  # type: ignore[assignment,method-assign]
 
     # We don't need to patch DictField since we don't use it
     # at the time of patching. This is fine since anything newly
