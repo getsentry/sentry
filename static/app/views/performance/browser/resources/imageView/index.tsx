@@ -34,7 +34,7 @@ function ImageView() {
 
   return (
     <Fragment>
-      <FilterOptionsContainer>
+      <FilterOptionsContainer columnCount={4}>
         <DomainSelector value={filters[SPAN_DOMAIN] || ''} />
         <SwitchContainer>
           <SwitchButton

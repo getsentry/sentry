@@ -60,7 +60,7 @@ function ResourcesLandingPage() {
       <Layout.Body>
         <Layout.Main fullWidth>
           <FeedbackWidget />
-          <FilterOptionsContainer>
+          <FilterOptionsContainer columnCount={2}>
             <PageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
