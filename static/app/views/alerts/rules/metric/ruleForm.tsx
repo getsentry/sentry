@@ -895,6 +895,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const isMigration = this.props.location?.query?.migration === '1';
     // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
     const isTransactionMigration = isMigration && ruleNeedsMigration(rule);
+    const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
     const chartProps = {
       organization,
@@ -913,7 +914,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
-      isOnDemandMetricAlert: isOnDemandMetricAlert(dataset, aggregate, query),
+      isOnDemandMetricAlert: isOnDemand,
+      showTotalCount: alertType !== 'custom_metrics' && !isOnDemand,
       onDataLoaded: this.handleTimeSeriesDataFetched,
     };
 
