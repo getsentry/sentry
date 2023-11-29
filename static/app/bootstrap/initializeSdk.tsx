@@ -2,7 +2,7 @@
 import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import * as Spotlight from '@spotlightjs/overlay';
+import * as Spotlight from '@spotlightjs/spotlight';
 import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import {Event} from '@sentry/types';
@@ -171,7 +171,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   });
 
   if (sentryConfig.environment === 'development') {
-    /*#__PURE__*/ Spotlight.init();
+    /* #__PURE__ */ Spotlight.init();
   }
 
   // Event processor to fill the debug_meta field with debug IDs based on the
