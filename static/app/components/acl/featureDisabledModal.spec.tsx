@@ -20,7 +20,7 @@ describe('FeatureTourModal', function () {
         closeModal={onCloseModal}
         CloseButton={() => <button>Close</button>}
         featureName="Default Feature"
-        feature="organization:test-feature"
+        features="organization:test-feature"
         {...props}
       />
     );
