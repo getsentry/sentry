@@ -42,15 +42,12 @@ describe('Feature', function () {
       });
     });
 
-    it('has features when requireAll is false', function () {
+    it('has features when oneOf', function () {
       const features = ['org-foo', 'project-foo', 'apple'];
 
-      render(
-        <Feature features={features} requireAll={false}>
-          {childrenMock}
-        </Feature>,
-        {context: routerContext}
-      );
+      render(<Feature oneOf={features}>{childrenMock}</Feature>, {
+        context: routerContext,
+      });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
@@ -62,7 +59,7 @@ describe('Feature', function () {
     });
 
     it('has no features', function () {
-      render(<Feature features="org-baz">{childrenMock}</Feature>, {
+      render(<Feature feature="org-baz">{childrenMock}</Feature>, {
         context: routerContext,
       });
 
@@ -78,7 +75,7 @@ describe('Feature', function () {
     it('calls render function when no features', function () {
       const noFeatureRenderer = jest.fn(() => null);
       render(
-        <Feature features="org-baz" renderDisabled={noFeatureRenderer}>
+        <Feature feature="org-baz" renderDisabled={noFeatureRenderer}>
           {childrenMock}
         </Feature>,
         {context: routerContext}
@@ -228,7 +225,7 @@ describe('Feature', function () {
 
     it('has no features', function () {
       render(
-        <Feature features="org-baz">
+        <Feature feature="org-baz">
           <div>The Child</div>
         </Feature>,
         {context: routerContext}
@@ -239,7 +236,7 @@ describe('Feature', function () {
 
     it('renders a default disabled component', function () {
       render(
-        <Feature features="org-baz" renderDisabled>
+        <Feature feature="org-baz" renderDisabled>
           <div>The Child</div>
         </Feature>,
         {context: routerContext}
@@ -253,7 +250,7 @@ describe('Feature', function () {
       const noFeatureRenderer = jest.fn(() => null);
       const children = <div>The Child</div>;
       render(
-        <Feature features="org-baz" renderDisabled={noFeatureRenderer}>
+        <Feature feature="org-baz" renderDisabled={noFeatureRenderer}>
           {children}
         </Feature>,
         {context: routerContext}
@@ -286,7 +283,7 @@ describe('Feature', function () {
     it('uses hookName if provided', function () {
       const children = <div>The Child</div>;
       render(
-        <Feature features="org-bazar" hookName="feature-disabled:sso-basic">
+        <Feature feature="org-bazar" hookName="feature-disabled:sso-basic">
           {children}
         </Feature>,
         {context: routerContext}
