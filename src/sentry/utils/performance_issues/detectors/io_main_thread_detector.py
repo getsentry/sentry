@@ -116,9 +116,6 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     def is_detector_enabled(cls) -> bool:
         return not options.get("performance_issues.file_io_main_thread.disabled")
 
-    def init(self):
-        super().init()
-
     def _prepare_deobfuscation(self):
         event = self._event
         if "debug_meta" in event:
