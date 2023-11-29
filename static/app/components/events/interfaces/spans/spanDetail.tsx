@@ -55,13 +55,7 @@ import * as SpanEntryContext from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {SpanProfileDetails} from './spanProfileDetails';
-import {
-  KNOWN_SPAN_DATA_FIELD_TITLES,
-  ParsedTraceType,
-  ProcessedSpanType,
-  rawSpanKeys,
-  RawSpanType,
-} from './types';
+import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {
   getCumulativeAlertLevelFromErrors,
   getFormattedTimeRangeWithLeadingAndTrailingZero,
@@ -566,7 +560,7 @@ function SpanDetail(props: Props) {
               ))}
               {map(nonSizeKeys, (value, key) =>
                 !isHiddenDataKey(key) ? (
-                  <Row title={KNOWN_SPAN_DATA_FIELD_TITLES[key] ?? key} key={key}>
+                  <Row title={key} key={key}>
                     {maybeStringify(value)}
                   </Row>
                 ) : null
