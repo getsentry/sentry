@@ -11,6 +11,7 @@ import Card from 'sentry/components/card';
 import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
@@ -165,51 +166,55 @@ export function InviteBanner({
   };
 
   return (
-    <StyledCard>
-      <CardTitleContainer>
-        <CardTitleContent>
-          <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
-          <Subtitle>
-            {tct('[missingMemberCount] missing members', {
-              missingMemberCount: missingMembers.length,
-            })}
-            <QuestionTooltip
-              title={t(
-                "Based on the last 30 days of GitHub commit data, there are team members committing code to Sentry projects that aren't in your Sentry organization"
-              )}
+    <Fragment>
+      {/* this is temporary to collect feedback about the banner */}
+      <FeedbackWidget />
+      <StyledCard>
+        <CardTitleContainer>
+          <CardTitleContent>
+            <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
+            <Subtitle>
+              {tct('[missingMemberCount] missing members', {
+                missingMemberCount: missingMembers.length,
+              })}
+              <QuestionTooltip
+                title={t(
+                  "Based on the last 30 days of GitHub commit data, there are team members committing code to Sentry projects that aren't in your Sentry organization"
+                )}
+                size="xs"
+              />
+            </Subtitle>
+          </CardTitleContent>
+          <ButtonBar gap={1}>
+            <Button
+              priority="primary"
               size="xs"
+              onClick={openInviteModal}
+              analyticsEventName="Github Invite Banner: View All"
+              analyticsEventKey="github_invite_banner.view_all"
+            >
+              {t('View All')}
+            </Button>
+            <DropdownMenu
+              items={menuItems}
+              triggerProps={{
+                size: 'xs',
+                showChevron: false,
+                icon: <IconEllipsis direction="down" size="sm" />,
+                'aria-label': t('Actions'),
+              }}
             />
-          </Subtitle>
-        </CardTitleContent>
-        <ButtonBar gap={1}>
-          <Button
-            priority="primary"
-            size="xs"
-            onClick={openInviteModal}
-            analyticsEventName="Github Invite Banner: View All"
-            analyticsEventKey="github_invite_banner.view_all"
-          >
-            {t('View All')}
-          </Button>
-          <DropdownMenu
-            items={menuItems}
-            triggerProps={{
-              size: 'xs',
-              showChevron: false,
-              icon: <IconEllipsis direction="down" size="sm" />,
-              'aria-label': t('Actions'),
-            }}
+          </ButtonBar>
+        </CardTitleContainer>
+        <Carousel>
+          <MemberCards
+            missingMembers={missingMembers}
+            handleSendInvite={handleSendInvite}
+            openInviteModal={openInviteModal}
           />
-        </ButtonBar>
-      </CardTitleContainer>
-      <Carousel>
-        <MemberCards
-          missingMembers={missingMembers}
-          handleSendInvite={handleSendInvite}
-          openInviteModal={openInviteModal}
-        />
-      </Carousel>
-    </StyledCard>
+        </Carousel>
+      </StyledCard>
+    </Fragment>
   );
 }
 
