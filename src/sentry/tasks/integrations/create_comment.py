@@ -1,13 +1,14 @@
 from sentry import analytics
 from sentry.models.activity import Activity
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.silo import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations import should_comment_sync
 from sentry.types.activity import ActivityType
 
 
+@region_silo_function
 @instrumented_task(
     name="sentry.tasks.integrations.create_comment",
     queue="integrations",
@@ -15,8 +16,6 @@ from sentry.types.activity import ActivityType
     max_retries=5,
     silo_mode=SiloMode.REGION,
 )
-# TODO(jess): Add more retry exclusions once ApiClients have better error handling
-@retry(exclude=(Integration.DoesNotExist))
 def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> None:
     try:
         external_issue = ExternalIssue.objects.get(id=external_issue_id)

@@ -2,8 +2,9 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from django.utils import timezone
 
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -208,6 +209,7 @@ class TestGetFilenames(GithubCommentTestCase):
             ("/src/sentry", "sentry"),
             ("tests/", "tests/"),
             ("app/", "static/app"),
+            ("tasks/integrations", "tasks"),  # random match in the middle of the string
         ]
         for source_root, stack_root in source_stack_nonmatches:
             self.create_code_mapping(
@@ -220,8 +222,9 @@ class TestGetFilenames(GithubCommentTestCase):
 
         filename = "src/sentry/tasks/integrations/github/open_pr_comment.py"
         correct_filenames = [
-            filename.replace(source_root, stack_root)
-            for source_root, stack_root in source_stack_pairs
+            "./src/sentry/tasks/integrations/github/open_pr_comment.py",
+            "sentry//tasks/integrations/github/open_pr_comment.py",
+            "sentry/tasks/integrations/github/open_pr_comment.py",
         ]
 
         project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
@@ -285,6 +288,15 @@ class TestGetCommentIssues(TestCase):
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert top_5_issue_ids == [self.group_id]
         assert top_5_issues[0]["affected_users"] == 6
+
+    def test_filters_resolved_issue(self):
+        group = Group.objects.all()[0]
+        group.resolved_at = timezone.now()
+        group.status = GroupStatus.RESOLVED
+        group.save()
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        assert len(top_5_issues) == 0
 
     def test_project_group_id_mismatch(self):
         # we fetch all group_ids that belong to the projects passed into the function
@@ -519,6 +531,55 @@ class TestOpenPRCommentWorkflow(GithubCommentTestCase):
         assert pull_request_comment_query[0].external_id == 1
         assert pull_request_comment_query[0].comment_type == CommentType.OPEN_PR
         mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_created")
+
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
+    @patch(
+        "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
+    )
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=True)
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @responses.activate
+    def test_comment_workflow_comment_exists(
+        self,
+        mock_metrics,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
+        # two filenames, the second one has a toggle table
+        mock_pr_filenames.return_value = ["foo.py", "bar.py"]
+        mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
+
+        mock_issues.return_value = self.groups
+
+        now = timezone.now()
+        PullRequestComment.objects.create(
+            external_id=1,
+            pull_request=self.pr,
+            created_at=now,
+            updated_at=now,
+            group_ids=[0, 1],
+            comment_type=CommentType.OPEN_PR,
+        )
+
+        responses.add(
+            responses.PATCH,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/1",
+            json={"id": 1},
+            headers={"X-Ratelimit-Limit": "60", "X-Ratelimit-Remaining": "59"},
+        )
+
+        open_pr_comment_workflow(self.pr.id)
+
+        pull_request_comment_query = PullRequestComment.objects.all()
+        pr_comment = pull_request_comment_query[0]
+        assert len(pull_request_comment_query) == 1
+        assert pr_comment.external_id == 1
+        assert pr_comment.comment_type == CommentType.OPEN_PR
+        assert pr_comment.created_at != pr_comment.updated_at
+        mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_updated")
 
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames")
     @patch(

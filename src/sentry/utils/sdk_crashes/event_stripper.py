@@ -167,7 +167,7 @@ def _strip_frames(
     `SDKCrashDetectorConfig.sdk_frame_config.path_replacer` and
     `SDKCrashDetectorConfig.sdk_frame_path_default_replacement_name`.
 
-    For example, Cocoa only uses `Sentry.framework` as a replacement path, so we must add the rule `stack.abs_path:Sentry.framework +app` to it's project in Sentry.
+    For example, Cocoa only uses `Sentry.framework` as a replacement path, so we must add the rule `stack.abs_path:Sentry.framework +app +group` to it's project in Sentry.
     """
 
     def strip_frame(frame: MutableMapping[str, Any]) -> MutableMapping[str, Any]:

@@ -14,7 +14,7 @@ export function FullSpanDescription({group, shortDescription, language}: Props) 
     data: fullSpan,
     isLoading,
     isFetching,
-  } = useFullSpanFromTrace(group, Boolean(group));
+  } = useFullSpanFromTrace(group, undefined, Boolean(group));
 
   const description = fullSpan?.description ?? shortDescription;
 

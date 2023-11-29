@@ -7,7 +7,7 @@ from collections import defaultdict
 import sentry_sdk
 from symbolic.proguard import ProguardMapper
 
-from sentry import features
+from sentry import features, options
 from sentry.issues.grouptype import (
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
@@ -111,6 +111,10 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     type = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
     group_type = PerformanceFileIOMainThreadGroupType
+
+    @classmethod
+    def is_detector_enabled(cls) -> bool:
+        return not options.get("performance_issues.file_io_main_thread.disabled")
 
     def init(self):
         super().init()
