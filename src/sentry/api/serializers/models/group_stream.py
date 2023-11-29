@@ -174,7 +174,10 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         self.stats_period_end = stats_period_end
 
     def get_attrs(
-        self, item_list: Sequence[Group], user: Any, **kwargs: Any
+        self,
+        item_list: Sequence[Group],
+        user: Any,
+        **kwargs: Any,
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
@@ -233,7 +236,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         expand=None,
         organization_id=None,
         project_ids=None,
-        request=None,
     ):
         super().__init__(
             environment_ids,
@@ -244,7 +246,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             expand=expand,
             organization_id=organization_id,
             project_ids=project_ids,
-            request=request,
         )
 
         if stats_period is not None:
@@ -259,8 +260,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def get_attrs(
         self,
         item_list: Sequence[Group],
-        request: Request,
         user: Any,
+        request: Request,
         **kwargs: Any,
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         if not self._collapse("base"):
