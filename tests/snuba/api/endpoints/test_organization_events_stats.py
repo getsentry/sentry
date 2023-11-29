@@ -201,6 +201,55 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
+    def test_errors_dataset_lower_granularity(self):
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "very bad",
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=7)),
+                "fingerprint": ["group2"],
+            },
+            project_id=self.project2.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "message": "very bad",
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=12)),
+                "fingerprint": ["group2"],
+            },
+            project_id=self.project2.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "f" * 32,
+                "message": "very bad",
+                "timestamp": iso_format(self.day_ago + timedelta(hours=2, minutes=23)),
+                "fingerprint": ["group2"],
+            },
+            project_id=self.project2.id,
+        )
+
+        response = self.do_request(
+            {
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=3)),
+                "interval": "5m",
+                "dataset": "errors",
+                "query": "is:unresolved",
+            },
+        )
+        assert response.status_code == 200, response.content
+        expected = [
+            (int(self.day_ago.timestamp()), [{"count": 1}]),
+            (int((self.day_ago + timedelta(hours=1)).timestamp()), [{"count": 2}]),
+            (int((self.day_ago + timedelta(hours=1, minutes=5)).timestamp()), [{"count": 1}]),
+            (int((self.day_ago + timedelta(hours=1, minutes=10)).timestamp()), [{"count": 1}]),
+            (int((self.day_ago + timedelta(hours=2, minutes=20)).timestamp()), [{"count": 1}]),
+        ]
+        result = [(time, attrs) for time, attrs in response.data["data"] if attrs[0]["count"] > 0]
+        assert result == expected
+
     def test_misaligned_last_bucket(self):
         response = self.do_request(
             data={
