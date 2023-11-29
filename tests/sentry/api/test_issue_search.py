@@ -182,10 +182,9 @@ class ConvertJavaScriptConsoleTagTest(TestCase):
 @region_silo_test
 class ConvertQueryValuesTest(TestCase):
     def test_valid_assign_me_converter(self):
-        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
-        expected = value_converters["assigned_to"](
-            [filters[0].value.raw_value], [self.project], self.user, None
-        )
+        raw_value = "me"
+        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue(raw_value))]
+        expected = value_converters["assigned_to"]([raw_value], [self.project], self.user, None)
         filters = convert_query_values(filters, [self.project], self.user, None)
         assert filters[0].value.raw_value == expected
 
@@ -196,10 +195,9 @@ class ConvertQueryValuesTest(TestCase):
         assert filters[0].value.raw_value == search_val.raw_value
 
     def test_valid_assign_my_teams_converter(self):
-        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("my_teams"))]
-        expected = value_converters["assigned_to"](
-            [filters[0].value.raw_value], [self.project], self.user, None
-        )
+        raw_value = "my_teams"
+        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue(raw_value))]
+        expected = value_converters["assigned_to"]([raw_value], [self.project], self.user, None)
         filters = convert_query_values(filters, [self.project], self.user, None)
         assert filters[0].value.raw_value == expected
 
@@ -210,10 +208,9 @@ class ConvertQueryValuesTest(TestCase):
         assert filters[0].value.raw_value == search_val.raw_value
 
     def test_valid_converter(self):
-        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
-        expected = value_converters["assigned_to"](
-            [filters[0].value.raw_value], [self.project], self.user, None
-        )
+        raw_value = "me"
+        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue(raw_value))]
+        expected = value_converters["assigned_to"]([raw_value], [self.project], self.user, None)
         filters = convert_query_values(filters, [self.project], self.user, None)
         assert filters[0].value.raw_value == expected
 
@@ -241,12 +238,16 @@ class ConvertStatusValueTest(TestCase):
         with pytest.raises(InvalidSearchQuery, match="invalid status value"):
             convert_query_values(filters, [self.project], self.user, None)
 
-        filters = [AggregateFilter(AggregateKey("count_unique(user)"), ">", SearchValue("1"))]
         with pytest.raises(
             InvalidSearchQuery,
             match=r"Aggregate filters \(count_unique\(user\)\) are not supported in issue searches.",
         ):
-            convert_query_values(filters, [self.project], self.user, None)
+            convert_query_values(
+                [AggregateFilter(AggregateKey("count_unique(user)"), ">", SearchValue("1"))],
+                [self.project],
+                self.user,
+                None,
+            )
 
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
@@ -352,10 +353,9 @@ class ConvertActorOrNoneValueTest(TestCase):
         ) == [self.team]
 
     def test_invalid_team(self):
-        assert (
-            convert_actor_or_none_value(["#never_upgrade"], [self.project], self.user, None)[0].id
-            == 0
-        )
+        ret = convert_actor_or_none_value(["#never_upgrade"], [self.project], self.user, None)[0]
+        assert ret is not None
+        assert ret.id == 0
 
 
 @region_silo_test
