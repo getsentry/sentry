@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+import importlib.abc
+import importlib.machinery
 import importlib.metadata
 import sys
 import types
+from typing import Sequence
 
 import click
 
@@ -18,7 +23,7 @@ class ConfigurationError(ValueError, click.ClickException):
         click.secho(f"!! Configuration error: {self!r}", file=file, fg="red")
 
 
-class Importer:
+class Importer(importlib.abc.Loader):
     def __init__(self, name, config_path, default_settings=None, callback=None):
         self.name = name
         self.config_path = config_path
@@ -28,10 +33,13 @@ class Importer:
     def __repr__(self):
         return f"<{type(self)} for '{self.name}' ({self.config_path})>"
 
-    def find_module(self, fullname, path=None):
+    def find_spec(
+        self, fullname: str, path: Sequence[str] | None, target: types.ModuleType | None = None
+    ) -> importlib.machinery.ModuleSpec | None:
         if fullname != self.name:
-            return
-        return self
+            return None
+        else:
+            return importlib.machinery.ModuleSpec(fullname, self)
 
     def load_module(self, fullname):
         # Check to make sure it's not already in sys.modules in case of a reload()
