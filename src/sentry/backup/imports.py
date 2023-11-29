@@ -52,13 +52,13 @@ class ImportingError(Exception):
         self.context = context
 
 
-def reset_models():
+def _clear_model_tables_before_import():
     reversed = reversed_dependencies()
 
     for model in reversed:
         using = router.db_for_write(model)
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
-        manager.all().delete()
+        manager.all().delete()  # type: ignore
 
         # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
         # solution.
@@ -348,7 +348,7 @@ def _import(
         with unguarded_write(using="default"), transaction.atomic(using="default"):
             if scope == ImportScope.Global:
                 try:
-                    reset_models()
+                    _clear_model_tables_before_import()
                 except DatabaseError as e:
                     printer("Database could not be reset before importing")
                     raise e

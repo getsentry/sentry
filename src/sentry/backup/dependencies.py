@@ -634,7 +634,7 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
 
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
-def reversed_dependencies():
+def reversed_dependencies() -> list[Type[models.base.Model]]:
     sorted = list(sorted_dependencies())
     sorted.reverse()
     return sorted
