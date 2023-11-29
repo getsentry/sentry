@@ -1,18 +1,20 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
-import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
+import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
+import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
+import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
+import useDetailsSplit from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import useUrlParams from 'sentry/utils/useUrlParams';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkDetails from 'sentry/views/replays/detail/network/details';
 import {ReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
@@ -66,28 +68,39 @@ function NetworkList() {
       deps,
     });
 
-  // `initialSize` cannot depend on containerRef because the ref starts as
-  // `undefined` which then gets set into the hook and doesn't update.
-  const initialSize = Math.max(150, window.innerHeight * 0.4);
+  const {
+    onClickCell,
+    onCloseDetailsSplit,
+    resizableDrawerProps,
+    selectedIndex,
+    splitSize,
+  } = useDetailsSplit({
+    containerRef,
+    frames: networkFrames,
+    handleHeight: RESIZEABLE_HANDLE_HEIGHT,
+    urlParamName: 'n_detail_row',
+    onShowDetails: useCallback(
+      ({dataIndex, rowIndex}) => {
+        setScrollToRow(rowIndex);
 
-  const {size: containerSize, ...resizableDrawerProps} = useResizableDrawer({
-    direction: 'up',
-    initialSize,
-    min: 0,
-    onResize: () => {},
+        const item = items[dataIndex];
+        trackAnalytics('replay.details-network-panel-opened', {
+          is_sdk_setup: isNetworkDetailsSetup,
+          organization,
+          resource_method: getFrameMethod(item),
+          resource_status: String(getFrameStatus(item)),
+          resource_type: item.op,
+        });
+      },
+      [organization, items, isNetworkDetailsSetup]
+    ),
+    onHideDetails: useCallback(() => {
+      trackAnalytics('replay.details-network-panel-closed', {
+        is_sdk_setup: isNetworkDetailsSetup,
+        organization,
+      });
+    }, [organization, isNetworkDetailsSetup]),
   });
-  const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
-    'n_detail_row',
-    ''
-  );
-  const detailDataIndex = getDetailRow();
-
-  const maxContainerHeight =
-    (containerRef.current?.clientHeight || window.innerHeight) - RESIZEABLE_HANDLE_HEIGHT;
-  const splitSize =
-    networkFrames && detailDataIndex
-      ? Math.min(maxContainerHeight, containerSize)
-      : undefined;
 
   const {
     handleClick: onClickToJump,
@@ -101,32 +114,6 @@ function NetworkList() {
     setScrollToRow,
   });
 
-  const onClickCell = useCallback(
-    ({dataIndex, rowIndex}: {dataIndex: number; rowIndex: number}) => {
-      if (getDetailRow() === String(dataIndex)) {
-        setDetailRow('');
-
-        trackAnalytics('replay.details-network-panel-closed', {
-          is_sdk_setup: isNetworkDetailsSetup,
-          organization,
-        });
-      } else {
-        setDetailRow(String(dataIndex));
-        setScrollToRow(rowIndex);
-
-        const item = items[dataIndex];
-        trackAnalytics('replay.details-network-panel-opened', {
-          is_sdk_setup: isNetworkDetailsSetup,
-          organization,
-          resource_method: getFrameMethod(item),
-          resource_status: String(getFrameStatus(item)),
-          resource_type: item.op,
-        });
-      }
-    },
-    [getDetailRow, isNetworkDetailsSetup, items, organization, setDetailRow]
-  );
-
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const network = items[rowIndex - 1];
 
@@ -138,13 +125,7 @@ function NetworkList() {
         parent={parent}
         rowIndex={rowIndex}
       >
-        {({
-          measure: _,
-          registerChild,
-        }: {
-          measure: () => void;
-          registerChild?: (element?: Element) => void;
-        }) =>
+        {({measure: _, registerChild}) =>
           rowIndex === 0 ? (
             <NetworkHeaderCell
               ref={e => e && registerChild?.(e)}
@@ -177,9 +158,11 @@ function NetworkList() {
 
   return (
     <FluidHeight>
-      <NetworkFilters networkFrames={networkFrames} {...filterProps} />
+      <FilterLoadingIndicator isLoading={!replay}>
+        <NetworkFilters networkFrames={networkFrames} {...filterProps} />
+      </FilterLoadingIndicator>
       <ReqRespBodiesAlert isNetworkDetailsSetup={isNetworkDetailsSetup} />
-      <NetworkTable ref={containerRef} data-test-id="replay-details-network-tab">
+      <GridTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{
             gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
@@ -237,78 +220,15 @@ function NetworkList() {
           <NetworkDetails
             {...resizableDrawerProps}
             isSetup={isNetworkDetailsSetup}
-            item={detailDataIndex ? items[detailDataIndex] : null}
-            onClose={() => {
-              setDetailRow('');
-              trackAnalytics('replay.details-network-panel-closed', {
-                is_sdk_setup: isNetworkDetailsSetup,
-                organization,
-              });
-            }}
+            item={selectedIndex ? items[selectedIndex] : null}
+            onClose={onCloseDetailsSplit}
             projectId={projectId}
             startTimestampMs={startTimestampMs}
           />
         </SplitPanel>
-      </NetworkTable>
+      </GridTable>
     </FluidHeight>
   );
 }
-
-const SplitPanel = styled('div')`
-  width: 100%;
-  height: 100%;
-
-  position: relative;
-  display: grid;
-  overflow: auto;
-`;
-
-const OverflowHidden = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  display: grid;
-`;
-
-const NetworkTable = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-
-  .beforeHoverTime + .afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.purple200};
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 999999999%;
-  }
-
-  .beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple200};
-    content: '';
-    right: 0;
-    position: absolute;
-    bottom: 0;
-    width: 999999999%;
-  }
-
-  .beforeCurrentTime + .afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.purple300};
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 999999999%;
-  }
-
-  .beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.purple300};
-    content: '';
-    right: 0;
-    position: absolute;
-    bottom: 0;
-    width: 999999999%;
-  }
-`;
 
 export default NetworkList;
