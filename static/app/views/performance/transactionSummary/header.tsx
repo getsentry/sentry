@@ -143,7 +143,7 @@ function TransactionHeader({
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <Feature organization={organization} features={['incidents']}>
+          <Feature organization={organization} features="incidents">
             {({hasFeature}) =>
               hasFeature && !metricsCardinality?.isLoading ? (
                 <CreateAlertFromViewButton

@@ -253,7 +253,7 @@ function MetricWidgetBody({
   );
 }
 
-function getChartSeries(
+export function getChartSeries(
   data: MetricsApiResponse,
   {focusedSeries, groupBy, hoveredLegend, displayType}
 ) {

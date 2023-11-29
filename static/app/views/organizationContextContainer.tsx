@@ -281,8 +281,7 @@ class OrganizationContextContainer extends Component<Props, State> {
       return null;
     }
 
-    const {children: _, ...props} = this.props;
-    return <Sidebar {...props} organization={this.state.organization as Organization} />;
+    return <Sidebar organization={this.state.organization as Organization} />;
   }
 
   renderError() {

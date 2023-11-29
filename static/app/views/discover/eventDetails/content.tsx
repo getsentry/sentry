@@ -194,7 +194,7 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                 <TransactionToProfileButton projectSlug={this.projectId} />
               )}
               {transactionSummaryTarget && (
-                <Feature organization={organization} features={['performance-view']}>
+                <Feature organization={organization} features="performance-view">
                   {({hasFeature}) => (
                     <Button
                       size="sm"

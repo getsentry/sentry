@@ -32,10 +32,11 @@ def patch_sentry_sdk():
         unit,
         tags,
         timestamp=None,
+        local_aggregator=None,
         stacklevel=0,
     ):
         self._enable_code_locations = options.get("delightful_metrics.enable_code_locations")
-        real_add(self, ty, key, value, unit, tags, timestamp, stacklevel + 1)
+        real_add(self, ty, key, value, unit, tags, timestamp, local_aggregator, stacklevel + 1)
         report_tracked_add(ty)
 
     @wraps(real_emit)

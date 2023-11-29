@@ -1,3 +1,4 @@
+import {Sort} from 'sentry/utils/discover/fields';
 import {useEventJSON} from 'sentry/views/starfish/queries/useEventJSON';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -5,14 +6,19 @@ import {SpanIndexedField} from 'sentry/views/starfish/types';
 // NOTE: Fetching the top one is a bit naive, but works for now. A better
 // approach might be to fetch several at a time, and let the hook consumer
 // decide how to display them
-export function useFullSpanFromTrace(group?: string, enabled: boolean = true) {
-  const filters: {[key: string]: string} = {};
+export function useFullSpanFromTrace(
+  group?: string,
+  sorts?: Sort[],
+  enabled: boolean = true,
+  extraFilters: Record<string, string> = {}
+) {
+  const filters = {...extraFilters};
 
   if (group) {
     filters[SpanIndexedField.SPAN_GROUP] = group;
   }
 
-  const indexedSpansResponse = useIndexedSpans(filters, 1, enabled);
+  const indexedSpansResponse = useIndexedSpans(filters, sorts, 1, enabled);
 
   const firstIndexedSpan = indexedSpansResponse.data?.[0];
 

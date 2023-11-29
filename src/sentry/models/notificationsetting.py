@@ -61,11 +61,19 @@ class NotificationSetting(Model):
     )
     scope_identifier = BoundedBigIntegerField(null=False)
     target_id = HybridCloudForeignKey(
-        "sentry.Actor", db_index=True, unique=False, null=True, on_delete="CASCADE"
+        "sentry.Actor",
+        db_index=True,
+        unique=False,
+        null=True,
+        on_delete="CASCADE",
     )
     team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=True, on_delete="CASCADE")
     user = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL, null=True, db_index=True, on_delete=models.CASCADE
+        settings.AUTH_USER_MODEL,
+        null=True,
+        db_index=True,
+        on_delete=models.CASCADE,
+        db_constraint=False,
     )
     provider = BoundedPositiveIntegerField(
         choices=(

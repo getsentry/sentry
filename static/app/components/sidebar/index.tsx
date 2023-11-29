@@ -1,7 +1,6 @@
-import {Fragment, useContext, useEffect} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
@@ -60,7 +59,6 @@ import SidebarItem from './sidebarItem';
 import {SidebarOrientation, SidebarPanelKey} from './types';
 
 type Props = {
-  location?: Location;
   organization?: Organization;
 };
 
@@ -109,7 +107,8 @@ function useOpenOnboardingSidebar(organization?: Organization) {
   }, [openOnboardingSidebar]);
 }
 
-function Sidebar({location, organization}: Props) {
+function Sidebar({organization}: Props) {
+  const location = useLocation();
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
@@ -119,10 +118,13 @@ function Sidebar({location, organization}: Props) {
 
   useOpenOnboardingSidebar();
 
-  const toggleCollapse = () => {
-    const action = collapsed ? showSidebar : hideSidebar;
-    action();
-  };
+  const toggleCollapse = useCallback(() => {
+    if (collapsed) {
+      showSidebar();
+    } else {
+      hideSidebar();
+    }
+  }, [collapsed]);
 
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
@@ -200,7 +202,7 @@ function Sidebar({location, organization}: Props) {
   const discover2 = hasOrganization && (
     <Feature
       hookName="feature-disabled:discover2-sidebar-item"
-      features={['discover-basic']}
+      features="discover-basic"
       organization={organization}
     >
       <SidebarItem
@@ -216,7 +218,7 @@ function Sidebar({location, organization}: Props) {
   const performance = hasOrganization && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
-      features={['performance-view']}
+      features="performance-view"
       organization={organization}
     >
       {(() => {
@@ -234,10 +236,7 @@ function Sidebar({location, organization}: Props) {
               to={`/organizations/${organization.slug}/performance/`}
               id="performance"
             >
-              <Feature
-                features={['performance-database-view']}
-                organization={organization}
-              >
+              <Feature features="performance-database-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   label={
@@ -252,10 +251,7 @@ function Sidebar({location, organization}: Props) {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature
-                features={['starfish-browser-webvitals']}
-                organization={organization}
-              >
+              <Feature features="starfish-browser-webvitals" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   isAlpha={WEBVITALS_RELEASE_LEVEL === 'alpha'}
@@ -271,10 +267,7 @@ function Sidebar({location, organization}: Props) {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature
-                features={['performance-screens-view']}
-                organization={organization}
-              >
+              <Feature features="performance-screens-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
@@ -286,7 +279,7 @@ function Sidebar({location, organization}: Props) {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features={['starfish-browser-resource-module-ui']}>
+              <Feature features="starfish-browser-resource-module-ui">
                 <SidebarItem
                   {...sidebarItemProps}
                   isNew
@@ -317,7 +310,7 @@ function Sidebar({location, organization}: Props) {
   const starfish = hasOrganization && (
     <Feature
       hookName="feature-disabled:starfish-view"
-      features={['starfish-view']}
+      features="starfish-view"
       organization={organization}
     >
       <SidebarAccordion
@@ -358,7 +351,7 @@ function Sidebar({location, organization}: Props) {
   );
 
   const userFeedback = hasOrganization && (
-    <Feature features={['old-user-feedback']} organization={organization}>
+    <Feature features="old-user-feedback" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconSupport />}
@@ -370,7 +363,7 @@ function Sidebar({location, organization}: Props) {
   );
 
   const feedback = hasOrganization && (
-    <Feature features={['user-feedback-ui']} organization={organization}>
+    <Feature features="user-feedback-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
@@ -394,7 +387,7 @@ function Sidebar({location, organization}: Props) {
   );
 
   const monitors = hasOrganization && (
-    <Feature features={['monitors']} organization={organization}>
+    <Feature features="monitors" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconTimer />}
@@ -409,7 +402,7 @@ function Sidebar({location, organization}: Props) {
   const replays = hasOrganization && (
     <Feature
       hookName="feature-disabled:replay-sidebar-item"
-      features={['session-replay-ui']}
+      features="session-replay-ui"
       organization={organization}
       requireAll={false}
     >
@@ -461,7 +454,7 @@ function Sidebar({location, organization}: Props) {
   const profiling = hasOrganization && (
     <Feature
       hookName="feature-disabled:profiling-sidebar-item"
-      features={['profiling']}
+      features="profiling"
       organization={organization}
       requireAll={false}
     >
