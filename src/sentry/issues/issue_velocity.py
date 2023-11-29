@@ -7,7 +7,6 @@ import math
 from datetime import datetime, timedelta
 from typing import Optional
 
-import sentry_sdk
 from snuba_sdk import (
     Column,
     Condition,
@@ -23,17 +22,26 @@ from snuba_sdk import (
 
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.utils.redis import redis_clusters
+from sentry.utils import json
+from sentry.utils.redis import RedisCluster, redis_clusters
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
+# for snuba operations
 REFERRER = "sentry.issues.issue_velocity"
-CLUSTER_KEY = ""
+THRESHOLD_QUANTILE = {"name": "p90", "function": "quantile(0.9)"}
 WEEK_IN_HOURS = 7 * 24
+
+# for redis operations
+REDIS_TTL = 24 * 60 * 60  # 1 day
+PROJECT_KEY = "new-issue-escalation-threshold:{project_id}"
 
 
 def calculate_velocity_threshold_for_project(project: Project) -> Optional[float]:
+    """
+    Calculates the velocity threshold based on event frequency in the project for the past week.
+    """
     now = datetime.now()
     one_week_ago = now - timedelta(days=7)
     ninety_days_ago = now - timedelta(days=90)
@@ -90,7 +98,11 @@ def calculate_velocity_threshold_for_project(project: Project) -> Optional[float
     query = Query(
         match=subquery,
         select=[
-            Function("quantile(0.9)", [Column("hourly_event_rate")], "p90")
+            Function(
+                THRESHOLD_QUANTILE["function"],
+                [Column("hourly_event_rate")],
+                THRESHOLD_QUANTILE["name"],
+            )
         ],  # get the approximate 90th percentile of the event frequency in the past week
         limit=Limit(1),
     )
@@ -107,25 +119,48 @@ def calculate_velocity_threshold_for_project(project: Project) -> Optional[float
         return None
 
     try:
-        return result[0]["p90"]
+        return result[0][THRESHOLD_QUANTILE["name"]]
     except KeyError:
+        logger.exception(
+            "Unexpected shape for threshold query results",
+            extra={"project_id": project.id, "results_received": json.dumps(result)},
+        )
         return None
 
 
-def set_velocity_threshold_for_project(project: Project) -> None:
+def set_velocity_threshold_for_project(project: Project) -> float:
+    """
+    Set the threshold in Redis, setting as -1 when no threshold is calculated.
+    """
     threshold = calculate_velocity_threshold_for_project(project)
     if threshold is None:
-        logger.error("Velocity threshold couldn't be calculated", extra={"project_id": project.id})
-        return
-    elif math.isnan(threshold):
-        pass  # TODO
-    # store in redis
-    with sentry_sdk.start_span(op="cluster.{CLUSTER_KEY}.set_velocity_threshold_for_project"):
-        client = redis_clusters.get(CLUSTER_KEY)
-        client.set(str(project.id), f"{threshold}")
+        logger.error(
+            "Velocity threshold couldn't be calculated, error with query",
+            extra={"project_id": project.id},
+        )
+        threshold = -1
+    elif math.isnan(threshold):  # indicates there were no valid events to base the calculation
+        threshold = -1
+
+    client = get_redis_client()
+    client.set(PROJECT_KEY.format(project_id=project.id), {"threshold": threshold}, ex=REDIS_TTL)
+
+    return threshold
 
 
 def get_velocity_threshold_for_project(project: Project):
+    """
+    Returns the threshold from Redis if it can be found, otherwise re-calculates.
+    """
     # get from redis
-    client = redis_clusters.get(CLUSTER_KEY)
-    return client.get(str(project.id))
+    client = get_redis_client()
+    key = PROJECT_KEY.format(project_id=project.id)
+    result = client.get(key)
+    if not result:  # expired or doesn't exist
+        result = set_velocity_threshold_for_project
+    return result
+
+
+def get_redis_client() -> RedisCluster:
+    cluster_key = ""  # TODO: placeholder
+    return redis_clusters.get(cluster_key)
