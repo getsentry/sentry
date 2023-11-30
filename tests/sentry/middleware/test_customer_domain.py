@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.region import override_region_config
 from sentry.testutils.silo import no_silo_test
 from sentry.types.region import RegionCategory, clear_global_regions
@@ -166,6 +167,22 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert dict(request.session) == {"activeorg": "sentry"}
         assert response.status_code == 302
         assert response["Location"] == "/organizations/sentry/issues/"
+
+    @with_feature("organizations:customer-domains")
+    def test_billing_route(self):
+        non_staff_user = self.create_user(is_staff=False)
+        self.login_as(user=non_staff_user)
+        self.create_organization(name="albertos-apples", owner=non_staff_user)
+
+        response = self.client.get(
+            "/settings/billing/checkout/",
+            data={"querystring": "value"},
+            follow=True,
+        )
+        assert response.status_code == 200
+        assert response.redirect_chain == [
+            ("http://albertos-apples.testserver/settings/billing/checkout/?querystring=value", 302)
+        ]
 
 
 class OrganizationTestEndpoint(Endpoint):

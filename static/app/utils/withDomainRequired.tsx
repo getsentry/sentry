@@ -8,10 +8,16 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   // /organizations/slug/section, but not /organizations/new
   [/\/organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
   // For /settings/:orgId/ -> /settings/organization/
-  [/\/settings\/(?!account)(?!projects)(?!teams)[^\/]+\/?$/, '/settings/organization/'],
+  [
+    /\/settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/?$/,
+    '/settings/organization/',
+  ],
   // Move /settings/:orgId/:section -> /settings/:section
   // but not /settings/organization or /settings/projects which is a new URL
-  [/^\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)/, '/settings/$1'],
+  [
+    /^\/?settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/(.*)/,
+    '/settings/$1',
+  ],
   [/^\/?join-request\/[^\/]+\/?.*/, '/join-request/'],
   [/^\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
   // Handles /org-slug/project-slug/getting-started/platform/ -> /getting-started/project-slug/platform/
