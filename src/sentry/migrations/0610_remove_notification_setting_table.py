@@ -19,12 +19,12 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0609_remove_notification_setting_model"),
+        ("sentry", "0608_notification_setting_db_constraint"),
     ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            state_operations=[migrations.DeleteModel(name="NotificationSetting")],
-            database_operations=[],
+            state_operations=[],
+            database_operations=[migrations.DeleteModel(name="NotificationSetting")],
         )
     ]
