@@ -53,6 +53,7 @@ metadata = IntegrationMetadata(
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/discord",
     aspects={},
 )
+
 COMMANDS: list[object] = [
     {
         "name": "link",
@@ -159,6 +160,8 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.client_secret = options.get("discord.client-secret")
         self.client = DiscordNonProxyClient()
         self.setup_url = absolute_uri("extensions/discord/setup/")
+
+        DiscordIntegrationProvider.client = self
         super().__init__()
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
