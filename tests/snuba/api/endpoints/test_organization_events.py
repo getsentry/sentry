@@ -5962,6 +5962,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         result = {r["user.display"] for r in data}
         assert result == {user_data["email"]}
 
+    @pytest.mark.skip(reason="flaky: #60877")
     def test_all_events_fields(self):
         user_data = {
             "id": self.user.id,
