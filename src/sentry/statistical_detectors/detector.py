@@ -10,6 +10,7 @@ import sentry_sdk
 
 from sentry import options
 from sentry.models.project import Project
+from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 
 
@@ -69,6 +70,8 @@ class DetectorAlgorithm(ABC, Generic[T]):
     @abstractmethod
     def __init__(
         self,
+        source: str,
+        kind: str,
         state: DetectorState,
         config: DetectorConfig,
     ):
@@ -86,6 +89,7 @@ class DetectorAlgorithm(ABC, Generic[T]):
 
 @dataclass(frozen=True)
 class RegressionDetector(ABC):
+    source: str
     kind: str
     config: DetectorConfig
     store: DetectorStore
@@ -118,11 +122,6 @@ class RegressionDetector(ABC):
         ...
 
     @classmethod
-    @abstractmethod
-    def update_metrics(cls, projects, total, regressed, improved):
-        ...
-
-    @classmethod
     def detect_trends(
         cls, projects: List[Project], start: datetime
     ) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None]:
@@ -150,7 +149,7 @@ class RegressionDetector(ABC):
                         # previous state so no need to capture an exception
                         sentry_sdk.capture_exception(e)
 
-                algorithm = cls.detector_cls(state, cls.config)
+                algorithm = cls.detector_cls(cls.source, cls.kind, state, cls.config)
                 trend_type, score = algorithm.update(payload)
 
                 # the trend type can be None if no update happened,
@@ -168,11 +167,30 @@ class RegressionDetector(ABC):
 
             cls.store.bulk_write_states(payloads, states)
 
-        # for now, we'll keep using the old metrics
-        # at some point, we should update to a use tags
-        cls.update_metrics(
-            len(unique_project_ids),
-            total_count,
-            regressed_count,
-            improved_count,
+        metrics.incr(
+            "statistical_detectors.projects.active",
+            amount=len(unique_project_ids),
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
+
+        metrics.incr(
+            "statistical_detectors.objects.total",
+            amount=total_count,
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
+
+        metrics.incr(
+            "statistical_detectors.objects.regressed",
+            amount=regressed_count,
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
+
+        metrics.incr(
+            "statistical_detectors.objects.improved",
+            amount=improved_count,
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
         )
