@@ -25,6 +25,3 @@ class TestMRIUtils(TestCase):
         assert format_value_using_unit(600, "byte") == "600 B"
         assert format_value_using_unit(4096, "kilobyte") == "4.00 MB"
         assert format_value_using_unit(3145728, "megabyte") == "3.00 TB"
-
-
-2
