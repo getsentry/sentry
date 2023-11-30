@@ -14,7 +14,7 @@ interface Props {
 
 export function MetricSearchBar({pageFilters, widgetQuery, onClose}: Props) {
   const projectIds = pageFilters.projects;
-  const mri = getMRI(widgetQuery.aggregates[0]);
+  const mri = getMRI(widgetQuery.aggregates[0] ?? '');
 
   return (
     <SearchBar
