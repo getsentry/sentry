@@ -52,19 +52,22 @@ export default function useFeedbackListQueryKey({organization}: Props): ApiQuery
         rest;
   }, [queryView]);
 
-  return [
-    `/organizations/${organization.slug}/issues/`,
-    {
-      query: {
-        ...fixedQueryView,
-        collapse: ['inbox'],
-        expand: [
-          'owners', // Gives us assignment
-          'stats', // Gives us `firstSeen`
-        ],
-        shortIdLookup: 0,
-        query: `issue.category:feedback status:${fixedQueryView.mailbox} ${fixedQueryView.query}`,
+  return useMemo(
+    () => [
+      `/organizations/${organization.slug}/issues/`,
+      {
+        query: {
+          ...fixedQueryView,
+          collapse: ['inbox'],
+          expand: [
+            'owners', // Gives us assignment
+            'stats', // Gives us `firstSeen`
+          ],
+          shortIdLookup: 0,
+          query: `issue.category:feedback status:${fixedQueryView.mailbox} ${fixedQueryView.query}`,
+        },
       },
-    },
-  ];
+    ],
+    [fixedQueryView, organization.slug]
+  );
 }

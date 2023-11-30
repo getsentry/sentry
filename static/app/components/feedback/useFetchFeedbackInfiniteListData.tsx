@@ -23,6 +23,17 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   hits: 0,
 };
 
+function uniqueIssues(issues: FeedbackIssueList) {
+  const uniqueIds = new Set(issues.map(issue => issue.id));
+  return issues.filter(issue => {
+    if (uniqueIds.has(issue.id)) {
+      uniqueIds.delete(issue.id);
+      return true;
+    }
+    return false;
+  });
+}
+
 export default function useFetchFeedbackInfiniteListData() {
   const {getListQueryKey} = useFeedbackQueryKeys();
   const queryKey = getListQueryKey();
@@ -41,7 +52,7 @@ export default function useFetchFeedbackInfiniteListData() {
   });
 
   const issues = useMemo(
-    () => data?.pages.flatMap(([pageData]) => pageData) ?? [],
+    () => uniqueIssues(data?.pages.flatMap(([pageData]) => pageData) ?? []),
     [data]
   );
 

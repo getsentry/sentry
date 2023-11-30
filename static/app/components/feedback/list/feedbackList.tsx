@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -59,17 +59,12 @@ export default function FeedbackList() {
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
-  const hasRows = !isLoading;
-  const deps = useMemo(() => [hasRows], [hasRows]);
+  const deps = useMemo(() => [isLoading, issues.length], [isLoading, issues.length]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
     deps,
   });
-
-  useEffect(() => {
-    updateList();
-  }, [updateList, issues.length]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = getRow({index});
@@ -124,7 +119,11 @@ export default function FeedbackList() {
                   }
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
-                  ref={registerChild}
+                  ref={e => {
+                    // @ts-expect-error: Cannot assign to current because it is a read-only property.
+                    listRef.current = e;
+                    registerChild(e);
+                  }}
                   rowCount={issues.length}
                   rowHeight={cache.rowHeight}
                   rowRenderer={renderRow}
