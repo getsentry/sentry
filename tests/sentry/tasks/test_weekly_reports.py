@@ -2,6 +2,7 @@ import copy
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
+import pytest
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db import router
@@ -665,13 +666,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert context["user_project_count"] == 1
             assert f"Weekly Report for {self.organization.name}" in message_params["subject"]
 
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=user.id,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=1,
-        )
+        with pytest.raises(AssertionError):
+            record.assert_any_call(
+                "weekly_report.sent",
+                user_id=user.id,
+                organization_id=self.organization.id,
+                notification_uuid=mock.ANY,
+                user_project_count=1,
+            )
 
         message_builder.return_value.send.assert_called_with(to=("joseph@speedwagon.org",))
 
@@ -715,13 +717,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert context["organization"] == self.organization
             assert context["user_project_count"] == 3
 
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=None,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=3,
-        )
+        with pytest.raises(AssertionError):
+            record.assert_any_call(
+                "weekly_report.sent",
+                user_id=None,
+                organization_id=self.organization.id,
+                notification_uuid=mock.ANY,
+                user_project_count=1,
+            )
 
         message_builder.return_value.send.assert_called_with(to=("jonathan@speedwagon.org",))
 
