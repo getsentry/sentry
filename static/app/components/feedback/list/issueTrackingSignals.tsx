@@ -16,9 +16,7 @@ export default function IssueTrackingSignals({group}: Props) {
     project: group.project,
   });
 
-  const linkedIssues = actions.filter(
-    a => a.hasLinkedIssue && a.key !== 'plugin-issue-0'
-  );
+  const linkedIssues = actions.filter(a => a.hasLinkedIssue);
 
   if (!linkedIssues.length) {
     return null;
