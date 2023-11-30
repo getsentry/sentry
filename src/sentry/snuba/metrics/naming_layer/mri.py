@@ -213,6 +213,13 @@ def format_mri_field(field: str) -> str:
 
 
 def format_mri_field_value(field: str, value: str) -> str:
+    """
+    Formats MRI field value to a human-readable format using unit.
+
+    For example, if the value of avg(c:custom/duration@second) is 60,
+    it will be returned as 1 minute.
+
+    """
     from sentry.snuba.metrics.query_builder import parse_mri_field
 
     try:
