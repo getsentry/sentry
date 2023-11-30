@@ -462,7 +462,7 @@ def fetch_buffered_group_stats(group):
     from sentry import buffer
     from sentry.models.group import Group
 
-    result = buffer.backend.get(Group, ["times_seen"], {"pk": group.id})
+    result = buffer.backend.get(Group, ["times_seen"], {"id": group.id})
     group.times_seen_pending = result["times_seen"]
 
 
@@ -699,7 +699,14 @@ def run_post_process_job(job: PostProcessJob):
 
     for pipeline_step in pipeline:
         try:
-            with sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
+            with metrics.timer(
+                "tasks.post_process.run_post_process_job.pipeline.duration",
+                tags={
+                    "pipeline": pipeline_step.__name__,
+                    "issue_category": issue_category_metric,
+                    "is_reprocessed": job["is_reprocessed"],
+                },
+            ), sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
                 pipeline_step(job)
         except Exception:
             metrics.incr(

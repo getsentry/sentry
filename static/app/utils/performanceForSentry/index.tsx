@@ -1,4 +1,4 @@
-import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
+import {Fragment, ReactNode, useEffect, useRef} from 'react';
 import {captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {IdleTransaction} from '@sentry/tracing';
@@ -23,6 +23,10 @@ const MEASUREMENT_OUTLIER_VALUE = 5 * 60_000; // Measurements over 5 minutes don
 const ASSET_OUTLIER_VALUE = 1_000_000_000; // Assets over 1GB are ignored since they are likely a reporting error.
 const VCD_START = 'vcd-start';
 const VCD_END = 'vcd-end';
+
+export function Profiler(props: {children: React.ReactNode; id: string; onRender: any}) {
+  return <Fragment>{props.children}</Fragment>;
+}
 
 /**
  * It depends on where it is called but the way we fetch transactions can be empty despite an ongoing transaction existing.

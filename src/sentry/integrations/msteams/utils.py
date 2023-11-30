@@ -99,7 +99,7 @@ def get_channel_id(organization, integration_id, name):
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: int | None,
+    metric_value: float | None,
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:

@@ -12,7 +12,7 @@ function OrganizationRelay(props: Omit<RelayWrapper['props'], 'organization'>) {
   return (
     <Feature
       organization={organization}
-      features={['relay']}
+      features="relay"
       hookName="feature-disabled:relay"
       renderDisabled={p => (
         <Panel>
