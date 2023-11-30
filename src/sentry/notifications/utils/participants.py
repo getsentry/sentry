@@ -559,7 +559,7 @@ def get_notification_recipients(
     return out
 
 
-# TODO(Steve): Remove once reference is gone from sentry
+# TODO(Steve): Remove once reference is gone from getsentry
 def get_notification_recipients_v2(
     recipients: Iterable[RpcActor],
     type: NotificationSettingEnum,
