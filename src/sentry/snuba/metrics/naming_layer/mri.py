@@ -224,7 +224,7 @@ def format_mri_field_value(field: str, value: str) -> str:
 
     try:
         parsed_mri_field = parse_mri_field(field)
-        unit = cast(MetricUnit, parse_mri(parsed_mri_field.metric_mri).unit)
+        unit = cast(MetricUnit, parse_mri(parsed_mri_field.metric_mri))
 
         return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
     except InvalidParams:

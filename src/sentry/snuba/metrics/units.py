@@ -1,24 +1,16 @@
-from typing import Union
+from typing import Optional, Union
 
 from sentry.snuba.metrics.utils import MetricOperationType, MetricUnit
 from sentry.utils.numbers import format_bytes
 
 __all__ = (
     "format_value_using_unit_and_op",
-    "format_percentage",
     "format_value_using_unit",
 )
 
 
-def format_percentage(value: Union[int, float], decimal_places: int = 2) -> str:
-    if value is None:
-        return "\u2014"
-
-    return f"{value:.{decimal_places}f}%"
-
-
 def format_value_using_unit_and_op(
-    value: Union[int, float], unit: MetricUnit, op: MetricOperationType
+    value: Union[int, float], unit: MetricUnit, op: Optional[MetricOperationType]
 ) -> str:
     if op == "count" or op == "count_unique":
         return str(value)
@@ -27,9 +19,6 @@ def format_value_using_unit_and_op(
 
 
 def format_value_using_unit(value: Union[int, float], unit: MetricUnit) -> str:
-    if value is None or unit is None:
-        return ""
-
     if unit == "nanosecond":
         return get_duration(value / 1000000000)
     elif unit == "microsecond":
@@ -46,20 +35,24 @@ def format_value_using_unit(value: Union[int, float], unit: MetricUnit) -> str:
         return get_duration(value * 60 * 60 * 24)
     elif unit == "week":
         return get_duration(value * 60 * 60 * 24 * 7)
-    elif unit == "ratio":
-        return format_percentage(value, 2)
-    elif unit == "percent":
-        return format_percentage(value / 100, 2)
-    elif unit == "bit":
-        return format_bytes(value / 8)
     elif unit == "byte":
+        return format_bytes(value)
+    elif unit == "kibibyte":
+        return format_bytes(value)
+    elif unit == "mebibyte":
+        return format_bytes(value)
+    elif unit == "gibibyte":
+        return format_bytes(value)
+    elif unit == "tebibyte":
+        return format_bytes(value)
+    elif unit == "pebibyte":
+        return format_bytes(value)
+    elif unit == "exbibyte":
         return format_bytes(value)
     elif unit == "kilobyte":
         return format_bytes(value * 1024)
     elif unit == "megabyte":
         return format_bytes(value * 1024**2)
-    elif unit == "megabyte":
-        return format_bytes(value)
     elif unit == "gigabyte":
         return format_bytes(value * 1024**3)
     elif unit == "terabyte":
