@@ -28,7 +28,17 @@ class DiscordRequestParser(BaseRequestParser):
     ]
 
     # Dynamically set to avoid RawPostDataException from double reads
-    discord_request: DiscordRequest | None
+    _discord_request: DiscordRequest | None = None
+
+    @property
+    def discord_request(self) -> DiscordRequest | None:
+        if self._discord_request is not None:
+            return self._discord_request
+        if self.view_class != DiscordInteractionsEndpoint:
+            return None
+        drf_request: Request = DiscordInteractionsEndpoint().initialize_request(self.request)
+        self._discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
+        return self._discord_request
 
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
@@ -41,12 +51,8 @@ class DiscordRequestParser(BaseRequestParser):
             )
             return Integration.objects.filter(id=integration_id).first()
 
-        if self.view_class == DiscordInteractionsEndpoint:
-            drf_request: Request = DiscordInteractionsEndpoint().initialize_request(self.request)
-            discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
-
-            self.discord_request = discord_request
-
+        discord_request = self.discord_request
+        if self.view_class == DiscordInteractionsEndpoint and discord_request:
             with sentry_sdk.push_scope() as scope:
                 scope.set_extra("path", self.request.path)
                 scope.set_extra("guild_id", discord_request.guild_id)

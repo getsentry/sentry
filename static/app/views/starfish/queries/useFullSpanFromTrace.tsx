@@ -9,9 +9,10 @@ import {SpanIndexedField} from 'sentry/views/starfish/types';
 export function useFullSpanFromTrace(
   group?: string,
   sorts?: Sort[],
-  enabled: boolean = true
+  enabled: boolean = true,
+  extraFilters: Record<string, string> = {}
 ) {
-  const filters: {[key: string]: string} = {};
+  const filters = {...extraFilters};
 
   if (group) {
     filters[SpanIndexedField.SPAN_GROUP] = group;

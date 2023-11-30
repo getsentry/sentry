@@ -181,7 +181,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             "github.search_repositories",
             extra={
                 "metadata": self.model.metadata,
-                "name": self.model.name,
+                "model_name": self.model.name,
                 "query": query,
                 "full_query": full_query,
                 "organization_id": self.org_integration.organization_id,

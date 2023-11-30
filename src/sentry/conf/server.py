@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
@@ -465,6 +466,9 @@ CSP_FONT_SRC = [
 ]
 CSP_CONNECT_SRC = [
     "'self'",
+    "*.algolia.net",
+    "*.algolianet.com",
+    "*.algolia.io",
 ]
 CSP_FRAME_ANCESTORS = [
     "'none'",
@@ -1270,7 +1274,7 @@ BGTASKS = {
 # The loggers that it overrides are root and any in LOGGING.overridable.
 # Be very careful with this in a production system, because the celery
 # logger can be extremely verbose when given INFO or DEBUG.
-LOGGING = {
+LOGGING: LoggingConfig = {
     "default_level": "INFO",
     "version": 1,
     "disable_existing_loggers": True,
@@ -1778,6 +1782,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-new-event-counts": False,
     # Enable the accessibility issues endpoint
     "organizations:session-replay-accessibility-issues": False,
+    # Enable the new zero state UI
+    "organizations:session-replay-new-zero-state": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
