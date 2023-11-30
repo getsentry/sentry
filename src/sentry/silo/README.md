@@ -45,6 +45,30 @@ sentry devserver --silo=region --workers --ingest
 You can omit the `--workers` and `--ingest` options if you don't want those services running.
 If you're using `--ingest` and relay isn't being started make sure `settings.SENTRY_USE_RELAY` is enabled.
 
+## Using Silos & ngrok
+
+To use a siloed dev environment with ngrok you'll need to make a few application
+configuration changes. Assuming you're ngrok domain is `acme` add the following
+to either `~/.sentry/sentry.conf` or `devlocal.py` in getsentry:
+
+```python
+SENTRY_OPTIONS["system.url-prefix"] = "https://acme.ngrok.dev"
+CSRF_TRUSTED_ORIGINS = [".acme.ngrok.dev"]
+ALLOWED_HOSTS = [".acme.ngrok.dev", ".ngrok.dev", "localhost", "127.0.0.1"]
+
+SESSION_COOKIE_DOMAIN = ".acme.ngrok.dev"
+CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+```
+
+Then start ngrok with the desired hostname:
+
+```bash
+ngrok http 8000 --domain=acme.ngrok.dev --host-header="localhost
+```
+
+## Using ngrok configuration file
+
 If using ngrok, it'll help to set up a config. Modify your `ngrok.yml` (`ngrok config edit`) to contain:
 
 ```yml
