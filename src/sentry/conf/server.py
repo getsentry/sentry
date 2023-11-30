@@ -466,6 +466,9 @@ CSP_FONT_SRC = [
 ]
 CSP_CONNECT_SRC = [
     "'self'",
+    "*.algolia.net",
+    "*.algolianet.com",
+    "*.algolia.io",
 ]
 CSP_FRAME_ANCESTORS = [
     "'none'",
