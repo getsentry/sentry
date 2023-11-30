@@ -70,6 +70,7 @@ class MonitorConsumerTest(TestCase):
         payload.update(overrides)
 
         wrapper = {
+            "message_type": "check_in",
             "start_time": ts.timestamp(),
             "project_id": self.project.id,
             "payload": json.dumps(payload),
