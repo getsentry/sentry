@@ -13,14 +13,12 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
-// import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import useFetchFeedbackInfiniteListData from 'sentry/components/feedback/useFetchFeedbackInfiniteListData';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-// import {useQueryClient} from 'sentry/utils/queryClient';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -67,29 +65,6 @@ export default function FeedbackList() {
     ref: listRef,
     deps,
   });
-
-  // const {getListQueryKey} = useFeedbackQueryKeys();
-  // const queryClient = useQueryClient();
-  // useEffect(() => {
-  //   const listQueryKey = getListQueryKey();
-  //   const queryCache = queryClient.getQueryCache();
-  //   return queryCache.subscribe(event => {
-  //     if (event.query.queryKey !== listQueryKey) {
-  //       return;
-  //     }
-  //     console.log(
-  //       event.query.queryKey === listQueryKey,
-  //       event.type,
-  //       event.query.queryKey,
-  //       listQueryKey
-  //     );
-  //     if (event.type === 'updated') {
-  //       console.log('calling forceUpdateGrid', listRef.current);
-  //       listRef.current?.forceUpdate();
-  //       listRef.current?.forceUpdateGrid();
-  //     }
-  //   });
-  // }, [queryClient, getListQueryKey]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = getRow({index});
