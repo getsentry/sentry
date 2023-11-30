@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
 
 import sentry_sdk
+from celery.exceptions import SoftTimeLimitExceeded
 from sentry_relay.processing import validate_sampling_condition
 
 from sentry import features, options
@@ -47,6 +48,7 @@ _MAX_ON_DEMAND_WIDGETS = 100
 
 # TTL for cardinality check
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
+_WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL = 3600 * 0.5  # 30m
 
 HashedMetricSpec = Tuple[str, MetricSpec]
 
@@ -297,6 +299,17 @@ def _get_widget_cardinality_query_ttl():
     return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.5))
 
 
+def _get_widget_cardinality_softdeadline_ttl():
+    # This is a much shorter deadline than the main cardinality TTL in the case softdeadline is hit
+    # We want to query again soon, but still avoid thundering herd problems.
+    return int(
+        random.uniform(
+            _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL,
+            _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL * 1.5,
+        )
+    )
+
+
 def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project):
     """
     Checks cardinality of existing widget queries before allowing the metric spec, so that
@@ -347,6 +360,13 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         try:
             results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
             processed_results = query_builder.process_results(results)
+        except SoftTimeLimitExceeded as error:
+            scope.set_tag("widget_soft_deadline", True)
+            sentry_sdk.capture_exception(error)
+            # We're setting a much shorter cache timeout here since this is essentially a permissive 'unknown' state
+            cache.set(cache_key, True, timeout=_get_widget_cardinality_softdeadline_ttl())
+            return True
+
         except Exception as error:
             sentry_sdk.capture_exception(error)
             cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
