@@ -30,12 +30,10 @@ const useLoadPrismLanguage = (language: string, {onLoad}: {onLoad: () => void}) 
     loadPrismLanguage(language, {
       onLoad,
       onError: () => {
-        Sentry.withScope(scope => {
-          scope.setTag('prism_language', language);
-          Sentry.captureException(
-            new Error('Prism.js failed to load language for stack trace')
-          );
-        });
+        Sentry.captureException(
+          new Error('Prism.js failed to load language for stack trace'),
+          {extra: {language}}
+        );
       },
     });
   }, [language, onLoad]);
@@ -140,12 +138,13 @@ export const usePrismTokens = ({
       setGrammar(getPrismGrammar(language));
     },
   });
-  const tokens = useMemo(() => {
+  const lines = useMemo(() => {
     if (!grammar) {
-      return [code];
+      return breakTokensByLine([code]);
     }
-    return Prism.tokenize(code, grammar);
+    const tokens = Prism.tokenize(code, grammar);
+    return breakTokensByLine(tokens);
   }, [grammar, code]);
 
-  return breakTokensByLine(tokens);
+  return lines;
 };
