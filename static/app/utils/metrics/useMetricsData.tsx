@@ -2,7 +2,11 @@ import {useEffect, useState} from 'react';
 
 import {ApiResult} from 'sentry/api';
 import {DateString, MetricsApiRequestQuery, MetricsApiResponse} from 'sentry/types';
-import {getMetricsApiRequestQuery, MetricsQuery} from 'sentry/utils/metrics';
+import {
+  getMetricsApiRequestQuery,
+  mapToMRIFields,
+  MetricsQuery,
+} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -44,7 +48,7 @@ export function useMetricsData(
     {...overrides, useNewMetricsLayer}
   );
 
-  return useApiQuery<MetricsApiResponse>(
+  const metricsApiRepsonse = useApiQuery<MetricsApiResponse>(
     [`/organizations/${organization.slug}/metrics/data/`, {query: queryToSend}],
     {
       retry: 0,
@@ -54,6 +58,9 @@ export function useMetricsData(
       refetchInterval: data => getRefetchInterval(data, queryToSend.interval),
     }
   );
+  mapToMRIFields(metricsApiRepsonse.data, [field]);
+
+  return metricsApiRepsonse;
 }
 
 // Wraps useMetricsData and provides two additional features:
