@@ -4,14 +4,10 @@ from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.http import JsonResponse
-from django.test import RequestFactory, override_settings
-from django.urls import re_path, reverse
-from rest_framework.permissions import AllowAny
+from django.test import RequestFactory
+from django.urls import reverse
 
-from sentry.api.base import Endpoint
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
-from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoint
 from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
@@ -140,6 +136,9 @@ class DiscordRequestParserTest(TestCase):
             parser_integration = parser.get_integration_from_request()
             assert parser_integration.id == self.integration.id
 
+
+@control_silo_test
+class End2EndTest(APITestCase):
     def test_discord_interaction_endpoint(self):
         with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
             response = self.client.post(
