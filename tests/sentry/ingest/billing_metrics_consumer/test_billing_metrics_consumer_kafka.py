@@ -118,10 +118,10 @@ def test_outcomes_consumed(track_outcome):
         },
     ]
 
-    fake_commit = mock.MagicMock()
+    next_step = mock.MagicMock()
 
     strategy = BillingTxCountMetricConsumerStrategy(
-        commit=fake_commit,
+        next_step=next_step,
     )
 
     generate_kafka_message_counter = 0
@@ -149,10 +149,10 @@ def test_outcomes_consumed(track_outcome):
     assert track_outcome.call_count == 0
     for i, bucket in enumerate(buckets):
         strategy.poll()
-        assert fake_commit.call_count == i
+        assert next_step.submit.call_count == i
         strategy.submit(generate_kafka_message(bucket))
         # commit is called for every message, and later debounced by arroyo's policy
-        assert fake_commit.call_count == (i + 1)
+        assert next_step.submit.call_count == (i + 1)
         if i < 4:
             assert track_outcome.call_count == 0
         elif i < 7:
@@ -195,9 +195,9 @@ def test_outcomes_consumed(track_outcome):
                 ),
             ]
 
-    assert fake_commit.call_count == 9
+    assert next_step.submit.call_count == 9
 
     # Joining should commit the offset of the last message:
     strategy.join()
 
-    assert fake_commit.call_count == 10
+    assert next_step.submit.call_count == 10
