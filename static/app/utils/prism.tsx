@@ -1,4 +1,14 @@
+import Prism from 'prismjs';
 import prismComponents from 'prismjs/components';
+
+/**
+ * Without this, Prism will call highlightAll() automatically on page load.
+ * We call highlightElement() when necessary so this is both unnecessary and
+ * can lead to issues when loading a page in a background tab.
+ *
+ * See https://prismjs.com/docs/Prism.html#.manual
+ */
+Prism.manual = true;
 
 /**
  * A mapping object containing all Prism languages/aliases that can be loaded using
