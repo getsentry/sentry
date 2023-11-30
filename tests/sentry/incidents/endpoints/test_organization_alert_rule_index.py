@@ -144,6 +144,26 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             == list(audit_log_entry)[0].ip_address
         )
 
+    def test_status_filter(self):
+        with outbox_runner(), self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:metric-alert-ignore-archived",
+            ]
+        ):
+            data = deepcopy(self.alert_rule_dict)
+            data["query"] = "is:unresolved"
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.snuba_query.query == "is:unresolved"
+
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
     def test_enforce_max_subscriptions(self):
         with self.feature("organizations:incidents"):
