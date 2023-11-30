@@ -22,6 +22,7 @@ def exec_run(container, command):
     if exit_code:
         click.echo("Container operation Failed!")
         click.echo(f"Container operation failed with {output}")
+    return output
 
 
 def split_database(tables: List[str], source: str, destination: str, reset: bool, verbose: bool):
@@ -49,6 +50,28 @@ def split_database(tables: List[str], source: str, destination: str, reset: bool
     if verbose:
         click.echo(f">> Running {' '.join(import_command)}")
     exec_run(postgres, import_command)
+
+    if destination == "region" and reset:
+        click.echo(">> Cloning stored procedures")
+        function_dump = [
+            "psql",
+            "-U",
+            "postgres",
+            source,
+            "-c",
+            "'\\sf sentry_increment_project_counter'",
+        ]
+        function_sql = exec_run(postgres, function_dump)
+
+        import_function = [
+            "psql",
+            "-U",
+            "postgres",
+            destination,
+            "-c",
+            "'" + function_sql.decode("utf8") + "'",
+        ]
+        exec_run(postgres, import_function)
 
 
 def revise_organization_mappings(legacy_region_name: str):
