@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {ErrorType, IssueCategory, IssueType} from 'sentry/types';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
-import {errorConfig, titleResourceMap} from 'sentry/utils/issueTypeConfig/errorConfig';
+import {errorConfig, errorTypeConfigMap} from 'sentry/utils/issueTypeConfig/errorConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import {
   IssueCategoryConfigMapping,
@@ -54,7 +54,7 @@ function getErrorResourceConfig(title: string): Partial<IssueTypeConfig> {
   if (title.includes('ChunkLoadError')) {
     errorTitle = ErrorType.CHUNK_LOAD_ERROR;
   }
-  const resource = titleResourceMap[errorTitle];
+  const resource = errorTypeConfigMap[errorTitle];
   return resource ?? {};
 }
 

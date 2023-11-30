@@ -23,7 +23,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
   },
 };
 
-export const titleResourceMap: Record<ErrorType, Partial<IssueTypeConfig>> = {
+export const errorTypeConfigMap: Record<ErrorType, Partial<IssueTypeConfig>> = {
   [ErrorType.CHUNK_LOAD_ERROR]: {
     resources: {
       description: t(
