@@ -158,6 +158,10 @@ class PerformanceDetector(ABC):
         return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
 
     @classmethod
+    def is_detector_enabled(cls) -> bool:
+        return True
+
+    @classmethod
     def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
         return True
 

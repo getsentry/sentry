@@ -8,17 +8,10 @@ from typing import List, Mapping, MutableMapping, Optional, Set, Tuple
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
-from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
-from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
@@ -37,27 +30,13 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def update_settings(
-        self,
-        *,
-        external_provider: ExternalProviders,
-        notification_type: NotificationSettingTypes,
-        setting_option: NotificationSettingOptionValues,
-        actor: RpcActor,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
-        skip_provider_updates: bool = False,
-        organization_id_for_team: Optional[int] = None,
-    ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def enable_all_settings_for_provider(
         self,
         *,
         external_provider: ExternalProviderEnum,
-        user_id: int,
+        user_id: Optional[int] = None,
+        team_id: Optional[int] = None,
+        types: Optional[List[NotificationSettingEnum]] = None,
     ) -> None:
         pass
 
@@ -76,25 +55,9 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def remove_notification_settings_for_team(
+    def remove_notification_settings_for_provider_team(
         self, *, team_id: int, provider: ExternalProviders
     ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def serialize_many(
-        self,
-        *,
-        filter: NotificationSettingFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
-    ) -> List[OpaqueSerializedResponse]:
         pass
 
     @rpc_method
