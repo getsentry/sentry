@@ -1,9 +1,7 @@
 import * as Sentry from '@sentry/react';
-import {mat3, vec2} from 'gl-matrix';
+import {mat3} from 'gl-matrix';
 
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-
 import {
   createAndBindBuffer,
   createProgram,
@@ -14,9 +12,10 @@ import {
   pointToAndEnableVertexAttribute,
   resizeCanvasToDisplaySize,
   safeGetContext,
-  upperBound,
-} from '../gl/utils';
-import {UIFrameNode, UIFrames} from '../uiFrames';
+} from 'sentry/utils/profiling/gl/utils';
+import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
+import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {uiFramesFragment, uiFramesVertext} from './shaders';
 
@@ -25,14 +24,9 @@ const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
 const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
 const VERTICES_PER_FRAME = 6;
 
-class UIFramesRenderer {
-  canvas: HTMLCanvasElement | null;
-  uiFrames: UIFrames;
-
+class UIFramesRendererWebGL extends UIFramesRenderer {
   ctx: WebGLRenderingContext | null = null;
   program: WebGLProgram | null = null;
-
-  theme: FlamegraphTheme;
 
   // Vertex and color buffer
   positions: Float32Array = new Float32Array();
@@ -61,20 +55,13 @@ class UIFramesRenderer {
     u_projection: null,
   };
 
-  options: {
-    draw_border: boolean;
-  };
-
   constructor(
     canvas: HTMLCanvasElement,
     uiFrames: UIFrames,
     theme: FlamegraphTheme,
     options: {draw_border: boolean} = {draw_border: false}
   ) {
-    this.uiFrames = uiFrames;
-    this.canvas = canvas;
-    this.theme = theme;
-    this.options = options;
+    super(canvas, uiFrames, theme, options);
 
     const initialized = this.initCanvasContext();
     if (!initialized) {
@@ -251,40 +238,6 @@ class UIFramesRenderer {
     throw new Error(`Invalid frame type - ${type}`);
   }
 
-  findHoveredNode(configSpaceCursor: vec2, configSpace: Rect): UIFrameNode[] | null {
-    // ConfigSpace origin is at top of rectangle, so we need to offset bottom by 1
-    // to account for size of renderered rectangle.
-    if (configSpaceCursor[1] > configSpace.bottom + 1) {
-      return null;
-    }
-
-    if (configSpaceCursor[0] < configSpace.left) {
-      return null;
-    }
-
-    if (configSpaceCursor[0] > configSpace.right) {
-      return null;
-    }
-
-    const overlaps: UIFrameNode[] = [];
-    // We can find the upper boundary, but because frames might overlap, we need to also check anything
-    // before the upper boundary to see if it overlaps... Performance does not seem to be a big concern
-    // here as the max number of slow frames we can have is max profile duration / slow frame = 30000/
-    const end = upperBound(configSpaceCursor[0], this.uiFrames.frames);
-
-    for (let i = 0; i < end; i++) {
-      const frame = this.uiFrames.frames[i];
-      if (configSpaceCursor[0] <= frame.end && configSpaceCursor[0] >= frame.start) {
-        overlaps.push(frame);
-      }
-    }
-
-    if (overlaps.length > 0) {
-      return overlaps;
-    }
-    return null;
-  }
-
   draw(configViewToPhysicalSpace: mat3): void {
     if (!this.ctx) {
       throw new Error('Uninitialized WebGL context');
@@ -335,4 +288,4 @@ class UIFramesRenderer {
   }
 }
 
-export {UIFramesRenderer};
+export {UIFramesRendererWebGL};

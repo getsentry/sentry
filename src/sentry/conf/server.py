@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
@@ -465,6 +466,9 @@ CSP_FONT_SRC = [
 ]
 CSP_CONNECT_SRC = [
     "'self'",
+    "*.algolia.net",
+    "*.algolianet.com",
+    "*.algolia.io",
 ]
 CSP_FRAME_ANCESTORS = [
     "'none'",
@@ -669,7 +673,10 @@ USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 SENTRY_REGION_CONFIG: Any = ()
 
 # Shared secret used to sign cross-region RPC requests.
-RPC_SHARED_SECRET = None
+RPC_SHARED_SECRET: list[str] | None = None
+
+# Timeout for RPC requests between regions
+RPC_TIMEOUT = 5.0
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
@@ -805,7 +812,7 @@ CELERY_QUEUES_CONTROL = [
     Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
     Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
     Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
-    Queue("email", routing_key="email", exchange=control_exchange),
+    Queue("email.control", routing_key="email.control", exchange=control_exchange),
     Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
     Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
     Queue(
@@ -1267,7 +1274,7 @@ BGTASKS = {
 # The loggers that it overrides are root and any in LOGGING.overridable.
 # Be very careful with this in a production system, because the celery
 # logger can be extremely verbose when given INFO or DEBUG.
-LOGGING = {
+LOGGING: LoggingConfig = {
     "default_level": "INFO",
     "version": 1,
     "disable_existing_loggers": True,
@@ -1722,12 +1729,16 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-issues-render-blocking-assets-detector": False,
     # Enable MN+1 DB performance issue type
     "organizations:performance-issues-m-n-plus-one-db-detector": False,
+    # Enable trace details page with embedded spans
+    "organizations:performance-trace-details": False,
     # Enable FE/BE for tracing without performance
-    "organizations:performance-tracing-without-performance": False,
+    "organizations:performance-tracing-without-performance": True,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable database view query source UI
+    "organizations:performance-database-view-query-source": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable performance score calculation for transactions in relay
@@ -1771,6 +1782,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-new-event-counts": False,
     # Enable the accessibility issues endpoint
     "organizations:session-replay-accessibility-issues": False,
+    # Enable the new zero state UI
+    "organizations:session-replay-new-zero-state": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1955,7 +1968,7 @@ SENTRY_PUBLIC = False
 SENTRY_SINGLE_ORGANIZATION = False
 
 # Login url (defaults to LOGIN_URL)
-SENTRY_LOGIN_URL = None
+SENTRY_LOGIN_URL: str | None = None
 
 # Default project ID (for internal errors)
 SENTRY_PROJECT = 1
@@ -1971,13 +1984,13 @@ SENTRY_FRONTEND_PROJECT: int | None = None
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
 # DSN for tracking all client HTTP requests (which can be noisy) [experimental]
-SENTRY_FRONTEND_REQUESTS_DSN = None
+SENTRY_FRONTEND_REQUESTS_DSN: str | None = None
 
 # Configuration for the JavaScript SDK's allowUrls option - defaults to ALLOWED_HOSTS
-SENTRY_FRONTEND_WHITELIST_URLS = None
+SENTRY_FRONTEND_WHITELIST_URLS: list[str] | None = None
 
 # Configuration for the JavaScript SDK's tracePropagationTargets option - defaults to an empty array
-SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS = None
+SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS: list[str] | None = None
 
 # ----
 # APM config
@@ -2021,8 +2034,8 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # ----
 
 # DSN to use for Sentry monitors
-SENTRY_MONITOR_DSN = None
-SENTRY_MONITOR_API_ROOT = None
+SENTRY_MONITOR_DSN: str | None = None
+SENTRY_MONITOR_API_ROOT: str | None = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
@@ -2287,8 +2300,8 @@ SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
-SENTRY_ENDPOINT = None
-SENTRY_PUBLIC_ENDPOINT = None
+SENTRY_ENDPOINT: str | None = None
+SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
 # `organizations:org-subdomains` feature.
@@ -2339,7 +2352,7 @@ SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 SENTRY_MANAGED_USER_FIELDS = ()
 
 # Secret key for OpenAI
-OPENAI_API_KEY = None
+OPENAI_API_KEY: str | None = None
 
 SENTRY_SCOPES = {
     "org:read",
@@ -3010,6 +3023,8 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "enable_db_query_source": True,
+    "db_query_source_threshold_ms": 500,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
@@ -3132,8 +3147,8 @@ DEPRECATED_SDKS = {
     "sentry-raven": "sentry-ruby",
 }
 
-TERMS_URL = None
-PRIVACY_URL = None
+TERMS_URL: str | None = None
+PRIVACY_URL: str | None = None
 
 # Internal sources for debug information files
 #
@@ -3286,7 +3301,7 @@ SENTRY_RELAY_OPEN_REGISTRATION = True
 # GeoIP
 # Used for looking up IP addresses.
 # For example /usr/local/share/GeoIP/GeoIPCity.mmdb
-GEOIP_PATH_MMDB = None
+GEOIP_PATH_MMDB: str | None = None
 
 # CDN
 # If this is an absolute url like e.g.: https://js.sentry-cdn.com/
@@ -3548,7 +3563,7 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 # Synthetic monitoring recurringly send events, prepared with specific
 # attributes, which can be identified through the whole processing pipeline and
 # observed mainly for producing stable metrics.
-SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
+SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 
 # Similarity cluster to use
 # Similarity-v1: uses hardcoded set of event properties for diffing
@@ -3674,7 +3689,7 @@ ADDITIONAL_SAMPLED_TASKS: dict[str, float] = {}
 DEMO_MODE = False
 
 # all demo orgs are owned by the user with this email
-DEMO_ORG_OWNER_EMAIL = None
+DEMO_ORG_OWNER_EMAIL: str | None = None
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS: list[str] = []
@@ -3717,7 +3732,7 @@ SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
 
 # Set to an iterable of strings matching services so only logs from those services show up
 # eg. DEVSERVER_LOGS_ALLOWLIST = {"server", "webpack", "worker"}
-DEVSERVER_LOGS_ALLOWLIST = None
+DEVSERVER_LOGS_ALLOWLIST: set[str] | None = None
 
 # Filter for logs of incoming requests, which matches on substrings. For example, to prevent the
 # server from logging
@@ -3767,7 +3782,7 @@ SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
 }
 SENTRY_POSTGRES_INDEXER_RETRY_COUNT = 2
 
-SENTRY_FUNCTIONS_PROJECT_NAME = None
+SENTRY_FUNCTIONS_PROJECT_NAME: str | None = None
 
 SENTRY_FUNCTIONS_REGION = "us-central1"
 
@@ -3863,7 +3878,7 @@ SINGLE_SERVER_SILO_MODE = False
 FORCE_SILOED_TESTS = os.environ.get("SENTRY_FORCE_SILOED_TESTS", False)
 
 # Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
-SENTRY_SIGNUP_URL = None
+SENTRY_SIGNUP_URL: str | None = None
 
 SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organization_onboarding_task.OrganizationOnboardingTaskBackend"
 

@@ -22,7 +22,7 @@ import {
   MetricWidgetQueryParams,
   updateQuery,
 } from 'sentry/utils/metrics';
-import {parseMRI} from 'sentry/utils/metrics/mri';
+import {getMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
@@ -248,17 +248,18 @@ function MetricWidgetBody({
           setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
         />
       )}
-      <CodeLocations mri={metricsQuery.mri} />
+      <CodeLocations mri={metricsQuery.mri} projects={projects} />
     </StyledMetricWidgetBody>
   );
 }
 
-function getChartSeries(
+export function getChartSeries(
   data: MetricsApiResponse,
   {focusedSeries, groupBy, hoveredLegend, displayType}
 ) {
   // this assumes that all series have the same unit
-  const parsed = parseMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
+  const mri = getMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
+  const parsed = parseMRI(mri);
   const unit = parsed?.unit ?? '';
 
   const series = data.groups.map(g => {

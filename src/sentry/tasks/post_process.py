@@ -135,7 +135,7 @@ def _capture_event_stats(event: Event) -> None:
     tags = {"platform": platform}
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
     metrics.incr(f"events.processed.{platform}", skip_internal=False)
-    metrics.timing("events.size.data", event.size, tags=tags)
+    metrics.distribution("events.size.data", event.size, tags=tags, unit="byte")
 
 
 def _update_escalating_metrics(event: Event) -> None:
@@ -699,7 +699,14 @@ def run_post_process_job(job: PostProcessJob):
 
     for pipeline_step in pipeline:
         try:
-            with sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
+            with metrics.timer(
+                "tasks.post_process.run_post_process_job.pipeline.duration",
+                tags={
+                    "pipeline": pipeline_step.__name__,
+                    "issue_category": issue_category_metric,
+                    "is_reprocessed": job["is_reprocessed"],
+                },
+            ), sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
                 pipeline_step(job)
         except Exception:
             metrics.incr(

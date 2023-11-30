@@ -1,4 +1,5 @@
 import {createContext, useContext, useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 import {dropUndefinedKeys} from '@sentry/utils';
 import * as reactQuery from '@tanstack/react-query';
 
@@ -99,6 +100,10 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
           map[stat.id] = stat;
         }
         return map;
+      })
+      .catch(e => {
+        Sentry.captureException(e);
+        return {};
       });
 
     return promise;

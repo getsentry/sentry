@@ -32,10 +32,11 @@ def patch_sentry_sdk():
         unit,
         tags,
         timestamp=None,
+        local_aggregator=None,
         stacklevel=0,
     ):
         self._enable_code_locations = options.get("delightful_metrics.enable_code_locations")
-        real_add(self, ty, key, value, unit, tags, timestamp, stacklevel + 1)
+        real_add(self, ty, key, value, unit, tags, timestamp, local_aggregator, stacklevel + 1)
         report_tracked_add(ty)
 
     @wraps(real_emit)
@@ -58,7 +59,7 @@ def patch_sentry_sdk():
                 )
 
         for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
-            metrics.timing(
+            metrics.distribution(
                 key="minimetrics.flushed_buckets",
                 value=buckets_count,
                 tags={"metric_type": metric_type},
@@ -70,7 +71,7 @@ def patch_sentry_sdk():
                 tags={"metric_type": metric_type},
                 sample_rate=1.0,
             )
-            metrics.timing(
+            metrics.distribution(
                 key="minimetrics.flushed_buckets_weight",
                 value=buckets_weight,
                 tags={"metric_type": metric_type},
@@ -86,10 +87,11 @@ def patch_sentry_sdk():
         if options.get("delightful_metrics.enable_capture_envelope"):
             envelope = real_emit(self, flushable_buckets, code_locations)
             if envelope is not None:
-                metrics.timing(
+                metrics.distribution(
                     key="minimetrics.encoded_metrics_size",
                     value=len(envelope.items[0].payload.get_bytes()),
                     sample_rate=1.0,
+                    unit="byte",
                 )
 
     MetricsAggregator.add = tracked_add  # type: ignore

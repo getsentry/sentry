@@ -10,9 +10,10 @@ from django.urls import reverse
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import Region, RegionCategory
+from sentry.utils import json
 from sentry.utils.signing import sign
 
 
@@ -47,8 +48,6 @@ class DiscordRequestParserTest(TestCase):
     def test_interactions_endpoint_routing_ping(self):
         data = {"guild_id": self.integration.external_id, "type": DiscordRequestTypes.PING}
         parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
-        integration = parser.get_integration_from_request()
-        assert integration == self.integration
         with patch.object(
             parser, "get_response_from_first_region"
         ) as get_response_from_first_region, assume_test_silo_mode(
@@ -56,14 +55,35 @@ class DiscordRequestParserTest(TestCase):
         ):
             response = parser.get_response()
             assert response.status_code == 200
-            assert response.data == {"type": 1}
+            data = json.loads(response.content)
+            assert data == {"type": 1}
             assert not get_response_from_first_region.called
+        integration = parser.get_integration_from_request()
+        assert integration == self.integration
+
+    def test_interactions_endpoint_routing_ping_no_integration(self):
+        # Discord PING without an identifier linking to an integration
+        data = {"type": DiscordRequestTypes.PING}
+        parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
+
+        with patch.object(parser, "get_regions_from_organizations", return_value=[]), patch.object(
+            parser, "get_response_from_first_region"
+        ) as get_response_from_first_region, patch.object(
+            parser, "get_response_from_control_silo"
+        ) as mock_response_from_control, assume_test_silo_mode(
+            SiloMode.CONTROL, can_be_monolith=False
+        ):
+            response = parser.get_response()
+            assert response.status_code == 200
+            data = json.loads(response.content)
+            assert data == {"type": 1}
+            assert not mock_response_from_control.called
+            assert not get_response_from_first_region.called
+            assert parser.get_integration_from_request() is None
 
     def test_interactions_endpoint_routing_command(self):
         data = {"guild_id": self.integration.external_id, "type": int(DiscordRequestTypes.COMMAND)}
         parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
-        integration = parser.get_integration_from_request()
-        assert integration == self.integration
         with patch.object(
             parser, "get_response_from_first_region"
         ) as mock_respond_from_first, assume_test_silo_mode(
@@ -71,6 +91,8 @@ class DiscordRequestParserTest(TestCase):
         ):
             parser.get_response()
             assert mock_respond_from_first.called
+        integration = parser.get_integration_from_request()
+        assert integration == self.integration
 
     def test_interactions_endpoint_routing_message_component(self):
         data = {
@@ -78,13 +100,13 @@ class DiscordRequestParserTest(TestCase):
             "type": int(DiscordRequestTypes.MESSAGE_COMPONENT),
         }
         parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
-        integration = parser.get_integration_from_request()
-        assert integration == self.integration
         with patch.object(
             parser, "get_response_from_all_regions"
         ) as mock_response_from_all, assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
             parser.get_response()
             assert mock_response_from_all.called
+        integration = parser.get_integration_from_request()
+        assert integration == self.integration
 
     def test_control_classes(self):
         params = sign(integration_id=self.integration.id, discord_id=self.discord_id)
@@ -98,8 +120,6 @@ class DiscordRequestParserTest(TestCase):
         )
         for path in [link_path, unlink_path]:
             parser = self.get_parser(path)
-            parser_integration = parser.get_integration_from_request()
-            assert parser_integration.id == self.integration.id
 
             # Forwards to control silo
             with patch.object(
@@ -112,3 +132,19 @@ class DiscordRequestParserTest(TestCase):
                 parser.get_response()
                 assert mock_response_from_control.called
                 assert not get_response_from_outbox_creation.called
+
+            parser_integration = parser.get_integration_from_request()
+            assert parser_integration.id == self.integration.id
+
+
+@control_silo_test
+class End2EndTest(APITestCase):
+    def test_discord_interaction_endpoint(self):
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            response = self.client.post(
+                reverse("sentry-integration-discord-interactions"),
+                data={"type": DiscordRequestTypes.PING},
+            )
+            assert response.status_code == 200
+            data = json.loads(response.content)
+            assert data == {"type": 1}

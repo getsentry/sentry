@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
-import LazyLoad from 'react-lazyload';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
 import {Group, TimeseriesValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -113,7 +113,7 @@ function GroupChart({
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
 
   return (
-    <LazyLoad debounce={50} height={showMarkLine ? 30 : height}>
+    <LazyRender containerHeight={showMarkLine ? 30 : height}>
       <MiniBarChart
         height={showMarkLine ? 36 : height}
         isGroupedByDate
@@ -124,7 +124,7 @@ function GroupChart({
         hideDelay={50}
         showMarkLineLabel={showMarkLine}
       />
-    </LazyLoad>
+    </LazyRender>
   );
 }
 

@@ -2,28 +2,43 @@ import {useLayoutEffect, useState} from 'react';
 import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
+import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {clamp, colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   FlamegraphRenderer,
   FlamegraphRendererConstructor,
 } from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-
-import {CanvasPoolManager} from '../canvasScheduler';
-import {clamp, colorComponentsToRGBA} from '../colors/utils';
-import {FlamegraphCanvas} from '../flamegraphCanvas';
-import {SpanChartRenderer2D} from '../renderers/spansRenderer';
-import {SpanChartNode} from '../spanChart';
-import {Rect} from '../speedscope';
+import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
+import {
+  UIFramesRenderer,
+  UIFramesRendererConstructor,
+} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
+import {SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function initializeFlamegraphRenderer(
   renderers: FlamegraphRendererConstructor[],
   constructorArgs: ConstructorParameters<FlamegraphRendererConstructor>
-): FlamegraphRenderer | null {
+): FlamegraphRenderer | null;
+export function initializeFlamegraphRenderer(
+  renderers: UIFramesRendererConstructor[],
+  constructorArgs: ConstructorParameters<UIFramesRendererConstructor>
+): UIFramesRenderer | null;
+export function initializeFlamegraphRenderer(
+  renderers: FlamegraphRendererConstructor[] | UIFramesRendererConstructor[],
+  constructorArgs:
+    | ConstructorParameters<FlamegraphRendererConstructor>
+    | ConstructorParameters<UIFramesRendererConstructor>
+): FlamegraphRenderer | UIFramesRenderer | null {
   for (const renderer of renderers) {
-    let r: FlamegraphRenderer | null = null;
+    let r: FlamegraphRenderer | UIFramesRenderer | null = null;
     try {
+      // @ts-expect-error ts complains that constructor args are not of tuple
+      // type, even though they are.
       r = new renderer(...constructorArgs);
       // eslint-disable-next-line no-empty
     } catch (e) {}

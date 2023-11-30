@@ -105,7 +105,7 @@ function DataExport({
   }, [payload.queryInfo, payload.queryType, organization.slug, api]);
 
   return (
-    <Feature features={['organizations:discover-query']}>
+    <Feature features="organizations:discover-query">
       {inProgress ? (
         <Button
           size="sm"
