@@ -124,6 +124,7 @@ type State = {
   queryMaxCount: number;
   realtimeActive: boolean;
   selectAllActive: boolean;
+  statsForGroupIds: string[];
   undo: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
@@ -156,6 +157,7 @@ class IssueListOverview extends Component<Props, State> {
 
     return {
       groupIds: [],
+      statsForGroupIds: [],
       actionTaken: false,
       actionTakenGroupData: [],
       undo: false,
@@ -659,6 +661,7 @@ class IssueListOverview extends Component<Props, State> {
         this.setState({
           error: null,
           issuesLoading: false,
+          statsForGroupIds: data.map(group => group.id),
           queryCount,
           queryMaxCount,
           pageLinks: pageLinks !== null ? pageLinks : '',
@@ -684,6 +687,7 @@ class IssueListOverview extends Component<Props, State> {
         this.setState({
           error: parseApiError(err),
           issuesLoading: false,
+          statsForGroupIds: [],
         });
       },
       complete: () => {
@@ -1268,7 +1272,7 @@ class IssueListOverview extends Component<Props, State> {
                   isLoading={this.state.issuesLoading}
                 >
                   <GroupStatsProvider
-                    groupIds={groupIds}
+                    groupIds={this.state.statsForGroupIds}
                     selection={this.props.selection}
                     organization={this.props.organization}
                     period={this.getGroupStatsPeriod()}
