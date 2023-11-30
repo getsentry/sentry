@@ -306,3 +306,12 @@ def find_all_multitenant_region_names() -> List[str]:
         for region in load_global_regions().regions
         if region.category == RegionCategory.MULTI_TENANT
     ]
+
+
+def get_region_display_name(region_name: str) -> str:
+    if region_name == "us":
+        return "🇺🇸 United States of America (US)"
+    if region_name == "de":
+        return "🇪🇺 European Union (EU)"
+
+    return region_name
