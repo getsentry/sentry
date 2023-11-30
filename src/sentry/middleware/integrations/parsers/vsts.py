@@ -23,8 +23,8 @@ class VstsRequestParser(BaseRequestParser):
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
-        data = json.loads(self.request.body.decode(encoding="utf-8"))
         try:
+            data = json.loads(self.request.body.decode(encoding="utf-8"))
             external_id = get_vsts_external_id(data=data)
         except Exception as e:
             sentry_sdk.capture_exception(e)
