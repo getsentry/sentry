@@ -42,6 +42,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.signals import relocated
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
@@ -1047,6 +1048,13 @@ def postprocessing(uuid: str) -> None:
                 role="owner",
             )
 
+        # Last, but certainly not least: trigger signals, so that interested subscribers in eg:
+        # getsentry can do whatever postprocessing they need to. If even a single one fails, we fail
+        # the entire task.
+        for _, result in relocated.send_robust(sender=postprocessing, relocation_uuid=uuid):
+            if isinstance(result, Exception):
+                raise result
+
         notifying_users.delay(uuid)
 
 
@@ -1106,7 +1114,7 @@ def notifying_users(uuid: str) -> None:
         # Okay, everything seems fine - go ahead and send those emails.
         for user in imported_users:
             hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
-            LostPasswordHash.send_relocate_account_email(user, hash)
+            LostPasswordHash.send_relocate_account_email(user, hash, relocation.want_org_slugs)
 
         notifying_owner.delay(uuid)
 

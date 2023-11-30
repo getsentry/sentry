@@ -1,24 +1,21 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 
-import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {
-  MetricDisplayType,
-  MetricsQuery,
-  mriToField,
-  parseMRI,
-} from 'sentry/utils/metrics';
+import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {hasDDMExperimentalFeature, hasDDMFeature} from 'sentry/utils/metrics/features';
+import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
+import {CreateAlertModal} from 'sentry/views/ddm/createAlertModal';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type ContextMenuProps = {
   displayType: MetricDisplayType;
@@ -27,14 +24,14 @@ type ContextMenuProps = {
 
 export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenuProps) {
   const organization = useOrganization();
-  const createAlertUrl = useCreateAlertUrl(organization, metricsQuery);
+  const createAlert = useCreateAlert(organization, metricsQuery);
   const handleAddQueryToDashboard = useHandleAddQueryToDashboard(
     organization,
     metricsQuery,
     displayType
   );
 
-  if (!organization.features.includes('ddm-experimental')) {
+  if (!hasDDMFeature(organization)) {
     return null;
   }
 
@@ -44,13 +41,14 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
         {
           key: 'add-alert',
           label: t('Create Alert'),
-          disabled: !createAlertUrl,
-          to: createAlertUrl,
+          disabled: !createAlert,
+          onAction: createAlert,
         },
         {
           key: 'add-dashoard',
           label: t('Add to Dashboard'),
-          disabled: !handleAddQueryToDashboard,
+          disabled:
+            !hasDDMExperimentalFeature(organization) || !handleAddQueryToDashboard,
           onAction: handleAddQueryToDashboard,
         },
       ]}
@@ -79,19 +77,36 @@ function useHandleAddQueryToDashboard(
       return undefined;
     }
 
-    const field = mriToField(mri, op);
+    const field = MRIToField(mri, op);
     const limit = !groupBy?.length ? 1 : 10;
 
+    const widgetQuery = {
+      name: '',
+      aggregates: [field],
+      columns: groupBy ?? [],
+      fields: [field],
+      conditions: query ?? '',
+      orderby: '',
+    };
+
+    const urlWidgetQuery = urlEncode({
+      ...widgetQuery,
+      aggregates: field,
+      fields: field,
+      columns: groupBy?.join(',') ?? '',
+    });
+
     const widgetAsQueryParams = {
-      ...router.location?.query,
       source: DashboardWidgetSource.DDM,
       start,
       end,
       statsPeriod: period,
-      defaultWidgetQuery: field,
+      defaultWidgetQuery: urlWidgetQuery,
       defaultTableColumns: [],
       defaultTitle: 'DDM Widget',
+      environment: environments,
       displayType,
+      project: projects,
     };
 
     return () =>
@@ -105,17 +120,9 @@ function useHandleAddQueryToDashboard(
         widget: {
           title: 'DDM Widget',
           displayType,
-          widgetType: 'custom-metrics',
+          widgetType: WidgetType.METRICS,
           limit,
-          queries: [
-            {
-              name: '',
-              aggregates: [field],
-              columns: groupBy ?? [],
-              fields: [field],
-              conditions: query,
-            },
-          ],
+          queries: [widgetQuery],
         },
         router,
         widgetAsQueryParams,
@@ -138,47 +145,23 @@ function useHandleAddQueryToDashboard(
   ]);
 }
 
-function useCreateAlertUrl(organization: Organization, metricsQuery: MetricsQuery) {
-  const projects = useProjects();
-  const pageFilters = usePageFilters();
-  const selectedProjects = pageFilters.selection.projects;
-  const firstProjectSlug =
-    selectedProjects.length > 0 &&
-    projects.projects.find(p => p.id === selectedProjects[0].toString())?.slug;
-
+function useCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
   return useMemo(() => {
     if (
-      !firstProjectSlug ||
       !metricsQuery.mri ||
       !metricsQuery.op ||
-      parseMRI(metricsQuery.mri)?.useCase !== 'custom'
+      parseMRI(metricsQuery.mri)?.useCase !== 'custom' ||
+      !organization.access.includes('alerts:write')
     ) {
       return undefined;
     }
-
-    return {
-      pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
-      query: {
-        // Needed, so alerts-create also collects environment via event view
-        createFromDiscover: true,
-        dataset: Dataset.GENERIC_METRICS,
-        eventTypes: EventTypes.TRANSACTION,
-        aggregate: mriToField(metricsQuery.mri, metricsQuery.op as string),
-        referrer: 'ddm',
-        // Event type also needs to be added to the query
-        query: `${metricsQuery.query}  event.type:transaction`.trim(),
-        environment: metricsQuery.environments,
-        project: firstProjectSlug,
-      },
-    };
-  }, [
-    firstProjectSlug,
-    metricsQuery.environments,
-    metricsQuery.mri,
-    metricsQuery.op,
-    metricsQuery.query,
-    organization.slug,
-  ]);
+    return () =>
+      openModal(deps => (
+        <OrganizationContext.Provider value={organization}>
+          <CreateAlertModal metricsQuery={metricsQuery} {...deps} />
+        </OrganizationContext.Provider>
+      ));
+  }, [metricsQuery, organization]);
 }
 
 const StyledDropdownMenuControl = styled(DropdownMenu)`

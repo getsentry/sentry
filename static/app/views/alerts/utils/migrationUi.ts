@@ -2,7 +2,7 @@ import {Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset, MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {CombinedMetricIssueAlerts} from 'sentry/views/alerts/types';
+import type {CombinedMetricIssueAlerts} from 'sentry/views/alerts/types';
 
 // TODO(telemetry-experience): remove when the migration is complete
 export const hasMigrationFeatureFlag = (organization: Organization): boolean =>
@@ -29,3 +29,18 @@ export function useOrgNeedsMigration(): boolean {
   const hasFeatureFlag = hasMigrationFeatureFlag(organization);
   return hasTransactionAlerts && hasFeatureFlag;
 }
+
+/**
+ * Enable ignoring archived issues in metric alerts
+ */
+export const hasIgnoreArchivedFeatureFlag = (organization: Organization): boolean =>
+  organization.features.includes('metric-alert-ignore-archived');
+
+export const ruleNeedsErrorMigration = (rule: MetricRule): boolean => {
+  return (
+    'dataset' in rule &&
+    rule.dataset === Dataset.ERRORS &&
+    'query' in rule &&
+    !rule.query.includes('is:unresolved')
+  );
+};

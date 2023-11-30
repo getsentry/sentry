@@ -544,7 +544,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           <ValueDelta {...props} />
         </ItemTransactionStatus>
       </ListItemContainer>
-      <Feature features={['performance-change-explorer']}>
+      <Feature features="performance-change-explorer">
         <PerformanceChangeExplorer
           collapsed={openedTransaction === null}
           onClose={() => setOpenedTransaction(null)}

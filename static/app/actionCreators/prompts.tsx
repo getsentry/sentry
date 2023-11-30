@@ -1,5 +1,5 @@
 import type {Client} from 'sentry/api';
-import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 type PromptsUpdateParams = {
   /**
@@ -100,11 +100,15 @@ export const makePromptsCheckQueryKey = ({
 /**
  * @param organizationId org numerical id, not the slug
  */
-export function usePromptsCheck({feature, organizationId, projectId}: PromptCheckParams) {
+export function usePromptsCheck(
+  {feature, organizationId, projectId}: PromptCheckParams,
+  options: Partial<UseApiQueryOptions<PromptResponse>> = {}
+) {
   return useApiQuery<PromptResponse>(
     makePromptsCheckQueryKey({feature, organizationId, projectId}),
     {
       staleTime: 120000,
+      ...options,
     }
   );
 }

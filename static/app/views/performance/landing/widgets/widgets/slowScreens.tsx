@@ -172,6 +172,10 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
         },
         fields: field,
         component: provided => {
+          if (selectedListIndex < 0) {
+            return null;
+          }
+
           const eventView = props.eventView.clone();
           let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
           const pageFilterDatetime = {

@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 import {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import {Activity, BaseGroup, Group, GroupStats} from 'sentry/types';
+import {Activity, BaseGroup, Group} from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
 import toArray from 'sentry/utils/toArray';
 
@@ -69,8 +69,6 @@ interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDe
   onMerge: (changeId: string, itemIds: ItemIds) => void;
   onMergeError: (changeId: string, itemIds: ItemIds, response: any) => void;
   onMergeSuccess: (changeId: string, itemIds: ItemIds, response: any) => void;
-
-  onPopulateStats: (itemIds: ItemIds, response: GroupStats[]) => void;
 
   onUpdate: (changeId: string, itemIds: ItemIds, data: any) => void;
   onUpdateError: (changeId: string, itemIds: ItemIds, silent: boolean) => void;
@@ -458,24 +456,6 @@ const storeConfig: GroupStoreDefinition = {
     });
     this.pendingChanges.delete(changeId);
     this.updateItems(ids);
-  },
-
-  onPopulateStats(itemIds, response) {
-    // Organize stats by id
-    const groupStatsMap = response.reduce<Record<string, GroupStats>>(
-      (map, stats) => ({...map, [stats.id]: stats}),
-      {}
-    );
-
-    this.items.forEach((item, idx) => {
-      if (itemIds?.includes(item.id)) {
-        this.items[idx] = {
-          ...item,
-          ...groupStatsMap[item.id],
-        };
-      }
-    });
-    this.updateItems(itemIds);
   },
 };
 

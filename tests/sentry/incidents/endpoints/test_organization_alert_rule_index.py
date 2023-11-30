@@ -24,6 +24,9 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
+    find_channel_id_for_alert_rule,
+)
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -556,7 +559,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
@@ -908,7 +911,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_crash_rate_alerts_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id

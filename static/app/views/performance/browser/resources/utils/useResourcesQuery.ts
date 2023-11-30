@@ -28,6 +28,7 @@ const {
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Props = {
+  referrer: string;
   sort: ValidSort;
   cursor?: string;
   defaultResourceTypes?: string[];
@@ -51,10 +52,8 @@ export const getResourcesEventViewQuery = (
       ? [
           `${RESOURCE_RENDER_BLOCKING_STATUS}:${resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]}`,
         ]
-      : [`!${RESOURCE_RENDER_BLOCKING_STATUS}:blocking`]),
-    'AND (',
+      : []),
     ...getResourceTypeFilter(resourceFilters[SPAN_OP], defaultResourceTypes),
-    ')',
   ];
 };
 
@@ -64,6 +63,7 @@ export const useResourcesQuery = ({
   query,
   limit,
   cursor,
+  referrer,
 }: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -113,6 +113,7 @@ export const useResourcesQuery = ({
       refetchOnWindowFocus: false,
     },
     cursor,
+    referrer,
   });
 
   const data = result?.data?.data.map(row => ({
@@ -169,5 +170,5 @@ export const getResourceTypeFilter = (
       defaultResourceTypes.map(type => SPAN_OP_FILTER[type]).join(' OR '),
     ];
   }
-  return resourceFilter;
+  return ['(', ...resourceFilter, ')'];
 };
