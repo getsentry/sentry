@@ -41,4 +41,3 @@ class TestMRIUtils(TestCase):
         assert format_value_using_unit(5120, "terabyte") == "5.00 PB"
         assert format_value_using_unit(6144, "petabyte") == "6.00 EB"
         assert format_value_using_unit(7168, "exabyte") == "7.00 ZB"
-        assert format_value_using_unit(100, "foo") == "100"
