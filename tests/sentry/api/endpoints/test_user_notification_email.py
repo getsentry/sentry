@@ -16,7 +16,7 @@ class UserNotificationEmailTestBase(APITestCase):
         self.login_as(user=self.user)
 
 
-@control_silo_test()
+@control_silo_test
 class UserNotificationEmailGetTest(UserNotificationEmailTestBase):
     def test_populates_useroptions_for_email(self):
         UserEmail.objects.create(user=self.user, email="alias@example.com", is_verified=True).save()
