@@ -2128,7 +2128,7 @@ severity_connection_pool = connection_from_url(
 
 def _get_severity_score(event: Event) -> float | None:
     # Short circuit the severity value if we know the event is fatal or info/debug
-    level = event.data.get("level")
+    level = str(event.data.get("level", "error"))
     if LOG_LEVELS_MAP[level] == logging.FATAL:
         return 1.0
     if LOG_LEVELS_MAP[level] <= logging.INFO:
