@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from enum import Enum
+from typing import Any
 
 import requests
 from django.utils.translation import gettext_lazy as _
@@ -16,7 +17,10 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient, DiscordNonProxyClient
+from sentry.integrations.discord.commands import DiscordCommandManager
+from sentry.models.integrations.integration import Integration
 from sentry.pipeline.views.base import PipelineView
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils.http import absolute_uri
@@ -52,11 +56,11 @@ metadata = IntegrationMetadata(
 
 class DiscordIntegration(IntegrationInstallation):
     def get_client(self) -> DiscordClient:
-        org_integration_id = self.org_integration.id if self.org_integration else None
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
 
         return DiscordClient(
-            integration_id=self.model.id,
-            org_integration_id=org_integration_id,
+            org_integration_id=self.org_integration.id, integration_id=self.model.id
         )
 
     def uninstall(self) -> None:
@@ -158,6 +162,15 @@ class DiscordIntegrationProvider(IntegrationProvider):
             },
         }
 
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
+        if self._credentials_exist():
+            DiscordCommandManager().register_commands()
+
     def _get_discord_user_id(self, auth_code: str) -> str:
         """
         Helper function for completing the oauth2 flow and grabbing the
@@ -206,6 +219,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def _get_bot_install_url(self):
         return f"https://discord.com/api/oauth2/authorize?client_id={self.application_id}&permissions={self.bot_permissions}&redirect_uri={self.setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"
+
+    def _credentials_exist(self) -> bool:
+        return all((self.application_id, self.public_key, self.bot_token, self.client_secret))
 
 
 class DiscordInstallPipeline(PipelineView):
