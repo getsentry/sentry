@@ -91,7 +91,9 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return action_block
 
     @staticmethod
-    def get_context_block(text: str) -> SlackBlock:
+    def get_context_block(text: str, timestamp: Optional[float] = None) -> SlackBlock:
+        if timestamp:
+            text += f" | {timestamp}"
         return {
             "type": "context",
             "elements": [
@@ -107,7 +109,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         *args: SlackBlock, fallback_text: Optional[str] = None, color: Optional[str] = None
     ) -> SlackBody:
         blocks: dict[str, Any] = {"blocks": list(args)}
-
+        print("blocks:" , blocks)
         if fallback_text:
             blocks["text"] = fallback_text
 

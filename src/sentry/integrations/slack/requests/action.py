@@ -36,6 +36,8 @@ class SlackActionRequest(SlackRequest):
             - orig_response_url: URL from the original message we received
             - is_message: did the original message have a 'message' type
         """
+        print("*******************")
+        print(self.data)
         return json.loads(self.data["callback_id"])
 
     def _validate_data(self) -> None:

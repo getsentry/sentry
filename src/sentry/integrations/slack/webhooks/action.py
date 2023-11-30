@@ -258,6 +258,7 @@ class SlackActionEndpoint(Endpoint):
         # but seems like there's no other solutions [1]:
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
+        print("hi in open_resolve_dialog")
         callback_id = json.dumps(
             {
                 "issue": group.id,
@@ -414,11 +415,22 @@ class SlackActionEndpoint(Endpoint):
     def get_action_option(cls, slack_request: SlackActionRequest) -> str | None:
         action_option = None
         for action_data in slack_request.data.get("actions", []):
+            print("actiondata: ", action_data)
             # Get the _first_ value in the action list.
             value = action_data.get("value")
             if value and not action_option:
                 action_option = value
+        print("action option: ", action_option)
         return action_option
+
+        # for action_data in slack_request.data.get("message").get("attachments")[0].get("blocks"):
+        #     if action_data.get("type") == "button": # note that resolve is "action" with a button nested in it
+        #         value = action_data["type"]["value"]
+        #         if value and not action_option:
+        #             action_option = value
+
+        # return action_option
+
 
     @classmethod
     def get_action_list(cls, slack_request: SlackActionRequest) -> List[MessageAction]:
@@ -459,6 +471,7 @@ class SlackActionEndpoint(Endpoint):
             return self.handle_enable_notifications(slack_request)
 
         action_list = self.get_action_list(slack_request=slack_request)
+        print("action list: ", action_list)
         return self._handle_group_actions(slack_request, request, action_list)
 
     def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:

@@ -307,7 +307,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
                 rule_id,
                 notification_uuid=notification_uuid,
             ),
-            ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
+            # ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
         )
 
 
@@ -403,28 +403,28 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
                 text=f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n{text}"
             )
         ]
-
         blocks.append(self.get_tags_block(fields))
-        blocks.append(self.get_context_block(text=footer))
+        timestamp = None
+        # if not self.issue_details:
+        #     timestamp = get_timestamp(self.group, self.event)
+        # ^ this isn't formatted properly e.g. 1701203136.494915 instead of Nov 28th
+        blocks.append(self.get_context_block(text=footer, timestamp=timestamp)) # add ts here
 
         actions = []
         for action in payload_actions:
             # TODO: need to deal with assignee differently
+            # TODO: need to populate the dropdown options for resolve - just use ignore/archive for now to test webhook stuff
             # actions.append(self.get_static_action(action))
             if action.name != "assign":
                 actions.append((action.label, action.url, action.name))
-        # TODO: I think we need to handle the action payload differently? hard to tell cause I can't click links locally rn since ngrok is borked
+        # TODO: we need to handle the action payload differently
         blocks.append(self.get_action_block(actions))
 
-        # stuff I haven't copied over to block kit builder (not sure if we need it)
-        # return self._build(
-        #     callback_id=json.dumps({"issue": self.group.id}),
-        #     fallback=self.build_fallback_text(obj, project.slug),
-        #     ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
-        # )
         return self._build_blocks(
             *blocks,
-            color=color,
+            # fallback_text=self.build_fallback_text(obj, project.slug), # needs to be passed differently, see https://api.slack.com/messaging/attachments-to-blocks#fallback_text
+            # color="color", # color needs to be passed differently, see https://api.slack.com/messaging/attachments-to-blocks#direct_equivalents
+            # callback_id=json.dumps({"issue": self.group.id}), # replace this with action_id and/or block_id
         )
 
 
@@ -441,7 +441,8 @@ def build_group_attachment(
     notification_uuid: str | None = None,
 ) -> SlackBody:
     """@deprecated"""
-    return SlackIssueAlertMessageBuilder(
+    # return SlackIssueAlertMessageBuilder(
+    return SlackIssuesMessageBuilder(
         group,
         event,
         tags,
