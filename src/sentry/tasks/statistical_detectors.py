@@ -153,22 +153,24 @@ def run_detection() -> None:
         detect_function_trends.delay(profiling_projects, now)
 
     metrics.incr(
-        "statistical_detectors.performance.projects.total",
+        "statistical_detectors.projects.total",
         amount=performance_projects_count,
+        tags={"source": "transaction"},
         sample_rate=1.0,
     )
 
     metrics.incr(
-        "statistical_detectors.profiling.projects.total",
+        "statistical_detectors.projects.total",
         amount=profiling_projects_count,
+        tags={"source": "profile"},
         sample_rate=1.0,
     )
 
 
 class EndpointRegressionDetector(RegressionDetector):
+    source = "transaction"
     kind = "endpoint"
     config = MovingAverageRelativeChangeDetectorConfig(
-        change_metric="statistical_detectors.rel_change.transactions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -186,39 +188,11 @@ class EndpointRegressionDetector(RegressionDetector):
     ) -> List[DetectorPayload]:
         return query_transactions(projects, start)
 
-    @classmethod
-    def update_metrics(cls, projects, total, regressed, improved):
-        metrics.incr(
-            "statistical_detectors.performance.projects.active",
-            amount=projects,
-            sample_rate=1.0,
-        )
-
-        metrics.incr(
-            "statistical_detectors.total.transactions",
-            amount=total,
-            sample_rate=1.0,
-        )
-
-        # This is the number of regressed functions found in this iteration
-        metrics.incr(
-            "statistical_detectors.regressed.transactions",
-            amount=regressed,
-            sample_rate=1.0,
-        )
-
-        # This is the number of improved functions found in this iteration
-        metrics.incr(
-            "statistical_detectors.improved.transactions",
-            amount=improved,
-            sample_rate=1.0,
-        )
-
 
 class FunctionRegressionDetector(RegressionDetector):
+    source = "profile"
     kind = "function"
     config = MovingAverageRelativeChangeDetectorConfig(
-        change_metric="statistical_detectors.rel_change.functions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -235,34 +209,6 @@ class FunctionRegressionDetector(RegressionDetector):
         start: datetime,
     ) -> List[DetectorPayload]:
         return query_functions(projects, start)
-
-    @classmethod
-    def update_metrics(cls, projects, total, regressed, improved):
-        metrics.incr(
-            "statistical_detectors.profiling.projects.active",
-            amount=projects,
-            sample_rate=1.0,
-        )
-
-        metrics.incr(
-            "statistical_detectors.total.functions",
-            amount=total,
-            sample_rate=1.0,
-        )
-
-        # This is the number of regressed functions found in this iteration
-        metrics.incr(
-            "statistical_detectors.regressed.functions",
-            amount=regressed,
-            sample_rate=1.0,
-        )
-
-        # This is the number of improved functions found in this iteration
-        metrics.incr(
-            "statistical_detectors.improved.functions",
-            amount=improved,
-            sample_rate=1.0,
-        )
 
 
 @instrumented_task(
@@ -351,8 +297,9 @@ def detect_transaction_change_points(
         send_regression_to_platform(regression, released)
 
     metrics.incr(
-        "statistical_detectors.breakpoint.transactions",
+        "statistical_detectors.breakpoint.emitted",
         amount=breakpoint_count,
+        tags={"source": "transaction", "kind": "endpoint"},
         sample_rate=1.0,
     )
 
@@ -396,7 +343,10 @@ def _detect_transaction_change_points(
             yield from detect_breakpoints(request)["data"]
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            metrics.incr("statistical_detectors.breakpoint.errors", tags={"type": "transactions"})
+            metrics.incr(
+                "statistical_detectors.breakpoint.errors",
+                tags={"source": "transaction", "kind": "endpoint"},
+            )
             continue
 
 
@@ -633,14 +583,16 @@ def detect_function_change_points(
         emitted_count += emit_function_regression_issue(projects_by_id, breakpoint_chunk, start)
 
     metrics.incr(
-        "statistical_detectors.breakpoint.functions",
+        "statistical_detectors.breakpoint.detected",
         amount=breakpoint_count,
+        tags={"source": "profile", "kind": "function"},
         sample_rate=1.0,
     )
 
     metrics.incr(
-        "statistical_detectors.emitted.functions",
+        "statistical_detectors.breakpoint.emitted",
         amount=emitted_count,
+        tags={"source": "profile", "kind": "function"},
         sample_rate=1.0,
     )
 
@@ -688,7 +640,10 @@ def _detect_function_change_points(
         try:
             yield from detect_breakpoints(request)["data"]
         except Exception as e:
-            metrics.incr("statistical_detectors.breakpoint.errors", tags={"type": "functions"})
+            metrics.incr(
+                "statistical_detectors.breakpoint.errors",
+                tags={"source": "profile", "kind": "function"},
+            )
             sentry_sdk.capture_exception(e)
             continue
 

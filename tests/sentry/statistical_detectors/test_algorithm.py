@@ -3,8 +3,6 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from sentry.statistical_detectors.algorithm import (
-    MovingAverageCrossOverDetector,
-    MovingAverageDetectorConfig,
     MovingAverageDetectorState,
     MovingAverageRelativeChangeDetector,
     MovingAverageRelativeChangeDetectorConfig,
@@ -189,140 +187,6 @@ def test_moving_average_detector_state_from_redis_dict_error(data, error):
 
 
 @pytest.mark.parametrize(
-    ["min_data_points", "short_moving_avg_factory", "long_moving_avg_factory"],
-    [
-        pytest.param(
-            6,
-            lambda: ExponentialMovingAverage(2 / 21),
-            lambda: ExponentialMovingAverage(2 / 41),
-        ),
-    ],
-)
-@pytest.mark.parametrize(
-    ["values", "regressed_indices", "improved_indices"],
-    [
-        pytest.param(
-            [1 for _ in range(10)] + [2 for _ in range(10)],
-            [10],
-            [],
-            id="stepwise increase",
-        ),
-        pytest.param(
-            [2 for _ in range(10)] + [1 for _ in range(10)],
-            [],
-            [10],
-            id="stepwise decrease",
-        ),
-        pytest.param(
-            [(i / 10) ** 2 for i in range(-10, 20)],
-            [23],
-            [],
-            id="quadratic increase",
-        ),
-        pytest.param(
-            [-((i / 10) ** 2) for i in range(-10, 20)],
-            [],
-            [23],
-            id="quadratic decrease",
-        ),
-    ],
-)
-def test_moving_average_cross_over_detector(
-    min_data_points,
-    short_moving_avg_factory,
-    long_moving_avg_factory,
-    values,
-    regressed_indices,
-    improved_indices,
-):
-    all_regressed = []
-    all_improved = []
-
-    now = datetime.now()
-
-    payloads = [
-        DetectorPayload(
-            project_id=1,
-            group=0,
-            fingerprint=0,
-            count=i + 1,
-            value=value,
-            timestamp=now + timedelta(hours=i + 1),
-        )
-        for i, value in enumerate(values)
-    ]
-
-    detector = MovingAverageCrossOverDetector(
-        MovingAverageDetectorState.empty(),
-        MovingAverageDetectorConfig(
-            min_data_points=min_data_points,
-            short_moving_avg_factory=short_moving_avg_factory,
-            long_moving_avg_factory=long_moving_avg_factory,
-        ),
-    )
-
-    for payload in payloads:
-        trend_type, score = detector.update(payload)
-        assert score >= 0
-        if trend_type == TrendType.Regressed:
-            all_regressed.append(payload)
-        elif trend_type == TrendType.Improved:
-            all_improved.append(payload)
-
-    assert all_regressed == [payloads[i] for i in regressed_indices]
-    assert all_improved == [payloads[i] for i in improved_indices]
-
-
-@pytest.mark.parametrize(
-    ["min_data_points", "short_moving_avg_factory", "long_moving_avg_factory"],
-    [
-        pytest.param(
-            6,
-            lambda: ExponentialMovingAverage(2 / 21),
-            lambda: ExponentialMovingAverage(2 / 41),
-        ),
-    ],
-)
-def test_moving_average_cross_over_detector_bad_order(
-    min_data_points,
-    short_moving_avg_factory,
-    long_moving_avg_factory,
-):
-    now = datetime.now()
-
-    detector = MovingAverageCrossOverDetector(
-        MovingAverageDetectorState.empty(),
-        MovingAverageDetectorConfig(
-            min_data_points=min_data_points,
-            short_moving_avg_factory=short_moving_avg_factory,
-            long_moving_avg_factory=long_moving_avg_factory,
-        ),
-    )
-
-    payload = DetectorPayload(
-        project_id=1,
-        group=0,
-        fingerprint=0,
-        count=2,
-        value=100,
-        timestamp=now,
-    )
-    trend_type, _ = detector.update(payload)
-    assert trend_type is not None
-
-    payload = DetectorPayload(
-        project_id=1,
-        group=0,
-        fingerprint=0,
-        count=1,
-        value=100,
-        timestamp=now - timedelta(hours=1),
-    )
-    trend_type, _ = detector.update(payload)
-    assert trend_type is None
-
-
-@pytest.mark.parametrize(
     ["min_data_points", "short_moving_avg_factory", "long_moving_avg_factory", "threshold"],
     [
         pytest.param(
@@ -389,6 +253,8 @@ def test_moving_average_relative_change_detector(
     ]
 
     detector = MovingAverageRelativeChangeDetector(
+        "transaction",
+        "endpoint",
         MovingAverageDetectorState.empty(),
         MovingAverageRelativeChangeDetectorConfig(
             min_data_points=min_data_points,
