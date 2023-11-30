@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Collection, Container, Dict, Iterable, List, Optional, Set
+from typing import Any, Collection, Container, Dict, Generator, Iterable, List, Optional, Set
 from urllib.parse import urljoin
 
 import sentry_sdk
@@ -14,6 +15,7 @@ from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo import SiloMode, single_process_silo_mode_state
 from sentry.utils import json
+from sentry.utils.env import in_test_environment
 
 
 class RegionCategory(Enum):
@@ -118,27 +120,68 @@ class RegionContextError(Exception):
     """Indicate that the server is not in a state to resolve a region."""
 
 
-class GlobalRegionDirectory:
-    """The set of all regions in this Sentry platform instance."""
+class RegionDirectory:
+    """A set of regions in a Sentry environment.
 
-    def __init__(self, regions: Collection[Region]) -> None:
+    In a production environment, there will be only one instance of this class,
+    held in a singleton GlobalRegionDirectory.
+
+    In a test environment, the singleton GlobalRegionDirectory may have
+    RegionDirectory instances temporarily swapped into it.
+    """
+
+    def __init__(self, regions: Collection[Region], monolith_region: str | None = None) -> None:
+        if monolith_region is None:
+            monolith_region = settings.SENTRY_MONOLITH_REGION
+        elif not in_test_environment():
+            raise Exception(
+                "Monolith region may be set only in the test environment; "
+                "otherwise it must come from the SENTRY_MONOLITH_REGION setting"
+            )
+
         if not regions:
             default_monolith_region = Region(
-                name=settings.SENTRY_MONOLITH_REGION,
+                name=monolith_region,
                 snowflake_id=0,
                 address=options.get("system.url-prefix"),
                 category=RegionCategory.MULTI_TENANT,
             )
             regions = [default_monolith_region]
-        elif not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
+        elif not any(r.name == monolith_region for r in regions):
             raise RegionConfigurationError(
                 "The SENTRY_MONOLITH_REGION setting must point to a region name "
-                f"({settings.SENTRY_MONOLITH_REGION=!r}; "
+                f"({monolith_region=!r}; "
                 f"region names = {[r.name for r in regions]!r})"
             )
 
         self.regions = frozenset(regions)
         self.by_name = {r.name: r for r in self.regions}
+
+
+class GlobalRegionDirectory:
+    """The set of all regions in this Sentry platform instance."""
+
+    def __init__(self, directory: RegionDirectory) -> None:
+        self._dir = directory
+
+    @property
+    def regions(self) -> frozenset[Region]:
+        return self._dir.regions
+
+    @property
+    def by_name(self) -> dict[str, Region]:
+        return self._dir.by_name
+
+    @contextmanager
+    def override(self, directory: RegionDirectory) -> Generator[None, None, None]:
+        if not in_test_environment():
+            raise Exception("Overriding is allowed only in the test environment")
+        old_dir = self._dir
+        try:
+            self._dir = directory
+            yield
+        finally:
+            self._dir = old_dir
 
     def validate_all(self) -> None:
         for region in self.regions:
@@ -169,7 +212,7 @@ def parse_raw_config(region_config: Any) -> Iterable[Region]:
 def load_from_config(region_config: Any) -> GlobalRegionDirectory:
     try:
         region_objs = list(parse_raw_config(region_config))
-        return GlobalRegionDirectory(region_objs)
+        return GlobalRegionDirectory(RegionDirectory(region_objs))
     except RegionConfigurationError as e:
         sentry_sdk.capture_exception(e)
         raise
