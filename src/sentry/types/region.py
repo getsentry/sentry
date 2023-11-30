@@ -164,7 +164,7 @@ class RegionDirectory:
 
         self.local_region = (
             self.by_name[settings.SENTRY_REGION]
-            if SiloMode.get_current_mode() == SiloMode.REGION
+            if settings.SENTRY_REGION is not None and SiloMode.get_current_mode() == SiloMode.REGION
             else None
         )
 
