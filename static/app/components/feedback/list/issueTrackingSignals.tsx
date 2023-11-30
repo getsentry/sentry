@@ -1,4 +1,5 @@
 import {FeedbackIcon} from 'sentry/components/feedback/list/feedbackListItem';
+import {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
 import useExternalIssueData from 'sentry/components/group/externalIssuesList/useExternalIssueData';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -9,6 +10,11 @@ interface Props {
   group: Group;
 }
 
+function MutateActions(actions: ExternalIssueComponent[]) {
+  // TODO: fix the `hasLinkedIssue` references. it's broken for plugin-issues and plugin-actions
+  return actions;
+}
+
 export default function IssueTrackingSignals({group}: Props) {
   const {actions} = useExternalIssueData({
     group,
@@ -16,7 +22,7 @@ export default function IssueTrackingSignals({group}: Props) {
     project: group.project,
   });
 
-  const linkedIssues = actions.filter(a => a.hasLinkedIssue);
+  const linkedIssues = MutateActions(actions).filter(a => a.hasLinkedIssue);
 
   if (!linkedIssues.length) {
     return null;
@@ -33,7 +39,7 @@ export default function IssueTrackingSignals({group}: Props) {
 
   const name =
     linkedIssues[0].type === 'plugin-issue' || linkedIssues[0].type === 'plugin-action'
-      ? linkedIssues[0].props.plugin.name ?? ''
+      ? linkedIssues[0].props.plugin.slug ?? ''
       : linkedIssues[0].key;
 
   return (
