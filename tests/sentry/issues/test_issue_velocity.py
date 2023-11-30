@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.issues.issue_velocity import calculate_velocity_threshold_for_project
+from sentry.issues.issue_velocity import calculate_threshold
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -34,7 +34,7 @@ class VelocityThresholdCalculationTests(TestCase, SnubaTestCase, SearchIssueTest
                 insert_time=(self.now - timedelta(days=1)),
             )
 
-        threshold = calculate_velocity_threshold_for_project(self.project)
+        threshold = calculate_threshold(self.project)
         assert threshold == 2 / WEEK_IN_HOURS
 
     def test_multiple_issues(self):
@@ -62,7 +62,7 @@ class VelocityThresholdCalculationTests(TestCase, SnubaTestCase, SearchIssueTest
         # with 5 issues that are older than a week, p90 should be approximately in between the
         # first and second most frequent issues, which in this case have 6 and 5 events respectively
         expected_threshold = ((6 / WEEK_IN_HOURS) + (5 / WEEK_IN_HOURS)) / 2
-        actual_threshold = calculate_velocity_threshold_for_project(self.project)
+        actual_threshold = calculate_threshold(self.project)
         assert actual_threshold is not None
 
         # clickhouse's quantile function is approximate
@@ -82,7 +82,7 @@ class VelocityThresholdCalculationTests(TestCase, SnubaTestCase, SearchIssueTest
                 insert_time=(self.now - timedelta(days=1)),
             )
 
-        threshold = calculate_velocity_threshold_for_project(self.project)
+        threshold = calculate_threshold(self.project)
         assert threshold == 2 / 24
 
     def test_excludes_issues_with_only_one_event_in_past_week(self):
@@ -103,6 +103,6 @@ class VelocityThresholdCalculationTests(TestCase, SnubaTestCase, SearchIssueTest
             insert_time=(self.now - timedelta(days=1)),
         )
 
-        threshold = calculate_velocity_threshold_for_project(self.project)
+        threshold = calculate_threshold(self.project)
         assert threshold is not None
         assert math.isnan(threshold)

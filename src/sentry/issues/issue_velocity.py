@@ -1,5 +1,5 @@
-"""This module has the logic for calculating the velocity threshold based on the 90th percentile
-of events per issue per hour, which is then stored per project in Redis.
+"""This module contains the logic for calculating the velocity threshold based on the 90th percentile
+of events per issue per hour, and getting it from and saving it to Redis.
 """
 
 import logging
@@ -38,7 +38,7 @@ REDIS_TTL = 24 * 60 * 60  # 1 day
 PROJECT_KEY = "new-issue-escalation-threshold:{project_id}"
 
 
-def calculate_velocity_threshold_for_project(project: Project) -> Optional[float]:
+def calculate_threshold(project: Project) -> Optional[float]:
     """
     Calculates the velocity threshold based on event frequency in the project for the past week.
     """
@@ -128,12 +128,23 @@ def calculate_velocity_threshold_for_project(project: Project) -> Optional[float
         return None
 
 
-def set_velocity_threshold_for_project(project: Project) -> Optional[float]:
+def get_threshold(project_id: int) -> Optional[float]:
     """
-    Set the threshold in Redis. If no threshold could be calculated for whatever reason, we don't
-    save anything to Redis.
+    Tries to get the threshold for the specified project from Redis, returning None if no threshold
+    is found.
     """
-    threshold = calculate_velocity_threshold_for_project(project)
+    client = get_redis_client()
+    key = PROJECT_KEY.format(project_id=project_id)
+    threshold = client.get(key)
+    return threshold
+
+
+def set_threshold(project: Project) -> Optional[float]:
+    """
+    Calculates and saves the threshold in Redis. If no threshold could be calculated for whatever reason,
+    we don't save anything to Redis.
+    """
+    threshold = calculate_threshold(project)
     if threshold is None:
         logger.error(
             "Velocity threshold couldn't be calculated, query returned nothing",
@@ -149,17 +160,14 @@ def set_velocity_threshold_for_project(project: Project) -> Optional[float]:
     return threshold
 
 
-def get_velocity_threshold_for_project(project: Project):
+def get_latest_threshold(project: Project):
     """
-    Returns the threshold from Redis if it can be found, otherwise re-calculates. If none can be
-    calculated still, returns None.
+    Returns the most up-to-date threshold for the project, re-calculating if outdated or non-existent.
+    If none can be calculated still, returns None.
     """
-    # get from redis
-    client = get_redis_client()
-    key = PROJECT_KEY.format(project_id=project.id)
-    result = client.get(key)
+    result = get_threshold(project.id)
     if not result:  # expired or doesn't exist
-        result = set_velocity_threshold_for_project
+        result = set_threshold(project)
     return result
 
 
