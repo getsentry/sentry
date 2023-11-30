@@ -352,3 +352,26 @@ class AwsLambdaProxyApiClientTest(TestCase):
             with pytest.raises(client.client.exceptions.AWSOrganizationsNotInUseException):
                 client.get_function(FunctionName="lambdaE")
             assert mock_client.get_function.call_count == 0
+
+    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    def test_api_client_from_integration_installation(self, mock_gen_aws_client):
+        expected_get_function_return = {
+            "Configuration": {
+                "FunctionName": "lambdaE",
+                "Runtime": "python3.8",
+                "Handler": "lambda_handler.test_handler",
+                "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaE",
+                "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
+            },
+        }
+
+        mock_client = mock_gen_aws_client.return_value
+        mock_client.get_function = MagicMock(return_value=expected_get_function_return)
+
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        client = installation.get_client()
+        assert isinstance(client, AwsLambdaProxyClient)
+
+        actual = client.get_function(FunctionName="lambdaE")
+        assert mock_client.get_function.call_count == 1
+        assert actual == expected_get_function_return
