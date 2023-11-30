@@ -3,7 +3,6 @@ import isEqual from 'lodash/isEqual';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {MetricType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
-import {isMRI} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
@@ -1060,10 +1059,6 @@ export function aggregateFunctionOutputType(
 
   if (!firstArg && STARFISH_AGGREGATION_FIELDS[funcName]) {
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
-  }
-
-  if (firstArg && isMRI(firstArg)) {
-    return 'number';
   }
 
   // If the function is an inherit type it will have a field as

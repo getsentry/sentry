@@ -335,9 +335,11 @@ class MergeGroupsTest(TestCase):
                 "unknown",
             ),
         ]:
-
             group_ids = [
-                self.create_group(platform="javascript").id,
+                self.create_group(
+                    platform="javascript",
+                    metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
+                ).id,
                 self.create_group(platform="javascript").id,
             ]
             project = self.project
@@ -357,6 +359,7 @@ class MergeGroupsTest(TestCase):
                     tags={
                         "platform": "javascript",
                         "referer": expected_referer_tag,
+                        "sdk": "sentry.javascript.nextjs",
                     },
                 )
 

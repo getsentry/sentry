@@ -279,7 +279,7 @@ def project_event_counts_for_organization(ctx):
         orderby=[OrderBy(Column("time"), Direction.ASC)],
     )
     if features.has("organizations:weekly-report-logs", ctx.organization):  # TODO(isabella): remove
-        query.set_limit(10000)
+        query = query.set_limit(10000)
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
     data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
 
@@ -1105,6 +1105,8 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     )
     if dry_run:
         return
+    if email_override:
+        message.send(to=(email_override,))
     else:
         analytics.record(
             "weekly_report.sent",
@@ -1113,8 +1115,5 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
             notification_uuid=template_ctx["notification_uuid"],
             user_project_count=template_ctx["user_project_count"],
         )
-    if email_override:
-        message.send(to=(email_override,))
-    else:
         message.add_users((user_id,))
         message.send_async()

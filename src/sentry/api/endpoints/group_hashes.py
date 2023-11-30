@@ -73,7 +73,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             "grouping.unmerge_issues",
             sample_rate=1.0,
             # We assume that if someone's merged groups, they were all from the same platform
-            tags={"platform": group.platform or "unknown"},
+            tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
         )
 
         unmerge.delay(

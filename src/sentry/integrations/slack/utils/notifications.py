@@ -21,7 +21,7 @@ from . import logger
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: int,
+    metric_value: float,
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:
