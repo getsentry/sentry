@@ -1,8 +1,11 @@
+import time
 from unittest.mock import Mock
 
 import pytest
 from django.test.utils import override_settings
 from django.urls import reverse
+from openai.types.chat.chat_completion import ChatCompletion, Choice
+from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
@@ -24,7 +27,21 @@ def auto_login(client, default_user):
 @pytest.fixture(autouse=True)
 def openai_mock(monkeypatch):
     def dummy_response(*args, **kwargs):
-        return {"choices": [{"message": {"content": "AI generated response"}}]}
+        return ChatCompletion(
+            id="test",
+            choices=[
+                Choice(
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content="AI generated response", role="assistant"
+                    ),
+                    finish_reason="stop",
+                )
+            ],
+            created=time.time(),
+            model="gpt3.5-trubo",
+            object="chat.completion",
+        )
 
     mock_openai = Mock()
     mock_openai().chat.completions.create = dummy_response
