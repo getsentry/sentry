@@ -113,8 +113,6 @@ class MetricWidgetQueries extends Component<Props, State> {
 
   afterFetchData = (data: MetricsApiResponse) => {
     const fields = this.props.widget.queries[0].aggregates;
-
-    // TODO(ddm): remove once backend sends mri fields
     mapToMRIFields(data, fields);
   };
 

@@ -53,7 +53,7 @@ export function useMetricsData({
     {useNewMetricsLayer}
   );
 
-  const res = useApiQuery<MetricsApiResponse>(
+  const metricsApiRepsonse = useApiQuery<MetricsApiResponse>(
     [`/organizations/${organization.slug}/metrics/data/`, {query: queryToSend}],
     {
       retry: 0,
@@ -63,14 +63,9 @@ export function useMetricsData({
       refetchInterval: data => getRefetchInterval(data, queryToSend.interval),
     }
   );
-  mapToMRIFields(res.data, [field]);
+  mapToMRIFields(metricsApiRepsonse.data, [field]);
 
-  return res;
-
-  // return {
-  //   ...res,
-  //   data: mapToMRIFields(res.data, [field]),
-  // };
+  return metricsApiRepsonse;
 }
 
 // Wraps useMetricsData and provides two additional features:
