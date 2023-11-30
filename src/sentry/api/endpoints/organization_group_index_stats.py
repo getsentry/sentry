@@ -121,6 +121,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
                 organization_id=organization.id,
                 project_ids=project_ids,
             ),
+            request=request,
         )
 
         response = Response(context)
