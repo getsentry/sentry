@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import round from 'lodash/round';
 import moment from 'moment';
 import * as qs from 'query-string';
 
@@ -8,6 +9,7 @@ import {
   getInterval,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {MetricsApiResponse} from 'sentry/types';
 import {
   MetricMeta,
   MetricsApiRequestMetric,
@@ -189,12 +191,44 @@ export function getReadableMetricType(type?: string) {
   return metricTypeToReadable[type as MetricType] ?? t('unknown');
 }
 
+// The metric units that we have support for in the UI
+// others will still be displayed, but will not have any effect on formatting
+export const formattingSupportedMetricUnits = [
+  'none',
+  'nanosecond',
+  'microsecond',
+  'millisecond',
+  'second',
+  'minute',
+  'hour',
+  'day',
+  'week',
+  'ratio',
+  'percent',
+  'bit',
+  'byte',
+  'kibibyte',
+  'kilobyte',
+  'mebibyte',
+  'megabyte',
+  'gibibyte',
+  'gigabyte',
+  'tebibyte',
+  'terabyte',
+  'pebibyte',
+  'petabyte',
+  'exbibyte',
+  'exabyte',
+] as const;
+
+type FormattingSupportedMetricUnit = (typeof formattingSupportedMetricUnits)[number];
+
 export function formatMetricUsingUnit(value: number | null, unit: string) {
   if (!defined(value)) {
     return '\u2014';
   }
 
-  switch (unit) {
+  switch (unit as FormattingSupportedMetricUnit) {
     case 'nanosecond':
       return getDuration(value / 1000000000, 2, true);
     case 'microsecond':
@@ -247,6 +281,42 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
     default:
       return value.toLocaleString();
   }
+}
+
+const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
+  nanosecond: 'ns',
+  microsecond: 'μs',
+  millisecond: 'ms',
+  second: 's',
+  minute: 'min',
+  hour: 'hr',
+  day: 'day',
+  week: 'wk',
+  ratio: '%',
+  percent: '%',
+  bit: 'b',
+  byte: 'B',
+  kibibyte: 'KiB',
+  kilobyte: 'KB',
+  mebibyte: 'MiB',
+  megabyte: 'MB',
+  gibibyte: 'GiB',
+  gigabyte: 'GB',
+  tebibyte: 'TiB',
+  terabyte: 'TB',
+  pebibyte: 'PiB',
+  petabyte: 'PB',
+  exbibyte: 'EiB',
+  exabyte: 'EB',
+  none: '',
+};
+
+const getShortMetricUnit = (unit: string): string => METRIC_UNIT_TO_SHORT[unit] ?? '';
+
+export function formatMetricUsingFixedUnit(value: number | null, unit: string) {
+  return value !== null
+    ? `${round(value, 3).toLocaleString()} ${getShortMetricUnit(unit)}`.trim()
+    : '\u2015';
 }
 
 export function formatMetricsUsingUnitAndOp(
@@ -312,4 +382,30 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   }, {});
 
   return groupedByOp;
+}
+
+// TODO(ddm): remove this and all of its usages once backend sends mri fields
+export function mapToMRIFields(
+  data: MetricsApiResponse | undefined,
+  fields: string[]
+): void {
+  if (!data) {
+    return;
+  }
+
+  data.groups.forEach(group => {
+    group.series = swapObjectKeys(group.series, fields);
+    group.totals = swapObjectKeys(group.totals, fields);
+  });
+}
+
+function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: string[]) {
+  if (!obj) {
+    return {};
+  }
+
+  return Object.keys(obj).reduce((acc, key, index) => {
+    acc[newKeys[index]] = obj[key];
+    return acc;
+  }, {});
 }

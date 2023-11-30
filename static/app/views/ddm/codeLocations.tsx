@@ -7,7 +7,7 @@ import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Frame, PageFilters} from 'sentry/types';
-import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -22,7 +22,7 @@ export function CodeLocations({
   const [isExpanded, setIsExpanded] = useState(false);
   const organization = useOrganization();
 
-  if (!hasDdmAlertsSupport(organization)) {
+  if (!hasDDMExperimentalFeature(organization)) {
     return null;
   }
 
@@ -30,8 +30,13 @@ export function CodeLocations({
     return null;
   }
 
-  const frameToShow = data?.codeLocations[0].frames[0];
-  const otherFrames = data?.codeLocations[0].frames.slice(1) ?? [];
+  const codeLocations = data?.codeLocations;
+  if (!codeLocations) {
+    return null;
+  }
+
+  const frameToShow = codeLocations[codeLocations.length - 1].frames[0];
+  const otherFrames = codeLocations[codeLocations.length - 1].frames.slice(1) ?? [];
 
   if (!frameToShow) {
     return null;
