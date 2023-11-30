@@ -126,6 +126,7 @@ class StringIndexerCache:
 
         if not self._is_valid_timestamp(timestamp):
             metrics.incr(_INDEXER_CACHE_STALE_KEYS_METRIC)
+            return None
 
         return int(result)
 

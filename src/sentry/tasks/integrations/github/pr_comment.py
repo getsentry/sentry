@@ -35,7 +35,7 @@ from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
-METRICS_BASE = "github_pr_comment.{key}"
+MERGED_PR_METRICS_BASE = "github_pr_comment.{key}"
 
 
 @dataclass
@@ -147,6 +147,13 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
     ]
 
 
+def get_pr_comment(pr_id: int, comment_type: int) -> PullRequestComment | None:
+    pr_comment_query = PullRequestComment.objects.filter(
+        pull_request__id=pr_id, comment_type=comment_type
+    )
+    return pr_comment_query[0] if pr_comment_query.exists() else None
+
+
 def create_or_update_comment(
     pr_comment: PullRequestComment | None,
     client: GitHubAppsClient,
@@ -155,7 +162,8 @@ def create_or_update_comment(
     comment_body: str,
     pullrequest_id: int,
     issue_list: List[int],
-    comment_type: CommentType = CommentType.MERGED_PR,
+    comment_type: int = CommentType.MERGED_PR,
+    metrics_base=MERGED_PR_METRICS_BASE,
 ):
     # client will raise ApiError if the request is not successful
     if pr_comment is None:
@@ -170,20 +178,21 @@ def create_or_update_comment(
             group_ids=issue_list,
             comment_type=comment_type,
         )
-        metrics.incr(METRICS_BASE.format(key="comment_created"))
+        metrics.incr(metrics_base.format(key="comment_created"))
     else:
         resp = client.update_comment(
             repo=repo.name, comment_id=pr_comment.external_id, data={"body": comment_body}
         )
-        metrics.incr(METRICS_BASE.format(key="comment_updated"))
+        metrics.incr(metrics_base.format(key="comment_updated"))
         pr_comment.updated_at = timezone.now()
         pr_comment.group_ids = issue_list
         pr_comment.save()
 
     # TODO(cathy): Figure out a way to track average rate limit left for GH client
 
+    logger_event = metrics_base.format(key="create_or_update_comment")
     logger.info(
-        "github.pr_comment.create_or_update_comment",
+        logger_event,
         extra={"new_comment": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
     )
 
@@ -200,8 +209,8 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
         cache.delete(cache_key)
-        logger.error("github.pr_comment.org_missing")
-        metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
+        logger.info("github.pr_comment.org_missing")
+        metrics.incr(MERGED_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
         return
 
     if not OrganizationOption.objects.get_value(
@@ -209,22 +218,17 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         key="sentry:github_pr_bot",
         default=True,
     ):
-        logger.error("github.pr_comment.option_missing", extra={"organization_id": org_id})
+        logger.info("github.pr_comment.option_missing", extra={"organization_id": org_id})
         return
 
-    pr_comment = None
-    pr_comment_query = PullRequestComment.objects.filter(
-        pull_request__id=pullrequest_id, comment_type=CommentType.MERGED_PR
-    )
-    if pr_comment_query.exists():
-        pr_comment = pr_comment_query[0]
+    pr_comment = get_pr_comment(pr_id=pullrequest_id, comment_type=CommentType.MERGED_PR)
 
     try:
         project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
         cache.delete(cache_key)
-        logger.error("github.pr_comment.project_missing", extra={"organization_id": org_id})
-        metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "missing_project"})
+        logger.info("github.pr_comment.project_missing", extra={"organization_id": org_id})
+        metrics.incr(MERGED_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_project"})
         return
 
     top_5_issues = get_top_5_issues_by_count(issue_list, project)
@@ -235,15 +239,17 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         repo = Repository.objects.get(id=gh_repo_id)
     except Repository.DoesNotExist:
         cache.delete(cache_key)
-        logger.error("github.pr_comment.repo_missing", extra={"organization_id": org_id})
-        metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "missing_repo"})
+        logger.info("github.pr_comment.repo_missing", extra={"organization_id": org_id})
+        metrics.incr(MERGED_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_repo"})
         return
 
     integration = integration_service.get_integration(integration_id=repo.integration_id)
     if not integration:
         cache.delete(cache_key)
-        logger.error("github.pr_comment.integration_missing", extra={"organization_id": org_id})
-        metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "missing_integration"})
+        logger.info("github.pr_comment.integration_missing", extra={"organization_id": org_id})
+        metrics.incr(
+            MERGED_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_integration"}
+        )
         return
 
     installation = integration.get_installation(organization_id=org_id)
@@ -272,14 +278,18 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
         if e.json:
             if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
-                metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "issue_locked_error"})
+                metrics.incr(
+                    MERGED_PR_METRICS_BASE.format(key="error"), tags={"type": "issue_locked_error"}
+                )
                 return
 
             elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-                metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "rate_limited_error"})
+                metrics.incr(
+                    MERGED_PR_METRICS_BASE.format(key="error"), tags={"type": "rate_limited_error"}
+                )
                 return
 
-        metrics.incr(METRICS_BASE.format(key="error"), tags={"type": "api_error"})
+        metrics.incr(MERGED_PR_METRICS_BASE.format(key="error"), tags={"type": "api_error"})
         raise e
 
 
@@ -303,7 +313,7 @@ def github_comment_reactions():
 
         integration = integration_service.get_integration(integration_id=repo.integration_id)
         if not integration:
-            logger.error(
+            logger.info(
                 "github.pr_comment.comment_reactions.integration_missing",
                 extra={"organization_id": pr.organization_id},
             )

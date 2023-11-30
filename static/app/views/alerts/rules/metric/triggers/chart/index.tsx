@@ -33,8 +33,9 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
-import {getForceMetricsLayerQueryExtras} from 'sentry/utils/ddm/features';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
+import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   getCrashFreeRateSeries,
@@ -42,6 +43,7 @@ import {
 } from 'sentry/utils/sessions';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -80,6 +82,7 @@ type Props = {
   header?: React.ReactNode;
   isOnDemandMetricAlert?: boolean;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
+  showTotalCount?: boolean;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -156,15 +159,18 @@ class TriggersChart extends PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    if (!isSessionAggregate(this.props.aggregate)) {
+    const {aggregate, showTotalCount} = this.props;
+    if (showTotalCount && !isSessionAggregate(aggregate)) {
       this.fetchTotalCount();
     }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {query, environment, timeWindow, aggregate, projects} = this.props;
+    const {query, environment, timeWindow, aggregate, projects, showTotalCount} =
+      this.props;
     const {statsPeriod} = this.state;
     if (
+      showTotalCount &&
       !isSessionAggregate(aggregate) &&
       (!isEqual(prevProps.projects, projects) ||
         prevProps.environment !== environment ||
@@ -241,6 +247,7 @@ class TriggersChart extends PureComponent<Props, State> {
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
+        ...getForceMetricsLayerQueryExtras(organization, dataset),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -282,6 +289,7 @@ class TriggersChart extends PureComponent<Props, State> {
       aggregate,
       comparisonType,
       organization,
+      showTotalCount,
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
@@ -333,12 +341,16 @@ class TriggersChart extends PureComponent<Props, State> {
         )}
 
         <ChartControls>
-          <InlineContainer data-test-id="alert-total-events">
-            <SectionHeading>{totalCountLabel}</SectionHeading>
-            <SectionValue>
-              {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
-            </SectionValue>
-          </InlineContainer>
+          {showTotalCount ? (
+            <InlineContainer data-test-id="alert-total-events">
+              <SectionHeading>{totalCountLabel}</SectionHeading>
+              <SectionValue>
+                {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
+              </SectionValue>
+            </InlineContainer>
+          ) : (
+            <InlineContainer />
+          )}
           <InlineContainer>
             <CompactSelect
               size="sm"
@@ -394,6 +406,7 @@ class TriggersChart extends PureComponent<Props, State> {
         newAlertOrQuery,
       }),
       ...getForceMetricsLayerQueryExtras(organization, dataset),
+      ...(shouldUseErrorsDiscoverDataset(query, dataset) ? {dataset: 'errors'} : {}),
     };
 
     if (isOnDemandMetricAlert) {
@@ -505,9 +518,10 @@ class TriggersChart extends PureComponent<Props, State> {
         period={period}
         yAxis={aggregate}
         includePrevious={false}
-        currentSeriesNames={[aggregate]}
+        currentSeriesNames={[formatMRIField(aggregate)]}
         partial={false}
         queryExtras={queryExtras}
+        useOnDemandMetrics
         dataLoadedCallback={onDataLoaded}
       >
         {({

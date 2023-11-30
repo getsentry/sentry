@@ -25,7 +25,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DebugFileTest(TestCase):
     def test_delete_dif(self):
         dif = self.create_dif_file(

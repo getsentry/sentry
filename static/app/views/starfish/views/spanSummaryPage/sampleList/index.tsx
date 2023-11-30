@@ -18,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -85,10 +86,12 @@ export function SampleList({
       ? `${transactionMethod} ${transactionName}`
       : transactionName;
 
-  const link = `${transactionRoute}?${qs.stringify({
-    project: query.project,
-    transaction: transactionName,
-  })}`;
+  const link = normalizeUrl(
+    `/organizations/${organization.slug}${transactionRoute}?${qs.stringify({
+      project: query.project,
+      transaction: transactionName,
+    })}`
+  );
 
   let extraQuery: string[] | undefined = undefined;
   if (query.query) {

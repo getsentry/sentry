@@ -54,7 +54,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getTableFieldOptions: (
     organization: Organization,
     tags?: TagCollection,
-    customMeasurements?: CustomMeasurementCollection
+    customMeasurements?: CustomMeasurementCollection,
+    api?: Client
   ) => Record<string, SelectValue<FieldValue>>;
   /**
    * List of supported display types for dataset.
@@ -79,11 +80,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     disableSortDirection: boolean;
     disableSortReason?: string;
   };
-  /**
-   * Used for mapping column names to more desirable
-   * values in tables.
-   */
-  fieldHeaderMap?: Record<string, string>;
   /**
    * Filter the options available to the parameters list
    * of an aggregate function in QueryField component on the
@@ -126,11 +122,19 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
+   * Generate field header used for mapping column
+   * names to more desirable values in tables.
+   */
+  getFieldHeaderMap?: (widgetQuery?: WidgetQuery) => Record<string, string>;
+  /**
    * Field options to display in the Group by selector.
    */
   getGroupByFieldOptions?: (
     organization: Organization,
-    tags?: TagCollection
+    tags?: TagCollection,
+    customMeasurements?: CustomMeasurementCollection,
+    api?: Client,
+    queries?: WidgetQuery[]
   ) => Record<string, SelectValue<FieldValue>>;
   /**
    * Generate the request promises for fetching
@@ -196,6 +200,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * to reset the orderby of the widget query.
    */
   handleOrderByReset?: (widgetQuery: WidgetQuery, newFields: string[]) => WidgetQuery;
+
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.

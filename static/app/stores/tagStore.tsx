@@ -102,10 +102,12 @@ const storeConfig: TagStoreDefinition = {
           IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
           ...(org.features.includes('issue-platform')
             ? [
+                IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
                 IssueType.PROFILE_FILE_IO_MAIN_THREAD,
                 IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
                 IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
                 IssueType.PROFILE_REGEX_MAIN_THREAD,
+                IssueType.PROFILE_FUNCTION_REGRESSION,
               ]
             : []),
         ],

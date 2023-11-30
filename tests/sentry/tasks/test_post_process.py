@@ -440,7 +440,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             event.group.update(times_seen=2)
             assert MockAction.return_value.after.call_count == 0
 
-            buffer.backend.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -1686,7 +1686,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             )
             assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
-            buffer.backend.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 60}, filters={"id": event.group.id})
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -1970,7 +1970,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -2011,7 +2011,10 @@ class PostProcessGroupErrorTest(
     @with_feature("organizations:escalating-metrics-backend")
     @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
     @patch("sentry.utils.metrics.incr")
-    def test_generic_metrics_backend_counter(self, metric_incr_mock, generic_metrics_backend_mock):
+    @patch("sentry.utils.metrics.timer")
+    def test_generic_metrics_backend_counter(
+        self, metric_timer_mock, metric_incr_mock, generic_metrics_backend_mock
+    ):
         min_ago = iso_format(before_now(minutes=1))
         event = self.create_event(
             data={
@@ -2038,9 +2041,17 @@ class PostProcessGroupErrorTest(
             "sentry.tasks.post_process.post_process_group.completed",
             tags={"issue_category": "error", "pipeline": "process_rules"},
         )
+        metric_timer_mock.assert_any_call(
+            "tasks.post_process.run_post_process_job.pipeline.duration",
+            tags={
+                "pipeline": "process_rules",
+                "issue_category": "error",
+                "is_reprocessed": False,
+            },
+        )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
@@ -2265,7 +2276,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PostProcessGroupGenericTest(
     TestCase,
     SnubaTestCase,
@@ -2345,7 +2356,7 @@ class PostProcessGroupGenericTest(
         pass
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PostProcessGroupFeedbackTest(
     TestCase,
     SnubaTestCase,

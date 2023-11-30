@@ -3,8 +3,8 @@ import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {openSudo} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
+import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
@@ -281,8 +281,7 @@ class OrganizationContextContainer extends Component<Props, State> {
       return null;
     }
 
-    const {children: _, ...props} = this.props;
-    return <Sidebar {...props} organization={this.state.organization as Organization} />;
+    return <Sidebar organization={this.state.organization as Organization} />;
   }
 
   renderError() {

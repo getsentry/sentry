@@ -4,6 +4,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
@@ -88,9 +89,10 @@ function ResourceSummary() {
         <Layout.Main fullWidth>
           <FeedbackWidget />
           <HeaderContainer>
-            <FilterOptionsContainer>
+            <FilterOptionsContainer columnCount={2}>
               <PageFilterBar condensed>
                 <ProjectPageFilter />
+                <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
               <RenderBlockingSelector

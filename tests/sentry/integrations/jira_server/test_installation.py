@@ -12,7 +12,7 @@ from sentry.utils import json, jwt
 from . import EXAMPLE_PRIVATE_KEY
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class JiraServerInstallationTest(IntegrationTestCase):
     provider = JiraServerIntegrationProvider
 

@@ -26,7 +26,7 @@ export function ProfileEventContext({event, data}: ProfileContextProps) {
   const meta = event._meta?.contexts?.profile ?? {};
 
   return (
-    <Feature organization={organization} features={['profiling']}>
+    <Feature organization={organization} features="profiling">
       <ErrorBoundary mini>
         <KeyValueList
           data={getKnownData<ProfileContext, ProfileContextKey>({

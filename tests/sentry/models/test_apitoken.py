@@ -13,7 +13,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiTokenTest(TestCase):
     def test_is_expired(self):
         token = ApiToken(expires_at=None)

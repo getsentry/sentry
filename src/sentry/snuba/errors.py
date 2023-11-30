@@ -6,6 +6,7 @@ import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.events.builder import ErrorsQueryBuilder
 from sentry.search.events.builder.errors import ErrorsTimeseriesQueryBuilder
 from sentry.search.events.fields import get_json_meta_type
@@ -14,6 +15,11 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import EventsResponse, transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
+
+is_filter_translation = {}
+for status_key, status_value in STATUS_QUERY_CHOICES.items():
+    is_filter_translation[status_key] = ("status", status_value)
+PARSER_CONFIG_OVERRIDES = {"is_filter_translation": is_filter_translation}
 
 
 def query(
@@ -64,6 +70,7 @@ def query(
             has_metrics=has_metrics,
             transform_alias_to_input_format=transform_alias_to_input_format,
             skip_tag_resolution=skip_tag_resolution,
+            parser_config_overrides=PARSER_CONFIG_OVERRIDES,
         ),
     )
     if conditions is not None:
@@ -100,6 +107,7 @@ def timeseries_query(
             config=QueryBuilderConfig(
                 functions_acl=functions_acl,
                 has_metrics=has_metrics,
+                parser_config_overrides=PARSER_CONFIG_OVERRIDES,
             ),
         )
         query_list = [base_builder]
@@ -116,6 +124,7 @@ def timeseries_query(
                 query=query,
                 selected_columns=columns,
                 equations=equations,
+                config=QueryBuilderConfig(parser_config_overrides=PARSER_CONFIG_OVERRIDES),
             )
             query_list.append(comparison_builder)
 

@@ -201,8 +201,10 @@ def assemble_download(
                     countdown=3,
                 )
             else:
-                metrics.timing("dataexport.row_count", next_offset, sample_rate=1.0)
-                metrics.timing("dataexport.file_size", bytes_written, sample_rate=1.0)
+                metrics.distribution("dataexport.row_count", next_offset, sample_rate=1.0)
+                metrics.distribution(
+                    "dataexport.file_size", bytes_written, sample_rate=1.0, unit="byte"
+                )
                 merge_export_blobs.delay(data_export_id)
 
 

@@ -44,7 +44,7 @@ INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
 IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 @freeze_time(BASETIME)
 class SuperuserTestCase(TestCase):
     def setUp(self):

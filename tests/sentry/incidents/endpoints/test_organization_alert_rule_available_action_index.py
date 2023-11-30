@@ -29,7 +29,7 @@ METADATA = {
 }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-alert-rule-available-actions"
     email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)

@@ -93,7 +93,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
@@ -6080,6 +6080,55 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             assert response.status_code == 200, response.content
             assert response.data["data"][0]["count()"] == 1
 
+    def test_is_status(self):
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                },
+                project_id=self.project.id,
+            ).group
+            group_2 = self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                },
+                project_id=self.project.id,
+            ).group
+            group_3 = self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                },
+                project_id=self.project.id,
+            ).group
+
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "is:unresolved",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 3
+            group_2.status = GroupStatus.IGNORED
+            group_2.substatus = GroupSubStatus.FOREVER
+            group_2.save(update_fields=["status", "substatus"])
+            group_3.status = GroupStatus.IGNORED
+            group_3.substatus = GroupSubStatus.FOREVER
+            group_3.save(update_fields=["status", "substatus"])
+            # XXX: Snuba caches query results, so change the time period so that the query
+            # changes enough to bust the cache.
+            query["statsPeriod"] = "3h"
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 1
+
     def test_short_group_id(self):
         group_1 = self.store_event(
             data={
@@ -6100,17 +6149,18 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.data["data"][0]["count()"] == 1
 
     def test_user_display(self):
-        group_1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "timestamp": self.ten_mins_ago_iso,
-                "fingerprint": ["group1"],
-                "user": {
-                    "email": "hellboy@bar.com",
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            group_1 = self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "user": {
+                        "email": "hellboy@bar.com",
+                    },
                 },
-            },
-            project_id=self.project.id,
-        ).group
+                project_id=self.project.id,
+            ).group
 
         features = {
             "organizations:discover-basic": True,
@@ -6128,3 +6178,68 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert len(data) == 1
         result = {r["user.display"] for r in data}
         assert result == {"hellboy@bar.com"}
+
+    def test_all_events_fields(self):
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        replay_id = str(uuid.uuid4())
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            event = self.store_event(
+                data={
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {
+                        "trace": {
+                            "trace_id": str(uuid.uuid4().hex),
+                            "span_id": "933e5c9a8e464da9",
+                            "type": "trace",
+                        },
+                        "replay": {"replay_id": replay_id},
+                    },
+                    "tags": {"device": "Mac"},
+                    "user": user_data,
+                },
+                project_id=self.project.id,
+            )
+
+        query = {
+            "field": [
+                "id",
+                "transaction",
+                "title",
+                "release",
+                "environment",
+                "user.display",
+                "device",
+                "os",
+                "replayId",
+                "timestamp",
+            ],
+            "statsPeriod": "2d",
+            "query": "is:unresolved",
+            "dataset": "errors",
+            "sort": "-title",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"][0]
+
+        assert data == {
+            "id": event.event_id,
+            "events.transaction": "",
+            "project.name": event.project.name.lower(),
+            "events.title": event.group.title,
+            "release": event.release,
+            "events.environment": None,
+            "user.display": user_data["email"],
+            "device": "Mac",
+            "os": "",
+            "replayId": replay_id,
+            "events.timestamp": event.datetime.replace(microsecond=0).isoformat(),
+        }

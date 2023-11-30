@@ -26,6 +26,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import (
     all_silo_test,
     assume_test_silo_mode,
@@ -34,7 +35,7 @@ from sentry.testutils.silo import (
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -73,7 +74,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 401
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class InstallationEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
@@ -111,7 +112,7 @@ class InstallationEventWebhookTest(APITestCase):
         assert integration.status == ObjectStatus.ACTIVE
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class InstallationDeleteEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
@@ -192,7 +193,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
             assert integration.status == ObjectStatus.DISABLED
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PushEventWebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -495,7 +496,7 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0] == repo
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PullRequestEventWebhook(APITestCase):
     def setUp(self):
         self.url = "/extensions/github/webhook/"
@@ -524,7 +525,9 @@ class PullRequestEventWebhook(APITestCase):
 
         assert response.status_code == 204
 
-    def test_opened(self):
+    @with_feature("organizations:integrations-open-pr-comment")
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_opened(self, mock_metrics):
         project = self.project  # force creation
         group = self.create_group(project=project, short_id=7)
 
@@ -554,6 +557,24 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author.name == "baxterthehacker"
 
         self.assert_group_link(group, pr)
+
+        mock_metrics.incr.assert_called_with("github.open_pr_comment.queue_task")
+
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_opened_missing_feature_flag(self, mock_metrics):
+        project = self.project  # force creation
+        self.create_group(project=project, short_id=7)
+
+        Repository.objects.create(
+            organization_id=project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        self._setup_repo_test(project)
+
+        assert mock_metrics.incr.call_count == 0
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics):
@@ -715,7 +736,9 @@ class PullRequestEventWebhook(APITestCase):
 
         self.assert_group_link(group, pr)
 
-    def test_closed(self):
+    @with_feature("organizations:integrations-open-pr-comment")
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_closed(self, mock_metrics):
         project = self.project  # force creation
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -759,6 +782,8 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.title == "new closed title"
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+
+        assert mock_metrics.incr.call_count == 0
 
     def assert_group_link(self, group, pr):
         link = GroupLink.objects.all().first()

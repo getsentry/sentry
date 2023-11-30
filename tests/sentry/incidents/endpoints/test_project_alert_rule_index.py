@@ -20,7 +20,7 @@ from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializer
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleListEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
 
@@ -57,7 +57,7 @@ class AlertRuleListEndpointTest(APITestCase):
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class AlertRuleCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
@@ -133,7 +133,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             ]
         ):
             data = deepcopy(self.valid_alert_rule)
-            data["query"] = "status:unresolved"
+            data["query"] = "is:unresolved"
             resp = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
@@ -143,7 +143,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query.query == "status:unresolved"
+        assert alert_rule.snuba_query.query == "is:unresolved"
 
     def test_project_not_in_request(self):
         """Test that if you don't provide the project data in the request, we grab it from the URL"""
@@ -173,7 +173,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-project-combined-rules"
 
