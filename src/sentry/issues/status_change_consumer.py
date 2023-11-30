@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, Mapping
+from collections import defaultdict
+from typing import Any, Iterable, Mapping, Sequence, Tuple
 
 from sentry_sdk.tracing import NoOpSpan, Transaction
 
@@ -106,31 +107,42 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
         )
 
 
-def get_groups_from_fingerprints(
-    project_id: int, fingerprints: Iterable[Iterable[str]]
-) -> dict[str, Group]:
+def bulk_get_groups_from_fingerprints(
+    project_fingerprint_pairs: Iterable[Tuple[int, Sequence[str]]]
+) -> dict[Tuple[int, str], Group]:
     """
-    Returns the list of groups given a list of fingerprints.
+    Returns a map of (project, fingerprint) to the group.
 
     Note that fingerprints for issue platform are expected to be
     processed via `process_occurrence_data` prior to calling this function.
     """
-    fingerprints_set = {fingerprint[0] for fingerprint in fingerprints}
-    grouphash = GroupHash.objects.filter(
-        project=project_id,
-        hash__in=fingerprints_set,
-    ).select_related("group")
+    fingerprints_by_project: dict[int, list[str]] = defaultdict(list)
+    for project_id, fingerprints in project_fingerprint_pairs:
+        fingerprints_by_project[project_id].append(fingerprints[0])
 
-    result: dict[str, Group] = {grouphash.hash: grouphash.group for grouphash in grouphash}
+    query = GroupHash.objects.none()
+    for project_id, fingerprints in fingerprints_by_project.items():
+        query = query.union(
+            GroupHash.objects.filter(
+                project=project_id,
+                hash__in=fingerprints,
+            ).select_related("group")
+        )
+
+    result: dict[Tuple[int, str], Group] = {
+        (grouphash.project_id, grouphash.hash): grouphash.group for grouphash in query
+    }
+
     found_fingerprints = set(result.keys())
-
-    for fingerprint in fingerprints_set - found_fingerprints:
-        full_fingerprint = [f for f in fingerprints if f[0] == fingerprint][0]
+    fingerprints_set = {
+        (project_id, fingerprint[0]) for project_id, fingerprint in project_fingerprint_pairs
+    }
+    for project_id, fingerprint in fingerprints_set - found_fingerprints:
         logger.error(
             "grouphash.not_found",
             extra={
                 "project_id": project_id,
-                "fingerprint": full_fingerprint,
+                "fingerprint": fingerprint,
             },
         )
 
@@ -185,10 +197,9 @@ def process_status_change_message(
         return None
 
     with metrics.timer("occurrence_consumer._process_message.status_change.get_group"):
-        groups_by_fingerprints = get_groups_from_fingerprints(
-            status_change_data["project_id"], [status_change_data["fingerprint"]]
-        )
-        group = groups_by_fingerprints.get(status_change_data["fingerprint"][0], None)
+        fingerprint = status_change_data["fingerprint"]
+        groups_by_fingerprints = bulk_get_groups_from_fingerprints([(project.id, fingerprint)])
+        group = groups_by_fingerprints.get((project.id, fingerprint[0]), None)
         if not group:
             metrics.incr(
                 "occurrence_ingest.status_change.dropped_group_not_found",
