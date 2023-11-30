@@ -192,7 +192,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         query_builder_cls = QueryBuilder
         # TODO: Remove this query when we remove the feature check
         organization = Organization.objects.filter(project__id__in=project_ids)[0]
-        parser_config_overrides = {"blocked_keys": ALERT_BLOCKED_FIELDS}
+        parser_config_overrides: MutableMapping[str, Any] = {"blocked_keys": ALERT_BLOCKED_FIELDS}
         if self.dataset == Dataset.Events and features.has(
             "organizations:metric-alert-ignore-archived", organization
         ):
