@@ -958,6 +958,14 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="number",
                     private=True,
                 ),
+                SnQLFunction(
+                    "opportunity_score",
+                    required_args=[
+                        NumericColumn("column"),
+                    ],
+                    snql_aggregate=self._resolve_web_vital_opportunity_score_function,
+                    default_result_type="number",
+                ),
             ]
         }
 
@@ -1576,6 +1584,35 @@ class DiscoverDatasetConfig(DatasetConfig):
                 [args["column"]],
                 alias,
             )
+        )
+
+    def _resolve_web_vital_opportunity_score_function(
+        self,
+        args: Mapping[str, Column],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        if column.key not in [
+            "score.lcp",
+            "score.fcp",
+            "score.fid",
+            "score.cls",
+            "score.ttfb",
+            "score.total",
+        ]:
+            raise InvalidSearchQuery(
+                "weighted_performance_score only supports performance score measurements"
+            )
+
+        weight_column = (
+            1
+            if column.key == "score.total"
+            else self.builder.column("measurements." + column.key.replace("score", "score.weight"))
+        )
+        return Function(
+            "sum",
+            [Function("minus", [weight_column, Function("least", [1, column])])],
+            alias,
         )
 
     # Query Filters

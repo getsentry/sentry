@@ -6243,3 +6243,36 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "replayId": replay_id,
             "events.timestamp": event.datetime.replace(microsecond=0).isoformat(),
         }
+
+    def test_opportunity_score(self):
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 0.03},
+            "score.weight.lcp": {"value": 0.3},
+            "score.fcp": {"value": 0.4},
+            "score.weight.fcp": {"value": 0.7},
+            "score.total": {"value": 0.43},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 1.0},
+            "score.weight.lcp": {"value": 1.0},
+            "score.total": {"value": 1.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "opportunity_score(measurements.score.lcp)",
+                "opportunity_score(measurements.score.total)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0] == {
+            "opportunity_score(measurements.score.lcp)": 0.27,
+            "opportunity_score(measurements.score.total)": 1.57,
+        }
