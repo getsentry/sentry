@@ -92,7 +92,7 @@ class TestGetEventSeverity(TestCase):
             {"logentry": {"message": "Dogs are great!"}},
         ]
         for case in cases:
-            manager = EventManager(make_event(**case))
+            manager = EventManager(make_event(level="error", **case))
             event = manager.save(self.project.id)
 
             severity = _get_severity_score(event)
@@ -124,7 +124,7 @@ class TestGetEventSeverity(TestCase):
         "sentry.event_manager.severity_connection_pool.urlopen",
         return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
     )
-    def test_usable_event_title(
+    def test_uses_exception(
         self,
         mock_urlopen: MagicMock,
     ) -> None:
@@ -140,7 +140,37 @@ class TestGetEventSeverity(TestCase):
 
         _get_severity_score(event)
 
-        assert json.loads(mock_urlopen.call_args.kwargs["body"])["message"] == "Dogs are great!"
+        assert (
+            json.loads(mock_urlopen.call_args.kwargs["body"])["message"]
+            == "NopeError: Nopey McNopeface"
+        )
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+    )
+    def test_short_circuit_level(
+        self,
+        mock_urlopen: MagicMock,
+    ) -> None:
+        cases: list[tuple[str, float]] = [
+            ("fatal", 1.0),
+            ("info", 0.0),
+            ("debug", 0.0),
+            ("error", 0.1231),
+        ]
+
+        for level, expected_severity in cases:
+            manager = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                    level=level,
+                )
+            )
+            event = manager.save(self.project.id)
+            severity = _get_severity_score(event)
+
+            assert severity == expected_severity
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -153,7 +183,7 @@ class TestGetEventSeverity(TestCase):
         mock_urlopen: MagicMock,
     ) -> None:
         for title in NON_TITLE_EVENT_TITLES:
-            manager = EventManager(make_event())
+            manager = EventManager(make_event(exception={"values": []}))
             event = manager.save(self.project.id)
             # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
             # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
@@ -163,13 +193,13 @@ class TestGetEventSeverity(TestCase):
 
             mock_urlopen.assert_not_called()
             mock_logger_warning.assert_called_with(
-                "Unable to get severity score because of unusable `message` value '<unlabeled event>'",
+                f"Unable to get severity score because of unusable `message` value '{title}'",
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
                     "event_type": "default",
                     "event_title": title,
-                    "computed_title": "<unlabeled event>",
+                    "computed_title": title,
                 },
             )
             assert severity is None
