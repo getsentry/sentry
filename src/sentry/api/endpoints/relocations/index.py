@@ -96,6 +96,7 @@ class RelocationIndexEndpoint(Endpoint):
         logger.info("post.start", extra={"caller": request.user.id})
         if not features.has("relocation:enabled"):
             return Response({"detail": ERR_FEATURE_DISABLED}, status=400)
+
         serializer = RelocationPostSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -108,6 +109,7 @@ class RelocationIndexEndpoint(Endpoint):
             owner = user_service.get_by_username(username=owner_username)[0]
         except IndexError:
             return Response({"detail": f"Could not find user `{owner_username}`"}, status=400)
+
         # Quickly check that this `owner` does not have more than one active `Relocation` in flight.
         if Relocation.objects.filter(
             owner_id=owner.id, status=Relocation.Status.IN_PROGRESS.value
