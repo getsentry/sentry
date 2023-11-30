@@ -4663,7 +4663,7 @@
     },
     "model": "sentry.regressiongroup",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
