@@ -27,7 +27,7 @@ class RegressionType(Enum):
 
 @region_silo_only_model
 class RegressionGroup(Model):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     # Meta data about the regression group
     date_added = models.DateTimeField(auto_now_add=True)
