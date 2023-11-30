@@ -116,10 +116,6 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     def is_detector_enabled(cls) -> bool:
         return not options.get("performance_issues.file_io_main_thread.disabled")
 
-    def init(self):
-        super().init()
-        self._prepare_deobfuscation()
-
     def _prepare_deobfuscation(self):
         event = self._event
         if "debug_meta" in event:
@@ -168,6 +164,8 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     def _fingerprint(self, span_list) -> str:
         call_stack_strings = []
         overall_stack = []
+        # only prepare deobfuscation once we need to fingerprint cause its expensive
+        self._prepare_deobfuscation()
         for span in span_list:
             for item in span.get("data", {}).get("call_stack", []):
                 module = self._deobfuscate_module(item.get("module", ""))
