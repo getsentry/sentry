@@ -15,7 +15,6 @@ import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization as TOrganization} from 'sentry/types';
-import * as useExperiment from 'sentry/utils/useExperiment';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -98,18 +97,14 @@ describe('CreateProject', function () {
     });
   });
 
-  it('can create a new project without team as org member', async function () {
+  it('can create a new project as member with team-roles', async function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
-        features: ['team-project-creation-all'],
+        features: ['team-roles'],
       },
     });
 
-    jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
-      experimentAssignment: 1,
-      logExperiment: jest.fn(),
-    });
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
     TeamStore.loadUserTeams([TestStubs.Team({id: 2, slug: 'team-two', access: []})]);
 
@@ -258,11 +253,11 @@ describe('CreateProject', function () {
     );
   });
 
-  it('should display success message when using experimental endpoint', async function () {
+  it('should display success message when using member endpoint', async function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
-        features: ['team-project-creation-all'],
+        features: ['team-roles'],
       },
     });
 
