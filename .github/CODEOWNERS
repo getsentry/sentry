@@ -142,8 +142,8 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
-/src/sentry/hybridcloud                                  @getsentry/hybrid-cloud
 /src/sentry/services/hybrid_cloud/                       @getsentry/hybrid-cloud
+/src/sentry/api_gateway/                                 @getsentry/hybrid-cloud
 /src/sentry/middleware/api_gateway.py                    @getsentry/hybrid-cloud
 /src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
@@ -352,6 +352,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/models/identity.py                                       @getsentry/issues
 /src/sentry/models/integrationfeature.py                             @getsentry/issues
 /src/sentry/models/integrations/                                     @getsentry/issues
+/src/sentry/models/notificationsetting.py                            @getsentry/issues
 
 /src/sentry/tasks/code_owners.py                                     @getsentry/issues
 /src/sentry/tasks/commits.py                                         @getsentry/issues
@@ -481,7 +482,6 @@ src/sentry/api/endpoints/user_social_identity*                          @getsent
 /static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
 /static/app/types/project.tsx                                                    @getsentry/telemetry-experience
 /static/app/utils/metrics/                                                       @getsentry/telemetry-experience
-/static/app/views/ddm/                                                           @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
@@ -515,3 +515,8 @@ src/sentry/api/endpoints/user_social_identity*                          @getsent
 
 ## Billing
 /src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
+
+## ML & AI
+/static/app/components/events/aiSuggestedSolution/      @getsentry/ml-ai
+/src/sentry/api/endpoints/event_ai_suggested_fix.py     @getsentry/ml-ai
+## End of ML & AI
