@@ -51,7 +51,12 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetector,
     MovingAverageRelativeChangeDetectorConfig,
 )
-from sentry.statistical_detectors.detector import DetectorPayload, RegressionDetector, TrendType
+from sentry.statistical_detectors.detector import (
+    DetectorPayload,
+    DetectorState,
+    RegressionDetector,
+    TrendType,
+)
 from sentry.statistical_detectors.issue_platform_adapter import (
     fingerprint_regression,
     send_regression_to_platform,
@@ -1038,14 +1043,16 @@ def query_functions_timeseries(
 
 
 def limit_regressions_by_project(
-    trends: Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None],
+    trends: Generator[
+        Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None
+    ],
     ratelimit: int,
 ) -> Generator[DetectorPayload, None, None]:
     regressions_by_project: DefaultDict[int, List[Tuple[float, DetectorPayload]]] = defaultdict(
         list
     )
 
-    for trend_type, score, payload in trends:
+    for trend_type, score, payload, state in trends:
         if trend_type != TrendType.Regressed:
             continue
         heapq.heappush(regressions_by_project[payload.project_id], (score, payload))
