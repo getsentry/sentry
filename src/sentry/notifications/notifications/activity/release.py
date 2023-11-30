@@ -30,6 +30,7 @@ from .base import ActivityNotification
 class ReleaseActivityNotification(ActivityNotification):
     metrics_key = "release_activity"
     notification_setting_type = NotificationSettingTypes.DEPLOY
+    notification_setting_type_enum = NotificationSettingTypes.DEPLOY
     template_path = "sentry/emails/activity/release"
 
     def __init__(self, activity: Activity) -> None:
