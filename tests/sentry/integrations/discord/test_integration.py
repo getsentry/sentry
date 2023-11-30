@@ -1,3 +1,4 @@
+from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
@@ -5,7 +6,12 @@ import responses
 from responses.matchers import header_matcher
 
 from sentry import audit_log, options
-from sentry.integrations.discord.client import GUILD_URL, DiscordClient
+from sentry.integrations.discord.client import (
+    APPLICATION_COMMANDS_URL,
+    GUILD_URL,
+    DiscordClient,
+    DiscordNonProxyClient,
+)
 from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
@@ -67,6 +73,13 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
         responses.add(
             responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": "user_1234"}
+        )
+
+        responses.add(
+            responses.PUT,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            status=200,
         )
 
         resp = self.client.get(
@@ -149,6 +162,27 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert resp == "1234"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
+
+    def test_post_install(self):
+        provider = self.provider()
+        provider.client = DiscordNonProxyClient()
+        provider.client.overwrite_application_commands = mock.MagicMock(
+            spec=provider.client.overwrite_application_commands
+        )
+
+        provider.post_install(self.integration, self.organization)
+        provider.client.overwrite_application_commands.assert_called()
+
+    def test_post_install_bad(self):
+        provider = self.provider()
+        client = DiscordNonProxyClient()
+        client.overwrite_application_commands = mock.MagicMock(
+            spec=client.overwrite_application_commands
+        )
+
+        provider.application_id = None
+        provider.post_install(self.integration, None)
+        client.overwrite_application_commands.assert_not_called()
 
     @responses.activate
     def test_get_discord_user_id(self):

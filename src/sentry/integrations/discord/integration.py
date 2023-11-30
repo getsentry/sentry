@@ -169,7 +169,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         extra: Any | None = None,
     ) -> None:
         if self._credentials_exist():
-            DiscordCommandManager().register_commands()
+            DiscordCommandManager().register_commands(self.client)
 
     def _get_discord_user_id(self, auth_code: str) -> str:
         """

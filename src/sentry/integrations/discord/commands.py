@@ -32,7 +32,7 @@ class DiscordCommandManager:
         },
     ]
 
-    def register_commands(self) -> None:
+    def register_commands(self, client: DiscordNonProxyClient) -> None:
         """
         Fetches the current bot commands list and if it's out of date,
         overwrites the bot commands list in Discord with the above list.
@@ -42,7 +42,6 @@ class DiscordCommandManager:
 
         if result is None:
             cache.set(cache_key, True, 3600)
-            client = DiscordNonProxyClient()
             try:
                 client.overwrite_application_commands(self.COMMANDS)
             except ApiError as e:
