@@ -305,7 +305,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     New queries will be checked upon creation and not allowed at that time.
     """
     params: Dict[str, Any] = {
-        "statsPeriod": "1d",
+        "statsPeriod": "30m",
         "project_objects": [project],
         "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
     }
@@ -339,24 +339,25 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         ),
     )
 
-    try:
-        results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
-        processed_results = query_builder.process_results(results)
-    except Exception as error:
-        sentry_sdk.capture_exception(error)
-        cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
-        return False
-
     with sentry_sdk.push_scope() as scope:
+        scope.set_tag("widget_query.widget_id", widget_query.id)
+        scope.set_tag("widget_query.org_id", project.organization_id)
+        scope.set_tag("widget_query.conditions", widget_query.conditions)
+
+        try:
+            results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
+            processed_results = query_builder.process_results(results)
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+            cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
+            return False
+
         try:
             for index, column in enumerate(widget_query.columns):
                 count = processed_results["data"][0][unique_columns[index]]
                 if count > max_cardinality_allowed:
                     cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
                     scope.set_tag("widget_query.column_name", column)
-                    scope.set_tag("widget_query.widget_id", widget_query.id)
-                    scope.set_tag("widget_query.org_id", project.organization_id)
-                    scope.set_tag("widget_query.conditions", widget_query.conditions)
                     raise HighCardinalityWidgetException(
                         f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
                     )
