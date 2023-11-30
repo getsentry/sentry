@@ -100,19 +100,31 @@ class ExecutionResult:
     result: Mapping[str, Any]
     with_totals: bool
 
+    def _get_alias(self, query: Query) -> Optional[str]:
+        if isinstance(query, Formula):
+            aliases = []
+            for parameter in query.parameters:
+                if alias := self._get_alias(parameter):
+                    aliases.append(alias)
+
+            if not aliases:
+                return None
+
+            return aliases[0]
+        elif isinstance(query, Timeseries):
+            aggregate = query.aggregate
+            # In case we have a quantile, we transform it back to the original query percentile. This has to be done,
+            # unless we want to change the API of the frontend that will send.
+            if aggregate == "quantiles":
+                aggregate = f"p{int(query.aggregate_params[0] * 100)}"
+
+            metric = query.metric.mri or query.metric.public_name
+            return f"{aggregate}({metric})"
+
     @property
     def query_name(self) -> str:
-        timeseries = self.query.query
-
-        aggregate = timeseries.aggregate
-        # In case we have a quantile, we transform it back to the original query percentile. This has to be done, unless
-        # we want to change the API of the frontend that will send.
-        if aggregate == "quantiles":
-            aggregate = f"p{int(timeseries.aggregate_params[0] * 100)}"
-
-        metric = timeseries.metric.mri or timeseries.metric.public_name
-
-        return f"{aggregate}({metric})"
+        alias = self._get_alias(self.query.query)
+        return alias if alias else "query"
 
     @property
     def modified_start(self) -> datetime:
@@ -151,9 +163,10 @@ class ExecutionResult:
 
 
 class MutableQuery:
-    PERCENTILE_REGEX = re.compile(r"^p(\d{1,3})$")
-
     def __init__(self, query: Query):
+        # TODO: we might need to implement a visitor on the query to make mutations easier.
+        # mutable_query.register_visitor(EnvironmentsVisitor())
+        # mutable_query.register_visitor(RegistryVisitor())
         self._query = query
 
     def _alias_ops(self, query: Query) -> Query:
@@ -169,31 +182,33 @@ class MutableQuery:
 
         return query
 
-    def alias_aggregates(self) -> "MutableQuery":
-        pass
+    def alias_ops(self) -> "MutableQuery":
+        self._query = self._alias_ops(self._query)
+
+        return self
+
+    def _inject_environments(self, query: Query, environment_names: Sequence[str]) -> Query:
+        if isinstance(query, Formula):
+            return query.set_parameters(
+                [
+                    self._inject_environments(parameter, environment_names)
+                    for parameter in query.parameters
+                ]
+            )
+        elif isinstance(query, Timeseries):
+            current_filters = query.filters if query.filters else []
+            current_filters.extend([Condition(Column("environment"), Op.IN, environment_names)])
+            return query.set_filters(current_filters)
 
     def inject_environments(self, environments: Sequence[Environment]) -> "MutableQuery":
-        # TODO: implement environment injection in formulas.
-        # if environments:
-        #     environment_names = [environment.name for environment in environments]
-        #     existing_filters = self._timeseries.filters[:] if self._timeseries.filters else []
-        #     self._timeseries = self._timeseries.set_filters(
-        #         existing_filters + [Condition(Column("environment"), Op.IN, environment_names)]
-        #     )
+        if environments:
+            environment_names = [environment.name for environment in environments]
+            self._query = self._inject_environments(self._query, environment_names)
 
         return self
 
-    def alias_operators(self) -> "MutableQuery":
-        # In case we have a percentile in the form `px` where `x` is in the range [0-100], we want to convert it to
-        # the quantiles operation which generalizes any percentile.
-        if (match := self.PERCENTILE_REGEX.match(self._timeseries.aggregate)) is not None:
-            percentile_value = float(match.group(1))
-            self._timeseries = self._timeseries.set_aggregate("quantiles", [percentile_value / 100])
-
-        return self
-
-    def get_mutated(self) -> Timeseries:
-        return self._timeseries
+    def get_mutated(self) -> Query:
+        return self._query
 
 
 class QueryParser:
@@ -242,9 +257,10 @@ class QueryParser:
         """
         Parses the field with the MQL grammar.
         """
-        timeseries = parse_mql(field).query
-        modified_timeseries = timeseries.set_filters(filters).set_groupby(group_bys)
-        return MutableQuery(timeseries=modified_timeseries)
+        query = parse_mql(field).query
+        # TODO: when the MQL integration is enabled for filters, you can just delete this.
+        # modified_timeseries = timeseries.set_filters(filters).set_groupby(group_bys)
+        return MutableQuery(query=query)
 
     def generate_queries(
         self, environments: Sequence[Environment]
@@ -267,7 +283,7 @@ class QueryParser:
             yield (
                 self._parse_mql(field, filters, group_bys)
                 .inject_environments(environments)
-                .alias_operators()
+                .alias_ops()
                 .get_mutated()
             )
 

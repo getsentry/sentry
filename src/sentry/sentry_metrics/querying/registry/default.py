@@ -7,11 +7,10 @@ from sentry.snuba.dataset import EntityKey
 
 
 class AvgGauge(RegistryEntry):
-    @property
     def from_op(self) -> str:
         return "avg"
 
-    def supports_entities(self) -> Set[EntityKey]:
+    def supported_entities(self) -> Set[EntityKey]:
         return {EntityKey.GenericMetricsGauges}
 
     def get(self, prev_timeseries: Timeseries) -> Union[Formula, Timeseries]:

@@ -209,6 +209,45 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["series"] == {field_2: [0.0, 5.0, 3.0], field_1: [0.0, 1.0, 2.0]}
         assert groups[0]["totals"] == {field_2: 5.0, field_1: 1.0}
 
+    def test_query_with_derived_metric(self) -> None:
+        mri = "g:custom/page_load@millisecond"
+        gauge_value = {
+            "min": 1.0,
+            "max": 20.0,
+            "sum": 25.0,
+            "count": 10,
+            "last": 20.0,
+        }
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "gauge",
+            mri,
+            {},
+            self.ts(self.now()),
+            gauge_value,
+            UseCaseID.CUSTOM,
+        )
+
+        field = f"avg({mri})"
+        results = run_metrics_query(
+            fields=[field],
+            query=None,
+            group_bys=None,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {field: [0.0, 2.5, 0.0]}
+        assert groups[0]["totals"] == {field: 4.0}
+
     @pytest.mark.skip(reason="sessions are not supported in the new metrics layer")
     def test_with_sessions(self) -> None:
         self.store_session(

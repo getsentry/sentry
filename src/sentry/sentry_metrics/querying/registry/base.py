@@ -16,15 +16,13 @@ class RegistryEntry(ABC):
         return cls._instance
 
     def is_supported(self, entity: EntityKey) -> bool:
-        return entity in self.for_entities
+        return entity in self.supported_entities()
 
-    @property
     @abstractmethod
     def from_op(self) -> str:
         raise NotImplementedError
 
-    @property
-    def for_entities(self) -> Set[EntityKey]:
+    def supported_entities(self) -> Set[EntityKey]:
         return set()
 
     @abstractmethod
@@ -37,7 +35,7 @@ class Registry:
         self._registered_entries: Dict[str, RegistryEntry] = {}
 
     def register(self, entry: RegistryEntry):
-        self._registered_entries[entry.from_op] = entry
+        self._registered_entries[entry.from_op()] = entry
 
     def get(self, from_op: str) -> Optional[RegistryEntry]:
         return self._registered_entries.get(from_op)
