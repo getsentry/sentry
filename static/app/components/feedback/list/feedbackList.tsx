@@ -120,7 +120,7 @@ export default function FeedbackList() {
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
                   ref={e => {
-                    // @ts-expect-error
+                    // @ts-expect-error: Cannot assign to current because it is a read-only property.
                     listRef.current = e;
                     registerChild(e);
                   }}
