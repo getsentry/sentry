@@ -607,21 +607,15 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/users/{gh_username}")
 
-    def get_labels(self, repo: str, fetch_max_pages: bool = False) -> Sequence[JSONData]:
+    def get_labels(self, repo: str) -> Sequence[JSONData]:
         """
-        args:
-         * fetch_max_pages - fetch as many labels as possible using pagination (slow)
-
-        This fetches all labels in the repository.
+        Fetches up to the first 100 labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
 
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self.get_with_pagination(
-            f"/repos/{repo}/labels",
-            page_number_limit=self.page_number_limit if fetch_max_pages else 1,
-        )
+        return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})

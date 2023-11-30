@@ -99,7 +99,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []
-        labels = self.get_repo_labels(default_repo, fetch_max_pages=True) if default_repo else []
+        labels = self.get_repo_labels(default_repo) if default_repo else []
 
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
@@ -262,7 +262,7 @@ class GitHubIssueBasic(IssueBasicMixin):
     ) -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:
-            response = client.get_labels(repo, fetch_max_pages=True)
+            response = client.get_labels(repo)
         except Exception as e:
             self.raise_error(e)
 

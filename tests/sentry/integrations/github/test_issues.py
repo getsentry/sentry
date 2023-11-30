@@ -5,7 +5,6 @@ import responses
 from django.test import RequestFactory
 from pytest import fixture
 
-import sentry
 from sentry.integrations.github import client
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.issues import GitHubIssueBasic
@@ -87,56 +86,30 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             self._check_proxying()
 
     @responses.activate
-    @patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1)
-    def test_get_labels_all_and_pagination(self):
-        """Fetch all labels and test the pagination logic."""
-        self.stub_access_token()
-
-        pp = 1
-        labels = [
-            {"name": "bug"},
-            {"name": "enhancement"},
-            {"name": "duplicate"},
-        ]
-
-        api_url = "https://api.github.com/repos/getsentry/sentry/labels"
-        first = f'<{api_url}?per_page={pp}&page=1>; rel="first"'
-        last = f'<{api_url}?per_page={pp}&page={len(labels)}>; rel="last"'
-
-        def gen_link(page: int, text: str) -> str:
-            return f'<{api_url}?per_page={pp}&page={page}>; rel="{text}"'
-
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_get_repo_labels(self, mock_get_jwt):
         responses.add(
-            responses.GET,
-            url=api_url,
-            match=[responses.matchers.query_param_matcher({"per_page": pp})],
-            json=labels[:1],
-            headers={"link": ", ".join([gen_link(2, "next"), last])},
+            responses.POST,
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
+            json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
         responses.add(
             responses.GET,
-            url=api_url,
-            match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 2})],
-            json=labels[1:2],
-            headers={"link": ", ".join([gen_link(1, "prev"), gen_link(3, "next"), last, first])},
-        )
-        responses.add(
-            responses.GET,
-            url=api_url,
-            match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 3})],
-            json=labels[-1:],
-            headers={"link": ", ".join([gen_link(2, "prev"), first])},
+            "https://api.github.com/repos/getsentry/sentry/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}, {"name": "duplicate"}],
         )
 
-        response = self.integration.get_repo_labels(self.repo, fetch_max_pages=True)
-        assert response == (
+        repo = "getsentry/sentry"
+
+        # results should be sorted alphabetically
+        assert self.integration.get_repo_labels(repo) == (
             ("bug", "bug"),
             ("duplicate", "duplicate"),
             ("enhancement", "enhancement"),
         )
 
         if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 6
+            assert len(responses.calls) == 2
 
             request = responses.calls[0].request
             assert request.headers["Authorization"] == "Bearer jwt_token_1"
@@ -144,25 +117,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             request = responses.calls[1].request
             assert request.headers["Authorization"] == "Bearer token_1"
         else:
-            self._check_proxying(num_calls=3)
-
-    @responses.activate
-    def test_get_labels_only_first_page(self):
-        """Fetch all repositories and test the pagination logic."""
-        self.stub_access_token()
-        responses.add(
-            responses.GET,
-            url="https://api.github.com/repos/getsentry/sentry/labels",
-            match=[responses.matchers.query_param_matcher({"per_page": 100})],
-            json=[{"name": "bug"}, {"name": "enhancement"}, {"name": "duplicate"}],
-        )
-
-        result = self.integration.get_repo_labels(self.repo, fetch_max_pages=True)
-        assert result == (
-            ("bug", "bug"),
-            ("duplicate", "duplicate"),
-            ("enhancement", "enhancement"),
-        )
+            self._check_proxying()
 
     @responses.activate
     def test_create_issue(self):
