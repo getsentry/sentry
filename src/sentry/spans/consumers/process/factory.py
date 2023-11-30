@@ -49,11 +49,11 @@ def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> SpanEvent:
 
     for key in {"description", "tags", "measurements", "sentry_tags"}:
         if value := relay_span.get(key):
-            snuba_span[key] = value
+            snuba_span[key] = value  # type: ignore
 
     for key in {"event_id", "profile_id"}:
         if value := format_event_id(relay_span, key=key):
-            snuba_span[key] = value
+            snuba_span[key] = value  # type: ignore
 
     _process_group_raw(snuba_span)
 
