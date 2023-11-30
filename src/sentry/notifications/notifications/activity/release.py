@@ -10,7 +10,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingEnum, NotificationSettingTypes
 from sentry.notifications.utils import (
     get_deploy,
     get_environment_for_deploy,
@@ -30,7 +30,7 @@ from .base import ActivityNotification
 class ReleaseActivityNotification(ActivityNotification):
     metrics_key = "release_activity"
     notification_setting_type = NotificationSettingTypes.DEPLOY
-    notification_setting_type_enum = NotificationSettingTypes.DEPLOY
+    notification_setting_type_enum = NotificationSettingEnum.DEPLOY
     template_path = "sentry/emails/activity/release"
 
     def __init__(self, activity: Activity) -> None:
