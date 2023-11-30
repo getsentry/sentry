@@ -323,9 +323,12 @@ function SpanDetail(props: Props) {
             relatedErrors.length
           )}
         </ErrorMessageTitle>
-        <ErrorMessageContent>
+        <Fragment>
           {visibleErrors.map(error => (
-            <Fragment key={error.event_id}>
+            <ErrorMessageContent
+              key={error.event_id}
+              excludeLevel={isErrorPerformanceError(error)}
+            >
               {isErrorPerformanceError(error) ? (
                 <ErrorDot level="error" />
               ) : (
@@ -340,9 +343,9 @@ function SpanDetail(props: Props) {
                   {error.title}
                 </Link>
               </ErrorTitle>
-            </Fragment>
+            </ErrorMessageContent>
           ))}
-        </ErrorMessageContent>
+        </Fragment>
         {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
           <ErrorToggle size="xs" onClick={toggleErrors}>
             {errorsOpened ? t('Show less') : t('Show more')}
