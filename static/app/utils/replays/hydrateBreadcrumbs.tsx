@@ -10,12 +10,17 @@ import type {
 import {EventType, isBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-function findNextMutation(date: Date, rrwebFrames: RecordingFrame[]): RecordingFrame {
+function findCloseMutations(date: Date, rrwebFrames: RecordingFrame[]) {
   const timeMS = date.getTime();
-  const framesAfter = rrwebFrames.filter(
-    frame => frame.type === EventType.IncrementalSnapshot && frame.timestamp > timeMS
+  const incrementalFrames = rrwebFrames.filter(
+    frame => frame.type === EventType.IncrementalSnapshot
   );
-  return framesAfter[0] ?? {};
+  const framesBefore = incrementalFrames.filter(frame => frame.timestamp <= timeMS);
+  const framesAfter = incrementalFrames.filter(frame => frame.timestamp > timeMS);
+  return {
+    prev: framesBefore[0] ?? {},
+    next: framesAfter[0] ?? {},
+  };
 }
 
 export default function hydrateBreadcrumbs(
@@ -32,9 +37,8 @@ export default function hydrateBreadcrumbs(
         invariant(isValidDate(time), 'breadcrumbFrame.timestamp is invalid');
 
         if (frame.category === 'replay.hydrate') {
-          const mutation = findNextMutation(time, rrwebFrames);
           frame.data = {
-            nextMutation: mutation,
+            mutations: findCloseMutations(time, rrwebFrames),
           };
         }
         return {

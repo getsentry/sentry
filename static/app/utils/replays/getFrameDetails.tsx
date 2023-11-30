@@ -153,7 +153,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
   'replay.hydrate': frame => ({
     color: 'red300',
-    description: frame.data.nextMutation,
+    description: frame.data.mutations,
     tabKey: TabKey.BREADCRUMBS,
     title: 'Hydration Error',
     icon: <IconFire size="xs" />,
