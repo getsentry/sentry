@@ -19,7 +19,3 @@ def validate_provider(
             f'The provider "{provider}" is not supported. We currently accept {available_providers} identities.'
         )
     return provider_option
-
-
-def validate_provider_option(provider: Optional[str]) -> Optional[ExternalProviders]:
-    return validate_provider(provider) if provider else None

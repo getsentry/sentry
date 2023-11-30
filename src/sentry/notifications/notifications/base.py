@@ -231,14 +231,14 @@ class BaseNotification(abc.ABC):
     def filter_to_accepting_recipients(
         self, recipients: Iterable[RpcActor]
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
-        from sentry.notifications.utils.participants import get_notification_recipients_v2
+        from sentry.notifications.utils.participants import get_notification_recipients
 
         setting_type = (
             NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[self.notification_setting_type])
             if self.notification_setting_type
             else NotificationSettingEnum.ISSUE_ALERTS
         )
-        return get_notification_recipients_v2(
+        return get_notification_recipients(
             recipients=recipients,
             type=setting_type,
             organization_id=self.organization.id,
