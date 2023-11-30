@@ -646,6 +646,9 @@
   "sentry.regionoutbox": [],
   "sentry.regionscheduleddeletion": [],
   "sentry.regiontombstone": [],
+  "sentry.regressiongroup": [
+    "sentry.project"
+  ],
   "sentry.relay": [],
   "sentry.relayusage": [],
   "sentry.release": [
