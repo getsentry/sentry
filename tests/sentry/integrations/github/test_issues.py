@@ -46,13 +46,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         with patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
-    def stub_access_token(self):
-        responses.add(
-            responses.POST,
-            "https://api.github.com/app/installations/github_external_id/access_tokens",
-            json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
-        )
-
     def _check_proxying(self, num_calls: int = 1) -> None:
         assert len(responses.calls) == num_calls
         request = responses.calls[0].request
@@ -62,7 +55,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_get_allowed_assignees(self):
-        self.stub_access_token()
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/assignees",
@@ -86,8 +78,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             self._check_proxying()
 
     @responses.activate
-    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def test_get_repo_labels(self, mock_get_jwt):
+    def test_get_repo_labels(self):
         responses.add(
             responses.POST,
             "https://api.github.com/app/installations/github_external_id/access_tokens",
@@ -121,7 +112,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_create_issue(self):
-        self.stub_access_token()
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -214,7 +204,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_get_repo_issues(self):
-        self.stub_access_token()
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -235,7 +224,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_link_issue(self):
-        self.stub_access_token()
         issue_id = 321
 
         responses.add(
@@ -272,7 +260,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_repo_dropdown_choices(self):
-        self.stub_access_token()
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
@@ -331,7 +318,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def after_link_issue(self):
-        self.stub_access_token()
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues/321/comments",
@@ -354,11 +340,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert payload == {"body": "hello"}
 
     @responses.activate
-    @patch(
-        "sentry.integrations.github.client.GithubProxyClient._get_token", return_value="jwt_token_1"
-    )
-    def test_default_repo_link_fields(self, mock_get_jwt):
-        self.stub_access_token()
+    def test_default_repo_link_fields(self):
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
@@ -387,7 +369,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_default_repo_create_fields(self):
-        self.stub_access_token()
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
@@ -425,11 +406,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert repo_field["default"] == "getsentry/sentry"
 
     @responses.activate
-    @patch(
-        "sentry.integrations.github.client.GithubProxyClient._get_token", return_value="jwt_token_1"
-    )
-    def test_default_repo_link_fields_no_repos(self, mock_get_jwt):
-        self.stub_access_token()
+    def test_default_repo_link_fields_no_repos(self):
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
@@ -445,7 +422,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_default_repo_create_fields_no_repos(self):
-        self.stub_access_token()
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
