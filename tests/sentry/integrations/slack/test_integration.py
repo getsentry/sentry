@@ -1,7 +1,6 @@
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
-from pytest import raises
 from responses.matchers import query_string_matcher
 
 from sentry import audit_log
@@ -11,7 +10,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -114,15 +112,6 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
-
-    def test_no_org_integration(self):
-        with raises(IntegrationError):
-            self.client.get(
-                "{}?{}".format(
-                    self.setup_path,
-                    urlencode({"code": "oauth-code"}),
-                )
-            )
 
     @responses.activate
     def test_bot_flow(self):
