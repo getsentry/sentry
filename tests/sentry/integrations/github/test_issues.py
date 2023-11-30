@@ -46,8 +46,8 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         with patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
-    def _check_proxying(self, num_calls: int = 1) -> None:
-        assert len(responses.calls) == num_calls
+    def _check_proxying(self) -> None:
+        assert len(responses.calls) == 1
         request = responses.calls[0].request
         assert request.headers[PROXY_OI_HEADER] == str(self.integration.org_integration.id)
         assert request.headers[PROXY_BASE_URL_HEADER] == "https://api.github.com"
