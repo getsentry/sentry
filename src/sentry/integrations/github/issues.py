@@ -257,9 +257,7 @@ class GitHubIssueBasic(IssueBasicMixin):
 
         return issues
 
-    def get_repo_labels(
-        self, repo: str, fetch_max_pages: bool = False
-    ) -> Sequence[tuple[str, str]]:
+    def get_repo_labels(self, repo: str) -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:
             response = client.get_labels(repo)

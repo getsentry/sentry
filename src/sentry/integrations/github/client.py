@@ -611,9 +611,6 @@ class GitHubClientMixin(GithubProxyClient):
         """
         Fetches up to the first 100 labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
-
-        It uses page_size from the base class to specify how many items per page.
-        The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
