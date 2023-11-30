@@ -42,6 +42,7 @@ import {space} from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
@@ -57,6 +58,7 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constan
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import {
   AlertRuleTriggerType,
+  Dataset,
   MetricRule,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
@@ -144,6 +146,18 @@ function getRuleChangeSeries(
   ];
 }
 
+function shouldUseErrorsDataset(
+  organization: Organization,
+  dataset: Dataset,
+  query: string
+): boolean {
+  return (
+    dataset === Dataset.ERRORS &&
+    /\bis:unresolved\b/.test(query) &&
+    organization.features.includes('metric-alert-ignore-archived')
+  );
+}
+
 class MetricChart extends PureComponent<Props, State> {
   ref: null | ReactEchartsRef = null;
 
@@ -166,12 +180,18 @@ class MetricChart extends PureComponent<Props, State> {
   ) {
     const {rule, organization, project, timePeriod, query} = this.props;
 
+    let dataset: DiscoverDatasets | undefined = undefined;
+    if (shouldUseErrorsDataset(organization, rule.dataset, query)) {
+      dataset = DiscoverDatasets.ERRORS;
+    }
+
     const {buttonText, ...props} = makeDefaultCta({
       orgSlug: organization.slug,
       projects: [project],
       rule,
       timePeriod,
       query,
+      dataset,
     });
 
     const resolvedPercent =
@@ -524,7 +544,7 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    const queryExtras = {
+    const queryExtras: Record<string, string> = {
       ...getMetricDatasetQueryExtras({
         organization,
         location,
@@ -534,6 +554,10 @@ class MetricChart extends PureComponent<Props, State> {
       }),
       ...getForceMetricsLayerQueryExtras(organization, dataset),
     };
+
+    if (shouldUseErrorsDataset(organization, dataset, query)) {
+      queryExtras.dataset = 'errors';
+    }
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
