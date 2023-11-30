@@ -123,7 +123,7 @@ def extract_commits_from_blame_response(
             f"repository{repo_index}"
         )
         if not repo_mapping:
-            logger.error(
+            logger.warning(
                 "get_blame_for_files.extract_commits_from_blame.missing_repository",
                 extra={**extra, "repo": full_repo_name},
             )
@@ -131,7 +131,7 @@ def extract_commits_from_blame_response(
         for ref_index, (ref_name, file_paths) in enumerate(ref_mapping.items()):
             ref: Optional[GitHubRefResponse] = repo_mapping.get(f"ref{ref_index}")
             if not isinstance(ref, dict):
-                logger.error(
+                logger.warning(
                     "get_blame_for_files.extract_commits_from_blame.missing_branch",
                     extra={**extra, "repo": full_repo_name, "branch": ref_name},
                 )
@@ -189,7 +189,7 @@ def _get_matching_file_blame(
         None,
     )
     if not matching_blame_range:
-        logger.error(
+        logger.warning(
             "get_blame_for_files.extract_commits_from_blame.no_matching_blame_range",
             extra=extra,
         )
