@@ -1,4 +1,4 @@
-from unittest import mock
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
@@ -166,7 +166,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
     def test_post_install_overwrite_commands(self):
         provider = self.provider()
         provider.client = DiscordNonProxyClient()
-        provider.client.overwrite_application_commands = mock.MagicMock(
+        provider.client.overwrite_application_commands = MagicMock(
             spec=provider.client.overwrite_application_commands
         )
 
@@ -175,14 +175,14 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
     def test_post_install_no_overwrite_commands(self):
         provider = self.provider()
-        client = DiscordNonProxyClient()
-        client.overwrite_application_commands = mock.MagicMock(
-            spec=client.overwrite_application_commands
+        provider.client = DiscordNonProxyClient()
+        provider.client.overwrite_application_commands = MagicMock(
+            spec=provider.client.overwrite_application_commands
         )
 
         provider.application_id = None
         provider.post_install(self.integration, self.organization)
-        client.overwrite_application_commands.assert_not_called()
+        provider.client.overwrite_application_commands.assert_not_called()
 
     @responses.activate
     def test_get_discord_user_id(self):
