@@ -12,6 +12,7 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Event, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -65,12 +66,10 @@ function ErrorDescription({
   }
 
   if (restriction === 'individual_consent') {
-    const isInternalSentryEmployee = organizationSlug === 'sentry';
+    const {isStaff} = ConfigStore.get('user');
 
-    const title = isInternalSentryEmployee
-      ? t('Confirm there is no PII')
-      : t('We need your consent');
-    const description = isInternalSentryEmployee
+    const title = isStaff ? t('Confirm there is no PII') : t('We need your consent');
+    const description = isStaff
       ? t(
           'Before using this feature, please confirm that there is no personally identifiable information in this event.'
         )
