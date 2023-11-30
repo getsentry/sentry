@@ -5,12 +5,13 @@ import logging
 from collections import deque
 from typing import Any, Deque, Mapping, Optional, Union, cast
 
-from arroyo.backends.kafka import KafkaPayload
+from arroyo import Topic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.dlq import InvalidMessage
-from arroyo.processing.strategies import MessageRejected
+from arroyo.processing.strategies import CommitOffsets, MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.processing.strategies import ProcessingStrategyFactory
+from arroyo.processing.strategies import ProcessingStrategyFactory, Produce
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 
 from sentry.sentry_metrics.configuration import (
@@ -18,7 +19,6 @@ from sentry.sentry_metrics.configuration import (
     initialize_subprocess_state,
 )
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, IndexerOutputMessageBatch
-from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingPayload,
@@ -26,6 +26,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,14 @@ def get_metrics_producer_strategy(
             message_router=slicing_router,
         )
     else:
-        return SimpleProduceStep(
-            commit_function=commit,
-            output_topic=config.output_topic,
+        return Produce(
+            producer=KafkaProducer(
+                build_kafka_configuration(
+                    default_config=get_kafka_producer_cluster_options(
+                        get_topic_definition(config.output_topic)["cluster"]
+                    ),
+                )
+            ),
+            topic=Topic(name=config.output_topic),
+            next_step=CommitOffsets(commit),
         )

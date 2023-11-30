@@ -1,5 +1,6 @@
 import datetime
 import functools
+import logging
 from abc import abstractmethod
 from datetime import timedelta
 from typing import Any, Callable, Mapping, Optional, Set
@@ -15,10 +16,11 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BaseValue, Commit, Message, Partition
 from django.utils import timezone
 
-from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
 from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, IndexerTable
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 MAPPING_META = "mapping_meta"
 
