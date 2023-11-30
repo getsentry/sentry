@@ -23,8 +23,11 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.SeparateDatabaseAndState(
-            state_operations=[],
-            database_operations=[migrations.DeleteModel(name="NotificationSetting")],
+        migrations.RunSQL(
+            """
+                DROP TABLE IF EXISTS "sentry_notificationsetting";
+                """,
+            hints={"tables": ["sentry_notificationsetting"]},
+            reverse_sql="CREATE TABLE sentry_notificationsetting (fake_col int)",
         )
     ]
