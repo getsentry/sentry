@@ -964,7 +964,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         NumericColumn("column"),
                     ],
                     snql_aggregate=self._resolve_web_vital_score_function,
-                    default_result_type="integer",
+                    default_result_type="number",
                 ),
                 SnQLFunction(
                     "weighted_performance_score",
@@ -972,7 +972,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         NumericColumn("column"),
                     ],
                     snql_aggregate=self._resolve_weighted_web_vital_score_function,
-                    default_result_type="integer",
+                    default_result_type="number",
                 ),
             ]
         }

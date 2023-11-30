@@ -598,7 +598,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_web_vital_score_function,
-                    default_result_type="integer",
+                    default_result_type="number",
                 ),
                 fields.MetricsFunction(
                     "weighted_performance_score",
@@ -617,7 +617,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_weighted_web_vital_score_function,
-                    default_result_type="integer",
+                    default_result_type="number",
                 ),
                 fields.MetricsFunction(
                     "epm",

@@ -2955,7 +2955,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_weighted_performance_score(self):
-        super().test_performance_score()
+        super().test_weighted_performance_score()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_invalid_performance_score_column(self):
