@@ -8,7 +8,6 @@ import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
@@ -136,8 +135,8 @@ function Context({
   );
 
   const fileExtension = getFileExtension(frame.filename || '') ?? '';
-  const tokens = usePrismTokens({
-    code: contextLines.map(([, code]) => code).join('\n'),
+  const lines = usePrismTokens({
+    code: contextLines?.map(([, code]) => code).join('\n') ?? '',
     language: fileExtension,
   });
 
@@ -166,7 +165,7 @@ function Context({
         <CodeWrapper className={prismClassName}>
           <pre className={prismClassName}>
             <code className={prismClassName}>
-              {tokens.map((line, i) => {
+              {lines.map((line, i) => {
                 const contextLine = contextLines[i];
                 const isActive = activeLineNumber === contextLine[0];
                 const hasComponents = isActive && components.length > 0;
@@ -295,7 +294,6 @@ const CodeWrapper = styled('div')`
   position: relative;
   padding: 0;
 
-  ${p => prismStyles(p.theme)}
   && pre {
     white-space: pre-wrap;
     margin: 0;
