@@ -1280,6 +1280,61 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             [{"count": 0.5}],
         ]
 
+    def test_bar_chart_group_bys_on_demand(self):
+        agg = "count()"
+        network_id_tag = "networkId"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=agg,
+            groupbys=[network_id_tag],
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                1,
+                spec=spec,
+                additional_tags={network_id_tag: "1234"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                1,
+                spec=spec,
+                additional_tags={network_id_tag: "5678"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        url = "https://sentry.io"
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "field": [network_id_tag, agg],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "onDemandType": "dynamic_query",
+                "orderby": f"-{agg}",
+                "interval": "1d",
+                "partial": 1,
+                "query": f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" '
+                + "event.type:transaction",
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "statsPeriod": "24h",
+                "topEvents": 1,
+                "useOnDemandMetrics": "true",
+                "yAxis": agg,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        # breakpoint()
+        assert response.data[network_id_tag]["meta"]["isMetricsExtractedData"] is True
+        assert [attrs for _, attrs in response.data[network_id_tag]["data"]] == [
+            [{"count": 0.5}],
+            [{"count": 0.5}],
+        ]
+
     def _test_is_metrics_extracted_data(
         self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
     ) -> None:
