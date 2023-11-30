@@ -435,6 +435,8 @@ class RelocationCreateTest(APITestCase):
 
                 frozen_time.shift(timedelta(days=1, minutes=1))
 
+                # Relogin since session has expired
+                self.login_as(user=self.superuser, superuser=True)
                 with open(tmp_pub_key_path, "rb") as p:
                     throttled_response = self.client.post(
                         reverse(self.endpoint),
