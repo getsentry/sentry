@@ -10,9 +10,10 @@ from django.urls import reverse
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import Region, RegionCategory
+from sentry.utils import json
 from sentry.utils.signing import sign
 
 
@@ -54,7 +55,8 @@ class DiscordRequestParserTest(TestCase):
         ):
             response = parser.get_response()
             assert response.status_code == 200
-            assert response.data == {"type": 1}
+            data = json.loads(response.content)
+            assert data == {"type": 1}
             assert not get_response_from_first_region.called
         integration = parser.get_integration_from_request()
         assert integration == self.integration
@@ -73,7 +75,8 @@ class DiscordRequestParserTest(TestCase):
         ):
             response = parser.get_response()
             assert response.status_code == 200
-            assert response.data == {"type": 1}
+            data = json.loads(response.content)
+            assert data == {"type": 1}
             assert not mock_response_from_control.called
             assert not get_response_from_first_region.called
             assert parser.get_integration_from_request() is None
@@ -132,3 +135,16 @@ class DiscordRequestParserTest(TestCase):
 
             parser_integration = parser.get_integration_from_request()
             assert parser_integration.id == self.integration.id
+
+
+@control_silo_test
+class End2EndTest(APITestCase):
+    def test_discord_interaction_endpoint(self):
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            response = self.client.post(
+                reverse("sentry-integration-discord-interactions"),
+                data={"type": DiscordRequestTypes.PING},
+            )
+            assert response.status_code == 200
+            data = json.loads(response.content)
+            assert data == {"type": 1}
