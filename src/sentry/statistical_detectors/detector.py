@@ -125,7 +125,7 @@ class RegressionDetector(ABC):
     @classmethod
     def detect_trends(
         cls, projects: List[Project], start: datetime
-    ) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None]:
+    ) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None]:
         unique_project_ids: Set[int] = set()
 
         total_count = 0
@@ -153,6 +153,8 @@ class RegressionDetector(ABC):
                 algorithm = cls.detector_cls(state, cls.config)
                 trend_type, score = algorithm.update(payload)
 
+                # the trend type can be None if no update happened,
+                # pass None to indicate we do not need up update the state
                 states.append(None if trend_type is None else algorithm.state.to_redis_dict())
 
                 if trend_type == TrendType.Regressed:
@@ -162,7 +164,7 @@ class RegressionDetector(ABC):
 
                 unique_project_ids.add(payload.project_id)
 
-                yield (trend_type, score, payload)
+                yield (trend_type, score, payload, algorithm.state)
 
             cls.store.bulk_write_states(payloads, states)
 
