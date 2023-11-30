@@ -181,7 +181,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
 
         provider.application_id = None
-        provider.post_install(self.integration, None)
+        provider.post_install(self.integration, self.organization)
         client.overwrite_application_commands.assert_not_called()
 
     @responses.activate
