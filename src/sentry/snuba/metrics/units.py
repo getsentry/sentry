@@ -38,17 +38,17 @@ def format_value_using_unit(value: Union[int, float], unit: MetricUnit) -> str:
     elif unit == "byte":
         return format_bytes(value)
     elif unit == "kibibyte":
-        return format_bytes(value)
+        return format_bytes(value * 1000)
     elif unit == "mebibyte":
-        return format_bytes(value)
+        return format_bytes(value * 1000**2)
     elif unit == "gibibyte":
-        return format_bytes(value)
+        return format_bytes(value * 1000**3)
     elif unit == "tebibyte":
-        return format_bytes(value)
+        return format_bytes(value * 1000**4)
     elif unit == "pebibyte":
-        return format_bytes(value)
+        return format_bytes(value * 1000**5)
     elif unit == "exbibyte":
-        return format_bytes(value)
+        return format_bytes(value * 1000**6)
     elif unit == "kilobyte":
         return format_bytes(value * 1024)
     elif unit == "megabyte":
