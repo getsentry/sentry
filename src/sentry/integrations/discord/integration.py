@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any
 
 import requests
+import sentry_sdk
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
@@ -17,12 +18,12 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient, DiscordNonProxyClient
-from sentry.integrations.discord.commands import DiscordCommandManager
 from sentry.models.integrations.integration import Integration
 from sentry.pipeline.views.base import PipelineView
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
 
 from .utils import logger
@@ -52,6 +53,23 @@ metadata = IntegrationMetadata(
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/discord",
     aspects={},
 )
+COMMANDS: list[object] = [
+    {
+        "name": "link",
+        "description": "Link your Discord account to your Sentry account to perform actions on Sentry notifications.",
+        "type": 1,
+    },
+    {
+        "name": "unlink",
+        "description": "Unlink your Discord account from your Sentry account.",
+        "type": 1,
+    },
+    {
+        "name": "help",
+        "description": "View a list of Sentry bot commands and what they do.",
+        "type": 1,
+    },
+]
 
 
 class DiscordIntegration(IntegrationInstallation):
@@ -169,7 +187,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         extra: Any | None = None,
     ) -> None:
         if self._credentials_exist():
-            DiscordCommandManager().register_commands(self.client)
+            self.register_commands()
 
     def _get_discord_user_id(self, auth_code: str) -> str:
         """
@@ -222,6 +240,30 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def _credentials_exist(self) -> bool:
         return all((self.application_id, self.public_key, self.bot_token, self.client_secret))
+
+    def register_commands(self) -> None:
+        """
+        Fetches the current bot commands list and if it's out of date,
+        overwrites the bot commands list in Discord with the above list.
+        """
+        cache_key = "discord-bot-commands-updated"
+        result = cache.get(cache_key)
+
+        if result is None:
+            cache.set(cache_key, True, 3600)
+            try:
+                self.client.overwrite_application_commands(COMMANDS)
+            except ApiError as e:
+                sentry_sdk.capture_exception(e)
+                logger.error(
+                    "discord.setup.update_bot_commands_failure",
+                    extra={
+                        "status": e.code,
+                        "error": str(e),
+                        "application_id": self.client.application_id,
+                    },
+                )
+                cache.delete(cache_key)
 
 
 class DiscordInstallPipeline(PipelineView):

@@ -6,12 +6,7 @@ import responses
 from responses.matchers import header_matcher
 
 from sentry import audit_log, options
-from sentry.integrations.discord.client import (
-    APPLICATION_COMMANDS_URL,
-    GUILD_URL,
-    DiscordClient,
-    DiscordNonProxyClient,
-)
+from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
 from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
@@ -165,7 +160,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
     def test_post_install_overwrite_commands(self):
         provider = self.provider()
-        provider.client = DiscordNonProxyClient()
         provider.client.overwrite_application_commands = MagicMock(
             spec=provider.client.overwrite_application_commands
         )
@@ -175,7 +169,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
     def test_post_install_no_overwrite_commands(self):
         provider = self.provider()
-        provider.client = DiscordNonProxyClient()
         provider.client.overwrite_application_commands = MagicMock(
             spec=provider.client.overwrite_application_commands
         )
