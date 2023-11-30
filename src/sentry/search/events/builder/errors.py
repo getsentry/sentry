@@ -85,6 +85,8 @@ class ErrorsQueryBuilderMixin:
         elif isinstance(aliased_col, Column):
             return self._apply_column_entity(aliased_col.name)
 
+        raise NotImplementedError(f"{type(aliased_col)} not implemented in aliased_column")
+
     def column(self, name: str) -> Column:
         """Given an unresolved sentry column name and return a snql column.
 
