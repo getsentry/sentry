@@ -75,11 +75,11 @@ COMMANDS: list[object] = [
 
 class DiscordIntegration(IntegrationInstallation):
     def get_client(self) -> DiscordClient:
-        if not self.org_integration:
-            raise IntegrationError("Organization Integration does not exist")
+        org_integration_id = self.org_integration.id if self.org_integration else None
 
         return DiscordClient(
-            org_integration_id=self.org_integration.id, integration_id=self.model.id
+            integration_id=self.model.id,
+            org_integration_id=org_integration_id,
         )
 
     def uninstall(self) -> None:

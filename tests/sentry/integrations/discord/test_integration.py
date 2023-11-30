@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
@@ -151,25 +151,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
 
-    def test_post_install_overwrite_commands(self):
-        provider = self.provider()
-        provider.client.overwrite_application_commands = MagicMock(  # type: ignore
-            spec=provider.client.overwrite_application_commands
-        )
-
-        provider.post_install(self.integration, self.organization)
-        provider.client.overwrite_application_commands.assert_called()
-
-    def test_post_install_no_overwrite_commands(self):
-        provider = self.provider()
-        provider.client.overwrite_application_commands = MagicMock(  # type: ignore
-            spec=provider.client.overwrite_application_commands
-        )
-
-        provider.application_id = None
-        provider.post_install(self.integration, self.organization)
-        provider.client.overwrite_application_commands.assert_not_called()
-
     @responses.activate
     def test_get_discord_user_id(self):
         provider = self.provider()
@@ -225,3 +206,22 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
         with pytest.raises(IntegrationError):
             provider._get_discord_user_id("auth_code")
+
+    def test_post_install_overwrite_commands(self):
+        provider = self.provider()
+        provider.client.overwrite_application_commands = mock.MagicMock(  # type: ignore
+            spec=provider.client.overwrite_application_commands
+        )
+
+        provider.post_install(self.integration, self.organization)
+        provider.client.overwrite_application_commands.assert_called()
+
+    def test_post_install_no_overwrite_commands(self):
+        provider = self.provider()
+        provider.client.overwrite_application_commands = mock.MagicMock(  # type: ignore
+            spec=provider.client.overwrite_application_commands
+        )
+
+        provider.application_id = None
+        provider.post_install(self.integration, self.organization)
+        provider.client.overwrite_application_commands.assert_not_called()
