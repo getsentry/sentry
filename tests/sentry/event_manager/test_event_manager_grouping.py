@@ -9,6 +9,7 @@ from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
@@ -342,3 +343,136 @@ class EventManagerGroupingTest(TestCase):
             )[event1.group.id]
             == 1
         )
+
+    @with_feature("organizations:group-chunk-load-errors")
+    def test_group_chunk_load_errors(self):
+        manager = EventManager(
+            make_event(
+                title="something",
+                message="ChunkLoadError: Loading chunk 123 failed",
+                event_id="a" * 32,
+                platform="node",
+                exception={
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "in_app_function",
+                                    }
+                                ]
+                            },
+                            "value": "ChunkLoadError: Loading chunk 123 failed",
+                        }
+                    ]
+                },
+            )
+        )
+        with self.tasks():
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+        manager = EventManager(
+            make_event(
+                title="else",
+                message="ChunkLoadError: Loading chunk 321 failed",
+                event_id="b" * 32,
+                platform="node",
+                exception={
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "different_in_app_function",
+                                    }
+                                ]
+                            },
+                            "value": "ChunkLoadError: Loading chunk 321 failed",
+                        }
+                    ]
+                },
+            )
+        )
+
+        with self.tasks():
+            manager.normalize()
+            event2 = manager.save(self.project.id)
+
+        assert event.group_id == event2.group_id
+
+    def test_do_not_group_chunk_load_errors(self):
+        manager = EventManager(
+            make_event(
+                title="something",
+                message="ChunkLoadError: Loading chunk 123 failed",
+                event_id="a" * 32,
+                platform="node",
+                exception={
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "in_app_function",
+                                    }
+                                ]
+                            },
+                            "value": "ChunkLoadError: Loading chunk 123 failed",
+                        }
+                    ]
+                },
+            )
+        )
+        with self.tasks():
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+        manager = EventManager(
+            make_event(
+                title="else",
+                message="ChunkLoadError: Loading chunk 321 failed",
+                event_id="b" * 32,
+                platform="node",
+                exception={
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "different_in_app_function",
+                                    }
+                                ]
+                            },
+                            "value": "ChunkLoadError: Loading chunk 321 failed",
+                        }
+                    ]
+                },
+            )
+        )
+
+        with self.tasks():
+            manager.normalize()
+            event2 = manager.save(self.project.id)
+
+        assert event.group_id != event2.group_id
+
+    def test_chunk_load_errors_exception(self):
+        manager = EventManager(
+            make_event(
+                title="something",
+                message="",
+                event_id="a" * 32,
+                platform="node",
+                exception={},
+            )
+        )
+        with self.tasks():
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+        assert event.group

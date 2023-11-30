@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import ipaddress
 import logging
 import mimetypes
@@ -2561,28 +2562,34 @@ def _calculate_event_grouping(
         # Detect & set synthetic marker if necessary
         detect_synthetic_exception(event.data, grouping_config)
 
-        with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
-            # The active grouping config was put into the event in the
-            # normalize step before.  We now also make sure that the
-            # fingerprint was set to `'{{ default }}' just in case someone
-            # removed it from the payload.  The call to get_hashes will then
-            # look at `grouping_config` to pick the right parameters.
-            event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(
-                event.data.data,
-                get_fingerprinting_config_for_project(project),
-                allow_custom_title=True,
-            )
+        hashes = None
+        # If the event platform is node, it could have a ChunkLoadError that we want to force group
+        if event.platform == "node":
+            hashes = handle_chunk_load_error_hash(event)
 
-        with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-            # Here we try to use the grouping config that was requested in the
-            # event. If that config has since been deleted (because it was an
-            # experimental grouping config) we fall back to the default.
-            try:
-                hashes = event.get_hashes(grouping_config)
-            except GroupingConfigNotFound:
-                event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-                hashes = event.get_hashes()
+        if not hashes:
+            with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
+                # The active grouping config was put into the event in the
+                # normalize step before.  We now also make sure that the
+                # fingerprint was set to `'{{ default }}' just in case someone
+                # removed it from the payload.  The call to get_hashes will then
+                # look at `grouping_config` to pick the right parameters.
+                event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
+                apply_server_fingerprinting(
+                    event.data.data,
+                    get_fingerprinting_config_for_project(project),
+                    allow_custom_title=True,
+                )
+
+            with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
+                # Here we try to use the grouping config that was requested in the
+                # event. If that config has since been deleted (because it was an
+                # experimental grouping config) we fall back to the default.
+                try:
+                    hashes = event.get_hashes(grouping_config)
+                except GroupingConfigNotFound:
+                    event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
+                    hashes = event.get_hashes()
 
         hashes.write_to_event(event.data)
         return hashes
@@ -2619,6 +2626,31 @@ def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping)
         job["performance_problems"] = detect_performance_problems(
             job["data"], projects[job["project_id"]]
         )
+
+
+def handle_chunk_load_error_hash(event: Event) -> Optional[CalculatedHashes]:
+    """
+    Return the same hash if the event is a ChunkLoadError, otherwise return None
+    """
+    try:
+        exception_value = event.data["exception"]["values"][0]["value"]
+    except KeyError:
+        return None
+
+    hashes = None
+    # Only check for the flag after it is established if it's a ChunkLoadError to avoid
+    # unnecessary querying
+    if "ChunkLoadError" in exception_value:
+        organization = Project.objects.get(id=event.project_id).organization
+        if features.has("organizations:group-chunk-load-errors", organization):
+            hashes = get_chunk_load_error_hash()
+    return hashes
+
+
+def get_chunk_load_error_hash() -> CalculatedHashes:
+    return CalculatedHashes(
+        hashes=hashlib.md5(b"chunkloaderror").hexdigest(), hierarchical_hashes=[], tree_labels=[]
+    )
 
 
 class PerformanceJob(TypedDict, total=False):
