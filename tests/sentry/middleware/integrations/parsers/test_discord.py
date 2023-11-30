@@ -140,42 +140,12 @@ class DiscordRequestParserTest(TestCase):
             parser_integration = parser.get_integration_from_request()
             assert parser_integration.id == self.integration.id
 
-
-class DiscordTestEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
-
-    def post(self, request):
-        return JsonResponse({"foo": "bar"})
-
-
-urlpatterns = [
-    re_path(
-        r"^extensions/discord/interactions/$",
-        DiscordTestEndpoint.as_view(),
-        name="discord-test-endpoint",
-    ),
-]
-
-
-@control_silo_test
-# @override_settings(ROOT_URLCONF=__name__)
-class End2EndTest(APITestCase):
-    def test_discord_request_parser(self):
-        response = self.client.post(
-            reverse("sentry-integration-discord-interactions"),
-            data={"type": DiscordRequestTypes.PING},
-        )
-        assert response.status_code == 200
-        data = json.loads(response.content)
-        assert data == {"foo": "bar"}
-
-    # def test_discord_request_parser2(self):
-    #     with patch.object(
-    #         DiscordInteractionsEndpoint, "respond_ping", return_value=JsonResponse({"type": 2})
-    #     ):
-    #         response = self.client.post(
-    #             reverse("discord-test-endpoint"), data={"type": DiscordRequestTypes.PING}
-    #         )
-    #         assert response.status_code == 200
-    #         data = json.loads(response.content)
-    #         assert data == {"foo": "bar"}
+    def test_discord_interaction_endpoint(self):
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            response = self.client.post(
+                reverse("sentry-integration-discord-interactions"),
+                data={"type": DiscordRequestTypes.PING},
+            )
+            assert response.status_code == 200
+            data = json.loads(response.content)
+            assert data == {"type": 1}
