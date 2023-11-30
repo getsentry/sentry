@@ -44,7 +44,13 @@ export function FeedbackIcon({
   icon: ReactNode;
   tooltipText: string;
 }) {
-  return <StyledTooltip title={tooltipText}>{icon}</StyledTooltip>;
+  return (
+    <StyledTooltip
+      title={<span style={{textTransform: 'capitalize'}}>{tooltipText}</span>}
+    >
+      {icon}
+    </StyledTooltip>
+  );
 }
 
 function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {

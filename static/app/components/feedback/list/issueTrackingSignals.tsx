@@ -31,12 +31,15 @@ export default function IssueTrackingSignals({group}: Props) {
     );
   }
 
-  const name = linkedIssues[0].key.charAt(0).toUpperCase() + linkedIssues[0].key.slice(1);
+  const name =
+    linkedIssues[0].type === 'plugin-issue' || linkedIssues[0].type === 'plugin-action'
+      ? linkedIssues[0].props.plugin.name ?? ''
+      : linkedIssues[0].key;
 
   return (
     <FeedbackIcon
       tooltipText={t('Linked %s Issue', name)}
-      icon={getIntegrationIcon(linkedIssues[0].key, 'xs')}
+      icon={getIntegrationIcon(name, 'xs')}
     />
   );
 }
