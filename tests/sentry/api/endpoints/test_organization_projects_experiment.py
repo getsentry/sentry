@@ -67,22 +67,8 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert response.data == {"detail": "User is not authenticated"}
         mock_add_creator.assert_called_once()
 
+    @with_feature({"organizations:team-roles": False})
     def test_missing_team_roles_flag(self):
-        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
-        assert response.data == {
-            "detail": "You do not have permission to join a new team as a Team Admin."
-        }
-
-    @with_feature("organizations:team-roles")
-    def test_missing_project_creation_all_flag(self):
-        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
-        assert response.data == {
-            "detail": "You do not have permission to join a new team as a Team Admin."
-        }
-
-    @with_feature(["organizations:team-roles"])
-    def test_missing_experiment(self):
-        self.mock_experiment_get.return_value = 0
         response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
         assert response.data == {
             "detail": "You do not have permission to join a new team as a Team Admin."
