@@ -89,7 +89,7 @@ describe('CreateProject', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('should block if you have access to no teams', function () {
+  it('should block if you have access to no teams without team-roles', function () {
     render(<CreateProject />, {
       context: TestStubs.routerContext([
         {organization: {id: '1', slug: 'testOrg', access: ['project:read']}},
@@ -129,7 +129,11 @@ describe('CreateProject', function () {
   });
 
   it('should only allow teams which the user is a team-admin', async function () {
-    const organization = Organization();
+    const {organization} = initializeOrg({
+      organization: {
+        features: ['team-roles'],
+      },
+    });
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
 
     OrganizationStore.onUpdate(organization);
@@ -187,6 +191,7 @@ describe('CreateProject', function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
+        features: ['team-roles'],
       },
     });
 
@@ -218,6 +223,7 @@ describe('CreateProject', function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
+        features: ['team-roles'],
       },
     });
 
@@ -296,7 +302,7 @@ describe('CreateProject', function () {
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
     const {organization} = initializeOrg({
       organization: {
-        features: ['onboarding-sdk-selection'],
+        features: ['onboarding-sdk-selection', 'team-roles'],
         access: ['project:read', 'project:write'],
       },
     });
