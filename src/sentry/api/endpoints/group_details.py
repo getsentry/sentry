@@ -21,7 +21,8 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
+from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
+from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
@@ -35,12 +36,10 @@ from sentry.models.groupsubscription import GroupSubscriptionManager
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
-from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
-from sentry.utils.safe import safe_execute
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -77,46 +76,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def _get_seen_by(self, request: Request, group):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return serialize(seen_by, request.user)
-
-    def _get_actions(self, request: Request, group):
-        project = group.project
-
-        action_list = []
-        for plugin in plugins.for_project(project, version=1):
-            if is_plugin_deprecated(plugin, project):
-                continue
-
-            results = safe_execute(
-                plugin.actions, request, group, action_list, _with_transaction=False
-            )
-
-            if not results:
-                continue
-
-            action_list = results
-
-        for plugin in plugins.for_project(project, version=2):
-            if is_plugin_deprecated(plugin, project):
-                continue
-            for action in (
-                safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
-            ):
-                action_list.append(action)
-
-        return action_list
-
-    def _get_available_issue_plugins(self, request: Request, group):
-        project = group.project
-
-        plugin_issues = []
-        for plugin in plugins.for_project(project, version=1):
-            if isinstance(plugin, IssueTrackingPlugin2):
-                if is_plugin_deprecated(plugin, project):
-                    continue
-                plugin_issues = safe_execute(
-                    plugin.plugin_issues, request, group, plugin_issues, _with_transaction=False
-                )
-        return plugin_issues
 
     def _get_context_plugins(self, request: Request, group):
         project = group.project
@@ -253,13 +212,12 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                         }
                     )
 
-            action_list = self._get_actions(request, group)
             data.update(
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "pluginActions": action_list,
-                    "pluginIssues": self._get_available_issue_plugins(request, group),
+                    "pluginActions": get_actions(request, group),
+                    "pluginIssues": get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},

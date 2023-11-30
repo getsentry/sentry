@@ -35,6 +35,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                     stats_period="14d",
                     organization_id=organization_id,
                 ),
+                request=self.make_request(),
             )
             assert get_range.call_count == 1
             for args, kwargs in get_range.call_args_list:
@@ -49,6 +50,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 serializer=StreamGroupSerializerSnuba(
                     environment_ids=None, stats_period="14d", organization_id=organization_id
                 ),
+                request=self.make_request(),
             )
             assert get_range.call_count == 1
             for args, kwargs in get_range.call_args_list:
@@ -143,6 +145,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             serializer=StreamGroupSerializerSnuba(
                 stats_period="14d", organization_id=organization_id
             ),
+            request=self.make_request(),
         )
         assert "sessionCount" not in result[0]
         result = serialize(
@@ -150,6 +153,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             serializer=StreamGroupSerializerSnuba(
                 stats_period="14d", expand=["sessions"], organization_id=organization_id
             ),
+            request=self.make_request(),
         )
         assert result[0]["sessionCount"] == 3
         result = serialize(
@@ -160,6 +164,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 expand=["sessions"],
                 organization_id=organization_id,
             ),
+            request=self.make_request(),
         )
         assert result[0]["sessionCount"] == 2
 
@@ -171,6 +176,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 expand=["sessions"],
                 organization_id=organization_id,
             ),
+            request=self.make_request(),
         )
         assert result[0]["sessionCount"] is None
 
@@ -182,6 +188,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 expand=["sessions"],
                 organization_id=organization_id,
             ),
+            request=self.make_request(),
         )
         assert result[0]["sessionCount"] == 1
 
@@ -213,6 +220,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 end=django_timezone.now() - timedelta(days=15),
                 organization_id=organization_id,
             ),
+            request=self.make_request(),
         )
         assert result[0]["sessionCount"] == 1
 
@@ -240,6 +248,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 expand=["sessions"],
                 organization_id=organization_id,
             ),
+            request=self.make_request(),
         )
         assert result[0]["sessionCount"] == 2
         # No sessions in project2
@@ -272,5 +281,10 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             ]
         )
         assert not serializer.conditions
-        result = serialize([group], self.user, serializer=serializer)
+        result = serialize(
+            [group],
+            self.user,
+            serializer=serializer,
+            request=self.make_request(),
+        )
         assert result[0]["id"] == str(group.id)

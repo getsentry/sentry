@@ -299,7 +299,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     )
                 )
                 if len(groups) == 1:
-                    serialized_groups = serialize(groups, request.user, serializer())
+                    serialized_groups = serialize(
+                        groups, request.user, serializer(), request=request
+                    )
                     if event_id:
                         serialized_groups[0]["matchingEventId"] = event_id
                     response = Response(serialized_groups)
@@ -307,13 +309,15 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     return response
 
                 if groups:
-                    return Response(serialize(groups, request.user, serializer()))
+                    return Response(serialize(groups, request.user, serializer(), request=request))
 
             group = get_by_short_id(organization.id, request.GET.get("shortIdLookup"), query)
             if group is not None:
                 # check all projects user has access to
                 if request.access.has_project_access(group.project):
-                    response = Response(serialize([group], request.user, serializer()))
+                    response = Response(
+                        serialize([group], request.user, serializer(), request=request)
+                    )
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response
 
@@ -327,7 +331,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
             if any(g for g in groups if not request.access.has_project_access(g.project)):
                 raise PermissionDenied
-            return Response(serialize(groups, request.user, serializer()))
+            return Response(serialize(groups, request.user, serializer(), request=request))
 
         try:
             cursor_result, query_kwargs = self._search(
@@ -353,6 +357,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 else None,
                 organization_id=organization.id,
             ),
+            request=request,
         )
 
         # HACK: remove auto resolved entries
