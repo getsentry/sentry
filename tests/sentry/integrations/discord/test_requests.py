@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from unittest import mock
-from urllib.parse import urlencode
 
 from sentry.integrations.discord.requests.base import DiscordRequest
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 
 
 @control_silo_test
@@ -27,7 +27,7 @@ class DiscordRequestTest(TestCase):
             if request_data is None
             else request_data
         )
-        self.request.body = urlencode(self.request.data).encode()
+        self.request.body = json.dumps(self.request.data).encode()
         self.request.META = {
             "HTTP_X_SIGNATURE_ED25519": "signature",
             "HTTP_X_SIGNATURE_TIMESTAMP": "timestamp",
