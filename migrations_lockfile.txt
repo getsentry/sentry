@@ -9,5 +9,5 @@ feedback: 0003_feedback_add_env
 hybridcloud: 0009_make_user_id_optional_for_slug_reservation_replica
 nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
-sentry: 0609_remove_notification_setting_model
+sentry: 0610_remove_notification_setting_table
 social_auth: 0002_default_auto_field
