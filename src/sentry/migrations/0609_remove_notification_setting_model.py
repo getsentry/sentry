@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0609_remove_notification_setting_model"),
+        ("sentry", "0608_notification_setting_db_constraint"),
     ]
 
     operations = [
