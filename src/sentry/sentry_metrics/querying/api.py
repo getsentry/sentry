@@ -14,7 +14,7 @@ from snuba_sdk import (
     Timeseries,
 )
 from snuba_sdk.conditions import Condition, Op
-from snuba_sdk.dsl.dsl import parse_mql
+from snuba_sdk.mql.mql import parse_mql
 
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
