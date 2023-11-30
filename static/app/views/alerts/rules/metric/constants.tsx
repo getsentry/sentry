@@ -177,7 +177,10 @@ function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined 
     return undefined;
   }
 
-  const timeWindows = Object.values(TimeWindow).sort() as number[];
+  const timeWindows = Object.values(TimeWindow)
+    .filter((value): value is TimeWindow => typeof value === 'number')
+    .sort();
+
   for (let index = 0; index < timeWindows.length; index++) {
     const timeWindow = timeWindows[index];
     if (periodMinutes <= timeWindow) {
