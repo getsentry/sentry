@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from operator import attrgetter
 from typing import Any, Dict, List, Mapping, Sequence
 
@@ -264,9 +265,12 @@ class GitHubIssueBasic(IssueBasicMixin):
         except Exception as e:
             self.raise_error(e)
 
+        def natural_sort_pair(pair: tuple[str, str]) -> str | int:
+            return [int(text) if text.isdigit() else text for text in re.split("([0-9]+)", pair[0])]
+
         # sort alphabetically
         labels = tuple(
-            sorted([(label["name"], label["name"]) for label in response], key=lambda pair: pair[0])
+            sorted([(label["name"], label["name"]) for label in response], key=natural_sort_pair)
         )
 
         return labels
