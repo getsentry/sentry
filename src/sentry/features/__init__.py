@@ -65,7 +65,6 @@ default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrateg
 default_manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.REMOTE)
 
 # Organization scoped features that are in development or in customer trials.
-default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
