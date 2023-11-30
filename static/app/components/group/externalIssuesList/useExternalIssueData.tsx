@@ -101,6 +101,10 @@ export default function useExternalIssueData({group, event, project}: Props) {
   };
 
   const renderPluginIssues = (): ExternalIssueComponent[] => {
+    if (!group.pluginIssues) {
+      return [];
+    }
+
     return group.pluginIssues?.map((plugin, i) => ({
       type: 'plugin-issue',
       key: `plugin-issue-${i}`,
@@ -115,6 +119,10 @@ export default function useExternalIssueData({group, event, project}: Props) {
   };
 
   const renderPluginActions = (): ExternalIssueComponent[] => {
+    if (!group.pluginActions) {
+      return [];
+    }
+
     return (
       group.pluginActions?.map((plugin, i) => ({
         type: 'plugin-action',

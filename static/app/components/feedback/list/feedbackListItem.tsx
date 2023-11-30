@@ -7,7 +7,7 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
-import IssueTrackingSignalsWrapper from 'sentry/components/feedback/list/issueTrackingSignalsWrapper';
+import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -123,7 +124,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               gridArea: 'icons',
             }}
           >
-            <IssueTrackingSignalsWrapper feedbackIssue={feedbackItem} />
+            <IssueTrackingSignals group={feedbackItem as unknown as Group} />
             {isCrashReport && (
               <FeedbackIcon
                 tooltipText={t('Linked Issue')}

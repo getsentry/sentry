@@ -2,20 +2,18 @@ import {FeedbackIcon} from 'sentry/components/feedback/list/feedbackListItem';
 import useExternalIssueData from 'sentry/components/group/externalIssuesList/useExternalIssueData';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Event, Group, Project} from 'sentry/types';
+import {Event, Group} from 'sentry/types';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 interface Props {
-  event: Event;
   group: Group;
-  project: Project;
 }
 
-export default function IssueTrackingSignals({group, event, project}: Props) {
+export default function IssueTrackingSignals({group}: Props) {
   const {actions} = useExternalIssueData({
     group,
-    event,
-    project,
+    event: {} as Event,
+    project: group.project,
   });
 
   const linkedIssues = actions.filter(
