@@ -3,6 +3,7 @@ import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';
@@ -40,7 +41,6 @@ import {Organization, SavedSearchType, Tag, TagCollection, User} from 'sentry/ty
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
   FieldDefinition,
   FieldKind,
@@ -75,7 +75,6 @@ import {
   generateOperatorEntryMap,
   getAutoCompleteGroupForInvalidWildcard,
   getDateTagAutocompleteGroups,
-  getSearchConfigFromCustomPerformanceMetrics,
   getSearchGroupWithItemMarkedActive,
   getTagItemsFromKeys,
   getValidOps,
@@ -106,6 +105,42 @@ const generateOpAutocompleteGroup = (
     tagName: '',
     type: ItemType.TAG_OPERATOR,
   };
+};
+
+const pickParserOptions = (props: Props) => {
+  const {
+    booleanKeys,
+    dateKeys,
+    durationKeys,
+    numericKeys,
+    percentageKeys,
+    sizeKeys,
+    textOperatorKeys,
+    getFilterWarning,
+    supportedTags,
+    highlightUnsupportedTags,
+    disallowedLogicalOperators,
+    disallowWildcard,
+    disallowFreeText,
+    invalidMessages,
+  } = props;
+
+  return {
+    booleanKeys,
+    dateKeys,
+    durationKeys,
+    numericKeys,
+    percentageKeys,
+    sizeKeys,
+    textOperatorKeys,
+    getFilterTokenWarning: getFilterWarning,
+    supportedTags,
+    validateKeys: highlightUnsupportedTags,
+    disallowedLogicalOperators,
+    disallowWildcard,
+    disallowFreeText,
+    invalidMessages,
+  } satisfies Partial<SearchConfig>;
 };
 
 export type ActionProps = {
@@ -194,10 +229,6 @@ type Props = WithRouterProps &
      * A function that provides the current search item and can return a custom invalid tag error message for the drop-down.
      */
     customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
-    /**
-     * Custom Performance Metrics for query string unit parsing
-     */
-    customPerformanceMetrics?: CustomMeasurementCollection;
     /**
      * Keys that have date values
      */
@@ -398,23 +429,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   state: State = {
     query: this.initialQuery,
     showDropdown: false,
-    parsedQuery: parseSearch(this.initialQuery, {
-      booleanKeys: this.props.booleanKeys,
-      dateKeys: this.props.dateKeys,
-      durationKeys: this.props.durationKeys,
-      numericKeys: this.props.numericKeys,
-      percentageKeys: this.props.percentageKeys,
-      sizeKeys: this.props.sizeKeys,
-      textOperatorKeys: this.props.textOperatorKeys,
-      getFilterTokenWarning: this.props.getFilterWarning,
-      supportedTags: this.props.supportedTags,
-      validateKeys: this.props.highlightUnsupportedTags,
-      disallowedLogicalOperators: this.props.disallowedLogicalOperators,
-      disallowWildcard: this.props.disallowWildcard,
-      disallowFreeText: this.props.disallowFreeText,
-      invalidMessages: this.props.invalidMessages,
-      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
-    }),
+    parsedQuery: parseSearch(this.initialQuery, pickParserOptions(this.props)),
     searchTerm: '',
     searchGroups: [],
     flatSearchItems: [],
@@ -439,21 +454,15 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {query, customPerformanceMetrics, actionBarItems, disallowWildcard} =
-      this.props;
-    const {
-      query: lastQuery,
-      customPerformanceMetrics: lastCustomPerformanceMetrics,
-      actionBarItems: lastAcionBarItems,
-      disallowWildcard: lastDisallowWildcard,
-    } = prevProps;
+    const {query, actionBarItems} = this.props;
+    const parserOptions = pickParserOptions(this.props);
 
-    if (
-      (query !== lastQuery && (defined(query) || defined(lastQuery))) ||
-      customPerformanceMetrics !== lastCustomPerformanceMetrics
-    ) {
+    const {query: lastQuery, actionBarItems: lastAcionBarItems} = prevProps;
+    const prevParserOptions = pickParserOptions(prevProps);
+
+    if (query !== lastQuery && (defined(query) || defined(lastQuery))) {
       this.setState(this.makeQueryState(addSpace(query ?? undefined)));
-    } else if (disallowWildcard !== lastDisallowWildcard) {
+    } else if (!isEqual(parserOptions, prevParserOptions)) {
       // Re-parse query to apply new options (without resetting it to the query prop value)
       this.setState(this.makeQueryState(this.state.query));
     }
@@ -474,23 +483,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   }
 
   makeQueryState(query: string) {
-    const additionalConfig: Partial<SearchConfig> = {
-      booleanKeys: this.props.booleanKeys,
-      dateKeys: this.props.dateKeys,
-      durationKeys: this.props.durationKeys,
-      numericKeys: this.props.numericKeys,
-      percentageKeys: this.props.percentageKeys,
-      sizeKeys: this.props.sizeKeys,
-      textOperatorKeys: this.props.textOperatorKeys,
-      getFilterTokenWarning: this.props.getFilterWarning,
-      supportedTags: this.props.supportedTags,
-      validateKeys: this.props.highlightUnsupportedTags,
-      disallowedLogicalOperators: this.props.disallowedLogicalOperators,
-      disallowWildcard: this.props.disallowWildcard,
-      disallowFreeText: this.props.disallowFreeText,
-      invalidMessages: this.props.invalidMessages,
-      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
-    };
+    const additionalConfig: Partial<SearchConfig> = pickParserOptions(this.props);
     return {
       query,
       parsedQuery: parseSearch(query, additionalConfig),
@@ -1917,7 +1910,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       maxQueryLength,
       maxMenuHeight,
       name,
-      customPerformanceMetrics,
       supportedTags,
     } = this.props;
 
@@ -2067,7 +2059,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             runShortcut={this.runShortcutOnClick}
             visibleShortcuts={visibleShortcuts}
             maxMenuHeight={maxMenuHeight}
-            customPerformanceMetrics={customPerformanceMetrics}
             supportedTags={supportedTags}
             customInvalidTagMessage={this.props.customInvalidTagMessage}
             mergeItemsWith={this.props.mergeSearchGroupWith}

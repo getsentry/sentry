@@ -298,4 +298,60 @@ describe('Events > SearchBar', function () {
     expect(await screen.findByText('measurements')).toBeInTheDocument();
     expect(screen.getByText(/\.ratio/)).toBeInTheDocument();
   });
+
+  it('raises Invalid file size when parsed filter unit is not a valid size unit', async () => {
+    render(
+      <SearchBar
+        {...props}
+        customMeasurements={{
+          'measurements.custom.kibibyte': {
+            key: 'measurements.custom.kibibyte',
+            name: 'measurements.custom.kibibyte',
+            functions: [],
+            fieldType: 'size',
+            unit: '',
+          },
+        }}
+      />
+    );
+
+    const textbox = screen.getByRole('textbox');
+    await userEvent.click(textbox);
+    await userEvent.type(textbox, 'measurements.custom.kibibyte:10ms ');
+    await userEvent.keyboard('{arrowleft}');
+
+    expect(
+      screen.getByText(
+        'Invalid file size. Expected number followed by file size unit suffix'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('raises Invalid duration when parsed filter unit is not a valid duration unit', async () => {
+    render(
+      <SearchBar
+        {...props}
+        customMeasurements={{
+          'measurements.custom.minute': {
+            key: 'measurements.custom.minute',
+            name: 'measurements.custom.minute',
+            functions: [],
+            fieldType: 'duration',
+            unit: '',
+          },
+        }}
+      />
+    );
+
+    const textbox = screen.getByRole('textbox');
+    await userEvent.click(textbox);
+    await userEvent.type(textbox, 'measurements.custom.minute:10kb ');
+    await userEvent.keyboard('{arrowleft}');
+
+    expect(
+      screen.getByText(
+        'Invalid duration. Expected number followed by duration unit suffix'
+      )
+    ).toBeInTheDocument();
+  });
 });
