@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import pytest
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -21,10 +23,13 @@ def auto_login(client, default_user):
 
 @pytest.fixture(autouse=True)
 def openai_mock(monkeypatch):
-    def dummy_response(*a, **kw):
+    def dummy_response(*args, **kwargs):
         return {"choices": [{"message": {"content": "AI generated response"}}]}
 
-    monkeypatch.setattr("openai.ChatCompletion.create", dummy_response)
+    mock_openai = Mock()
+    mock_openai().chat.completions.create = dummy_response
+
+    monkeypatch.setattr("sentry.api.endpoints.event_ai_suggested_fix.OpenAI", mock_openai)
 
 
 @pytest.fixture
