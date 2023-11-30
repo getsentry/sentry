@@ -352,7 +352,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/models/identity.py                                       @getsentry/issues
 /src/sentry/models/integrationfeature.py                             @getsentry/issues
 /src/sentry/models/integrations/                                     @getsentry/issues
-/src/sentry/models/notificationsetting.py                            @getsentry/issues
 
 /src/sentry/tasks/code_owners.py                                     @getsentry/issues
 /src/sentry/tasks/commits.py                                         @getsentry/issues

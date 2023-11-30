@@ -22,14 +22,6 @@ def get_notification_setting_type_name(value: int | NotificationSettingTypes) ->
     return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
 
 
-def get_notification_setting_value_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SETTING_OPTION_VALUES.get(NotificationSettingOptionValues(value))
-
-
-def get_notification_scope_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
-
-
 class NotificationSettingTypes(ValueEqualityEnum):
     """
     Each of these categories of Notification settings has at least an option for

@@ -3382,42 +3382,6 @@
     "table_name": "sentry_notificationactionproject",
     "uniques": []
   },
-  "sentry.notificationsetting": {
-    "dangling": false,
-    "foreign_keys": {
-      "target_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.actor",
-        "nullable": true
-      },
-      "team_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.team",
-        "nullable": true
-      },
-      "user": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      }
-    },
-    "model": "sentry.notificationsetting",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Control"
-    ],
-    "table_name": "sentry_notificationsetting",
-    "uniques": [
-      [
-        "provider",
-        "scope_identifier",
-        "scope_type",
-        "target_id",
-        "type"
-      ]
-    ]
-  },
   "sentry.notificationsettingoption": {
     "dangling": false,
     "foreign_keys": {

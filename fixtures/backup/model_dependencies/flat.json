@@ -471,11 +471,6 @@
     "sentry.notificationaction",
     "sentry.project"
   ],
-  "sentry.notificationsetting": [
-    "sentry.actor",
-    "sentry.team",
-    "sentry.user"
-  ],
   "sentry.notificationsettingoption": [
     "sentry.team",
     "sentry.user"

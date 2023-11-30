@@ -69,6 +69,7 @@ class SiloRouter:
 
     historical_silo_assignments = {
         "sentry_pagerdutyservice": SiloMode.REGION,
+        "sentry_notificationsetting": SiloMode.CONTROL,
     }
     """
     When we remove models, we are no longer able to resolve silo assignments
