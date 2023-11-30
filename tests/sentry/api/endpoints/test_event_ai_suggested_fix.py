@@ -29,7 +29,7 @@ def openai_mock(monkeypatch):
     mock_openai = Mock()
     mock_openai().chat.completions.create = dummy_response
 
-    monkeypatch.setattr("openai.OpenAI", mock_openai)
+    monkeypatch.setattr("sentry.api.endpoints.event_ai_suggested_fix.OpenAI", mock_openai)
 
 
 @pytest.fixture
