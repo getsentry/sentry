@@ -654,6 +654,9 @@ SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
 # Hybrid cloud multi-silo configuration #
 
+# Unused - compatibility shim for getsentry
+USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
+
 # Defined by `sentry devserver` to enable siloed local development
 SILO_DEVSERVER = os.environ.get("SENTRY_SILO_DEVSERVER", False)
 
