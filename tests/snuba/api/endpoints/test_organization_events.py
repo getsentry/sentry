@@ -6231,6 +6231,32 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "weighted_performance_score(measurements.score.lcp)": 0.3433333333333333,
         }
 
+    def test_invalid_performance_score_column(self):
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "performance_score(measurements.score.fp)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_invalid_weighted_performance_score_column(self):
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "weighted_performance_score(measurements.score.fp)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
     def test_all_events_fields(self):
         user_data = {
             "id": self.user.id,

@@ -2812,6 +2812,48 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["weighted_performance_score(measurements.score.lcp)"] == 0.3433333333333333
         assert meta["isMetricsData"]
 
+    def test_invalid_performance_score_column(self):
+        self.store_transaction_metric(
+            0.03,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "performance_score(measurements.score.fp)",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 400, response.content
+
+    def test_invalid_weighted_performance_score_column(self):
+        self.store_transaction_metric(
+            0.03,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "weighted_performance_score(measurements.score.fp)",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 400, response.content
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -2914,3 +2956,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_weighted_performance_score(self):
         super().test_performance_score()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_invalid_performance_score_column(self):
+        super().test_invalid_performance_score_column()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_invalid_weighted_performance_score_column(self):
+        super().test_invalid_weighted_performance_score_column()
