@@ -2,7 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import * as Prism from 'prismjs';
 
-import {loadPrismLanguage, prismLanguageMap} from 'sentry/utils/loadPrismLanguage';
+import {loadPrismLanguage, prismLanguageMap} from 'sentry/utils/prism';
 
 type PrismHighlightParams = {
   code: string;

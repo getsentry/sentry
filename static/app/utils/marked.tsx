@@ -3,7 +3,7 @@ import marked from 'marked'; // eslint-disable-line no-restricted-imports
 import Prism from 'prismjs';
 
 import {NODE_ENV} from 'sentry/constants';
-import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
+import {loadPrismLanguage} from 'sentry/utils/prism';
 
 // Only https and mailto, (e.g. no javascript, vbscript, data protocols)
 const safeLinkPattern = /^(https?:|mailto:)/i;
