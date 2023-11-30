@@ -57,8 +57,15 @@ export async function loadPrismLanguage(
     // Check for dependencies (e.g. `php` requires `markup-templating`) & download them
     const deps: string[] | string | undefined =
       prismComponents.languages[language].require;
-    (Array.isArray(deps) ? deps : [deps]).forEach(
-      async dep => dep && (await import(`prismjs/components/prism-${dep}.min`))
+    const depsArray = Array.isArray(deps) ? deps : [deps];
+    await Promise.all(
+      depsArray.map(dep => {
+        if (!dep) {
+          return Promise.resolve();
+        }
+
+        return import(`prismjs/components/prism-${dep}.min`);
+      })
     );
 
     // Download language grammar file
