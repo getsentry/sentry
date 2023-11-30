@@ -181,7 +181,7 @@ class _SiloModeTestModification:
         "secondary" modes are tested by dynamically generated classes that are added
         to the module namespace.
         """
-        if len(self.silo_modes) == 1:
+        if False and len(self.silo_modes) == 1:
             (silo_mode,) = self.silo_modes
             if not (self.include_monolith_run or settings.FORCE_SILOED_TESTS):
                 return silo_mode, ()
@@ -200,8 +200,8 @@ class _SiloModeTestModification:
             module = sys.modules[test_class.__module__]
             setattr(module, siloed_test_class.__name__, siloed_test_class)
 
-        # Return the value to be wrapped by the original decorator
-        return self._create_overriding_test_class(test_class, primary_mode)
+        assert primary_mode == SiloMode.MONOLITH
+        return test_class
 
     def _mark_parameterized_by_silo_mode(self, test_method: TestMethod) -> TestMethod:
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
