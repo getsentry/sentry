@@ -23,7 +23,7 @@ from snuba_sdk import (
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils import json
-from sentry.utils.redis import RedisCluster, redis_clusters
+from sentry.utils.redis import redis_clusters
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -128,29 +128,31 @@ def calculate_velocity_threshold_for_project(project: Project) -> Optional[float
         return None
 
 
-def set_velocity_threshold_for_project(project: Project) -> float:
+def set_velocity_threshold_for_project(project: Project) -> Optional[float]:
     """
-    Set the threshold in Redis, setting as -1 when no threshold is calculated.
+    Set the threshold in Redis. If no threshold could be calculated for whatever reason, we don't
+    save anything to Redis.
     """
     threshold = calculate_velocity_threshold_for_project(project)
     if threshold is None:
         logger.error(
-            "Velocity threshold couldn't be calculated, error with query",
+            "Velocity threshold couldn't be calculated, query returned nothing",
             extra={"project_id": project.id},
         )
-        threshold = -1
+        return None
     elif math.isnan(threshold):  # indicates there were no valid events to base the calculation
-        threshold = -1
+        return None
 
     client = get_redis_client()
-    client.set(PROJECT_KEY.format(project_id=project.id), {"threshold": threshold}, ex=REDIS_TTL)
+    client.set(PROJECT_KEY.format(project_id=project.id), threshold, ex=REDIS_TTL)
 
     return threshold
 
 
 def get_velocity_threshold_for_project(project: Project):
     """
-    Returns the threshold from Redis if it can be found, otherwise re-calculates.
+    Returns the threshold from Redis if it can be found, otherwise re-calculates. If none can be
+    calculated still, returns None.
     """
     # get from redis
     client = get_redis_client()
@@ -161,6 +163,6 @@ def get_velocity_threshold_for_project(project: Project):
     return result
 
 
-def get_redis_client() -> RedisCluster:
+def get_redis_client():
     cluster_key = ""  # TODO: placeholder
     return redis_clusters.get(cluster_key)
