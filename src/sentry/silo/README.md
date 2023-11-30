@@ -64,7 +64,7 @@ SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 Then start ngrok with the desired hostname:
 
 ```bash
-ngrok http 8000 --domain=acme.ngrok.dev --host-header="localhost
+ngrok http 8000 --domain=acme.ngrok.dev --host-header="localhost"
 ```
 
 ## Using ngrok configuration file
