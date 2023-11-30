@@ -51,13 +51,6 @@ logger = logging.getLogger(__name__)
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
 
-# lock timeout
-LOCK_TIMEOUT = 1
-# base value for lock retries
-INITIAL_LOCK_DELAY = 0.01
-# lock exponent base
-LOCK_EXP_BASE = 2.0
-
 
 def _ensure_monitor_with_config(
     project: Project,
