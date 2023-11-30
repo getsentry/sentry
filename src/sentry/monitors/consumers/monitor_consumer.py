@@ -51,13 +51,6 @@ logger = logging.getLogger(__name__)
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
 
-# lock timeout
-LOCK_TIMEOUT = 1
-# base value for lock retries
-INITIAL_LOCK_DELAY = 0.01
-# lock exponent base
-LOCK_EXP_BASE = 2.0
-
 
 def _ensure_monitor_with_config(
     project: Project,
@@ -578,13 +571,6 @@ def _process_message(
     partition: int,
     wrapper: CheckinMessage | ClockPulseMessage,
 ) -> None:
-
-    # XXX: Relay does not attach a message type, to properly discriminate the
-    # message_type we add it by default here. This can be removed once the
-    # message_type is guaranteed
-    if "message_type" not in wrapper:
-        wrapper["message_type"] = "check_in"
-
     try:
         try_monitor_tasks_trigger(ts, partition)
     except Exception:

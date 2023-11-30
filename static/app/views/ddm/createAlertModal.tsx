@@ -17,8 +17,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
-import {formatMRIField, MRIToField} from 'sentry/utils/metrics/mri';
+import {
+  formatMetricUsingFixedUnit,
+  MetricDisplayType,
+  MetricsQuery,
+} from 'sentry/utils/metrics';
+import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -154,6 +158,24 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     selectedProject,
   ]);
 
+  const unit = parseMRI(metricsQuery.mri)?.unit ?? 'none';
+  const chartOptions = useMemo(
+    () => ({
+      isGroupedByDate: true,
+      height: 200,
+      grid: {top: 20, bottom: 20, left: 15, right: 25},
+      tooltip: {
+        valueFormatter: value => formatMetricUsingFixedUnit(value, unit),
+      },
+      yAxis: {
+        axisLabel: {
+          formatter: value => formatMetricUsingFixedUnit(value, unit),
+        },
+      },
+    }),
+    [unit]
+  );
+
   return (
     <Fragment>
       <Header closeButton>
@@ -227,14 +249,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
             </PanelBody>
             {isLoading && <StyledLoadingIndicator />}
             {isError && <LoadingError onRetry={refetch} />}
-            {chartSeries && (
-              <AreaChart
-                series={chartSeries}
-                isGroupedByDate
-                height={200}
-                grid={{top: 20, bottom: 20, left: 15, right: 25}}
-              />
-            )}
+            {chartSeries && <AreaChart series={chartSeries} {...chartOptions} />}
           </ChartPanel>
         </ContentWrapper>
       </Body>
@@ -256,11 +271,7 @@ const ContentWrapper = styled('div')`
 `;
 
 const ChartPanel = styled(Panel)<{isLoading: boolean}>`
-  ${p =>
-    p.isLoading &&
-    `
-    opacity: 0.6;
-  `}
+  ${p => p.isLoading && `opacity: 0.6;`}
 `;
 
 const ChartHeader = styled('div')`

@@ -775,7 +775,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_useremail(user, email, **kwargs):
+    def create_useremail(user, email=None, **kwargs):
         if not email:
             email = uuid4().hex + "@example.com"
 
@@ -874,6 +874,9 @@ class Factories:
             kwargs["data"].update({"type": "default", "metadata": {"title": kwargs["message"]}})
         if "short_id" not in kwargs:
             kwargs["short_id"] = project.next_short_id()
+        if "metadata" in kwargs:
+            metadata = kwargs.pop("metadata")
+            kwargs["data"].setdefault("metadata", {}).update(metadata)
         return Group.objects.create(project=project, **kwargs)
 
     @staticmethod
