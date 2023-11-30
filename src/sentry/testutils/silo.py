@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 import inspect
 import os
@@ -81,6 +80,18 @@ def strip_silo_mode_test_suffix(name: str) -> str:
     return name
 
 
+def get_silo_settings(silo_mode: SiloMode, monolith_region: str) -> dict[str, Any]:
+    settings = {
+        "SILO_MODE": silo_mode,
+        "SENTRY_SUBNET_SECRET": "secret",
+        "SENTRY_CONTROL_ADDRESS": "http://controlserver/",
+        "SENTRY_MONOLITH_REGION": monolith_region,
+    }
+    if silo_mode == SiloMode.REGION:
+        settings["SENTRY_REGION"] = monolith_region
+    return settings
+
+
 class SiloModeTestDecorator:
     """Decorate a test case that is expected to work in a given silo mode.
 
@@ -106,20 +117,20 @@ class SiloModeTestDecorator:
     """
 
     def __init__(self, *silo_modes: SiloMode) -> None:
-        self.silo_modes = frozenset(sm for sm in silo_modes if sm != SiloMode.MONOLITH)
+        self.silo_modes = frozenset(silo_modes)
 
     def __call__(
         self,
         decorated_obj: Any = None,
+        *,
         regions: Sequence[Region] = (),
         include_monolith_run: bool = False,
     ) -> Any:
-        mod = _SiloModeTestModification(
-            silo_modes=self.silo_modes,
-            regions=tuple(regions or _DEFAULT_TEST_REGIONS),
-            include_monolith_run=include_monolith_run,
-        )
+        silo_modes = self.silo_modes
+        if include_monolith_run:
+            silo_modes |= frozenset([SiloMode.MONOLITH])
 
+        mod = _SiloModeTestModification(silo_modes=silo_modes, regions=tuple(regions))
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
 
 
@@ -129,44 +140,32 @@ class _SiloModeTestModification:
 
     silo_modes: frozenset[SiloMode]
     regions: tuple[Region, ...]
-    include_monolith_run: bool
 
-    run_original_class_in_silo_mode: bool = True
+    def __post_init__(self) -> None:
+        if not self.silo_modes:
+            raise ValueError("silo_modes must not be empty")
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
-        monolith_region = self.regions[0].name
-        with contextlib.ExitStack() as stack:
-            stack.enter_context(
-                override_settings(
-                    SILO_MODE=silo_mode,
-                    SENTRY_SUBNET_SECRET="secret",
-                    SENTRY_CONTROL_ADDRESS="http://controlserver/",
-                    SENTRY_MONOLITH_REGION=monolith_region,
-                )
-            )
-            stack.enter_context(override_regions(self.regions))
-            if silo_mode == SiloMode.REGION:
-                stack.enter_context(override_settings(SENTRY_REGION=monolith_region))
-
+        regions = self.regions or _DEFAULT_TEST_REGIONS
+        monolith_region = regions[0].name
+        silo_settings = get_silo_settings(silo_mode, monolith_region)
+        with override_settings(**silo_settings), override_regions(regions):
             yield
 
     def _create_overriding_test_class(
         self, test_class: Type[TestCase], silo_mode: SiloMode, name_suffix: str = ""
     ) -> Type[TestCase]:
-        def decorate_with_context(callable: Callable[..., Any]) -> Callable[..., Any]:
-            def wrapper(*args, **kwds):
-                with self.test_config(silo_mode):
-                    return callable(*args, **kwds)
-
-            functools.update_wrapper(wrapper, callable)
-            return wrapper
+        def override_method(method_name: str) -> Callable[..., Any]:
+            context = self.test_config(silo_mode)
+            method: Callable[..., Any] = getattr(test_class, method_name)
+            return context(method)
 
         # Unfortunately, due to the way DjangoTestCase setup and app manipulation works, `override_settings` in a
         # run method produces unusual, broken results.  We're forced to wrap the hidden methods that invoke setup
         # test method in order to use override_settings correctly in django test cases.
         new_methods = {
-            method_name: decorate_with_context(getattr(test_class, method_name))
+            method_name: override_method(method_name)
             for method_name in ("_callSetUp", "_callTestMethod")
         }
         name = test_class.__name__ + name_suffix
@@ -182,12 +181,14 @@ class _SiloModeTestModification:
         to the module namespace.
         """
         if len(self.silo_modes) == 1:
-            (silo_mode,) = self.silo_modes
-            if not (self.include_monolith_run or settings.FORCE_SILOED_TESTS):
-                return silo_mode, ()
-            if self.run_original_class_in_silo_mode:
-                return silo_mode, (SiloMode.MONOLITH,)
-        return SiloMode.MONOLITH, self.silo_modes
+            (only_mode,) = self.silo_modes
+            return only_mode, ()
+        non_monolith_modes = [m for m in self.silo_modes if m != SiloMode.MONOLITH]
+        if len(non_monolith_modes) == 1:
+            (other_mode,) = non_monolith_modes
+            return other_mode, (SiloMode.MONOLITH,)
+        else:
+            return SiloMode.MONOLITH, non_monolith_modes
 
     def _add_siloed_test_classes_to_module(self, test_class: Type[TestCase]) -> Type[TestCase]:
         primary_mode, secondary_modes = self._arrange_silo_modes()
@@ -258,13 +259,13 @@ class _SiloModeTestModification:
             class_queue.extend(current_class.__bases__)
 
 
-all_silo_test = SiloModeTestDecorator(SiloMode.CONTROL, SiloMode.REGION)
+all_silo_test = SiloModeTestDecorator(*SiloMode)
 """
 Apply to test functions/classes to indicate that tests are
 expected to pass in CONTROL, REGION and MONOLITH modes.
 """
 
-no_silo_test = SiloModeTestDecorator()
+no_silo_test = SiloModeTestDecorator(SiloMode.MONOLITH)
 """
 Apply to test functions/classes to indicate that tests are
 free of silo mode logic and hybrid cloud service usage.
