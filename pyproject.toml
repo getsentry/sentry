@@ -141,7 +141,6 @@ module = [
     "sentry.api.endpoints.chunk",
     "sentry.api.endpoints.codeowners",
     "sentry.api.endpoints.codeowners.index",
-    "sentry.api.endpoints.event_ai_suggested_fix",
     "sentry.api.endpoints.event_apple_crash_report",
     "sentry.api.endpoints.event_attachments",
     "sentry.api.endpoints.group_details",
