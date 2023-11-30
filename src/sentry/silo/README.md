@@ -83,6 +83,7 @@ tunnels:
     proto: http
     hostname: us.yourusername.ngrok.io
     addr: 8010
+    host_header: "localhost"
 ```
 
 Now you can spin up all the tunnels in the file with:
