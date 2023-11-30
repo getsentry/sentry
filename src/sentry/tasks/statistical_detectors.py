@@ -166,7 +166,6 @@ class EndpointRegressionDetector(RegressionDetector):
     source = "transaction"
     kind = "endpoint"
     config = MovingAverageRelativeChangeDetectorConfig(
-        # change_metric="statistical_detectors.rel_change.transactions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -189,7 +188,6 @@ class FunctionRegressionDetector(RegressionDetector):
     source = "profile"
     kind = "function"
     config = MovingAverageRelativeChangeDetectorConfig(
-        # change_metric="statistical_detectors.rel_change.functions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
