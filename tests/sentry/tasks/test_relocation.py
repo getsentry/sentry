@@ -1643,6 +1643,8 @@ class NotifyingUsersTest(RelocationTaskTestCase):
                 mock_relocation_email.call_args_list[0][0][0].username,
                 mock_relocation_email.call_args_list[1][0][0].username,
             ]
+            assert mock_relocation_email.call_args_list[0][0][2] == ["testing"]
+            assert mock_relocation_email.call_args_list[1][0][2] == ["testing"]
             assert "admin@example.com" in email_targets
             assert "member@example.com" in email_targets
 
