@@ -4,6 +4,7 @@ __all__ = (
     "SnubaResultConverter",
     "get_date_range",
     "parse_field",
+    "parse_mri_field",
     "parse_conditions",
     "resolve_tags",
     "translate_meta_results",

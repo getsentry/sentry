@@ -25,14 +25,24 @@ __all__ = (
     "ErrorsMRI",
     "parse_mri",
     "get_available_operations",
+    "is_mri_field",
+    "format_mri_field",
+    "format_mri_field_value",
 )
 
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, cast
 
-from sentry.snuba.metrics.utils import AVAILABLE_GENERIC_OPERATIONS, AVAILABLE_OPERATIONS, OP_REGEX
+from sentry.api.utils import InvalidParams
+from sentry.snuba.metrics.units import format_value_using_unit_and_op
+from sentry.snuba.metrics.utils import (
+    AVAILABLE_GENERIC_OPERATIONS,
+    AVAILABLE_OPERATIONS,
+    OP_REGEX,
+    MetricUnit,
+)
 
 NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans|escalating_issues)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
@@ -179,6 +189,39 @@ class ParsedMRI:
     @property
     def mri_string(self) -> str:
         return f"{self.entity}:{self.namespace}/{self.name}@{self.unit}"
+
+
+def is_mri_field(field: str) -> bool:
+    """
+    Returns true if the passed value is a mri field.
+    """
+    return MRI_EXPRESSION_REGEX.match(field) is not None
+
+
+def format_mri_field(field: str) -> str:
+    """
+    Format a metric field to be used in a metric expression.
+
+    For example, if the field is `avg(c:custom/foo@none)`, it will be returned as `avg(foo)`.
+    """
+    from sentry.snuba.metrics.query_builder import parse_mri_field
+
+    try:
+        return str(parse_mri_field(field))
+    except InvalidParams:
+        return field
+
+
+def format_mri_field_value(field: str, value: str) -> str:
+    from sentry.snuba.metrics.query_builder import parse_mri_field
+
+    try:
+        parsed_mri_field = parse_mri_field(field)
+        unit = cast(MetricUnit, parse_mri(parsed_mri_field.metric_mri).unit)
+
+        return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
+    except InvalidParams:
+        return value
 
 
 def parse_mri(mri_string: Optional[str]) -> Optional[ParsedMRI]:
