@@ -517,6 +517,6 @@ src/sentry/api/endpoints/user_social_identity*                          @getsent
 /src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
 
 ## ML & AI
-/static/app/components/events/aiSuggestedSolution/      @getsentry/ml-ai
-/src/sentry/api/endpoints/event_ai_suggested_fix.py     @getsentry/ml-ai
+/static/app/components/events/aiSuggestedSolution/      @getsentry/machine-learning-ai
+/src/sentry/api/endpoints/event_ai_suggested_fix.py     @getsentry/machine-learning-ai
 ## End of ML & AI
