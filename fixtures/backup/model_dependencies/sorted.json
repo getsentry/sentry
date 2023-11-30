@@ -150,7 +150,6 @@
   "sentry.organizationmemberteam",
   "sentry.organizationmembermapping",
   "sentry.organizationavatar",
-  "sentry.notificationsetting",
   "sentry.notificationaction",
   "sentry.neglectedrule",
   "sentry.monitorenvironment",
