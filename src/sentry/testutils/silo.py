@@ -126,6 +126,10 @@ class SiloModeTestDecorator:
         regions: Sequence[Region] = (),
         include_monolith_run: bool = False,
     ) -> Any:
+        # Temporary for debugging -- need to make sure monolith runs don't regress.
+        # TODO: Delete this after passing tests but before merging
+        include_monolith_run = True
+
         silo_modes = self.silo_modes
         if include_monolith_run:
             silo_modes |= frozenset([SiloMode.MONOLITH])
