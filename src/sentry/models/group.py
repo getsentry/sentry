@@ -799,7 +799,7 @@ class Group(Model):
         """
         return self.data.get("type", "default")
 
-    def get_event_metadata(self) -> Mapping[str, str]:
+    def get_event_metadata(self) -> Mapping[str, Any]:
         """
         Return the metadata of this issue.
 
@@ -824,6 +824,15 @@ class Group(Model):
     @property
     def organization(self):
         return self.project.organization
+
+    @property
+    def sdk(self) -> str | None:
+        """returns normalized SDK name"""
+
+        try:
+            return self.get_event_metadata()["sdk"]["name_normalized"]
+        except KeyError:
+            return None
 
     @property
     def checksum(self):

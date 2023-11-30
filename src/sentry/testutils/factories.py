@@ -874,6 +874,9 @@ class Factories:
             kwargs["data"].update({"type": "default", "metadata": {"title": kwargs["message"]}})
         if "short_id" not in kwargs:
             kwargs["short_id"] = project.next_short_id()
+        if "metadata" in kwargs:
+            metadata = kwargs.pop("metadata")
+            kwargs["data"].setdefault("metadata", {}).update(metadata)
         return Group.objects.create(project=project, **kwargs)
 
     @staticmethod
