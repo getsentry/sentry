@@ -253,6 +253,8 @@ def test_moving_average_relative_change_detector(
     ]
 
     detector = MovingAverageRelativeChangeDetector(
+        "transaction",
+        "endpoint",
         MovingAverageDetectorState.empty(),
         MovingAverageRelativeChangeDetectorConfig(
             min_data_points=min_data_points,
