@@ -182,7 +182,6 @@ class GithubProxyClient(IntegrationProxyClient):
 
 
 class GitHubClientMixin(GithubProxyClient):
-
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -496,7 +495,7 @@ class GitHubClientMixin(GithubProxyClient):
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[JSONData]]:
         """
         Find repositories matching a query.
-        NOTE: This API is rate limited to 30 requests/minute
+        NOTE: All search APIs share a rate limit of 30 requests/minute
 
         https://docs.github.com/en/rest/search#search-repositories
         """
@@ -567,6 +566,7 @@ class GitHubClientMixin(GithubProxyClient):
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         """
         https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
+        NOTE: All search APIs share a rate limit of 30 requests/minute
         """
         return self.get("/search/issues", params={"q": query})
 
@@ -609,9 +609,10 @@ class GitHubClientMixin(GithubProxyClient):
 
     def get_labels(self, repo: str) -> Sequence[JSONData]:
         """
+        Fetches up to the first 100 labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        return self.get(f"/repos/{repo}/labels")
+        return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
