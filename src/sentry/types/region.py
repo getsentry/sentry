@@ -130,9 +130,11 @@ class RegionDirectory:
     RegionDirectory instances temporarily swapped into it.
     """
 
-    def __init__(self, regions: Collection[Region], monolith_region: str | None = None) -> None:
-        if monolith_region is None:
-            monolith_region = settings.SENTRY_MONOLITH_REGION
+    def __init__(
+        self, regions: Collection[Region], monolith_region_name: str | None = None
+    ) -> None:
+        if monolith_region_name is None:
+            monolith_region_name = settings.SENTRY_MONOLITH_REGION
         elif not in_test_environment():
             raise Exception(
                 "Monolith region may be set only in the test environment; "
@@ -140,22 +142,31 @@ class RegionDirectory:
             )
 
         if not regions:
-            default_monolith_region = Region(
-                name=monolith_region,
+            self.monolith_region = Region(
+                name=monolith_region_name,
                 snowflake_id=0,
                 address=options.get("system.url-prefix"),
                 category=RegionCategory.MULTI_TENANT,
             )
-            regions = [default_monolith_region]
-        elif not any(r.name == monolith_region for r in regions):
-            raise RegionConfigurationError(
-                "The SENTRY_MONOLITH_REGION setting must point to a region name "
-                f"({monolith_region=!r}; "
-                f"region names = {[r.name for r in regions]!r})"
-            )
+            regions = [self.monolith_region]
+        else:
+            regions_with_monolith_name = [r for r in regions if r.name == monolith_region_name]
+            if not regions_with_monolith_name:
+                raise RegionConfigurationError(
+                    "The SENTRY_MONOLITH_REGION setting must point to a region name "
+                    f"({monolith_region_name=!r}; "
+                    f"region names = {[r.name for r in regions]!r})"
+                )
+            (self.monolith_region,) = regions_with_monolith_name
 
         self.regions = frozenset(regions)
         self.by_name = {r.name: r for r in self.regions}
+
+        self.local_region = (
+            self.by_name[settings.SENTRY_REGION]
+            if SiloMode.get_current_mode() == SiloMode.REGION
+            else None
+        )
 
 
 class GlobalRegionDirectory:
@@ -171,6 +182,14 @@ class GlobalRegionDirectory:
     @property
     def by_name(self) -> dict[str, Region]:
         return self._dir.by_name
+
+    @property
+    def historic_monolith_region(self) -> Region:
+        return self._dir.monolith_region
+
+    @property
+    def local_region(self) -> Region | None:
+        return self._dir.local_region
 
     @contextmanager
     def override(self, directory: RegionDirectory) -> Generator[None, None, None]:
@@ -286,11 +305,10 @@ def get_local_region() -> Region:
 
     Raises RegionContextError if this server instance is not a region silo.
     """
-    from django.conf import settings
 
+    global_regions = load_global_regions()
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
-
+        return global_regions.historic_monolith_region
     if SiloMode.get_current_mode() != SiloMode.REGION:
         raise RegionContextError("Not a region silo")
 
@@ -301,9 +319,17 @@ def get_local_region() -> Region:
     if single_process_silo_mode_state.region:
         return single_process_silo_mode_state.region
 
-    if not settings.SENTRY_REGION:
-        raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
-    return get_region_by_name(settings.SENTRY_REGION)
+    local_region = global_regions.local_region
+    if local_region is None:
+        if in_test_environment():
+            # Assume this was not set because the test began in another mode, and is
+            # now dipping into region mode temporarily. Relax the requirement to
+            # configure the region map up front and assume the monolith region is a
+            # good enough default.
+            return global_regions.historic_monolith_region
+        else:
+            raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
+    return local_region
 
 
 @control_silo_function
