@@ -163,7 +163,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
 
-    def test_post_install(self):
+    def test_post_install_overwrite_commands(self):
         provider = self.provider()
         provider.client = DiscordNonProxyClient()
         provider.client.overwrite_application_commands = mock.MagicMock(
@@ -173,7 +173,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         provider.post_install(self.integration, self.organization)
         provider.client.overwrite_application_commands.assert_called()
 
-    def test_post_install_bad(self):
+    def test_post_install_no_overwrite_commands(self):
         provider = self.provider()
         client = DiscordNonProxyClient()
         client.overwrite_application_commands = mock.MagicMock(
