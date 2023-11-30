@@ -558,6 +558,7 @@ class IssueListOverview extends Component<Props, State> {
     this.setState({
       itemsRemoved: 0,
       error: null,
+      statsForGroupIds: [],
     });
 
     // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend

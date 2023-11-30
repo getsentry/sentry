@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect} from 'react';
+import {createContext, useContext, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {dropUndefinedKeys} from '@sentry/utils';
 import * as reactQuery from '@tanstack/react-query';
@@ -78,6 +78,7 @@ export interface GroupStatsProviderProps {
 
 export function GroupStatsProvider(props: GroupStatsProviderProps) {
   const api = useApi();
+  const [groupStats, setGroupStats] = useState<Record<string, GroupStats>>({});
 
   const queryFn = (): Promise<Record<string, GroupStats>> => {
     const promise = api
@@ -92,13 +93,14 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
         includeAllArgs: true,
       })
       .then((resp: ApiResult<GroupStats[]>): Record<string, GroupStats> => {
-        const map: Record<string, GroupStats> = {};
+        const map: Record<string, GroupStats> = {...groupStats};
         if (!resp || !Array.isArray(resp[0])) {
           return map;
         }
         for (const stat of resp[0]) {
           map[stat.id] = stat;
         }
+        setGroupStats(map);
         return map;
       })
       .catch(e => {
@@ -132,7 +134,8 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
   }, [statsQuery.status, onStatsQuery]);
 
   return (
-    <GroupStatsContext.Provider value={statsQuery}>
+    // @ts-expect-error we are overriding data with the stored version
+    <GroupStatsContext.Provider value={{...statsQuery, data: groupStats}}>
       {props.children}
     </GroupStatsContext.Provider>
   );
