@@ -92,8 +92,8 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
                 {"name": "enhancement"},
                 {"name": "duplicate"},
                 {"name": "1"},
-                {"name": "2"},
                 {"name": "10"},
+                {"name": "2"},
             ],
         )
 
