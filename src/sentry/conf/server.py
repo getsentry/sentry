@@ -1897,6 +1897,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:suspect-commits-all-frames": False,
     # Enable logs for debugging weekly reports
     "organizations:weekly-report-logs": False,
+    # Enables region provisioning for individual users
+    "organizations:multi-region-selector": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1932,8 +1934,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:investigation-bias": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
-    # Enables region provisioning for individual users
-    "user:region-provisioning-allow-list": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
