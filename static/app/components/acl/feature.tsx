@@ -13,11 +13,15 @@ import ComingSoon from './comingSoon';
 
 const renderComingSoon = () => <ComingSoon />;
 
-function isAllOf(p: FeatureProps): p is AnyOfFeaturesProps {
+function isAllOf(
+  p: FeatureProps | UseFeatureHookProps
+): p is AnyOfFeaturesProps | AnyOfFeaturesHookProps {
   return 'allOf' in p;
 }
 
-function isOneOf(p: FeatureProps): p is OneOfFeaturesProps {
+function isOneOf(
+  p: FeatureProps | UseFeatureHookProps
+): p is OneOfFeaturesProps | OneOfFeaturesHookProps {
   return 'oneOf' in p;
 }
 
@@ -120,7 +124,9 @@ function extractFeaturesFromEntities(
   };
 }
 
-function extractFeatures(props: FeatureProps): string | ReadonlyArray<string> {
+function getFeaturesFromProps(
+  props: FeatureProps | UseFeatureHookProps
+): string | ReadonlyArray<string> {
   let validPropCount = 0;
   // ts wants us to properly check for discriminated union,
   // before we can access the property, but we're really only accessing it
@@ -170,10 +176,10 @@ function hasSingleFeature(feature: string, features: AllFeatures) {
 }
 
 function hasFeatureAccess(
-  props: FeatureProps,
+  props: FeatureProps | UseFeatureHookProps,
   features: string | ReadonlyArray<string>,
   allFeatures: AllFeatures
-) {
+): boolean {
   if (Array.isArray(features)) {
     if (!features.length) {
       return true;
@@ -207,7 +213,7 @@ function Feature(props: FeatureProps) {
   const contextOrganization = useOrganization();
 
   const organization = props.organization ?? contextOrganization;
-  const features = extractFeatures(props);
+  const features = getFeaturesFromProps(props);
   const allFeaturesByEntity = extractFeaturesFromEntities(
     organization,
     props.project,
@@ -262,3 +268,43 @@ function Feature(props: FeatureProps) {
 export default withProject(
   Feature as unknown as React.ComponentType<FeatureProps>
 ) as unknown as React.ComponentType<FeatureProps>;
+
+interface FeatureHookBaseProps {
+  organization?: Organization;
+  project?: Project;
+}
+
+interface SingleFeatureHookProps extends FeatureHookBaseProps {
+  feature: string;
+}
+
+interface OneOfFeaturesHookProps extends FeatureHookBaseProps {
+  oneOf: ReadonlyArray<string>;
+}
+
+interface AnyOfFeaturesHookProps extends FeatureHookBaseProps {
+  allOf: ReadonlyArray<string>;
+}
+
+type UseFeatureHookProps =
+  | SingleFeatureHookProps
+  | OneOfFeaturesHookProps
+  | AnyOfFeaturesHookProps;
+
+export function useFeature(props: UseFeatureHookProps) {
+  const config = useLegacyStore(ConfigStore);
+  const contextOrganization = useOrganization();
+
+  const hasFeature = useMemo(() => {
+    const features = getFeaturesFromProps(props);
+    const allFeaturesByEntity = extractFeaturesFromEntities(
+      props.organization ?? contextOrganization,
+      props.project,
+      config
+    );
+
+    return hasFeatureAccess(props, features, allFeaturesByEntity);
+  }, [config, contextOrganization, props]);
+
+  return hasFeature;
+}
