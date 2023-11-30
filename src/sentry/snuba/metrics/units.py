@@ -66,10 +66,7 @@ def format_value_using_unit(value: Union[int, float], unit: MetricUnit) -> str:
 
 
 def round_with_fixed(value, fixed_digits):
-    if fixed_digits == 0:
-        return int(round(value, 0))
-
-    return round(value, fixed_digits)
+    return str(round(value, fixed_digits)).rstrip("0").rstrip(".")
 
 
 time_units_ms = {
