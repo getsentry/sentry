@@ -57,10 +57,6 @@ import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
-import {
-  GroupStatsProvider,
-  GroupStatsQuery,
-} from 'sentry/views/issueList/groupStatsProvider';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 import IssueListActions from './actions';
@@ -142,6 +138,11 @@ interface EndpointParams extends Partial<PageFilters['datetime']> {
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
   query: string[];
+};
+
+type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
+  groups: string[];
+  expand?: string | string[];
 };
 
 class IssueListOverview extends Component<Props, State> {
@@ -301,6 +302,7 @@ class IssueListOverview extends Component<Props, State> {
 
   private _poller: any;
   private _lastRequest: any;
+  private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
 
   getQueryFromSavedSearchOrLocation({
@@ -456,6 +458,48 @@ class IssueListOverview extends Component<Props, State> {
     loadOrganizationTags(api, organization.slug, selection);
   }
 
+  fetchStats = (groups: string[]) => {
+    // If we have no groups to fetch, just skip stats
+    if (!groups.length) {
+      return;
+    }
+    const requestParams: StatEndpointParams = {
+      ...this.getEndpointParams(),
+      groups,
+    };
+    // If no stats period values are set, use default
+    if (!requestParams.statsPeriod && !requestParams.start) {
+      requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
+    }
+
+    this._lastStatsRequest = this.props.api.request(this.groupStatsEndpoint, {
+      method: 'GET',
+      data: qs.stringify(requestParams),
+      success: data => {
+        if (!data) {
+          return;
+        }
+        GroupStore.onPopulateStats(groups, data);
+        this.trackTabViewed(groups, data);
+      },
+      error: err => {
+        this.setState({
+          error: parseApiError(err),
+        });
+      },
+      complete: () => {
+        this._lastStatsRequest = null;
+
+        // End navigation transaction to prevent additional page requests from impacting page metrics.
+        // Other transactions include stacktrace preview request
+        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        if (currentTransaction?.op === 'navigation') {
+          currentTransaction.finish();
+        }
+      },
+    });
+  };
+
   fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
     const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
@@ -604,6 +648,9 @@ class IssueListOverview extends Component<Props, State> {
     if (this._lastRequest) {
       this._lastRequest.cancel();
     }
+    if (this._lastStatsRequest) {
+      this._lastStatsRequest.cancel();
+    }
     if (this._lastFetchCountsRequest) {
       this._lastFetchCountsRequest.cancel();
     }
@@ -645,6 +692,8 @@ class IssueListOverview extends Component<Props, State> {
           GroupStore.loadInitialData(data);
         }
         GroupStore.add(data);
+
+        this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
         const queryCount =
@@ -1006,6 +1055,9 @@ class IssueListOverview extends Component<Props, State> {
     if (this._lastRequest) {
       this._lastRequest.cancel();
     }
+    if (this._lastStatsRequest) {
+      this._lastStatsRequest.cancel();
+    }
     if (this._lastFetchCountsRequest) {
       this._lastFetchCountsRequest.cancel();
     }
@@ -1163,32 +1215,6 @@ class IssueListOverview extends Component<Props, State> {
     };
   };
 
-  onStatsQuery = (query: GroupStatsQuery) => {
-    switch (query.status) {
-      case 'loading':
-        break;
-      case 'success':
-        const data = Object.values(query.data ?? {});
-        if (data && data[0]) {
-          // The type being cast was wrong in the previous implementations as well
-          // because inference was broken. Ignore it for now.
-          this.trackTabViewed(this.state.groupIds, data as Group[]);
-        }
-        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
-        if (currentTransaction?.op === 'navigation') {
-          currentTransaction.finish();
-        }
-        break;
-      case 'error':
-        this.setState({
-          // Missing our custom getResponseHeader function, but parseApiError does not require it
-          error: parseApiError(query?.error),
-        });
-        break;
-      default:
-    }
-  };
-
   render() {
     if (
       this.props.savedSearchLoading &&
@@ -1263,31 +1289,22 @@ class IssueListOverview extends Component<Props, State> {
                   showProject
                 />
                 <VisuallyCompleteWithData
-                  id="IssueList-Body"
                   hasData={this.state.groupIds.length > 0}
+                  id="IssueList-Body"
                   isLoading={this.state.issuesLoading}
                 >
-                  <GroupStatsProvider
+                  <GroupListBody
+                    memberList={this.state.memberList}
+                    groupStatsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
-                    selection={this.props.selection}
-                    organization={this.props.organization}
-                    period={this.getGroupStatsPeriod()}
-                    query={this.getQuery()}
-                    onStatsQuery={this.onStatsQuery}
-                  >
-                    <GroupListBody
-                      memberList={this.state.memberList}
-                      groupStatsPeriod={this.getGroupStatsPeriod()}
-                      groupIds={groupIds}
-                      displayReprocessingLayout={displayReprocessingActions}
-                      sort={this.getSort()}
-                      selectedProjectIds={selection.projects}
-                      loading={issuesLoading}
-                      error={error}
-                      query={query}
-                      refetchGroups={this.fetchData}
-                    />
-                  </GroupStatsProvider>
+                    displayReprocessingLayout={displayReprocessingActions}
+                    query={query}
+                    sort={this.getSort()}
+                    selectedProjectIds={selection.projects}
+                    loading={issuesLoading}
+                    error={error}
+                    refetchGroups={this.fetchData}
+                  />
                 </VisuallyCompleteWithData>
               </PanelBody>
             </Panel>
