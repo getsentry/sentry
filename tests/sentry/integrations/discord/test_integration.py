@@ -160,7 +160,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
     def test_post_install_overwrite_commands(self):
         provider = self.provider()
-        provider.client.overwrite_application_commands = MagicMock(
+        provider.client.overwrite_application_commands = MagicMock(  # type: ignore
             spec=provider.client.overwrite_application_commands
         )
 
@@ -169,7 +169,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
     def test_post_install_no_overwrite_commands(self):
         provider = self.provider()
-        provider.client.overwrite_application_commands = MagicMock(
+        provider.client.overwrite_application_commands = MagicMock(  # type: ignore
             spec=provider.client.overwrite_application_commands
         )
 
