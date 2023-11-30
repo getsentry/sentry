@@ -30,7 +30,7 @@ def fnv1a_32(data: bytes) -> int:
     return result_hash
 
 
-def remove_if_match(pattern: re, string: str) -> str:
+def remove_if_match(pattern, string: str) -> str:
     """
     Removes a pattern from a string.
     """
