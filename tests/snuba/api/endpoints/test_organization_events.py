@@ -4093,7 +4093,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             results = response.data["data"]
             assert results[0]["count()"] == 1, datum
 
-            for (field, exp) in zip(fields, expected):
+            for field, exp in zip(fields, expected):
                 assert results[0][field] == exp, field + str(datum)
 
     def test_failure_count_alias_field(self):
@@ -6217,6 +6217,84 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert len(data) == 1
         result = {r["user.display"] for r in data}
         assert result == {"hellboy@bar.com"}
+
+    def test_performance_score(self):
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 0.03},
+            "score.weight.lcp": {"value": 0.3},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 1.0},
+            "score.weight.lcp": {"value": 1.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "performance_score(measurements.score.lcp)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0] == {
+            "performance_score(measurements.score.lcp)": 0.7923076923076923,
+        }
+
+    def test_weighted_performance_score(self):
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 0.03},
+            "score.weight.lcp": {"value": 0.3},
+            "score.total": {"value": 0.03},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 1.0},
+            "score.weight.lcp": {"value": 1.0},
+            "score.total": {"value": 1.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "weighted_performance_score(measurements.score.lcp)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0] == {
+            "weighted_performance_score(measurements.score.lcp)": 0.3433333333333333,
+        }
+
+    def test_invalid_performance_score_column(self):
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "performance_score(measurements.score.fp)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_invalid_weighted_performance_score_column(self):
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "weighted_performance_score(measurements.score.fp)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
 
     def test_all_events_fields(self):
         user_data = {
