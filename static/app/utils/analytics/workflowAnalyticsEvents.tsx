@@ -110,7 +110,10 @@ export type TeamInsightsEventParameters = {
     group_id: string;
     total_unmerged: number;
   };
-  'issue_details.resources_link_clicked': {resource: string};
+  'issue_details.resources_link_clicked': {
+    group_id: string | undefined;
+    resource: string;
+  };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
     suspect_commit_calculation: string;

@@ -16,10 +16,11 @@ export type ResourceLink = {
 type Props = {
   configResources: NonNullable<IssueTypeConfig['resources']>;
   eventPlatform: Event['platform'];
+  groupId: string;
 };
 
 // This section provides users with resources on how to resolve an issue
-export function Resources({configResources, eventPlatform}: Props) {
+export function Resources({configResources, eventPlatform, groupId}: Props) {
   const organization = useOrganization();
   const links = [
     ...configResources.links,
@@ -37,6 +38,7 @@ export function Resources({configResources, eventPlatform}: Props) {
               trackAnalytics('issue_details.resources_link_clicked', {
                 organization,
                 resource: text,
+                group_id: groupId,
               })
             }
             key={link}
