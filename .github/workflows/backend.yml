@@ -284,7 +284,7 @@ jobs:
 
       - name: setup sentry (lite)
         run: |
-          SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
+          python3 -m tools.fast_editable --path .
           sentry init
 
       - run: mypy
