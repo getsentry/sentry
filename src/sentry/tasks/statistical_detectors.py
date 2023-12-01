@@ -297,8 +297,6 @@ def detect_transaction_change_points(
         transaction_pairs, start, "p95(transaction.duration)", TIMESERIES_PER_BATCH
     )
 
-    regressions = list(regressions)
-
     for regression in regressions:
         breakpoint_count += 1
         send_regression_to_platform(regression, True)
