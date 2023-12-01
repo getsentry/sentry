@@ -9,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -20,7 +20,10 @@ from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
-from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.issues import (
+    SlackIssueAlertMessageBuilder,
+    SlackIssuesMessageBuilder,
+)
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -28,8 +31,9 @@ from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -363,7 +367,6 @@ class SlackActionEndpoint(Endpoint):
         # have anything to update the message with and will use the
         # response_url later to update it.
         defer_attachment_update = False
-
         # Handle interaction actions
         for action in action_list:
             try:
@@ -385,11 +388,23 @@ class SlackActionEndpoint(Endpoint):
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
 
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        if use_block_kit:
+            response = SlackIssueAlertMessageBuilder(
+                group, identity=identity, actions=action_list, tags=original_tags_from_request
+            ).build()
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
+            try:
+                slack_client.post(slack_request.data["response_url"], data=response, json=True)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+
+            return self.respond()
+
         attachment = SlackIssuesMessageBuilder(
             group, identity=identity, actions=action_list, tags=original_tags_from_request
         ).build()
         body = self.construct_reply(attachment, is_message=_is_message(slack_request.data))
-
         return self.respond(body)
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
@@ -422,7 +437,24 @@ class SlackActionEndpoint(Endpoint):
         return action_option
 
     @classmethod
-    def get_action_list(cls, slack_request: SlackActionRequest) -> List[MessageAction]:
+    def get_action_list(
+        cls, slack_request: SlackActionRequest, use_block_kit: bool
+    ) -> List[MessageAction]:
+        if use_block_kit:
+            action_list = []
+            for action_data in slack_request.data.get("actions"):
+                action = BlockKitMessageAction(
+                    name=action_data["action_id"],
+                    label=action_data["text"]["text"],
+                    type=action_data["type"],
+                    value=action_data["value"],
+                    action_id=action_data["action_id"],
+                    block_id=action_data["block_id"],
+                )
+                action_list.append(action)
+
+            return action_list
+
         return [
             MessageAction(**action_data)
             for action_data in slack_request.data.get("actions", [])
@@ -459,7 +491,9 @@ class SlackActionEndpoint(Endpoint):
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
 
-        action_list = self.get_action_list(slack_request=slack_request)
+        oi = OrganizationIntegration.objects.get(integration_id=slack_request.integration.id)
+        use_block_kit = features.has("organizations:slack-block-kit", oi.organization_id)
+        action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
         return self._handle_group_actions(slack_request, request, action_list)
 
     def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:

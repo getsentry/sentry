@@ -77,9 +77,10 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             elements: List[Dict[str, Any]]
 
         action_block: SlackBlockType = {"type": "actions", "elements": []}
-        for text, url, value in actions:
+        for text, label, url, value in actions:  # this will probably break other usages
             button = {
                 "type": "button",
+                "action_id": label,  # hard coded for now, needs to be dynamic
                 "text": {"type": "plain_text", "text": text},
                 "value": value,
             }
@@ -107,17 +108,26 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def _build_blocks(
-        *args: SlackBlock, fallback_text: Optional[str] = None, color: Optional[str] = None
+        *args: SlackBlock,
+        fallback_text: Optional[str] = None,
+        color: Optional[str] = None,
+        block_id: Optional[dict(str, int)] = None,
     ) -> SlackBody:
         blocks: dict[str, Any] = {"blocks": list(args)}
 
-        if fallback_text:
-            blocks["text"] = fallback_text
+        # TODO put this back in, debugging clicking ignore not changing the message
+
+        # if fallback_text:
+        #     blocks["text"] = fallback_text
 
         if color:
             blocks["color"] = color
         # TODO: not sure if color is supported in block kit. https://api.slack.com/messaging/attachments-to-blocks#direct_equivalents
         # references it but links to attachment documentation, which we are not using
+
+        # put the block_id into the first block - can probably be smarter here
+        if block_id:
+            blocks["blocks"][0]["block_id"] = block_id
 
         return blocks
 

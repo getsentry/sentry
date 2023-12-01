@@ -400,7 +400,8 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
             )
         ]
         # build tags block
-        blocks.append(self.get_tags_block(fields))
+        if fields:
+            blocks.append(self.get_tags_block(fields))
 
         # build footer block
         footer = (
@@ -417,17 +418,18 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
         actions = []
         for action in payload_actions:
             # TODO: need to deal with assignee differently
-            # TODO: need to populate the dropdown options for resolve - just use ignore/archive for now to test webhook stuff
-            # actions.append(self.get_static_action(action))
-            if action.name != "assign":
-                actions.append((action.label, action.url, action.name))
-        # TODO: we need to handle the action payload differently
-        blocks.append(self.get_action_block(actions))
+            # TODO: need to populate the dropdown options for resolve and use a modal (or not? design tbd. could just do a dropdown)
+            # MessageAction(name='status', label='Ignore', type='button', url=None, value='ignored:forever', action_id=None, style=None, selected_options=None, option_groups=None, block_id=None, elements=None)
+            # lets just get ignore working first
+            if action.name == "status":
+                actions.append((action.label, action.name, action.url, action.value))
+        if actions:
+            blocks.append(self.get_action_block(actions))
 
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
-            # callback_id=json.dumps({"issue": self.group.id}), # replace this with action_id and/or block_id
+            block_id=json.dumps({"issue": self.group.id}),
         )
 
 
@@ -443,9 +445,20 @@ def build_group_attachment(
     is_unfurl: bool = False,
     notification_uuid: str | None = None,
 ) -> SlackBody:
-    """@deprecated"""
-    # return SlackIssuesMessageBuilder(
-    return SlackIssueAlertMessageBuilder(
+    if features.has("organizations:slack-block-kit", group.project.organization):
+        return SlackIssueAlertMessageBuilder(
+            group,
+            event,
+            tags,
+            identity,
+            actions,
+            rules,
+            link_to_event,
+            issue_details,
+            is_unfurl=is_unfurl,
+        ).build(notification_uuid=notification_uuid)
+
+    return SlackIssuesMessageBuilder(
         group,
         event,
         tags,
