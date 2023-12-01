@@ -17,7 +17,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.replays.lib.storage import make_filename
-from sentry.replays.usecases.reader import fetch_direct_storage_segments_meta
+from sentry.replays.usecases.reader import (
+    fetch_direct_storage_segments_meta,
+    segment_row_to_storage_meta,
+)
+from sentry.replays.usecases.segment import query_segment_storage_meta_by_timestamp
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -67,13 +71,32 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
         except ValueError:
             return Response(status=404)
 
+        try:
+            timestamp = int(request.GET.get("timestamp"))
+        except TypeError:
+            timestamp = None
+        except ValueError:
+            raise ParseError("Invalid timestamp value specified.")
+
         def data_fn(offset, limit):
             # Increment a counter for every call to the accessibility service.
             metrics.incr("session-replay-accessibility-issues-count")
 
-            # We only support direct-storage.  Filestore is deprecated and should be removed from
-            # the driver.
-            segments = fetch_direct_storage_segments_meta(project.id, replay_id, offset, limit)
+            if timestamp is None:
+                # We only support direct-storage.  Filestore is deprecated and should be removed
+                # from the driver.
+                segments = fetch_direct_storage_segments_meta(project.id, replay_id, offset, limit)
+            else:
+                results = query_segment_storage_meta_by_timestamp(
+                    project.organization.id,
+                    project.id,
+                    replay_id,
+                    timestamp,
+                )
+                segments = [
+                    segment_row_to_storage_meta(project.id, replay_id, row)
+                    for row in results["data"]
+                ]
 
             # Make a POST request to the replay-analyzer service. The files will be downloaded
             # and evaluated on the remote system. The accessibility output is then redirected to
