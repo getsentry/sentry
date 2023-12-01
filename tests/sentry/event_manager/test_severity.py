@@ -71,7 +71,7 @@ class TestGetEventSeverity(TestCase):
 
         mock_urlopen.assert_called_with(
             "POST",
-            "/issues/severity-score",
+            "/v0/issues/severity-score",
             body=json.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
         )
@@ -114,7 +114,7 @@ class TestGetEventSeverity(TestCase):
 
             mock_urlopen.assert_called_with(
                 "POST",
-                "/issues/severity-score",
+                "/v0/issues/severity-score",
                 body=json.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
             )
@@ -201,13 +201,13 @@ class TestGetEventSeverity(TestCase):
 
             mock_urlopen.assert_not_called()
             mock_logger_warning.assert_called_with(
-                f"Unable to get severity score because of unusable `message` value '{title}'",
+                "Unable to get severity score because of unusable `message` value '<unlabeled event>'",
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
                     "event_type": "default",
                     "event_title": title,
-                    "computed_title": title,
+                    "computed_title": "<unlabeled event>",
                 },
             )
             assert severity is None
