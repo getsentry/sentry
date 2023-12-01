@@ -1303,6 +1303,7 @@ class IssueListOverview extends Component<Props, State> {
                     selectedProjectIds={selection.projects}
                     loading={issuesLoading}
                     error={error}
+                    placeholderListSize={MAX_ITEMS}
                     refetchGroups={this.fetchData}
                   />
                 </VisuallyCompleteWithData>
