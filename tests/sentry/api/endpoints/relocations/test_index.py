@@ -339,7 +339,7 @@ class RelocationCreateTest(APITestCase):
         assert throttled_response.data.get("detail") is not None
         assert (
             throttled_response.data.get("detail")
-            == "Already reached daily limit of small relocations"
+            == "We've reached our daily limit of relocations - please try again tomorrow or contact support."
         )
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
