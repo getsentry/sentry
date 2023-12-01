@@ -378,7 +378,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
             return False
 
         try:
-            for index, column in enumerate(widget_query.columns):
+            for index, column in enumerate(unique_columns):
                 count = processed_results["data"][0][unique_columns[index]]
                 if count > max_cardinality_allowed:
                     cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
