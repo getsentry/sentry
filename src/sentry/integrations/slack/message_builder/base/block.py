@@ -35,8 +35,40 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def get_tags_block(tags) -> SlackBlock:
+        # TODO: rewrite build_tag_fields instead of doing this
+        fields = []
+        for tag in tags:
+            title = tag["title"]
+            value = tag["value"]
+            fields.append({"type": "mrkdwn", "text": f"*{title}:*\n{value}"})
+
+        return {"type": "section", "fields": fields}
+
+    @staticmethod
     def get_divider() -> SlackBlock:
         return {"type": "divider"}
+
+    @staticmethod
+    def get_static_action(action):
+        options = []
+        for option in action.option_groups:
+            for group in option["options"]:
+                opt = {
+                    "text": {
+                        "type": "plain_text",
+                        "text": group["text"],
+                        "emoji": True,
+                    }
+                }
+                options.append(opt)
+
+        return {
+            "type": "static_select",
+            "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
+            "options": options,
+            "action_id": action.name,
+        }
 
     @staticmethod
     def get_action_block(actions: Sequence[Tuple[str, Optional[str], str]]) -> SlackBlock:
@@ -59,6 +91,21 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return action_block
 
     @staticmethod
+    def get_context_block(text: str, timestamp: Optional[float] = None) -> SlackBlock:
+        if timestamp:
+            time = timestamp.strftime("%b %d")
+            text += f" | {time}"
+        return {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": text,
+                }
+            ],
+        }
+
+    @staticmethod
     def _build_blocks(
         *args: SlackBlock, fallback_text: Optional[str] = None, color: Optional[str] = None
     ) -> SlackBody:
@@ -69,6 +116,8 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
         if color:
             blocks["color"] = color
+        # TODO: not sure if color is supported in block kit. https://api.slack.com/messaging/attachments-to-blocks#direct_equivalents
+        # references it but links to attachment documentation, which we are not using
 
         return blocks
 

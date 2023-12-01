@@ -75,6 +75,15 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "link_names": 1,
                 "attachments": json.dumps(attachments),
             }
+            # TODO: feature flag this
+            # TODO: we don't need "attachments" as a list here, if we add on additional_attachment
+            # it just needs to be added to the blocks which is already a list
+            if attachments[0].get("blocks"):
+                payload = {
+                    "text": attachments[0].get("text"),
+                    "blocks": json.dumps(attachments[0].get("blocks")),
+                    "channel": channel,
+                }
 
             client = SlackClient(integration_id=integration.id)
             try:
