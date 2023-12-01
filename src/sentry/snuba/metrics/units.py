@@ -13,7 +13,7 @@ def format_value_using_unit_and_op(
     value: Union[int, float], unit: MetricUnit, op: Optional[MetricOperationType]
 ) -> str:
     if op == "count" or op == "count_unique":
-        return str(value)
+        return round_with_fixed(value, 2)
 
     return format_value_using_unit(value, unit)
 
