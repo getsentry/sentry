@@ -2189,7 +2189,7 @@ def _get_severity_score(event: Event) -> float | None:
             try:
                 response = severity_connection_pool.urlopen(
                     "POST",
-                    "/issues/severity-score",
+                    "/v0/issues/severity-score",
                     body=json.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                 )
