@@ -75,10 +75,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
             return self.send_message(NO_IDENTITY)
         self.user = self.request.user
 
-        if not self.group_id:
-            return self.send_message(INVALID_GROUP_ID)
-
-        if not self.group:
+        if (not self.group_id) or (not self.group):
             return self.send_message(INVALID_GROUP_ID)
 
         if not self.group.organization.has_access(self.user):
