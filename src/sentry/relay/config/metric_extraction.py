@@ -19,6 +19,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
@@ -341,7 +342,11 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     if cardinality_allowed is not None:
         return cardinality_allowed
 
-    unique_columns = [f"count_unique({column})" for column in widget_query.columns]
+    unique_columns = [
+        f"count_unique({column})"
+        for column in widget_query.columns
+        if not fields.is_function(column)
+    ]
 
     query_builder = QueryBuilder(
         dataset=Dataset.Discover,
@@ -373,7 +378,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
             return False
 
         try:
-            for index, column in enumerate(widget_query.columns):
+            for index, column in enumerate(unique_columns):
                 count = processed_results["data"][0][unique_columns[index]]
                 if count > max_cardinality_allowed:
                     cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())

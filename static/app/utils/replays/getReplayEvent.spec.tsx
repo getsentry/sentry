@@ -7,6 +7,8 @@ import {
 } from 'sentry/utils/replays/getReplayEvent';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 
+const mockRRWebFrames = []; // This is only needed for replay.hydrate breadcrumbs.
+
 const frames = hydrateBreadcrumbs(
   ReplayRecordFixture({
     started_at: new Date('2022-05-04T19:41:30.00Z'),
@@ -32,7 +34,8 @@ const frames = hydrateBreadcrumbs(
       timestamp: new Date('2022-05-04T19:47:59.915000Z'),
       message: 'index 4',
     }),
-  ]
+  ],
+  mockRRWebFrames
 );
 
 const CURRENT_OFFSET_MS = frames[0].offsetMs + 15000;

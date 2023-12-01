@@ -1105,6 +1105,8 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     )
     if dry_run:
         return
+    if email_override:
+        message.send(to=(email_override,))
     else:
         analytics.record(
             "weekly_report.sent",
@@ -1113,8 +1115,5 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
             notification_uuid=template_ctx["notification_uuid"],
             user_project_count=template_ctx["user_project_count"],
         )
-    if email_override:
-        message.send(to=(email_override,))
-    else:
         message.add_users((user_id,))
         message.send_async()

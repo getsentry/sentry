@@ -279,7 +279,7 @@ def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
     )
     if stream:
         return reduce_stream(response)
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
 
 
 def reduce_stream(response):
