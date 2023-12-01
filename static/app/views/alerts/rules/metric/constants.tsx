@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
@@ -166,6 +167,30 @@ export function createDefaultRule(
   };
 }
 
+function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined {
+  if (!period) {
+    return undefined;
+  }
+
+  const periodMinutes = parsePeriodToHours(period) * 60;
+  if (periodMinutes < 0) {
+    return undefined;
+  }
+
+  const timeWindows = Object.values(TimeWindow)
+    .filter((value): value is TimeWindow => typeof value === 'number')
+    .sort((a, b) => a - b);
+
+  for (let index = 0; index < timeWindows.length; index++) {
+    const timeWindow = timeWindows[index];
+    if (periodMinutes <= timeWindow) {
+      return timeWindow;
+    }
+  }
+
+  return undefined;
+}
+
 /**
  * Create an unsaved alert from a discover EventView object
  */
@@ -183,12 +208,13 @@ export function createRuleFromEventView(eventView: EventView): UnsavedMetricRule
     // p95() -> p95(transaction.duration)
     aggregate = eventView.getYAxis().slice(0, 3) + '(transaction.duration)';
   }
-
+  const defaultRule = createDefaultRule();
   return {
-    ...createDefaultRule(),
+    ...defaultRule,
     ...datasetAndEventtypes,
     query: parsedQuery?.query ?? eventView.query,
     aggregate,
+    timeWindow: getAlertTimeWindow(eventView.interval) ?? defaultRule.timeWindow,
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }

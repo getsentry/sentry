@@ -1,8 +1,12 @@
 import {useEffect, useState} from 'react';
 
 import {ApiResult} from 'sentry/api';
-import {DateString, MetricsApiResponse} from 'sentry/types';
-import {getMetricsApiRequestQuery, MetricsQuery} from 'sentry/utils/metrics';
+import {DateString, MetricsApiRequestQuery, MetricsApiResponse} from 'sentry/types';
+import {
+  getMetricsApiRequestQuery,
+  mapToMRIFields,
+  MetricsQuery,
+} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -22,15 +26,10 @@ function getRefetchInterval(
   return 60 * 1000;
 }
 
-export function useMetricsData({
-  mri,
-  op,
-  datetime,
-  projects,
-  environments,
-  query,
-  groupBy,
-}: MetricsQuery) {
+export function useMetricsData(
+  {mri, op, datetime, projects, environments, query, groupBy}: MetricsQuery,
+  overrides: Partial<MetricsApiRequestQuery> = {}
+) {
   const organization = useOrganization();
 
   const useNewMetricsLayer = organization.features.includes(
@@ -46,10 +45,10 @@ export function useMetricsData({
       groupBy,
     },
     {datetime, projects, environments},
-    {useNewMetricsLayer}
+    {...overrides, useNewMetricsLayer}
   );
 
-  return useApiQuery<MetricsApiResponse>(
+  const metricsApiRepsonse = useApiQuery<MetricsApiResponse>(
     [`/organizations/${organization.slug}/metrics/data/`, {query: queryToSend}],
     {
       retry: 0,
@@ -59,6 +58,9 @@ export function useMetricsData({
       refetchInterval: data => getRefetchInterval(data, queryToSend.interval),
     }
   );
+  mapToMRIFields(metricsApiRepsonse.data, [field]);
+
+  return metricsApiRepsonse;
 }
 
 // Wraps useMetricsData and provides two additional features:
