@@ -5,8 +5,8 @@ import * as qs from 'query-string';
 
 import {
   DateTimeObject,
+  getDDMInterval,
   getDiffInMinutes,
-  getInterval,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {MetricsApiResponse} from 'sentry/types';
@@ -14,6 +14,7 @@ import {
   MetricMeta,
   MetricsApiRequestMetric,
   MetricsApiRequestQuery,
+  MetricsApiRequestQueryOptions,
   MetricsGroup,
   MetricType,
   MRI,
@@ -132,11 +133,11 @@ export function getDdmUrl(
 export function getMetricsApiRequestQuery(
   {field, query, groupBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
-  overrides: Partial<MetricsApiRequestQuery>
+  overrides: Partial<MetricsApiRequestQueryOptions>
 ): MetricsApiRequestQuery {
   const {mri: mri} = parseField(field) ?? {};
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getMetricsInterval(datetime, useCase);
+  const interval = getMetricsInterval(datetime, useCase, overrides.fidelity ?? 'high');
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
@@ -156,8 +157,12 @@ export function getMetricsApiRequestQuery(
 }
 
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
-export function getMetricsInterval(dateTimeObj: DateTimeObject, useCase: UseCase) {
-  const interval = getInterval(dateTimeObj, 'metrics');
+export function getMetricsInterval(
+  dateTimeObj: DateTimeObject,
+  useCase: UseCase,
+  fidelity: 'high' | 'low'
+) {
+  const interval = getDDMInterval(dateTimeObj, fidelity);
 
   if (interval !== '1m') {
     return interval;
