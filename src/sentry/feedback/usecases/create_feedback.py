@@ -219,6 +219,7 @@ def shim_to_feedback(
             feedback_event["level"] = event.data["level"]
             feedback_event["platform"] = event.platform
             feedback_event["level"] = event.data["level"]
+            feedback_event["environment"] = event.get_environment().name
         else:
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
