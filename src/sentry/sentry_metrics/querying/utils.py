@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from django.conf import settings
@@ -27,3 +28,11 @@ def fnv1a_32(data: bytes) -> int:
         result_hash = (result_hash * fnv_prime) % fnv_size
 
     return result_hash
+
+
+def remove_if_match(pattern, string: str) -> str:
+    """
+    Removes a pattern from a string.
+    """
+    # Use the re.sub function to replace the matched characters with an empty string
+    return re.sub(pattern, "", string)
