@@ -237,7 +237,11 @@ class TriggersChart extends PureComponent<Props, State> {
       newAlertOrQuery,
     });
 
-    const queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
+    let queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
+
+    if (shouldUseErrorsDiscoverDataset(query, dataset)) {
+      queryDataset = DiscoverDatasets.ERRORS;
+    }
 
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
@@ -406,7 +410,9 @@ class TriggersChart extends PureComponent<Props, State> {
         newAlertOrQuery,
       }),
       ...getForceMetricsLayerQueryExtras(organization, dataset),
-      ...(shouldUseErrorsDiscoverDataset(query, dataset) ? {dataset: 'errors'} : {}),
+      ...(shouldUseErrorsDiscoverDataset(query, dataset)
+        ? {dataset: DiscoverDatasets.ERRORS}
+        : {}),
     };
 
     if (isOnDemandMetricAlert) {
