@@ -193,7 +193,7 @@ def get_latest_threshold(project: Project):
 
 
 def get_redis_client():
-    cluster_key = settings.BLAH_BLAH_BLAH  # TODO: placeholder
+    cluster_key = settings.SENTRY_ESCALATION_THRESHOLD_REDIS_CLUSTER
     return redis_clusters.get(cluster_key)
 
 
