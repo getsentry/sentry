@@ -2,12 +2,15 @@
 of events per issue per hour, and getting it from and saving it to Redis.
 """
 
+from __future__ import annotations
+
 import logging
 import math
 from datetime import datetime, timedelta
 from typing import Optional
 
 from django.conf import settings
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from snuba_sdk import (
     Column,
     Condition,
@@ -163,7 +166,7 @@ def update_threshold(project: Project, threshold_key: str, stale_date_key: str) 
     return threshold
 
 
-def get_latest_threshold(project: Project):
+def get_latest_threshold(project: Project) -> Optional[float]:
     """
     Returns the most up-to-date threshold for the project, re-calculating if outdated or non-existent.
     If none can be calculated still, returns None.
@@ -192,9 +195,8 @@ def get_latest_threshold(project: Project):
     return threshold
 
 
-def get_redis_client():
-    cluster_key = settings.SENTRY_ESCALATION_THRESHOLD_REDIS_CLUSTER
-    return redis_clusters.get(cluster_key)
+def get_redis_client() -> RedisCluster | StrictRedis:
+    return redis_clusters.get(settings.SENTRY_ESCALATION_THRESHOLD_REDIS_CLUSTER)
 
 
 def convert_date_to_int(date: datetime) -> int:

@@ -74,6 +74,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
 
         # clickhouse's quantile function is approximate
         # https://clickhouse.com/docs/en/sql-reference/aggregate-functions/reference/quantile
+        assert actual_threshold is not None
         assert math.isclose(expected_threshold, actual_threshold, abs_tol=10**-3)
 
     def test_calculation_for_issues_first_seen_recently(self):
@@ -111,6 +112,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         threshold = calculate_threshold(self.project)
+        assert threshold is not None
         assert math.isnan(threshold)
 
     def test_calculation_excludes_issues_newer_than_an_hour(self):
@@ -132,6 +134,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         threshold = calculate_threshold(self.project)
+        assert threshold is not None
         assert math.isnan(threshold)
 
     @patch("sentry.issues.issue_velocity.update_threshold")
