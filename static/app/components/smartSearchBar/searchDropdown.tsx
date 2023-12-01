@@ -6,7 +6,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {parseSearch, SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {
+  BooleanOperator,
+  parseSearch,
+  SearchConfig,
+} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
@@ -30,16 +34,25 @@ type Props = {
   loading: boolean;
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
+  booleanKeys?: Set<string>;
   className?: string;
   customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   customPerformanceMetrics?: CustomMeasurementCollection;
+  dateKeys?: Set<string>;
+  disallowFreeText?: boolean;
   disallowWildcard?: boolean;
+  disallowedLogicalOperators?: Set<BooleanOperator>;
+  durationKeys?: Set<string>;
   invalidMessages?: SearchConfig['invalidMessages'];
   maxMenuHeight?: number;
   mergeItemsWith?: Record<string, SearchItem>;
+  numericKeys?: Set<string>;
   onIconClick?: (value: string) => void;
+  percentageKeys?: Set<string>;
   runShortcut?: (shortcut: Shortcut) => void;
+  sizeKeys?: Set<string>;
   supportedTags?: TagCollection;
+  textOperatorKeys?: Set<string>;
   visibleShortcuts?: Shortcut[];
 };
 
@@ -57,7 +70,16 @@ function SearchDropdown({
   supportedTags,
   customInvalidTagMessage,
   mergeItemsWith,
+  booleanKeys,
+  dateKeys,
+  durationKeys,
+  numericKeys,
+  percentageKeys,
+  sizeKeys,
+  textOperatorKeys,
+  disallowedLogicalOperators,
   disallowWildcard,
+  disallowFreeText,
   invalidMessages,
 }: Props) {
   return (
@@ -89,12 +111,21 @@ function SearchDropdown({
                         onClick={onClick}
                         onIconClick={onIconClick}
                         additionalSearchConfig={{
+                          supportedTags,
+                          disallowWildcard,
+                          disallowedLogicalOperators,
+                          disallowFreeText,
+                          invalidMessages,
+                          booleanKeys,
+                          dateKeys,
+                          durationKeys,
+                          numericKeys,
+                          percentageKeys,
+                          sizeKeys,
+                          textOperatorKeys,
                           ...getSearchConfigFromCustomPerformanceMetrics(
                             customPerformanceMetrics
                           ),
-                          supportedTags,
-                          disallowWildcard,
-                          invalidMessages,
                         }}
                         customInvalidTagMessage={customInvalidTagMessage}
                       />

@@ -379,6 +379,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   render() {
     const {
+      alertType,
       organization,
       disabled,
       onFilterSearch,
@@ -460,7 +461,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 flexibleControlStateSize
               >
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
-                  return hasDDMExperimentalFeature(organization) ? (
+                  return hasDDMExperimentalFeature(organization) &&
+                    alertType === 'custom_metrics' ? (
                     <MetricSearchBar
                       mri={getMRI(aggregate)}
                       projectIds={[project.id]}

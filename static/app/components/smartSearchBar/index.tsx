@@ -10,6 +10,7 @@ import {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {
+  BooleanOperator,
   FilterType,
   InvalidReason,
   ParseResult,
@@ -184,6 +185,10 @@ type Props = WithRouterProps &
      * Additional components to render as actions on the right of the search bar
      */
     actionBarItems?: ActionBarItem[];
+    /**
+     * Keys that have boolean values
+     */
+    booleanKeys?: Set<string>;
     className?: string;
     /**
      * A function that provides the current search item and can return a custom invalid tag error message for the drop-down.
@@ -194,6 +199,10 @@ type Props = WithRouterProps &
      */
     customPerformanceMetrics?: CustomMeasurementCollection;
     /**
+     * Keys that have date values
+     */
+    dateKeys?: Set<string>;
+    /**
      * The default search group to show when there is no query
      */
     defaultSearchGroup?: SearchGroup;
@@ -202,10 +211,22 @@ type Props = WithRouterProps &
      */
     disabled?: boolean;
     /**
+     * Disables free text searches
+     */
+    disallowFreeText?: boolean;
+    /**
      * Disables wildcard searches (in freeText and in the value of key:value searches mode)
      */
     disallowWildcard?: boolean;
+    /**
+     * Disables specified boolean operators
+     */
+    disallowedLogicalOperators?: Set<BooleanOperator>;
     dropdownClassName?: string;
+    /**
+     * Keys that have duration values
+     */
+    durationKeys?: Set<string>;
     /**
      * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
      * because we don't want to treat environment as a tag in some places such
@@ -253,6 +274,10 @@ type Props = WithRouterProps &
      */
     mergeSearchGroupWith?: Record<string, SearchItem>;
     /**
+     * Keys that have numeric values
+     */
+    numericKeys?: Set<string>;
+    /**
      * Called when the search input is blurred.
      * Note that the input may be blurred when the user selects an autocomplete
      * value - if you don't want that, onClose may be a better option.
@@ -284,6 +309,10 @@ type Props = WithRouterProps &
      */
     onSavedRecentSearch?: (query: string) => void;
     /**
+     * Keys that have percentage values
+     */
+    percentageKeys?: Set<string>;
+    /**
      * Prepare query value before filtering dropdown items
      */
     prepareQuery?: (query: string) => string;
@@ -292,9 +321,17 @@ type Props = WithRouterProps &
      */
     searchSource?: string;
     /**
+     * Keys that have size values
+     */
+    sizeKeys?: Set<string>;
+    /**
      * Type of supported tags
      */
     supportedTagType?: ItemType;
+    /**
+     * Keys with text values that also allow additional operation like ">=" / "<=" / ">" / "<" / "=" / "!="
+     */
+    textOperatorKeys?: Set<string>;
   };
 
 type State = {
@@ -362,12 +399,21 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     query: this.initialQuery,
     showDropdown: false,
     parsedQuery: parseSearch(this.initialQuery, {
-      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      booleanKeys: this.props.booleanKeys,
+      dateKeys: this.props.dateKeys,
+      durationKeys: this.props.durationKeys,
+      numericKeys: this.props.numericKeys,
+      percentageKeys: this.props.percentageKeys,
+      sizeKeys: this.props.sizeKeys,
+      textOperatorKeys: this.props.textOperatorKeys,
       getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
+      disallowedLogicalOperators: this.props.disallowedLogicalOperators,
       disallowWildcard: this.props.disallowWildcard,
+      disallowFreeText: this.props.disallowFreeText,
       invalidMessages: this.props.invalidMessages,
+      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
     }),
     searchTerm: '',
     searchGroups: [],
@@ -429,12 +475,21 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
   makeQueryState(query: string) {
     const additionalConfig: Partial<SearchConfig> = {
-      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      booleanKeys: this.props.booleanKeys,
+      dateKeys: this.props.dateKeys,
+      durationKeys: this.props.durationKeys,
+      numericKeys: this.props.numericKeys,
+      percentageKeys: this.props.percentageKeys,
+      sizeKeys: this.props.sizeKeys,
+      textOperatorKeys: this.props.textOperatorKeys,
       getFilterTokenWarning: this.props.getFilterWarning,
       supportedTags: this.props.supportedTags,
       validateKeys: this.props.highlightUnsupportedTags,
+      disallowedLogicalOperators: this.props.disallowedLogicalOperators,
       disallowWildcard: this.props.disallowWildcard,
+      disallowFreeText: this.props.disallowFreeText,
       invalidMessages: this.props.invalidMessages,
+      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
     };
     return {
       query,
@@ -944,7 +999,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       tree: parsedQuery,
       noResultValue: true,
       visitorTest: ({token, returnResult, skipToken}) => {
-        return token.type !== Token.FILTER && token.type !== Token.FREE_TEXT
+        return token.type !== Token.FILTER &&
+          token.type !== Token.FREE_TEXT &&
+          token.type !== Token.LOGIC_BOOLEAN
           ? null
           : token.invalid
           ? returnResult(false)
@@ -2014,8 +2071,17 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             supportedTags={supportedTags}
             customInvalidTagMessage={this.props.customInvalidTagMessage}
             mergeItemsWith={this.props.mergeSearchGroupWith}
-            disallowWildcard={this.props.disallowWildcard}
             invalidMessages={this.props.invalidMessages}
+            disallowWildcard={this.props.disallowWildcard}
+            disallowedLogicalOperators={this.props.disallowedLogicalOperators}
+            disallowFreeText={this.props.disallowFreeText}
+            booleanKeys={this.props.booleanKeys}
+            dateKeys={this.props.dateKeys}
+            durationKeys={this.props.durationKeys}
+            numericKeys={this.props.numericKeys}
+            percentageKeys={this.props.percentageKeys}
+            sizeKeys={this.props.sizeKeys}
+            textOperatorKeys={this.props.textOperatorKeys}
           />
         )}
       </Container>
