@@ -78,6 +78,7 @@ def handle_assignee_change(
 def handle_status_change(integration, data):
     status_changed = any(item for item in data["changelog"]["items"] if item["field"] == "status")
     if not status_changed:
+        logger.info("jira.handle_status_change.unchanged")
         return
 
     issue_key = data["issue"]["key"]

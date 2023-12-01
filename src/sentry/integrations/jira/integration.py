@@ -945,6 +945,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         # don't bother updating if it's already the status we'd change it to
         if jira_issue["fields"]["status"]["id"] == jira_status:
+            logger.info("jira.sync_status_outbound.unchanged")
             return
         try:
             transitions = client.get_transitions(external_issue.key)
