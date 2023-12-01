@@ -222,21 +222,11 @@ def detect_transaction_trends(
     if not options.get("statistical_detectors.enable"):
         return
 
-    # Time to filter down to just the projects that have not opted out.
-    #
-    # If we filter this in the earlier step, it makes the initial dispatch
-    # task take longer than necessary.
-    projects = [
-        project
-        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
-        if features.has("organizations:performance-statistical-detectors-ema", project.organization)
-    ]
-    settings = get_performance_issue_settings(projects)
-    projects = [
-        project
-        for project in projects
-        if settings[project][InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value]
-    ]
+    projects = get_detector_enabled_projects(
+        project_ids,
+        feature_name="organizations:performance-statistical-detectors-ema",
+        project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
+    )
 
     ratelimit = options.get("statistical_detectors.ratelimit.ema")
     trends = EndpointRegressionDetector.detect_trends(projects, start)
@@ -271,13 +261,9 @@ def detect_transaction_change_points(
 
     projects_by_id = {
         project.id: project
-        for project in Project.objects.filter(
-            id__in=[project_id for project_id, _ in transactions]
-        ).select_related("organization")
-        if (
-            features.has(
-                "organizations:performance-statistical-detectors-breakpoint", project.organization
-            )
+        for project in get_detector_enabled_projects(
+            [project_id for project_id, _ in transactions],
+            feature_name="organizations:performance-statistical-detectors-breakpoint",
         )
     }
 
@@ -289,12 +275,7 @@ def detect_transaction_change_points(
 
     for regression in _detect_transaction_change_points(transaction_pairs, start):
         breakpoint_count += 1
-        project = projects_by_id.get(int(regression["project"]))
-        released = project is not None and features.has(
-            "organizations:performance-p95-endpoint-regression-ingest",
-            project.organization,
-        )
-        send_regression_to_platform(regression, released)
+        send_regression_to_platform(regression, True)
 
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
@@ -523,11 +504,11 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
-    projects = [
-        project
-        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
-        if features.has("organizations:profiling-statistical-detectors-ema", project.organization)
-    ]
+    projects = get_detector_enabled_projects(
+        project_ids,
+        feature_name="organizations:profiling-statistical-detectors-ema",
+    )
+
     ratelimit = options.get("statistical_detectors.ratelimit.ema")
     trends = FunctionRegressionDetector.detect_trends(projects, start)
     regressions = limit_regressions_by_project(trends, ratelimit)
@@ -559,20 +540,16 @@ def detect_function_change_points(
     if not options.get("statistical_detectors.enable"):
         return
 
-    breakpoint_count = 0
-    emitted_count = 0
-
     projects_by_id = {
         project.id: project
-        for project in Project.objects.filter(
-            id__in=[project_id for project_id, _ in functions_list]
-        ).select_related("organization")
-        if (
-            features.has(
-                "organizations:profiling-statistical-detectors-breakpoint", project.organization
-            )
+        for project in get_detector_enabled_projects(
+            [project_id for project_id, _ in functions_list],
+            feature_name="organizations:profiling-statistical-detectors-breakpoint",
         )
     }
+
+    breakpoint_count = 0
+    emitted_count = 0
 
     breakpoints = _detect_function_change_points(projects_by_id, functions_list, start)
 
@@ -718,10 +695,7 @@ def emit_function_regression_issue(
                 "trend_percentage": entry["trend_percentage"],
                 "unweighted_p_value": entry["unweighted_p_value"],
                 "unweighted_t_value": entry["unweighted_t_value"],
-                "released": features.has(
-                    "organizations:profile-function-regression-ingest",
-                    project.organization,
-                ),
+                "released": True,
             }
         )
 
@@ -995,6 +969,29 @@ def query_functions_timeseries(
             )
             continue
         yield project.id, fingerprint, results[key]
+
+
+def get_detector_enabled_projects(
+    project_ids: List[int],
+    feature_name: str | None = None,
+    project_option: InternalProjectOptions | None = None,
+) -> List[Project]:
+    projects = Project.objects.filter(id__in=project_ids)
+
+    if feature_name is None:
+        projects = [project for project in projects]
+    else:
+        projects = [
+            project
+            for project in projects.select_related("organization")
+            if features.has(feature_name, project.organization)
+        ]
+
+    if project_option is not None:
+        settings = get_performance_issue_settings(projects)
+        projects = [project for project in projects if settings[project][project_option.value]]
+
+    return projects
 
 
 def limit_regressions_by_project(
