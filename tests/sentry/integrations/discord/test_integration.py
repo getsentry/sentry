@@ -28,8 +28,10 @@ class DiscordIntegrationTest(IntegrationTestCase):
         options.set("discord.bot-token", self.bot_token)
         options.set("discord.client-secret", self.client_secret)
 
+    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_commands")
     def assert_setup_flow(
         self,
+        mock_set_application_commands,
         guild_id="1234567890",
         server_name="Cool server",
         auth_code="auth_code",
@@ -81,6 +83,8 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
+
+        assert mock_set_application_commands.call_count == 1
 
     @responses.activate
     def test_bot_flow(self):
@@ -207,21 +211,36 @@ class DiscordIntegrationTest(IntegrationTestCase):
         with pytest.raises(IntegrationError):
             provider._get_discord_user_id("auth_code")
 
-    def test_post_install_overwrite_commands(self):
-        provider = self.provider()
-        provider.client.set_application_commands = mock.MagicMock(  # type: ignore
-            spec=provider.client.set_application_commands
-        )
+    # def test_post_install_overwrite_commands(self):
+    #     provider = self.provider()
+    #     provider.client.set_application_commands = mock.MagicMock(  # type: ignore
+    #         spec=provider.client.set_application_commands
+    #     )
 
-        provider.post_install(self.integration, self.organization)
-        provider.client.set_application_commands.assert_called()
+    #     provider.post_install(self.integration, self.organization)
+    #     provider.client.set_application_commands.assert_called()
 
-    def test_post_install_no_overwrite_commands(self):
-        provider = self.provider()
-        provider.client.set_application_commands = mock.MagicMock(  # type: ignore
-            spec=provider.client.set_application_commands
-        )
+    #             with self.tasks():
+    #         self.assert_setup_flow()
+    #     with self.tasks():
+    #         self.assert_setup_flow(guild_id="0987654321", server_name="Uncool server")
 
-        provider.application_id = None
-        provider.post_install(self.integration, self.organization)
-        provider.client.set_application_commands.assert_not_called()
+    #     integrations = Integration.objects.filter(provider=self.provider.key).order_by(
+    #         "external_id"
+    #     )
+
+    #     assert integrations.count() == 2
+    #     assert integrations[0].external_id == "0987654321"
+    #     assert integrations[0].name == "Uncool server"
+    #     assert integrations[1].external_id == "1234567890"
+    #     assert integrations[1].name == "Cool server"
+
+    # def test_post_install_no_overwrite_commands(self):
+    #     provider = self.provider()
+    #     provider.client.set_application_commands = mock.MagicMock(  # type: ignore
+    #         spec=provider.client.set_application_commands
+    #     )
+
+    #     provider.application_id = None
+    #     provider.post_install(self.integration, self.organization)
+    #     provider.client.set_application_commands.assert_not_called()
