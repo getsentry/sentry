@@ -168,6 +168,19 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
             assert threshold is None
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
+    @patch("sentry.issues.issue_velocity.get_redis_client")
+    def test_update_threshold_simple(self, mock_client, mock_calculation):
+        """
+        Tests that the update method gets, saves, and returns the newly calculated threshold.
+        """
+        mock_calculation.return_value = 5
+        mock_pipeline = mock_client.return_value.pipeline
+        threshold = update_threshold(self.project.id, "threshold-key", "date-key")
+        mock_pipeline.return_value.__enter__.assert_called()
+        mock_pipeline.return_value.__exit__.assert_called()
+        assert threshold == 5
+
+    @patch("sentry.issues.issue_velocity.calculate_threshold")
     def test_update_threshold_nan(self, mock_calculation):
         """
         Tests that we return None if the calculation returns NaN.
