@@ -225,3 +225,17 @@ class DiscordIntegrationTest(IntegrationTestCase):
         provider.application_id = None
         provider.post_install(self.integration, self.organization)
         provider.client.overwrite_application_commands.assert_not_called()
+
+    @mock.patch(
+        "sentry.integrations.discord.integration.cache.get",
+        return_value="discord-bot-commands-updated",
+    )
+    def test_commands_in_cache(self, mock_cache):
+        provider = self.provider()
+        provider.client.overwrite_application_commands = mock.MagicMock(  # type: ignore
+            spec=provider.client.overwrite_application_commands
+        )
+
+        provider.post_install(self.integration, self.organization)
+        provider.client.overwrite_application_commands.assert_not_called()
+        assert mock_cache.call_count == 1
