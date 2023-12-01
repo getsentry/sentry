@@ -77,7 +77,7 @@ class DiscordNonProxyClient(ApiClient):
                 extra={
                     "status": e.code,
                     "error": str(e),
-                    "application_id": self.client.application_id,
+                    "application_id": self.application_id,
                 },
             )
             raise ApiError(str(e))
@@ -95,7 +95,7 @@ class DiscordNonProxyClient(ApiClient):
                 extra={
                     "status": e.code,
                     "error": str(e),
-                    "application_id": self.client.application_id,
+                    "application_id": self.application_id,
                 },
             )
             raise ApiError(str(e))
