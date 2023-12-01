@@ -41,9 +41,9 @@ class Columns(Enum):
         group_name="status",
         event_name="status",
         transaction_name=None,
-        discover_name="status",
+        discover_name=None,
         issue_platform_name="status",
-        alias="issue.status",
+        alias="status",
     )
     # This is needed to query transactions by group id
     # in the Issue Details page. This will not be

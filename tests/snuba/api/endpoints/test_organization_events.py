@@ -240,6 +240,55 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
+    def test_treat_status_as_tag_discover_transaction(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago_iso,
+                "contexts": {
+                    "trace": {
+                        "spawn_id": "a" * 16,
+                        "trace_id": "b" * 32,
+                    },
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        query = {
+            "field": [
+                "p95()",
+                "count_unique(user)",
+                "failure_rate()",
+                "tpm()",
+                "count_miserable(user)",
+                "user_misery()",
+                "apdex()",
+                "sum(transaction.duration)",
+                "percentile(measurements.fp,0.75)",
+                "percentile(measurements.fcp,0.75)",
+                "percentile(measurements.lcp,0.75)",
+                "percentile(measurements.fid,0.75)",
+                "percentile(measurements.cls,0.75)",
+            ],
+            "query": "http.method:POST !status:OK event.type:transaction",
+            "orderby": ["-p95()"],
+            "dataset": "metricsEnhanced",
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data.get("data")) == 2
+        assert all(row.get("count()") == 1 for row in response.data.get("data"))
+
+        query = {"field": ["status", "count()"], "orderby": ["count()"], "query": ["status:good"]}
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data.get("data")) == 1
+        assert response.data.get("data")[0] == {"status": "good", "count()": 1}
+
     def test_not_has_trace_context(self):
         self.store_event(
             data={
