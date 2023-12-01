@@ -20,9 +20,11 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils import json
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
 from sentry.utils.snuba import raw_snql_query
 
@@ -35,7 +37,8 @@ WEEK_IN_HOURS = 7 * 24
 
 # for redis operations
 REDIS_TTL = 24 * 60 * 60  # 1 day
-PROJECT_KEY = "new-issue-escalation-threshold:{project_id}"
+THRESHOLD_KEY = "new-issue-escalation-threshold:{project_id}"
+STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:{project_id}"
 
 
 def calculate_threshold(project: Project) -> Optional[float]:
@@ -128,21 +131,10 @@ def calculate_threshold(project: Project) -> Optional[float]:
         return None
 
 
-def get_threshold(project_id: int) -> Optional[float]:
+def update_threshold(project: Project, threshold_key: str, stale_date_key: str) -> Optional[float]:
     """
-    Tries to get the threshold for the specified project from Redis, returning None if no threshold
-    is found.
-    """
-    client = get_redis_client()
-    key = PROJECT_KEY.format(project_id=project_id)
-    threshold = client.get(key)
-    return threshold
-
-
-def set_threshold(project: Project) -> Optional[float]:
-    """
-    Calculates and saves the threshold in Redis. If no threshold could be calculated for whatever reason,
-    we don't save anything to Redis.
+    Runs the calculation for the threshold and saves it and the date it is last updated to Redis.
+    If no threshold could be calculated for whatever reason, we don't save anything to Redis.
     """
     threshold = calculate_threshold(project)
     if threshold is None:
@@ -155,7 +147,10 @@ def set_threshold(project: Project) -> Optional[float]:
         return None
 
     client = get_redis_client()
-    client.set(PROJECT_KEY.format(project_id=project.id), threshold, ex=REDIS_TTL)
+    with client.pipeline() as p:
+        p.set(threshold_key, threshold, ex=REDIS_TTL)
+        p.set(stale_date_key, datetime.utcnow().timestamp(), ex=REDIS_TTL),
+        p.execute()
 
     return threshold
 
@@ -165,10 +160,28 @@ def get_latest_threshold(project: Project):
     Returns the most up-to-date threshold for the project, re-calculating if outdated or non-existent.
     If none can be calculated still, returns None.
     """
-    result = get_threshold(project.id)
-    if not result:  # expired or doesn't exist
-        result = set_threshold(project)
-    return result
+    keys = [
+        THRESHOLD_KEY.format(project_id=project.id),
+        STALE_DATE_KEY.format(project_id=project.id),
+    ]
+    client = get_redis_client()
+    cache_results = client.mget(
+        keys
+    )  # returns nil in place of result if key doesn't return anything
+    threshold, stale_date = cache_results[0], cache_results[1]
+    now_timestamp = datetime.utcnow().timestamp()
+    if (stale_date and stale_date < now_timestamp) or stale_date is None or threshold is None:
+        lock = locks.get(
+            f"calculate_project_thresholds:{project.id}",
+            duration=10,
+            name="calculate_project_thresholds",
+        )
+        try:
+            with lock.acquire():
+                threshold = update_threshold(project, keys[0], keys[1])
+        except UnableToAcquireLock:  # another process is already updating
+            pass
+    return threshold
 
 
 def get_redis_client():
