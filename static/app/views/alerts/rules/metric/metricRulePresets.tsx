@@ -1,7 +1,7 @@
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {MRI, Project} from 'sentry/types';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getDdmUrl, MetricDisplayType} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -24,6 +24,7 @@ interface PresetCtaOpts {
   orgSlug: string;
   projects: Project[];
   timePeriod: TimePeriodType;
+  dataset?: DiscoverDatasets;
   query?: string;
   rule?: MetricRule;
 }
@@ -37,6 +38,7 @@ export function makeDefaultCta({
   rule,
   timePeriod,
   query,
+  dataset,
 }: PresetCtaOpts): PresetCta {
   if (!rule) {
     return {
@@ -73,7 +75,8 @@ export function makeDefaultCta({
   }
 
   const extraQueryParams = {
-    display: DisplayModes.TOP5,
+    display: DisplayModes.DEFAULT,
+    dataset,
   };
 
   return {

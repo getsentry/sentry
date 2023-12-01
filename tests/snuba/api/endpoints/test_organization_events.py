@@ -240,6 +240,45 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
+    def test_treat_status_as_tag_discover_transaction(self):
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": "staging",
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"status": "good"},
+            },
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": "staging",
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"status": "bad"},
+            },
+            project_id=self.project.id,
+        )
+
+        query = {
+            "field": ["event_id"],
+            "query": "!status:good",
+            "dataset": "discover",
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"event_id": "", "id": event_2.event_id, "project.name": self.project.slug}
+        ]
+
+        query = {"field": ["event_id"], "query": ["status:good"], "dataset": "discover"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"event_id": "", "id": event_1.event_id, "project.name": self.project.slug}
+        ]
+
     def test_not_has_trace_context(self):
         self.store_event(
             data={
@@ -6149,17 +6188,18 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.data["data"][0]["count()"] == 1
 
     def test_user_display(self):
-        group_1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "timestamp": self.ten_mins_ago_iso,
-                "fingerprint": ["group1"],
-                "user": {
-                    "email": "hellboy@bar.com",
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            group_1 = self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "user": {
+                        "email": "hellboy@bar.com",
+                    },
                 },
-            },
-            project_id=self.project.id,
-        ).group
+                project_id=self.project.id,
+            ).group
 
         features = {
             "organizations:discover-basic": True,
@@ -6177,3 +6217,68 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert len(data) == 1
         result = {r["user.display"] for r in data}
         assert result == {"hellboy@bar.com"}
+
+    def test_all_events_fields(self):
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        replay_id = str(uuid.uuid4())
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            event = self.store_event(
+                data={
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {
+                        "trace": {
+                            "trace_id": str(uuid.uuid4().hex),
+                            "span_id": "933e5c9a8e464da9",
+                            "type": "trace",
+                        },
+                        "replay": {"replay_id": replay_id},
+                    },
+                    "tags": {"device": "Mac"},
+                    "user": user_data,
+                },
+                project_id=self.project.id,
+            )
+
+        query = {
+            "field": [
+                "id",
+                "transaction",
+                "title",
+                "release",
+                "environment",
+                "user.display",
+                "device",
+                "os",
+                "replayId",
+                "timestamp",
+            ],
+            "statsPeriod": "2d",
+            "query": "is:unresolved",
+            "dataset": "errors",
+            "sort": "-title",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"][0]
+
+        assert data == {
+            "id": event.event_id,
+            "events.transaction": "",
+            "project.name": event.project.name.lower(),
+            "events.title": event.group.title,
+            "release": event.release,
+            "events.environment": None,
+            "user.display": user_data["email"],
+            "device": "Mac",
+            "os": "",
+            "replayId": replay_id,
+            "events.timestamp": event.datetime.replace(microsecond=0).isoformat(),
+        }

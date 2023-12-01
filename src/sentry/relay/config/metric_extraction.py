@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
 
 import sentry_sdk
+from celery.exceptions import SoftTimeLimitExceeded
 from sentry_relay.processing import validate_sampling_condition
 
 from sentry import features, options
@@ -18,6 +19,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
@@ -47,6 +49,7 @@ _MAX_ON_DEMAND_WIDGETS = 100
 
 # TTL for cardinality check
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
+_WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL = 3600 * 0.5  # 30m
 
 HashedMetricSpec = Tuple[str, MetricSpec]
 
@@ -297,6 +300,17 @@ def _get_widget_cardinality_query_ttl():
     return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.5))
 
 
+def _get_widget_cardinality_softdeadline_ttl():
+    # This is a much shorter deadline than the main cardinality TTL in the case softdeadline is hit
+    # We want to query again soon, but still avoid thundering herd problems.
+    return int(
+        random.uniform(
+            _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL,
+            _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL * 1.5,
+        )
+    )
+
+
 def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project):
     """
     Checks cardinality of existing widget queries before allowing the metric spec, so that
@@ -305,7 +319,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     New queries will be checked upon creation and not allowed at that time.
     """
     params: Dict[str, Any] = {
-        "statsPeriod": "1d",
+        "statsPeriod": "30m",
         "project_objects": [project],
         "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
     }
@@ -317,8 +331,8 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     if query_killswitch:
         return False
 
-    if not widget_query.columns:
-        # No columns means no high-cardinality tags.
+    # No columns or only errors means no high-cardinality tags.
+    if not widget_query.columns or "event.type:error" in widget_query.conditions:
         return True
 
     max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
@@ -328,7 +342,11 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     if cardinality_allowed is not None:
         return cardinality_allowed
 
-    unique_columns = [f"count_unique({column})" for column in widget_query.columns]
+    unique_columns = [
+        f"count_unique({column})"
+        for column in widget_query.columns
+        if not fields.is_function(column)
+    ]
 
     query_builder = QueryBuilder(
         dataset=Dataset.Discover,
@@ -339,23 +357,32 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         ),
     )
 
-    try:
-        results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
-        processed_results = query_builder.process_results(results)
-    except Exception as error:
-        sentry_sdk.capture_exception(error)
-        cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
-        return False
-
     with sentry_sdk.push_scope() as scope:
+        scope.set_tag("widget_query.widget_id", widget_query.id)
+        scope.set_tag("widget_query.org_id", project.organization_id)
+        scope.set_tag("widget_query.conditions", widget_query.conditions)
+
+        try:
+            results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
+            processed_results = query_builder.process_results(results)
+        except SoftTimeLimitExceeded as error:
+            scope.set_tag("widget_soft_deadline", True)
+            sentry_sdk.capture_exception(error)
+            # We're setting a much shorter cache timeout here since this is essentially a permissive 'unknown' state
+            cache.set(cache_key, True, timeout=_get_widget_cardinality_softdeadline_ttl())
+            return True
+
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+            cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
+            return False
+
         try:
             for index, column in enumerate(widget_query.columns):
                 count = processed_results["data"][0][unique_columns[index]]
                 if count > max_cardinality_allowed:
                     cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
-                    scope.set_tag("column_name", column)
-                    scope.set_tag("widget_id", widget_query.id)
-                    scope.set_tag("org_id", project.organization_id)
+                    scope.set_tag("widget_query.column_name", column)
                     raise HighCardinalityWidgetException(
                         f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
                     )

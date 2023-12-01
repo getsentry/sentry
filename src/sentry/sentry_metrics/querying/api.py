@@ -13,18 +13,17 @@ from snuba_sdk import (
     Rollup,
     Timeseries,
 )
-from snuba_sdk.conditions import Condition, Op
-from snuba_sdk.dsl.dsl import parse_mql
+from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, ConditionGroup, Op
+from snuba_sdk.mql.mql import parse_mql
+from snuba_sdk.query_visitors import InvalidQueryError
 
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
+from sentry.sentry_metrics.querying.utils import remove_if_match
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import run_query
-
-# TODO: remove this and perform the transpilation of the grammar to MQL.
-QUERY_REGEX = re.compile(r"(\w+):([^\s]+)(?:\s|$)")
 
 
 class InvalidMetricsQueryError(Exception):
@@ -151,6 +150,19 @@ class MutableTimeseries:
     def __init__(self, timeseries: Timeseries):
         self._timeseries = timeseries
 
+        self._validate()
+
+    def _validate_filters(self, filters: Optional[ConditionGroup]):
+        for f in filters or ():
+            if isinstance(f, BooleanCondition):
+                if f.op == BooleanOp.OR:
+                    raise InvalidMetricsQueryError("The OR operator is not supported")
+
+                self._validate_filters(f.conditions)
+
+    def _validate(self):
+        self._validate_filters(self._timeseries.filters)
+
     def inject_environments(self, environments: Sequence[Environment]) -> "MutableTimeseries":
         if environments:
             environment_names = [environment.name for environment in environments]
@@ -175,6 +187,11 @@ class MutableTimeseries:
 
 
 class QueryParser:
+    # We avoid having the filters expression to be closed or opened.
+    FILTERS_SANITIZATION_PATTERN = re.compile(r"[{}]$")
+    # We avoid to have any way of opening and closing other expressions.
+    GROUP_BYS_SANITIZATION_PATTERN = re.compile(r"[(){}\[\]]")
+
     def __init__(
         self,
         fields: Sequence[str],
@@ -185,44 +202,68 @@ class QueryParser:
         self._query = query
         self._group_bys = group_bys
 
-    def _parse_query(self) -> Optional[Sequence[Condition]]:
+        # We want to sanitize the input in order to avoid any injection attacks due to the string interpolation that
+        # it's performed when building the MQL query.
+        self._sanitize()
+
+    def _sanitize(self):
         """
-        This function supports parsing in the form:
-        key:value (_ key:value)?
-        in which the only supported operator is AND until this logic is switched to the metrics layer.
+        Sanitizes the query and group bys before using them to build the MQL query.
+        """
+        if self._query:
+            self._query = remove_if_match(self.FILTERS_SANITIZATION_PATTERN, self._query)
+
+        if self._group_bys:
+            self._group_bys = [
+                remove_if_match(self.GROUP_BYS_SANITIZATION_PATTERN, group_by)
+                for group_by in self._group_bys
+            ]
+
+    def _build_mql_filters(self) -> Optional[str]:
+        """
+        Builds a set of MQL filters from a single query string.
+
+        In this case the query passed, is assumed to be already compatible with the filters grammar of MQL, thus no
+        transformation are performed.
         """
         if not self._query:
             return None
 
-        # TODO: pass directly grammar to mql.
-        filters = []
-        matches = QUERY_REGEX.findall(self._query)
-        for key, value in matches:
-            filters.append(Condition(lhs=Column(name=key), op=Op.EQ, rhs=value))
+        return self._query
 
-        return filters
-
-    def _parse_group_bys(self) -> Optional[Sequence[Column]]:
+    def _build_mql_group_bys(self) -> Optional[str]:
         """
-        Parses the group bys by converting them into a list of snuba columns.
+        Builds a set of MQL group by filters from a list of strings.
         """
         if not self._group_bys:
             return None
 
-        return [Column(group_by) for group_by in self._group_bys]
+        return ",".join(self._group_bys)
 
-    def _parse_mql(
-        self,
-        field: str,
-        filters: Optional[Sequence[Condition]],
-        group_bys: Optional[Sequence[Column]],
-    ) -> MutableTimeseries:
+    def _build_mql_query(self, field: str, filters: Optional[str], group_bys: Optional[str]) -> str:
+        """
+        Builds an MQL query string in the form `aggregate(metric){tag_key:tag_value} by (group_by_1, group_by_2).
+        """
+        mql = field
+
+        if filters is not None:
+            mql += f"{{{filters}}}"
+
+        if group_bys is not None:
+            mql += f" by ({group_bys})"
+
+        return mql
+
+    def _parse_mql(self, mql: str) -> MutableTimeseries:
         """
         Parses the field with the MQL grammar.
         """
-        timeseries = parse_mql(field).query
-        modified_timeseries = timeseries.set_filters(filters).set_groupby(group_bys)
-        return MutableTimeseries(timeseries=modified_timeseries)
+        try:
+            timeseries = parse_mql(mql).query
+        except InvalidQueryError as e:
+            raise InvalidMetricsQueryError(f"The supplied query is not valid: {e}")
+
+        return MutableTimeseries(timeseries=timeseries)
 
     def generate_queries(
         self, environments: Sequence[Environment]
@@ -233,17 +274,15 @@ class QueryParser:
         if not self._fields:
             raise InvalidMetricsQueryError("You must query at least one field.")
 
-        # TODO: take the filters, parse them via the discover grammar and convert them to MQL filters, so that
-        #   we can leverage the conversion performed automatically by the snuba sdk.
         # We first parse the filters and group bys, which are then going to be applied on each individual query
         # that is executed.
-        filters = self._parse_query()
-        group_bys = self._parse_group_bys()
+        mql_filters = self._build_mql_filters()
+        mql_group_bys = self._build_mql_group_bys()
 
         for field in self._fields:
-            # TODO: add mql string here.
+            mql_query = self._build_mql_query(field, mql_filters, mql_group_bys)
             yield (
-                self._parse_mql(field, filters, group_bys)
+                self._parse_mql(mql_query)
                 .inject_environments(environments)
                 .alias_operators()
                 .get_mutated()

@@ -1,4 +1,14 @@
+import Prism from 'prismjs';
 import prismComponents from 'prismjs/components';
+
+/**
+ * Without this, Prism will call highlightAll() automatically on page load.
+ * We call highlightElement() when necessary so this is both unnecessary and
+ * can lead to issues when loading a page in a background tab.
+ *
+ * See https://prismjs.com/docs/Prism.html#.manual
+ */
+Prism.manual = true;
 
 /**
  * A mapping object containing all Prism languages/aliases that can be loaded using
@@ -57,8 +67,15 @@ export async function loadPrismLanguage(
     // Check for dependencies (e.g. `php` requires `markup-templating`) & download them
     const deps: string[] | string | undefined =
       prismComponents.languages[language].require;
-    (Array.isArray(deps) ? deps : [deps]).forEach(
-      async dep => dep && (await import(`prismjs/components/prism-${dep}.min`))
+    const depsArray = Array.isArray(deps) ? deps : [deps];
+    await Promise.all(
+      depsArray.map(dep => {
+        if (!dep) {
+          return Promise.resolve();
+        }
+
+        return import(`prismjs/components/prism-${dep}.min`);
+      })
     );
 
     // Download language grammar file
