@@ -1,10 +1,7 @@
 import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
-import {Group} from 'sentry-fixture/group';
 import {GroupStats} from 'sentry-fixture/groupStats';
-import {Member} from 'sentry-fixture/member';
 import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
 import {Search} from 'sentry-fixture/search';
 import {Tags} from 'sentry-fixture/tags';
 
@@ -19,7 +16,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import GroupStore from 'sentry/stores/groupStore';
+import StreamGroup from 'sentry/components/stream/group';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types';
@@ -29,16 +26,17 @@ import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/ove
 
 // Mock <IssueListActions>
 jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
+jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-const project = Project({
+const project = TestStubs.Project({
   id: '3559',
   name: 'Foo Project',
   slug: 'project-slug',
-  firstEvent: new Date().toISOString(),
+  firstEvent: true,
 });
 
 const {organization, router, routerContext} = initializeOrg({
@@ -64,7 +62,7 @@ describe('IssueList', function () {
   let props;
 
   const tags = Tags();
-  const group = Group({project});
+  const group = TestStubs.Group({project});
   const groupStats = GroupStats();
   const savedSearch = Search({
     id: '789',
@@ -133,7 +131,7 @@ describe('IssueList', function () {
     fetchMembersRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       method: 'GET',
-      body: [Member({projects: [project.slug]})],
+      body: [TestStubs.Member({projects: [project.slug]})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sent-first-event/',
@@ -179,6 +177,8 @@ describe('IssueList', function () {
     let issuesRequest: jest.Mock;
 
     beforeEach(function () {
+      jest.mocked(StreamGroup).mockClear();
+
       recentSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
         method: 'GET',
@@ -437,11 +437,9 @@ describe('IssueList', function () {
     });
 
     it('caches the search results', async function () {
-      act(() => ProjectsStore.loadInitialData([project]));
-
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
-        body: [...new Array(25)].map((_, i) => Group({id: `${i}`})),
+        body: [...new Array(25)].map((_, i) => ({id: i})),
         headers: {
           Link: DEFAULT_LINKS_HEADER,
           'X-Hits': '500',
@@ -1166,23 +1164,23 @@ describe('IssueList', function () {
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async function () {
       const projects = [
-        Project({
+        TestStubs.Project({
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: undefined,
+          firstEvent: false,
         }),
-        Project({
+        TestStubs.Project({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: undefined,
+          firstEvent: false,
         }),
-        Project({
+        TestStubs.Project({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: undefined,
+          firstEvent: false,
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1212,23 +1210,23 @@ describe('IssueList', function () {
 
     it('does not display when no projects selected and any projects have a first event', async function () {
       const projects = [
-        Project({
+        TestStubs.Project({
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: '',
+          firstEvent: false,
         }),
-        Project({
+        TestStubs.Project({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: new Date().toISOString(),
+          firstEvent: true,
         }),
-        Project({
+        TestStubs.Project({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: new Date().toISOString(),
+          firstEvent: false,
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1253,23 +1251,23 @@ describe('IssueList', function () {
 
     it('displays when all selected projects do not have first event', async function () {
       const projects = [
-        Project({
+        TestStubs.Project({
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: undefined,
+          firstEvent: false,
         }),
-        Project({
+        TestStubs.Project({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: undefined,
+          firstEvent: false,
         }),
-        Project({
+        TestStubs.Project({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: undefined,
+          firstEvent: false,
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1304,23 +1302,23 @@ describe('IssueList', function () {
 
     it('does not display when any selected projects have first event', async function () {
       const projects = [
-        Project({
+        TestStubs.Project({
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: undefined,
+          firstEvent: false,
         }),
-        Project({
+        TestStubs.Project({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: new Date().toISOString(),
+          firstEvent: true,
         }),
-        Project({
+        TestStubs.Project({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: new Date().toISOString(),
+          firstEvent: true,
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1351,11 +1349,9 @@ describe('IssueList', function () {
   });
 
   it('displays a count that represents the current page', function () {
-    act(() => ProjectsStore.loadInitialData([project]));
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      body: [...new Array(25)].map((_, i) => Group({id: `${i}`})),
+      body: [...new Array(25)].map((_, i) => ({id: i})),
       headers: {
         Link: DEFAULT_LINKS_HEADER,
         'X-Hits': '500',
@@ -1444,7 +1440,7 @@ describe('IssueList', function () {
       });
 
       it('for multiple projects', function () {
-        const projectBar = Project({
+        const projectBar = TestStubs.Project({
           id: '3560',
           name: 'Bar Project',
           slug: 'project-slug-bar',
@@ -1487,191 +1483,5 @@ describe('IssueList', function () {
         ).toBeInTheDocument();
       });
     });
-  });
-});
-
-describe('stats', () => {
-  const tags = Tags();
-  const groupStats = GroupStats();
-
-  const savedSearch = Search({
-    id: '789',
-    query: 'is:unresolved TypeError',
-    sort: 'date',
-    name: 'Unresolved TypeErrors',
-  });
-
-  beforeEach(() => {
-    GroupStore.loadInitialData([]);
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [savedSearch],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-      method: 'POST',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues-count/',
-      method: 'GET',
-      body: [{}],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [
-        {
-          project: 'test-project',
-          numIssues: 1,
-          hasIssues: true,
-          lastSeen: '2019-01-16T15:39:11.081Z',
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      method: 'GET',
-      body: tags,
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      method: 'GET',
-      body: [Member({projects: [project.slug]})],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sent-first-event/',
-      body: {sentFirstEvent: true},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [project],
-    });
-  });
-
-  it('fetches stats for route', async () => {
-    const customRouterProps = {
-      params: router.params,
-      location: router.location,
-    };
-
-    const groups: any[] = [];
-    for (let i = 0; i < 25; i++) {
-      groups.push(Group({project, id: `${i}`}));
-    }
-
-    const issuesRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: groups,
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-      },
-    });
-
-    const statsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues-stats/',
-      body: [groupStats],
-    });
-
-    render(<IssueListWithStores {...customRouterProps} />, {
-      context: routerContext,
-    });
-
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    expect(issuesRequest).toHaveBeenCalled();
-    expect(statsRequest.mock.calls[0][1].query).toEqual(
-      expect.objectContaining({
-        groups: groups.map(g => g.id),
-      })
-    );
-
-    expect(await screen.findAllByTestId('group')).toHaveLength(25);
-    expect(screen.queryAllByTestId('loading-placeholder')).toHaveLength(0);
-  });
-
-  it('refetches stats for another route', async () => {
-    const customRouterProps = {
-      params: router.params,
-      location: router.location,
-    };
-
-    const groups: any[] = [];
-    const statsForGroups: any[] = [];
-
-    for (let i = 0; i < 25; i++) {
-      groups.push(Group({project, id: `${i}`}));
-      statsForGroups.push(GroupStats({id: `${i}`}));
-    }
-
-    const forReviewGroups: any[] = [];
-    const forReviewGroupStats: any[] = [];
-    for (let i = 0; i < 25; i++) {
-      forReviewGroups.push(Group({project, id: `${groups.length + i}`}));
-      forReviewGroupStats.push(GroupStats({id: `${groups.length + i}`}));
-    }
-
-    const issuesRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: groups,
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-      },
-    });
-
-    const statsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues-stats/',
-      body: [statsForGroups],
-    });
-
-    const {rerender} = render(<IssueListWithStores {...customRouterProps} />, {
-      context: routerContext,
-    });
-
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    expect(issuesRequest).toHaveBeenCalled();
-    expect(statsRequest).toHaveBeenCalled();
-
-    expect(await screen.findAllByTestId('group')).toHaveLength(25);
-    expect(screen.queryAllByTestId('loading-placeholder')).toHaveLength(0);
-
-    const newRouteProps = {
-      ...customRouterProps,
-      location: {
-        ...customRouterProps.location,
-        query: {
-          query:
-            'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none] ',
-        },
-        hash: '',
-      },
-    };
-
-    const forReviewGroupsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: forReviewGroups,
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-      },
-    });
-
-    const forReviewStatsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues-stats/',
-      body: [forReviewGroupStats],
-    });
-
-    rerender(<IssueListWithStores {...newRouteProps} />);
-
-    expect(forReviewGroupsRequest).toHaveBeenCalled();
-    expect(forReviewStatsRequest).toHaveBeenCalled();
-
-    expect(await screen.findAllByTestId('group')).toHaveLength(25);
-    expect(screen.queryAllByTestId('loading-placeholder')).toHaveLength(0);
   });
 });

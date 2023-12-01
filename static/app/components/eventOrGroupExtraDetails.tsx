@@ -18,7 +18,6 @@ import type {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import withOrganization from 'sentry/utils/withOrganization';
-import {useGroupStats} from 'sentry/views/issueList/groupStatsProvider';
 
 type Props = {
   data: Event | Group;
@@ -44,12 +43,12 @@ function EventOrGroupExtraDetails({
     annotations,
     shortId,
     project,
+    lifetime,
+    isUnhandled,
     inbox,
     status,
     substatus,
   } = data as Group;
-
-  const {lifetime, isUnhandled} = useGroupStats(data as Group);
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
