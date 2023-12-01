@@ -88,7 +88,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
             )
             if not groups:
                 raise ParseError(detail="No matching groups found")
-            elif len(groups) > 25:
+            elif len(groups) > 100:
                 raise ParseError(detail="Too many groups requested.")
             elif not all(request.access.has_project_access(g.project) for g in groups):
                 raise PermissionDenied
