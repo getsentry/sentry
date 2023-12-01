@@ -203,4 +203,28 @@ describe('ResolveActions', function () {
       screen.queryByText('Resolving is better with Releases')
     ).not.toBeInTheDocument();
   });
+
+  it('does render more resolve options', function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        disableResolveInRelease={false}
+      />
+    );
+    expect(screen.getByLabelText('More resolve options')).toBeInTheDocument();
+  });
+
+  it('does not render more resolve options', function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        disableResolveInRelease
+      />
+    );
+    expect(screen.queryByLabelText('More resolve options')).not.toBeInTheDocument();
+  });
 });

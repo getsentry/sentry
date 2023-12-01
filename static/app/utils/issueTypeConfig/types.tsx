@@ -15,10 +15,12 @@ export type IssueTypeConfig = {
    * Enable/disable actions for an issue type
    */
   actions: {
+    archiveUntilOccurrence: DisabledWithReasonConfig;
     delete: DisabledWithReasonConfig;
     deleteAndDiscard: DisabledWithReasonConfig;
     ignore: DisabledWithReasonConfig;
     merge: DisabledWithReasonConfig;
+    resolveInRelease: DisabledWithReasonConfig;
     share: DisabledWithReasonConfig;
   };
   /**

@@ -55,6 +55,7 @@ export interface ResolveActionsProps {
   confirmLabel?: string;
   confirmMessage?: React.ReactNode;
   disableDropdown?: boolean;
+  disableResolveInRelease?: boolean;
   disabled?: boolean;
   isAutoResolved?: boolean;
   isResolved?: boolean;
@@ -79,6 +80,7 @@ function ResolveActions({
   shouldConfirm,
   disabled,
   disableDropdown,
+  disableResolveInRelease,
   priority,
   projectFetchError,
   multipleProjectsSelected,
@@ -303,7 +305,7 @@ function ResolveActions({
         >
           {t('Resolve')}
         </ResolveButton>
-        {renderDropdownMenu()}
+        {!disableResolveInRelease && renderDropdownMenu()}
       </ButtonBar>
     </Tooltip>
   );
@@ -313,7 +315,6 @@ export default ResolveActions;
 
 const ResolveButton = styled(Button)<{priority?: 'primary'}>`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadiusLeft};
   ${p =>
     p.priority === 'primary' &&
     css`
