@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect, useMemo, useState} from 'react';
+import {createContext, useContext, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {dropUndefinedKeys} from '@sentry/utils';
 import * as reactQuery from '@tanstack/react-query';
@@ -80,10 +80,6 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
   const api = useApi();
   const [groupStats, setGroupStats] = useState<Record<string, GroupStats>>({});
 
-  const groupIds = useMemo(() => {
-    return props.groupIds.filter(id => !groupStats[id]);
-  }, [props.groupIds, groupStats]);
-
   const queryFn = (): Promise<Record<string, GroupStats>> => {
     const promise = api
       .requestPromise<true>(`/organizations/${props.organization.slug}/issues-stats/`, {
@@ -92,7 +88,7 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
           selection: props.selection,
           period: props.period,
           query: props.query,
-          groupIds,
+          groupIds: props.groupIds,
         }),
         includeAllArgs: true,
       })
@@ -121,11 +117,11 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
       props.selection,
       props.period,
       props.query,
-      groupIds,
+      props.groupIds,
     ],
     queryFn,
     {
-      enabled: groupIds.length > 0,
+      enabled: props.groupIds.length > 0,
       staleTime: Infinity,
     }
   );
