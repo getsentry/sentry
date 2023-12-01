@@ -526,7 +526,9 @@ def detect_function_change_points(
     breakpoint_count = 0
     emitted_count = 0
 
-    regressions = FunctionRegressionDetector.detect_regressions(function_pairs, start, "p95()")
+    regressions = FunctionRegressionDetector.detect_regressions(
+        function_pairs, start, "p95()", TIMESERIES_PER_BATCH
+    )
 
     for regression_chunk in chunked(regressions, 100):
         breakpoint_count += len(regression_chunk)
