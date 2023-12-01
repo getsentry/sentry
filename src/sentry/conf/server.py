@@ -895,6 +895,7 @@ CELERY_QUEUES_REGION = [
     Queue("merge", routing_key="merge"),
     Queue("notifications", routing_key="notifications"),
     Queue("options", routing_key="options"),
+    Queue("outbox", routing_key="outbox"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
@@ -3995,3 +3996,5 @@ if SILO_DEVSERVER:
 
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
+
+    CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"

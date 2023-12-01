@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Type
+from typing import Type
 
 import sentry_sdk
 from celery import Task
@@ -32,7 +32,9 @@ def enqueue_outbox_jobs_control(
     )
 
 
-@instrumented_task(name="sentry.tasks.enqueue_outbox_jobs", silo_mode=SiloMode.REGION)
+@instrumented_task(
+    name="sentry.tasks.enqueue_outbox_jobs", queue="outbox", silo_mode=SiloMode.REGION
+)
 def enqueue_outbox_jobs(concurrency: int | None = None, process_outbox_backfills=True, **kwargs):
     schedule_batch(
         silo_mode=SiloMode.REGION,
@@ -96,21 +98,8 @@ def schedule_batch(
 
 
 @instrumented_task(
-    name="sentry.tasks.drain_outbox_shard_control",
-    queue="outbox.control",
-    silo_mode=SiloMode.CONTROL,
+    name="sentry.tasks.drain_outbox_shards", queue="outbox", silo_mode=SiloMode.REGION
 )
-def drain_outbox_shard_control(**kwargs: Any):
-    return
-
-
-# Retiring this job.
-@instrumented_task(name="sentry.tasks.drain_outbox_shard", silo_mode=SiloMode.REGION)
-def drain_outbox_shard(**kwds: Any):
-    return
-
-
-@instrumented_task(name="sentry.tasks.drain_outbox_shards", silo_mode=SiloMode.REGION)
 def drain_outbox_shards(
     outbox_identifier_low: int = 0,
     outbox_identifier_hi: int = 0,
@@ -129,7 +118,11 @@ def drain_outbox_shards(
         raise
 
 
-@instrumented_task(name="sentry.tasks.drain_outbox_shards_control", silo_mode=SiloMode.CONTROL)
+@instrumented_task(
+    name="sentry.tasks.drain_outbox_shards_control",
+    queue="outbox.control",
+    silo_mode=SiloMode.CONTROL,
+)
 def drain_outbox_shards_control(
     outbox_identifier_low: int = 0,
     outbox_identifier_hi: int = 0,
