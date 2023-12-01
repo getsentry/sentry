@@ -23,6 +23,7 @@ type Size = 'small' | 'normal';
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
   organization: Organization;
+  eventId?: string;
   /* is issue breakdown? */
   grouping?: boolean;
   hideIcons?: boolean;
@@ -46,6 +47,7 @@ function EventOrGroupHeader({
   onClick,
   hideIcons,
   hideLevel,
+  eventId,
   size = 'normal',
   grouping = false,
   source,
@@ -103,13 +105,16 @@ function EventOrGroupHeader({
       );
     }
 
+    // If we have passed in a custom event ID, use it; otherwise use default
+    const finalEventId = eventId ?? eventID;
+
     return (
       <TitleWithLink
         {...commonEleProps}
         to={{
           pathname: `/organizations/${organization.slug}/issues/${
             eventID ? groupID : id
-          }/${eventID ? `events/${eventID}/` : ''}`,
+          }/${finalEventId ? `events/${finalEventId}/` : ''}`,
           query: {
             referrer: source || 'event-or-group-header',
             stream_index: index,
