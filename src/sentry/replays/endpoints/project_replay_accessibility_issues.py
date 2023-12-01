@@ -82,11 +82,19 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             # Increment a counter for every call to the accessibility service.
             metrics.incr("session-replay-accessibility-issues-count")
 
+            # We only support direct-storage. Filestore is deprecated and should be removed
+            # from the driver.
             if timestamp is None:
-                # We only support direct-storage.  Filestore is deprecated and should be removed
-                # from the driver.
-                segments = fetch_direct_storage_segments_meta(project.id, replay_id, offset, limit)
+                # If no timestamp is provided we render 5 segments by convention.
+                segments = fetch_direct_storage_segments_meta(
+                    project.id,
+                    replay_id,
+                    offset,
+                    limit=5,
+                )
             else:
+                # If a timestamp was provided we fetch every segment that started prior to the
+                # timestamp value.
                 results = query_segment_storage_meta_by_timestamp(
                     project.organization.id,
                     project.id,
