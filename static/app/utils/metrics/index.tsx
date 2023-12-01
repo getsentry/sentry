@@ -313,10 +313,18 @@ const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
 
 const getShortMetricUnit = (unit: string): string => METRIC_UNIT_TO_SHORT[unit] ?? '';
 
-export function formatMetricUsingFixedUnit(value: number | null, unit: string) {
-  return value !== null
-    ? `${round(value, 3).toLocaleString()} ${getShortMetricUnit(unit)}`.trim()
-    : '\u2015';
+export function formatMetricUsingFixedUnit(
+  value: number | null,
+  unit: string,
+  op?: string
+) {
+  if (value === null) {
+    return '\u2014';
+  }
+
+  return op === 'count'
+    ? round(value, 3).toLocaleString()
+    : `${round(value, 3).toLocaleString()}${getShortMetricUnit(unit)}`.trim();
 }
 
 export function formatMetricsUsingUnitAndOp(
