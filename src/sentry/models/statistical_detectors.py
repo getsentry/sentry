@@ -56,8 +56,7 @@ class RegressionGroup(Model):
     # The fingerprint sent to the issue platform which
     # accepts a list of strings. This corresponds to the
     # first string which is a 8-16 char hex value.
-    # Here, it's being stored as it's integer equivalent.
-    fingerprint = BoundedBigIntegerField()
+    fingerprint = models.CharField(max_length=32)
 
     # The value measured from before the regression.
     baseline = models.FloatField()
