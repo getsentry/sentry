@@ -953,9 +953,9 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "deliver-from-outbox-control": {
         "task": "sentry.tasks.enqueue_outbox_jobs_control",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 30, "queue": "outbox.control"},
+        # Run every 30 seconds as integration webhooks are delivered by this task
+        "schedule": timedelta(seconds=30),
+        "options": {"expires": 90, "queue": "outbox.control"},
     },
     "schedule-deletions-control": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
