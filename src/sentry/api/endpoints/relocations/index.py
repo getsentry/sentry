@@ -24,6 +24,9 @@ from sentry.utils.db import atomic_transaction
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 
 ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this owner"
+ERR_THROTTLED_RELOCATION = (
+    "We've reached our daily limit of relocations - please try again tomorrow or contact support."
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +34,7 @@ RELOCATION_FILE_SIZE_SMALL = 10 * 1024**2
 RELOCATION_FILE_SIZE_MEDIUM = 100 * 1024**2
 
 
-def get_relocation_bucket(size) -> str:
+def get_relocation_size_category(size) -> str:
     if size < RELOCATION_FILE_SIZE_SMALL:
         return "small"
     elif size < RELOCATION_FILE_SIZE_MEDIUM:
@@ -45,7 +48,7 @@ def should_throttle_relocation(relocation_bucket_size) -> bool:
     )
     num_recent_same_size_relocation_files = reduce(
         lambda acc, relocation_file: acc + 1
-        if get_relocation_bucket(relocation_file.file.size) == relocation_bucket_size
+        if get_relocation_size_category(relocation_file.file.size) == relocation_bucket_size
         else acc,
         recent_relocation_files,
         0,
@@ -116,10 +119,10 @@ class RelocationIndexEndpoint(Endpoint):
         ).exists():
             return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=409)
 
-        relocation_bucket_size = get_relocation_bucket(fileobj.size)
-        if should_throttle_relocation(relocation_bucket_size):
+        relocation_size_category = get_relocation_size_category(fileobj.size)
+        if should_throttle_relocation(relocation_size_category):
             return Response(
-                {"detail": f"Already reached daily limit of {relocation_bucket_size} relocations"},
+                {"detail": ERR_THROTTLED_RELOCATION},
                 status=429,
             )
 
