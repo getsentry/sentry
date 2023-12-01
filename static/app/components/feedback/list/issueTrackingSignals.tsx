@@ -10,9 +10,21 @@ interface Props {
   group: Group;
 }
 
-function MutateActions(actions: ExternalIssueComponent[]) {
-  // TODO: fix the `hasLinkedIssue` references. it's broken for plugin-issues and plugin-actions
-  return actions;
+function filterLinkedPlugins(actions: ExternalIssueComponent[]) {
+  // Plugins: need to do some extra logic to detect if the issue is linked,
+  // by checking if there exists an issue object
+  const plugins = actions.filter(
+    a =>
+      (a.type === 'plugin-issue' || a.type === 'plugin-action') &&
+      'issue' in a.props.plugin
+  );
+
+  // Non plugins: can read directly from the `hasLinkedIssue` property
+  const nonPlugins = actions.filter(
+    a => a.hasLinkedIssue && !(a.type === 'plugin-issue' || a.type === 'plugin-action')
+  );
+
+  return plugins.concat(nonPlugins);
 }
 
 export default function IssueTrackingSignals({group}: Props) {
@@ -22,7 +34,7 @@ export default function IssueTrackingSignals({group}: Props) {
     project: group.project,
   });
 
-  const linkedIssues = MutateActions(actions).filter(a => a.hasLinkedIssue);
+  const linkedIssues = filterLinkedPlugins(actions);
 
   if (!linkedIssues.length) {
     return null;
