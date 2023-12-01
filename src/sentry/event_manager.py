@@ -144,7 +144,7 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>"]
+NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
 
 
 @dataclass
