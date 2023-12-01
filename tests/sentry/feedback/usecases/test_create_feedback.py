@@ -110,7 +110,7 @@ def test_fix_for_issue_platform():
         "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
         "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
     }
-    assert fixed_event["extra"]["message"] == event["contexts"]["feedback"]["message"]
+    assert fixed_event["logentry"]["message"] == event["contexts"]["feedback"]["message"]
 
     # Assert the contact-email is set as the user-email when no user-email exists.
     event["user"].pop("email")

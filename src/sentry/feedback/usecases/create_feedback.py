@@ -108,7 +108,7 @@ def fix_for_issue_platform(event_data):
         ret_event["user"]["email"] = contact_email
 
     # Set the event message to the feedback message.
-    ret_event["extra"] = {"message": feedback_obj.get("message")}
+    ret_event["logentry"] = {"message": feedback_obj.get("message")}
 
     return ret_event
 
